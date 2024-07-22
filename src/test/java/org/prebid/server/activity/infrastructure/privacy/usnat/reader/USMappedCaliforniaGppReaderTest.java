@@ -2,12 +2,11 @@ package org.prebid.server.activity.infrastructure.privacy.usnat.reader;
 
 import com.iab.gpp.encoder.GppModel;
 import com.iab.gpp.encoder.section.UsCaV1;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Collections;
 
@@ -16,10 +15,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verifyNoInteractions;
 
+@ExtendWith(MockitoExtension.class)
 public class USMappedCaliforniaGppReaderTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private GppModel gppModel;
@@ -29,7 +26,7 @@ public class USMappedCaliforniaGppReaderTest {
 
     private USMappedCaliforniaGppReader gppReader;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(gppModel.getUsCaV1Section()).willReturn(usCaV1);
 

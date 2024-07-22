@@ -9,7 +9,7 @@ import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.SupplyChain;
 import com.iab.openrtb.request.User;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtSource;

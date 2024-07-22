@@ -18,12 +18,11 @@ import com.iab.openrtb.request.Request;
 import com.iab.openrtb.request.TitleObject;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.request.VideoObject;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
@@ -47,27 +46,26 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 
+@ExtendWith(MockitoExtension.class)
 public class ImpValidatorTest extends VertxTest {
 
     private static final String RUBICON = "rubicon";
 
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
     @Mock
     private BidderParamValidator bidderParamValidator;
-    @Mock
+    @Mock(strictness = LENIENT)
     private BidderCatalog bidderCatalog;
 
     private ImpValidator target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
-        given(bidderCatalog.isValidName(eq(RUBICON))).willReturn(true);
-        given(bidderCatalog.isActive(eq(RUBICON))).willReturn(true);
-
         target = new ImpValidator(bidderParamValidator, bidderCatalog, jacksonMapper);
+
+        given(bidderCatalog.isValidName(RUBICON)).willReturn(true);
+        given(bidderCatalog.isActive(RUBICON)).willReturn(true);
     }
 
     @Test

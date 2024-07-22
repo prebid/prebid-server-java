@@ -1,8 +1,11 @@
 package org.prebid.server.functional.tests
 
 import org.mockserver.model.HttpStatusCode
+import org.prebid.server.functional.model.db.StoredResponse
 import org.prebid.server.functional.model.request.auction.BidRequest
+import org.prebid.server.functional.model.request.auction.StoredAuctionResponse
 import org.prebid.server.functional.model.response.auction.BidResponse
+import org.prebid.server.functional.model.response.auction.SeatBid
 import org.prebid.server.functional.util.PBSUtils
 
 import static org.mockserver.model.HttpStatusCode.NO_CONTENT_204
@@ -85,7 +88,7 @@ class SeatNonBidSpec extends BaseSpec {
         when: "PBS processes auction request"
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "PBS response should contain seatNonBid"
+        then: "PBS response shouldn't contain seatNonBid"
         assert !response.ext.seatnonbid
         assert response.seatbid
     }
@@ -204,5 +207,27 @@ class SeatNonBidSpec extends BaseSpec {
 
         and: "seatbid should be empty"
         assert response.seatbid.isEmpty()
+    }
+
+    def "PBS shouldn't populate seatNonBid when returnAllBidStatus=true and storedAuctionResponse present"() {
+        given: "Default bid request with returnAllBidStatus and storedAuction"
+        def storedResponseId = PBSUtils.randomNumber
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.returnAllBidStatus = true
+            imp[0].ext.prebid.storedAuctionResponse = new StoredAuctionResponse(id: storedResponseId)
+        }
+
+        and: "Stored auction response in DB"
+        def storedAuctionResponse = SeatBid.getStoredResponse(bidRequest)
+        def storedResponse = new StoredResponse(responseId: storedResponseId,
+                storedAuctionResponse: storedAuctionResponse)
+        storedResponseDao.save(storedResponse)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS response shouldn't contain seatNonBid"
+        assert !response.ext.seatnonbid
+        assert response.seatbid
     }
 }

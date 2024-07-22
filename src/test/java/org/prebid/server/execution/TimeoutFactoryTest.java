@@ -1,7 +1,7 @@
 package org.prebid.server.execution;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -16,7 +16,7 @@ public class TimeoutFactoryTest {
 
     private TimeoutFactory timeoutFactory;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         timeoutFactory = new TimeoutFactory(clock);

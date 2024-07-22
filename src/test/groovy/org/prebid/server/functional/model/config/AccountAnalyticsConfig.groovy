@@ -1,5 +1,6 @@
 package org.prebid.server.functional.model.config
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.databind.annotation.JsonNaming
 import groovy.transform.ToString
@@ -10,4 +11,7 @@ class AccountAnalyticsConfig {
 
     Map<String, Boolean> auctionEvents
     Boolean allowClientDetails
+
+    @JsonProperty("auction_events")
+    Map<String, Boolean> auctionEventsSnakeCase
 }

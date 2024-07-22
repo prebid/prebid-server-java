@@ -1,6 +1,7 @@
 package org.prebid.server.functional.tests.pricefloors
 
 import org.prebid.server.functional.model.Currency
+import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountPriceFloorsConfig
@@ -105,24 +106,28 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
         BidRequest.defaultBidRequest.tap { imp[0].video = Video.defaultVideo }
     }
 
-    protected void cacheFloorsProviderRules(PrebidServerService pbsService = floorsPbsService,
-                                            BidRequest bidRequest,
-                                            BigDecimal expectedFloorValue) {
-        PBSUtils.waitUntil({ pbsService.sendAuctionRequest(bidRequest).ext.debug.resolvedRequest.imp[0].bidFloor == expectedFloorValue },
+    protected void cacheFloorsProviderRules(BidRequest bidRequest,
+                                            BigDecimal expectedFloorValue,
+                                            PrebidServerService pbsService = floorsPbsService,
+                                            BidderName bidderName = BidderName.GENERIC) {
+        PBSUtils.waitUntil({ getRequests(pbsService.sendAuctionRequest(bidRequest))[bidderName.value].first.imp[0].bidFloor == expectedFloorValue },
                 5000,
                 1000)
     }
 
-    protected void cacheFloorsProviderRules(PrebidServerService pbsService = floorsPbsService, BidRequest bidRequest) {
-        PBSUtils.waitUntil({ pbsService.sendAuctionRequest(bidRequest).ext?.debug?.resolvedRequest?.ext?.prebid?.floors?.fetchStatus != INPROGRESS },
+    protected void cacheFloorsProviderRules(BidRequest bidRequest,
+                                            PrebidServerService pbsService = floorsPbsService,
+                                            BidderName bidderName = BidderName.GENERIC) {
+        PBSUtils.waitUntil({ getRequests(pbsService.sendAuctionRequest(bidRequest))[bidderName.value]?.first?.ext?.prebid?.floors?.fetchStatus != INPROGRESS },
                 5000,
                 1000)
     }
 
-    protected void cacheFloorsProviderRules(PrebidServerService pbsService = floorsPbsService,
-                                            AmpRequest ampRequest,
-                                            BigDecimal expectedFloorValue) {
-        PBSUtils.waitUntil({ pbsService.sendAmpRequest(ampRequest).ext.debug.resolvedRequest.imp[0].bidFloor == expectedFloorValue },
+    protected void cacheFloorsProviderRules(AmpRequest ampRequest,
+                                            BigDecimal expectedFloorValue,
+                                            PrebidServerService pbsService = floorsPbsService,
+                                            BidderName bidderName = BidderName.GENERIC) {
+        PBSUtils.waitUntil({ getRequests(pbsService.sendAmpRequest(ampRequest))[bidderName.value].first.imp[0].bidFloor == expectedFloorValue },
                 5000,
                 1000)
     }

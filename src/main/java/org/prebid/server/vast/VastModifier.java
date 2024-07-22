@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.cache.proto.request.PutObject;
+import org.prebid.server.cache.proto.request.bid.BidPutObject;
 import org.prebid.server.events.EventsContext;
 import org.prebid.server.events.EventsService;
 import org.prebid.server.exception.PreBidException;
@@ -44,20 +44,20 @@ public class VastModifier {
 
     public JsonNode modifyVastXml(Boolean isEventsEnabled,
                                   Set<String> allowedBidders,
-                                  PutObject putObject,
+                                  BidPutObject bidPutObject,
                                   String accountId,
                                   String integration) {
-        final JsonNode value = putObject.getValue();
-        final String bidder = putObject.getBidder();
+        final JsonNode value = bidPutObject.getValue();
+        final String bidder = bidPutObject.getBidder();
         final boolean isValueValid = value != null && !value.isNull();
         if (BooleanUtils.isTrue(isEventsEnabled) && allowedBidders.contains(bidder) && isValueValid) {
             final EventsContext eventsContext = EventsContext.builder()
-                    .auctionId(putObject.getAid())
-                    .auctionTimestamp(putObject.getTimestamp())
+                    .auctionId(bidPutObject.getAid())
+                    .auctionTimestamp(bidPutObject.getTimestamp())
                     .integration(integration)
                     .build();
             final String vastUrlTracking = eventsService.vastUrlTracking(
-                    putObject.getBidid(),
+                    bidPutObject.getBidid(),
                     bidder,
                     accountId,
                     eventsContext);

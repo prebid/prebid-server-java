@@ -1,0 +1,21 @@
+version: "3.9"
+services:
+  001_banner:
+    platform: linux/amd64
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+    image: pbs-sample
+    container_name: 001_banner
+    privileged: true
+    environment:
+      JAVA_OPTS: "-Dspring.config.additional-location=/app/prebid-server/app.yaml"
+    ports:
+      - "8080:8080"
+      - "8060:8060"
+    volumes:
+      - ./configs/config.yaml:/app/prebid-server/app.yaml
+      - ./configs/file-settings.yaml:/sample/file-settings.yaml
+      - ./data/test-stored-request.json:/sample/stored/test-stored-request.json
+      - ./data/test-stored-response.json:/sample/stored/test-stored-response.json
+      - ./data/pbjs.html:/app/prebid-server/static/pbjs.html

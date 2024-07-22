@@ -2,14 +2,13 @@ package org.prebid.server.vast;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.TextNode;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.cache.proto.request.PutObject;
+import org.prebid.server.cache.proto.request.bid.BidPutObject;
 import org.prebid.server.events.EventsContext;
 import org.prebid.server.events.EventsService;
 import org.prebid.server.metric.MetricName;
@@ -24,8 +23,10 @@ import static java.util.Collections.singleton;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.verify;
 
+@ExtendWith(MockitoExtension.class)
 public class VastModifierTest {
 
     private static final String AUCTION_ID = "auctionId";
@@ -37,19 +38,16 @@ public class VastModifierTest {
     private static final String BID_NURL = "nurl1";
     private static final long AUCTION_TIMESTAMP = 1000L;
 
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
-    @Mock
+    @Mock(strictness = LENIENT)
     private BidderCatalog bidderCatalog;
-    @Mock
+    @Mock(strictness = LENIENT)
     private EventsService eventsService;
     @Mock
     private Metrics metrics;
 
     private VastModifier target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(eventsService.vastUrlTracking(any(), any(), any(), any()))
                 .willReturn(VAST_URL_TRACKING);
@@ -432,8 +430,8 @@ public class VastModifierTest {
         assertThat(result).isEqualTo(admWithNoImpression);
     }
 
-    private static PutObject givenPutObject(TextNode adm) {
-        return PutObject.builder()
+    private static BidPutObject givenPutObject(TextNode adm) {
+        return BidPutObject.builder()
                 .type("xml")
                 .bidid("bidId2")
                 .bidder(BIDDER)
@@ -442,7 +440,7 @@ public class VastModifierTest {
                 .build();
     }
 
-    private static PutObject putObject() {
+    private static BidPutObject putObject() {
         return givenPutObject(nodeAdm());
     }
 

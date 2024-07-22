@@ -5,12 +5,11 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Deal;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Pmp;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.json.JsonMerger;
@@ -28,10 +27,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 
+@ExtendWith(MockitoExtension.class)
 public class ImpAdjusterTest extends VertxTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private ImpValidator impValidator;
@@ -43,7 +40,7 @@ public class ImpAdjusterTest extends VertxTest {
 
     private BidderAliases bidderAliases;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new ImpAdjuster(jacksonMapper, new JsonMerger(jacksonMapper), impValidator);
         bidderAliases = BidderAliases.of(

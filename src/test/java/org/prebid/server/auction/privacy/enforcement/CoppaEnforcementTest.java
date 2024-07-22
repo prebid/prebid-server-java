@@ -3,12 +3,12 @@ package org.prebid.server.auction.privacy.enforcement;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.User;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.auction.privacy.enforcement.mask.UserFpdCoppaMask;
@@ -18,25 +18,26 @@ import org.prebid.server.privacy.model.PrivacyContext;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
+@ExtendWith(MockitoExtension.class)
 public class CoppaEnforcementTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private UserFpdCoppaMask userFpdCoppaMask;
     @Mock
     private Metrics metrics;
+    @Mock
+    private ActivityInfrastructure activityInfrastructure;
 
     private CoppaEnforcement target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new CoppaEnforcement(userFpdCoppaMask, metrics);
     }
@@ -73,6 +74,7 @@ public class CoppaEnforcementTest {
         given(userFpdCoppaMask.maskDevice(any())).willReturn(maskedDevice);
 
         final AuctionContext auctionContext = AuctionContext.builder()
+                .activityInfrastructure(activityInfrastructure)
                 .bidRequest(BidRequest.builder().device(Device.builder().ip("originalDevice").build()).build())
                 .build();
         final Map<String, User> bidderToUser = Map.of("bidder", User.builder().id("originalUser").build());
@@ -85,6 +87,6 @@ public class CoppaEnforcementTest {
             assertThat(privacyResult.getUser()).isSameAs(maskedUser);
             assertThat(privacyResult.getDevice()).isSameAs(maskedDevice);
         });
-        verify(metrics).updatePrivacyCoppaMetric();
+        verify(metrics).updatePrivacyCoppaMetric(activityInfrastructure, Set.of("bidder"));
     }
 }

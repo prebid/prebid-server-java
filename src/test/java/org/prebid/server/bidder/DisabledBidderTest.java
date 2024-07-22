@@ -1,6 +1,6 @@
 package org.prebid.server.bidder;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;

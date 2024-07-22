@@ -18,7 +18,6 @@ import java.math.RoundingMode;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -111,20 +110,21 @@ public class BidderUtil {
     }
 
     public static BidType getBidType(Bid bid, Map<String, Imp> impIdToImpMap) {
-        return Optional.ofNullable(impIdToImpMap.get(bid.getImpid()))
-                .map(imp -> {
-                    if (imp.getBanner() != null) {
-                        return BidType.banner;
-                    } else if (imp.getVideo() != null) {
-                        return BidType.video;
-                    } else if (imp.getXNative() != null) {
-                        return BidType.xNative;
-                    } else if (imp.getAudio() != null) {
-                        return BidType.audio;
-                    } else {
-                        return BidType.banner;
-                    }
-                })
-                .orElse(BidType.banner);
+        final Imp imp = impIdToImpMap.get(bid.getImpid());
+        if (imp == null) {
+            return BidType.banner;
+        }
+
+        if (imp.getBanner() != null) {
+            return BidType.banner;
+        } else if (imp.getVideo() != null) {
+            return BidType.video;
+        } else if (imp.getXNative() != null) {
+            return BidType.xNative;
+        } else if (imp.getAudio() != null) {
+            return BidType.audio;
+        } else {
+            return BidType.banner;
+        }
     }
 }

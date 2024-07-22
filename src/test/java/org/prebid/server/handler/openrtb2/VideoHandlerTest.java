@@ -9,13 +9,12 @@ import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 import org.assertj.core.api.InstanceOfAssertFactories;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.analytics.model.VideoEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
@@ -26,7 +25,7 @@ import org.prebid.server.auction.model.CachedDebugLog;
 import org.prebid.server.auction.model.TimeoutContext;
 import org.prebid.server.auction.model.WithPodErrors;
 import org.prebid.server.auction.requestfactory.VideoRequestFactory;
-import org.prebid.server.cache.CacheService;
+import org.prebid.server.cache.CoreCacheService;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
@@ -55,14 +54,13 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
+@ExtendWith(MockitoExtension.class)
 public class VideoHandlerTest extends VertxTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private VideoRequestFactory videoRequestFactory;
@@ -71,7 +69,7 @@ public class VideoHandlerTest extends VertxTest {
     @Mock
     private ExchangeService exchangeService;
     @Mock
-    private CacheService cacheService;
+    private CoreCacheService coreCacheService;
     @Mock
     private AnalyticsReporterDelegator analyticsReporterDelegator;
     @Mock
@@ -82,7 +80,7 @@ public class VideoHandlerTest extends VertxTest {
     private RoutingContext routingContext;
     @Mock
     private HttpServerRequest httpRequest;
-    @Mock
+    @Mock(strictness = LENIENT)
     private HttpServerResponse httpResponse;
     @Mock
     private UidsCookie uidsCookie;
@@ -93,7 +91,7 @@ public class VideoHandlerTest extends VertxTest {
 
     private Timeout timeout;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);
@@ -114,7 +112,7 @@ public class VideoHandlerTest extends VertxTest {
         videoHandler = new VideoHandler(
                 videoRequestFactory,
                 videoResponseFactory,
-                exchangeService, cacheService,
+                exchangeService, coreCacheService,
                 analyticsReporterDelegator,
                 metrics,
                 clock,
@@ -308,13 +306,13 @@ public class VideoHandlerTest extends VertxTest {
         given(videoRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(auctionContextWithPodErrors));
         given(exchangeService.holdAuction(any())).willThrow(new RuntimeException("Unexpected exception"));
-        given(cacheService.cacheVideoDebugLog(any(), anyInt())).willReturn("cacheKey");
+        given(coreCacheService.cacheVideoDebugLog(any(), anyInt())).willReturn("cacheKey");
 
         // when
         videoHandler.handle(routingContext);
 
         // then
-        verify(cacheService).cacheVideoDebugLog(any(), anyInt());
+        verify(coreCacheService).cacheVideoDebugLog(any(), anyInt());
         final ArgumentCaptor<VideoEvent> videoEventArgumentCaptor = ArgumentCaptor.forClass(VideoEvent.class);
         verify(analyticsReporterDelegator).processEvent(videoEventArgumentCaptor.capture(), any());
         assertThat(videoEventArgumentCaptor.getValue().getErrors())
@@ -335,7 +333,7 @@ public class VideoHandlerTest extends VertxTest {
         final WithPodErrors<AuctionContext> auctionContextWithPodErrors = WithPodErrors.of(auctionContext, emptyList());
         given(videoRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(auctionContextWithPodErrors));
-        given(cacheService.cacheVideoDebugLog(any(), anyInt())).willReturn("cacheKey");
+        given(coreCacheService.cacheVideoDebugLog(any(), anyInt())).willReturn("cacheKey");
         given(exchangeService.holdAuction(any()))
                 .willAnswer(inv -> Future.succeededFuture(((AuctionContext) inv.getArgument(0)).toBuilder()
                         .bidResponse(BidResponse.builder().build())
@@ -348,7 +346,7 @@ public class VideoHandlerTest extends VertxTest {
         videoHandler.handle(routingContext);
 
         // then
-        verify(cacheService).cacheVideoDebugLog(any(), anyInt());
+        verify(coreCacheService).cacheVideoDebugLog(any(), anyInt());
         final ArgumentCaptor<VideoEvent> videoEventArgumentCaptor = ArgumentCaptor.forClass(VideoEvent.class);
         verify(analyticsReporterDelegator).processEvent(videoEventArgumentCaptor.capture(), any());
         assertThat(videoEventArgumentCaptor.getValue().getErrors())

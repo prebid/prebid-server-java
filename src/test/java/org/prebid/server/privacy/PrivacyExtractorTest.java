@@ -4,11 +4,10 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.User;
 import io.vertx.core.http.HttpServerRequest;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.privacy.ccpa.Ccpa;
@@ -24,15 +23,15 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.withSettings;
+import static org.mockito.quality.Strictness.LENIENT;
 
+@ExtendWith(MockitoExtension.class)
 public class PrivacyExtractorTest extends VertxTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     private PrivacyExtractor privacyExtractor;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         privacyExtractor = new PrivacyExtractor();
     }
@@ -228,7 +227,7 @@ public class PrivacyExtractorTest extends VertxTest {
     @Test
     public void shouldThrowExceptionOnInvalidGppSid() {
         // given
-        final HttpServerRequest request = mock(HttpServerRequest.class);
+        final HttpServerRequest request = mock(HttpServerRequest.class, withSettings().strictness(LENIENT));
         given(request.getParam(eq("gpp_sid"))).willReturn("1-2");
 
         // when and then

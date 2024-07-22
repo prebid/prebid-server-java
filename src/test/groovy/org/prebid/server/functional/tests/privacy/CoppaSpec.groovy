@@ -2,16 +2,16 @@ package org.prebid.server.functional.tests.privacy
 
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
-import org.prebid.server.functional.model.request.auction.BidRequest
-import org.prebid.server.functional.model.request.auction.Data
-import org.prebid.server.functional.model.request.auction.Eid
-import org.prebid.server.functional.model.request.auction.Geo
-import org.prebid.server.functional.model.request.auction.UserExt
-import org.prebid.server.functional.model.request.auction.UserExtData
-import org.prebid.server.functional.util.PBSUtils
 import spock.lang.PendingFeature
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ACCOUNT_DISALLOWED_COUNT
+import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ADAPTER_DISALLOWED_COUNT
+import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_REQUEST_DISALLOWED_COUNT
+import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_EIDS
+import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_PRECISE_GEO
+import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_UFPD
+import static org.prebid.server.functional.model.request.auction.TraceLevel.BASIC
 import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
 
 class CoppaSpec extends PrivacyBaseSpec {
@@ -154,12 +154,15 @@ class CoppaSpec extends PrivacyBaseSpec {
             regs.coppa = 0
         }
 
+        and: "FLush metrics"
+        flushMetrics(privacyPbsService)
+
         when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
+        privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request shouldn't mask device and user personal data"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        verifyAll (bidderRequest) {
+        verifyAll(bidderRequest) {
             bidderRequest.device.didsha1 == bidRequest.device.didsha1
             bidderRequest.device.didmd5 == bidRequest.device.didmd5
             bidderRequest.device.dpidsha1 == bidRequest.device.dpidsha1
@@ -191,20 +194,36 @@ class CoppaSpec extends PrivacyBaseSpec {
             bidderRequest.user.geo.lon == bidRequest.user.geo.lon
             bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
         }
+
+        and: "Metrics processed across activities shouldn't be updated"
+        def metrics = privacyPbsService.sendCollectedMetricsRequest()
+        assert !metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)]
+        assert !metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)]
+        assert !metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)]
+        assert !metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)]
+        assert !metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)]
+        assert !metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)]
+        assert !metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)]
+        assert !metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)]
+        assert !metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)]
     }
 
-    def "PBS should mask device and user fields for auction request when coppa = 1 was passed"() {
+    def "PBS should mask device and user fields for auction request when coppa = 1 was passed and trace level verbose"() {
         given: "BidRequest with personal data"
         def bidRequest = bidRequestWithPersonalData.tap {
             regs.coppa = 1
+            ext.prebid.trace = VERBOSE
         }
+
+        and: "Flush metric"
+        flushMetrics(defaultPbsService)
 
         when: "PBS processes auction request"
         defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should mask device and user personal data"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        verifyAll (bidderRequest) {
+        verifyAll(bidderRequest) {
             bidderRequest.device.ip == "43.77.114.0"
             bidderRequest.device.ipv6 == "af47:892b:3e98:b400::"
             bidderRequest.device.geo.lat == bidRequest.device.geo.lat.round(2)
@@ -216,7 +235,7 @@ class CoppaSpec extends PrivacyBaseSpec {
         }
 
         and: "Bidder request should mask device personal data"
-        verifyAll (bidderRequest.device) {
+        verifyAll(bidderRequest.device) {
             !didsha1
             !didmd5
             !dpidsha1
@@ -233,7 +252,7 @@ class CoppaSpec extends PrivacyBaseSpec {
         }
 
         and: "Bidder request should mask user personal data"
-        verifyAll (bidderRequest.user) {
+        verifyAll(bidderRequest.user) {
             !id
             !buyeruid
             !yob
@@ -245,6 +264,90 @@ class CoppaSpec extends PrivacyBaseSpec {
             !eids
             !ext?.eids
         }
+
+        and: "Metrics processed across activities should be updated"
+        def metrics = defaultPbsService.sendCollectedMetricsRequest()
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)] == 1
+        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
+        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)] == 1
+    }
+
+    def "PBS should mask device and user fields for auction request when coppa = 1 was passed and trace level basic"() {
+        given: "BidRequest with personal data"
+        def bidRequest = bidRequestWithPersonalData.tap {
+            regs.coppa = 1
+            ext.prebid.trace = BASIC
+        }
+
+        and: "Flush metric"
+        flushMetrics(defaultPbsService)
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should mask device and user personal data"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        verifyAll(bidderRequest) {
+            bidderRequest.device.ip == "43.77.114.0"
+            bidderRequest.device.ipv6 == "af47:892b:3e98:b400::"
+            bidderRequest.device.geo.lat == bidRequest.device.geo.lat.round(2)
+            bidderRequest.device.geo.lon == bidRequest.device.geo.lon.round(2)
+
+            bidderRequest.device.geo.country == bidRequest.device.geo.country
+            bidderRequest.device.geo.region == bidRequest.device.geo.region
+            bidderRequest.device.geo.utcoffset == bidRequest.device.geo.utcoffset
+        }
+
+        and: "Bidder request should mask device personal data"
+        verifyAll(bidderRequest.device) {
+            !didsha1
+            !didmd5
+            !dpidsha1
+            !ifa
+            !macsha1
+            !macmd5
+            !dpidmd5
+            !geo.metro
+            !geo.city
+            !geo.zip
+            !geo.accuracy
+            !geo.ipservice
+            !geo.ext
+        }
+
+        and: "Bidder request should mask user personal data"
+        verifyAll(bidderRequest.user) {
+            !id
+            !buyeruid
+            !yob
+            !gender
+            !eids
+            !data
+            !geo
+            !ext
+            !eids
+            !ext?.eids
+        }
+
+        and: "Metrics processed across activities should be updated"
+        def metrics = defaultPbsService.sendCollectedMetricsRequest()
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)] == 1
+
+        and: "Account metrics shouldn't be updated"
+        assert !metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)]
+        assert !metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)]
+        assert !metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)]
     }
 
     def "PBS shouldn't mask device and user fields for amp request when coppa = 0 was passed"() {
@@ -263,7 +366,7 @@ class CoppaSpec extends PrivacyBaseSpec {
 
         then: "Bidder request shouldn't mask device and user personal data"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
-        verifyAll (bidderRequest) {
+        verifyAll(bidderRequest) {
             bidderRequest.device.didsha1 == ampStoredRequest.device.didsha1
             bidderRequest.device.didmd5 == ampStoredRequest.device.didmd5
             bidderRequest.device.dpidsha1 == ampStoredRequest.device.dpidsha1
@@ -295,6 +398,18 @@ class CoppaSpec extends PrivacyBaseSpec {
             bidderRequest.user.geo.lon == ampStoredRequest.user.geo.lon
             bidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
         }
+
+        and: "Metrics processed across activities shouldn't be updated"
+        def metrics = privacyPbsService.sendCollectedMetricsRequest()
+        assert !metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)]
+        assert !metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_EIDS)]
+        assert !metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_PRECISE_GEO)]
+        assert !metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)]
+        assert !metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_EIDS)]
+        assert !metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_PRECISE_GEO)]
+        assert !metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)]
+        assert !metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_EIDS)]
+        assert !metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_PRECISE_GEO)]
     }
 
     def "PBS should mask device and user fields for amp request when coppa = 1 was passed"() {
@@ -308,12 +423,15 @@ class CoppaSpec extends PrivacyBaseSpec {
         def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
+        and: "Flush metric"
+        flushMetrics(defaultPbsService)
+
         when: "PBS processes auction request"
         defaultPbsService.sendAmpRequest(ampRequest)
 
         then: "Bidder request should mask device and user personal data"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
-        verifyAll (bidderRequest) {
+        verifyAll(bidderRequest) {
             bidderRequest.device.ip == "43.77.114.0"
             bidderRequest.device.ipv6 == "af47:892b:3e98:b400::"
             bidderRequest.device.geo.lat == ampStoredRequest.device.geo.lat.round(2)
@@ -325,7 +443,7 @@ class CoppaSpec extends PrivacyBaseSpec {
         }
 
         and: "Bidder request should mask device personal data"
-        verifyAll (bidderRequest.device) {
+        verifyAll(bidderRequest.device) {
             !didsha1
             !didmd5
             !dpidsha1
@@ -342,7 +460,7 @@ class CoppaSpec extends PrivacyBaseSpec {
         }
 
         and: "Bidder request should mask user personal data"
-        verifyAll (bidderRequest.user) {
+        verifyAll(bidderRequest.user) {
             !id
             !buyeruid
             !yob
@@ -354,31 +472,14 @@ class CoppaSpec extends PrivacyBaseSpec {
             !eids
             !ext?.eids
         }
-    }
 
-    private static BidRequest getBidRequestWithPersonalData() {
-        getBidRequestWithGeo().tap {
-            setAccountId(accountId)
-            ext.prebid.trace = VERBOSE
-            device.tap {
-                didsha1 = PBSUtils.randomString
-                didmd5 = PBSUtils.randomString
-                dpidsha1 = PBSUtils.randomString
-                ifa = PBSUtils.randomString
-                macsha1 = PBSUtils.randomString
-                macmd5 = PBSUtils.randomString
-                dpidmd5 = PBSUtils.randomString
-            }
-            user.tap {
-                customdata = PBSUtils.randomString
-                eids = [Eid.defaultEid]
-                data = [new Data(name: PBSUtils.randomString)]
-                buyeruid = PBSUtils.randomString
-                yob = PBSUtils.randomNumber
-                gender = PBSUtils.randomString
-                geo = Geo.FPDGeo
-                ext = new UserExt(data: new UserExtData(buyeruid: PBSUtils.randomString))
-            }
-        }
+        and: "Metrics processed across activities should be updated"
+        def metrics = defaultPbsService.sendCollectedMetricsRequest()
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_EIDS)] == 1
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_PRECISE_GEO)] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_EIDS)] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_PRECISE_GEO)] == 1
     }
 }

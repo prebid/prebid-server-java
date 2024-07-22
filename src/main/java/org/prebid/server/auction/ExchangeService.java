@@ -64,6 +64,7 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.floors.PriceFloorAdjuster;
 import org.prebid.server.floors.PriceFloorEnforcer;
+import org.prebid.server.floors.PriceFloorProcessor;
 import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.hooks.execution.model.ExecutionAction;
 import org.prebid.server.hooks.execution.model.ExecutionStatus;
@@ -149,9 +150,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-/**
- * Executes an OpenRTB v2.5-2.6 Auction.
- */
 public class ExchangeService {
 
     private static final Logger logger = LoggerFactory.getLogger(ExchangeService.class);
@@ -190,6 +188,7 @@ public class ExchangeService {
     private final HttpInteractionLogger httpInteractionLogger;
     private final PriceFloorAdjuster priceFloorAdjuster;
     private final PriceFloorEnforcer priceFloorEnforcer;
+    private final PriceFloorProcessor priceFloorProcessor;
     private final DsaEnforcer dsaEnforcer;
     private final BidAdjustmentFactorResolver bidAdjustmentFactorResolver;
     private final Metrics metrics;
@@ -220,6 +219,7 @@ public class ExchangeService {
                            HttpInteractionLogger httpInteractionLogger,
                            PriceFloorAdjuster priceFloorAdjuster,
                            PriceFloorEnforcer priceFloorEnforcer,
+                           PriceFloorProcessor priceFloorProcessor,
                            DsaEnforcer dsaEnforcer,
                            BidAdjustmentFactorResolver bidAdjustmentFactorResolver,
                            Metrics metrics,
@@ -250,6 +250,7 @@ public class ExchangeService {
         this.httpInteractionLogger = Objects.requireNonNull(httpInteractionLogger);
         this.priceFloorAdjuster = Objects.requireNonNull(priceFloorAdjuster);
         this.priceFloorEnforcer = Objects.requireNonNull(priceFloorEnforcer);
+        this.priceFloorProcessor = Objects.requireNonNull(priceFloorProcessor);
         this.dsaEnforcer = Objects.requireNonNull(dsaEnforcer);
         this.bidAdjustmentFactorResolver = Objects.requireNonNull(bidAdjustmentFactorResolver);
         this.metrics = Objects.requireNonNull(metrics);
@@ -293,12 +294,11 @@ public class ExchangeService {
 
         return storedResponseProcessor.getStoredResponseResult(bidRequest.getImp(), timeout)
                 .map(storedResponseResult -> populateStoredResponse(storedResponseResult, storedAuctionResponses))
-                .compose(storedResponseResult -> extractAuctionParticipations(
-                        receivedContext, storedResponseResult, aliases, bidderToMultiBid)
+                .compose(storedResponseResult ->
+                        extractAuctionParticipations(receivedContext, storedResponseResult, aliases, bidderToMultiBid)
                         .map(receivedContext::with))
 
                 .map(context -> updateRequestMetric(context, uidsCookie, aliases, account, requestTypeMetric))
-
                 .compose(context -> CompositeFuture.join(
                                 context.getAuctionParticipations().stream()
                                         .map(auctionParticipation -> processAndRequestBids(
@@ -312,7 +312,10 @@ public class ExchangeService {
                         .map(CompositeFuture::<AuctionParticipation>list)
                         .map(storedResponseProcessor::updateStoredBidResponse)
                         .map(auctionParticipations -> storedResponseProcessor.mergeWithBidderResponses(
-                                auctionParticipations, storedAuctionResponses, bidRequest.getImp()))
+                                auctionParticipations,
+                                storedAuctionResponses,
+                                bidRequest.getImp(),
+                                context.getBidRejectionTrackers()))
                         .map(auctionParticipations -> dropZeroNonDealBids(auctionParticipations, debugWarnings))
                         .map(auctionParticipations -> validateAndAdjustBids(auctionParticipations, context, aliases))
                         .map(auctionParticipations -> updateResponsesMetrics(auctionParticipations, account, aliases))
@@ -524,7 +527,6 @@ public class ExchangeService {
                 .toList();
         final Map<String, Map<String, String>> impBidderToStoredBidResponse =
                 storedResponseResult.getImpBidderToStoredBidResponse();
-
         return makeAuctionParticipation(
                 bidders,
                 context,
@@ -878,8 +880,13 @@ public class ExchangeService {
                                          BidderAliases bidderAliases,
                                          AuctionContext context) {
 
-        final BidRequest bidRequest = context.getBidRequest();
         final String bidder = bidderPrivacyResult.getRequestBidder();
+        final BidRequest bidRequest = priceFloorProcessor.enrichWithPriceFloors(
+                context.getBidRequest().toBuilder().imp(imps).build(),
+                context.getAccount(),
+                bidder,
+                context.getPrebidErrors(),
+                context.getDebugWarnings());
         final boolean transmitTid = transmitTransactionId(bidder, context);
         final List<String> firstPartyDataBidders = firstPartyDataBidders(bidRequest.getExt());
         final boolean useFirstPartyData = firstPartyDataBidders == null || firstPartyDataBidders.stream()
@@ -927,7 +934,6 @@ public class ExchangeService {
 
         final List<Imp> preparedImps = prepareImps(
                 bidder,
-                imps,
                 bidRequest,
                 transmitTid,
                 useFirstPartyData,
@@ -966,7 +972,6 @@ public class ExchangeService {
     }
 
     private List<Imp> prepareImps(String bidder,
-                                  List<Imp> imps,
                                   BidRequest bidRequest,
                                   boolean transmitTid,
                                   boolean useFirstPartyData,
@@ -974,7 +979,7 @@ public class ExchangeService {
                                   BidderAliases bidderAliases,
                                   List<String> debugWarnings) {
 
-        return imps.stream()
+        return bidRequest.getImp().stream()
                 .filter(imp -> bidderParamsFromImpExt(imp.getExt()).hasNonNull(bidder))
                 .map(imp -> impAdjuster.adjust(imp, bidder, bidderAliases, debugWarnings))
                 .map(imp -> prepareImp(imp, bidder, bidRequest, transmitTid, useFirstPartyData, account, debugWarnings))

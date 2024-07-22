@@ -1,11 +1,10 @@
 package org.prebid.server.floors;
 
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
@@ -21,17 +20,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
+@ExtendWith(MockitoExtension.class)
 public class PriceFloorsConfigResolverTest extends VertxTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private Metrics metrics;
 
     private PriceFloorsConfigResolver target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new PriceFloorsConfigResolver(metrics);
     }
@@ -142,7 +139,7 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
     @Test
     public void resolveShouldReturnGivenAccountIfTimeoutLessThanMinimumValue() {
         // given
-        final Account givenAccount = accountWithFloorsFetchConfig(config -> config.timeout(9L));
+        final Account givenAccount = accountWithFloorsFetchConfig(config -> config.timeoutMs(9L));
 
         // when
         final Account actualAccount = target.resolve(givenAccount, defaultPriceConfig());
@@ -155,7 +152,7 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
     @Test
     public void resolveShouldReturnGivenAccountIfTimeoutMoreThanMaximumValue() {
         // given
-        final Account givenAccount = accountWithFloorsFetchConfig(config -> config.timeout(12000L));
+        final Account givenAccount = accountWithFloorsFetchConfig(config -> config.timeoutMs(12000L));
 
         // when
         final Account actualAccount = target.resolve(givenAccount, defaultPriceConfig());
@@ -194,7 +191,7 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
     @Test
     public void resolveShouldReturnGivenAccountIfMaxFileSizeLessThanMinimumValue() {
         // given
-        final Account givenAccount = accountWithFloorsFetchConfig(config -> config.maxFileSize(-1L));
+        final Account givenAccount = accountWithFloorsFetchConfig(config -> config.maxFileSizeKb(-1L));
 
         // when
         final Account actualAccount = target.resolve(givenAccount, defaultPriceConfig());
@@ -207,7 +204,8 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
     @Test
     public void resolveShouldReturnGivenAccountIfMaxFileSizeMoreThanMaximumValue() {
         // given
-        final Account givenAccount = accountWithFloorsFetchConfig(config -> config.maxFileSize(Integer.MAX_VALUE + 1L));
+        final Account givenAccount = accountWithFloorsFetchConfig(config ->
+                config.maxFileSizeKb(Integer.MAX_VALUE + 1L));
 
         // when
         final Account actualAccount = target.resolve(givenAccount, defaultPriceConfig());
@@ -225,12 +223,12 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
                         .priceFloors(AccountPriceFloorsConfig.builder()
                                 .enforceFloorsRate(10)
                                 .fetch(configCustomizer.apply(
-                                        AccountPriceFloorsFetchConfig.builder()
-                                                .maxAgeSec(1000L)
-                                                .periodSec(600L)
-                                                .timeout(100L)
-                                                .maxRules(100L)
-                                                .maxFileSize(100L))
+                                                AccountPriceFloorsFetchConfig.builder()
+                                                        .maxAgeSec(1000L)
+                                                        .periodSec(600L)
+                                                        .timeoutMs(100L)
+                                                        .maxRules(100L)
+                                                        .maxFileSizeKb(100L))
                                         .build())
                                 .build())
                         .build())

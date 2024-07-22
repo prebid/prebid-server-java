@@ -6,7 +6,7 @@ import io.github.jamsesso.jsonlogic.ast.JsonLogicNull;
 import io.github.jamsesso.jsonlogic.ast.JsonLogicString;
 import io.github.jamsesso.jsonlogic.ast.JsonLogicVariable;
 import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 

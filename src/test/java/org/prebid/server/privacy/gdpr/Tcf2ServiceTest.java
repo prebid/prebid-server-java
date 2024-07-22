@@ -2,12 +2,11 @@ package org.prebid.server.privacy.gdpr;
 
 import com.iabtcf.decoder.TCString;
 import io.vertx.core.Future;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.BidderCatalog;
@@ -46,6 +45,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -57,10 +57,8 @@ import static org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode.ONE;
 import static org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode.SEVEN;
 import static org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode.TWO;
 
+@ExtendWith(MockitoExtension.class)
 public class Tcf2ServiceTest extends VertxTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private BidderCatalog bidderCatalog;
@@ -76,9 +74,9 @@ public class Tcf2ServiceTest extends VertxTest {
     private PurposeStrategy purposeStrategySeven;
     @Mock
     private SpecialFeaturesStrategy specialFeaturesStrategyOne;
-    @Mock
+    @Mock(strictness = LENIENT)
     private TCString tcString;
-    @Mock
+    @Mock(strictness = LENIENT)
     private VendorIdResolver vendorIdResolver;
 
     private Tcf2Service target;
@@ -103,7 +101,7 @@ public class Tcf2ServiceTest extends VertxTest {
     private List<PurposeStrategy> purposeStrategies;
     private List<SpecialFeaturesStrategy> specialFeaturesStrategies;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(vendorListService.forConsent(any())).willReturn(Future.succeededFuture(emptyMap()));
 

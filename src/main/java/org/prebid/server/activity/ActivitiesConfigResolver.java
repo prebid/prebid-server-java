@@ -5,8 +5,7 @@ import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.settings.model.activity.AccountActivityConfiguration;
-import org.prebid.server.settings.model.activity.rule.AccountActivityComponentRuleConfig;
-import org.prebid.server.settings.model.activity.rule.AccountActivityGeoRuleConfig;
+import org.prebid.server.settings.model.activity.rule.AccountActivityConditionsRuleConfig;
 import org.prebid.server.settings.model.activity.rule.AccountActivityRuleConfig;
 
 import java.util.Collection;
@@ -63,24 +62,15 @@ public class ActivitiesConfigResolver {
     }
 
     private static boolean isInvalidConditionRule(AccountActivityRuleConfig rule) {
-        if (rule instanceof AccountActivityComponentRuleConfig conditionRule) {
-            final AccountActivityComponentRuleConfig.Condition condition = conditionRule.getCondition();
-            return condition != null && isInvalidCondition(condition);
-        }
-
-        if (rule instanceof AccountActivityGeoRuleConfig geoRule) {
-            final AccountActivityGeoRuleConfig.Condition condition = geoRule.getCondition();
+        if (rule instanceof AccountActivityConditionsRuleConfig conditionsRule) {
+            final AccountActivityConditionsRuleConfig.Condition condition = conditionsRule.getCondition();
             return condition != null && isInvalidCondition(condition);
         }
 
         return false;
     }
 
-    private static boolean isInvalidCondition(AccountActivityComponentRuleConfig.Condition condition) {
-        return isEmptyNotNull(condition.getComponentTypes()) || isEmptyNotNull(condition.getComponentNames());
-    }
-
-    private static boolean isInvalidCondition(AccountActivityGeoRuleConfig.Condition condition) {
+    private static boolean isInvalidCondition(AccountActivityConditionsRuleConfig.Condition condition) {
         return isEmptyNotNull(condition.getComponentTypes()) || isEmptyNotNull(condition.getComponentNames());
     }
 

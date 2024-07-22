@@ -47,11 +47,13 @@ public class RubiconConfiguration {
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config ->
                         new RubiconBidder(
+                                BIDDER_NAME,
                                 config.getEndpoint(),
                                 config.getXapi().getUsername(),
                                 config.getXapi().getPassword(),
                                 config.getMetaInfo().getSupportedVendors(),
                                 config.getGenerateBidId(),
+                                config.getUseVideoSizeIdLogic(),
                                 currencyConversionService,
                                 floorResolver,
                                 mapper))
@@ -70,6 +72,9 @@ public class RubiconConfiguration {
 
         @NotNull
         private Boolean generateBidId;
+
+        @NotNull
+        private Boolean useVideoSizeIdLogic;
     }
 
     @Data

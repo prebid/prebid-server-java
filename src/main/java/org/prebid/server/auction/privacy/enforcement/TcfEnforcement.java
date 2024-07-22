@@ -5,6 +5,7 @@ import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
+import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderPrivacyResult;
@@ -66,6 +67,7 @@ public class TcfEnforcement {
         final Device device = auctionContext.getBidRequest().getDevice();
         final AccountGdprConfig accountGdprConfig = accountGdprConfig(auctionContext.getAccount());
         final MetricName requestType = auctionContext.getRequestTypeMetric();
+        final ActivityInfrastructure activityInfrastructure = auctionContext.getActivityInfrastructure();
 
         return tcfDefinerService.resultForBidderNames(
                         bidders,
@@ -73,7 +75,13 @@ public class TcfEnforcement {
                         auctionContext.getPrivacyContext().getTcfContext(),
                         accountGdprConfig)
                 .map(TcfResponse::getActions)
-                .map(enforcements -> updateMetrics(enforcements, aliases, requestType, bidderToUser, device))
+                .map(enforcements -> updateMetrics(
+                        activityInfrastructure,
+                        enforcements,
+                        aliases,
+                        requestType,
+                        bidderToUser,
+                        device))
                 .map(enforcements -> bidderToPrivacyResult(enforcements, bidders, bidderToUser, device));
     }
 
@@ -82,11 +90,14 @@ public class TcfEnforcement {
         return privacyConfig != null ? privacyConfig.getGdpr() : null;
     }
 
-    private Map<String, PrivacyEnforcementAction> updateMetrics(Map<String, PrivacyEnforcementAction> enforcements,
+    private Map<String, PrivacyEnforcementAction> updateMetrics(ActivityInfrastructure activityInfrastructure,
+                                                                Map<String, PrivacyEnforcementAction> enforcements,
                                                                 BidderAliases aliases,
                                                                 MetricName requestType,
                                                                 Map<String, User> bidderToUser,
                                                                 Device device) {
+
+        final boolean isLmtEnforcedAndEnabled = isLmtEnforcedAndEnabled(device);
 
         // Metrics should represent real picture of the bidding process, so if bidder request is blocked
         // by privacy then no reason to increment another metrics, like geo masked, etc.
@@ -103,22 +114,20 @@ public class TcfEnforcement {
             final boolean geoMasked = !requestBlocked && enforcement.isMaskGeo() && shouldMaskGeo(user, device);
             final boolean analyticsBlocked = !requestBlocked && enforcement.isBlockAnalyticsReport();
 
-            metrics.updateAuctionTcfMetrics(
+            metrics.updateAuctionTcfAndLmtMetrics(
+                    activityInfrastructure,
                     aliases.resolveBidder(bidder),
                     requestType,
                     ufpdRemoved,
                     uidsRemoved,
                     geoMasked,
                     analyticsBlocked,
-                    requestBlocked);
+                    requestBlocked,
+                    isLmtEnforcedAndEnabled);
 
             if (ufpdRemoved) {
                 logger.warn("The UFPD fields have been removed due to a consent check.");
             }
-        }
-
-        if (isLmtEnforcedAndEnabled(device)) {
-            metrics.updatePrivacyLmtMetric();
         }
 
         return enforcements;
@@ -182,6 +191,7 @@ public class TcfEnforcement {
         final PrivacyEnforcementAction privacyEnforcementAction = bidderToEnforcement.get(bidder);
         final boolean blockBidderRequest = privacyEnforcementAction.isBlockBidderRequest();
         final boolean blockAnalyticsReport = privacyEnforcementAction.isBlockAnalyticsReport();
+
         if (blockBidderRequest) {
             return BidderPrivacyResult.builder()
                     .requestBidder(bidder)

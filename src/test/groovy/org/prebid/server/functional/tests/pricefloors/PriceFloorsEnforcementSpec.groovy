@@ -116,7 +116,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
         and: "PBS cache rules"
-        cacheFloorsProviderRules(bidRequest, floorValue)
+        cacheFloorsProviderRules(bidRequest, floorValue, floorsPbsService)
 
         and: "Bid response with 2 bids: price = floorValue, price < floorValue"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
@@ -168,7 +168,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
         and: "PBS cache rules"
-        cacheFloorsProviderRules(bidRequest, floorValue)
+        cacheFloorsProviderRules(bidRequest, floorValue, floorsPbsService)
 
         and: "Bid response with 2 bids: price = floorValue, price < floorValue"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
@@ -591,10 +591,10 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
             ext.prebid.floors = ExtPrebidFloors.extPrebidFloors.tap {
                 data = PriceFloorData.priceFloorData.tap {
                     noFloorSignalBidders = [GENERIC]
-                        modelGroups[0].tap {
-                            values = [(rule): floorValue]
-                            noFloorSignalBidders = []
-                        }
+                    modelGroups[0].tap {
+                        values = [(rule): floorValue]
+                        noFloorSignalBidders = []
+                    }
                 }
             }
         }
@@ -782,7 +782,10 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
     def "PBS should suppress deal that are below the matched floor when enforce-deal-floors = true"() {
         given: "Pbs with PF configuration with enforceDealFloors"
         def defaultAccountConfigSettings = defaultAccountConfigSettings.tap {
-            auction.priceFloors.enforceDealFloors = false
+            auction.priceFloors.tap {
+                enforceDealFloors = defaultAccountEnforeDealFloors
+                enforceDealFloorsSnakeCase = defaultAccountEnforeDealFloorsSnakeCase
+            }
         }
         def pbsService = pbsServiceFactory.getService(FLOORS_CONFIG +
                 ["settings.default-account-config": encode(defaultAccountConfigSettings)])
@@ -795,7 +798,10 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
 
         and: "Account with enabled fetch, fetch.url,enforceDealFloors in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id).tap {
-            config.auction.priceFloors.enforceDealFloors = true
+            config.auction.priceFloors.tap {
+                enforceDealFloors = accountEnforeDealFloors
+                enforceDealFloorsSnakeCase = accountEnforeDealFloorsSnakeCase
+            }
         }
         accountDao.save(account)
 
@@ -807,7 +813,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
         and: "PBS cache rules"
-        cacheFloorsProviderRules(pbsService, bidRequest, floorValue)
+        cacheFloorsProviderRules(bidRequest, floorValue, pbsService)
 
         and: "Bid response with 2 bids: bid.price = floorValue, dealBid.price < floorValue"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
@@ -826,6 +832,13 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         then: "PBS should suppress bid lower than floorRuleValue"
         assert response.seatbid?.first()?.bid?.collect { it.id } == [bidResponse.seatbid.first().bid.last().id]
         assert response.seatbid.first().bid.collect { it.price } == [floorValue]
+
+        where:
+        defaultAccountEnforeDealFloors | defaultAccountEnforeDealFloorsSnakeCase | accountEnforeDealFloors | accountEnforeDealFloorsSnakeCase
+        false                          | null                                    | true                    | null
+        null                           | false                                   | null                    | true
+        null                           | false                                   | true                    | null
+        false                          | null                                    | null                    | true
     }
 
     def "PBS should not suppress deal that are below the matched floor according to ext.prebid.floors.enforcement.enforcePBS"() {
@@ -856,7 +869,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
         and: "PBS cache rules"
-        cacheFloorsProviderRules(pbsService, bidRequest, floorValue)
+        cacheFloorsProviderRules(bidRequest, floorValue, floorsPbsService)
 
         and: "Bid response with 2 bids: bid.price = floorValue, dealBid.price < floorValue"
         def dealBidPrice = floorValue - 0.1
@@ -912,7 +925,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
         and: "PBS cache rules"
-        cacheFloorsProviderRules(pbsService, bidRequest, floorValue)
+        cacheFloorsProviderRules(bidRequest, floorValue, pbsService)
 
         and: "Bid response with 2 bids: price = floorValue, price < floorValue"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
@@ -967,7 +980,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
         and: "PBS cache rules"
-        cacheFloorsProviderRules(pbsService, bidRequest, floorValue)
+        cacheFloorsProviderRules(bidRequest, floorValue, pbsService)
 
         and: "Bid response with 2 bids: price = floorValue, price < floorValue"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {

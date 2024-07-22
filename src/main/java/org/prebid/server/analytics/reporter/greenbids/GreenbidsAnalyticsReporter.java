@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Site;
@@ -23,7 +24,7 @@ import org.prebid.server.analytics.reporter.greenbids.model.CommonMessage;
 import org.prebid.server.analytics.reporter.greenbids.model.ExtBanner;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsAdUnit;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsAnalyticsProperties;
-import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsBids;
+import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsBid;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsPrebidExt;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsSource;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsUnifiedCode;
@@ -61,6 +62,8 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
 
     private static final String BID_REQUEST_ANALYTICS_EXTENSION_NAME = "greenbids";
     private static final int RANGE_16_BIT_INTEGER_DIVISION_BASIS = 0x10000;
+    private static final String ANALYTICS_REQUEST_ORIGIN_HEADER = "X-Request-Origin";
+    private static final String PREBID_SERVER_HEADER_VALUE = "Prebid Server";
     private static final Logger logger = LoggerFactory.getLogger(GreenbidsAnalyticsReporter.class);
 
     private final GreenbidsAnalyticsProperties greenbidsAnalyticsProperties;
@@ -103,6 +106,10 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
 
         final GreenbidsPrebidExt greenbidsBidRequestExt = parseBidRequestExt(auctionContext.getBidRequest());
 
+        if (greenbidsBidRequestExt == null) {
+            return Future.succeededFuture();
+        }
+
         final String greenbidsId = UUID.randomUUID().toString();
         final String billingId = UUID.randomUUID().toString();
 
@@ -127,7 +134,13 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
 
         final MultiMap headers = MultiMap.caseInsensitiveMultiMap()
                 .add(HttpUtil.ACCEPT_HEADER, HttpHeaderValues.APPLICATION_JSON)
-                .add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
+                .add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON)
+                .add(ANALYTICS_REQUEST_ORIGIN_HEADER, PREBID_SERVER_HEADER_VALUE);
+
+        Optional.ofNullable(auctionContext.getBidRequest())
+                .map(BidRequest::getDevice)
+                .map(Device::getUa)
+                .ifPresent(userAgent -> headers.add(HttpUtil.USER_AGENT_HEADER, userAgent));
 
         final Future<HttpClientResponse> responseFuture = httpClient.post(
                 greenbidsAnalyticsProperties.getAnalyticsServerUrl(),
@@ -146,7 +159,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 .filter(this::isNotEmptyObjectNode)
                 .map(analytics -> (ObjectNode) analytics.get(BID_REQUEST_ANALYTICS_EXTENSION_NAME))
                 .map(this::toGreenbidsPrebidExt)
-                .orElse(GreenbidsPrebidExt.of(null, null));
+                .orElse(null);
     }
 
     private GreenbidsPrebidExt toGreenbidsPrebidExt(ObjectNode adapterNode) {
@@ -169,10 +182,16 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
         return Future.failedFuture(new PreBidException("Unexpected response status: " + response.getStatusCode()));
     }
 
-    private boolean isSampled(double samplingRate, String greenbidsId) {
+    private boolean isSampled(Double samplingRate, String greenbidsId) {
+        if (samplingRate == null) {
+            logger.warn("Warning: Sampling rate is not defined in request. Set sampling at "
+                    + greenbidsAnalyticsProperties.getDefaultSamplingRate());
+            return true;
+        }
+
         if (samplingRate < 0 || samplingRate > 1) {
             logger.warn("Warning: Sampling rate must be between 0 and 1");
-            return false;
+            return true;
         }
 
         final double exploratorySamplingRate = samplingRate
@@ -213,7 +232,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
         final Map<String, NonBid> seatsWithNonBids = getSeatsWithNonBids(auctionContext);
 
         final List<GreenbidsAdUnit> adUnitsWithBidResponses = imps.stream().map(imp -> createAdUnit(
-                imp, seatsWithBids, seatsWithNonBids)).toList();
+                imp, seatsWithBids, seatsWithNonBids, bidResponse.getCur())).toList();
 
         final String auctionId = bidRequest
                 .map(BidRequest::getId)
@@ -224,11 +243,14 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 .map(Site::getPage)
                 .orElse(null);
 
+        final Double greenbidsSamplingRate = Optional.ofNullable(greenbidsImpExt.getGreenbidsSampling())
+                .orElse(greenbidsAnalyticsProperties.getDefaultSamplingRate());
+
         return CommonMessage.builder()
                         .version(greenbidsAnalyticsProperties.getAnalyticsServerVersion())
                         .auctionId(auctionId)
                         .referrer(referrer)
-                        .sampling(greenbidsImpExt.getGreenbidsSampling())
+                        .sampling(greenbidsSamplingRate)
                         .prebidServer(prebidVersionProvider.getNameVersionRecord())
                         .greenbidsId(greenbidsId)
                         .pbuid(greenbidsImpExt.getPbuid())
@@ -271,22 +293,29 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
     private GreenbidsAdUnit createAdUnit(
             Imp imp,
             Map<String, Bid> seatsWithBids,
-            Map<String, NonBid> seatsWithNonBids) {
+            Map<String, NonBid> seatsWithNonBids,
+            String currency) {
         final ExtBanner extBanner = getExtBanner(imp.getBanner());
         final Video video = imp.getVideo();
         final Native nativeObject = imp.getXNative();
 
         final MediaTypes mediaTypes = MediaTypes.of(extBanner, video, nativeObject);
 
-        final List<GreenbidsBids> bids = extractBidders(imp, seatsWithBids, seatsWithNonBids);
-
         final ObjectNode impExt = imp.getExt();
         final String adUnitCode = imp.getId();
 
+        final ExtImpPrebid impExtPrebid = Optional.ofNullable(impExt)
+                .map(ext -> ext.get("prebid"))
+                .map(this::extImpPrebid)
+                .orElseThrow(() -> new PreBidException("imp.ext.prebid should not be empty"));
+
         final GreenbidsUnifiedCode greenbidsUnifiedCode = getGpid(impExt)
-                .or(() -> getStoredRequestId(impExt))
+                .or(() -> getStoredRequestId(impExtPrebid))
                 .orElseGet(() -> GreenbidsUnifiedCode.of(
                         adUnitCode, GreenbidsSource.AD_UNIT_CODE_SOURCE.getValue()));
+
+        final List<GreenbidsBid> bids = extractBidders(
+                imp.getId(), seatsWithBids, seatsWithNonBids, impExtPrebid, currency);
 
         return GreenbidsAdUnit.builder()
                 .code(adUnitCode)
@@ -317,16 +346,24 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 .build();
     }
 
-    private List<GreenbidsBids> extractBidders(
-            Imp imp, Map<String, Bid> seatsWithBids, Map<String, NonBid> seatsWithNonBids) {
+    private List<GreenbidsBid> extractBidders(
+            String impId,
+            Map<String, Bid> seatsWithBids,
+            Map<String, NonBid> seatsWithNonBids,
+            ExtImpPrebid impExtPrebid,
+            String currency) {
+        final ObjectNode bidders = impExtPrebid.getBidder();
+
         return Stream.concat(
                 seatsWithBids.entrySet().stream()
-                        .filter(entry -> entry.getValue().getImpid().equals(imp.getId()))
-                        .map(entry -> GreenbidsBids.ofBid(entry.getKey(), entry.getValue())),
+                        .filter(entry -> entry.getValue().getImpid().equals(impId))
+                        .map(entry -> GreenbidsBid.ofBid(
+                                entry.getKey(), entry.getValue(), bidders.get(entry.getKey()), currency)),
                 seatsWithNonBids.entrySet().stream()
-                        .filter(entry -> entry.getValue().getImpId().equals(imp.getId()))
-                        .map(entry -> GreenbidsBids.ofNonBid(entry.getKey(), entry.getValue())))
-                .collect(Collectors.toList());
+                        .filter(entry -> entry.getValue().getImpId().equals(impId))
+                        .map(entry -> GreenbidsBid.ofNonBid(
+                                entry.getKey(), entry.getValue(), bidders.get(entry.getKey()), currency)))
+                .toList();
     }
 
     private static Optional<GreenbidsUnifiedCode> getGpid(ObjectNode impExt) {
@@ -337,11 +374,8 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                         GreenbidsUnifiedCode.of(gpid, GreenbidsSource.GPID_SOURCE.getValue()));
     }
 
-    private Optional<GreenbidsUnifiedCode> getStoredRequestId(ObjectNode impExt) {
-        return Optional.ofNullable(impExt)
-                .map(ext -> ext.get("prebid"))
-                .map(this::extImpPrebid)
-                .map(ExtImpPrebid::getStoredrequest)
+    private Optional<GreenbidsUnifiedCode> getStoredRequestId(ExtImpPrebid extImpPrebid) {
+        return Optional.ofNullable(extImpPrebid.getStoredrequest())
                 .map(ExtStoredRequest::getId)
                 .map(storedRequestId ->
                         GreenbidsUnifiedCode.of(

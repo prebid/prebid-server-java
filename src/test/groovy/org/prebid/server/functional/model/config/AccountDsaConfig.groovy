@@ -13,4 +13,6 @@ class AccountDsaConfig {
     @JsonProperty("default")
     Dsa defaultDsa
     Boolean gdprOnly
+    @JsonProperty("gdpr_only")
+    Boolean gdprOnlySnakeCase
 }
