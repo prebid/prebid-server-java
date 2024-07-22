@@ -4,12 +4,11 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.sqlclient.Pool;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.health.model.StatusResponse;
 
 import java.time.Clock;
@@ -24,14 +23,12 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+@ExtendWith(MockitoExtension.class)
 public class DatabaseHealthCheckerTest {
 
     private static final String DATABASE_CHECK_NAME = "database";
     private static final long TEST_REFRESH_PERIOD = 1000;
     private static final String TEST_TIME_STRING = ZonedDateTime.now(Clock.systemUTC()).toString();
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private Vertx vertx;
@@ -40,7 +37,7 @@ public class DatabaseHealthCheckerTest {
 
     private DatabaseHealthChecker target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new DatabaseHealthChecker(vertx, pool, TEST_REFRESH_PERIOD);
     }

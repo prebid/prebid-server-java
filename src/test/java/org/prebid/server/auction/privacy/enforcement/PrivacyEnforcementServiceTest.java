@@ -3,12 +3,11 @@ package org.prebid.server.auction.privacy.enforcement;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import org.apache.commons.collections4.ListUtils;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.auction.model.BidderPrivacyResult;
 
 import java.util.List;
@@ -24,10 +23,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
+@ExtendWith(MockitoExtension.class)
 public class PrivacyEnforcementServiceTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private CoppaEnforcement coppaEnforcement;
@@ -40,7 +37,7 @@ public class PrivacyEnforcementServiceTest {
 
     private PrivacyEnforcementService target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new PrivacyEnforcementService(
                 coppaEnforcement,

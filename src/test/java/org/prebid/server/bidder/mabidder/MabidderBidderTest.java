@@ -6,7 +6,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.http.HttpMethod;
 import lombok.Value;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.mabidder.response.MabidderBidResponse;
 import org.prebid.server.bidder.mabidder.response.MabidderResponse;

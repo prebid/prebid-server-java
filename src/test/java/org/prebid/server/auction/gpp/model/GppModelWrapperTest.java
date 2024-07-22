@@ -6,7 +6,7 @@ import com.iab.gpp.encoder.error.EncodingException;
 import com.iab.gpp.encoder.section.HeaderV1;
 import com.iab.gpp.encoder.section.TcfEuV2;
 import com.iab.gpp.encoder.section.UspV1;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Comparator;
 

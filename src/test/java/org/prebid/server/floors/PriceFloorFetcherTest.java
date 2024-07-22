@@ -5,12 +5,11 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.TimeoutFactory;
@@ -47,10 +46,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
+@ExtendWith(MockitoExtension.class)
 public class PriceFloorFetcherTest extends VertxTest {
-
-    @Rule
-    public final MockitoRule rule = MockitoJUnit.rule();
 
     @Mock
     private ApplicationSettings applicationSettings;
@@ -72,7 +69,7 @@ public class PriceFloorFetcherTest extends VertxTest {
 
     private PriceFloorFetcher priceFloorFetcher;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         debugProperties = new PriceFloorDebugProperties();
         priceFloorFetcher = new PriceFloorFetcher(
@@ -519,8 +516,8 @@ public class PriceFloorFetcherTest extends VertxTest {
                         .enabled(true)
                         .url("http://test.host.com")
                         .maxRules(10L)
-                        .maxFileSize(10L)
-                        .timeout(1300L)
+                        .maxFileSizeKb(10L)
+                        .timeoutMs(1300L)
                         .maxAgeSec(1500L)
                         .periodSec(1200L))
                 .build();

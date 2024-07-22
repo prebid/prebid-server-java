@@ -5,12 +5,11 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Site;
 import io.vertx.core.Future;
 import org.apache.commons.lang3.StringUtils;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.model.AuctionContext;
@@ -39,25 +38,24 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.verify;
 
+@ExtendWith(MockitoExtension.class)
 public class AmpPrivacyContextFactoryTest extends VertxTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private PrivacyExtractor privacyExtractor;
     @Mock
     private TcfDefinerService tcfDefinerService;
-    @Mock
+    @Mock(strictness = LENIENT)
     private IpAddressHelper ipAddressHelper;
     @Mock
     private CountryCodeMapper countryCodeMapper;
 
     private AmpPrivacyContextFactory target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new AmpPrivacyContextFactory(
                 privacyExtractor,

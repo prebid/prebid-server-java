@@ -3,12 +3,12 @@ package org.prebid.server.auction.privacy.enforcement;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.User;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderPrivacyResult;
@@ -28,8 +28,10 @@ import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.settings.model.EnabledForRequestType;
 import org.prebid.server.spring.config.bidder.model.Ortb;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.UnaryOperator;
 
 import static java.util.Collections.singletonList;
@@ -39,26 +41,27 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.verify;
 
+@ExtendWith(MockitoExtension.class)
 public class CcpaEnforcementTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private UserFpdCcpaMask userFpdCcpaMask;
-    @Mock
+    @Mock(strictness = LENIENT)
     private BidderCatalog bidderCatalog;
     @Mock
     private Metrics metrics;
 
     private CcpaEnforcement target;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private BidderAliases aliases;
+    @Mock
+    private ActivityInfrastructure activityInfrastructure;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(bidderCatalog.bidderInfoByName("bidder"))
                 .willReturn(BidderInfo.create(
@@ -95,7 +98,12 @@ public class CcpaEnforcementTest {
 
         // then
         assertThat(result).isEmpty();
-        verify(metrics).updatePrivacyCcpaMetrics(eq(true), eq(false));
+        verify(metrics).updatePrivacyCcpaMetrics(
+                eq(activityInfrastructure),
+                eq(true),
+                eq(false),
+                eq(true),
+                eq(Collections.emptySet()));
     }
 
     @Test
@@ -110,7 +118,12 @@ public class CcpaEnforcementTest {
 
         // then
         assertThat(result).isEmpty();
-        verify(metrics).updatePrivacyCcpaMetrics(eq(true), eq(true));
+        verify(metrics).updatePrivacyCcpaMetrics(
+                eq(activityInfrastructure),
+                eq(true),
+                eq(true),
+                eq(false),
+                eq(Collections.emptySet()));
     }
 
     @Test
@@ -128,6 +141,12 @@ public class CcpaEnforcementTest {
 
         // then
         assertThat(result).isEmpty();
+        verify(metrics).updatePrivacyCcpaMetrics(
+                eq(activityInfrastructure),
+                eq(true),
+                eq(true),
+                eq(false),
+                eq(Collections.emptySet()));
     }
 
     @Test
@@ -141,6 +160,12 @@ public class CcpaEnforcementTest {
 
         // then
         assertThat(result).isEmpty();
+        verify(metrics).updatePrivacyCcpaMetrics(
+                eq(activityInfrastructure),
+                eq(true),
+                eq(true),
+                eq(false),
+                eq(Collections.emptySet()));
     }
 
     @Test
@@ -163,6 +188,12 @@ public class CcpaEnforcementTest {
 
         // then
         assertThat(result).isEmpty();
+        verify(metrics).updatePrivacyCcpaMetrics(
+                eq(activityInfrastructure),
+                eq(true),
+                eq(true),
+                eq(true),
+                eq(Collections.emptySet()));
     }
 
     @Test
@@ -198,6 +229,12 @@ public class CcpaEnforcementTest {
 
         // then
         assertThat(result).isEmpty();
+        verify(metrics).updatePrivacyCcpaMetrics(
+                eq(activityInfrastructure),
+                eq(true),
+                eq(true),
+                eq(true),
+                eq(Collections.emptySet()));
     }
 
     @Test
@@ -225,12 +262,19 @@ public class CcpaEnforcementTest {
                     assertThat(privacyResult.getUser()).isSameAs(maskedUser);
                     assertThat(privacyResult.getDevice()).isSameAs(maskedDevice);
                 });
+        verify(metrics).updatePrivacyCcpaMetrics(
+                eq(activityInfrastructure),
+                eq(true),
+                eq(true),
+                eq(true),
+                eq(Set.of("bidder")));
     }
 
-    private static AuctionContext givenAuctionContext(
+    private AuctionContext givenAuctionContext(
             UnaryOperator<AuctionContext.AuctionContextBuilder> auctionContextCustomizer) {
 
         final AuctionContext.AuctionContextBuilder initialContext = AuctionContext.builder()
+                .activityInfrastructure(activityInfrastructure)
                 .bidRequest(BidRequest.builder()
                         .device(Device.builder().ip("originalDevice").build())
                         .ext(ExtRequest.of(ExtRequestPrebid.builder()

@@ -2,7 +2,7 @@ adapters:
   boldwin:
     endpoint: http://ssp.videowalldirect.com/pserver
     meta-info:
-      maintainer-email: wls_demo_box@smartyads.com
+      maintainer-email: info@bold-win.com
       app-media-types:
         - banner
         - video

@@ -5,11 +5,10 @@ import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowIterator;
 import io.vertx.sqlclient.RowSet;
 import lombok.Value;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.settings.model.StoredDataResult;
 
 import java.util.Arrays;
@@ -23,11 +22,11 @@ import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.withSettings;
+import static org.mockito.quality.Strictness.LENIENT;
 
+@ExtendWith(MockitoExtension.class)
 public class DatabaseStoredDataResultMapperTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private RowSet<Row> rowSet;
@@ -322,7 +321,7 @@ public class DatabaseStoredDataResultMapperTest {
     }
 
     private Row givenRow(Object... values) {
-        final Row row = mock(Row.class);
+        final Row row = mock(Row.class, withSettings().strictness(LENIENT));
         given(row.getValue(anyInt())).willAnswer(invocation -> values[(Integer) invocation.getArgument(0)]);
         final JsonObject json = new JsonObject();
         IntStream.range(0, values.length).forEach(i -> json.put(String.valueOf(i), values[i]));

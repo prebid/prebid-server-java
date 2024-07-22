@@ -6,27 +6,14 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidAdjustmentFactor
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 
 import java.math.BigDecimal;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumMap;
-import java.util.EnumSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 
 public class FloorAdjustmentFactorResolver {
-
-    public BigDecimal resolve(ImpMediaType impMediaType,
-                              ExtRequestBidAdjustmentFactors adjustmentFactors,
-                              String bidder) {
-
-        final Set<ImpMediaType> impMediaTypes = impMediaType != null
-                ? EnumSet.of(impMediaType)
-                : Collections.emptySet();
-
-        return resolve(impMediaTypes, adjustmentFactors, bidder);
-    }
 
     public BigDecimal resolve(Set<ImpMediaType> impMediaTypes,
                               ExtRequestBidAdjustmentFactors adjustmentFactors,

@@ -1,0 +1,15 @@
+accounts:
+  - id: 1
+    status: active
+    auction:
+      price-granularity: low
+    privacy:
+      ccpa:
+        enabled: false
+      gdpr:
+        enabled: false
+    cookie-sync:
+      default-limit: 8
+      max-limit: 15
+      coop-sync:
+        default: true

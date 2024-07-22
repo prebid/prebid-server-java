@@ -2,12 +2,10 @@ package org.prebid.server.it.hooks;
 
 import io.restassured.response.Response;
 import org.json.JSONException;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.it.IntegrationTest;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
-import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
 
@@ -20,7 +18,6 @@ import static io.restassured.RestAssured.given;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.empty;
 
-@RunWith(SpringRunner.class)
 public class HooksTest extends IntegrationTest {
 
     private static final String RUBICON = "rubicon";

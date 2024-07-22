@@ -1,6 +1,6 @@
 package org.prebid.server.settings.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonAlias;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -12,13 +12,13 @@ import java.util.List;
 @AllArgsConstructor(staticName = "of")
 public class Purpose {
 
-    @JsonProperty("enforce-purpose")
+    @JsonAlias("enforce-purpose")
     EnforcePurpose enforcePurpose;
 
-    @JsonProperty("enforce-vendors")
+    @JsonAlias("enforce-vendors")
     Boolean enforceVendors;
 
-    @JsonProperty("vendor-exceptions")
+    @JsonAlias("vendor-exceptions")
     List<String> vendorExceptions;
 
     PurposeEid eid;

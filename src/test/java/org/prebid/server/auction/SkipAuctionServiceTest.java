@@ -5,12 +5,11 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.auction.model.TimeoutContext;
@@ -32,10 +31,8 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
+@ExtendWith(MockitoExtension.class)
 public class SkipAuctionServiceTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private StoredResponseProcessor storedResponseProcessor;
@@ -46,7 +43,7 @@ public class SkipAuctionServiceTest {
 
     private SkipAuctionService target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new SkipAuctionService(storedResponseProcessor, bidResponseCreator);
     }
@@ -178,6 +175,40 @@ public class SkipAuctionServiceTest {
         assertThat(result.result()).isEqualTo(expectedAuctionContext.with(givenBidResponse).skipAuction());
 
         verify(bidResponseCreator).createOnSkippedAuction(expectedAuctionContext, givenSeatBids);
+        verifyNoInteractions(storedResponseProcessor);
+    }
+
+    @Test
+    public void skipAuctionShouldReturnEmptySeatBidsWhenSeatBidIsNull() {
+        // given
+        final ExtStoredAuctionResponse givenStoredResponse = ExtStoredAuctionResponse.of("id", singletonList(null));
+        final AuctionContext givenAuctionContext = AuctionContext.builder()
+                .debugWarnings(new ArrayList<>())
+                .bidRequest(BidRequest.builder()
+                        .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                                .storedAuctionResponse(givenStoredResponse)
+                                .build()))
+                        .build())
+                .build();
+
+        final BidResponse givenBidResponse = BidResponse.builder().build();
+        given(bidResponseCreator.createOnSkippedAuction(any(), any()))
+                .willReturn(Future.succeededFuture(givenBidResponse));
+
+        // when
+        final Future<AuctionContext> result = target.skipAuction(givenAuctionContext);
+
+        // then
+        final AuctionContext expectedAuctionContext = givenAuctionContext.toBuilder()
+                .debugWarnings(List.of(
+                        "SeatBid can't be null in stored response",
+                        "no auction. response defined by storedauctionresponse"))
+                .build();
+
+        assertThat(result.succeeded()).isTrue();
+        assertThat(result.result()).isEqualTo(expectedAuctionContext.with(givenBidResponse).skipAuction());
+
+        verify(bidResponseCreator).createOnSkippedAuction(expectedAuctionContext, emptyList());
         verifyNoInteractions(storedResponseProcessor);
     }
 
