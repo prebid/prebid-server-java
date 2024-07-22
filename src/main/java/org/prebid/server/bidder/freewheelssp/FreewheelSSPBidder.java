@@ -61,7 +61,6 @@ public class FreewheelSSPBidder implements Bidder<BidRequest> {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
-
         return Result.withValue(
                 BidderUtil.defaultRequest(
                         modifyBidRequest(bidRequest, modifiedImps),
