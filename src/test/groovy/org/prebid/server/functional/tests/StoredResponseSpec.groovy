@@ -142,7 +142,7 @@ class StoredResponseSpec extends BaseSpec {
         then: "Response should contain warning information"
         assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
         assert response.ext?.warnings[ErrorType.PREBID]*.message ==
-                ["Stored response seatbid option not supported at the imp level" as String]
+                ['Stored response seatbid option not supported at the imp level']
 
         and: "PBS not send request to bidder"
         assert bidder.getRequestCount(bidRequest.id) == 0
@@ -203,7 +203,7 @@ class StoredResponseSpec extends BaseSpec {
         def storedAuctionResponse = SeatBid.getStoredResponse(bidRequest)
         bidRequest.ext.prebid.storedAuctionResponse = new StoredAuctionResponse().tap {
             it.id = null
-            it.seatbid = seatbid
+            it.seatbid = null
         }
 
         and: "Stored auction response in DB"
@@ -224,5 +224,29 @@ class StoredResponseSpec extends BaseSpec {
 
         where:
         seatbid << [null, [null]]
+    }
+
+    def "PBS return warning when id is null and seatbid with null"() {
+        given: "Default basic BidRequest with stored response"
+        def bidRequest = BidRequest.defaultBidRequest
+        def storedResponseId = PBSUtils.randomNumber
+        def storedAuctionResponse = SeatBid.getStoredResponse(bidRequest)
+        bidRequest.ext.prebid.storedAuctionResponse = new StoredAuctionResponse().tap {
+            it.id = null
+            it.seatbid = [null]
+        }
+
+        and: "Stored auction response in DB"
+        def storedResponse = new StoredResponse(responseId: storedResponseId, storedAuctionResponse: storedAuctionResponse)
+        storedResponseDao.save(storedResponse)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain warning information"
+        assert response.ext?.warnings[ErrorType.PREBID]*.message.contains('SeatBid can\'t be null in stored response')
+
+        and: "PBS not send request to bidder"
+        assert bidder.getRequestCount(bidRequest.id) == 0
     }
 }
