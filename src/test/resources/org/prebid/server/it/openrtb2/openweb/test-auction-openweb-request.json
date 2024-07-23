@@ -9,7 +9,8 @@
       },
       "ext": {
         "openweb": {
-          "aid": 1
+          "aid": 1,
+          "placementId": "placementId"
         }
       }
     }
