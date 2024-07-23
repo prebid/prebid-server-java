@@ -1,5 +1,6 @@
 package org.prebid.server.functional.model.request.auction
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import groovy.transform.ToString
 import org.prebid.server.functional.model.response.auction.SeatBid
 
@@ -7,5 +8,6 @@ import org.prebid.server.functional.model.response.auction.SeatBid
 class StoredAuctionResponse {
 
     String id
-    List<SeatBid> seatbid
+    @JsonProperty("seatbidarr")
+    List<SeatBid> seatBids
 }

@@ -129,7 +129,7 @@ class StoredResponseSpec extends BaseSpec {
         def storedAuctionResponse = SeatBid.getStoredResponse(bidRequest)
         bidRequest.imp[0].ext.prebid.storedAuctionResponse = new StoredAuctionResponse().tap {
             id = storedResponseId
-            seatbid = [storedAuctionResponse]
+            seatBids = [storedAuctionResponse]
         }
 
         and: "Stored auction response in DB"
@@ -142,7 +142,7 @@ class StoredResponseSpec extends BaseSpec {
         then: "Response should contain warning information"
         assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
         assert response.ext?.warnings[ErrorType.PREBID]*.message ==
-                ['Stored response seatbid option not supported at the imp level']
+                ['WARNING: request.imp[0].ext.prebid.storedauctionresponse.seatbidarr is not supported at the imp level']
 
         and: "PBS not send request to bidder"
         assert bidder.getRequestCount(bidRequest.id) == 0
@@ -154,7 +154,7 @@ class StoredResponseSpec extends BaseSpec {
         def storedAuctionResponse = SeatBid.getStoredResponse(bidRequest)
         bidRequest.ext.prebid.storedAuctionResponse = new StoredAuctionResponse().tap {
             id = null
-            seatbid = [storedAuctionResponse]
+            seatBids = [storedAuctionResponse]
         }
 
         when: "PBS processes auction request"
@@ -179,7 +179,7 @@ class StoredResponseSpec extends BaseSpec {
         def storedAuctionResponse = SeatBid.getStoredResponse(bidRequest)
         bidRequest.ext.prebid.storedAuctionResponse = new StoredAuctionResponse().tap {
             id = storedResponseId
-            seatbid = null
+            seatBids = null
         }
 
         and: "Stored auction response in DB"
@@ -203,7 +203,7 @@ class StoredResponseSpec extends BaseSpec {
         def storedAuctionResponse = SeatBid.getStoredResponse(bidRequest)
         bidRequest.ext.prebid.storedAuctionResponse = new StoredAuctionResponse().tap {
             it.id = null
-            it.seatbid = null
+            it.seatBids = null
         }
 
         and: "Stored auction response in DB"
@@ -233,7 +233,7 @@ class StoredResponseSpec extends BaseSpec {
         def storedAuctionResponse = SeatBid.getStoredResponse(bidRequest)
         bidRequest.ext.prebid.storedAuctionResponse = new StoredAuctionResponse().tap {
             it.id = null
-            it.seatbid = [null]
+            it.seatBids = [null]
         }
 
         and: "Stored auction response in DB"
