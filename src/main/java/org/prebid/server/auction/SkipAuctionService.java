@@ -53,7 +53,7 @@ public class SkipAuctionService {
                     "the auction can not be skipped, ext.prebid.storedauctionresponse is absent"));
         }
 
-        final List<SeatBid> seatBids = storedResponse.getSeatbid();
+        final List<SeatBid> seatBids = storedResponse.getSeatBids();
         if (seatBids != null) {
             return validateStoredSeatBid(seatBids)
                     .recover(throwable -> {

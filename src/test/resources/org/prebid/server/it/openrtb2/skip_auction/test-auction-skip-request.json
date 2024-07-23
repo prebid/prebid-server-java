@@ -23,7 +23,7 @@
   "ext": {
     "prebid": {
       "storedauctionresponse": {
-        "seatbid": [
+        "seatbidarr": [
           {
             "bid": [
               {
