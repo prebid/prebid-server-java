@@ -1,5 +1,6 @@
 package org.prebid.server.proto.openrtb.ext.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.iab.openrtb.response.SeatBid;
 import lombok.AllArgsConstructor;
 import lombok.Value;
@@ -12,5 +13,6 @@ public class ExtStoredAuctionResponse {
 
     String id;
 
-    List<SeatBid> seatbid;
+    @JsonProperty("seatbidarr")
+    List<SeatBid> seatBids;
 }
