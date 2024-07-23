@@ -827,7 +827,7 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void shouldNotSetSizeIfVideoSizeProcessingLogicIsDisabled() {
+    public void shouldNotSetSizeIfVideoSizeProcessingLogicIsDisabledAndBidderParamsIsMissingSizeId() {
         // given
         target = new RubiconBidder(
                 BIDDER_NAME,
@@ -855,6 +855,40 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(Imp::getVideo).doesNotContainNull()
                 .extracting(Video::getExt)
                 .containsOnlyNulls();
+    }
+
+    @Test
+    public void shouldSetSizeFromBidderParamsWhenVideoSizeProcessingLogicIsDisabled() {
+        // given
+        target = new RubiconBidder(
+                BIDDER_NAME,
+                ENDPOINT_URL,
+                USERNAME,
+                PASSWORD,
+                SUPPORTED_VENDORS,
+                true,
+                false,
+                currencyConversionService,
+                priceFloorResolver,
+                jacksonMapper);
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.instl(1).video(Video.builder().placement(1).build()),
+                builder -> builder.video(RubiconVideoParams.builder().sizeId(14).build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getVideo).doesNotContainNull()
+                .extracting(Video::getExt).doesNotContainNull()
+                .extracting(ext -> mapper.treeToValue(ext, RubiconVideoExt.class))
+                .extracting(RubiconVideoExt::getRp)
+                .extracting(RubiconVideoExtRp::getSizeId)
+                .containsOnly(14);
     }
 
     @Test
