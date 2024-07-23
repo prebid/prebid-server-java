@@ -19,23 +19,18 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-public class SkipAuctionService {
+public class SkippedAuctionService {
 
     private final StoredResponseProcessor storedResponseProcessor;
     private final BidResponseCreator bidResponseCreator;
 
-    public SkipAuctionService(StoredResponseProcessor storedResponseProcessor, BidResponseCreator bidResponseCreator) {
+    public SkippedAuctionService(StoredResponseProcessor storedResponseProcessor,
+                                 BidResponseCreator bidResponseCreator) {
+
         this.storedResponseProcessor = Objects.requireNonNull(storedResponseProcessor);
         this.bidResponseCreator = Objects.requireNonNull(bidResponseCreator);
     }
 
-    /**
-     * Skips the auction for the given AuctionContext.
-     *
-     * @param auctionContext the AuctionContext to be skipped
-     * @return a Future that will complete with the AuctionContext if the auction was successfully skipped,
-     *         or fail with an InvalidRequestException if the auction could not be skipped
-     */
     public Future<AuctionContext> skipAuction(AuctionContext auctionContext) {
         if (auctionContext.isRequestRejected()) {
             return Future.succeededFuture(auctionContext.with(

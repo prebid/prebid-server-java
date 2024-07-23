@@ -181,10 +181,6 @@ public class BidResponseCreator {
         return truncateAttrChars;
     }
 
-    /**
-     * Creates an OpenRTB {@link BidResponse} from the bids defined in the bidrequest.ext.prebid.storedauctionresponse
-     * as a result of a skipped auction.
-     */
     Future<BidResponse> createOnSkippedAuction(AuctionContext auctionContext, List<SeatBid> seatBids) {
         final BidRequest bidRequest = auctionContext.getBidRequest();
 
@@ -203,10 +199,6 @@ public class BidResponseCreator {
         return Future.succeededFuture(bidResponse);
     }
 
-    /**
-     * Creates an OpenRTB {@link BidResponse} from the bids supplied by the bidder,
-     * including processing of winning bids with cache IDs.
-     */
     Future<BidResponse> create(AuctionContext auctionContext,
                                BidRequestCacheInfo cacheInfo,
                                Map<String, MultiBidConfig> bidderToMultiBids) {

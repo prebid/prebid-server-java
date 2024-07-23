@@ -15,7 +15,7 @@ import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureC
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
-import org.prebid.server.auction.SkipAuctionService;
+import org.prebid.server.auction.SkippedAuctionService;
 import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.gpp.CookieSyncGppService;
 import org.prebid.server.auction.gpp.SetuidGppService;
@@ -206,7 +206,7 @@ public class ApplicationServerConfiguration {
     @Bean
     org.prebid.server.handler.openrtb2.AuctionHandler openrtbAuctionHandler(
             ExchangeService exchangeService,
-            SkipAuctionService skipAuctionService,
+            SkippedAuctionService skippedAuctionService,
             AuctionRequestFactory auctionRequestFactory,
             AnalyticsReporterDelegator analyticsReporter,
             Metrics metrics,
@@ -219,7 +219,7 @@ public class ApplicationServerConfiguration {
                 logSamplingRate,
                 auctionRequestFactory,
                 exchangeService,
-                skipAuctionService,
+                skippedAuctionService,
                 analyticsReporter,
                 metrics,
                 clock,

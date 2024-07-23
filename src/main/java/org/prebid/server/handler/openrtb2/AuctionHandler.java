@@ -13,7 +13,7 @@ import io.vertx.ext.web.RoutingContext;
 import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.ExchangeService;
-import org.prebid.server.auction.SkipAuctionService;
+import org.prebid.server.auction.SkippedAuctionService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
 import org.prebid.server.cookie.UidsCookie;
@@ -52,7 +52,7 @@ public class AuctionHandler implements ApplicationResource {
     private final double logSamplingRate;
     private final AuctionRequestFactory auctionRequestFactory;
     private final ExchangeService exchangeService;
-    private final SkipAuctionService skipAuctionService;
+    private final SkippedAuctionService skippedAuctionService;
     private final AnalyticsReporterDelegator analyticsDelegator;
     private final Metrics metrics;
     private final Clock clock;
@@ -63,7 +63,7 @@ public class AuctionHandler implements ApplicationResource {
     public AuctionHandler(double logSamplingRate,
                           AuctionRequestFactory auctionRequestFactory,
                           ExchangeService exchangeService,
-                          SkipAuctionService skipAuctionService,
+                          SkippedAuctionService skippedAuctionService,
                           AnalyticsReporterDelegator analyticsDelegator,
                           Metrics metrics,
                           Clock clock,
@@ -74,7 +74,7 @@ public class AuctionHandler implements ApplicationResource {
         this.logSamplingRate = logSamplingRate;
         this.auctionRequestFactory = Objects.requireNonNull(auctionRequestFactory);
         this.exchangeService = Objects.requireNonNull(exchangeService);
-        this.skipAuctionService = Objects.requireNonNull(skipAuctionService);
+        this.skippedAuctionService = Objects.requireNonNull(skippedAuctionService);
         this.analyticsDelegator = Objects.requireNonNull(analyticsDelegator);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
@@ -100,7 +100,7 @@ public class AuctionHandler implements ApplicationResource {
                 .httpContext(HttpRequestContext.from(routingContext));
 
         auctionRequestFactory.parseRequest(routingContext, startTime)
-                .compose(auctionContext -> skipAuctionService.skipAuction(auctionContext)
+                .compose(auctionContext -> skippedAuctionService.skipAuction(auctionContext)
                         .recover(throwable -> holdAuction(auctionEventBuilder, auctionContext)))
                 .onComplete(context -> handleResult(context, auctionEventBuilder, routingContext, startTime));
     }

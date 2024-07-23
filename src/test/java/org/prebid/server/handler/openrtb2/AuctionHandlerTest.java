@@ -21,7 +21,7 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.ExchangeService;
-import org.prebid.server.auction.SkipAuctionService;
+import org.prebid.server.auction.SkippedAuctionService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.TimeoutContext;
 import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
@@ -82,7 +82,7 @@ public class AuctionHandlerTest extends VertxTest {
     @Mock
     private ExchangeService exchangeService;
     @Mock(strictness = LENIENT)
-    private SkipAuctionService skipAuctionService;
+    private SkippedAuctionService skippedAuctionService;
     @Mock
     private AnalyticsReporterDelegator analyticsReporterDelegator;
     @Mock
@@ -118,7 +118,7 @@ public class AuctionHandlerTest extends VertxTest {
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
         given(httpResponse.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
 
-        given(skipAuctionService.skipAuction(any())).willReturn(Future.failedFuture("Auction cannot be skipped"));
+        given(skippedAuctionService.skipAuction(any())).willReturn(Future.failedFuture("Auction cannot be skipped"));
 
         given(clock.millis()).willReturn(Instant.now().toEpochMilli());
 
@@ -130,7 +130,7 @@ public class AuctionHandlerTest extends VertxTest {
                 0.01,
                 auctionRequestFactory,
                 exchangeService,
-                skipAuctionService,
+                skippedAuctionService,
                 analyticsReporterDelegator,
                 metrics,
                 clock,
@@ -816,7 +816,7 @@ public class AuctionHandlerTest extends VertxTest {
         final AuctionContext givenAuctionContext = givenAuctionContext(identity());
         given(auctionRequestFactory.parseRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext));
-        given(skipAuctionService.skipAuction(any()))
+        given(skippedAuctionService.skipAuction(any()))
                 .willReturn(Future.succeededFuture(
                         givenAuctionContext.skipAuction().with(BidResponse.builder().build())));
 

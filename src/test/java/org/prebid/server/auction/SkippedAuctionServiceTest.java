@@ -32,7 +32,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
-public class SkipAuctionServiceTest {
+public class SkippedAuctionServiceTest {
 
     @Mock
     private StoredResponseProcessor storedResponseProcessor;
@@ -41,11 +41,11 @@ public class SkipAuctionServiceTest {
     @Mock
     private Timeout timeout;
 
-    private SkipAuctionService target;
+    private SkippedAuctionService target;
 
     @BeforeEach
     public void setUp() {
-        target = new SkipAuctionService(storedResponseProcessor, bidResponseCreator);
+        target = new SkippedAuctionService(storedResponseProcessor, bidResponseCreator);
     }
 
     @Test

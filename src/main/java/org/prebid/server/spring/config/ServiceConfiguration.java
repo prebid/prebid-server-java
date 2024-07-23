@@ -23,7 +23,7 @@ import org.prebid.server.auction.InterstitialProcessor;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.OrtbTypesResolver;
 import org.prebid.server.auction.SecBrowsingTopicsResolver;
-import org.prebid.server.auction.SkipAuctionService;
+import org.prebid.server.auction.SkippedAuctionService;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.StoredResponseProcessor;
 import org.prebid.server.auction.SupplyChainResolver;
@@ -1139,10 +1139,10 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    SkipAuctionService skipAuctionService(StoredResponseProcessor storedResponseProcessor,
-                                          BidResponseCreator bidResponseCreator) {
+    SkippedAuctionService skipAuctionService(StoredResponseProcessor storedResponseProcessor,
+                                             BidResponseCreator bidResponseCreator) {
 
-        return new SkipAuctionService(storedResponseProcessor, bidResponseCreator);
+        return new SkippedAuctionService(storedResponseProcessor, bidResponseCreator);
     }
 
     private static List<String> splitToList(String listAsString) {
