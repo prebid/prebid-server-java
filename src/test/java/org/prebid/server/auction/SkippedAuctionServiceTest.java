@@ -59,10 +59,8 @@ public class SkippedAuctionServiceTest {
         final Future<AuctionContext> result = target.skipAuction(givenAuctionContext);
 
         // then
-        assertThat(result.succeeded()).isTrue();
-        final BidResponse expectedBidResponse = BidResponse.builder().seatbid(emptyList()).build();
-        assertThat(result.result()).isEqualTo(givenAuctionContext.with(expectedBidResponse));
-
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause()).hasMessage("Rejected request cannot be skipped");
         verifyNoInteractions(storedResponseProcessor, bidResponseCreator);
     }
 
