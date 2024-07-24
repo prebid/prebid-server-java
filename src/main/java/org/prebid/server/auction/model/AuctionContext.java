@@ -67,6 +67,8 @@ public class AuctionContext {
 
     boolean requestRejected;
 
+    boolean auctionSkipped;
+
     CachedDebugLog cachedDebugLog;
 
     public AuctionContext with(Account account) {
@@ -125,6 +127,12 @@ public class AuctionContext {
     public AuctionContext withRequestRejected() {
         return this.toBuilder()
                 .requestRejected(true)
+                .build();
+    }
+
+    public AuctionContext skipAuction() {
+        return this.toBuilder()
+                .auctionSkipped(true)
                 .build();
     }
 }

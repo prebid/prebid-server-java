@@ -984,7 +984,7 @@ public class RequestValidator {
 
         validateImpExtPrebidBidder(extPrebidBidderNode, extPrebid.getStoredAuctionResponse(),
                 aliases, impIndex, warnings);
-        validateImpExtPrebidStoredResponses(extPrebid, aliases, impIndex);
+        validateImpExtPrebidStoredResponses(extPrebid, aliases, impIndex, warnings);
     }
 
     private void validateImpExtPrebidBidder(JsonNode extPrebidBidder,
@@ -1020,11 +1020,20 @@ public class RequestValidator {
 
     private void validateImpExtPrebidStoredResponses(ExtImpPrebid extPrebid,
                                                      Map<String, String> aliases,
-                                                     int impIndex) throws ValidationException {
+                                                     int impIndex,
+                                                     List<String> warnings) throws ValidationException {
+
         final ExtStoredAuctionResponse extStoredAuctionResponse = extPrebid.getStoredAuctionResponse();
-        if (extStoredAuctionResponse != null && extStoredAuctionResponse.getId() == null) {
-            throw new ValidationException("request.imp[%d].ext.prebid.storedauctionresponse.id should be defined",
-                    impIndex);
+        if (extStoredAuctionResponse != null) {
+            if (extStoredAuctionResponse.getSeatBids() != null) {
+                warnings.add("WARNING: request.imp[%d].ext.prebid.storedauctionresponse.seatbidarr".formatted(impIndex)
+                        + " is not supported at the imp level");
+            }
+
+            if (extStoredAuctionResponse.getId() == null) {
+                throw new ValidationException("request.imp[%d].ext.prebid.storedauctionresponse.id should be defined",
+                        impIndex);
+            }
         }
 
         final List<ExtStoredBidResponse> storedBidResponses = extPrebid.getStoredBidResponse();

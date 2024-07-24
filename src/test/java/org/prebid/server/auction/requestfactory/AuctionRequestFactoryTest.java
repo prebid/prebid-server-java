@@ -210,7 +210,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(routingContext.getBody()).willReturn(null);
 
         // when
-        final Future<?> future = target.fromRequest(routingContext, 0L);
+        final Future<?> future = target.parseRequest(routingContext, 0L);
 
         // then
         assertThat(future.failed()).isTrue();
@@ -241,7 +241,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(routingContext.getBodyAsString()).willReturn("body");
 
         // when
-        final Future<?> future = target.fromRequest(routingContext, 0L);
+        final Future<?> future = target.parseRequest(routingContext, 0L);
 
         // then
         assertThat(future.failed()).isTrue();
@@ -256,7 +256,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(routingContext.getBodyAsString()).willReturn("body");
 
         // when
-        final Future<?> future = target.fromRequest(routingContext, 0L);
+        final Future<?> future = target.parseRequest(routingContext, 0L);
 
         // then
         assertThat(future.failed()).isTrue();
@@ -279,7 +279,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(paramsExtractor.gpcFrom(any())).willReturn("1");
 
         // when
-        target.fromRequest(routingContext, 0L);
+        target.parseRequest(routingContext, 0L);
 
         // then
         final ArgumentCaptor<BidRequest> captor = ArgumentCaptor.forClass(BidRequest.class);
@@ -310,7 +310,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .executeEntrypointHooks(any(), any(), any());
 
         // when
-        target.fromRequest(routingContext, 0L);
+        target.parseRequest(routingContext, 0L);
 
         // then
         final ArgumentCaptor<BidRequest> captor = ArgumentCaptor.forClass(BidRequest.class);
@@ -337,7 +337,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .restoreResultFromRejection(eq(exception));
 
         // when
-        final Future<AuctionContext> future = target.fromRequest(routingContext, 0L);
+        final Future<AuctionContext> future = target.parseRequest(routingContext, 0L);
 
         // then
         assertThat(future).succeededWith(auctionContext);
@@ -349,7 +349,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenValidBidRequest();
 
         // when
-        final Future<AuctionContext> result = target.fromRequest(routingContext, 0);
+        final Future<AuctionContext> result = target.enrichAuctionContext(defaultActionContext);
 
         // then
         verify(debugResolver).debugContextFrom(any());
@@ -372,7 +372,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .executeRawAuctionRequestHooks(any());
 
         // when
-        target.fromRequest(routingContext, 0L);
+        target.enrichAuctionContext(defaultActionContext);
 
         // then
         final ArgumentCaptor<BidRequest> captor = ArgumentCaptor.forClass(BidRequest.class);
@@ -399,7 +399,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .restoreResultFromRejection(eq(exception));
 
         // when
-        final Future<AuctionContext> future = target.fromRequest(routingContext, 0L);
+        final Future<AuctionContext> future = target.enrichAuctionContext(defaultActionContext);
 
         // then
         assertThat(future).succeededWith(auctionContext);
@@ -420,7 +420,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .executeProcessedAuctionRequestHooks(any());
 
         // when
-        final Future<AuctionContext> result = target.fromRequest(routingContext, 0L);
+        final Future<AuctionContext> result = target.enrichAuctionContext(defaultActionContext);
 
         // then
         final BidRequest resultBidRequest = result.result().getBidRequest();
@@ -444,7 +444,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .restoreResultFromRejection(eq(exception));
 
         // when
-        final Future<AuctionContext> future = target.fromRequest(routingContext, 0L);
+        final Future<AuctionContext> future = target.enrichAuctionContext(defaultActionContext);
 
         // then
         assertThat(future).succeededWith(auctionContext);
@@ -472,7 +472,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(routingContext.getBodyAsString()).willReturn(requestNode.toString());
 
         // when
-        final Future<?> result = target.fromRequest(routingContext, 0L);
+        final Future<?> result = target.parseRequest(routingContext, 0L);
 
         // then
         assertThat(result.failed()).isTrue();
@@ -508,7 +508,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(routingContext.getBodyAsString()).willReturn(requestNode.toString());
 
         // when
-        final Future<?> result = target.fromRequest(routingContext, 0L);
+        final Future<?> result = target.parseRequest(routingContext, 0L);
 
         // then
         assertThat(result.failed()).isTrue();
@@ -532,7 +532,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenProcessStoredRequest(bidRequest);
 
         // when
-        final Future<?> result = target.fromRequest(routingContext, 0L);
+        final Future<?> result = target.parseRequest(routingContext, 0L);
 
         // then
         assertThat(result.succeeded()).isTrue();
@@ -544,7 +544,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenValidBidRequest();
 
         // when
-        target.fromRequest(routingContext, 0L).result();
+        target.parseRequest(routingContext, 0L).result();
 
         // then
         verify(ortbTypesResolver).normalizeBidRequest(any(), any(), any());
@@ -557,7 +557,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(ortb2RequestFactory.fetchAccount(any())).willReturn(Future.failedFuture("error"));
 
         // when
-        final Future<?> future = target.fromRequest(routingContext, 0L);
+        final Future<?> future = target.enrichAuctionContext(defaultActionContext);
 
         // then
         assertThat(future.failed()).isTrue();
@@ -565,12 +565,12 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void fromRequestShouldSetWebRequestTypeMetricWhenSiteIsPresent() {
+    public void parseRequestShouldSetWebRequestTypeMetricWhenSiteIsPresent() {
         // given
         givenValidBidRequest(BidRequest.builder().site(Site.builder().build()).build());
 
         // when
-        final Future<AuctionContext> result = target.fromRequest(routingContext, 0L);
+        final Future<AuctionContext> result = target.parseRequest(routingContext, 0L);
 
         // then
         assertThat(result).isSucceeded();
@@ -578,12 +578,12 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void fromRequestShouldSetWebRequestTypeMetricWhenNoSiteAppOrDoohPresent() {
+    public void parseRequestShouldSetWebRequestTypeMetricWhenNoSiteAppOrDoohPresent() {
         // given
         givenValidBidRequest(BidRequest.builder().build());
 
         // when
-        final Future<AuctionContext> result = target.fromRequest(routingContext, 0L);
+        final Future<AuctionContext> result = target.parseRequest(routingContext, 0L);
 
         // then
         assertThat(result).isSucceeded();
@@ -591,12 +591,12 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void fromRequestShouldSetAppRequestTypeMetricWhenAppIsPresent() {
+    public void parseRequestShouldSetAppRequestTypeMetricWhenAppIsPresent() {
         // given
         givenValidBidRequest(BidRequest.builder().app(App.builder().build()).build());
 
         // when
-        final Future<AuctionContext> result = target.fromRequest(routingContext, 0L);
+        final Future<AuctionContext> result = target.parseRequest(routingContext, 0L);
 
         // then
         assertThat(result).isSucceeded();
@@ -604,12 +604,12 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void fromRequestShouldSetDoohRequestTypeMetricWhenDoohIsPresent() {
+    public void parseRequestShouldSetDoohRequestTypeMetricWhenDoohIsPresent() {
         // given
         givenValidBidRequest(BidRequest.builder().dooh(Dooh.builder().build()).build());
 
         // when
-        final Future<AuctionContext> result = target.fromRequest(routingContext, 0L);
+        final Future<AuctionContext> result = target.parseRequest(routingContext, 0L);
 
         // then
         assertThat(result).isSucceeded();
@@ -622,7 +622,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenValidBidRequest();
 
         // when
-        target.fromRequest(routingContext, 0L);
+        target.enrichAuctionContext(defaultActionContext);
 
         // then
         verify(storedRequestProcessor).processAuctionRequest(eq(ACCOUNT_ID), any());
@@ -636,7 +636,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .willReturn(Future.failedFuture("error"));
 
         // when
-        final Future<?> future = target.fromRequest(routingContext, 0L);
+        final Future<?> future = target.enrichAuctionContext(defaultActionContext);
 
         // then
         assertThat(future.failed()).isTrue();
@@ -652,7 +652,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .willReturn(Future.failedFuture(new InvalidRequestException("errors")));
 
         // when
-        final Future<?> future = target.fromRequest(routingContext, 0L);
+        final Future<?> future = target.enrichAuctionContext(defaultActionContext);
 
         // then
         assertThat(future.failed()).isTrue();
@@ -666,7 +666,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenValidBidRequest();
 
         // when
-        final AuctionContext result = target.fromRequest(routingContext, 0L).result();
+        final AuctionContext result = target.parseRequest(routingContext, 0L).result();
 
         // then
         assertThat(result).isEqualTo(defaultActionContext);
@@ -681,7 +681,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(paramsResolver.resolve(any(), any(), any(), anyBoolean())).willReturn(updatedBidRequest);
 
         // when
-        final AuctionContext result = target.fromRequest(routingContext, 0L).result();
+        final AuctionContext result = target.enrichAuctionContext(defaultActionContext).result();
 
         // then
         assertThat(result.getBidRequest()).isEqualTo(updatedBidRequest);
@@ -705,7 +705,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .willReturn(Future.succeededFuture(privacyContext));
 
         // when
-        final AuctionContext result = target.fromRequest(routingContext, 0L).result();
+        final AuctionContext result = target.enrichAuctionContext(defaultActionContext).result();
 
         // then
         assertThat(result.getPrivacyContext()).isEqualTo(privacyContext);
@@ -724,7 +724,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                         .build());
 
         // when
-        target.fromRequest(routingContext, 0L);
+        target.enrichAuctionContext(defaultActionContext);
 
         // then
         verify(paramsResolver).resolve(
@@ -746,7 +746,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 });
 
         // when
-        final Future<AuctionContext> future = target.fromRequest(routingContext, 0L);
+        final Future<AuctionContext> future = target.enrichAuctionContext(defaultActionContext);
 
         // then
         assertThat(future).isSucceeded();
