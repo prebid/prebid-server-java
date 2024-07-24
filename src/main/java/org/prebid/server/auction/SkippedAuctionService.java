@@ -1,7 +1,6 @@
 package org.prebid.server.auction;
 
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
 import org.apache.commons.collections4.CollectionUtils;
@@ -33,8 +32,7 @@ public class SkippedAuctionService {
 
     public Future<AuctionContext> skipAuction(AuctionContext auctionContext) {
         if (auctionContext.isRequestRejected()) {
-            return Future.succeededFuture(auctionContext.with(
-                    BidResponse.builder().seatbid(Collections.emptyList()).build()));
+            return Future.failedFuture("Rejected request cannot be skipped");
         }
 
         final ExtStoredAuctionResponse storedResponse = Optional.ofNullable(auctionContext.getBidRequest())
