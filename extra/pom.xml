@@ -51,7 +51,7 @@
         <protobuf.version>3.21.7</protobuf.version>
         <protoc.version>3.17.3</protoc.version>
         <json-logic.version>1.0.7</json-logic.version>
-        <aws.awssdk.version>2.17.274</aws.awssdk.version>
+        <aws.awssdk.version>2.26.24</aws.awssdk.version>
 
         <!-- Project test dependency versions -->
         <wiremock.version>3.5.4</wiremock.version>
