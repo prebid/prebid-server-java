@@ -85,40 +85,36 @@ public class S3PeriodicRefreshService implements Initializable {
 
     @Override
     public void initialize(Promise<Void> initializePromise) {
-        getAll();
+        final long startTime = clock.millis();
+
+        fetchStoredDataResult()
+                .onSuccess(storedDataResult -> handleResult(storedDataResult, startTime, MetricName.initialize))
+                .onFailure(exception -> handleFailure(exception, startTime, MetricName.initialize))
+                .<Void>mapEmpty()
+                .onComplete(initializePromise);
+
         if (refreshPeriod > 0) {
             vertx.setPeriodic(refreshPeriod, ignored -> refresh());
         }
-
-        initializePromise.tryComplete();
     }
 
-    private void getAll() {
-        final long startTime = clock.millis();
-
-        getFileContentsForDirectory(storedRequestsDirectory)
-                .compose(storedIdToRequest -> getFileContentsForDirectory(storedImpressionsDirectory)
-                        .map(storedIdToImp ->
-                                StoredDataResult.of(storedIdToRequest, storedIdToImp, Collections.emptyList())))
-                .onSuccess(storedDataResult -> handleResult(storedDataResult, startTime, MetricName.initialize))
-                .onFailure(exception -> handleFailure(exception, startTime, MetricName.initialize));
+    private Future<StoredDataResult> fetchStoredDataResult() {
+        return Future.all(
+                        getFileContentsForDirectory(storedRequestsDirectory),
+                        getFileContentsForDirectory(storedImpressionsDirectory))
+                .map(CompositeFuture::<Map<String, String>>list)
+                .map(results -> StoredDataResult.of(results.getFirst(), results.get(1), Collections.emptyList()));
     }
 
     private void refresh() {
         final long startTime = clock.millis();
 
-        getFileContentsForDirectory(storedRequestsDirectory)
-                .compose(storedIdToRequest -> getFileContentsForDirectory(storedImpressionsDirectory)
-                        .map(storedIdToImp ->
-                                StoredDataResult.of(storedIdToRequest, storedIdToImp, Collections.emptyList())))
+        fetchStoredDataResult()
                 .onSuccess(storedDataResult -> handleResult(invalidate(storedDataResult), startTime, MetricName.update))
                 .onFailure(exception -> handleFailure(exception, startTime, MetricName.update));
     }
 
-    private void handleResult(StoredDataResult storedDataResult,
-                              long startTime,
-                              MetricName refreshType) {
-
+    private void handleResult(StoredDataResult storedDataResult, long startTime, MetricName refreshType) {
         lastResult.set(storedDataResult);
 
         cacheNotificationListener.save(storedDataResult.getStoredIdToRequest(), storedDataResult.getStoredIdToImp());
@@ -126,13 +122,11 @@ public class S3PeriodicRefreshService implements Initializable {
         metrics.updateSettingsCacheRefreshTime(cacheType, refreshType, clock.millis() - startTime);
     }
 
-    private Future<Void> handleFailure(Throwable exception, long startTime, MetricName refreshType) {
+    private void handleFailure(Throwable exception, long startTime, MetricName refreshType) {
         logger.warn("Error occurred while request to s3 refresh service", exception);
 
         metrics.updateSettingsCacheRefreshTime(cacheType, refreshType, clock.millis() - startTime);
         metrics.updateSettingsCacheRefreshErrorMetric(cacheType, refreshType);
-
-        return Future.failedFuture(exception);
     }
 
     private StoredDataResult invalidate(StoredDataResult storedDataResult) {
