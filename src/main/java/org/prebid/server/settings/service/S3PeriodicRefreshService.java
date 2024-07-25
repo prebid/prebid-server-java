@@ -4,10 +4,10 @@ import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.SetUtils;
 import org.prebid.server.auction.model.Tuple2;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.CacheNotificationListener;
@@ -53,7 +53,7 @@ public class S3PeriodicRefreshService implements Initializable {
     private final Vertx vertx;
     private final Metrics metrics;
     private final Clock clock;
-    private AtomicReference<StoredDataResult> lastResult;
+    private final AtomicReference<StoredDataResult> lastResult;
 
     public S3PeriodicRefreshService(S3AsyncClient asyncClient,
                                     String bucket,
@@ -115,7 +115,7 @@ public class S3PeriodicRefreshService implements Initializable {
                 .onFailure(exception -> handleFailure(exception, startTime, MetricName.update));
     }
 
-    private Void handleResult(StoredDataResult storedDataResult,
+    private void handleResult(StoredDataResult storedDataResult,
                               long startTime,
                               MetricName refreshType) {
 
@@ -124,8 +124,6 @@ public class S3PeriodicRefreshService implements Initializable {
         cacheNotificationListener.save(storedDataResult.getStoredIdToRequest(), storedDataResult.getStoredIdToImp());
 
         metrics.updateSettingsCacheRefreshTime(cacheType, refreshType, clock.millis() - startTime);
-
-        return null;
     }
 
     private Future<Void> handleFailure(Throwable exception, long startTime, MetricName refreshType) {
