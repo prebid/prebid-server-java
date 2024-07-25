@@ -147,44 +147,41 @@ public class S3PeriodicRefreshService implements Initializable {
         return storedDataResult;
     }
 
-    private Future<Set<String>> listFiles(String prefix) {
-        final ListObjectsRequest listObjectsRequest =
-                ListObjectsRequest.builder().bucket(bucket).prefix(prefix).build();
-
-        return Future.fromCompletionStage(asyncClient.listObjects(listObjectsRequest), vertx.getOrCreateContext())
-                .map(response -> response.contents().stream().map(S3Object::key).collect(Collectors.toSet()));
-    }
-
     private Future<Map<String, String>> getFileContentsForDirectory(String directory) {
         return listFiles(directory)
-                .compose(files ->
-                        getFileContents(files)
-                                .map(map -> map.entrySet().stream().collect(
-                                        Collectors.toMap(
-                                                e -> stripFileName(directory, e.getKey()),
-                                                Map.Entry::getValue))));
+                .map(files -> files.stream().map(this::downloadFile).toList())
+                .compose(Future::all)
+                .map(CompositeFuture::<Tuple2<String, String>>list)
+                .map(fileNameToContent -> fileNameToContent.stream()
+                        .collect(Collectors.toMap(
+                                entry -> stripFileName(directory, entry.getLeft()),
+                                Tuple2::getRight)));
     }
 
-    private String stripFileName(String directory, String name) {
-        return name.replace(directory + "/", "").replace(JSON_SUFFIX, "");
+    private Future<List<String>> listFiles(String prefix) {
+        final ListObjectsRequest listObjectsRequest = ListObjectsRequest.builder()
+                .bucket(bucket)
+                .prefix(prefix)
+                .build();
+
+        return Future.fromCompletionStage(asyncClient.listObjects(listObjectsRequest), vertx.getOrCreateContext())
+                .map(response -> response.contents().stream()
+                        .map(S3Object::key)
+                        .collect(Collectors.toList()));
     }
 
-    private Future<Map<String, String>> getFileContents(Set<String> fileNames) {
-        final List<Future<Tuple2<String, String>>> futureListContents = fileNames.stream()
-                .map(fileName -> downloadFile(fileName).map(fileContent -> Tuple2.of(fileName, fileContent)))
-                .collect(Collectors.toCollection(ArrayList::new));
-
-        final Future<List<Tuple2<String, String>>> composedFutures =
-                CompositeFuture.all(new ArrayList<>(futureListContents)).map(CompositeFuture::list);
-
-        return composedFutures.map(one -> one.stream().collect(Collectors.toMap(Tuple2::getLeft, Tuple2::getRight)));
-    }
-
-    private Future<String> downloadFile(String key) {
+    private Future<Tuple2<String, String>> downloadFile(String key) {
         final GetObjectRequest request = GetObjectRequest.builder().bucket(bucket).key(key).build();
 
         return Future.fromCompletionStage(
-                asyncClient.getObject(request, AsyncResponseTransformer.toBytes()), vertx.getOrCreateContext()
-            ).map(BytesWrapper::asUtf8String);
+                        asyncClient.getObject(request, AsyncResponseTransformer.toBytes()),
+                        vertx.getOrCreateContext())
+                .map(content -> Tuple2.of(key, content.asUtf8String()));
+    }
+
+    private String stripFileName(String directory, String name) {
+        return name
+                .replace(directory + "/", "")
+                .replace(JSON_SUFFIX, "");
     }
 }
