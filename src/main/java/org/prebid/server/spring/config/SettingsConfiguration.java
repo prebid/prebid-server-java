@@ -295,32 +295,19 @@ public class SettingsConfiguration {
     }
 
     @Configuration
-    @ConditionalOnProperty(prefix = "settings.in-memory-cache.s3-update",
-            name = {"refresh-rate", "timeout"})
+    @ConditionalOnProperty(prefix = "settings.in-memory-cache.s3-update", name = {"refresh-rate", "timeout"})
     static class S3PeriodicRefreshServiceConfiguration {
-
-        @Value("${settings.in-memory-cache.s3-update.refresh-rate}")
-        long refreshPeriod;
-
-        @Value("${settings.in-memory-cache.s3-update.timeout}")
-        long timeout;
-
-        @Autowired
-        Vertx vertx;
-
-        @Autowired
-        HttpClient httpClient;
-        @Autowired
-        Metrics metrics;
-        @Autowired
-        Clock clock;
 
         @Bean
         public S3PeriodicRefreshService s3PeriodicRefreshService(
                 S3AsyncClient s3AsyncClient,
                 S3SettingsConfiguration.S3ConfigurationProperties s3ConfigurationProperties,
+                @Value("${settings.in-memory-cache.s3-update.refresh-rate}") long refreshPeriod,
                 SettingsCache settingsCache,
-                JacksonMapper mapper) {
+                Vertx vertx,
+                Metrics metrics,
+                Clock clock) {
+
             return new S3PeriodicRefreshService(
                     s3AsyncClient,
                     s3ConfigurationProperties.getBucket(),
