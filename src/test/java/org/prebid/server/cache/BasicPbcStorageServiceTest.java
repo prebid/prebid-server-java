@@ -12,7 +12,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.cache.proto.request.module.ModuleCacheRequest;
-import org.prebid.server.cache.proto.request.module.ModuleCacheType;
+import org.prebid.server.cache.proto.request.module.StorageDataType;
 import org.prebid.server.cache.proto.response.module.ModuleCacheResponse;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.util.HttpUtil;
@@ -31,16 +31,16 @@ import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
-public class BasicModuleCacheServiceTest extends VertxTest {
+public class BasicPbcStorageServiceTest extends VertxTest {
 
     @Mock(strictness = LENIENT)
     private HttpClient httpClient;
 
-    private BasicModuleCacheService target;
+    private BasicPbcStorageService target;
 
     @BeforeEach
     public void setUp() throws MalformedURLException, JsonProcessingException {
-        target = new BasicModuleCacheService(
+        target = new BasicPbcStorageService(
                 httpClient,
                 new URL("http://cache-service/cache"),
                 "pbc-api-key",
@@ -51,15 +51,15 @@ public class BasicModuleCacheServiceTest extends VertxTest {
                 HttpClientResponse.of(200, null, "someBody")));
         given(httpClient.get(anyString(), any(), anyLong())).willReturn(Future.succeededFuture(
                 HttpClientResponse.of(200, null, mapper.writeValueAsString(
-                        ModuleCacheResponse.of("some-key", ModuleCacheType.JSON, "some-value")))));
+                        ModuleCacheResponse.of("some-key", StorageDataType.JSON, "some-value")))));
     }
 
     @Test
     public void storeModuleEntryShouldStoreExpectedKey() {
         // when
-        target.storeModuleEntry("some-key",
+        target.storeEntry("some-key",
                 "some-value",
-                ModuleCacheType.TEXT,
+                StorageDataType.TEXT,
                 12,
                 "some-application",
                 "some-module-code");
@@ -72,9 +72,9 @@ public class BasicModuleCacheServiceTest extends VertxTest {
     @Test
     public void storeModuleEntryShouldStoreExpectedValue() {
         // when
-        target.storeModuleEntry("some-key",
+        target.storeEntry("some-key",
                 "some-value",
-                ModuleCacheType.TEXT,
+                StorageDataType.TEXT,
                 12,
                 "some-application",
                 "some-module-code");
@@ -87,9 +87,9 @@ public class BasicModuleCacheServiceTest extends VertxTest {
     @Test
     public void storeModuleEntryShouldStoreExpectedApplication() {
         // when
-        target.storeModuleEntry("some-key",
+        target.storeEntry("some-key",
                 "some-value",
-                ModuleCacheType.TEXT,
+                StorageDataType.TEXT,
                 12,
                 "some-application",
                 "some-module-code");
@@ -102,24 +102,24 @@ public class BasicModuleCacheServiceTest extends VertxTest {
     @Test
     public void storeModuleEntryShouldStoreExpectedMediaType() {
         // when
-        target.storeModuleEntry("some-key",
+        target.storeEntry("some-key",
                 "some-value",
-                ModuleCacheType.TEXT,
+                StorageDataType.TEXT,
                 12,
                 "some-application",
                 "some-module-code");
 
         // then
         final ModuleCacheRequest result = captureModuleCacheRequest();
-        assertThat(result.getType()).isEqualTo(ModuleCacheType.TEXT);
+        assertThat(result.getType()).isEqualTo(StorageDataType.TEXT);
     }
 
     @Test
     public void storeModuleEntryShouldStoreExpectedTtl() {
         // when
-        target.storeModuleEntry("some-key",
+        target.storeEntry("some-key",
                 "some-value",
-                ModuleCacheType.TEXT,
+                StorageDataType.TEXT,
                 12,
                 "some-application",
                 "some-module-code");
@@ -130,11 +130,11 @@ public class BasicModuleCacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void storeModuleEntryShouldReturnFailedFutureIfKeyIsMissed() {
+    public void storeEntryShouldReturnFailedFutureIfKeyIsMissed() {
         // when
-        final Future<Void> result = target.storeModuleEntry(null,
+        final Future<Void> result = target.storeEntry(null,
                 "some-value",
-                ModuleCacheType.TEXT,
+                StorageDataType.TEXT,
                 12,
                 "some-application",
                 "some-module-code");
@@ -146,11 +146,11 @@ public class BasicModuleCacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void storeModuleEntryShouldReturnFailedFutureIfValueIsMissed() {
+    public void storeEntryShouldReturnFailedFutureIfValueIsMissed() {
         // when
-        final Future<Void> result = target.storeModuleEntry("some-key",
+        final Future<Void> result = target.storeEntry("some-key",
                 null,
-                ModuleCacheType.TEXT,
+                StorageDataType.TEXT,
                 12,
                 "some-application",
                 "some-module-code");
@@ -162,11 +162,11 @@ public class BasicModuleCacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void storeModuleEntryShouldReturnFailedFutureIfApplicationIsMissed() {
+    public void storeEntryShouldReturnFailedFutureIfApplicationIsMissed() {
         // when
-        final Future<Void> result = target.storeModuleEntry("some-key",
+        final Future<Void> result = target.storeEntry("some-key",
                 "some-value",
-                ModuleCacheType.TEXT,
+                StorageDataType.TEXT,
                 12,
                 null,
                 "some-module-code");
@@ -178,9 +178,9 @@ public class BasicModuleCacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void storeModuleEntryShouldReturnFailedFutureIfTypeIsMissed() {
+    public void storeEntryShouldReturnFailedFutureIfTypeIsMissed() {
         // when
-        final Future<Void> result = target.storeModuleEntry("some-key",
+        final Future<Void> result = target.storeEntry("some-key",
                 "some-value",
                 null,
                 12,
@@ -194,11 +194,11 @@ public class BasicModuleCacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void storeModuleEntryShouldReturnFailedFutureIfModuleCodeIsMissed() {
+    public void storeModuleEntryShouldReturnFailedFutureIfCodeIsMissed() {
         // when
-        final Future<Void> result = target.storeModuleEntry("some-key",
+        final Future<Void> result = target.storeEntry("some-key",
                 "some-value",
-                ModuleCacheType.TEXT,
+                StorageDataType.TEXT,
                 12,
                 "some-application",
                 null);
@@ -210,11 +210,11 @@ public class BasicModuleCacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void storeModuleEntryShouldCreateCallWithApiKeyInHeader() {
+    public void storeEntryShouldCreateCallWithApiKeyInHeader() {
         // when
-        target.storeModuleEntry("some-key",
+        target.storeEntry("some-key",
                 "some-value",
-                ModuleCacheType.TEXT,
+                StorageDataType.TEXT,
                 12,
                 "some-application",
                 "some-module-code");
@@ -289,7 +289,7 @@ public class BasicModuleCacheServiceTest extends VertxTest {
 
         // then
         assertThat(result.result())
-                .isEqualTo(ModuleCacheResponse.of("some-key", ModuleCacheType.JSON, "some-value"));
+                .isEqualTo(ModuleCacheResponse.of("some-key", StorageDataType.JSON, "some-value"));
     }
 
     @SneakyThrows
