@@ -236,7 +236,7 @@ public class SettingsConfiguration {
         @Validated
         @Data
         @NoArgsConstructor
-        private static class S3ConfigurationProperties {
+        protected static class S3ConfigurationProperties {
             @NotBlank
             private String accessKeyId;
             @NotBlank
@@ -445,7 +445,7 @@ public class SettingsConfiguration {
     @Validated
     @Data
     @NoArgsConstructor
-    private static class ApplicationSettingsCacheProperties {
+    protected static class ApplicationSettingsCacheProperties {
 
         @NotNull
         @Min(1)
