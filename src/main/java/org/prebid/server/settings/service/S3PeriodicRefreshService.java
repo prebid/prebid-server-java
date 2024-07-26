@@ -4,7 +4,6 @@ import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import org.apache.commons.collections4.SetUtils;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
@@ -13,7 +12,6 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.CacheNotificationListener;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.vertx.Initializable;
-import software.amazon.awssdk.core.BytesWrapper;
 import software.amazon.awssdk.core.async.AsyncResponseTransformer;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
@@ -22,12 +20,10 @@ import software.amazon.awssdk.services.s3.model.S3Object;
 
 import java.util.concurrent.atomic.AtomicReference;
 import java.time.Clock;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -79,10 +75,6 @@ public class S3PeriodicRefreshService implements Initializable {
         this.lastResult = new AtomicReference<>();
     }
 
-    private static Set<String> getInvalidatedKeys(Map<String, String> newMap, Map<String, String> oldMap) {
-        return SetUtils.difference(newMap.keySet(), oldMap.keySet());
-    }
-
     @Override
     public void initialize(Promise<Void> initializePromise) {
         final long startTime = clock.millis();
@@ -110,7 +102,7 @@ public class S3PeriodicRefreshService implements Initializable {
         final long startTime = clock.millis();
 
         fetchStoredDataResult()
-                .onSuccess(storedDataResult -> handleResult(invalidate(storedDataResult), startTime, MetricName.update))
+                .onSuccess(storedDataResult -> handleResult(storedDataResult, startTime, MetricName.update))
                 .onFailure(exception -> handleFailure(exception, startTime, MetricName.update));
     }
 
@@ -127,24 +119,6 @@ public class S3PeriodicRefreshService implements Initializable {
 
         metrics.updateSettingsCacheRefreshTime(cacheType, refreshType, clock.millis() - startTime);
         metrics.updateSettingsCacheRefreshErrorMetric(cacheType, refreshType);
-    }
-
-    private StoredDataResult invalidate(StoredDataResult storedDataResult) {
-        final Set<String> invalidatedRequests = getInvalidatedKeys(
-                storedDataResult.getStoredIdToRequest(),
-                lastResult != null ? lastResult.get().getStoredIdToRequest() : Collections.emptyMap());
-        final Set<String> invalidatedImps = getInvalidatedKeys(
-                storedDataResult.getStoredIdToImp(),
-                lastResult != null ? lastResult.get().getStoredIdToImp() : Collections.emptyMap());
-
-        if (!invalidatedRequests.isEmpty() || !invalidatedImps.isEmpty()) {
-            cacheNotificationListener.invalidate(
-                    invalidatedRequests.stream().toList(),
-                    invalidatedImps.stream().toList()
-            );
-        }
-
-        return storedDataResult;
     }
 
     private Future<Map<String, String>> getFileContentsForDirectory(String directory) {

@@ -89,30 +89,6 @@ public class S3PeriodicRefreshServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldCallInvalidateAndSaveWithExpectedParameters() {
-        // given
-        given(vertx.setPeriodic(anyLong(), any()))
-                .willAnswer(withSelfAndPassObjectToHandler(1L));
-        given(s3AsyncClient.listObjects(any(ListObjectsRequest.class)))
-                .willReturn(listObjectResponse(STORED_REQ_DIR + "/id1.json"),
-                        listObjectResponse(STORED_IMP_DIR + "/id2.json"),
-                        listObjectResponse(),
-                        listObjectResponse(STORED_IMP_DIR + "/id2.json"));
-        given(s3AsyncClient.getObject(any(GetObjectRequest.class), any(AsyncResponseTransformer.class)))
-                .willReturn(getObjectResponse("value1"),
-                        getObjectResponse("value2"),
-                        getObjectResponse("changed_value"));
-
-        // when
-        createAndInitService(1000);
-
-        // then
-        verify(cacheNotificationListener).save(expectedRequests, expectedImps);
-        verify(cacheNotificationListener).invalidate(singletonList("id1"), emptyList());
-        verify(cacheNotificationListener).save(emptyMap(), singletonMap("id2", "changed_value"));
-    }
-
-    @Test
     public void initializeShouldMakeOneInitialRequestAndTwoScheduledRequestsWithParam() {
         // given
         given(vertx.setPeriodic(anyLong(), any()))
