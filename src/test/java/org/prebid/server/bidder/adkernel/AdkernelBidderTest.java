@@ -284,7 +284,7 @@ public class AdkernelBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldResolveBidTypeFromMfSuffixWhenPresent() throws JsonProcessingException {
+    public void makeBidsShouldResolveBidTypeFromMTypeWhenPresent() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(
@@ -293,10 +293,10 @@ public class AdkernelBidderTest extends VertxTest {
                                 .video(Video.builder().build())),
                 mapper.writeValueAsString(
                         givenBidResponse(
-                                bidBuilder -> bidBuilder.impid("123b__mf"),
-                                bidBuilder -> bidBuilder.impid("123v__mf"),
-                                bidBuilder -> bidBuilder.impid("123a__mf"),
-                                bidBuilder -> bidBuilder.impid("123n__mf"))));
+                                bidBuilder -> bidBuilder.mtype(1).impid("123b__mf"),
+                                bidBuilder -> bidBuilder.mtype(2).impid("123v__mf"),
+                                bidBuilder -> bidBuilder.mtype(3).impid("123a__mf"),
+                                bidBuilder -> bidBuilder.mtype(4).impid("123n__mf"))));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -305,151 +305,10 @@ public class AdkernelBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .containsExactlyInAnyOrder(
-                        BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"),
-                        BidderBid.of(Bid.builder().impid("123").build(), video, "USD"),
-                        BidderBid.of(Bid.builder().impid("123").build(), audio, "USD"),
-                        BidderBid.of(Bid.builder().impid("123").build(), xNative, "USD"));
-    }
-
-    @Test
-    public void makeBidsShouldResolveVideoBidTypeFromImpWhenMfSuffixIsAbsentAndVideoPresentInRequestImp()
-            throws JsonProcessingException {
-
-        // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                givenBidRequest(
-                        identity(),
-                        impBuilder -> impBuilder
-                                .id("123")
-                                .video(Video.builder().build())
-                                .banner(null)
-                                .audio(null)
-                                .xNative(null)),
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsExactly(
-                BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
-    }
-
-    @Test
-    public void makeBidsShouldResolveBannerBidTypeFromImpWhenMfSuffixIsAbsentAndBannerPresentInRequestImp()
-            throws JsonProcessingException {
-
-        // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                givenBidRequest(
-                        identity(),
-                        impBuilder -> impBuilder
-                                .id("123")
-                                .video(null)
-                                .banner(Banner.builder().build())
-                                .audio(null)
-                                .xNative(null)),
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsExactly(
-                BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
-    }
-
-    @Test
-    public void makeBidsShouldResolveAudioBidTypeFromImpWhenMfSuffixIsAbsentAndAudioPresentInRequestImp()
-            throws JsonProcessingException {
-
-        // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                givenBidRequest(
-                        identity(),
-                        impBuilder -> impBuilder
-                                .id("123")
-                                .video(null)
-                                .banner(null)
-                                .audio(Audio.builder().build())
-                                .xNative(null)),
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsExactly(
-                BidderBid.of(Bid.builder().impid("123").build(), audio, "USD"));
-    }
-
-    @Test
-    public void makeBidsShouldResolveNativeBidTypeFromImpWhenMfSuffixIsAbsentAndNativePresentInRequestImp()
-            throws JsonProcessingException {
-
-        // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                givenBidRequest(
-                        identity(),
-                        impBuilder -> impBuilder
-                                .id("123")
-                                .video(null)
-                                .banner(null)
-                                .audio(null)
-                                .xNative(Native.builder().build())),
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsExactly(
-                BidderBid.of(Bid.builder().impid("123").build(), xNative, "USD"));
-    }
-
-    @Test
-    public void makeBidsShouldReturnVideoBid() throws JsonProcessingException {
-        // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                givenBidRequest(
-                        identity(),
-                        impBuilder -> impBuilder.id("123")
-                                .video(Video.builder().build())),
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
-    }
-
-    @Test
-    public void makeBidsShouldReturnBannerBidIfRequestImpHasBanner() throws JsonProcessingException {
-        // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                givenBidRequest(
-                        identity(),
-                        builder -> builder.id("123")
-                                .video(Video.builder().build())
-                                .banner(Banner.builder().build())),
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+                        BidderBid.of(Bid.builder().mtype(1).impid("123").build(), banner, "USD"),
+                        BidderBid.of(Bid.builder().mtype(2).impid("123").build(), video, "USD"),
+                        BidderBid.of(Bid.builder().mtype(3).impid("123").build(), audio, "USD"),
+                        BidderBid.of(Bid.builder().mtype(4).impid("123").build(), xNative, "USD"));
     }
 
     @SafeVarargs
