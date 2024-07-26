@@ -265,8 +265,9 @@ public class SettingsConfiguration {
                     s3ConfigurationProperties.getAccessKeyId(),
                     s3ConfigurationProperties.getSecretAccessKey());
             final String awsRegionName = s3ConfigurationProperties.getRegion();
-            final Region awsRegion = Objects.isNull(awsRegionName) ? Region.AWS_GLOBAL
-                    : Region.of(s3ConfigurationProperties.getRegion());
+            final Region awsRegion = awsRegionName != null
+                    ? Region.of(s3ConfigurationProperties.getRegion())
+                    : Region.AWS_GLOBAL;
             return S3AsyncClient
                     .builder()
                     .credentialsProvider(StaticCredentialsProvider.create(credentials))
