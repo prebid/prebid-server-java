@@ -5,6 +5,7 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.StoredAuctionResponse
 import org.prebid.server.functional.model.request.auction.StoredBidResponse
 import org.prebid.server.functional.model.response.auction.BidResponse
+import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.model.response.auction.SeatBid
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.PendingFeature
@@ -116,6 +117,134 @@ class StoredResponseSpec extends BaseSpec {
         assert response.seatbid[0]?.bid[0]?.impid == bidRequest.imp[0].id
         assert response.seatbid[0]?.bid[0]?.price == storedBidResponse.seatbid[0].bid[0].price
         assert response.seatbid[0]?.bid[0]?.id == storedBidResponse.seatbid[0].bid[0].id
+
+        and: "PBS not send request to bidder"
+        assert bidder.getRequestCount(bidRequest.id) == 0
+    }
+
+    def "PBS should return warning when imp[0].ext.prebid.storedAuctionResponse contain seatBid"() {
+        given: "Default basic BidRequest with stored response"
+        def bidRequest = BidRequest.defaultBidRequest
+        def storedResponseId = PBSUtils.randomNumber
+        def storedAuctionResponse = SeatBid.getStoredResponse(bidRequest)
+        bidRequest.imp[0].ext.prebid.storedAuctionResponse = new StoredAuctionResponse().tap {
+            id = storedResponseId
+            seatBids = [storedAuctionResponse]
+        }
+
+        and: "Stored auction response in DB"
+        def storedResponse = new StoredResponse(responseId: storedResponseId, storedAuctionResponse: storedAuctionResponse)
+        storedResponseDao.save(storedResponse)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain warning information"
+        assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
+        assert response.ext?.warnings[ErrorType.PREBID]*.message ==
+                ['WARNING: request.imp[0].ext.prebid.storedauctionresponse.seatbidarr is not supported at the imp level']
+
+        and: "PBS not send request to bidder"
+        assert bidder.getRequestCount(bidRequest.id) == 0
+    }
+
+    def "PBS should set seatBid from request storedAuctionResponse.seatBid when ext.prebid.storedAuctionResponse.seatBid present and id is null"() {
+        given: "Default basic BidRequest with stored response"
+        def bidRequest = BidRequest.defaultBidRequest
+        def storedAuctionResponse = SeatBid.getStoredResponse(bidRequest)
+        bidRequest.ext.prebid.storedAuctionResponse = new StoredAuctionResponse().tap {
+            id = null
+            seatBids = [storedAuctionResponse]
+        }
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain same stored auction response as requested"
+        assert response.seatbid == [storedAuctionResponse]
+
+        and: "PBs should emit warning"
+        assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
+        assert response.ext?.warnings[ErrorType.PREBID]*.message ==
+                ["no auction. response defined by storedauctionresponse" as String]
+
+        and: "PBS not send request to bidder"
+        assert bidder.getRequestCount(bidRequest.id) == 0
+    }
+
+    def "PBS should set seatBid in response from db when ext.prebid.storedAuctionResponse.seatBid not defined and id is defined"() {
+        given: "Default basic BidRequest with stored response"
+        def bidRequest = BidRequest.defaultBidRequest
+        def storedResponseId = PBSUtils.randomNumber
+        def storedAuctionResponse = SeatBid.getStoredResponse(bidRequest)
+        bidRequest.ext.prebid.storedAuctionResponse = new StoredAuctionResponse().tap {
+            id = storedResponseId
+            seatBids = null
+        }
+
+        and: "Stored auction response in DB"
+        def storedResponse = new StoredResponse(responseId: storedResponseId, storedAuctionResponse: storedAuctionResponse)
+        storedResponseDao.save(storedResponse)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain same stored auction response as requested"
+        assert response.seatbid == [storedAuctionResponse]
+
+        and: "PBS not send request to bidder"
+        assert bidder.getRequestCount(bidRequest.id) == 0
+    }
+
+    def "PBS should perform usually auction call when storedActionResponse when id and seatbid are null"() {
+        given: "Default basic BidRequest with stored response"
+        def bidRequest = BidRequest.defaultBidRequest
+        def storedResponseId = PBSUtils.randomNumber
+        def storedAuctionResponse = SeatBid.getStoredResponse(bidRequest)
+        bidRequest.ext.prebid.storedAuctionResponse = new StoredAuctionResponse().tap {
+            it.id = null
+            it.seatBids = null
+        }
+
+        and: "Stored auction response in DB"
+        def storedResponse = new StoredResponse(responseId: storedResponseId, storedAuctionResponse: storedAuctionResponse)
+        storedResponseDao.save(storedResponse)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain same stored auction response as requested"
+        assert response.seatbid
+
+        and: "PBs shouldn't emit warnings"
+        assert !response.ext?.warnings
+
+        and: "PBS not send request to bidder"
+        assert bidder.getRequestCount(bidRequest.id) == 1
+
+        where:
+        seatbid << [null, [null]]
+    }
+
+    def "PBS return warning when id is null and seatbid with null"() {
+        given: "Default basic BidRequest with stored response"
+        def bidRequest = BidRequest.defaultBidRequest
+        def storedResponseId = PBSUtils.randomNumber
+        def storedAuctionResponse = SeatBid.getStoredResponse(bidRequest)
+        bidRequest.ext.prebid.storedAuctionResponse = new StoredAuctionResponse().tap {
+            it.id = null
+            it.seatBids = [null]
+        }
+
+        and: "Stored auction response in DB"
+        def storedResponse = new StoredResponse(responseId: storedResponseId, storedAuctionResponse: storedAuctionResponse)
+        storedResponseDao.save(storedResponse)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain warning information"
+        assert response.ext?.warnings[ErrorType.PREBID]*.message.contains('SeatBid can\'t be null in stored response')
 
         and: "PBS not send request to bidder"
         assert bidder.getRequestCount(bidRequest.id) == 0

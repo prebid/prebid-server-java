@@ -2,11 +2,13 @@ package org.prebid.server.bidder.grid;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
@@ -17,6 +19,7 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.grid.model.request.ExtImp;
 import org.prebid.server.bidder.grid.model.request.ExtImpGridData;
 import org.prebid.server.bidder.grid.model.request.ExtImpGridDataAdServer;
+import org.prebid.server.bidder.grid.model.request.GridNative;
 import org.prebid.server.bidder.grid.model.request.Keywords;
 import org.prebid.server.bidder.grid.model.response.GridBidResponse;
 import org.prebid.server.bidder.grid.model.response.GridSeatBid;
@@ -43,6 +46,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class GridBidderTest extends VertxTest {
 
@@ -113,6 +117,36 @@ public class GridBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
                 .containsExactly(mapper.valueToTree(expectedExtImp));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCorrectlyModifyNative() {
+        // given
+        final String nativeRequest = "{\"eventtrackers\":[],\"context\":1,\"plcmttype\":2}";
+        final Imp nativeImp = Imp.builder()
+                .xNative(Native.builder().request(nativeRequest).ver("1.2").build())
+                .ext(mapper.valueToTree(ExtImp.builder().bidder(ExtImpGrid.of(1, null)).build()))
+                .build();
+        final BidRequest bidRequest = BidRequest.builder().imp(singletonList(nativeImp)).build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        final ObjectNode expectedNativeRequest = mapper.createObjectNode();
+        expectedNativeRequest.set("eventtrackers", mapper.createArrayNode());
+        expectedNativeRequest.set("context", new IntNode(1));
+        expectedNativeRequest.set("plcmttype", new IntNode(2));
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getXNative)
+                .containsExactly(GridNative.builder()
+                        .requestNative(expectedNativeRequest)
+                        .request(null)
+                        .ver("1.2")
+                        .build());
     }
 
     @Test
@@ -289,7 +323,28 @@ public class GridBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorIfImpHadNoBannerOrVideo() throws JsonProcessingException {
+    public void makeBidsShouldReturnNativeBidIfNoBannerAndNoVideoAndNativeIsPresent() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder()
+                                .xNative(Native.builder().build())
+                                .id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(givenBidNode())));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), xNative, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorIfImpHadNoBannerOrVideoOrNative() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
@@ -379,6 +434,59 @@ public class GridBidderTest extends VertxTest {
                 .extracting(BidderBid::getBid)
                 .extracting(Bid::getExt)
                 .containsExactly(expectedBidExt);
+    }
+
+    @Test
+    public void makeBidsShouldNotReplacePresentAdmWithAdmNative() throws JsonProcessingException {
+        // given
+        final ObjectNode admNative = mapper.createObjectNode();
+        admNative.put("admNativeProperty", "admNativeValue");
+
+        final ObjectNode bidNode = givenBidNode()
+                .put("adm", "someAdm")
+                .set("adm_native", admNative);
+
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").video(Video.builder().build()).build()))
+                        .build(),
+                mapper.writeValueAsString(givenBidResponse(bidNode)));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getAdm)
+                .containsExactly("someAdm");
+    }
+
+    @Test
+    public void makeBidsShouldReplaceNotPresentAdmWithAdmNative() throws JsonProcessingException {
+        // given
+        final ObjectNode admNative = mapper.createObjectNode();
+        admNative.put("admNativeProperty", "admNativeValue");
+
+        final ObjectNode bidNode = givenBidNode()
+                .set("adm_native", admNative);
+
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").video(Video.builder().build()).build()))
+                        .build(),
+                mapper.writeValueAsString(givenBidResponse(bidNode)));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getAdm)
+                .containsExactly("{\"admNativeProperty\":\"admNativeValue\"}");
     }
 
     private static GridBidResponse givenBidResponse(

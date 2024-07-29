@@ -2,17 +2,21 @@
   "id": "request_id",
   "imp": [
     {
-      "id": "imp-1",
-      "video": {
-        "mimes": [
-          "video/mp4"
-        ],
-        "w": 300,
+      "id": "imp_id",
+      "secure": 1,
+      "banner": {
+        "w": 320,
         "h": 250
       },
-      "secure": 1,
+      "bidfloor": 10,
+      "bidfloorcur": "USD",
       "ext": {
-        "zoneId": "12345"
+        "tid": "${json-unit.any-string}",
+        "bidder": {
+          "placementId": "placementId",
+          "publisherId": "publisherId",
+          "inventoryId": "inventoryId"
+        }
       }
     }
   ],
@@ -51,6 +55,10 @@
         "datacenter": "local",
         "endpoint": "/openrtb2/auction"
       }
+    },
+    "displayio": {
+      "placementId": "placementId",
+      "inventoryId": "inventoryId"
     }
   }
 }

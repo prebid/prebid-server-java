@@ -4,13 +4,16 @@
     {
       "id": "imp_id",
       "banner": {
-        "w": 300,
+        "w": 320,
         "h": 250
       },
+      "bidfloor": 10,
+      "bidfloorcur": "USD",
       "ext": {
-        "openweb": {
-          "aid": 1,
-          "placementId": "placementId"
+        "displayio": {
+          "placementId": "placementId",
+          "publisherId": "publisherId",
+          "inventoryId": "inventoryId"
         }
       }
     }

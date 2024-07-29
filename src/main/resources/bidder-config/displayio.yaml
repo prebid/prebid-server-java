@@ -1,0 +1,17 @@
+adapters:
+  displayio:
+    endpoint: https://prebid.display.io/?publisher={{PublisherID}}
+    endpoint-compression: gzip
+    modifying-vast-xml-allowed: true
+    geoscope:
+      - global
+    meta-info:
+      maintainer-email: contact@display.io
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 0

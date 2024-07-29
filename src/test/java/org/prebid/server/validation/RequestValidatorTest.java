@@ -67,6 +67,7 @@ import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.function.UnaryOperator;
 
 import static java.util.Arrays.asList;
@@ -1363,7 +1364,7 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final ObjectNode prebid = mapper.valueToTree(ExtImpPrebid.builder()
                 .storedBidResponse(singletonList(ExtStoredBidResponse.of("bidder", "id")))
-                .storedAuctionResponse(ExtStoredAuctionResponse.of("id"))
+                .storedAuctionResponse(ExtStoredAuctionResponse.of("id", null))
                 .build());
 
         final BidRequest bidRequest = validBidRequestBuilder()
@@ -1482,6 +1483,46 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenExtImpPrebidHasStoredAuctionResponseWithoutId() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .imp(singletonList(validImpBuilder()
+                        .ext(mapper.valueToTree(singletonMap("prebid", singletonMap(
+                                "storedauctionresponse", mapper.createObjectNode())))).build()))
+                .build();
+
+        // when
+        final ValidationResult result = target.validate(bidRequest, null);
+
+        // then
+        assertThat(result.getErrors())
+                .containsOnly("request.imp[0].ext.prebid.storedauctionresponse.id should be defined");
+        assertThat(result.getWarnings()).isEmpty();
+    }
+
+    @Test
+    public void validateShouldReturnWarningMessageWhenExtImpPrebidHasStoredAuctionResponseSeatBidArr() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .imp(singletonList(validImpBuilder()
+                        .ext(mapper.valueToTree(singletonMap("prebid", Map.of(
+                                "storedauctionresponse", mapper.createObjectNode()
+                                        .put("id", "1")
+                                        .set("seatbidarr", mapper.createArrayNode())))
+                        )).build()))
+                .build();
+
+        // when
+        final ValidationResult result = target.validate(bidRequest, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getWarnings())
+                .containsOnly("WARNING: request.imp[0].ext.prebid.storedauctionresponse.seatbidarr "
+                        + "is not supported at the imp level");
     }
 
     @Test
