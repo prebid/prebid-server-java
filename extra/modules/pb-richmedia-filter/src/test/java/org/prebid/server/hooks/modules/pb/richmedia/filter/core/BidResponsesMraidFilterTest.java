@@ -6,12 +6,14 @@ import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.hooks.modules.pb.richmedia.filter.model.AnalyticsResult;
 import org.prebid.server.hooks.modules.pb.richmedia.filter.model.MraidFilterResult;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -78,10 +80,12 @@ public class BidResponsesMraidFilterTest {
                 List.of(givenBid("imp_id1", "adm1"), givenBid("imp_id2", "adm2")));
         final BidderResponse expectedResponseB = givenBidderResponse(
                 "bidderB",
-                List.of(givenBid("imp_id1", "adm1")));
+                List.of(givenBid("imp_id1", "adm1")),
+                List.of(givenError("imp_id2")));
         final BidderResponse expectedResponseC = givenBidderResponse(
                 "bidderC",
-                List.of());
+                List.of(),
+                List.of(givenError("imp_id1", "imp_id2")));
 
         final AnalyticsResult expectedAnalyticsResultB = AnalyticsResult.of(
                 "success-block",
@@ -112,8 +116,16 @@ public class BidResponsesMraidFilterTest {
         return BidderResponse.of(bidder, BidderSeatBid.of(bids), 100);
     }
 
+    private static BidderResponse givenBidderResponse(String bidder, List<BidderBid> bids, List<BidderError> errors) {
+        return BidderResponse.of(bidder, BidderSeatBid.empty().with(bids, errors), 100);
+    }
+
     private static BidderBid givenBid(String impId, String adm) {
         return BidderBid.builder().bid(Bid.builder().impid(impId).adm(adm).build()).build();
+    }
+
+    private static BidderError givenError(String... rejectedImps) {
+        return BidderError.of("Invalid bid", BidderError.Type.invalid_bid, Set.of(rejectedImps));
     }
 
 }
