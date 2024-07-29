@@ -16,5 +16,6 @@ public class ExtImpConnectAd {
     @JsonProperty("siteId")
     Integer siteId;
 
-    BigDecimal bidfloor;
+    @JsonProperty("bidfloor")
+    BigDecimal bidFloor;
 }
