@@ -10,6 +10,8 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.Geo
 import org.prebid.server.functional.model.request.auction.Imp
+import org.prebid.server.functional.model.request.auction.ImpExtContext
+import org.prebid.server.functional.model.request.auction.ImpExtContextData
 import org.prebid.server.functional.model.request.auction.Native
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
 import org.prebid.server.functional.model.request.auction.RegsExt
@@ -720,5 +722,79 @@ class BidderParamsSpec extends BaseSpec {
         null          | 1
         1             | 1
         0             | 0
+    }
+
+    def "PBS shouldn't emit warning and proceed auction when imp.ext.foo and imp.ext.prebid.bidder.generic in the request"() {
+        given: "Default bid request"
+        def randomString = PBSUtils.randomString
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.foo = randomString
+            imp[0].ext.prebid.bidder.generic = new Generic()
+        }
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain imp.ext.foo"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.imp[0].ext.foo == randomString
+
+        and: "Response shouldn't contain warning"
+        assert !response?.ext?.warnings
+    }
+
+    def "PBS should emit warning and proceed auction when imp.ext.foo and imp.ext.generic in the request"() {
+        given: "Default bid request"
+        def randomString = PBSUtils.randomString
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.generic = new Generic()
+            imp[0].ext.foo = randomString
+            imp[0].ext.prebid.bidder.generic = null
+        }
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain imp.ext.foo"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.imp[0].ext.foo == randomString
+
+        and: "PBS should emit an warning"
+        assert response?.ext?.warnings[PREBID]*.code == [999]
+        assert response?.ext?.warnings[PREBID]*.message ==
+                ["WARNING: request.imp[0].ext.foo unknown bidder."]
+    }
+
+    def "PBS shouldn't emit warning and proceed auction when imp.ext.foo and imp.ext.generic in the request"() {
+        given: "Default bid request"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.tap {
+                imp[0].ext.prebid.bidder.generic = null
+                generic = new Generic()
+                ae = PBSUtils.randomNumber
+                all = PBSUtils.randomNumber
+                context = new ImpExtContext(data: new ImpExtContextData())
+                data = new ImpExtContextData(pbAdSlot: PBSUtils.randomString)
+                general = PBSUtils.randomString
+                gpid = PBSUtils.randomString
+                skadn = PBSUtils.randomString
+                tid = PBSUtils.randomString
+            }
+        }
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain same field as requested"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.imp[0].ext.bidder == bidRequest.imp[0].ext.generic
+        assert bidderRequest.imp[0].ext.ae == bidRequest.imp[0].ext.ae
+        assert bidderRequest.imp[0].ext.all == bidRequest.imp[0].ext.all
+        assert bidderRequest.imp[0].ext.context == bidRequest.imp[0].ext.context
+        assert bidderRequest.imp[0].ext.data == bidRequest.imp[0].ext.data
+        assert bidderRequest.imp[0].ext.general == bidRequest.imp[0].ext.general
+        assert bidderRequest.imp[0].ext.gpid == bidRequest.imp[0].ext.gpid
+        assert bidderRequest.imp[0].ext.skadn == bidRequest.imp[0].ext.skadn
+        assert bidderRequest.imp[0].ext.tid == bidRequest.imp[0].ext.tid
     }
 }
