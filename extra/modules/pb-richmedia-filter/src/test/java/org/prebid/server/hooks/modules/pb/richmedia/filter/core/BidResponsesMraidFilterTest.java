@@ -80,12 +80,10 @@ public class BidResponsesMraidFilterTest {
                 List.of(givenBid("imp_id1", "adm1"), givenBid("imp_id2", "adm2")));
         final BidderResponse expectedResponseB = givenBidderResponse(
                 "bidderB",
-                List.of(givenBid("imp_id1", "adm1")),
-                List.of(givenError("imp_id2")));
+                List.of(givenBid("imp_id1", "adm1")));
         final BidderResponse expectedResponseC = givenBidderResponse(
                 "bidderC",
-                List.of(),
-                List.of(givenError("imp_id1", "imp_id2")));
+                List.of());
 
         final AnalyticsResult expectedAnalyticsResultB = AnalyticsResult.of(
                 "success-block",
@@ -116,16 +114,8 @@ public class BidResponsesMraidFilterTest {
         return BidderResponse.of(bidder, BidderSeatBid.of(bids), 100);
     }
 
-    private static BidderResponse givenBidderResponse(String bidder, List<BidderBid> bids, List<BidderError> errors) {
-        return BidderResponse.of(bidder, BidderSeatBid.empty().with(bids, errors), 100);
-    }
-
     private static BidderBid givenBid(String impId, String adm) {
         return BidderBid.builder().bid(Bid.builder().impid(impId).adm(adm).build()).build();
-    }
-
-    private static BidderError givenError(String... rejectedImps) {
-        return BidderError.of("Invalid bid", BidderError.Type.invalid_bid, Set.of(rejectedImps));
     }
 
 }
