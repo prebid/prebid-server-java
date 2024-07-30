@@ -43,7 +43,8 @@ import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDO
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.DEVICE_ACCESS
 import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V2
-import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V3
+import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V4
+import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V5
 
 class GdprAuctionSpec extends PrivacyBaseSpec {
 
@@ -310,7 +311,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         serverContainer.stop()
 
         where:
-        tcfPolicyVersion << [TCF_POLICY_V2, TCF_POLICY_V3]
+        tcfPolicyVersion << [TCF_POLICY_V2, TCF_POLICY_V4, TCF_POLICY_V5]
     }
 
     def "PBS auction should reject request with proper warning when incoming consent.tcfPolicyVersion have invalid parameter"() {
@@ -385,7 +386,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         vendorListResponse.reset()
 
         where:
-        tcfPolicyVersion << [TCF_POLICY_V2, TCF_POLICY_V3]
+        tcfPolicyVersion << [TCF_POLICY_V2, TCF_POLICY_V4, TCF_POLICY_V5]
     }
 
     def "PBS should apply gdpr and emit metrics when host and device.geo.country contains same eea-country"() {
