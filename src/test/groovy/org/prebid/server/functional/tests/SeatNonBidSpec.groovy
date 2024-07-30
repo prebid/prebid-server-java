@@ -120,7 +120,7 @@ class SeatNonBidSpec extends BaseSpec {
         and: "Set bidder response"
         bidder.setResponse(bidRequest.id, bidResponse)
 
-        and: "Account in the DB with specified banner max size enforcement"
+        and: "Account in the DB"
         def accountConfig = new AccountConfig(auction: new AccountAuctionConfig(bidValidations:
                 new AccountBidValidationConfig(bannerMaxSizeEnforcement: ENFORCE)))
         def account = new Account(status: ACTIVE, uuid: bidRequest.accountId, config: accountConfig)
@@ -151,7 +151,7 @@ class SeatNonBidSpec extends BaseSpec {
         and: "Set bidder response"
         bidder.setResponse(bidRequest.id, bidResponse)
 
-        and: "Account in the DB with specified banner max size enforcement"
+        and: "Account in the DB"
         def accountConfig = new AccountConfig(auction: new AccountAuctionConfig(bidValidations:
                 new AccountBidValidationConfig(bannerMaxSizeEnforcement: ENFORCE)))
         def account = new Account(status: ACTIVE, uuid: bidRequest.accountId, config: accountConfig)
