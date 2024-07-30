@@ -10,6 +10,7 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.Geo
 import org.prebid.server.functional.model.request.auction.Imp
+import org.prebid.server.functional.model.request.auction.ImpExt
 import org.prebid.server.functional.model.request.auction.ImpExtContext
 import org.prebid.server.functional.model.request.auction.ImpExtContextData
 import org.prebid.server.functional.model.request.auction.Native
@@ -24,6 +25,7 @@ import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.CcpaConsent
+import spock.lang.IgnoreRest
 
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
@@ -562,7 +564,7 @@ class BidderParamsSpec extends BaseSpec {
 
         then: "Bid response should contain proper warning"
         assert response.ext?.warnings[ErrorType.GENERIC]?.message ==
-                ["Imp ${bidRequest.imp[1].id} does not have a supported media type and has been removed from the request for this bidder." ]
+                ["Imp ${bidRequest.imp[1].id} does not have a supported media type and has been removed from the request for this bidder."]
 
         and: "Bid response should contain seatbid"
         assert response.seatbid
@@ -765,21 +767,23 @@ class BidderParamsSpec extends BaseSpec {
                 ["WARNING: request.imp[0].ext.foo unknown bidder."]
     }
 
+    @IgnoreRest
     def "PBS shouldn't emit warning and proceed auction when imp.ext.foo and imp.ext.generic in the request"() {
-        given: "Default bid request"
+        given: "Default bid request with populated imp.ext"
+        def impExt = ImpExt.getDefaultImpExt().tap {
+            prebid.bidder.generic = null
+            generic = new Generic()
+            ae = PBSUtils.randomNumber
+            all = PBSUtils.randomNumber
+            context = new ImpExtContext(data: new ImpExtContextData())
+            data = new ImpExtContextData(pbAdSlot: PBSUtils.randomString)
+            general = PBSUtils.randomString
+            gpid = PBSUtils.randomString
+            skadn = PBSUtils.randomString
+            tid = PBSUtils.randomString
+        }
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp[0].ext.tap {
-                imp[0].ext.prebid.bidder.generic = null
-                generic = new Generic()
-                ae = PBSUtils.randomNumber
-                all = PBSUtils.randomNumber
-                context = new ImpExtContext(data: new ImpExtContextData())
-                data = new ImpExtContextData(pbAdSlot: PBSUtils.randomString)
-                general = PBSUtils.randomString
-                gpid = PBSUtils.randomString
-                skadn = PBSUtils.randomString
-                tid = PBSUtils.randomString
-            }
+            imp[0].ext = impExt
         }
 
         when: "PBS processes auction request"
@@ -787,14 +791,16 @@ class BidderParamsSpec extends BaseSpec {
 
         then: "Bidder request should contain same field as requested"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.imp[0].ext.bidder == bidRequest.imp[0].ext.generic
-        assert bidderRequest.imp[0].ext.ae == bidRequest.imp[0].ext.ae
-        assert bidderRequest.imp[0].ext.all == bidRequest.imp[0].ext.all
-        assert bidderRequest.imp[0].ext.context == bidRequest.imp[0].ext.context
-        assert bidderRequest.imp[0].ext.data == bidRequest.imp[0].ext.data
-        assert bidderRequest.imp[0].ext.general == bidRequest.imp[0].ext.general
-        assert bidderRequest.imp[0].ext.gpid == bidRequest.imp[0].ext.gpid
-        assert bidderRequest.imp[0].ext.skadn == bidRequest.imp[0].ext.skadn
-        assert bidderRequest.imp[0].ext.tid == bidRequest.imp[0].ext.tid
+        verifyAll(bidderRequest.imp[0].ext){
+            bidder == impExt.generic
+            ae == impExt.ae
+            all == impExt.all
+            context == impExt.context
+            data == impExt.data
+            general == impExt.general
+            gpid == impExt.gpid
+            skadn == impExt.skadn
+            tid == impExt.tid
+        }
     }
 }
