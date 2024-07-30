@@ -31,6 +31,7 @@ import org.prebid.server.settings.model.Purposes;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -245,7 +246,7 @@ public class TcfDefinerServiceTest {
 
         final String vendorConsent = TCStringEncoder.newBuilder()
                 .version(2)
-                .tcfPolicyVersion(5)
+                .tcfPolicyVersion(6)
                 .encode();
 
         // when
@@ -260,7 +261,7 @@ public class TcfDefinerServiceTest {
                 null);
 
         // then
-        final String expectedWarning = "Parsing consent string: %s failed. TCF policy version 5 is not supported"
+        final String expectedWarning = "Parsing consent string: %s failed. TCF policy version 6 is not supported"
                 .formatted(vendorConsent);
         assertThat(result).isSucceeded();
         assertThat(result.result().getConsent()).isInstanceOf(TCStringEmpty.class);
@@ -634,17 +635,52 @@ public class TcfDefinerServiceTest {
 
     @Test
     public void isConsentStringValidShouldReturnTrueWhenStringIsValid() {
+        // when and then
         assertThat(TcfDefinerService.isConsentStringValid("CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA"))
                 .isTrue();
     }
 
     @Test
     public void isConsentStringValidShouldReturnFalseWhenStringIsNull() {
+        // when and then
         assertThat(TcfDefinerService.isConsentStringValid(null)).isFalse();
     }
 
     @Test
     public void isConsentStringValidShouldReturnFalseWhenStringNotValid() {
+        // when and then
         assertThat(TcfDefinerService.isConsentStringValid("invalid")).isFalse();
+    }
+
+    @Test
+    public void tcStringWrapperShouldReturnVendorListVersionEquals2() {
+        // given
+        final int tcfPolicyVersion = ThreadLocalRandom.current().nextInt(0, 4);
+        final TCString tcString = TCStringEncoder.newBuilder()
+                .version(2)
+                .tcfPolicyVersion(tcfPolicyVersion)
+                .toTCString();
+
+        // when
+        final TCString wrappedTcString = TcfDefinerService.TCStringWrapper.of(tcString);
+
+        // then
+        assertThat(wrappedTcString.getVendorListVersion()).isEqualTo(2);
+    }
+
+    @Test
+    public void tcStringWrapperShouldReturnVendorListVersionEquals3() {
+        // given
+        final int tcfPolicyVersion = ThreadLocalRandom.current().nextInt(4, 6);
+        final TCString tcString = TCStringEncoder.newBuilder()
+                .version(2)
+                .tcfPolicyVersion(tcfPolicyVersion)
+                .toTCString();
+
+        // when
+        final TCString wrappedTcString = TcfDefinerService.TCStringWrapper.of(tcString);
+
+        // then
+        assertThat(wrappedTcString.getVendorListVersion()).isEqualTo(3);
     }
 }
