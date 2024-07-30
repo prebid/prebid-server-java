@@ -15,6 +15,7 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
+import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -291,9 +292,7 @@ public class AdkernelBidderTest extends VertxTest {
                         identity(),
                         impBuilder -> impBuilder.id("123").banner(Banner.builder().build())
                                 .video(Video.builder().build())),
-                mapper.writeValueAsString(
-                        givenBidResponse(
-                                bidBuilder -> bidBuilder.mtype(1).impid("123b__mf"))));
+                givenBidResponse(bidBuilder -> bidBuilder.mtype(1).impid("123b__mf")));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -313,9 +312,7 @@ public class AdkernelBidderTest extends VertxTest {
                         identity(),
                         impBuilder -> impBuilder.id("123").banner(Banner.builder().build())
                                 .video(Video.builder().build())),
-                mapper.writeValueAsString(
-                        givenBidResponse(
-                                bidBuilder -> bidBuilder.mtype(2).impid("123b__mf"))));
+                givenBidResponse(bidBuilder -> bidBuilder.mtype(2).impid("123b__mf")));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -335,9 +332,7 @@ public class AdkernelBidderTest extends VertxTest {
                         identity(),
                         impBuilder -> impBuilder.id("123").banner(Banner.builder().build())
                                 .video(Video.builder().build())),
-                mapper.writeValueAsString(
-                        givenBidResponse(
-                                bidBuilder -> bidBuilder.mtype(3).impid("123b__mf"))));
+                givenBidResponse(bidBuilder -> bidBuilder.mtype(3).impid("123b__mf")));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -357,9 +352,7 @@ public class AdkernelBidderTest extends VertxTest {
                         identity(),
                         impBuilder -> impBuilder.id("123").banner(Banner.builder().build())
                                 .video(Video.builder().build())),
-                mapper.writeValueAsString(
-                        givenBidResponse(
-                                bidBuilder -> bidBuilder.mtype(4).impid("123b__mf"))));
+                givenBidResponse(bidBuilder -> bidBuilder.mtype(4).impid("123b__mf")));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -379,9 +372,7 @@ public class AdkernelBidderTest extends VertxTest {
                         identity(),
                         impBuilder -> impBuilder.id("123").banner(Banner.builder().build())
                                 .video(Video.builder().build())),
-                mapper.writeValueAsString(
-                        givenBidResponse(
-                                bidBuilder -> bidBuilder.id("bidId").mtype(null).impid("123b__mf"))));
+                givenBidResponse(bidBuilder -> bidBuilder.id("bidId").mtype(null).impid("123b__mf")));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -400,9 +391,7 @@ public class AdkernelBidderTest extends VertxTest {
                         identity(),
                         impBuilder -> impBuilder.id("123").banner(Banner.builder().build())
                                 .video(Video.builder().build())),
-                mapper.writeValueAsString(
-                        givenBidResponse(
-                                bidBuilder -> bidBuilder.id("bidId").mtype(10).impid("123b__mf"))));
+                givenBidResponse(bidBuilder -> bidBuilder.id("bidId").mtype(10).impid("123b__mf")));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -438,15 +427,16 @@ public class AdkernelBidderTest extends VertxTest {
     }
 
     @SafeVarargs
-    private static BidResponse givenBidResponse(UnaryOperator<Bid.BidBuilder>... bidCustomizers) {
-        return BidResponse.builder()
+    @SneakyThrows
+    private String givenBidResponse(UnaryOperator<Bid.BidBuilder>... bidCustomizers) {
+        return mapper.writeValueAsString(BidResponse.builder()
                 .cur("USD")
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(Arrays.stream(bidCustomizers)
                                 .map(bidCustomizer -> bidCustomizer.apply(Bid.builder()).build())
                                 .toList())
                         .build()))
-                .build();
+                .build());
     }
 
     private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
