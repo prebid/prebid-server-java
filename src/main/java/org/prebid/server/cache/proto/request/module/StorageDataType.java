@@ -2,7 +2,7 @@ package org.prebid.server.cache.proto.request.module;
 
 import com.fasterxml.jackson.annotation.JsonValue;
 
-public enum ModuleCacheType {
+public enum StorageDataType {
 
     JSON("json"),
     XML("xml"),
@@ -11,7 +11,7 @@ public enum ModuleCacheType {
     @JsonValue
     private final String text;
 
-    ModuleCacheType(String text) {
+    StorageDataType(String text) {
         this.text = text;
     }
 }

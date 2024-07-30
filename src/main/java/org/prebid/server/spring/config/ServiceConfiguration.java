@@ -70,9 +70,9 @@ import org.prebid.server.bidder.BidderErrorNotifier;
 import org.prebid.server.bidder.BidderRequestCompletionTrackerFactory;
 import org.prebid.server.bidder.HttpBidderRequestEnricher;
 import org.prebid.server.bidder.HttpBidderRequester;
-import org.prebid.server.cache.BasicModuleCacheService;
+import org.prebid.server.cache.BasicPbcStorageService;
 import org.prebid.server.cache.CoreCacheService;
-import org.prebid.server.cache.ModuleCacheService;
+import org.prebid.server.cache.PbcStorageService;
 import org.prebid.server.cache.model.CacheTtl;
 import org.prebid.server.cache.utils.CacheServiceUtil;
 import org.prebid.server.cookie.CookieDeprecationService;
@@ -183,22 +183,22 @@ public class ServiceConfiguration {
 
     @Bean
     @ConditionalOnProperty(prefix = "cache.module", name = "enabled", havingValue = "false", matchIfMissing = true)
-    ModuleCacheService noOpModuleCacheService() {
-        return ModuleCacheService.noOp();
+    PbcStorageService noOpModuleCacheService() {
+        return PbcStorageService.noOp();
     }
 
     @Bean
     @ConditionalOnProperty(prefix = "cache.module", name = "enabled", havingValue = "true")
-    ModuleCacheService basicModuleCacheService(
+    PbcStorageService basicModuleCacheService(
             @Value("${cache.scheme}") String scheme,
             @Value("${cache.host}") String host,
-            @Value("${cache.module.path}") String path,
-            @Value("${cache.module.call-timeout-ms}") int callTimeoutMs,
-            @Value("${cache.api.key}") String apiKey,
+            @Value("${storage.pbc.path}") String path,
+            @Value("${storage.pbc.call-timeout-ms}") int callTimeoutMs,
+            @Value("${pbc.api.key}") String apiKey,
             HttpClient httpClient,
             JacksonMapper mapper) {
 
-        return new BasicModuleCacheService(
+        return new BasicPbcStorageService(
                 httpClient,
                 CacheServiceUtil.getCacheEndpointUrl(scheme, host, path),
                 apiKey,

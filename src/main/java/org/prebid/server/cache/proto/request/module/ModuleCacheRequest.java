@@ -7,7 +7,7 @@ public class ModuleCacheRequest {
 
     String key;
 
-    ModuleCacheType type;
+    StorageDataType type;
 
     String value;
 
