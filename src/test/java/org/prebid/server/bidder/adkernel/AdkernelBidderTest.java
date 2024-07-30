@@ -284,7 +284,7 @@ public class AdkernelBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldResolveBidTypeFromMTypeWhenPresent() throws JsonProcessingException {
+    public void makeBidsShouldResolveBidTypeToBannerWhenMTypeIsOne() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(
@@ -293,10 +293,7 @@ public class AdkernelBidderTest extends VertxTest {
                                 .video(Video.builder().build())),
                 mapper.writeValueAsString(
                         givenBidResponse(
-                                bidBuilder -> bidBuilder.mtype(1).impid("123b__mf"),
-                                bidBuilder -> bidBuilder.mtype(2).impid("123v__mf"),
-                                bidBuilder -> bidBuilder.mtype(3).impid("123a__mf"),
-                                bidBuilder -> bidBuilder.mtype(4).impid("123n__mf"))));
+                                bidBuilder -> bidBuilder.mtype(1).impid("123b__mf"))));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -304,11 +301,116 @@ public class AdkernelBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactlyInAnyOrder(
-                        BidderBid.of(Bid.builder().mtype(1).impid("123").build(), banner, "USD"),
-                        BidderBid.of(Bid.builder().mtype(2).impid("123").build(), video, "USD"),
-                        BidderBid.of(Bid.builder().mtype(3).impid("123").build(), audio, "USD"),
-                        BidderBid.of(Bid.builder().mtype(4).impid("123").build(), xNative, "USD"));
+                .extracting(BidderBid::getType)
+                .containsExactly(banner);
+    }
+
+    @Test
+    public void makeBidsShouldResolveBidTypeToVideoWhenMTypeIsTwo() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(
+                        identity(),
+                        impBuilder -> impBuilder.id("123").banner(Banner.builder().build())
+                                .video(Video.builder().build())),
+                mapper.writeValueAsString(
+                        givenBidResponse(
+                                bidBuilder -> bidBuilder.mtype(2).impid("123b__mf"))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getType)
+                .containsExactly(video);
+    }
+
+    @Test
+    public void makeBidsShouldResolveBidTypeToAudioWhenMTypeIsThree() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(
+                        identity(),
+                        impBuilder -> impBuilder.id("123").banner(Banner.builder().build())
+                                .video(Video.builder().build())),
+                mapper.writeValueAsString(
+                        givenBidResponse(
+                                bidBuilder -> bidBuilder.mtype(3).impid("123b__mf"))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getType)
+                .containsExactly(audio);
+    }
+
+    @Test
+    public void makeBidsShouldResolveBidTypeToNativeWhenMTypeIsFour() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(
+                        identity(),
+                        impBuilder -> impBuilder.id("123").banner(Banner.builder().build())
+                                .video(Video.builder().build())),
+                mapper.writeValueAsString(
+                        givenBidResponse(
+                                bidBuilder -> bidBuilder.mtype(4).impid("123b__mf"))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getType)
+                .containsExactly(xNative);
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorIfMtypeIsMissing() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(
+                        identity(),
+                        impBuilder -> impBuilder.id("123").banner(Banner.builder().build())
+                                .video(Video.builder().build())),
+                mapper.writeValueAsString(
+                        givenBidResponse(
+                                bidBuilder -> bidBuilder.id("bidId").mtype(null).impid("123b__mf"))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badServerResponse("Missing MType for bid: bidId"));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorIfMtypeIsNotValid() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(
+                        identity(),
+                        impBuilder -> impBuilder.id("123").banner(Banner.builder().build())
+                                .video(Video.builder().build())),
+                mapper.writeValueAsString(
+                        givenBidResponse(
+                                bidBuilder -> bidBuilder.id("bidId").mtype(10).impid("123b__mf"))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badServerResponse("Unsupported MType 10"));
+        assertThat(result.getValue()).isEmpty();
     }
 
     @SafeVarargs
