@@ -10,7 +10,6 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -34,7 +33,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-public class ConnectadBidder implements Bidder<BidRequest> {
+public class ConnectAdBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpConnectAd>> CONNECTAD_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
@@ -44,7 +43,7 @@ public class ConnectadBidder implements Bidder<BidRequest> {
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
-    public ConnectadBidder(String endpointUrl, JacksonMapper mapper) {
+    public ConnectAdBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -59,7 +58,7 @@ public class ConnectadBidder implements Bidder<BidRequest> {
         for (Imp imp : request.getImp()) {
             try {
                 final ExtImpConnectAd impExt = parseImpExt(imp);
-                final Imp updatedImp = updateImp(imp, secure, impExt.getSiteId(), impExt.getBidfloor());
+                final Imp updatedImp = updateImp(imp, secure, impExt.getSiteId(), impExt.getBidFloor());
                 processedImps.add(updatedImp);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
@@ -71,14 +70,12 @@ public class ConnectadBidder implements Bidder<BidRequest> {
         }
         final BidRequest outgoingRequest = request.toBuilder().imp(processedImps).build();
 
-        return Result.of(Collections.singletonList(
-                        HttpRequest.<BidRequest>builder()
-                                .method(HttpMethod.POST)
-                                .uri(endpointUrl)
-                                .headers(resolveHeaders(request.getDevice()))
-                                .payload(outgoingRequest)
-                                .body(mapper.encodeToBytes(outgoingRequest))
-                                .build()),
+        return Result.of(
+                Collections.singletonList(BidderUtil.defaultRequest(
+                        outgoingRequest,
+                        resolveHeaders(outgoingRequest.getDevice()),
+                        endpointUrl,
+                        mapper)),
                 errors);
     }
 
@@ -95,36 +92,46 @@ public class ConnectadBidder implements Bidder<BidRequest> {
             throw new PreBidException("Impression id=%s, has invalid Ext".formatted(imp.getId()));
         }
         final Integer siteId = extImpConnectAd.getSiteId();
-        if (siteId == null || siteId.equals(0)) {
+        if (siteId == null || siteId == 0) {
             throw new PreBidException("Impression id=%s, has no siteId present".formatted(imp.getId()));
         }
         return extImpConnectAd;
     }
 
     private Imp updateImp(Imp imp, Integer secure, Integer siteId, BigDecimal bidFloor) {
-        final Imp.ImpBuilder updatedImp = imp.toBuilder().tagid(siteId.toString()).secure(secure);
+        final boolean isValidBidFloor = BidderUtil.isValidPrice(bidFloor);
+        return imp.toBuilder()
+                .banner(updateBanner(imp.getBanner()))
+                .tagid(siteId.toString())
+                .secure(secure)
+                .bidfloor(isValidBidFloor ? bidFloor : imp.getBidfloor())
+                .bidfloorcur(isValidBidFloor ? "USD" : imp.getBidfloorcur())
+                .build();
+    }
 
-        if (BidderUtil.isValidPrice(bidFloor)) {
-            updatedImp.bidfloor(bidFloor).bidfloorcur("USD");
-        }
-
-        final Banner banner = imp.getBanner();
+    private static Banner updateBanner(Banner banner) {
         if (banner == null) {
             throw new PreBidException("We need a Banner Object in the request");
         }
 
-        if (banner.getW() == null && banner.getH() == null) {
-            if (CollectionUtils.isEmpty(banner.getFormat())) {
-                throw new PreBidException("At least one size is required");
-            }
-            final Format format = banner.getFormat().getFirst();
-            final List<Format> slicedFormatList = new ArrayList<>(banner.getFormat());
-
-            slicedFormatList.removeFirst();
-            updatedImp.banner(banner.toBuilder().format(slicedFormatList).w(format.getW()).h(format.getH()).build());
+        if (banner.getW() != null || banner.getH() != null) {
+            return banner;
         }
 
-        return updatedImp.build();
+        final List<Format> formats = banner.getFormat();
+        if (CollectionUtils.isEmpty(formats)) {
+            throw new PreBidException("At least one size is required");
+        }
+
+        final Format firstFormat = formats.getFirst();
+        final List<Format> slicedFormats = new ArrayList<>(formats);
+        slicedFormats.removeFirst();
+
+        return banner.toBuilder()
+                .format(slicedFormats)
+                .w(firstFormat.getW())
+                .h(firstFormat.getH())
+                .build();
     }
 
     private static MultiMap resolveHeaders(Device device) {
@@ -146,7 +153,7 @@ public class ConnectadBidder implements Bidder<BidRequest> {
     public final Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(bidResponse), Collections.emptyList());
+            return Result.withValues(extractBids(bidResponse));
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
@@ -156,15 +163,13 @@ public class ConnectadBidder implements Bidder<BidRequest> {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
-        return bidsFromResponse(bidResponse);
-    }
 
-    private List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
                 .map(bid -> BidderBid.of(bid, BidType.banner, bidResponse.getCur()))
                 .toList();
     }

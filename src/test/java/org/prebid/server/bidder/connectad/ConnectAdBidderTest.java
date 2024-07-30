@@ -31,16 +31,16 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 
-public class ConnectadBidderTest extends VertxTest {
+public class ConnectAdBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com/";
 
-    private final ConnectadBidder target = new ConnectadBidder(ENDPOINT_URL, jacksonMapper);
+    private final ConnectAdBidder target = new ConnectAdBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         Assertions.assertThatIllegalArgumentException().isThrownBy(() ->
-                new ConnectadBidder("invalid_url", jacksonMapper));
+                new ConnectAdBidder("invalid_url", jacksonMapper));
     }
 
     @Test
