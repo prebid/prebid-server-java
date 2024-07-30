@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Dooh;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Publisher;
@@ -136,7 +137,7 @@ public class SmaatoBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getExt)
                 .containsExactly(jacksonMapper.fillExtension(ExtRequest.empty(),
-                        SmaatoBidRequestExt.of("prebid_server_1.0")));
+                        SmaatoBidRequestExt.of("prebid_server_1.1")));
     }
 
     @Test
@@ -279,7 +280,7 @@ public class SmaatoBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors())
-                .containsExactly(BidderError.badInput("Missing Site/App."));
+                .containsExactly(BidderError.badInput("Missing Site/App/DOOH."));
     }
 
     @Test
@@ -492,10 +493,31 @@ public class SmaatoBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeIndividualHttpRequestsShouldReturnErrorIfSiteAndAppAreAbsentInRequest() {
+    public void makeIndividualHttpRequestsShouldEnrichAppWithPublisherIdIfSiteAndAppAreAbsentAndDoohIsPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.site(null).app(null).dooh(Dooh.builder().build()),
+                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null,
+                        ExtImpSmaato.of("publisherId", "adspaceId", null)))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getDooh)
+                .extracting(Dooh::getPublisher)
+                .extracting(Publisher::getId)
+                .containsExactly("publisherId");
+    }
+
+    @Test
+    public void makeIndividualHttpRequestsShouldReturnErrorIfSiteAndAppAndDoohAreAbsentInRequest() {
         // given
         final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
-                bidRequestBuilder.site(null).app(null), identity());
+                bidRequestBuilder.site(null).app(null).dooh(null), identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -503,7 +525,7 @@ public class SmaatoBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors())
-                .containsExactly(BidderError.badInput("Missing Site/App."));
+                .containsExactly(BidderError.badInput("Missing Site/App/DOOH."));
     }
 
     @Test
@@ -689,7 +711,7 @@ public class SmaatoBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).containsExactly(BidderError.badInput("X-Smt-Adtype header is missing!"));
+        assertThat(result.getErrors()).containsExactly(BidderError.badInput("X-Smt-Adtype header is missing."));
     }
 
     @Test
@@ -731,9 +753,9 @@ public class SmaatoBidderTest extends VertxTest {
 
         // then
         final String expectedAdm =
-                "<div style=\"cursor:pointer\" onclick=fetch(decodeURIComponent('curl1'.replace(/\\+/g, ' ')), "
+                "<div style=\"cursor:pointer\" onclick=\"fetch(decodeURIComponent('curl1'.replace(/\\+/g, ' ')), "
                         + "{cache: 'no-cache'});fetch(decodeURIComponent('curl2'.replace(/\\+/g, ' ')), "
-                        + "{cache: 'no-cache'});>" + adm + "</div>";
+                        + "{cache: 'no-cache'});\">" + adm + "</div>";
 
         final Bid expectedBid = Bid.builder()
                 .impid("123")
@@ -765,11 +787,9 @@ public class SmaatoBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
-        final String expectedAdm = "<div style=\"cursor:pointer\" onclick=>" + adm + "</div>";
-
         final Bid expectedBid = Bid.builder()
                 .impid("123")
-                .adm(expectedAdm)
+                .adm(adm)
                 .ext(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.builder().build(), null)))
                 .exp(300)
                 .build();
@@ -800,9 +820,9 @@ public class SmaatoBidderTest extends VertxTest {
 
         // then
         final String expectedAdm =
-                "<div style=\"cursor:pointer\" onclick=fetch(decodeURIComponent('curl1'.replace(/\\+/g, ' ')), "
+                "<div style=\"cursor:pointer\" onclick=\"fetch(decodeURIComponent('curl1'.replace(/\\+/g, ' ')), "
                         + "{cache: 'no-cache'});fetch(decodeURIComponent('curl2'.replace(/\\+/g, ' ')), "
-                        + "{cache: 'no-cache'});>" + adm + "</div>";
+                        + "{cache: 'no-cache'});\">" + adm + "</div>";
 
         final Bid expectedBid = Bid.builder()
                 .impid("123")
@@ -834,11 +854,9 @@ public class SmaatoBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
-        final String expectedAdm = "<div style=\"cursor:pointer\" onclick=>" + adm + "</div>";
-
         final Bid expectedBid = Bid.builder()
                 .impid("123")
-                .adm(expectedAdm)
+                .adm(adm)
                 .ext(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.builder().build(), null)))
                 .exp(300)
                 .build();

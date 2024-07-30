@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Dooh;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Publisher;
@@ -64,7 +65,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpSmaato>> SMAATO_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
-    private static final String CLIENT_VERSION = "prebid_server_1.0";
+    private static final String CLIENT_VERSION = "prebid_server_1.1";
     private static final String SMT_ADTYPE_HEADER = "X-Smt-Adtype";
     private static final String SMT_EXPIRES_HEADER = "X-Smt-Expires";
     private static final String SMT_AD_TYPE_IMG = "Img";
@@ -212,14 +213,17 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         final Publisher publisher = Publisher.builder().id(publisherId).build();
         final Site site = bidRequest.getSite();
         final App app = bidRequest.getApp();
+        final Dooh dooh = bidRequest.getDooh();
 
         final BidRequest.BidRequestBuilder bidRequestBuilder = bidRequest.toBuilder();
         if (site != null) {
             bidRequestBuilder.site(site.toBuilder().publisher(publisher).build());
         } else if (app != null) {
             bidRequestBuilder.app(app.toBuilder().publisher(publisher).build());
+        } else if (dooh != null) {
+            bidRequestBuilder.dooh(dooh.toBuilder().publisher(publisher).build());
         } else {
-            throw new PreBidException("Missing Site/App.");
+            throw new PreBidException("Missing Site/App/DOOH.");
         }
 
         return bidRequestBuilder.imp(impSupplier.get()).build();
@@ -414,7 +418,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         if (StringUtils.isNotBlank(adMarkupType)) {
             return adMarkupType;
         }
-        throw new PreBidException("X-Smt-Adtype header is missing!");
+        throw new PreBidException("X-Smt-Adtype header is missing.");
     }
 
     private String renderAdMarkup(String markupType, String adm, SmaatoBidExt bidExt) {
@@ -427,13 +431,16 @@ public class SmaatoBidder implements Bidder<BidRequest> {
     }
 
     private String extractAdmBanner(String adm, List<String> curls) {
+        if (CollectionUtils.isEmpty(curls)) {
+            return adm;
+        }
+
         final StringBuilder clickEvent = new StringBuilder();
-        CollectionUtils.emptyIfNull(curls)
-                .forEach(url -> clickEvent.append(
-                        "fetch(decodeURIComponent('%s'.replace(/\\+/g, ' ')), {cache: 'no-cache'});"
+        curls.forEach(url -> clickEvent.append(
+                "fetch(decodeURIComponent('%s'.replace(/\\+/g, ' ')), {cache: 'no-cache'});"
                                 .formatted(HttpUtil.encodeUrl(StringUtils.stripToEmpty(url)))));
 
-        return "<div style=\"cursor:pointer\" %s>%s</div>".formatted("onclick=" + clickEvent, adm);
+        return "<div style=\"cursor:pointer\" onclick=\"%s\">%s</div>".formatted(clickEvent, adm);
     }
 
     private String extractNative(String adm) {
