@@ -1,8 +1,6 @@
 package org.prebid.server.privacy.gdpr;
 
 import com.iabtcf.decoder.TCString;
-import com.iabtcf.utils.IntIterable;
-import com.iabtcf.v2.PublisherRestriction;
 import io.vertx.core.Future;
 import lombok.Value;
 import org.apache.commons.lang3.BooleanUtils;
@@ -31,7 +29,6 @@ import org.prebid.server.settings.model.EnabledForRequestType;
 import org.prebid.server.settings.model.GdprConfig;
 import org.prebid.server.util.ObjectUtil;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -370,7 +367,7 @@ public class TcfDefinerService {
             return TCStringParsingResult.of(TCStringEmpty.create(), warnings);
         }
 
-        return TCStringParsingResult.of(TCStringWrapper.of(tcString), warnings);
+        return TCStringParsingResult.of(tcString, warnings);
     }
 
     private TCString decodeTcString(String consentString, RequestLogInfo requestLogInfo, List<String> warnings) {
@@ -429,148 +426,5 @@ public class TcfDefinerService {
         TCString result;
 
         List<String> warnings;
-    }
-
-    protected static class TCStringWrapper implements TCString {
-
-        private final TCString tcString;
-
-        private TCStringWrapper(TCString tcString) {
-            this.tcString = Objects.requireNonNull(tcString);
-        }
-
-        public static TCString of(TCString tcString) {
-            return new TCStringWrapper(tcString);
-        }
-
-        @Override
-        public int getVersion() {
-            return tcString.getVersion();
-        }
-
-        @Override
-        public Instant getCreated() {
-            return tcString.getCreated();
-        }
-
-        @Override
-        public Instant getLastUpdated() {
-            return tcString.getLastUpdated();
-        }
-
-        @Override
-        public int getCmpId() {
-            return tcString.getCmpId();
-        }
-
-        @Override
-        public int getCmpVersion() {
-            return tcString.getCmpVersion();
-        }
-
-        @Override
-        public int getConsentScreen() {
-            return tcString.getConsentScreen();
-        }
-
-        @Override
-        public String getConsentLanguage() {
-            return tcString.getConsentLanguage();
-        }
-
-        @Override
-        public int getVendorListVersion() {
-            return tcString.getTcfPolicyVersion() < 4 ? 2 : 3;
-        }
-
-        @Override
-        public IntIterable getPurposesConsent() {
-            return tcString.getPurposesConsent();
-        }
-
-        @Override
-        public IntIterable getVendorConsent() {
-            return tcString.getVendorConsent();
-        }
-
-        @Override
-        public boolean getDefaultVendorConsent() {
-            return tcString.getDefaultVendorConsent();
-        }
-
-        @Override
-        public int getTcfPolicyVersion() {
-            return tcString.getTcfPolicyVersion();
-        }
-
-        @Override
-        public boolean isServiceSpecific() {
-            return tcString.isServiceSpecific();
-        }
-
-        @Override
-        public boolean getUseNonStandardStacks() {
-            return tcString.getUseNonStandardStacks();
-        }
-
-        @Override
-        public IntIterable getSpecialFeatureOptIns() {
-            return tcString.getSpecialFeatureOptIns();
-        }
-
-        @Override
-        public IntIterable getPurposesLITransparency() {
-            return tcString.getPurposesLITransparency();
-        }
-
-        @Override
-        public boolean getPurposeOneTreatment() {
-            return tcString.getPurposeOneTreatment();
-        }
-
-        @Override
-        public String getPublisherCC() {
-            return tcString.getPublisherCC();
-        }
-
-        @Override
-        public IntIterable getVendorLegitimateInterest() {
-            return tcString.getVendorLegitimateInterest();
-        }
-
-        @Override
-        public List<PublisherRestriction> getPublisherRestrictions() {
-            return tcString.getPublisherRestrictions();
-        }
-
-        @Override
-        public IntIterable getAllowedVendors() {
-            return tcString.getAllowedVendors();
-        }
-
-        @Override
-        public IntIterable getDisclosedVendors() {
-            return tcString.getDisclosedVendors();
-        }
-
-        @Override
-        public IntIterable getPubPurposesConsent() {
-            return tcString.getPubPurposesConsent();
-        }
-
-        @Override
-        public IntIterable getPubPurposesLITransparency() {
-            return tcString.getPubPurposesLITransparency();
-        }
-
-        @Override
-        public IntIterable getCustomPurposesConsent() {
-            return tcString.getCustomPurposesConsent();
-        }
-
-        @Override
-        public IntIterable getCustomPurposesLITransparency() {
-            return tcString.getCustomPurposesLITransparency();
-        }
     }
 }

@@ -31,7 +31,6 @@ import org.prebid.server.settings.model.Purposes;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.ThreadLocalRandom;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -650,37 +649,5 @@ public class TcfDefinerServiceTest {
     public void isConsentStringValidShouldReturnFalseWhenStringNotValid() {
         // when and then
         assertThat(TcfDefinerService.isConsentStringValid("invalid")).isFalse();
-    }
-
-    @Test
-    public void tcStringWrapperShouldReturnVendorListVersionEquals2() {
-        // given
-        final int tcfPolicyVersion = ThreadLocalRandom.current().nextInt(0, 4);
-        final TCString tcString = TCStringEncoder.newBuilder()
-                .version(2)
-                .tcfPolicyVersion(tcfPolicyVersion)
-                .toTCString();
-
-        // when
-        final TCString wrappedTcString = TcfDefinerService.TCStringWrapper.of(tcString);
-
-        // then
-        assertThat(wrappedTcString.getVendorListVersion()).isEqualTo(2);
-    }
-
-    @Test
-    public void tcStringWrapperShouldReturnVendorListVersionEquals3() {
-        // given
-        final int tcfPolicyVersion = ThreadLocalRandom.current().nextInt(4, 6);
-        final TCString tcString = TCStringEncoder.newBuilder()
-                .version(2)
-                .tcfPolicyVersion(tcfPolicyVersion)
-                .toTCString();
-
-        // when
-        final TCString wrappedTcString = TcfDefinerService.TCStringWrapper.of(tcString);
-
-        // then
-        assertThat(wrappedTcString.getVendorListVersion()).isEqualTo(3);
     }
 }
