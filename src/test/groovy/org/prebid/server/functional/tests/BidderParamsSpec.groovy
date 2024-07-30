@@ -25,7 +25,6 @@ import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.CcpaConsent
-import spock.lang.IgnoreRest
 
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
@@ -767,7 +766,6 @@ class BidderParamsSpec extends BaseSpec {
                 ["WARNING: request.imp[0].ext.foo unknown bidder."]
     }
 
-    @IgnoreRest
     def "PBS shouldn't emit warning and proceed auction when imp.ext.foo and imp.ext.generic in the request"() {
         given: "Default bid request with populated imp.ext"
         def impExt = ImpExt.getDefaultImpExt().tap {
