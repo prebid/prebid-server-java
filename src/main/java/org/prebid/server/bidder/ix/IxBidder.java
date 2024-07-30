@@ -297,13 +297,13 @@ public class IxBidder implements Bidder<BidRequest> {
     }
 
     private static Optional<BidType> getBidTypeFromMtype(Integer mType) {
-        final BidType bidType = mType != null ? switch (mType) {
+        final BidType bidType = switch (mType) {
             case 1 -> BidType.banner;
             case 2 -> BidType.video;
             case 3 -> BidType.audio;
             case 4 -> BidType.xNative;
-            default -> null;
-        } : null;
+            case null, default -> null;
+        };
 
         return Optional.ofNullable(bidType);
     }
