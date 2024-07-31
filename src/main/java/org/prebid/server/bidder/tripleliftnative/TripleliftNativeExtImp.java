@@ -9,5 +9,4 @@ public class TripleliftNativeExtImp {
     ExtImpTriplelift bidder;
 
     TripleliftNativeExtImpData data;
-
 }

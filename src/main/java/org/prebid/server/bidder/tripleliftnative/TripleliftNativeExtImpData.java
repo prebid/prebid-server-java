@@ -8,5 +8,4 @@ public class TripleliftNativeExtImpData {
 
     @JsonProperty("tag_code")
     String tagCode;
-
 }

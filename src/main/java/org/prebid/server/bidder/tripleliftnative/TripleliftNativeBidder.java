@@ -25,6 +25,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -52,9 +53,13 @@ public class TripleliftNativeBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         final List<BidderError> errors = new ArrayList<>();
         final List<Imp> validImps = new ArrayList<>();
+        final boolean hasMsnDomain = hasMsnDomain(bidRequest);
+
         for (Imp imp : bidRequest.getImp()) {
             try {
-                validImps.add(modifyImp(imp, bidRequest));
+                validateImp(imp);
+                final TripleliftNativeExtImp impExt = parseExtImp(imp);
+                validImps.add(modifyImp(imp, impExt, hasMsnDomain));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -79,17 +84,41 @@ public class TripleliftNativeBidder implements Bidder<BidRequest> {
                 errors);
     }
 
-    private Imp modifyImp(Imp imp, BidRequest request) throws PreBidException {
+    private static boolean hasMsnDomain(BidRequest bidRequest) {
+        final boolean hasMsnDomainInSite = Optional.ofNullable(bidRequest.getSite())
+                .map(Site::getPublisher)
+                .map(Publisher::getDomain)
+                .map(MSN_DOMAIN::equals)
+                .orElse(false);
+
+        final boolean hasMsnDomainInApp = Optional.ofNullable(bidRequest.getApp())
+                .map(App::getPublisher)
+                .map(Publisher::getDomain)
+                .map(MSN_DOMAIN::equals)
+                .orElse(false);
+
+        return hasMsnDomainInSite || hasMsnDomainInApp;
+    }
+
+    private static void validateImp(Imp imp) {
         if (imp.getXNative() == null) {
             throw new PreBidException("no native object specified");
         }
+    }
 
-        final TripleliftNativeExtImp impExt = parseExtImp(imp);
+    private Imp modifyImp(Imp imp, TripleliftNativeExtImp impExt, boolean hasMsnDomain) throws PreBidException {
         final ExtImpTriplelift impExtBidder = impExt.getBidder();
+        final TripleliftNativeExtImpData data = impExt.getData();
+
+        final BigDecimal bidFloor = impExtBidder.getFloor();
+        final boolean hasTagCodeInData = Optional.ofNullable(data)
+                .map(TripleliftNativeExtImpData::getTagCode)
+                .map(StringUtils::isNotBlank)
+                .orElse(false);
 
         return imp.toBuilder()
-                .tagid(resolveTagId(request, impExtBidder.getInventoryCode(), impExt.getData()))
-                .bidfloor(impExtBidder.getFloor())
+                .bidfloor(BidderUtil.isValidPrice(bidFloor) ? bidFloor : imp.getBidfloor())
+                .tagid(hasTagCodeInData && hasMsnDomain ? data.getTagCode() : impExtBidder.getInventoryCode())
                 .build();
     }
 
@@ -99,29 +128,6 @@ public class TripleliftNativeBidder implements Bidder<BidRequest> {
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
-    }
-
-    private String resolveTagId(BidRequest request, String inventoryCode, TripleliftNativeExtImpData data) {
-        final boolean hasMsnDomainInSite = Optional.ofNullable(request.getSite())
-                .map(Site::getPublisher)
-                .map(Publisher::getDomain)
-                .map(MSN_DOMAIN::equals)
-                .orElse(false);
-
-        final boolean hasMsnDomainInApp = Optional.ofNullable(request.getApp())
-                .map(App::getPublisher)
-                .map(Publisher::getDomain)
-                .map(MSN_DOMAIN::equals)
-                .orElse(false);
-
-        final boolean hasTagCodeInData = Optional.ofNullable(data)
-                .map(TripleliftNativeExtImpData::getTagCode)
-                .map(StringUtils::isNotBlank)
-                .orElse(false);
-
-        return hasTagCodeInData && (hasMsnDomainInSite || hasMsnDomainInApp)
-                ? data.getTagCode()
-                : inventoryCode;
     }
 
     private String effectivePublisherId(BidRequest bidRequest) {
