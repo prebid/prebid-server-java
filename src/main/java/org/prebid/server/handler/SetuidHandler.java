@@ -3,13 +3,11 @@ package org.prebid.server.handler;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import io.vertx.core.http.Cookie;
 import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
@@ -23,9 +21,9 @@ import org.prebid.server.activity.infrastructure.payload.impl.ActivityInvocation
 import org.prebid.server.activity.infrastructure.payload.impl.TcfContextActivityInvocationPayload;
 import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
-import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.gpp.SetuidGppService;
 import org.prebid.server.auction.model.SetuidContext;
+import org.prebid.server.auction.privacy.contextfactory.SetuidPrivacyContextFactory;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.UsersyncFormat;
 import org.prebid.server.bidder.UsersyncMethod;
@@ -41,6 +39,8 @@ import org.prebid.server.exception.InvalidAccountConfigException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.privacy.HostVendorTcfDefinerService;
@@ -51,6 +51,8 @@ import org.prebid.server.privacy.gdpr.model.TcfResponse;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.vertx.verticles.server.HttpEndpoint;
+import org.prebid.server.vertx.verticles.server.application.ApplicationResource;
 
 import java.util.Collections;
 import java.util.List;
@@ -63,7 +65,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class SetuidHandler implements Handler<RoutingContext> {
+public class SetuidHandler implements ApplicationResource {
 
     private static final Logger logger = LoggerFactory.getLogger(SetuidHandler.class);
 
@@ -76,7 +78,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
     private final long defaultTimeout;
     private final UidsCookieService uidsCookieService;
     private final ApplicationSettings applicationSettings;
-    private final PrivacyEnforcementService privacyEnforcementService;
+    private final SetuidPrivacyContextFactory setuidPrivacyContextFactory;
     private final SetuidGppService gppService;
     private final ActivityInfrastructureCreator activityInfrastructureCreator;
     private final HostVendorTcfDefinerService tcfDefinerService;
@@ -89,7 +91,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
                          UidsCookieService uidsCookieService,
                          ApplicationSettings applicationSettings,
                          BidderCatalog bidderCatalog,
-                         PrivacyEnforcementService privacyEnforcementService,
+                         SetuidPrivacyContextFactory setuidPrivacyContextFactory,
                          SetuidGppService gppService,
                          ActivityInfrastructureCreator activityInfrastructureCreator,
                          HostVendorTcfDefinerService tcfDefinerService,
@@ -100,7 +102,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
         this.defaultTimeout = defaultTimeout;
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
-        this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
+        this.setuidPrivacyContextFactory = Objects.requireNonNull(setuidPrivacyContextFactory);
         this.gppService = Objects.requireNonNull(gppService);
         this.activityInfrastructureCreator = Objects.requireNonNull(activityInfrastructureCreator);
         this.tcfDefinerService = Objects.requireNonNull(tcfDefinerService);
@@ -124,6 +126,11 @@ public class SetuidHandler implements Handler<RoutingContext> {
 
         return usersyncers.get()
                 .collect(Collectors.toMap(Usersyncer::getCookieFamilyName, SetuidHandler::preferredUserSyncType));
+    }
+
+    @Override
+    public List<HttpEndpoint> endpoints() {
+        return Collections.singletonList(HttpEndpoint.of(HttpMethod.GET, Endpoint.setuid.value()));
     }
 
     private static UsersyncMethodType preferredUserSyncType(Usersyncer usersyncer) {
@@ -164,7 +171,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
         final Timeout timeout = timeoutFactory.create(defaultTimeout);
 
         return accountById(requestAccount, timeout)
-                .compose(account -> privacyEnforcementService.contextFromSetuidRequest(httpRequest, account, timeout)
+                .compose(account -> setuidPrivacyContextFactory.contextFrom(httpRequest, account, timeout)
                         .map(privacyContext -> SetuidContext.builder()
                                 .routingContext(routingContext)
                                 .uidsCookie(uidsCookie)
@@ -184,10 +191,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
     }
 
     private Future<Account> accountById(String accountId, Timeout timeout) {
-        return StringUtils.isBlank(accountId)
-                ? Future.succeededFuture(Account.empty(accountId))
-                : applicationSettings.getAccountById(accountId, timeout)
-                .otherwise(Account.empty(accountId));
+        return applicationSettings.getAccountById(accountId, timeout).otherwise(Account.empty(accountId));
     }
 
     private SetuidContext fillWithActivityInfrastructure(SetuidContext setuidContext) {
@@ -360,25 +364,31 @@ public class SetuidHandler implements Handler<RoutingContext> {
         final String message = error.getMessage();
         final HttpResponseStatus status;
         final String body;
-        if (error instanceof InvalidRequestException) {
-            metrics.updateUserSyncBadRequestMetric();
-            status = HttpResponseStatus.BAD_REQUEST;
-            body = "Invalid request format: " + message;
-        } else if (error instanceof UnauthorizedUidsException) {
-            metrics.updateUserSyncOptoutMetric();
-            status = HttpResponseStatus.UNAUTHORIZED;
-            body = "Unauthorized: " + message;
-        } else if (error instanceof UnavailableForLegalReasonsException) {
-            status = HttpResponseStatus.valueOf(451);
-            body = "Unavailable For Legal Reasons.";
-        } else if (error instanceof InvalidAccountConfigException) {
-            metrics.updateUserSyncBadRequestMetric();
-            status = HttpResponseStatus.BAD_REQUEST;
-            body = "Invalid account configuration: " + message;
-        } else {
-            status = HttpResponseStatus.INTERNAL_SERVER_ERROR;
-            body = "Unexpected setuid processing error: " + message;
-            logger.warn(body, error);
+        switch (error) {
+            case InvalidRequestException invalidRequestException -> {
+                metrics.updateUserSyncBadRequestMetric();
+                status = HttpResponseStatus.BAD_REQUEST;
+                body = "Invalid request format: " + message;
+            }
+            case UnauthorizedUidsException unauthorizedUidsException -> {
+                metrics.updateUserSyncOptoutMetric();
+                status = HttpResponseStatus.UNAUTHORIZED;
+                body = "Unauthorized: " + message;
+            }
+            case UnavailableForLegalReasonsException unavailableForLegalReasonsException -> {
+                status = HttpResponseStatus.valueOf(451);
+                body = "Unavailable For Legal Reasons.";
+            }
+            case InvalidAccountConfigException invalidAccountConfigException -> {
+                metrics.updateUserSyncBadRequestMetric();
+                status = HttpResponseStatus.BAD_REQUEST;
+                body = "Invalid account configuration: " + message;
+            }
+            default -> {
+                status = HttpResponseStatus.INTERNAL_SERVER_ERROR;
+                body = "Unexpected setuid processing error: " + message;
+                logger.warn(body, error);
+            }
         }
 
         HttpUtil.executeSafely(routingContext, Endpoint.setuid,

@@ -5,6 +5,7 @@ import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
@@ -55,20 +56,23 @@ public class AdviewBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final Imp firstImp = request.getImp().get(0);
-        final ExtImpAdview extImpAdview;
-        final BidRequest modifiedBidRequest;
+        final List<BidderError> errors = new ArrayList<>();
+        final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
 
-        try {
-            extImpAdview = parseExtImp(firstImp);
-            final Price bidFloorPrice = resolveBidFloor(firstImp, request);
-            modifiedBidRequest = modifyRequest(request, extImpAdview.getMasterTagId(), bidFloorPrice);
-        } catch (PreBidException e) {
-            return Result.withError(BidderError.badInput(e.getMessage()));
+        for (Imp imp: request.getImp()) {
+            try {
+                final ExtImpAdview extImp = parseExtImp(imp);
+                final Price bidFloorPrice = resolveBidFloor(imp, request);
+                final Imp modifiedImp = modifyImp(imp, extImp.getMasterTagId(), bidFloorPrice);
+                final BidRequest modifiedRequest = modifyRequest(request, modifiedImp);
+                final String resolvedUrl = resolveEndpoint(extImp.getAccountId());
+                httpRequests.add(BidderUtil.defaultRequest(modifiedRequest, resolvedUrl, mapper));
+            } catch (PreBidException e) {
+                errors.add(BidderError.badInput(e.getMessage()));
+            }
         }
 
-        return Result.withValue(
-                BidderUtil.defaultRequest(modifiedBidRequest, resolveEndpoint(extImpAdview.getAccountId()), mapper));
+        return Result.of(httpRequests, errors);
     }
 
     private ExtImpAdview parseExtImp(Imp imp) {
@@ -99,17 +103,11 @@ public class AdviewBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static BidRequest modifyRequest(BidRequest bidRequest, String masterTagId, Price bidFloorPrice) {
+    private static BidRequest modifyRequest(BidRequest bidRequest, Imp modifiedImp) {
         return bidRequest.toBuilder()
-                .imp(modifyImps(bidRequest.getImp(), masterTagId, bidFloorPrice))
+                .imp(Collections.singletonList(modifiedImp))
                 .cur(Collections.singletonList(BIDDER_CURRENCY))
                 .build();
-    }
-
-    private static List<Imp> modifyImps(List<Imp> imps, String masterTagId, Price bidFloorPrice) {
-        final List<Imp> modifiedImps = new ArrayList<>(imps);
-        modifiedImps.set(0, modifyImp(imps.get(0), masterTagId, bidFloorPrice));
-        return modifiedImps;
     }
 
     private static Imp modifyImp(Imp imp, String masterTagId, Price bidFloorPrice) {
@@ -124,7 +122,7 @@ public class AdviewBidder implements Bidder<BidRequest> {
     private static Banner resolveBanner(Banner banner) {
         final List<Format> formats = banner != null ? banner.getFormat() : null;
         if (CollectionUtils.isNotEmpty(formats)) {
-            final Format firstFormat = formats.get(0);
+            final Format firstFormat = formats.getFirst();
             return firstFormat != null
                     ? banner.toBuilder().w(firstFormat.getW()).h(firstFormat.getH()).build()
                     : banner;
@@ -140,40 +138,54 @@ public class AdviewBidder implements Bidder<BidRequest> {
     public final Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
-        } catch (DecodeException e) {
+            final List<BidderError> errors = new ArrayList<>();
+            return Result.of(extractBids(bidResponse, errors), errors);
+        } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
+    private static List<BidderBid> extractBids(BidResponse bidResponse, List<BidderError> errors) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
-        return bidsFromResponse(bidRequest, bidResponse);
+        return bidsFromResponse(bidResponse, errors);
     }
 
-    private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
+    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse, List<BidderError> errors) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getBidMediaType(bid.getImpid(), bidRequest.getImp()),
-                        bidResponse.getCur()))
+                .map(bid -> makeBid(bid, bidResponse.getCur(), errors))
+                .filter(Objects::nonNull)
                 .toList();
     }
 
-    private static BidType getBidMediaType(String impId, List<Imp> imps) {
-        for (Imp imp : imps) {
-            if (imp.getId().equals(impId)) {
-                if (imp.getVideo() != null) {
-                    return BidType.video;
-                } else if (imp.getXNative() != null) {
-                    return BidType.xNative;
-                }
-            }
+    private static BidderBid makeBid(Bid bid, String currency, List<BidderError> errors) {
+        try {
+            final BidType mediaType = getBidMediaType(bid);
+            return BidderBid.of(bid, mediaType, currency);
+        } catch (PreBidException e) {
+            errors.add(BidderError.badServerResponse(e.getMessage()));
+            return null;
         }
-        return BidType.banner;
+
+    }
+
+    private static BidType getBidMediaType(Bid bid) {
+        final Integer markupType = bid.getMtype();
+        if (markupType == null) {
+            throw new PreBidException("Missing MType for bid: " + bid.getId());
+        }
+
+        return switch (markupType) {
+            case 1 -> BidType.banner;
+            case 2 -> BidType.video;
+            case 4 -> BidType.xNative;
+            default -> throw new PreBidException(
+                    "Unable to fetch mediaType " + bid.getMtype() + " in multi-format: " + bid.getImpid());
+        };
     }
 }

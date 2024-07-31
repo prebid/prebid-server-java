@@ -4,7 +4,7 @@
 
     <groupId>org.prebid</groupId>
     <artifactId>prebid-server-aggregator</artifactId>
-    <version>${revision}</version>
+    <version>3.8.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <scm>
@@ -15,14 +15,48 @@
     </scm>
 
     <properties>
-        <revision>2.9.0-SNAPSHOT</revision>
-
+        <!-- Global project properties -->
+        <java.version>21</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
-        <lombok.version>1.18.24</lombok.version>
-        <maven-release-plugin.version>3.0.0-M6</maven-release-plugin.version>
+        <project.build.outputEncoding>UTF-8</project.build.outputEncoding>
+        <maven.compiler.source>${java.version}</maven.compiler.source>
+        <maven.compiler.target>${java.version}</maven.compiler.target>
+
+        <!-- Maven plugin versions -->
+        <maven-release-plugin.version>3.1.0</maven-release-plugin.version>
+        <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
+        <maven-surefire-plugin.version>3.3.0</maven-surefire-plugin.version>
+        <maven-failsafe-plugin.version>${maven-surefire-plugin.version}</maven-failsafe-plugin.version>
+        <docker-maven-plugin.version>0.44.0</docker-maven-plugin.version>
+
+        <!-- Project production dependency versions -->
+        <spring.boot.version>3.2.3</spring.boot.version>
+        <vertx.version>4.5.5</vertx.version>
+        <validation-api.version>2.0.1.Final</validation-api.version>
+        <commons.collections.version>4.4</commons.collections.version>
+        <commons.compress.version>1.26.0</commons.compress.version>
+        <commons-math3.version>3.6.1</commons-math3.version>
+        <scram.version>2.1</scram.version>
+        <httpclient.version>4.5.14</httpclient.version>
+        <ipaddress.version>5.3.1</ipaddress.version>
+        <oshi.version>6.4.5</oshi.version>
+        <json-schema-validator.version>1.0.76</json-schema-validator.version>
+        <jsonpatch.version>1.13</jsonpatch.version>
+        <psl.version>2.2.0</psl.version>
+        <metrics-influxdb.version>1.2.2</metrics-influxdb.version>
+        <vertx.prometheus.version>0.16.0</vertx.prometheus.version>
+        <iabtcf.version>2.0.10</iabtcf.version>
+        <gpp-encoder.version>3.2.0</gpp-encoder.version>
+        <maxmind-client.version>2.12.0</maxmind-client.version>
+        <protobuf.version>3.21.7</protobuf.version>
+        <protoc.version>3.17.3</protoc.version>
+        <json-logic.version>1.0.7</json-logic.version>
+
+        <!-- Project test dependency versions -->
+        <wiremock.version>3.5.4</wiremock.version>
+        <spock.version>2.4-M4-groovy-4.0</spock.version>
+        <!--TODO: replace with WireMock -->
+        <mockserver.version>5.15.0</mockserver.version>
     </properties>
 
     <modules>
@@ -31,11 +65,186 @@
         <module>bundle</module>
     </modules>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring.boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.vertx</groupId>
+                <artifactId>vertx-dependencies</artifactId>
+                <version>${vertx.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.spockframework</groupId>
+                <artifactId>spock-bom</artifactId>
+                <version>${spock.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.wiremock</groupId>
+                <artifactId>wiremock-jetty12</artifactId>
+                <version>${wiremock.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>javax.validation</groupId>
+                <artifactId>validation-api</artifactId>
+                <version>${validation-api.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.ongres.scram</groupId>
+                <artifactId>client</artifactId>
+                <version>${scram.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-collections4</artifactId>
+                <version>${commons.collections.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-compress</artifactId>
+                <version>${commons.compress.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-math3</artifactId>
+                <version>${commons-math3.version}</version>
+            </dependency>
+            <!-- TODO: refactor code to replace URIBuilder with something else so that this dep can be removed -->
+            <dependency>
+                <groupId>org.apache.httpcomponents</groupId>
+                <artifactId>httpclient</artifactId>
+                <version>${httpclient.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.seancfoley</groupId>
+                <artifactId>ipaddress</artifactId>
+                <version>${ipaddress.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.oshi</groupId>
+                <artifactId>oshi-core</artifactId>
+                <version>${oshi.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.networknt</groupId>
+                <artifactId>json-schema-validator</artifactId>
+                <version>${json-schema-validator.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.java-json-tools</groupId>
+                <artifactId>json-patch</artifactId>
+                <version>${jsonpatch.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.google.code.findbugs</groupId>
+                        <artifactId>jsr305</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>de.malkusch.whois-server-list</groupId>
+                <artifactId>public-suffix-list</artifactId>
+                <version>${psl.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.google.code.findbugs</groupId>
+                        <artifactId>jsr305</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>com.izettle</groupId>
+                <artifactId>dropwizard-metrics-influxdb</artifactId>
+                <version>${metrics-influxdb.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>io.dropwizard</groupId>
+                        <artifactId>dropwizard-metrics</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.kafka</groupId>
+                        <artifactId>kafka-clients</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>io.prometheus</groupId>
+                <artifactId>simpleclient_vertx4</artifactId>
+                <version>${vertx.prometheus.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.prometheus</groupId>
+                <artifactId>simpleclient_dropwizard</artifactId>
+                <version>${vertx.prometheus.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.iabtcf</groupId>
+                <artifactId>iabtcf-decoder</artifactId>
+                <version>${iabtcf.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.iabtcf</groupId>
+                <artifactId>iabtcf-encoder</artifactId>
+                <version>${iabtcf.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.iabgpp</groupId>
+                <artifactId>iabgpp-encoder</artifactId>
+                <version>${gpp-encoder.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.maxmind.geoip2</groupId>
+                <artifactId>geoip2</artifactId>
+                <version>${maxmind-client.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java</artifactId>
+                <version>${protobuf.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java-util</artifactId>
+                <version>${protobuf.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.google.code.findbugs</groupId>
+                        <artifactId>jsr305</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>io.github.jamsesso</groupId>
+                <artifactId>json-logic-java</artifactId>
+                <version>${json-logic.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mock-server</groupId>
+                <artifactId>mockserver-client-java</artifactId>
+                <version>${mockserver.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.google.code.findbugs</groupId>
+                        <artifactId>jsr305</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>${lombok.version}</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>

@@ -1,12 +1,10 @@
 package org.prebid.server.functional.tests
 
-import io.qameta.allure.Issue
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredImp
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
-import org.prebid.server.functional.model.request.auction.Asset
 import org.prebid.server.functional.model.request.auction.Banner
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Device
@@ -24,7 +22,6 @@ import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.CcpaConsent
-import spock.lang.IgnoreRest
 
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
@@ -273,7 +270,6 @@ class BidderParamsSpec extends BaseSpec {
     }
 
     // TODO: create same test for enabled circuit breaker
-    @Issue("https://github.com/prebid/prebid-server-java/issues/1478")
     def "PBS should emit warning when bidder endpoint is invalid"() {
         given: "Pbs config"
         def pbsService = pbsServiceFactory.getService(["adapters.generic.enabled"           : "true",
@@ -288,7 +284,7 @@ class BidderParamsSpec extends BaseSpec {
 
         then: "Response should contain error"
         assert response.ext?.errors[ErrorType.GENERIC]*.code == [999]
-        assert response.ext?.errors[ErrorType.GENERIC]*.message == ["no empty host accepted"]
+        assert response.ext?.errors[ErrorType.GENERIC]*.message == ["host name must not be empty"]
     }
 
     def "PBS should reject bidder when bidder params from request doesn't satisfy json-schema for auction request"() {

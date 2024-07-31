@@ -10,7 +10,7 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -36,7 +36,11 @@ import static org.assertj.core.groups.Tuple.tuple;
 
 public class BizzclickBidderTest extends VertxTest {
 
-    private static final String ENDPOINT = "https://test.domain.dm/uri?source={{.SourceId}}&account={{.AccountID}}";
+    private static final String ENDPOINT = "https://{{Host}}/uri?source={{SourceId}}&account={{AccountID}}";
+    private static final String DEFAULT_HOST = "host";
+    private static final String DEFAULT_ACCOUNT_ID = "accountId";
+    private static final String DEFAULT_SOURCE_ID = "sourceId";
+    private static final String DEFAULT_PLACEMENT_ID = "placementId";
 
     private final BizzclickBidder target = new BizzclickBidder(ENDPOINT, jacksonMapper);
 
@@ -65,7 +69,7 @@ public class BizzclickBidderTest extends VertxTest {
     public void makeHttpRequestsShouldRelyOnlyOnFirstImpExt() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                givenImp("accountId", "placementId"),
+                givenImp(),
                 givenImp(imp -> imp.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))));
 
         // when
@@ -83,8 +87,8 @@ public class BizzclickBidderTest extends VertxTest {
     public void makeHttpRequestsShouldRemoveExtFromEachImp() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                givenImp("accountId1", "placementId1"),
-                givenImp("accountId2", "placementId2"));
+                givenImp("host", "accountId1", "placementId1", "sourceId1"),
+                givenImp("host", "accountId2", "placementId2", "sourceId2"));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -101,7 +105,7 @@ public class BizzclickBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldCreateRequestWithXOpenRtbVersionHeader() {
         // given
-        final BidRequest bidRequest = givenBidRequest(givenImp("accountId", "placementId"));
+        final BidRequest bidRequest = givenBidRequest(givenImp());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -120,7 +124,7 @@ public class BizzclickBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 device -> device.ua("ua"),
-                givenImp("accountId", "placementId"));
+                givenImp());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -139,7 +143,7 @@ public class BizzclickBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 device -> device.ipv6("ipv6"),
-                givenImp("accountId", "placementId"));
+                givenImp());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -158,7 +162,7 @@ public class BizzclickBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 device -> device.ip("ip"),
-                givenImp("accountId", "placementId"));
+                givenImp());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -177,7 +181,7 @@ public class BizzclickBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 device -> device.ip("ip").ipv6("ipv6"),
-                givenImp("accountId", "placementId"));
+                givenImp());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -194,7 +198,7 @@ public class BizzclickBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldCreateSingleRequestWithExpectedUri() {
         // given
-        final BidRequest bidRequest = givenBidRequest(givenImp("account id", "placement id"));
+        final BidRequest bidRequest = givenBidRequest(givenImp());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -202,7 +206,33 @@ public class BizzclickBidderTest extends VertxTest {
         // then
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://test.domain.dm/uri?source=placement+id&account=account+id");
+                .containsExactly(
+                        String.format("https://%s/uri?source=%s&account=%s",
+                                DEFAULT_HOST,
+                                DEFAULT_SOURCE_ID,
+                                DEFAULT_ACCOUNT_ID));
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCreateSingleRequestWithExpectedAlternativeUri() {
+        // given
+        final String expectedDefaultHost = "us-e-node1";
+        final BidRequest bidRequest = givenBidRequest(
+                givenImp(expectedDefaultHost, DEFAULT_ACCOUNT_ID, DEFAULT_PLACEMENT_ID, null)
+        );
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly(
+                        String.format("https://%s/uri?source=%s&account=%s",
+                                expectedDefaultHost,
+                                DEFAULT_PLACEMENT_ID,
+                                DEFAULT_ACCOUNT_ID));
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -210,7 +240,7 @@ public class BizzclickBidderTest extends VertxTest {
     public void makeHttpRequestsShouldCreateSingleRequest() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                givenImp("accountId", "placementId"),
+                givenImp(),
                 givenImp(identity()));
 
         // when
@@ -417,8 +447,17 @@ public class BizzclickBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()).build();
     }
 
-    private Imp givenImp(String accountId, String placementId) {
-        final ExtPrebid<?, ?> ext = ExtPrebid.of(null, ExtImpBizzclick.of(accountId, placementId));
+    private Imp givenImp() {
+        final ExtPrebid<?, ?> ext = ExtPrebid.of(null, ExtImpBizzclick.of(
+                DEFAULT_HOST, DEFAULT_ACCOUNT_ID, DEFAULT_PLACEMENT_ID, DEFAULT_SOURCE_ID
+        ));
+        return givenImp(imp -> imp.ext(mapper.valueToTree(ext)));
+    }
+
+    private Imp givenImp(String host, String accountId, String placementId, String sourceId) {
+        final ExtPrebid<?, ?> ext = ExtPrebid.of(
+                null, ExtImpBizzclick.of(host, accountId, placementId, sourceId)
+        );
         return givenImp(imp -> imp.ext(mapper.valueToTree(ext)));
     }
 

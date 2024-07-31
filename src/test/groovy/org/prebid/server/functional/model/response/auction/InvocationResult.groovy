@@ -13,5 +13,5 @@ class InvocationResult {
     InvocationStatus status
     ResponseAction action
     HookId hookId
-    AnalyticStags analyticStags
+    AnalyticsPrebidTag analyticsTags
 }

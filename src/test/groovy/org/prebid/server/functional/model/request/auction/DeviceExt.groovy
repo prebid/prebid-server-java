@@ -7,6 +7,7 @@ import groovy.transform.ToString
 class DeviceExt {
 
     Atts atts
+    String cdep
 
     enum Atts {
 

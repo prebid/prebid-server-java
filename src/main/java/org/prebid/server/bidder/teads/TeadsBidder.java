@@ -82,7 +82,7 @@ public class TeadsBidder implements Bidder<BidRequest> {
         if (banner != null) {
             final List<Format> format = banner.getFormat();
             if (CollectionUtils.isNotEmpty(format)) {
-                final Format firstFormat = format.get(0);
+                final Format firstFormat = format.getFirst();
                 return banner.toBuilder().w(firstFormat.getW()).h(firstFormat.getH()).build();
             }
         }

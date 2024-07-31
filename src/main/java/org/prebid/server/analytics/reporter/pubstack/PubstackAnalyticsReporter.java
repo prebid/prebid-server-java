@@ -2,9 +2,8 @@ package org.prebid.server.analytics.reporter.pubstack;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.prebid.server.analytics.AnalyticsReporter;
@@ -20,10 +19,12 @@ import org.prebid.server.analytics.reporter.pubstack.model.PubstackConfig;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.Initializable;
-import org.prebid.server.vertx.http.HttpClient;
-import org.prebid.server.vertx.http.model.HttpClientResponse;
+import org.prebid.server.vertx.httpclient.HttpClient;
+import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -88,23 +89,15 @@ public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializab
 
     @Override
     public <T> Future<Void> processEvent(T event) {
-        final EventType eventType;
-
-        if (event instanceof AmpEvent) {
-            eventType = EventType.amp;
-        } else if (event instanceof AuctionEvent) {
-            eventType = EventType.auction;
-        } else if (event instanceof CookieSyncEvent) {
-            eventType = EventType.cookiesync;
-        } else if (event instanceof NotificationEvent) {
-            eventType = EventType.notification;
-        } else if (event instanceof SetuidEvent) {
-            eventType = EventType.setuid;
-        } else if (event instanceof VideoEvent) {
-            eventType = EventType.video;
-        } else {
-            eventType = null;
-        }
+        final EventType eventType = switch (event) {
+            case AmpEvent ampEvent -> EventType.amp;
+            case AuctionEvent auctionEvent -> EventType.auction;
+            case CookieSyncEvent cookieSyncEvent -> EventType.cookiesync;
+            case NotificationEvent notificationEvent -> EventType.notification;
+            case SetuidEvent setuidEvent -> EventType.setuid;
+            case VideoEvent videoEvent -> EventType.video;
+            case null, default -> null;
+        };
 
         if (eventType != null) {
             eventHandlers.get(eventType).handle(event);
@@ -124,9 +117,10 @@ public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializab
     }
 
     @Override
-    public void initialize() {
+    public void initialize(Promise<Void> initializePromise) {
         vertx.setPeriodic(configurationRefreshDelay, id -> fetchRemoteConfig());
         fetchRemoteConfig();
+        initializePromise.tryComplete();
     }
 
     void shutdown() {
@@ -134,7 +128,7 @@ public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializab
     }
 
     private void fetchRemoteConfig() {
-        logger.info("[pubstack] Updating config: {0}", pubstackConfig);
+        logger.info("[pubstack] Updating config: {}", pubstackConfig);
         httpClient.get(makeEventEndpointUrl(pubstackConfig.getEndpoint(), pubstackConfig.getScopeId()), timeout)
                 .map(this::processRemoteConfigurationResponse)
                 .onComplete(this::updateConfigsOnChange);
@@ -156,7 +150,7 @@ public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializab
 
     private void updateConfigsOnChange(AsyncResult<PubstackConfig> asyncConfigResult) {
         if (asyncConfigResult.failed()) {
-            logger.error("[pubstask] Fail to fetch remote configuration: {0}", asyncConfigResult.cause().getMessage());
+            logger.error("[pubstask] Fail to fetch remote configuration: {}", asyncConfigResult.cause().getMessage());
         } else if (!Objects.equals(pubstackConfig, asyncConfigResult.result())) {
             final PubstackConfig pubstackConfig = asyncConfigResult.result();
             eventHandlers.values().forEach(PubstackEventHandler::reportEvents);

@@ -7,6 +7,7 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Dooh
 import org.prebid.server.functional.model.request.auction.Site
 import org.prebid.server.functional.model.response.auction.BidResponse
+import org.prebid.server.functional.service.PrebidServerService
 
 import static org.prebid.server.functional.model.config.AccountMetricsVerbosityLevel.BASIC
 import static org.prebid.server.functional.model.config.AccountMetricsVerbosityLevel.DETAILED
@@ -16,8 +17,11 @@ import static org.prebid.server.functional.model.request.auction.DistributionCha
 
 class MetricsSpec extends BaseSpec {
 
+    private final PrebidServerService softPrebidService = pbsServiceFactory.getService(['auction.strict-app-site-dooh': 'false'])
+
     def setup() {
         flushMetrics(defaultPbsService)
+        flushMetrics(softPrebidService)
     }
 
     def "PBS should not populate account metric when verbosity level is none"() {
@@ -44,7 +48,6 @@ class MetricsSpec extends BaseSpec {
 
         and: "Account in the DB"
         def accountId = bidRequest.site.publisher.id
-        def accountMetricsConfig = new AccountConfig(metrics: new AccountMetricsConfig(verbosityLevel: BASIC))
         def account = new Account(uuid: accountId, config: accountMetricsConfig)
         accountDao.save(account)
 
@@ -58,6 +61,10 @@ class MetricsSpec extends BaseSpec {
         and: "account.<account-id>.generic and requests.type.openrtb2-web metrics shouldn't populated"
         assert !metrics.findAll({ it.key.startsWith("account.${accountId}.generic") })
         assert !metrics["account.${accountId}.requests.type.openrtb2-web" as String]
+
+        where:
+        accountMetricsConfig << [new AccountConfig(metrics: new AccountMetricsConfig(verbosityLevel: BASIC)),
+                                 new AccountConfig(metrics: new AccountMetricsConfig(verbosityLevelSnakeCase: BASIC))]
     }
 
     def "PBS should update account.<account-id>.* metrics when verbosity level is detailed"() {
@@ -113,7 +120,7 @@ class MetricsSpec extends BaseSpec {
         assert !metrics["account.${accountId}.requests.type.openrtb2-app" as String]
     }
 
-    def "PBS should ignore site distribution channel and update only dooh metrics when presented dooh and site in request"() {
+    def "PBS with soft setup should ignore site distribution channel and update only dooh metrics when presented dooh and site in request"() {
         given: "Default bid request with dooh and site"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             dooh = Dooh.defaultDooh
@@ -126,7 +133,7 @@ class MetricsSpec extends BaseSpec {
         accountDao.save(account)
 
         when: "Requesting PBS auction"
-        defaultPbsService.sendAuctionRequest(bidRequest)
+        softPrebidService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should have only dooh data"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -134,7 +141,7 @@ class MetricsSpec extends BaseSpec {
         assert !bidderRequest.site
 
         and: "Metrics processed across site should be updated"
-        def metrics = defaultPbsService.sendCollectedMetricsRequest()
+        def metrics = softPrebidService.sendCollectedMetricsRequest()
         assert metrics["account.${accountId}.requests.type.openrtb2-dooh" as String] == 1
         assert metrics["adapter.generic.requests.type.openrtb2-dooh" as String] == 1
 
@@ -146,7 +153,7 @@ class MetricsSpec extends BaseSpec {
         assert !metrics["account.${accountId}.requests.type.openrtb2-app" as String]
     }
 
-    def "PBS should ignore other distribution channel and update only app metrics when presented app ant other channels in request"() {
+    def "PBS with soft setup should ignore other distribution channel and update only app metrics when presented app ant other channels in request"() {
         given: "Account in the DB"
         def accountId = bidRequest.app.publisher.id
         def accountMetricsConfig = new AccountConfig(metrics: new AccountMetricsConfig(verbosityLevel: DETAILED))
@@ -154,7 +161,7 @@ class MetricsSpec extends BaseSpec {
         accountDao.save(account)
 
         when: "Requesting PBS auction"
-        defaultPbsService.sendAuctionRequest(bidRequest)
+        softPrebidService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should have only site data"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -163,7 +170,7 @@ class MetricsSpec extends BaseSpec {
         assert !bidderRequest.dooh
 
         and: "Metrics processed across site should be updated"
-        def metrics = defaultPbsService.sendCollectedMetricsRequest()
+        def metrics = softPrebidService.sendCollectedMetricsRequest()
         assert metrics["account.${accountId}.requests.type.openrtb2-app" as String] == 1
         assert metrics["adapter.generic.requests.type.openrtb2-app" as String] == 1
 

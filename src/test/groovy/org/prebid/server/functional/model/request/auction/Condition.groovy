@@ -1,15 +1,27 @@
 package org.prebid.server.functional.model.request.auction
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import groovy.transform.ToString
 import org.prebid.server.functional.model.bidder.BidderName
-import org.prebid.server.functional.model.request.GppSectionId
 
 @ToString(includeNames = true, ignoreNulls = true)
 class Condition {
 
     List<ConditionType> componentType
+    @JsonProperty("component_type")
+    List<ConditionType> componentTypeSnakeCase
+    @JsonProperty("component-type")
+    List<ConditionType> componentTypeKebabCase
     List<String> componentName
+    @JsonProperty("component_name")
+    List<String> componentNameSnakeCase
+    @JsonProperty("component-name")
+    List<String> componentNameKebabCase
     List<Integer> gppSid
+    @JsonProperty("gpp_sid")
+    List<Integer> gppSidSnakeCase
+    @JsonProperty("gpp-sid")
+    List<Integer> gppSidKebabCase
     List<String> geo
     String gpc
 

@@ -5,14 +5,14 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.netty.util.AsciiString;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.currency.CurrencyConversionService;
+import org.prebid.server.handler.admin.CurrencyRatesHandler;
 
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
@@ -26,10 +26,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
+@ExtendWith(MockitoExtension.class)
 public class CurrencyRatesHandlerTest extends VertxTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private RoutingContext routingContext;
@@ -40,7 +38,7 @@ public class CurrencyRatesHandlerTest extends VertxTest {
 
     private CurrencyRatesHandler currencyRatesHandler;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         currencyRatesHandler = new CurrencyRatesHandler(currencyConversionService, "/endpoint", jacksonMapper);
 

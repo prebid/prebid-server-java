@@ -11,7 +11,7 @@ import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.payload.impl.ActivityInvocationPayloadImpl;
 import org.prebid.server.activity.infrastructure.payload.impl.TcfContextActivityInvocationPayload;
-import org.prebid.server.auction.PrivacyEnforcementService;
+import org.prebid.server.auction.privacy.enforcement.CcpaEnforcement;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderInfo;
 import org.prebid.server.bidder.UsersyncInfoBuilder;
@@ -66,7 +66,7 @@ public class CookieSyncService {
 
     private final BidderCatalog bidderCatalog;
     private final HostVendorTcfDefinerService tcfDefinerService;
-    private final PrivacyEnforcementService privacyEnforcementService;
+    private final CcpaEnforcement ccpaEnforcement;
     private final UidsCookieService uidsCookieService;
     private final CoopSyncProvider coopSyncProvider;
     private final Metrics metrics;
@@ -76,7 +76,7 @@ public class CookieSyncService {
                              int maxLimit,
                              BidderCatalog bidderCatalog,
                              HostVendorTcfDefinerService tcfDefinerService,
-                             PrivacyEnforcementService privacyEnforcementService,
+                             CcpaEnforcement ccpaEnforcement,
                              UidsCookieService uidsCookieService,
                              CoopSyncProvider coopSyncProvider,
                              Metrics metrics) {
@@ -88,7 +88,7 @@ public class CookieSyncService {
 
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.tcfDefinerService = Objects.requireNonNull(tcfDefinerService);
-        this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
+        this.ccpaEnforcement = Objects.requireNonNull(ccpaEnforcement);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.coopSyncProvider = Objects.requireNonNull(coopSyncProvider);
         this.metrics = Objects.requireNonNull(metrics);
@@ -311,7 +311,7 @@ public class CookieSyncService {
     }
 
     private Set<String> extractCcpaEnforcedBidders(Account account, Collection<String> biddersToSync, Privacy privacy) {
-        if (!privacyEnforcementService.isCcpaEnforced(privacy.getCcpa(), account)) {
+        if (!ccpaEnforcement.isCcpaEnforced(privacy.getCcpa(), account)) {
             return Collections.emptySet();
         }
 
@@ -497,7 +497,7 @@ public class CookieSyncService {
         final Set<String> allowedRequestedBidders = cookieSyncContext.getBiddersContext().allowedRequestedBidders();
 
         return biddersToSync.stream()
-                .filter(bidder -> allowedRequestedBidders.contains(bidder))
+                .filter(allowedRequestedBidders::contains)
                 .filter(this::isAliasSyncedAsRootFamily)
                 .map(this::warningForAliasSyncedAsRootFamily)
                 .toList();

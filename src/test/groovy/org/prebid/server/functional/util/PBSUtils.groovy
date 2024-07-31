@@ -28,6 +28,11 @@ class PBSUtils implements ObjectMapperWrapper {
         value == excludedValue ? getRandomNumberWithExclusion(excludedValue, min, max) : value
     }
 
+    static int getRandomNumberWithExclusion(List<Integer> excludedValues, int min = 0, int max = MAX_VALUE) {
+        def value = getRandomNumber(min, max)
+        excludedValues.contains(value) ? getRandomNumberWithExclusion(excludedValues, min, max) : value
+    }
+
     static int getRandomNegativeNumber(int min = MIN_VALUE + 1, int max = 0) {
         getRandomNumber(max, min * -1) * -1
     }
@@ -105,5 +110,22 @@ class PBSUtils implements ObjectMapperWrapper {
     static <T extends Enum<T>> T getRandomEnum(Class<T> anEnum) {
         def values = anEnum.enumConstants
         values[getRandomNumber(0, values.length - 1)]
+    }
+
+    static String convertCase(String input, Case caseType) {
+        def words = input.replaceAll(/([a-z])([A-Z])/) { match, p1, p2 -> "${p1}_${p2.toLowerCase()}" }
+                .split(/[_\-\s]+|\B(?=[A-Z])/).collect { it.toLowerCase() }
+
+        switch (caseType) {
+            case Case.KEBAB:
+                return words.join('-')
+            case Case.SNAKE:
+                return words.join('_')
+            case Case.CAMEL:
+                def camelCase = words.head() + words.tail().collect { it.capitalize() }.join('')
+                return camelCase
+            default:
+                throw new IllegalArgumentException("Unknown case type: $caseType")
+        }
     }
 }

@@ -33,7 +33,6 @@ import com.iab.openrtb.request.ntv.EventTrackingMethod;
 import com.iab.openrtb.request.ntv.EventType;
 import com.iab.openrtb.request.ntv.PlacementType;
 import com.iab.openrtb.request.ntv.Protocol;
-import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ObjectUtils;
@@ -42,6 +41,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.HttpRequestContext;
@@ -984,7 +984,7 @@ public class RequestValidator {
 
         validateImpExtPrebidBidder(extPrebidBidderNode, extPrebid.getStoredAuctionResponse(),
                 aliases, impIndex, warnings);
-        validateImpExtPrebidStoredResponses(extPrebid, aliases, impIndex);
+        validateImpExtPrebidStoredResponses(extPrebid, aliases, impIndex, warnings);
     }
 
     private void validateImpExtPrebidBidder(JsonNode extPrebidBidder,
@@ -1013,18 +1013,27 @@ public class RequestValidator {
             }
         }
 
-        if (extPrebidBidder.size() == 0) {
+        if (extPrebidBidder.isEmpty()) {
             warnings.add("WARNING: request.imp[%d].ext must contain at least one valid bidder".formatted(impIndex));
         }
     }
 
     private void validateImpExtPrebidStoredResponses(ExtImpPrebid extPrebid,
                                                      Map<String, String> aliases,
-                                                     int impIndex) throws ValidationException {
+                                                     int impIndex,
+                                                     List<String> warnings) throws ValidationException {
+
         final ExtStoredAuctionResponse extStoredAuctionResponse = extPrebid.getStoredAuctionResponse();
-        if (extStoredAuctionResponse != null && extStoredAuctionResponse.getId() == null) {
-            throw new ValidationException("request.imp[%d].ext.prebid.storedauctionresponse.id should be defined",
-                    impIndex);
+        if (extStoredAuctionResponse != null) {
+            if (extStoredAuctionResponse.getSeatBids() != null) {
+                warnings.add("WARNING: request.imp[%d].ext.prebid.storedauctionresponse.seatbidarr".formatted(impIndex)
+                        + " is not supported at the imp level");
+            }
+
+            if (extStoredAuctionResponse.getId() == null) {
+                throw new ValidationException("request.imp[%d].ext.prebid.storedauctionresponse.id should be defined",
+                        impIndex);
+            }
         }
 
         final List<ExtStoredBidResponse> storedBidResponses = extPrebid.getStoredBidResponse();

@@ -12,7 +12,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.http.HttpMethod;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.adtelligent.proto.AdtelligentImpExt;
 import org.prebid.server.bidder.model.BidderBid;
@@ -55,7 +55,7 @@ public class AdtelligentBidderTest extends VertxTest {
                 .user(User.builder()
                         .ext(ExtUser.builder().consent("consent").build())
                         .build())
-                .regs(Regs.builder().coppa(0).ext(ExtRegs.of(1, null, null)).build())
+                .regs(Regs.builder().coppa(0).ext(ExtRegs.of(1, null, null, null)).build())
                 .build();
 
         // when
@@ -82,7 +82,7 @@ public class AdtelligentBidderTest extends VertxTest {
                         .user(User.builder()
                                 .ext(ExtUser.builder().consent("consent").build())
                                 .build())
-                        .regs(Regs.builder().coppa(0).ext(ExtRegs.of(1, null, null)).build())
+                        .regs(Regs.builder().coppa(0).ext(ExtRegs.of(1, null, null, null)).build())
                         .build()));
     }
 

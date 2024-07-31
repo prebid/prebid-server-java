@@ -1,6 +1,6 @@
 package org.prebid.server.auction;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;

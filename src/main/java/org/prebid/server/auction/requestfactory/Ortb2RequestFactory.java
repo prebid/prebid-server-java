@@ -6,13 +6,14 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Dooh;
 import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Publisher;
+import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
+import lombok.Getter;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
@@ -22,12 +23,10 @@ import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.IpAddress;
+import org.prebid.server.auction.model.TimeoutContext;
 import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.cookie.UidsCookieService;
-import org.prebid.server.deals.UserAdditionalInfoService;
-import org.prebid.server.deals.model.DeepDebugLog;
-import org.prebid.server.deals.model.TxnLog;
-import org.prebid.server.exception.BlacklistedAccountException;
+import org.prebid.server.exception.BlocklistedAccountException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.exception.UnauthorizedAccountException;
@@ -42,6 +41,8 @@ import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointPayload;
 import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
@@ -52,21 +53,25 @@ import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisherPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsa;
+import org.prebid.server.proto.openrtb.ext.request.DsaTransparency;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
-import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
+import org.prebid.server.settings.model.AccountDsaConfig;
+import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.settings.model.AccountStatus;
 import org.prebid.server.settings.model.AccountTargetingConfig;
+import org.prebid.server.settings.model.DefaultDsa;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
-import java.time.Clock;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -82,9 +87,9 @@ public class Ortb2RequestFactory {
     private static final ConditionalLogger EMPTY_ACCOUNT_LOGGER = new ConditionalLogger("empty_account", logger);
     private static final ConditionalLogger UNKNOWN_ACCOUNT_LOGGER = new ConditionalLogger("unknown_account", logger);
 
-    private final boolean enforceValidAccount;
+    private final int timeoutAdjustmentFactor;
     private final double logSamplingRate;
-    private final List<String> blacklistedAccounts;
+    private final List<String> blocklistedAccounts;
     private final UidsCookieService uidsCookieService;
     private final ActivityInfrastructureCreator activityInfrastructureCreator;
     private final RequestValidator requestValidator;
@@ -92,17 +97,15 @@ public class Ortb2RequestFactory {
     private final TimeoutFactory timeoutFactory;
     private final StoredRequestProcessor storedRequestProcessor;
     private final ApplicationSettings applicationSettings;
-    private final UserAdditionalInfoService userAdditionalInfoService;
     private final IpAddressHelper ipAddressHelper;
     private final HookStageExecutor hookStageExecutor;
     private final PriceFloorProcessor priceFloorProcessor;
     private final CountryCodeMapper countryCodeMapper;
     private final Metrics metrics;
-    private final Clock clock;
 
-    public Ortb2RequestFactory(boolean enforceValidAccount,
+    public Ortb2RequestFactory(int timeoutAdjustmentFactor,
                                double logSamplingRate,
-                               List<String> blacklistedAccounts,
+                               List<String> blocklistedAccounts,
                                UidsCookieService uidsCookieService,
                                ActivityInfrastructureCreator activityInfrastructureCreator,
                                RequestValidator requestValidator,
@@ -112,15 +115,17 @@ public class Ortb2RequestFactory {
                                ApplicationSettings applicationSettings,
                                IpAddressHelper ipAddressHelper,
                                HookStageExecutor hookStageExecutor,
-                               UserAdditionalInfoService userAdditionalInfoService,
                                PriceFloorProcessor priceFloorProcessor,
                                CountryCodeMapper countryCodeMapper,
-                               Metrics metrics,
-                               Clock clock) {
+                               Metrics metrics) {
 
-        this.enforceValidAccount = enforceValidAccount;
+        if (timeoutAdjustmentFactor < 0 || timeoutAdjustmentFactor > 100) {
+            throw new IllegalArgumentException("Expected timeout adjustment factor should be in [0, 100].");
+        }
+
+        this.timeoutAdjustmentFactor = timeoutAdjustmentFactor;
         this.logSamplingRate = logSamplingRate;
-        this.blacklistedAccounts = Objects.requireNonNull(blacklistedAccounts);
+        this.blocklistedAccounts = Objects.requireNonNull(blocklistedAccounts);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.activityInfrastructureCreator = Objects.requireNonNull(activityInfrastructureCreator);
         this.requestValidator = Objects.requireNonNull(requestValidator);
@@ -130,11 +135,9 @@ public class Ortb2RequestFactory {
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.ipAddressHelper = Objects.requireNonNull(ipAddressHelper);
         this.hookStageExecutor = Objects.requireNonNull(hookStageExecutor);
-        this.userAdditionalInfoService = userAdditionalInfoService;
         this.priceFloorProcessor = Objects.requireNonNull(priceFloorProcessor);
         this.countryCodeMapper = Objects.requireNonNull(countryCodeMapper);
         this.metrics = Objects.requireNonNull(metrics);
-        this.clock = Objects.requireNonNull(clock);
     }
 
     public AuctionContext createAuctionContext(Endpoint endpoint, MetricName requestTypeMetric) {
@@ -145,7 +148,6 @@ public class Ortb2RequestFactory {
                 .hookExecutionContext(HookExecutionContext.of(endpoint))
                 .debugContext(DebugContext.empty())
                 .requestRejected(false)
-                .txnLog(TxnLog.create())
                 .debugHttpCalls(new HashMap<>())
                 .bidRejectionTrackers(new TreeMap<>(String.CASE_INSENSITIVE_ORDER))
                 .build();
@@ -160,9 +162,7 @@ public class Ortb2RequestFactory {
                 .httpRequest(httpRequest)
                 .uidsCookie(uidsCookieService.parseFromRequest(httpRequest))
                 .bidRequest(bidRequest)
-                .startTime(startTime)
-                .timeout(timeout(bidRequest, startTime))
-                .deepDebugLog(createDeepDebugLog(bidRequest))
+                .timeoutContext(TimeoutContext.of(startTime, timeout(bidRequest, startTime), timeoutAdjustmentFactor))
                 .build();
     }
 
@@ -176,11 +176,11 @@ public class Ortb2RequestFactory {
 
     private Future<Account> fetchAccount(AuctionContext auctionContext, boolean isLookupStoredRequest) {
         final BidRequest bidRequest = auctionContext.getBidRequest();
-        final Timeout timeout = auctionContext.getTimeout();
+        final Timeout timeout = auctionContext.getTimeoutContext().getTimeout();
         final HttpRequestContext httpRequest = auctionContext.getHttpRequest();
 
         return findAccountIdFrom(bidRequest, isLookupStoredRequest)
-                .map(this::validateIfAccountBlacklisted)
+                .map(this::validateIfAccountBlocklisted)
                 .compose(accountId -> loadAccount(timeout, httpRequest, accountId));
     }
 
@@ -206,7 +206,36 @@ public class Ortb2RequestFactory {
                 : Future.succeededFuture(bidRequest);
     }
 
-    public BidRequest enrichBidRequestWithAccountAndPrivacyData(AuctionContext auctionContext) {
+    public Future<BidRequest> enrichBidRequestWithGeolocationData(AuctionContext auctionContext) {
+        final BidRequest bidRequest = auctionContext.getBidRequest();
+        final Device device = bidRequest.getDevice();
+        final GeoInfo geoInfo = auctionContext.getGeoInfo();
+        final Geo geo = ObjectUtil.getIfNotNull(device, Device::getGeo);
+
+        final UpdateResult<String> resolvedCountry = resolveCountry(geo, geoInfo);
+        final UpdateResult<String> resolvedRegion = resolveRegion(geo, geoInfo);
+
+        if (!resolvedCountry.isUpdated() && !resolvedRegion.isUpdated()) {
+            return Future.succeededFuture(bidRequest);
+        }
+
+        final Geo updatedGeo = Optional.ofNullable(geo)
+                .map(Geo::toBuilder)
+                .orElseGet(Geo::builder)
+                .country(resolvedCountry.getValue())
+                .region(resolvedRegion.getValue())
+                .build();
+
+        final Device updatedDevice = Optional.ofNullable(device)
+                .map(Device::toBuilder)
+                .orElseGet(Device::builder)
+                .geo(updatedGeo)
+                .build();
+
+        return Future.succeededFuture(bidRequest.toBuilder().device(updatedDevice).build());
+    }
+
+    public Future<BidRequest> enrichBidRequestWithAccountAndPrivacyData(AuctionContext auctionContext) {
         final BidRequest bidRequest = auctionContext.getBidRequest();
         final Account account = auctionContext.getAccount();
         final PrivacyContext privacyContext = auctionContext.getPrivacyContext();
@@ -217,14 +246,67 @@ public class Ortb2RequestFactory {
         final Device device = bidRequest.getDevice();
         final Device enrichedDevice = enrichDevice(device, privacyContext);
 
-        if (enrichedRequestExt != null || enrichedDevice != null) {
-            return bidRequest.toBuilder()
-                    .ext(ObjectUtils.defaultIfNull(enrichedRequestExt, requestExt))
-                    .device(ObjectUtils.defaultIfNull(enrichedDevice, device))
-                    .build();
+        final Regs regs = bidRequest.getRegs();
+        final Regs enrichedRegs = enrichRegs(regs, privacyContext, account);
+
+        if (enrichedRequestExt == null && enrichedDevice == null && enrichedRegs == null) {
+            return Future.succeededFuture(bidRequest);
         }
 
-        return bidRequest;
+        return Future.succeededFuture(bidRequest.toBuilder()
+                .ext(ObjectUtils.defaultIfNull(enrichedRequestExt, requestExt))
+                .device(ObjectUtils.defaultIfNull(enrichedDevice, device))
+                .regs(ObjectUtils.defaultIfNull(enrichedRegs, regs))
+                .build());
+    }
+
+    private static Regs enrichRegs(Regs regs, PrivacyContext privacyContext, Account account) {
+        final ExtRegs regsExt = regs != null ? regs.getExt() : null;
+        final ExtRegsDsa regsExtDsa = regsExt != null ? regsExt.getDsa() : null;
+        if (regsExtDsa != null) {
+            return null;
+        }
+
+        final AccountDsaConfig accountDsaConfig = Optional.ofNullable(account)
+                .map(Account::getPrivacy)
+                .map(AccountPrivacyConfig::getDsa)
+                .orElse(null);
+        final DefaultDsa defaultDsa = accountDsaConfig != null ? accountDsaConfig.getDefaultDsa() : null;
+        if (defaultDsa == null) {
+            return null;
+        }
+
+        final boolean isGdprOnly = BooleanUtils.isTrue(accountDsaConfig.getGdprOnly());
+        if (isGdprOnly && !privacyContext.getTcfContext().isInGdprScope()) {
+            return null;
+        }
+
+        return Optional.ofNullable(regs)
+                .map(Regs::toBuilder)
+                .orElseGet(Regs::builder)
+                .ext(mapRegsExtDsa(defaultDsa, regsExt))
+                .build();
+    }
+
+    private static ExtRegs mapRegsExtDsa(DefaultDsa defaultDsa, ExtRegs regsExt) {
+        final List<DsaTransparency> enrichedDsaTransparencies = defaultDsa.getTransparency()
+                .stream()
+                .map(dsaTransparency -> DsaTransparency.of(
+                        dsaTransparency.getDomain(), dsaTransparency.getDsaParams()))
+                .toList();
+
+        final ExtRegsDsa enrichedRegsExtDsa = ExtRegsDsa.of(
+                defaultDsa.getDsaRequired(),
+                defaultDsa.getPubRender(),
+                defaultDsa.getDataToPub(),
+                enrichedDsaTransparencies);
+
+        final boolean isRegsExtPresent = regsExt != null;
+        return ExtRegs.of(
+                isRegsExtPresent ? regsExt.getGdpr() : null,
+                isRegsExtPresent ? regsExt.getUsPrivacy() : null,
+                isRegsExtPresent ? regsExt.getGpc() : null,
+                enrichedRegsExtDsa);
     }
 
     public Future<HttpRequestContext> executeEntrypointHooks(RoutingContext routingContext,
@@ -287,18 +369,10 @@ public class Ortb2RequestFactory {
         return stageResult.getPayload().bidRequest();
     }
 
-    public Future<AuctionContext> populateUserAdditionalInfo(AuctionContext auctionContext) {
-        return userAdditionalInfoService != null
-                ? userAdditionalInfoService.populate(auctionContext)
-                : Future.succeededFuture(auctionContext);
-    }
-
-    public AuctionContext enrichWithPriceFloors(AuctionContext auctionContext) {
-        return priceFloorProcessor.enrichWithPriceFloors(auctionContext);
-    }
-
-    public AuctionContext updateTimeout(AuctionContext auctionContext, long startTime) {
-        final Timeout currentTimeout = auctionContext.getTimeout();
+    public AuctionContext updateTimeout(AuctionContext auctionContext) {
+        final TimeoutContext timeoutContext = auctionContext.getTimeoutContext();
+        final long startTime = timeoutContext.getStartTime();
+        final Timeout currentTimeout = timeoutContext.getTimeout();
 
         final BidRequest bidRequest = auctionContext.getBidRequest();
         final BidRequest resolvedBidRequest = resolveBidRequest(bidRequest);
@@ -315,7 +389,7 @@ public class Ortb2RequestFactory {
 
         return auctionContext.toBuilder()
                 .bidRequest(effectiveBidRequest)
-                .timeout(requestTimeout)
+                .timeoutContext(timeoutContext.with(requestTimeout))
                 .build();
     }
 
@@ -345,30 +419,36 @@ public class Ortb2RequestFactory {
                 .map(storedAuctionResult -> accountIdFrom(storedAuctionResult.bidRequest()));
     }
 
-    private String validateIfAccountBlacklisted(String accountId) {
-        if (CollectionUtils.isNotEmpty(blacklistedAccounts)
+    private String validateIfAccountBlocklisted(String accountId) {
+        if (CollectionUtils.isNotEmpty(blocklistedAccounts)
                 && StringUtils.isNotBlank(accountId)
-                && blacklistedAccounts.contains(accountId)) {
+                && blocklistedAccounts.contains(accountId)) {
 
-            throw new BlacklistedAccountException(
-                    "Prebid-server has blacklisted Account ID: %s, please reach out to the prebid server host."
+            throw new BlocklistedAccountException(
+                    "Prebid-server has blocklisted Account ID: %s, please reach out to the prebid server host."
                             .formatted(accountId));
         }
         return accountId;
     }
 
-    private Future<Account> loadAccount(Timeout timeout,
-                                        HttpRequestContext httpRequest,
-                                        String accountId) {
+    private Future<Account> loadAccount(Timeout timeout, HttpRequestContext httpRequest, String accountId) {
+        if (StringUtils.isBlank(accountId)) {
+            EMPTY_ACCOUNT_LOGGER.warn(accountErrorMessage("Account not specified", httpRequest), logSamplingRate);
+        }
 
-        final Future<Account> accountFuture = StringUtils.isBlank(accountId)
-                ? responseForEmptyAccount(httpRequest)
-                : applicationSettings.getAccountById(accountId, timeout)
-                .compose(this::ensureAccountActive,
-                        exception -> accountFallback(exception, accountId, httpRequest));
-
-        return accountFuture
+        return applicationSettings.getAccountById(accountId, timeout)
+                .compose(this::ensureAccountActive)
+                .recover(exception -> wrapFailure(exception, accountId, httpRequest))
                 .onFailure(ignored -> metrics.updateAccountRequestRejectedByInvalidAccountMetrics(accountId));
+    }
+
+    private Future<Account> ensureAccountActive(Account account) {
+        final String accountId = account.getId();
+
+        return account.getStatus() == AccountStatus.inactive
+                ? Future.failedFuture(
+                        new UnauthorizedAccountException("Account %s is inactive".formatted(accountId), accountId))
+                : Future.succeededFuture(account);
     }
 
     /**
@@ -405,9 +485,19 @@ public class Ortb2RequestFactory {
         return extPublisherPrebid != null ? StringUtils.stripToNull(extPublisherPrebid.getParentAccount()) : null;
     }
 
-    private Future<Account> responseForEmptyAccount(HttpRequestContext httpRequest) {
-        EMPTY_ACCOUNT_LOGGER.warn(accountErrorMessage("Account not specified", httpRequest), logSamplingRate);
-        return responseForUnknownAccount(StringUtils.EMPTY);
+    private Future<Account> wrapFailure(Throwable exception, String accountId, HttpRequestContext httpRequest) {
+        if (exception instanceof UnauthorizedAccountException) {
+            return Future.failedFuture(exception);
+        } else if (exception instanceof PreBidException) {
+            UNKNOWN_ACCOUNT_LOGGER.warn(accountErrorMessage(exception.getMessage(), httpRequest), 100);
+        } else {
+            metrics.updateAccountRequestRejectedByFailedFetch(accountId);
+            logger.warn("Error occurred while fetching account: {}", exception.getMessage());
+            logger.debug("Error occurred while fetching account", exception);
+        }
+
+        return Future.failedFuture(
+                new UnauthorizedAccountException("Unauthorized account id: " + accountId, accountId));
     }
 
     private static String accountErrorMessage(String message, HttpRequestContext httpRequest) {
@@ -415,38 +505,6 @@ public class Ortb2RequestFactory {
                 message,
                 httpRequest.getAbsoluteUri(),
                 httpRequest.getHeaders().get(HttpUtil.REFERER_HEADER));
-    }
-
-    private Future<Account> accountFallback(Throwable exception,
-                                            String accountId,
-                                            HttpRequestContext httpRequest) {
-
-        if (exception instanceof PreBidException) {
-            UNKNOWN_ACCOUNT_LOGGER.warn(accountErrorMessage(exception.getMessage(), httpRequest), 100);
-        } else {
-            metrics.updateAccountRequestRejectedByFailedFetch(accountId);
-            logger.warn("Error occurred while fetching account: {0}", exception.getMessage());
-            logger.debug("Error occurred while fetching account", exception);
-        }
-
-        // hide all errors occurred while fetching account
-        return responseForUnknownAccount(accountId);
-    }
-
-    private Future<Account> responseForUnknownAccount(String accountId) {
-        return enforceValidAccount
-                ? Future.failedFuture(new UnauthorizedAccountException(
-                "Unauthorized account id: " + accountId, accountId))
-                : Future.succeededFuture(Account.empty(accountId));
-    }
-
-    private Future<Account> ensureAccountActive(Account account) {
-        final String accountId = account.getId();
-
-        return account.getStatus() == AccountStatus.inactive
-                ? Future.failedFuture(new UnauthorizedAccountException(
-                "Account %s is inactive".formatted(accountId), accountId))
-                : Future.succeededFuture(account);
     }
 
     private ExtRequest enrichExtRequest(ExtRequest ext, Account account) {
@@ -544,9 +602,10 @@ public class Ortb2RequestFactory {
         final boolean shouldUpdateIpV6 = ipV6 != null && !Objects.equals(ipV6InRequest, ipV6);
 
         final Geo geo = ObjectUtil.getIfNotNull(device, Device::getGeo);
+        final GeoInfo geoInfo = privacyContext.getTcfContext().getGeoInfo();
 
-        final UpdateResult<String> resolvedCountry = resolveCountry(geo, privacyContext);
-        final UpdateResult<String> resolvedRegion = resolveRegion(geo, privacyContext);
+        final UpdateResult<String> resolvedCountry = resolveCountry(geo, geoInfo);
+        final UpdateResult<String> resolvedRegion = resolveRegion(geo, geoInfo);
 
         if (shouldUpdateIpV4 || shouldUpdateIpV6 || resolvedCountry.isUpdated() || resolvedRegion.isUpdated()) {
             final Device.DeviceBuilder deviceBuilder = device != null ? device.toBuilder() : Device.builder();
@@ -576,10 +635,9 @@ public class Ortb2RequestFactory {
         return null;
     }
 
-    private UpdateResult<String> resolveCountry(Geo geo, PrivacyContext privacyContext) {
-        final String countryInRequest = geo != null ? geo.getCountry() : null;
+    private UpdateResult<String> resolveCountry(Geo originalGeo, GeoInfo geoInfo) {
+        final String countryInRequest = originalGeo != null ? originalGeo.getCountry() : null;
 
-        final GeoInfo geoInfo = privacyContext.getTcfContext().getGeoInfo();
         final String alpha2CountryCode = geoInfo != null ? geoInfo.getCountry() : null;
         final String alpha3CountryCode = countryCodeMapper.mapToAlpha3(alpha2CountryCode);
 
@@ -588,11 +646,10 @@ public class Ortb2RequestFactory {
                 : UpdateResult.unaltered(countryInRequest);
     }
 
-    private static UpdateResult<String> resolveRegion(Geo geo, PrivacyContext privacyContext) {
-        final String regionInRequest = geo != null ? geo.getRegion() : null;
+    private static UpdateResult<String> resolveRegion(Geo originalGeo, GeoInfo geoInfo) {
+        final String regionInRequest = originalGeo != null ? originalGeo.getRegion() : null;
         final String upperCasedRegionInRequest = StringUtils.upperCase(regionInRequest);
 
-        final GeoInfo geoInfo = privacyContext.getTcfContext().getGeoInfo();
         final String region = geoInfo != null ? geoInfo.getRegion() : null;
         final String upperCasedRegion = StringUtils.upperCase(region);
 
@@ -610,29 +667,13 @@ public class Ortb2RequestFactory {
         return mapBuilder.build();
     }
 
-    private DeepDebugLog createDeepDebugLog(BidRequest bidRequest) {
-        final ExtRequest ext = bidRequest.getExt();
-        return DeepDebugLog.create(ext != null && isDeepDebugEnabled(ext), clock);
-    }
-
-    /**
-     * Determines deep debug flag from {@link ExtRequest}.
-     */
-    private static boolean isDeepDebugEnabled(ExtRequest extRequest) {
-        final ExtRequestPrebid extRequestPrebid = extRequest != null ? extRequest.getPrebid() : null;
-        return extRequestPrebid != null && extRequestPrebid.getTrace() == TraceLevel.verbose;
-    }
-
+    @Getter
     static class RejectedRequestException extends RuntimeException {
 
         private final AuctionContext auctionContext;
 
         RejectedRequestException(AuctionContext auctionContext) {
             this.auctionContext = auctionContext;
-        }
-
-        public AuctionContext getAuctionContext() {
-            return auctionContext;
         }
     }
 

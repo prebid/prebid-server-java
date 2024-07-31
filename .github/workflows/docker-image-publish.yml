@@ -1,9 +1,10 @@
 name: Publish Docker image for new tag/release
 
 on:
-  push:
-    tags:
-      - '*'
+  workflow_run:
+    workflows: [Publish release]
+    types:
+      - completed
 
 env:
   REGISTRY: ghcr.io
@@ -18,7 +19,7 @@ jobs:
       packages: write
     strategy:
       matrix:
-        java: [ 17 ]
+        java: [ 21 ]
         dockerfile-path: [Dockerfile, extra/Dockerfile]
         include:
           - dockerfile-path: Dockerfile

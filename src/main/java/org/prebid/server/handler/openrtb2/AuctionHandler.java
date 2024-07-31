@@ -5,25 +5,28 @@ import com.iab.openrtb.request.Imp;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
-import io.vertx.core.Handler;
+import io.vertx.core.Future;
+import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerResponse;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.ExchangeService;
+import org.prebid.server.auction.SkippedAuctionService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
 import org.prebid.server.cookie.UidsCookie;
-import org.prebid.server.exception.BlacklistedAccountException;
-import org.prebid.server.exception.BlacklistedAppException;
+import org.prebid.server.exception.BlocklistedAccountException;
+import org.prebid.server.exception.BlocklistedAppException;
 import org.prebid.server.exception.InvalidAccountConfigException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.HttpInteractionLogger;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.Endpoint;
@@ -32,6 +35,8 @@ import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.version.PrebidVersionProvider;
+import org.prebid.server.vertx.verticles.server.HttpEndpoint;
+import org.prebid.server.vertx.verticles.server.application.ApplicationResource;
 
 import java.time.Clock;
 import java.util.Collections;
@@ -39,7 +44,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
-public class AuctionHandler implements Handler<RoutingContext> {
+public class AuctionHandler implements ApplicationResource {
 
     private static final Logger logger = LoggerFactory.getLogger(AuctionHandler.class);
     private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
@@ -47,6 +52,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private final double logSamplingRate;
     private final AuctionRequestFactory auctionRequestFactory;
     private final ExchangeService exchangeService;
+    private final SkippedAuctionService skippedAuctionService;
     private final AnalyticsReporterDelegator analyticsDelegator;
     private final Metrics metrics;
     private final Clock clock;
@@ -57,6 +63,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
     public AuctionHandler(double logSamplingRate,
                           AuctionRequestFactory auctionRequestFactory,
                           ExchangeService exchangeService,
+                          SkippedAuctionService skippedAuctionService,
                           AnalyticsReporterDelegator analyticsDelegator,
                           Metrics metrics,
                           Clock clock,
@@ -67,12 +74,18 @@ public class AuctionHandler implements Handler<RoutingContext> {
         this.logSamplingRate = logSamplingRate;
         this.auctionRequestFactory = Objects.requireNonNull(auctionRequestFactory);
         this.exchangeService = Objects.requireNonNull(exchangeService);
+        this.skippedAuctionService = Objects.requireNonNull(skippedAuctionService);
         this.analyticsDelegator = Objects.requireNonNull(analyticsDelegator);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
         this.httpInteractionLogger = Objects.requireNonNull(httpInteractionLogger);
         this.prebidVersionProvider = Objects.requireNonNull(prebidVersionProvider);
         this.mapper = Objects.requireNonNull(mapper);
+    }
+
+    @Override
+    public List<HttpEndpoint> endpoints() {
+        return Collections.singletonList(HttpEndpoint.of(HttpMethod.POST, Endpoint.openrtb2_auction.value()));
     }
 
     @Override
@@ -86,8 +99,16 @@ public class AuctionHandler implements Handler<RoutingContext> {
         final AuctionEvent.AuctionEventBuilder auctionEventBuilder = AuctionEvent.builder()
                 .httpContext(HttpRequestContext.from(routingContext));
 
-        auctionRequestFactory.fromRequest(routingContext, startTime)
+        auctionRequestFactory.parseRequest(routingContext, startTime)
+                .compose(auctionContext -> skippedAuctionService.skipAuction(auctionContext)
+                        .recover(throwable -> holdAuction(auctionEventBuilder, auctionContext)))
+                .onComplete(context -> handleResult(context, auctionEventBuilder, routingContext, startTime));
+    }
 
+    private Future<AuctionContext> holdAuction(AuctionEvent.AuctionEventBuilder auctionEventBuilder,
+                                               AuctionContext auctionContext) {
+
+        return auctionRequestFactory.enrichAuctionContext(auctionContext)
                 .map(this::updateAppAndNoCookieAndImpsMetrics)
 
                 // In case of holdAuction Exception and auctionContext is not present below
@@ -96,8 +117,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 .compose(exchangeService::holdAuction)
                 // populate event with updated context
                 .map(context -> addToEvent(context, auctionEventBuilder::auctionContext, context))
-                .map(context -> addToEvent(context.getBidResponse(), auctionEventBuilder::bidResponse, context))
-                .onComplete(context -> handleResult(context, auctionEventBuilder, routingContext, startTime));
+                .map(context -> addToEvent(context.getBidResponse(), auctionEventBuilder::bidResponse, context));
     }
 
     private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {
@@ -126,9 +146,11 @@ public class AuctionHandler implements Handler<RoutingContext> {
                               AuctionEvent.AuctionEventBuilder auctionEventBuilder,
                               RoutingContext routingContext,
                               long startTime) {
+
         final boolean responseSucceeded = responseResult.succeeded();
 
         final AuctionContext auctionContext = responseSucceeded ? responseResult.result() : null;
+        final boolean isAuctionSkipped = responseSucceeded && auctionContext.isAuctionSkipped();
         final MetricName requestType = responseSucceeded
                 ? auctionContext.getRequestTypeMetric()
                 : MetricName.openrtb2web;
@@ -139,7 +161,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
         final String body;
 
         final HttpServerResponse response = routingContext.response();
-        enrichWithCommonHeaders(response);
+        enrichResponseWithCommonHeaders(routingContext);
 
         if (responseSucceeded) {
             metricRequestStatus = MetricName.ok;
@@ -171,11 +193,12 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 status = HttpResponseStatus.UNAUTHORIZED;
 
                 body = message;
-            } else if (exception instanceof BlacklistedAppException
-                    || exception instanceof BlacklistedAccountException) {
-                metricRequestStatus = exception instanceof BlacklistedAccountException
-                        ? MetricName.blacklisted_account : MetricName.blacklisted_app;
-                final String message = "Blacklisted: " + exception.getMessage();
+            } else if (exception instanceof BlocklistedAppException
+                    || exception instanceof BlocklistedAccountException) {
+                metricRequestStatus = exception instanceof BlocklistedAccountException
+                        ? MetricName.blocklisted_account
+                        : MetricName.blocklisted_app;
+                final String message = "Blocklisted: " + exception.getMessage();
                 logger.debug(message);
 
                 errorMessages = Collections.singletonList(message);
@@ -204,39 +227,51 @@ public class AuctionHandler implements Handler<RoutingContext> {
         final AuctionEvent auctionEvent = auctionEventBuilder.status(status.code()).errors(errorMessages).build();
         final PrivacyContext privacyContext = auctionContext != null ? auctionContext.getPrivacyContext() : null;
         final TcfContext tcfContext = privacyContext != null ? privacyContext.getTcfContext() : TcfContext.empty();
-        respondWith(routingContext, status, body, startTime, requestType, metricRequestStatus, auctionEvent,
-                tcfContext);
+
+        final boolean responseSent = respondWith(routingContext, status, body, requestType);
+
+        if (responseSent) {
+            metrics.updateRequestTimeMetric(MetricName.request_time, clock.millis() - startTime);
+            metrics.updateRequestTypeMetric(requestType, metricRequestStatus);
+            if (!isAuctionSkipped) {
+                analyticsDelegator.processEvent(auctionEvent, tcfContext);
+            }
+        } else {
+            metrics.updateRequestTypeMetric(requestType, MetricName.networkerr);
+        }
 
         httpInteractionLogger.maybeLogOpenrtb2Auction(auctionContext, routingContext, status.code(), body);
     }
 
-    private void respondWith(RoutingContext routingContext, HttpResponseStatus status, String body, long startTime,
-                             MetricName requestType, MetricName metricRequestStatus, AuctionEvent event,
-                             TcfContext tcfContext) {
+    private boolean respondWith(RoutingContext routingContext,
+                                HttpResponseStatus status,
+                                String body,
+                                MetricName requestType) {
 
-        final boolean responseSent = HttpUtil.executeSafely(routingContext, Endpoint.openrtb2_auction,
+        return HttpUtil.executeSafely(
+                routingContext,
+                Endpoint.openrtb2_auction,
                 response -> response
                         .exceptionHandler(throwable -> handleResponseException(throwable, requestType))
                         .setStatusCode(status.code())
                         .end(body));
 
-        if (responseSent) {
-            metrics.updateRequestTimeMetric(MetricName.request_time, clock.millis() - startTime);
-            metrics.updateRequestTypeMetric(requestType, metricRequestStatus);
-            analyticsDelegator.processEvent(event, tcfContext);
-        } else {
-            metrics.updateRequestTypeMetric(requestType, MetricName.networkerr);
-        }
     }
 
     private void handleResponseException(Throwable throwable, MetricName requestType) {
-        logger.warn("Failed to send auction response: {0}", throwable.getMessage());
+        logger.warn("Failed to send auction response: {}", throwable.getMessage());
         metrics.updateRequestTypeMetric(requestType, MetricName.networkerr);
     }
 
-    private void enrichWithCommonHeaders(HttpServerResponse response) {
+    private void enrichResponseWithCommonHeaders(RoutingContext routingContext) {
+        final MultiMap responseHeaders = routingContext.response().headers();
         HttpUtil.addHeaderIfValueIsNotEmpty(
-                response.headers(), HttpUtil.X_PREBID_HEADER, prebidVersionProvider.getNameVersionRecord());
+                responseHeaders, HttpUtil.X_PREBID_HEADER, prebidVersionProvider.getNameVersionRecord());
+
+        final MultiMap requestHeaders = routingContext.request().headers();
+        if (requestHeaders.contains(HttpUtil.SEC_BROWSING_TOPICS_HEADER)) {
+            responseHeaders.add(HttpUtil.OBSERVE_BROWSING_TOPICS_HEADER, "?1");
+        }
     }
 
     private void enrichWithSuccessfulHeaders(HttpServerResponse response) {

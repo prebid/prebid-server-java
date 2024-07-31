@@ -98,7 +98,7 @@ public class GammaBidder implements Bidder<Void> {
         if (banner != null) {
             final List<Format> format = banner.getFormat();
             if (banner.getW() == null && banner.getH() == null && CollectionUtils.isNotEmpty(format)) {
-                final Format firstFormat = format.get(0);
+                final Format firstFormat = format.getFirst();
                 final Banner modifiedBanner = banner.toBuilder().w(firstFormat.getW()).h(firstFormat.getH()).build();
                 return imp.toBuilder().banner(modifiedBanner).build();
             }

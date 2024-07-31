@@ -1,5 +1,6 @@
 package org.prebid.server.hooks.execution.model;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Value;
 
@@ -11,5 +12,6 @@ public class ExecutionGroup {
     Long timeout;
 
     @JsonProperty("hook-sequence")
+    @JsonAlias("hook_sequence")
     List<HookId> hookSequence;
 }

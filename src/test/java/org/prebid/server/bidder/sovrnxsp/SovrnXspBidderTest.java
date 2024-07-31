@@ -12,7 +12,7 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -235,7 +235,7 @@ public class SovrnXspBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> results = target.makeHttpRequests(bidRequest);
 
         // then
-        final Imp expectedImp = bidRequest.getImp().get(0).toBuilder().tagid("imp_ext_zone_id").build();
+        final Imp expectedImp = bidRequest.getImp().getFirst().toBuilder().tagid("imp_ext_zone_id").build();
         final BidRequest expectedBidRequest = bidRequest.toBuilder()
                 .imp(Collections.singletonList(expectedImp))
                 .build();

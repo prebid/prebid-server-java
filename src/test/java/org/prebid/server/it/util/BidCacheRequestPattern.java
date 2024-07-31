@@ -6,8 +6,8 @@ import com.github.tomakehurst.wiremock.matching.EqualToJsonPattern;
 import com.github.tomakehurst.wiremock.matching.MatchResult;
 import com.github.tomakehurst.wiremock.matching.StringValuePattern;
 import org.apache.commons.collections4.CollectionUtils;
-import org.prebid.server.cache.proto.request.BidCacheRequest;
-import org.prebid.server.cache.proto.request.PutObject;
+import org.prebid.server.cache.proto.request.bid.BidCacheRequest;
+import org.prebid.server.cache.proto.request.bid.BidPutObject;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -45,8 +45,8 @@ public class BidCacheRequestPattern extends StringValuePattern {
 
                 @Override
                 public double getDistance() {
-                    final List<PutObject> actualPuts = actual.getPuts();
-                    final List<PutObject> expectedPuts = updateKeysWithUuid(actualPuts, expected.getPuts());
+                    final List<BidPutObject> actualPuts = actual.getPuts();
+                    final List<BidPutObject> expectedPuts = updateKeysWithUuid(actualPuts, expected.getPuts());
                     // update actual from expected
                     if (CollectionUtils.isEqualCollection(actualPuts, expectedPuts)) {
                         return 0;
@@ -55,12 +55,12 @@ public class BidCacheRequestPattern extends StringValuePattern {
                     return CollectionUtils.disjunction(actualPuts, expectedPuts).size();
                 }
 
-                private List<PutObject> updateKeysWithUuid(List<PutObject> actual, List<PutObject> expected) {
-                    final List<PutObject> requiredUuidKeyUpdate = expected.stream()
+                private List<BidPutObject> updateKeysWithUuid(List<BidPutObject> actual, List<BidPutObject> expected) {
+                    final List<BidPutObject> requiredUuidKeyUpdate = expected.stream()
                             .filter(putObject -> putObject.getKey() != null && putObject.getKey().endsWith("{{uuid}}"))
                             .toList();
 
-                    final List<PutObject> result =
+                    final List<BidPutObject> result =
                             new ArrayList<>(CollectionUtils.disjunction(expected, requiredUuidKeyUpdate));
 
                     result.addAll(requiredUuidKeyUpdate.stream()
@@ -69,22 +69,24 @@ public class BidCacheRequestPattern extends StringValuePattern {
                     return result;
                 }
 
-                private PutObject updatedWithKey(PutObject requiredUuidKeyPutObject,
-                                                 List<PutObject> actual) {
-                    final PutObject correspondedObject = findCorrespondedByValue(requiredUuidKeyPutObject, actual);
+                private BidPutObject updatedWithKey(BidPutObject requiredUuidKeyBidPutObject,
+                                                    List<BidPutObject> actual) {
+                    final BidPutObject correspondedObject =
+                            findCorrespondedByValue(requiredUuidKeyBidPutObject, actual);
                     if (correspondedObject == null || correspondedObject.getKey() == null) {
-                        return requiredUuidKeyPutObject;
+                        return requiredUuidKeyBidPutObject;
                     }
                     final String correspondedObjectKey = correspondedObject.getKey();
                     final String[] splittedKey = correspondedObjectKey.split("_");
                     final String uuid = getValidUuid(splittedKey[splittedKey.length - 1]);
                     final String updatedKey = uuid != null
-                            ? requiredUuidKeyPutObject.getKey().replace("{{uuid}}", uuid)
+                            ? requiredUuidKeyBidPutObject.getKey().replace("{{uuid}}", uuid)
                             : "";
-                    return requiredUuidKeyPutObject.toBuilder().key(updatedKey).build();
+                    return requiredUuidKeyBidPutObject.toBuilder().key(updatedKey).build();
                 }
 
-                private PutObject findCorrespondedByValue(PutObject searchingObject, List<PutObject> allObjects) {
+                private BidPutObject findCorrespondedByValue(BidPutObject searchingObject,
+                                                             List<BidPutObject> allObjects) {
                     return allObjects.stream()
                             .filter(putObject -> putObject.getValue().equals(searchingObject.getValue()))
                             .findFirst()

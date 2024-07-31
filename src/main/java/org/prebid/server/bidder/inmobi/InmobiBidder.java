@@ -49,7 +49,7 @@ public class InmobiBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<BidderError> errors = new ArrayList<>();
 
-        final Imp imp = request.getImp().get(FIRST_IMP_INDEX);
+        final Imp imp = request.getImp().getFirst();
         final ExtImpInmobi extImpInmobi;
 
         try {
@@ -84,7 +84,7 @@ public class InmobiBidder implements Bidder<BidRequest> {
         if (banner != null) {
             if ((banner.getW() == null || banner.getH() == null || banner.getW() == 0 || banner.getH() == 0)
                     && CollectionUtils.isNotEmpty(banner.getFormat())) {
-                final Format format = banner.getFormat().get(0);
+                final Format format = banner.getFormat().getFirst();
                 return imp.toBuilder().banner(banner.toBuilder().w(format.getW()).h(format.getH()).build()).build();
             }
         }

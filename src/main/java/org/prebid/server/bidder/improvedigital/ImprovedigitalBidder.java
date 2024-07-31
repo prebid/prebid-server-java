@@ -98,8 +98,9 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
             return extUser;
         }
 
-        final String consentedProvidersPart = StringUtils.substringAfter(consentedProviders, "~");
-        if (StringUtils.isEmpty(consentedProvidersPart)) {
+        final String[] consentedProvidersParts = StringUtils.split(consentedProviders, "~");
+        final String consentedProvidersPart = consentedProvidersParts.length > 1 ? consentedProvidersParts[1] : null;
+        if (StringUtils.isBlank(consentedProvidersPart)) {
             return extUser;
         }
 
@@ -249,7 +250,7 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
             case 2 -> BidType.video;
             case 3 -> BidType.audio;
             case 4 -> BidType.xNative;
-            default -> throw new PreBidException(
+            case null, default -> throw new PreBidException(
                     "Unsupported mtype %d for impression with ID: \"%s\"".formatted(bid.getMtype(), bid.getImpid()));
         };
     }

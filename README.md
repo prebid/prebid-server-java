@@ -73,8 +73,8 @@ For more information how to build the server follow [documentation](docs/build.m
 
 ## Configuration
 
-The source code includes an example configuration file `sample/prebid-config.yaml`.
-Also, check the account settings file `sample/sample-app-settings.yaml`.
+The source code includes an example configuration file `sample/configs/prebid-config.yaml`.
+Also, check the account settings file `sample/configs/sample-app-settings.yaml`.
 
 For more information how to configure the server follow [documentation](docs/config.md). There are many settings you'll want to consider such as which bidders you're going to enable, privacy defaults, admin endpoints, etc.
 
@@ -83,7 +83,7 @@ For more information how to configure the server follow [documentation](docs/con
 
 Run your local server with the command:
 ```bash
-java -jar target/prebid-server.jar --spring.config.additional-location=sample/prebid-config.yaml
+java -jar target/prebid-server.jar --spring.config.additional-location=sample/configs/prebid-config.yaml
 ```
 For more options how to start the server, please follow [documentation](docs/run.md).
 

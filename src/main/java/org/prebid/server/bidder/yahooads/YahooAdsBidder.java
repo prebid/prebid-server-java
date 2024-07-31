@@ -34,6 +34,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsa;
 import org.prebid.server.proto.openrtb.ext.request.yahooads.ExtImpYahooAds;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -161,7 +162,7 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
         if (CollectionUtils.isEmpty(bannerFormats)) {
             throw new PreBidException("No sizes provided for Banner");
         }
-        final Format firstFormat = bannerFormats.get(0);
+        final Format firstFormat = bannerFormats.getFirst();
 
         return banner.toBuilder()
                 .w(firstFormat.getW())
@@ -184,7 +185,10 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
         final String gpc = Optional.ofNullable(regs.getExt())
                 .map(ExtRegs::getGpc)
                 .orElse(null);
-        final ExtRegs extRegs = ExtRegs.of(gdpr, usPrivacy, gpc);
+        final ExtRegsDsa dsa = Optional.ofNullable(regs.getExt())
+                .map(ExtRegs::getDsa)
+                .orElse(null);
+        final ExtRegs extRegs = ExtRegs.of(gdpr, usPrivacy, gpc, dsa);
         extRegs.addProperty("gpp", TextNode.valueOf(gpp));
         if (!CollectionUtils.isEmpty(gppSid)) {
             final ArrayNode gppArrayNode = mapper.mapper().createArrayNode();
@@ -246,10 +250,6 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
         final List<SeatBid> seatBids = bidResponse != null ? bidResponse.getSeatbid() : null;
         if (seatBids == null) {
             return Collections.emptyList();
-        }
-
-        if (seatBids.isEmpty()) {
-            throw new PreBidException("Invalid SeatBids count: 0");
         }
         return bidsFromResponse(bidResponse, bidRequest.getImp());
     }

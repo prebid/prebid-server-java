@@ -2,6 +2,7 @@ package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.yieldmo.YieldmoBidder;
+import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -13,7 +14,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 
-import javax.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotBlank;
 
 @Configuration
 @PropertySource(value = "classpath:/bidder-config/yieldmo.yaml", factory = YamlPropertySourceFactory.class)
@@ -30,12 +31,13 @@ public class YieldmoConfiguration {
     @Bean
     BidderDeps yieldmoBidderDeps(BidderConfigurationProperties yieldmoConfigurationProperties,
                                  @NotBlank @Value("${external-url}") String externalUrl,
-                                 JacksonMapper mapper) {
+                                 JacksonMapper mapper,
+                                 CurrencyConversionService currencyConversionService) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(yieldmoConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new YieldmoBidder(config.getEndpoint(), mapper))
+                .bidderCreator(config -> new YieldmoBidder(config.getEndpoint(), currencyConversionService, mapper))
                 .assemble();
     }
 }

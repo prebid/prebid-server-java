@@ -4,7 +4,7 @@ import lombok.Data;
 import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.springframework.validation.annotation.Validated;
 
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;

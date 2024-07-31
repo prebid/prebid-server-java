@@ -6,4 +6,7 @@ import lombok.Value;
 public class AppnexusImpExt {
 
     AppnexusImpExtAppnexus appnexus;
+
+    String gpid;
+
 }

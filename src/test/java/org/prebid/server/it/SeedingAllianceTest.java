@@ -2,10 +2,8 @@ package org.prebid.server.it;
 
 import io.restassured.response.Response;
 import org.json.JSONException;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.model.Endpoint;
-import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
 
@@ -16,14 +14,13 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static java.util.Collections.singletonList;
 
-@RunWith(SpringRunner.class)
 public class SeedingAllianceTest extends IntegrationTest {
 
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromSeedingAlliance() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/seedingAlliance-exchange"))
-                .withQueryParam("ssp", equalTo("pbs"))
+                .withQueryParam("ssp", equalTo("accountId"))
                 .withRequestBody(equalToJson(
                         jsonFrom("openrtb2/seedingAlliance/test-seedingAlliance-bid-request.json")))
                 .willReturn(aResponse().withBody(
@@ -38,4 +35,3 @@ public class SeedingAllianceTest extends IntegrationTest {
                 singletonList("seedingAlliance"));
     }
 }
-

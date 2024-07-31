@@ -11,7 +11,7 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.improvedigital.proto.ImprovedigitalBidExt;
 import org.prebid.server.bidder.improvedigital.proto.ImprovedigitalBidExtImprovedigital;
@@ -117,6 +117,35 @@ public class ImprovedigitalBidderTest extends VertxTest {
         // given
         final ExtUser extUser = ExtUser.builder()
                 .consentedProvidersSettings(ConsentedProvidersSettings.of("1~10.20.90"))
+                .build();
+
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
+                .id("123")
+                .user(User.builder().ext(extUser).build())
+                .id("request_id"), identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        final ExtUser expectedExtUser = jacksonMapper.fillExtension(extUser,
+                mapper.createObjectNode().set("consented_providers_settings",
+                        mapper.createObjectNode()
+                                .set("consented_providers", mapper.createArrayNode().add(10).add(20).add(90))));
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getUser)
+                .extracting(User::getExt)
+                .containsExactly(expectedExtUser);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldProperProcessConsentedProvidersSettingWithMultipleTilda() {
+        // given
+        final ExtUser extUser = ExtUser.builder()
+                .consentedProvidersSettings(ConsentedProvidersSettings.of("1~10.20.90~anything"))
                 .build();
 
         final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
@@ -316,8 +345,8 @@ public class ImprovedigitalBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(0);
         assertThat(result.getValue()).isNotEmpty();
-        assertThat(result.getValue().get(0).getBid().getMtype()).isEqualTo(expectedMType);
-        assertThat(result.getValue().get(0).getType()).isEqualTo(expectedType);
+        assertThat(result.getValue().getFirst().getBid().getMtype()).isEqualTo(expectedMType);
+        assertThat(result.getValue().getFirst().getType()).isEqualTo(expectedType);
     }
 
     @Test
@@ -404,7 +433,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue().get(0).getType()).isEqualTo(banner);
+        assertThat(result.getValue().getFirst().getType()).isEqualTo(banner);
     }
 
     @Test
