@@ -259,7 +259,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
     }
 
     private static boolean shouldSkipFloors(Integer skipRate) {
-        return skipRate != null && ThreadLocalRandom.current().nextInt(SKIP_RATE_MAX) < skipRate;
+        return skipRate != null && ThreadLocalRandom.current().nextInt(SKIP_RATE_MAX) <= skipRate;
     }
 
     private static Integer extractSkipRate(PriceFloorRules floors) {
