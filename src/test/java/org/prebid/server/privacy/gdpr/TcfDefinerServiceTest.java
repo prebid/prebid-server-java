@@ -245,7 +245,7 @@ public class TcfDefinerServiceTest {
 
         final String vendorConsent = TCStringEncoder.newBuilder()
                 .version(2)
-                .tcfPolicyVersion(5)
+                .tcfPolicyVersion(6)
                 .encode();
 
         // when
@@ -260,7 +260,7 @@ public class TcfDefinerServiceTest {
                 null);
 
         // then
-        final String expectedWarning = "Parsing consent string: %s failed. TCF policy version 5 is not supported"
+        final String expectedWarning = "Parsing consent string: %s failed. TCF policy version 6 is not supported"
                 .formatted(vendorConsent);
         assertThat(result).isSucceeded();
         assertThat(result.result().getConsent()).isInstanceOf(TCStringEmpty.class);
@@ -634,17 +634,20 @@ public class TcfDefinerServiceTest {
 
     @Test
     public void isConsentStringValidShouldReturnTrueWhenStringIsValid() {
+        // when and then
         assertThat(TcfDefinerService.isConsentStringValid("CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA"))
                 .isTrue();
     }
 
     @Test
     public void isConsentStringValidShouldReturnFalseWhenStringIsNull() {
+        // when and then
         assertThat(TcfDefinerService.isConsentStringValid(null)).isFalse();
     }
 
     @Test
     public void isConsentStringValidShouldReturnFalseWhenStringNotValid() {
+        // when and then
         assertThat(TcfDefinerService.isConsentStringValid("invalid")).isFalse();
     }
 }

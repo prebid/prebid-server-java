@@ -21,12 +21,13 @@ public class VersionedVendorListService {
     public Future<Map<Integer, Vendor>> forConsent(TCString consent) {
         final int tcfPolicyVersion = consent.getTcfPolicyVersion();
         final int vendorListVersion = consent.getVendorListVersion();
-        if (tcfPolicyVersion < 4) {
-            return vendorListServiceV2.forVersion(vendorListVersion);
-        } else if (tcfPolicyVersion == 4) {
-            return vendorListServiceV3.forVersion(vendorListVersion);
+        if (tcfPolicyVersion > 5) {
+            return Future.failedFuture(new PreBidException(
+                    "Invalid tcf policy version: %d".formatted(tcfPolicyVersion)));
         }
 
-        return Future.failedFuture(new PreBidException("Invalid tcf policy version: %d".formatted(tcfPolicyVersion)));
+        return tcfPolicyVersion < 4
+                ? vendorListServiceV2.forVersion(vendorListVersion)
+                : vendorListServiceV3.forVersion(vendorListVersion);
     }
 }
