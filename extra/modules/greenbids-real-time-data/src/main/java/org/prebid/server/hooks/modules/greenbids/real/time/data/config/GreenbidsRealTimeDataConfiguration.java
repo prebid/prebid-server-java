@@ -3,7 +3,6 @@ package org.prebid.server.hooks.modules.greenbids.real.time.data.config;
 import ai.onnxruntime.OrtException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.GreenbidsRealTimeDataProperties;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.model.OnnxModelRunner;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.GreenbidsRealTimeDataModule;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.GreenbidsRealTimeDataProcessedAuctionRequestHook;
 import org.prebid.server.json.ObjectMapperProvider;
@@ -29,16 +28,15 @@ public class GreenbidsRealTimeDataConfiguration {
                 param2
         );
 
-        OnnxModelRunner modelRunner = new OnnxModelRunner("extra/modules/greenbids-real-time-data/src/main/resources/onnx_rf_v2_pbs_user_agent.onnx");
+        //OnnxModelRunner modelRunner = new OnnxModelRunner("extra/modules/greenbids-real-time-data/src/main/resources/onnx_rf_v2_pbs_user_agent.onnx");
 
-        System.out.println(
-                "GreenbidsRealTimeDataConfiguration/greenbidsRealTimeDataModule" + "\n" +
-                        "params: " + param1 + " " + param2 + "\n" +
-                        "modelRunner: " + modelRunner + "\n"
-        );
+        //System.out.println(
+        //        "GreenbidsRealTimeDataConfiguration/greenbidsRealTimeDataModule" + "\n" +
+        //                "params: " + param1 + " " + param2 + "\n" +
+        //                "modelRunner: " + modelRunner + "\n"
+        //);
 
         return new GreenbidsRealTimeDataModule(List.of(
-                new GreenbidsRealTimeDataProcessedAuctionRequestHook(
-                        mapper, modelRunner)));
+                new GreenbidsRealTimeDataProcessedAuctionRequestHook(mapper)));
     }
 }
