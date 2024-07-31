@@ -1,6 +1,5 @@
 package org.prebid.server.bidder.tripleliftnative;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -19,7 +18,6 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisherPrebid;
 import org.prebid.server.proto.openrtb.ext.request.triplelift.ExtImpTriplelift;
@@ -38,9 +36,6 @@ public class TripleliftNativeBidder implements Bidder<BidRequest> {
 
     private static final String UNKNOWN_PUBLISHER_ID = "unknown";
 
-    private static final TypeReference<ExtPrebid<?, ExtImpTriplelift>> TRIPLELIFT_EXT_TYPE_REFERENCE =
-            new TypeReference<>() {
-            };
     private static final String MSN_DOMAIN = "msn.com";
 
     private final String endpointUrl;
