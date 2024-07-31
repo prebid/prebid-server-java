@@ -42,7 +42,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidServer;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.smaato.ExtImpSmaato;
-import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.util.HttpUtil;
 
@@ -741,11 +740,12 @@ public class SmaatoBidderTest extends VertxTest {
                 + "/imp/2\"],\"clicktrackers\":[\"//prebid-test.smaatolabs.net/track/click/1\","
                 + "\"//prebid-test.smaatolabs.net/track/click/2\"]}}";
 
+        final ObjectNode givenBidExt = mapper.valueToTree(SmaatoBidExt.of(100, List.of("curl1", "curl2")));
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(),
                 givenBidResponse(bidBuilder -> bidBuilder
                         .adm(adm)
-                        .ext(mapper.valueToTree(SmaatoBidExt.of(100, List.of("curl1", "curl2"))))),
+                        .ext(givenBidExt)),
                 MultiMap.caseInsensitiveMultiMap().set("X-Smt-Adtype", "Richmedia"));
 
         // when
@@ -760,7 +760,7 @@ public class SmaatoBidderTest extends VertxTest {
         final Bid expectedBid = Bid.builder()
                 .impid("123")
                 .adm(expectedAdm)
-                .ext(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.builder().build(), null)))
+                .ext(givenBidExt)
                 .exp(300)
                 .build();
 
@@ -790,7 +790,6 @@ public class SmaatoBidderTest extends VertxTest {
         final Bid expectedBid = Bid.builder()
                 .impid("123")
                 .adm(adm)
-                .ext(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.builder().build(), null)))
                 .exp(300)
                 .build();
 
@@ -808,11 +807,12 @@ public class SmaatoBidderTest extends VertxTest {
                 + "imp/2\"],\"clicktrackers\":[\"//prebid-test.smaatolabs.net/track/click/1\",\""
                 + "//prebid-test.smaatolabs.net/track/click/2\"]}}";
 
+        final ObjectNode givenBidExt = mapper.valueToTree(SmaatoBidExt.of(100, List.of("curl1", "curl2")));
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(),
                 givenBidResponse(bidBuilder -> bidBuilder
                         .adm(adm)
-                        .ext(mapper.valueToTree(SmaatoBidExt.of(100, List.of("curl1", "curl2"))))),
+                        .ext(givenBidExt)),
                 MultiMap.caseInsensitiveMultiMap().set("X-Smt-Adtype", "Img"));
 
         // when
@@ -827,8 +827,8 @@ public class SmaatoBidderTest extends VertxTest {
         final Bid expectedBid = Bid.builder()
                 .impid("123")
                 .adm(expectedAdm)
-                .ext(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.builder().build(), null)))
                 .exp(300)
+                .ext(givenBidExt)
                 .build();
 
         assertThat(result.getErrors()).isEmpty();
@@ -857,7 +857,6 @@ public class SmaatoBidderTest extends VertxTest {
         final Bid expectedBid = Bid.builder()
                 .impid("123")
                 .adm(adm)
-                .ext(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.builder().build(), null)))
                 .exp(300)
                 .build();
 
@@ -871,6 +870,7 @@ public class SmaatoBidderTest extends VertxTest {
         final String adm = "<?xml version=\"1.0\" encoding="
                 + "\"UTF-8\" standalone=\"no\"?><VAST version=\"2.0\"></VAST>";
 
+        final ObjectNode givenBidExt = mapper.valueToTree(SmaatoBidExt.of(100, List.of()));
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(),
                 givenBidResponse(bidBuilder -> bidBuilder
@@ -887,13 +887,19 @@ public class SmaatoBidderTest extends VertxTest {
                 .impid("123")
                 .adm(adm)
                 .cat(singletonList("Category1"))
-                .ext(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.builder()
-                        .video(ExtBidPrebidVideo.of(100, "Category1")).build(), null)))
+                .ext(givenBidExt)
                 .exp(300)
                 .build();
 
+        final BidderBid expectedBidderBid = BidderBid.builder()
+                .bidCurrency("USD")
+                .type(video)
+                .bid(expectedBid)
+                .videoInfo(ExtBidPrebidVideo.of(100, "Category1"))
+                .build();
+
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsExactly(BidderBid.of(expectedBid, video, "USD"));
+        assertThat(result.getValue()).containsExactly(expectedBidderBid);
     }
 
     @Test
@@ -903,11 +909,12 @@ public class SmaatoBidderTest extends VertxTest {
                 + "\"url\": \"https://smaato.com/image.png\", \"w\": 480, \"h\": 320}}], "
                 + "\"link\": {\"url\": \"https://www.smaato.com\"}}}";
 
+        final ObjectNode givenBidExt = mapper.valueToTree(SmaatoBidExt.of(100, List.of()));
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(),
                 givenBidResponse(bidBuilder -> bidBuilder
                         .adm(adm)
-                        .ext(mapper.valueToTree(SmaatoBidExt.of(100, List.of())))),
+                        .ext(givenBidExt)),
                 MultiMap.caseInsensitiveMultiMap().set("X-SMT-ADTYPE", "Native"));
 
         // when
@@ -921,7 +928,7 @@ public class SmaatoBidderTest extends VertxTest {
         final Bid expectedBid = Bid.builder()
                 .impid("123")
                 .adm(expectedAdm)
-                .ext(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.builder().build(), null)))
+                .ext(givenBidExt)
                 .exp(300)
                 .build();
 

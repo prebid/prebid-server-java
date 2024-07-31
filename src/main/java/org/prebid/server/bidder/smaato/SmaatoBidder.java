@@ -44,7 +44,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.smaato.ExtImpSmaato;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
-import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
@@ -145,11 +144,14 @@ public class SmaatoBidder implements Bidder<BidRequest> {
     }
 
     private Site modifySite(Site site) {
+        if (site == null) {
+            return null;
+        }
         final ExtSite siteExt = getIfNotNull(site, Site::getExt);
         if (siteExt != null) {
             final SmaatoSiteExtData data = convertExt(siteExt.getData(), SmaatoSiteExtData.class);
             final String keywords = getIfNotNull(data, SmaatoSiteExtData::getKeywords);
-            return Site.builder().keywords(keywords).ext(null).build();
+            return site.toBuilder().keywords(keywords).ext(null).build();
         }
         return site;
     }
@@ -365,19 +367,17 @@ public class SmaatoBidder implements Bidder<BidRequest> {
             final Bid updatedBid = bid.toBuilder()
                     .adm(renderAdMarkup(markupType, bidAdm, bidExt))
                     .exp(getTtl(headers))
-                    .ext(buildExtPrebid(bid, bidType, bidExt))
                     .build();
-            return BidderBid.of(updatedBid, bidType, currency);
+            return BidderBid.builder()
+                    .bid(updatedBid)
+                    .type(bidType)
+                    .bidCurrency(currency)
+                    .videoInfo(getExtBidPrebidVideo(bid, bidType, bidExt))
+                    .build();
         } catch (PreBidException e) {
             errors.add(BidderError.badInput(e.getMessage()));
             return null;
         }
-    }
-
-    private ObjectNode buildExtPrebid(Bid bid, BidType bidType, SmaatoBidExt bidExt) {
-        final ExtBidPrebidVideo extBidPrebidVideo = getExtBidPrebidVideo(bid, bidType, bidExt);
-        final ExtBidPrebid extBidPrebid = ExtBidPrebid.builder().video(extBidPrebidVideo).build();
-        return mapper.mapper().valueToTree(ExtPrebid.of(extBidPrebid, null));
     }
 
     private ExtBidPrebidVideo getExtBidPrebidVideo(Bid bid, BidType bidType, SmaatoBidExt bidExt) {

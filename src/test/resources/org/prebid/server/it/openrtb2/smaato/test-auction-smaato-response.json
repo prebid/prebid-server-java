@@ -15,7 +15,9 @@
             "prebid": {
               "type": "banner"
             },
-            "origbidcpm": 0.01
+            "origbidcpm": 0.01,
+            "format": "BANNER",
+            "curls": ["curl1", "curl2"]
           }
         }
       ],
