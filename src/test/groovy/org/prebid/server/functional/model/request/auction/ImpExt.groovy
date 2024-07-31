@@ -26,7 +26,7 @@ class ImpExt {
     String all
     String skadn
     String general
-    String foo
+    Foo foo
 
     static ImpExt getDefaultImpExt() {
         new ImpExt().tap {

@@ -8,6 +8,7 @@ import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.Banner
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Device
+import org.prebid.server.functional.model.request.auction.Foo
 import org.prebid.server.functional.model.request.auction.Geo
 import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.ImpExt
@@ -727,9 +728,9 @@ class BidderParamsSpec extends BaseSpec {
 
     def "PBS shouldn't emit warning and proceed auction when imp.ext.foo and imp.ext.prebid.bidder.generic in the request"() {
         given: "Default bid request"
-        def randomString = PBSUtils.randomString
+        def foo = new Foo(anyProperty: PBSUtils.randomString)
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp[0].ext.foo = randomString
+            imp[0].ext.foo = foo
             imp[0].ext.prebid.bidder.generic = new Generic()
         }
 
@@ -738,7 +739,7 @@ class BidderParamsSpec extends BaseSpec {
 
         then: "Bidder request should contain imp.ext.foo"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.imp[0].ext.foo == randomString
+        assert bidderRequest.imp[0].ext.foo == foo
 
         and: "Response shouldn't contain warning"
         assert !response?.ext?.warnings
@@ -746,11 +747,11 @@ class BidderParamsSpec extends BaseSpec {
 
     def "PBS should emit warning and proceed auction when imp.ext.foo and imp.ext.generic in the request"() {
         given: "Default bid request"
-        def randomString = PBSUtils.randomString
+        def foo = new Foo(anyProperty: PBSUtils.randomString)
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].ext.generic = new Generic()
-            imp[0].ext.foo = randomString
-            imp[0].ext.prebid.bidder.generic = null
+            imp[0].ext.foo = foo
+            imp[0].ext.prebid.bidder = null
         }
 
         when: "PBS processes auction request"
@@ -758,12 +759,13 @@ class BidderParamsSpec extends BaseSpec {
 
         then: "Bidder request should contain imp.ext.foo"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.imp[0].ext.foo == randomString
+        assert bidderRequest.imp[0].ext.foo == foo
 
         and: "PBS should emit an warning"
         assert response?.ext?.warnings[PREBID]*.code == [999]
         assert response?.ext?.warnings[PREBID]*.message ==
-                ["WARNING: request.imp[0].ext.foo unknown bidder."]
+                ["WARNING: request.imp[0].ext.prebid.bidder.foo was dropped with a reason: " +
+                         "request.imp[0].ext.prebid.bidder contains unknown bidder: foo"]
     }
 
     def "PBS shouldn't emit warning and proceed auction when imp.ext.foo and imp.ext.generic in the request"() {
@@ -789,7 +791,7 @@ class BidderParamsSpec extends BaseSpec {
 
         then: "Bidder request should contain same field as requested"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        verifyAll(bidderRequest.imp[0].ext){
+        verifyAll(bidderRequest.imp[0].ext) {
             bidder == impExt.generic
             ae == impExt.ae
             all == impExt.all
