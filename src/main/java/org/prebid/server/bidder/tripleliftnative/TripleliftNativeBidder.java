@@ -54,7 +54,7 @@ public class TripleliftNativeBidder implements Bidder<BidRequest> {
         final List<Imp> validImps = new ArrayList<>();
         for (Imp imp : bidRequest.getImp()) {
             try {
-                validImps.add(modifyImp(imp, bidRequest.getSite()));
+                validImps.add(modifyImp(imp, bidRequest));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -79,7 +79,7 @@ public class TripleliftNativeBidder implements Bidder<BidRequest> {
                 errors);
     }
 
-    private Imp modifyImp(Imp imp, Site site) throws PreBidException {
+    private Imp modifyImp(Imp imp, BidRequest request) throws PreBidException {
         if (imp.getXNative() == null) {
             throw new PreBidException("no native object specified");
         }
@@ -88,7 +88,7 @@ public class TripleliftNativeBidder implements Bidder<BidRequest> {
         final ExtImpTriplelift impExtBidder = impExt.getBidder();
 
         return imp.toBuilder()
-                .tagid(resolveTagId(site, impExtBidder, impExt.getData()))
+                .tagid(resolveTagId(request, impExtBidder.getInventoryCode(), impExt.getData()))
                 .bidfloor(impExtBidder.getFloor())
                 .build();
     }
@@ -101,23 +101,27 @@ public class TripleliftNativeBidder implements Bidder<BidRequest> {
         }
     }
 
-    private String resolveTagId(Site site, ExtImpTriplelift bidder, TripleliftNativeExtImpData data) {
-        final String inventoryCode = bidder.getInventoryCode();
-        if (StringUtils.isBlank(inventoryCode)) {
-            throw new PreBidException("no inv_code specified");
-        }
-
-        final String tagCode = Optional.ofNullable(data).map(TripleliftNativeExtImpData::getTagCode).orElse(null);
-        if (StringUtils.isBlank(tagCode)) {
-            return inventoryCode;
-        }
-
-        final String domain = Optional.ofNullable(site)
+    private String resolveTagId(BidRequest request, String inventoryCode, TripleliftNativeExtImpData data) {
+        final boolean hasMsnDomainInSite = Optional.ofNullable(request.getSite())
                 .map(Site::getPublisher)
                 .map(Publisher::getDomain)
-                .orElse(null);
+                .map(MSN_DOMAIN::equals)
+                .orElse(false);
 
-        return Objects.equals(domain, MSN_DOMAIN) ? tagCode : inventoryCode;
+        final boolean hasMsnDomainInApp = Optional.ofNullable(request.getApp())
+                .map(App::getPublisher)
+                .map(Publisher::getDomain)
+                .map(MSN_DOMAIN::equals)
+                .orElse(false);
+
+        final boolean hasTagCodeInData = Optional.ofNullable(data)
+                .map(TripleliftNativeExtImpData::getTagCode)
+                .map(StringUtils::isNotBlank)
+                .orElse(false);
+
+        return hasTagCodeInData && (hasMsnDomainInSite || hasMsnDomainInApp)
+                ? data.getTagCode()
+                : inventoryCode;
     }
 
     private String effectivePublisherId(BidRequest bidRequest) {

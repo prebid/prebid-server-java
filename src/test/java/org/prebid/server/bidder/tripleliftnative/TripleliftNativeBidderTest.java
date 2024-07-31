@@ -67,24 +67,6 @@ public class TripleliftNativeBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorWhenInvCodeIsNotSpecifiedImp() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
-                        .xNative(Native.builder().build()),
-                ExtImpTriplelift.of("", new BigDecimal(23)),
-                null);
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(2)
-                .extracting(BidderError::getMessage)
-                .containsOnly("Unsupported publisher for triplelift_native", "no inv_code specified");
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
     public void makeHttpRequestsShouldReturnErrorsWhenSitePublisherIdIsNotInWhitelist() {
         // given
         target = new TripleliftNativeBidder(
@@ -223,11 +205,14 @@ public class TripleliftNativeBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldResolveTagIdFromInventoryCodeWhenTagCodeIsNotBlankAndSiteDomainIsNotMsn() {
+    public void makeHttpRequestsShouldResolveTagIdFromInvCodeWhenTagCodeIsNotBlankAndSiteAndAppDomainsAreNotMsn() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 bidRequestBuilder -> bidRequestBuilder
                         .site(Site.builder()
+                                .publisher(Publisher.builder().id("foo").domain("not.msn.com").build())
+                                .build())
+                        .app(App.builder()
                                 .publisher(Publisher.builder().id("foo").domain("not.msn.com").build())
                                 .build())
                         .id("request_id"),
@@ -255,6 +240,31 @@ public class TripleliftNativeBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 bidRequestBuilder -> bidRequestBuilder
                         .site(Site.builder().publisher(Publisher.builder().id("foo").domain("msn.com").build()).build())
+                        .id("request_id"),
+                impBuilder -> impBuilder.xNative(Native.builder().build())
+                        .tagid("willChange")
+                        .bidfloor(new BigDecimal(2)),
+                ExtImpTriplelift.of("inventoryCode", new BigDecimal(23)),
+                TripleliftNativeExtImpData.of("tagCode"));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getTagid)
+                .containsOnly("tagCode");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldResolveTagIdFromDataTagCodeWhenTagCodeIsNotBlankAndAppDomainIsMsn() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder
+                        .app(App.builder().publisher(Publisher.builder().id("foo").domain("msn.com").build()).build())
                         .id("request_id"),
                 impBuilder -> impBuilder.xNative(Native.builder().build())
                         .tagid("willChange")
