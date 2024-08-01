@@ -32,7 +32,7 @@ class HttpSettingsSpec extends BaseSpec {
     def "PBS should take account information from http data source on auction request"() {
         given: "Get basic BidRequest with generic bidder and set gdpr = 1"
         def bidRequest = BidRequest.defaultBidRequest
-        bidRequest.regs.ext.gdpr = 1
+        bidRequest.regs.gdpr = 1
 
         and: "Prepare default account response with gdpr = 0"
         def httpSettingsResponse = HttpAccountsResponse.getDefaultHttpAccountsResponse(bidRequest?.site?.publisher?.id)
@@ -61,7 +61,7 @@ class HttpSettingsSpec extends BaseSpec {
         and: "Get basic stored request and set gdpr = 1"
         def ampStoredRequest = BidRequest.defaultBidRequest
         ampStoredRequest.site.publisher.id = ampRequest.account
-        ampStoredRequest.regs.ext.gdpr = 1
+        ampStoredRequest.regs.gdpr = 1
 
         and: "Save storedRequest into DB"
         def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)

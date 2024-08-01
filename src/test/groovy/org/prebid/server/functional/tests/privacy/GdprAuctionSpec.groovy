@@ -505,7 +505,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         given: "Default Generic bid requests with personal data"
         def tcfConsent = new TcfConsent.Builder().build()
         def bidRequest = bidRequestWithPersonalData.tap {
-            regs.ext = new RegsExt(gdpr: 1)
+            regs.gdpr = 1
             user.ext.consent = tcfConsent
         }
 
@@ -535,7 +535,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         given: "Default Generic BidRequests with personal data"
         def tcfConsent = new TcfConsent.Builder().build()
         def bidRequest = bidRequestWithPersonalData.tap {
-            regs.ext = new RegsExt(gdpr: 1)
+            regs.gdpr = 1
             user.ext.consent = tcfConsent
             ext.prebid.trace = VERBOSE
         }
@@ -613,7 +613,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         given: "Default Generic BidRequests with personal data"
         def tcfConsent = new TcfConsent.Builder().build()
         def bidRequest = bidRequestWithPersonalData.tap {
-            regs.ext = new RegsExt(gdpr: 1)
+            regs.gdpr = 1
             user.ext.consent = tcfConsent
             ext.prebid.trace = BASIC
         }
@@ -693,7 +693,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         given: "Default Generic BidRequests with privacy data"
         def tcfConsent = new TcfConsent.Builder().setSpecialFeatureOptIns(DEVICE_ACCESS).build()
         def bidRequest = bidRequestWithPersonalData.tap {
-            regs.ext = new RegsExt(gdpr: 1)
+            regs.gdpr = 1
             user.ext.consent = tcfConsent
         }
 

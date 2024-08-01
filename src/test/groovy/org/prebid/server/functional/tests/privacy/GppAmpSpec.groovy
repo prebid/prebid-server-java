@@ -222,6 +222,6 @@ class GppAmpSpec extends PrivacyBaseSpec {
 
         then: "Bidder request shouldn't contain gpc value from header"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
-        assert !bidderRequest.regs.ext
+        assert !bidderRequest?.regs?.ext?.gpc
     }
 }

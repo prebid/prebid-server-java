@@ -260,7 +260,7 @@ class GppAuctionSpec extends PrivacyBaseSpec {
 
         then: "Bidder request shouldn't contain gpc from header"
         def bidderRequests = bidder.getBidderRequest(bidRequest.id)
-        assert !bidderRequests.regs.ext
+        assert !bidderRequests?.regs?.ext?.gpc
 
         where:
         gpcInvalid << [PBSUtils.randomNumber as String, PBSUtils.randomNumber, PBSUtils.randomString, Boolean.TRUE]

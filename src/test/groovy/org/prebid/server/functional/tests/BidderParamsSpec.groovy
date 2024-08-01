@@ -153,7 +153,7 @@ class BidderParamsSpec extends BaseSpec {
         and: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
         def validCcpa = new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)
-        bidRequest.regs.ext = new RegsExt(usPrivacy: validCcpa)
+        bidRequest.regs.usPrivacy = validCcpa
         def lat = PBSUtils.getRandomDecimal(0, 90)
         def lon = PBSUtils.getRandomDecimal(0, 90)
         bidRequest.device = new Device(geo: new Geo(lat: lat, lon: lon))
@@ -180,7 +180,7 @@ class BidderParamsSpec extends BaseSpec {
         and: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
         def validCcpa = new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)
-        bidRequest.regs.ext = new RegsExt(usPrivacy: validCcpa)
+        bidRequest.regs.usPrivacy = validCcpa
         def lat = PBSUtils.getRandomDecimal(0, 90) as float
         def lon = PBSUtils.getRandomDecimal(0, 90) as float
         bidRequest.device = new Device(geo: new Geo(lat: lat, lon: lon))

@@ -21,6 +21,7 @@ import org.prebid.server.functional.model.request.auction.Data
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.Eid
 import org.prebid.server.functional.model.request.auction.Geo
+import org.prebid.server.functional.model.request.auction.RegsExt
 import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.model.request.auction.UserExt
 import org.prebid.server.functional.model.request.auction.UserExtData
@@ -3088,6 +3089,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             it.user.gender = PBSUtils.randomString
             it.user.geo = Geo.FPDGeo
             it.user.ext = new UserExt(data: new UserExtData(buyeruid: PBSUtils.randomString))
+            it.regs.ext ?= new RegsExt()
         }
     }
 }
