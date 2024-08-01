@@ -66,7 +66,7 @@ class BidderFormatSpec extends BaseSpec {
         def exception = thrown(PrebidServerException)
         assert exception.statusCode == 400
         assert exception.responseBody == "Invalid request format: " +
-                "Request imp[0].banner.format[0] must define a valid \"h\" and \"w\" properties"
+                "request.imp[0].banner.format[0] must define a valid \"h\" and \"w\" properties"
 
         where:
         bannerFormatWeight            | bannerFormatHeight
@@ -90,7 +90,7 @@ class BidderFormatSpec extends BaseSpec {
         then: "PBs should throw error due to banner.format{w.h} validation"
         def exception = thrown(PrebidServerException)
         assert exception.statusCode == 400
-        assert exception.responseBody == "Invalid request format: Request imp[0].banner.format[0] " +
+        assert exception.responseBody == "Invalid request format: request.imp[0].banner.format[0] " +
                 "should define *either* {w, h} (for static size requirements) " +
                 "*or* {wmin, wratio, hratio} (for flexible sizes) to be non-zero positive"
 
