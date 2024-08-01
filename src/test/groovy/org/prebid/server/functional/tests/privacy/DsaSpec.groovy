@@ -398,7 +398,7 @@ class DsaSpec extends PrivacyBaseSpec {
         def bidRequest = BidRequest.defaultBidRequest.tap {
             setAccountId(accountId)
             regs.ext.dsa = null
-            regs.ext.gdpr = 0
+            regs.gdpr = 0
         }
 
         and: "Account with default DSA config"
@@ -449,7 +449,7 @@ class DsaSpec extends PrivacyBaseSpec {
         def bidRequest = BidRequest.defaultBidRequest.tap {
             setAccountId(accountId)
             regs.ext.dsa = null
-            regs.ext.gdpr = 0
+            regs.gdpr = 0
         }
 
         and: "Account with default DSA config"
