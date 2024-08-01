@@ -29,8 +29,6 @@
         <git-commmit-plugin.version>4.9.10</git-commmit-plugin.version>
 
         <gmavenplus-plugin.version>3.0.2</gmavenplus-plugin.version>
-        <skipFunctionalTests>false</skipFunctionalTests>
-        <skipModuleFunctionalTests>true</skipModuleFunctionalTests>
         <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
         <build-helper-maven-plugin.version>3.6.0</build-helper-maven-plugin.version>
         <protobuf-maven-plugin.version>0.6.1</protobuf-maven-plugin.version>
@@ -536,6 +534,7 @@
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <configuration>
+                    <skip>${skipUnitTests}</skip>
                     <excludes>
                         <exclude>com/iab/openrtb/**</exclude>
                         <exclude>com/iabtechlab/openrtb/**</exclude>
