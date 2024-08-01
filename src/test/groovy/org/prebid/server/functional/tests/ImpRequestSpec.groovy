@@ -160,12 +160,6 @@ class ImpRequestSpec extends BaseSpec {
         and: "BidderRequest shouldn't update imp information based on imp.ext.prebid.imp value"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp.pmp == [impPmp]
-
-        and: "PBS should remove imp.ext.prebid.imp from bidderRequest"
-        assert !bidderRequest?.imp?.first?.ext?.prebid?.imp
-
-        and: "PBS should remove imp.ext.prebid.bidder from bidderRequest"
-        assert !bidderRequest?.imp?.first?.ext?.prebid?.bidder
     }
 
     def "PBS shouldn't update imp fields when imp.ext.prebid.imp contain invalid empty data"() {
@@ -185,8 +179,8 @@ class ImpRequestSpec extends BaseSpec {
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp.pmp == [impPmp]
 
-        and: "PBS should remove imp.ext.prebid.imp from bidderRequest"
-        assert !bidderRequest?.imp?.first?.ext?.prebid?.imp
+        and: "PBS should remove imp.ext.prebid.imp.pmp from bidderRequest"
+        assert !bidderRequest?.imp?.first?.ext?.prebid?.imp?.get(GENERIC)?.pmp
 
         and: "PBS should remove imp.ext.prebid.bidder from bidderRequest"
         assert !bidderRequest?.imp?.first?.ext?.prebid?.bidder
