@@ -31,6 +31,8 @@ import static org.prebid.server.functional.model.request.auction.Asset.titleAsse
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.DOOH
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
+import static org.prebid.server.functional.model.request.auction.SecurityLevel.NON_SECURE
+import static org.prebid.server.functional.model.request.auction.SecurityLevel.SECURE
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 import static org.prebid.server.functional.model.response.auction.MediaType.AUDIO
 import static org.prebid.server.functional.model.response.auction.MediaType.BANNER
@@ -560,7 +562,7 @@ class BidderParamsSpec extends BaseSpec {
 
         then: "Bid response should contain proper warning"
         assert response.ext?.warnings[ErrorType.GENERIC]?.message ==
-                ["Imp ${bidRequest.imp[1].id} does not have a supported media type and has been removed from the request for this bidder." ]
+                ["Imp ${bidRequest.imp[1].id} does not have a supported media type and has been removed from the request for this bidder."]
 
         and: "Bid response should contain seatbid"
         assert response.seatbid
@@ -697,9 +699,9 @@ class BidderParamsSpec extends BaseSpec {
 
         where:
         secureStoredRequest | secureBidderRequest
-        null                | 1
-        1                   | 1
-        0                   | 0
+        null                | SECURE
+        SECURE              | SECURE
+        NON_SECURE          | NON_SECURE
     }
 
     def "PBS auction should populate imp[0].secure depend which value in imp request"() {
@@ -717,8 +719,8 @@ class BidderParamsSpec extends BaseSpec {
 
         where:
         secureRequest | secureBidderRequest
-        null          | 1
-        1             | 1
-        0             | 0
+        null          | SECURE
+        SECURE        | SECURE
+        NON_SECURE    | NON_SECURE
     }
 }

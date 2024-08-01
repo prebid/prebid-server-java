@@ -21,6 +21,7 @@ import static org.mockserver.model.HttpStatusCode.SERVICE_UNAVAILABLE_503
 import static org.prebid.server.functional.model.AccountStatus.ACTIVE
 import static org.prebid.server.functional.model.config.BidValidationEnforcement.ENFORCE
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
+import static org.prebid.server.functional.model.request.auction.SecurityLevel.SECURE
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.ERROR_BIDDER_UNREACHABLE
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.ERROR_INVALID_BID_RESPONSE
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.ERROR_NO_BID
@@ -126,38 +127,6 @@ class SeatNonBidSpec extends BaseSpec {
         def account = new Account(status: ACTIVE, uuid: bidRequest.accountId, config: accountConfig)
         accountDao.save(account)
 
-
-        when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
-
-        then: "PBS response should contain seatNonBid for called bidder"
-        assert response.ext.seatnonbid.size() == 1
-
-        def seatNonBid = response.ext.seatnonbid[0]
-        assert seatNonBid.seat == GENERIC.value
-        assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
-        assert seatNonBid.nonBid[0].statusCode == RESPONSE_REJECTED_INVALID_CREATIVE_SIZE
-    }
-
-    def "PBS should populate seatNonBid when returnAllBidStatus=true and requested bidder responded with invalid creative size status code2"() {
-        given: "Default bid request with returnAllBidStatus"
-        def bidRequest = requestWithAllBidStatus.tap {
-            imp.ext.first
-        }
-
-        and: "Default bidder response without bid"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-
-        and: "Set bidder response"
-        bidder.setResponse(bidRequest.id, bidResponse)
-
-        and: "Account in the DB"
-        def accountConfig = new AccountConfig(auction: new AccountAuctionConfig(bidValidations:
-                new AccountBidValidationConfig(bannerMaxSizeEnforcement: ENFORCE)))
-        def account = new Account(status: ACTIVE, uuid: bidRequest.accountId, config: accountConfig)
-        accountDao.save(account)
-
-
         when: "PBS processes auction request"
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
@@ -176,7 +145,7 @@ class SeatNonBidSpec extends BaseSpec {
 
         and: "A bid request with secure and returnAllBidStatus flags set"
         def bidRequest = requestWithAllBidStatus.tap {
-            imp[0].secure = 1
+            imp[0].secure = SECURE
         }
 
         and: "A default bidder response without a valid bid"
