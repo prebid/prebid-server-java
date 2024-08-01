@@ -8,6 +8,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.cloud.storage.Blob;
+import com.google.cloud.storage.Bucket;
+import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageOptions;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.maxmind.geoip2.DatabaseReader;
@@ -49,8 +53,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -75,6 +77,8 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
     private static final String BID_REQUEST_ANALYTICS_EXTENSION_NAME = "greenbids";
     private static final Double EXPLORATION_RATE = 0.0001;
     private static final int RANGE_16_BIT_INTEGER_DIVISION_BASIS = 0x10000;
+    private static final String GCS_BUCKET_NAME = "greenbids-europe-west1-prebid-server-staging";
+    private static final String GOOGLE_CLOUD_GREENBIDS_PROJECT = "greenbids-357713";
 
     private final ObjectMapper mapper;
 
@@ -109,7 +113,9 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
 
         //thresholds array for debug;
         // List<Double> threshold = Arrays.asList(0.1, 0.9, 0.2);
-        Double threshold = getThresholdForPartner(partner);
+        Storage storage = StorageOptions.newBuilder()
+                .setProjectId(GOOGLE_CLOUD_GREENBIDS_PROJECT).build().getService();
+        Double threshold = getThresholdForPartner(partner, storage);
 
         List<ThrottlingMessage> throttlingMessages = extractThrottlingMessages(
                 bidRequest,
@@ -223,27 +229,34 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
         return Future.succeededFuture(invocationResult);
     }
 
-    private Double getThresholdForPartner(Partner partner) {
+    private Double getThresholdForPartner(Partner partner, Storage storage) {
+        byte[] jsonBytes = readGcsFile(storage, partner.getThresholdsJsonPath());
+
         JsonNode thresholdsJsonNode;
         ThrottlingThresholds throttlingThresholds;
         try {
-            thresholdsJsonNode = mapper.readTree(Files.newInputStream(Paths.get(partner.getThresholdsJsonPath())));
+            //thresholdsJsonNode = mapper.readTree(Files.newInputStream(Paths.get(partner.getThresholdsJsonPath())));
+            thresholdsJsonNode = mapper.readTree(jsonBytes);
             throttlingThresholds =
                     mapper.treeToValue(thresholdsJsonNode, ThrottlingThresholds.class);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
 
-        return throttlingThresholds.getRocCurves().stream()
-                .flatMap(rocCurve -> {
-                    List<Double> truePositiveRates = rocCurve.getThresholds().getTruePositiveRates();
-                    List<Double> thresholds = rocCurve.getThresholds().getThresholds();
-                    return truePositiveRates.stream()
-                            .filter(truePositiveRate -> truePositiveRate >= partner.getTargetTpr())
-                            .map(truePositiveRate -> thresholds.get(truePositiveRates.indexOf(truePositiveRate)));
-                })
+        List<Double> truePositiveRates = throttlingThresholds.getTpr();
+        List<Double> thresholds = throttlingThresholds.getThresholds();
+
+        return truePositiveRates.stream()
+                .filter(truePositiveRate -> truePositiveRate >= partner.getTargetTpr())
+                .map(truePositiveRate -> thresholds.get(truePositiveRates.indexOf(truePositiveRate)))
                 .max(Comparator.naturalOrder())
                 .orElse(0.0);
+    }
+
+    private static byte[] readGcsFile(Storage storage, String fileName) {
+        Bucket bucket = storage.get(GCS_BUCKET_NAME);
+        Blob blob = bucket.get(fileName);
+        return blob.getContent();
     }
 
     private GreenbidsPrebidExt parseBidRequestExt(BidRequest bidRequest) {

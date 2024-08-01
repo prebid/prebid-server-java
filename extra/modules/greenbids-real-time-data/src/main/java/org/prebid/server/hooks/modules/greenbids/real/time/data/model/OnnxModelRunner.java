@@ -11,10 +11,10 @@ public class OnnxModelRunner {
     private OrtSession session;
     private OrtEnvironment environment;
 
-    public OnnxModelRunner(String modelPath) throws OrtException {
+    public OnnxModelRunner(byte[] onnxModelBytes) throws OrtException {
         environment = OrtEnvironment.getEnvironment();
         OrtSession.SessionOptions options = new OrtSession.SessionOptions();
-        session = environment.createSession(modelPath, options);
+        session = environment.createSession(onnxModelBytes, options);
     }
 
     public OrtSession.Result runModel(String[][] throttlingInferenceRow) throws OrtException {
