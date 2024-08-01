@@ -11,6 +11,7 @@ import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC_CAMEL_CASE
 import static org.prebid.server.functional.model.bidder.BidderName.UNKNOWN
 import static org.prebid.server.functional.model.bidder.BidderName.WILDCARD
+import static org.prebid.server.functional.model.bidder.BidderName.bidderNameByString
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 
 class ImpRequestSpec extends BaseSpec {
@@ -82,9 +83,9 @@ class ImpRequestSpec extends BaseSpec {
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp.first.tap {
                 pmp = Pmp.defaultPmp
-                ext.prebid.imp = [(bidderName): new Imp(pmp: extPmp)]
+                ext.prebid.imp = [(aliasName): new Imp(pmp: extPmp)]
             }
-            ext.prebid.aliases = [(ALIAS.value): GENERIC]
+            ext.prebid.aliases = [(aliasName.value): GENERIC]
         }
 
         when: "Requesting PBS auction"
@@ -101,7 +102,11 @@ class ImpRequestSpec extends BaseSpec {
         assert !bidderRequest?.imp?.first?.ext?.prebid?.bidder
 
         where:
-        bidderName << [ALIAS, ALIAS_CAMEL_CASE]
+        aliasName        | bidderName
+        ALIAS            | GENERIC
+        ALIAS_CAMEL_CASE | GENERIC
+        ALIAS            | GENERIC_CAMEL_CASE
+        ALIAS_CAMEL_CASE | GENERIC_CAMEL_CASE
     }
 
     def "PBS shouldn't update imp fields when imp.ext.prebid.imp contain only bidder with invalid name"() {
