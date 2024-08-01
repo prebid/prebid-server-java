@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
@@ -25,7 +26,6 @@
         <checkstyle-plugin.version>3.4.0</checkstyle-plugin.version>
         <checkstyle.version>10.17.0</checkstyle.version>
         <download-plugin.version>1.9.0</download-plugin.version>
-        <jacoco-plugin.version>0.8.12</jacoco-plugin.version>
         <git-commmit-plugin.version>4.9.10</git-commmit-plugin.version>
 
         <gmavenplus-plugin.version>3.0.2</gmavenplus-plugin.version>
@@ -366,7 +366,6 @@
                             <launchContainers>false</launchContainers>
                         </systemPropertyVariables>
                         <skipTests>${skipUnitTests}</skipTests>
-                        <argLine>${surefire.jacoco.args}</argLine>
                     </configuration>
                 </plugin>
                 <plugin>
@@ -536,10 +535,11 @@
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <version>${jacoco-plugin.version}</version>
                 <configuration>
                     <excludes>
                         <exclude>com/iab/openrtb/**</exclude>
+                        <exclude>com/iabtechlab/openrtb/**</exclude>
+                        <exclude>com/magnite/openrtb/**</exclude>
                         <exclude>**/proto/**</exclude>
                         <exclude>**/model/**</exclude>
                         <exclude>**/functional/**</exclude>
@@ -547,21 +547,6 @@
                     </excludes>
                 </configuration>
                 <executions>
-                    <execution>
-                        <id>before-unit-test-execution</id>
-                        <goals>
-                            <goal>prepare-agent</goal>
-                        </goals>
-                        <configuration>
-                            <propertyName>surefire.jacoco.args</propertyName>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>after-unit-test-execution</id>
-                        <goals>
-                            <goal>report</goal>
-                        </goals>
-                    </execution>
                     <execution>
                         <id>check</id>
                         <goals>
