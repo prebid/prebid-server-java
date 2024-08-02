@@ -8,7 +8,7 @@ import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.Banner
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Device
-import org.prebid.server.functional.model.request.auction.Foo
+import org.prebid.server.functional.model.request.auction.AnyUnsupportedBidder
 import org.prebid.server.functional.model.request.auction.Geo
 import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.ImpExt
@@ -726,49 +726,49 @@ class BidderParamsSpec extends BaseSpec {
         0             | 0
     }
 
-    def "PBS shouldn't emit warning and proceed auction when imp.ext.foo and imp.ext.prebid.bidder.generic in the request"() {
+    def "PBS shouldn't emit warning and proceed auction when imp.ext.anyUnsupportedBidder and imp.ext.prebid.bidder.generic in the request"() {
         given: "Default bid request"
-        def foo = new Foo(anyProperty: PBSUtils.randomString)
+        def unsupportedBidder = new AnyUnsupportedBidder(anyUnsupportedField: PBSUtils.randomString)
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp[0].ext.foo = foo
+            imp[0].ext.anyUnsupportedBidder = unsupportedBidder
             imp[0].ext.prebid.bidder.generic = new Generic()
         }
 
         when: "PBS processes auction request"
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Bidder request should contain imp.ext.foo"
+        then: "Bidder request should contain imp.ext.anyUnsupportedBidder"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.imp[0].ext.foo == foo
+        assert bidderRequest.imp[0].ext.anyUnsupportedBidder == unsupportedBidder
 
         and: "Response shouldn't contain warning"
         assert !response?.ext?.warnings
     }
 
-    def "PBS should emit warning and proceed auction when imp.ext.foo and imp.ext.generic in the request"() {
+    def "PBS should emit warning and proceed auction when imp.ext.anyUnsupportedBidder and imp.ext.generic in the request"() {
         given: "Default bid request"
-        def foo = new Foo(anyProperty: PBSUtils.randomString)
+        def unsupportedBidder = new AnyUnsupportedBidder(anyUnsupportedField: PBSUtils.randomString)
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].ext.generic = new Generic()
-            imp[0].ext.foo = foo
+            imp[0].ext.anyUnsupportedBidder = unsupportedBidder
             imp[0].ext.prebid.bidder = null
         }
 
         when: "PBS processes auction request"
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Bidder request should contain imp.ext.foo"
+        then: "Bidder request should contain imp.ext.anyUnsupportedBidder"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.imp[0].ext.foo == foo
+        assert bidderRequest.imp[0].ext.anyUnsupportedBidder == unsupportedBidder
 
         and: "PBS should emit an warning"
         assert response?.ext?.warnings[PREBID]*.code == [999]
         assert response?.ext?.warnings[PREBID]*.message ==
-                ["WARNING: request.imp[0].ext.prebid.bidder.foo was dropped with a reason: " +
-                         "request.imp[0].ext.prebid.bidder contains unknown bidder: foo"]
+                ["WARNING: request.imp[0].ext.prebid.bidder.anyUnsupportedBidder was dropped with a reason: " +
+                         "request.imp[0].ext.prebid.bidder contains unknown bidder: anyUnsupportedBidder"]
     }
 
-    def "PBS shouldn't emit warning and proceed auction when imp.ext.foo and imp.ext.generic in the request"() {
+    def "PBS shouldn't emit warning and proceed auction when all imp.ext fields known for PBS"() {
         given: "Default bid request with populated imp.ext"
         def impExt = ImpExt.getDefaultImpExt().tap {
             prebid.bidder.generic = null

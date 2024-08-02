@@ -3,7 +3,7 @@ package org.prebid.server.functional.model.request.auction
 import groovy.transform.EqualsAndHashCode
 
 @EqualsAndHashCode
-class Foo {
+class AnyUnsupportedBidder {
 
-    String anyProperty
+    String anyUnsupportedField
 }

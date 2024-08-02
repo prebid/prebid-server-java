@@ -26,7 +26,7 @@ class ImpExt {
     String all
     String skadn
     String general
-    Foo foo
+    AnyUnsupportedBidder anyUnsupportedBidder
 
     static ImpExt getDefaultImpExt() {
         new ImpExt().tap {
