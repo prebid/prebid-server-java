@@ -9,6 +9,7 @@ import com.google.cloud.storage.StorageOptions;
 
 import java.time.Instant;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class ModelCache {
 
@@ -19,6 +20,7 @@ public class ModelCache {
     Cache<String, OnnxModelRunner> cache;
     Instant lastModifiedTime;
     Storage storage;
+    ReentrantLock lock;
 
     public ModelCache(String modelPath) {
         this.modelPath = modelPath;
@@ -28,26 +30,34 @@ public class ModelCache {
         // force cache load on first access
         this.lastModifiedTime = Instant.EPOCH;
         this.storage = StorageOptions.newBuilder().setProjectId(GOOGLE_CLOUD_GREENBIDS_PROJECT).build().getService();
+        this.lock = new ReentrantLock();
     }
 
     public OnnxModelRunner getModelRunner() {
-        Blob blob = getBlob();
-        Instant currentLastModifiedTime = Instant.ofEpochMilli(blob.getUpdateTime());
+        lock.lock();
+        try {
+            Blob blob = getBlob();
+            Instant currentLastModifiedTime = Instant.ofEpochMilli(blob.getUpdateTime());
 
-        System.out.println(
-                "getModelRunner: \n" +
-                        "blob: " + blob + "\n" +
-                        "currentLastModifiedTime: " + currentLastModifiedTime + "\n" +
-                        "lastModifiedTime: " + lastModifiedTime + "\n" +
-                        "cache: " + cache
-        );
+            System.out.println(
+                    "getModelRunner: \n" +
+                            "blob: " + blob + "\n" +
+                            "currentLastModifiedTime: " + currentLastModifiedTime + "\n" +
+                            "lastModifiedTime: " + lastModifiedTime + "\n" +
+                            "cache: " + cache
+            );
 
-        if (!lastModifiedTime.equals(currentLastModifiedTime)) {
-            cache.invalidateAll();
-            lastModifiedTime = currentLastModifiedTime;
+            if (!lastModifiedTime.equals(currentLastModifiedTime)) {
+                cache.invalidateAll();
+                lastModifiedTime = currentLastModifiedTime;
+            }
+
+            return cache.get("onnxModelRunner", key -> loadModelRunner(blob));
+        } finally {
+            lock.unlock();
         }
 
-        return cache.get("onnxModelRunner", key -> loadModelRunner(blob));
+
     }
 
     private Blob getBlob() {
