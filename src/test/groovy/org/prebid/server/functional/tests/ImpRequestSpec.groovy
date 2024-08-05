@@ -1,8 +1,12 @@
 package org.prebid.server.functional.tests
 
+import org.prebid.server.functional.model.db.StoredImp
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.Pmp
+import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
+import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.util.PBSUtils
 
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS_CAMEL_CASE
@@ -11,22 +15,30 @@ import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC_CAMEL_CASE
 import static org.prebid.server.functional.model.bidder.BidderName.UNKNOWN
 import static org.prebid.server.functional.model.bidder.BidderName.WILDCARD
-import static org.prebid.server.functional.model.bidder.BidderName.bidderNameByString
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 
 class ImpRequestSpec extends BaseSpec {
 
-    def defaultPbsServiceWithAlias = pbsServiceFactory.getService(GENERIC_ALIAS_CONFIG)
+    private final PrebidServerService defaultPbsServiceWithAlias = pbsServiceFactory.getService(GENERIC_ALIAS_CONFIG)
+    private static final String EMPTY_ID = ""
 
     def "PBS should update imp fields when imp.ext.prebid.imp contain bidder information"() {
         given: "Default basic BidRequest"
         def extPmp = Pmp.defaultPmp
+        def storedRequestId = PBSUtils.randomString
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp.first.tap {
                 pmp = Pmp.defaultPmp
+                ext.prebid.storedRequest = new PrebidStoredRequest(id: storedRequestId)
                 ext.prebid.imp = [(bidderName): new Imp(pmp: extPmp)]
             }
         }
+
+        and: "Save storedImp into DB"
+        def storedImp = StoredImp.getStoredImp(bidRequest).tap {
+            impData = Imp.defaultImpression
+        }
+        storedImpDao.save(storedImp)
 
         when: "Requesting PBS auction"
         defaultPbsServiceWithAlias.sendAuctionRequest(bidRequest)
@@ -35,8 +47,11 @@ class ImpRequestSpec extends BaseSpec {
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp.pmp == [extPmp]
 
+        and: "BidderRequest should contain original stored request id"
+        assert bidderRequest.imp.ext.prebid.storedRequest.id == [storedRequestId]
+
         and: "PBS should remove imp.ext.prebid.imp from bidderRequest"
-        assert !bidderRequest?.imp?.ext?.prebid?.imp
+        assert bidderRequest?.imp?.ext?.prebid?.imp == [null]
 
         and: "PBS should remove imp.ext.prebid.bidder from bidderRequest"
         assert !bidderRequest?.imp?.first?.ext?.prebid?.bidder
@@ -148,7 +163,7 @@ class ImpRequestSpec extends BaseSpec {
             imp.first.tap {
                 pmp = impPmp
                 ext.prebid.imp = [(GENERIC): Imp.defaultImpression.tap {
-                    id = ""
+                    id = EMPTY_ID
                 }]
             }
         }
@@ -170,12 +185,20 @@ class ImpRequestSpec extends BaseSpec {
     def "PBS shouldn't update imp fields when imp.ext.prebid.imp contain invalid empty data"() {
         given: "Default basic BidRequest"
         def impPmp = Pmp.defaultPmp
+        def storedRequestId = PBSUtils.randomString
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp.first.tap {
                 pmp = impPmp
                 ext.prebid.imp = prebidImp
+                ext.prebid.storedRequest = new PrebidStoredRequest(id: storedRequestId)
             }
         }
+
+        and: "Save storedImp into DB"
+        def storedImp = StoredImp.getStoredImp(bidRequest).tap {
+            impData = Imp.defaultImpression
+        }
+        storedImpDao.save(storedImp)
 
         when: "Requesting PBS auction"
         defaultPbsServiceWithAlias.sendAuctionRequest(bidRequest)
@@ -183,6 +206,9 @@ class ImpRequestSpec extends BaseSpec {
         then: "BidderRequest shouldn't update imp information based on imp.ext.prebid.imp value"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp.pmp == [impPmp]
+
+        and: "BidderRequest should contain original stored request id"
+        assert bidderRequest.imp.ext.prebid.storedRequest.id == [storedRequestId]
 
         and: "PBS should remove imp.ext.prebid.imp.pmp from bidderRequest"
         assert !bidderRequest?.imp?.first?.ext?.prebid?.imp?.get(GENERIC)?.pmp
