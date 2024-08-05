@@ -1,6 +1,7 @@
 adapters:
   ownadx:
     endpoint: "https://pbs.prebid-ownadx.com/bidder/bid/{{SeatID}}/{{SspID}}?token={{TokenID}}"
+    endpoint-compression: gzip
     meta-info:
       maintainer-email: prebid-team@techbravo.com
       app-media-types:
