@@ -64,7 +64,7 @@ class SeatNonBidSpec extends BaseSpec {
         given: "Default bid request with returnAllBidStatus"
         def bidRequest = requestWithAllBidStatus
 
-        and: "Default bidder response without bid"
+        and: "Default bidder response"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
 
         and: "Set bidder response"
@@ -88,7 +88,7 @@ class SeatNonBidSpec extends BaseSpec {
         given: "Default bid request with returnAllBidStatus"
         def bidRequest = requestWithAllBidStatus
 
-        and: "Default bidder response without bid"
+        and: "Default bidder response"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
 
         and: "Set bidder response"
@@ -110,7 +110,7 @@ class SeatNonBidSpec extends BaseSpec {
         given: "Default bid request with returnAllBidStatus"
         def bidRequest = requestWithAllBidStatus
 
-        and: "Default bidder response without bid"
+        and: "Default bidder response with creative size adjustment"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
             seatbid.first.tap {
                 bid.first.height = bidRequest.imp.first.banner.format.first.height + 1
@@ -174,7 +174,7 @@ class SeatNonBidSpec extends BaseSpec {
         given: "Default bid request with returnAllBidStatus"
         def bidRequest = requestWithAllBidStatus
 
-        and: "Default bidder response without bid"
+        and: "Default bidder response"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
 
         and: "Set bidder response"
@@ -194,7 +194,7 @@ class SeatNonBidSpec extends BaseSpec {
             ext.prebid.debug = debug
         }
 
-        and: "Default bidder response without bid"
+        and: "Default bidder response"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
             seatbid = []
         }
