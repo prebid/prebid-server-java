@@ -17,12 +17,11 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.beachfront.model.BeachfrontBannerRequest;
 import org.prebid.server.bidder.beachfront.model.BeachfrontResponseSlot;
@@ -60,20 +59,18 @@ import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 public class BeachfrontBidderTest extends VertxTest {
 
     private static final String BANNER_ENDPOINT = "http://banner-beachfront.com";
     private static final String VIDEO_ENDPOINT = "http://video-beachfront.com?exchange_id=";
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private CurrencyConversionService currencyConversionService;
 
     private BeachfrontBidder target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new BeachfrontBidder(
                 BANNER_ENDPOINT,
@@ -122,7 +119,7 @@ public class BeachfrontBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith(
+        assertThat(result.getErrors().getFirst().getMessage()).startsWith(
                 "ignoring imp id=123, error while decoding extImpBeachfront, err: Cannot deserialize value");
     }
 
@@ -364,7 +361,7 @@ public class BeachfrontBidderTest extends VertxTest {
         final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue().get(0).getHeaders())
+        assertThat(result.getValue().getFirst().getHeaders())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(
                         tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), "application/json;charset=utf-8"),
@@ -385,7 +382,7 @@ public class BeachfrontBidderTest extends VertxTest {
         final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue().get(0).getHeaders())
+        assertThat(result.getValue().getFirst().getHeaders())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .contains(
                         tuple(HttpUtil.COOKIE_HEADER.toString(), "__io_cid=4125"));
@@ -598,7 +595,7 @@ public class BeachfrontBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage())
+        assertThat(result.getErrors().getFirst().getMessage())
                 .isEqualTo("server response failed to unmarshal as valid rtb. "
                         + "Run with request.debug = 1 for more info");
     }

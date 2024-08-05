@@ -10,7 +10,7 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.algorix.model.AlgorixVideoExt;
 import org.prebid.server.bidder.model.BidderBid;
@@ -42,7 +42,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
  */
 public class AlgorixBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://{HOST}.svr-algorix.com/rtb/sa?sid={SID}&token={TOKEN}";
+    private static final String ENDPOINT_URL = "https://{{HOST}}.svr-algorix.com/rtb/sa?sid={{SID}}&token={{TOKEN}}";
 
     private final AlgorixBidder target = new AlgorixBidder(ENDPOINT_URL, jacksonMapper);
 

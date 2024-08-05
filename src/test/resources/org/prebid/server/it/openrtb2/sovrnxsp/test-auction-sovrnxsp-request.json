@@ -1,0 +1,39 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "video": {
+        "mimes": [
+          "video/mp4"
+        ],
+        "maxduration": 30,
+        "protocols": [
+          2,
+          3,
+          5,
+          6
+        ]
+      },
+      "ext": {
+        "sovrnXsp": {
+          "pub_id": "pub_id",
+          "zone_id": "zone_id_zone_id_zone_id",
+          "med_id": "med_id"
+        }
+      }
+    }
+  ],
+  "app": {
+    "id": "app_id",
+    "publisher": {
+      "id": "publisher_id"
+    }
+  },
+  "tmax": 5000,
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

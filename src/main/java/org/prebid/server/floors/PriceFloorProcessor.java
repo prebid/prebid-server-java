@@ -1,10 +1,17 @@
 package org.prebid.server.floors;
 
-import org.prebid.server.auction.model.AuctionContext;
+import com.iab.openrtb.request.BidRequest;
+import org.prebid.server.settings.model.Account;
+
+import java.util.List;
 
 public interface PriceFloorProcessor {
 
-    AuctionContext enrichWithPriceFloors(AuctionContext auctionContext);
+    BidRequest enrichWithPriceFloors(BidRequest bidRequest,
+                                     Account account,
+                                     String bidder,
+                                     List<String> errors,
+                                     List<String> warnings);
 
     static NoOpPriceFloorProcessor noOp() {
         return new NoOpPriceFloorProcessor();
@@ -13,8 +20,13 @@ public interface PriceFloorProcessor {
     class NoOpPriceFloorProcessor implements PriceFloorProcessor {
 
         @Override
-        public AuctionContext enrichWithPriceFloors(AuctionContext auctionContext) {
-            return auctionContext;
+        public BidRequest enrichWithPriceFloors(BidRequest bidRequest,
+                                                Account account,
+                                                String bidder,
+                                                List<String> errors,
+                                                List<String> warnings) {
+
+            return bidRequest;
         }
     }
 }

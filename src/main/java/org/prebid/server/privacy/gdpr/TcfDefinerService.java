@@ -2,19 +2,19 @@ package org.prebid.server.privacy.gdpr;
 
 import com.iabtcf.decoder.TCString;
 import io.vertx.core.Future;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import lombok.Value;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.GeoLocationServiceWrapper;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.execution.Timeout;
-import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
@@ -27,12 +27,15 @@ import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.EnabledForRequestType;
 import org.prebid.server.settings.model.GdprConfig;
+import org.prebid.server.util.ObjectUtil;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -59,7 +62,7 @@ public class TcfDefinerService {
     private final boolean consentStringMeansInScope;
     private final Tcf2Service tcf2Service;
     private final Set<String> eeaCountries;
-    private final GeoLocationService geoLocationService;
+    private final GeoLocationServiceWrapper geoLocationServiceWrapper;
     private final BidderCatalog bidderCatalog;
     private final IpAddressHelper ipAddressHelper;
     private final Metrics metrics;
@@ -67,7 +70,7 @@ public class TcfDefinerService {
     public TcfDefinerService(GdprConfig gdprConfig,
                              Set<String> eeaCountries,
                              Tcf2Service tcf2Service,
-                             GeoLocationService geoLocationService,
+                             GeoLocationServiceWrapper geoLocationServiceWrapper,
                              BidderCatalog bidderCatalog,
                              IpAddressHelper ipAddressHelper,
                              Metrics metrics) {
@@ -78,7 +81,7 @@ public class TcfDefinerService {
                 && BooleanUtils.isTrue(gdprConfig.getConsentStringMeansInScope());
         this.tcf2Service = Objects.requireNonNull(tcf2Service);
         this.eeaCountries = Objects.requireNonNull(eeaCountries);
-        this.geoLocationService = geoLocationService;
+        this.geoLocationServiceWrapper = Objects.requireNonNull(geoLocationServiceWrapper);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.ipAddressHelper = Objects.requireNonNull(ipAddressHelper);
         this.metrics = Objects.requireNonNull(metrics);
@@ -93,11 +96,12 @@ public class TcfDefinerService {
                                                 AccountGdprConfig accountGdprConfig,
                                                 MetricName requestType,
                                                 RequestLogInfo requestLogInfo,
-                                                Timeout timeout) {
+                                                Timeout timeout,
+                                                GeoInfo geoInfo) {
 
         final Future<TcfContext> tcfContextFuture = !isGdprEnabled(accountGdprConfig, requestType)
                 ? Future.succeededFuture(TcfContext.empty())
-                : prepareTcfContext(privacy, country, ipAddress, requestLogInfo, timeout);
+                : prepareTcfContext(privacy, country, ipAddress, accountGdprConfig, requestLogInfo, timeout, geoInfo);
 
         return tcfContextFuture.map(this::updateTcfGeoMetrics);
     }
@@ -112,7 +116,15 @@ public class TcfDefinerService {
                                                 RequestLogInfo requestLogInfo,
                                                 Timeout timeout) {
 
-        return resolveTcfContext(privacy, null, ipAddress, accountGdprConfig, requestType, requestLogInfo, timeout);
+        return resolveTcfContext(
+                privacy,
+                null,
+                ipAddress,
+                accountGdprConfig,
+                requestType,
+                requestLogInfo,
+                timeout,
+                null);
     }
 
     public Future<TcfResponse<Integer>> resultForVendorIds(Set<Integer> vendorIds, TcfContext tcfContext) {
@@ -175,8 +187,10 @@ public class TcfDefinerService {
     private Future<TcfContext> prepareTcfContext(Privacy privacy,
                                                  String country,
                                                  String ipAddress,
+                                                 AccountGdprConfig accountGdprConfig,
                                                  RequestLogInfo requestLogInfo,
-                                                 Timeout timeout) {
+                                                 Timeout timeout,
+                                                 GeoInfo geoInfo) {
 
         final String consentString = privacy.getConsentString();
         final TCStringParsingResult consentStringParsingResult = parseConsentString(consentString, requestLogInfo);
@@ -184,7 +198,7 @@ public class TcfDefinerService {
         final boolean consentValid = isConsentValid(consent);
 
         final String effectiveIpAddress = maybeMaskIp(ipAddress, consent);
-        final Boolean inEea = isCountryInEea(country);
+        final Boolean inEea = isCountryInEea(country, accountGdprConfig);
 
         final TcfContext defaultContext = TcfContext.builder()
                 .inGdprScope(inScopeOfGdpr(gdprDefaultValue))
@@ -205,17 +219,9 @@ public class TcfDefinerService {
             return Future.succeededFuture(defaultContext.toBuilder().inGdprScope(inScopeOfGdpr(gdpr)).build());
         }
 
-        if (country != null) {
-            return Future.succeededFuture(defaultContext.toBuilder().inGdprScope(inScopeOfGdpr(inEea)).build());
-        }
-
-        if (ipAddress != null && geoLocationService != null) {
-            return geoLocationService.lookup(effectiveIpAddress, timeout)
-                    .map(geoInfo -> updateMetricsAndEnrichWithGeo(geoInfo, defaultContext))
-                    .recover(error -> logError(error, defaultContext));
-        }
-
-        return Future.succeededFuture(defaultContext);
+        return geoLocationServiceWrapper.doLookup(effectiveIpAddress, country, timeout)
+                .recover(ignored -> Future.succeededFuture(geoInfo))
+                .map(lookupResult -> enrichWithGeoInfo(defaultContext, lookupResult, country, accountGdprConfig));
     }
 
     private String maybeMaskIp(String ipAddress, TCString consent) {
@@ -237,30 +243,35 @@ public class TcfDefinerService {
         return isConsentValid(consent) && consent.getVersion() == 2 && !consent.getSpecialFeatureOptIns().contains(1);
     }
 
-    private TcfContext updateMetricsAndEnrichWithGeo(GeoInfo geoInfo, TcfContext tcfContext) {
-        metrics.updateGeoLocationMetric(true);
-        final Boolean inEea = isCountryInEea(geoInfo.getCountry());
+    private TcfContext enrichWithGeoInfo(TcfContext defaultTcfContext,
+                                         GeoInfo geoInfo,
+                                         String defaultCountry,
+                                         AccountGdprConfig accountGdprConfig) {
+
+        final String country = ObjectUtil.getIfNotNullOrDefault(geoInfo, GeoInfo::getCountry, () -> defaultCountry);
+        final Boolean inEea = isCountryInEea(country, accountGdprConfig);
         final boolean inScope = inScopeOfGdpr(inEea);
 
-        return tcfContext.toBuilder()
-                .geoInfo(geoInfo)
-                .inGdprScope(inScope)
+        return defaultTcfContext.toBuilder()
                 .inEea(inEea)
+                .inGdprScope(inScope)
+                .geoInfo(geoInfo)
                 .build();
     }
 
-    private Future<TcfContext> logError(Throwable error, TcfContext tcfContext) {
-        final String message = "Geolocation lookup failed: " + error.getMessage();
-        logger.warn(message);
-        logger.debug(message, error);
-
-        metrics.updateGeoLocationMetric(false);
-
-        return Future.succeededFuture(tcfContext);
+    private Boolean isCountryInEea(String country, AccountGdprConfig accountGdprConfig) {
+        final Set<String> publisherEeaCountries = Optional.ofNullable(accountGdprConfig)
+                .map(AccountGdprConfig::getEeaCountries)
+                .map(TcfDefinerService::eeaCountries)
+                .orElse(eeaCountries);
+        return country != null ? publisherEeaCountries.contains(country) : null;
     }
 
-    private Boolean isCountryInEea(String country) {
-        return country != null ? eeaCountries.contains(country) : null;
+    private static Set<String> eeaCountries(String eeaCountriesAsString) {
+        return Arrays.stream(eeaCountriesAsString.split(","))
+                .map(StringUtils::strip)
+                .filter(StringUtils::isNotBlank)
+                .collect(Collectors.toSet());
     }
 
     private TcfContext updateTcfGeoMetrics(TcfContext tcfContext) {
@@ -349,8 +360,8 @@ public class TcfDefinerService {
         }
 
         final int tcfPolicyVersion = tcString.getTcfPolicyVersion();
-        // disable support for tcf policy version > 4
-        if (tcfPolicyVersion > 4) {
+        // disable support for tcf policy version > 5
+        if (tcfPolicyVersion > 5) {
             warnings.add("Parsing consent string: %s failed. TCF policy version %d is not supported".formatted(
                     consentString, tcfPolicyVersion));
             return TCStringParsingResult.of(TCStringEmpty.create(), warnings);

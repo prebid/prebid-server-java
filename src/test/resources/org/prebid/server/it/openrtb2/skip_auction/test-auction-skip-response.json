@@ -1,0 +1,35 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "another_bid_id",
+          "impid": "another_imp_id",
+          "price": 4.44,
+          "adm": "<VAST>...</VAST>",
+          "crid": "creativeId",
+          "ext": {
+            "origbidcpm": 4.44,
+            "prebid": {
+              "type": "video"
+            }
+          }
+        }
+      ],
+      "seat": "anotherbidder",
+      "group": 0
+    }
+  ],
+  "ext": {
+    "warnings": {
+      "prebid": [
+        {
+          "code": 999,
+          "message": "no auction. response defined by storedauctionresponse"
+        }
+      ]
+    },
+    "tmaxrequest": 5000
+  }
+}

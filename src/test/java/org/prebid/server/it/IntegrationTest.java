@@ -5,7 +5,7 @@ import com.github.tomakehurst.wiremock.common.FileSource;
 import com.github.tomakehurst.wiremock.extension.Parameters;
 import com.github.tomakehurst.wiremock.extension.ResponseTransformer;
 import com.github.tomakehurst.wiremock.http.Request;
-import com.github.tomakehurst.wiremock.junit.WireMockClassRule;
+import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.config.ObjectMapperConfig;
 import io.restassured.config.RestAssuredConfig;
@@ -16,14 +16,15 @@ import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONException;
-import org.junit.After;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.prebid.server.VertxTest;
-import org.prebid.server.cache.proto.request.BidCacheRequest;
-import org.prebid.server.cache.proto.request.PutObject;
-import org.prebid.server.cache.proto.response.BidCacheResponse;
-import org.prebid.server.cache.proto.response.CacheObject;
+import org.prebid.server.cache.proto.request.bid.BidCacheRequest;
+import org.prebid.server.cache.proto.request.bid.BidPutObject;
+import org.prebid.server.cache.proto.response.bid.BidCacheResponse;
+import org.prebid.server.cache.proto.response.bid.CacheObject;
 import org.prebid.server.it.hooks.TestHooksConfiguration;
 import org.prebid.server.it.util.BidCacheRequestPattern;
 import org.prebid.server.model.Endpoint;
@@ -42,20 +43,13 @@ import org.springframework.test.context.TestPropertySource;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Queue;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
-import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
+import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.prebid.server.util.IntegrationTestsUtil.replaceBidderRelatedStaticInfo;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
@@ -69,29 +63,34 @@ public abstract class IntegrationTest extends VertxTest {
             Pattern.compile(".*([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z).*");
 
     @SuppressWarnings("unchecked")
-    @ClassRule
-    public static final WireMockClassRule WIRE_MOCK_RULE = new WireMockClassRule(options()
-            .port(WIREMOCK_PORT)
-            .gzipDisabled(true)
-            .jettyStopTimeout(5000L)
-            .extensions(IntegrationTest.CacheResponseTransformer.class));
+    @RegisterExtension
+    public static final WireMockExtension WIRE_MOCK_RULE = WireMockExtension.newInstance()
+            .options(wireMockConfig()
+                    .port(WIREMOCK_PORT)
+                    .gzipDisabled(true)
+                    .jettyStopTimeout(5000L)
+                    .extensions(IntegrationTest.CacheResponseTransformer.class))
+            .build();
 
     protected static final RequestSpecification SPEC = spec(APP_PORT);
     private static final String HOST_AND_PORT = "localhost:" + WIREMOCK_PORT;
     private static final String CACHE_PATH = "/cache";
     private static final String CACHE_ENDPOINT = "http://" + HOST_AND_PORT + CACHE_PATH;
-    private static final String USER_SERVICE_PATH = "/user-data-details";
-    private static final String USER_SERVICE_ENDPOINT = "http://" + HOST_AND_PORT + USER_SERVICE_PATH;
 
-    @BeforeClass
-    public static void setUp() throws IOException {
+    @BeforeAll
+    public static void beforeAll() throws IOException {
         WIRE_MOCK_RULE.stubFor(get(urlPathEqualTo("/periodic-update"))
                 .willReturn(aResponse().withBody(jsonFrom("storedrequests/test-periodic-refresh.json"))));
         WIRE_MOCK_RULE.stubFor(get(urlPathEqualTo("/currency-rates"))
                 .willReturn(aResponse().withBody(jsonFrom("currency/latest.json"))));
     }
 
-    @After
+    @BeforeEach
+    public void setUp() throws IOException {
+        beforeAll();
+    }
+
+    @AfterEach
     public void resetWireMock() {
         WIRE_MOCK_RULE.resetAll();
     }
@@ -192,13 +191,13 @@ public abstract class IntegrationTest extends VertxTest {
             String requestAsString, String requestCacheIdMapFile) throws IOException {
 
         try {
-            final BidCacheRequest cacheRequest = mapper.readValue(requestAsString, BidCacheRequest.class);
+            final BidCacheRequest bidCacheRequest = mapper.readValue(requestAsString, BidCacheRequest.class);
             final JsonNode jsonNodeMatcher =
                     mapper.readTree(IntegrationTest.class.getResourceAsStream(requestCacheIdMapFile));
-            final List<PutObject> puts = cacheRequest.getPuts();
+            final List<BidPutObject> puts = bidCacheRequest.getPuts();
 
             final List<CacheObject> responseCacheObjects = new ArrayList<>();
-            for (PutObject putItem : puts) {
+            for (BidPutObject putItem : puts) {
                 final String id = putItem.getType().equals("json")
                         ? putItem.getValue().get("id").textValue() + "@" + resolvePriceForJsonMediaType(putItem)
                         : putItem.getValue().textValue();
@@ -212,7 +211,7 @@ public abstract class IntegrationTest extends VertxTest {
         }
     }
 
-    private static String resolvePriceForJsonMediaType(PutObject putItem) {
+    private static String resolvePriceForJsonMediaType(BidPutObject putItem) {
         final JsonNode extObject = putItem.getValue().get("ext");
         final JsonNode origBidCpm = extObject != null ? extObject.get("origbidcpm") : null;
         return origBidCpm != null ? origBidCpm.toString() : putItem.getValue().get("price").toString();
@@ -240,10 +239,6 @@ public abstract class IntegrationTest extends VertxTest {
         return new Customization("ext.debug.httpcalls.cache", arrayValueMatcher);
     }
 
-    static Customization headersDebugCustomization() {
-        return new Customization("**.requestheaders.x-prebid", (o1, o2) -> true);
-    }
-
     protected static void assertJsonEquals(String file,
                                            Response response,
                                            List<String> bidders,
@@ -263,7 +258,6 @@ public abstract class IntegrationTest extends VertxTest {
                 .replaceAll("\\{\\{ cache.resource_url }}", CACHE_ENDPOINT + "?uuid=")
                 .replaceAll("\\{\\{ cache.host }}", HOST_AND_PORT)
                 .replaceAll("\\{\\{ cache.path }}", CACHE_PATH)
-                .replaceAll("\\{\\{ userservice_uri }}", USER_SERVICE_ENDPOINT)
                 .replaceAll("\\{\\{ event.url }}", "http://localhost:8080/event?");
     }
 
@@ -295,77 +289,6 @@ public abstract class IntegrationTest extends VertxTest {
         @Override
         public String getName() {
             return "cache-response-transformer";
-        }
-
-        @Override
-        public boolean applyGlobally() {
-            return false;
-        }
-    }
-
-    static final String LINE_ITEM_RESPONSE_ORDER = "lineItemResponseOrder";
-    static final String ID_TO_EXECUTION_PARAMETERS = "idToExecutionParameters";
-
-    public static class ResponseOrderTransformer extends ResponseTransformer {
-
-        private static final String LINE_ITEM_PATH = "/imp/0/ext/rp/target/line_item";
-
-        private final Lock lock = new ReentrantLock();
-        private final Condition lockCondition = lock.newCondition();
-
-        @Override
-        @SuppressWarnings("unchecked")
-        public com.github.tomakehurst.wiremock.http.Response transform(
-                Request request,
-                com.github.tomakehurst.wiremock.http.Response response,
-                FileSource files,
-                Parameters parameters) {
-
-            final Queue<String> lineItemResponseOrder =
-                    (Queue<String>) parameters.get(LINE_ITEM_RESPONSE_ORDER);
-            final Map<String, BidRequestExecutionParameters> idToParameters =
-                    (Map<String, BidRequestExecutionParameters>) parameters.get(ID_TO_EXECUTION_PARAMETERS);
-
-            final String requestDealId;
-            try {
-                requestDealId = readStringValue(mapper.readTree(request.getBodyAsString()), LINE_ITEM_PATH);
-            } catch (IOException e) {
-                throw new RuntimeException("Request should contain imp/ext/rp/target/line_item for deals request");
-            }
-
-            final BidRequestExecutionParameters requestParameters = idToParameters.get(requestDealId);
-
-            waitForTurn(lineItemResponseOrder, requestParameters.getDealId(), requestParameters.getDelay());
-
-            return com.github.tomakehurst.wiremock.http.Response.response()
-                    .body(requestParameters.getBody())
-                    .status(requestParameters.getStatus())
-                    .build();
-        }
-
-        private void waitForTurn(Queue<String> dealsResponseOrder, String id, Long delay) {
-            lock.lock();
-            try {
-                while (!Objects.equals(dealsResponseOrder.peek(), id)) {
-                    lockCondition.await();
-                }
-                TimeUnit.MILLISECONDS.sleep(delay);
-                dealsResponseOrder.poll();
-                lockCondition.signalAll();
-            } catch (InterruptedException e) {
-                throw new RuntimeException("Failed on waiting to return bid request for lineItem id = " + id);
-            } finally {
-                lock.unlock();
-            }
-        }
-
-        private String readStringValue(JsonNode jsonNode, String path) {
-            return jsonNode.at(path).asText();
-        }
-
-        @Override
-        public String getName() {
-            return "response-order-transformer";
         }
 
         @Override

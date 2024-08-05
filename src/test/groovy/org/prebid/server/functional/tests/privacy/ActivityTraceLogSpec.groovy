@@ -15,13 +15,13 @@ import org.prebid.server.functional.model.response.auction.And
 import org.prebid.server.functional.model.response.auction.GeoCode
 import org.prebid.server.functional.model.response.auction.RuleConfiguration
 import org.prebid.server.functional.util.PBSUtils
-import org.prebid.server.functional.util.privacy.gpp.UspNatV1Consent
+import org.prebid.server.functional.util.privacy.gpp.UsNatV1Consent
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.pricefloors.Country.CAN
 import static org.prebid.server.functional.model.pricefloors.Country.USA
-import static org.prebid.server.functional.model.request.GppSectionId.USP_CA_V1
-import static org.prebid.server.functional.model.request.GppSectionId.USP_CO_V1
+import static org.prebid.server.functional.model.request.GppSectionId.US_CA_V1
+import static org.prebid.server.functional.model.request.GppSectionId.US_CO_V1
 import static org.prebid.server.functional.model.request.auction.ActivityType.FETCH_BIDS
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_PRECISE_GEO
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_TID
@@ -93,7 +93,7 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
                 componentName: GENERIC.value,
                 componentType: BIDDER,
                 region: ALABAMA.abbreviation,
-                country: USA.value))
+                country: USA.ISOAlpha3))
         assert fetchBidsActivity.ruleConfiguration.every { it == null }
         assert fetchBidsActivity.allowByDefault.contains(activity.defaultAction)
         assert fetchBidsActivity.result.contains("DISALLOW")
@@ -133,7 +133,7 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
                 componentName: GENERIC.value,
                 componentType: BIDDER,
                 region: ALABAMA.abbreviation,
-                country: USA.value))
+                country: USA.ISOAlpha3))
         assert fetchBidsActivity.allowByDefault.contains(activity.defaultAction)
         assert fetchBidsActivity.ruleConfiguration.every { it == null }
         assert fetchBidsActivity.result.contains("ALLOW")
@@ -148,7 +148,7 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
                 componentName: GENERIC.value,
                 componentType: BIDDER,
                 region: ALABAMA.abbreviation,
-                country: USA.value))
+                country: USA.ISOAlpha3))
         assert transmitUfpdActivity.allowByDefault.contains(activity.defaultAction)
         assert transmitUfpdActivity.ruleConfiguration.every { it == null }
         assert transmitUfpdActivity.result.every { it == null }
@@ -163,7 +163,7 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
                 componentName: GENERIC.value,
                 componentType: BIDDER,
                 region: ALABAMA.abbreviation,
-                country: USA.value))
+                country: USA.ISOAlpha3))
         assert transmitPreciseGeoActivity.allowByDefault.contains(activity.defaultAction)
         assert transmitPreciseGeoActivity.ruleConfiguration.every { it == null }
         assert transmitPreciseGeoActivity.result.every { it == null }
@@ -178,7 +178,7 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
                 componentName: GENERIC.value,
                 componentType: BIDDER,
                 region: ALABAMA.abbreviation,
-                country: USA.value))
+                country: USA.ISOAlpha3))
         assert transmitTidActivity.allowByDefault.contains(activity.defaultAction)
         assert transmitTidActivity.ruleConfiguration.every { it == null }
         assert transmitTidActivity.result.every { it == null }
@@ -193,14 +193,14 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
             ext.prebid.trace = VERBOSE
             device = new Device(geo: new Geo(country: USA, region: ALABAMA.abbreviation))
             regs.ext.gpc = PBSUtils.randomString
-            regs.gppSid = [USP_CA_V1.intValue]
+            regs.gppSid = [US_CA_V1.intValue]
             setAccountId(accountId)
         }
 
         and: "Set up activities"
         def gpc = PBSUtils.randomString
         def condition = Condition.baseCondition.tap {
-            it.gppSid = [USP_CO_V1.intValue]
+            it.gppSid = [US_CO_V1.intValue]
             it.gpc = gpc
             it.geo = [CAN.withState(ARIZONA)]
         }
@@ -227,7 +227,7 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
                 componentType: BIDDER,
                 gpc: bidRequest.regs.ext.gpc,
                 region: ALABAMA.abbreviation,
-                country: USA.value))
+                country: USA.ISOAlpha3))
         assert fetchBidsActivity.ruleConfiguration.contains(new RuleConfiguration(
                 componentNames: condition.componentName,
                 componentTypes: condition.componentType,
@@ -265,7 +265,7 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
                 componentType: BIDDER,
                 gpc: bidRequest.regs.ext.gpc,
                 region: ALABAMA.abbreviation,
-                country: USA.value))
+                country: USA.ISOAlpha3))
         assert transmitPreciseGeoActivity.ruleConfiguration.every { it == null }
         assert transmitPreciseGeoActivity.allowByDefault.contains(activity.defaultAction)
         assert transmitPreciseGeoActivity.result.every { it == null }
@@ -299,8 +299,8 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
             ext.prebid.trace = VERBOSE
             device = new Device(geo: new Geo(country: USA, region: ALABAMA.abbreviation))
             regs.ext.gpc = PBSUtils.randomString
-            regs.gppSid = [USP_CA_V1.intValue]
-            regs.gpp = new UspNatV1Consent.Builder().setGpc(true).build()
+            regs.gppSid = [US_CA_V1.intValue]
+            regs.gpp = new UsNatV1Consent.Builder().setGpc(true).build()
             setAccountId(accountId)
         }
 
@@ -404,4 +404,3 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
         activityInfrastructures[new IntRange(true, firstIndex, lastIndex)]
     }
 }
-

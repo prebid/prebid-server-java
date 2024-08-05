@@ -10,12 +10,11 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -42,19 +41,17 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.audio;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
+@ExtendWith(MockitoExtension.class)
 public class ResetDigitalBidderTest extends VertxTest {
 
     public static final String ENDPOINT_URL = "https://test.endpoint.com";
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private CurrencyConversionService currencyConversionService;
 
     private ResetDigitalBidder target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new ResetDigitalBidder(ENDPOINT_URL, currencyConversionService, jacksonMapper);
     }
@@ -114,21 +111,21 @@ public class ResetDigitalBidderTest extends VertxTest {
         assertThat(result.getValue().get(0))
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getImp)
-                .extracting(a -> a.get(0))
+                .extracting(a -> a.getFirst())
                 .extracting(Imp::getBanner)
                 .isNotNull();
 
         assertThat(result.getValue().get(1))
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getImp)
-                .extracting(a -> a.get(0))
+                .extracting(a -> a.getFirst())
                 .extracting(Imp::getVideo)
                 .isNotNull();
 
         assertThat(result.getValue().get(2))
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getImp)
-                .extracting(a -> a.get(0))
+                .extracting(a -> a.getFirst())
                 .extracting(Imp::getAudio)
                 .isNotNull();
     }
@@ -150,14 +147,14 @@ public class ResetDigitalBidderTest extends VertxTest {
         assertThat(result.getValue().get(0))
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getImp)
-                .extracting(a -> a.get(0))
+                .extracting(a -> a.getFirst())
                 .extracting(Imp::getBanner)
                 .isNotNull();
 
         assertThat(result.getValue().get(1))
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getImp)
-                .extracting(a -> a.get(0))
+                .extracting(a -> a.getFirst())
                 .extracting(Imp::getVideo)
                 .isNotNull();
     }
@@ -179,14 +176,14 @@ public class ResetDigitalBidderTest extends VertxTest {
         assertThat(result.getValue().get(0))
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getImp)
-                .extracting(a -> a.get(0))
+                .extracting(a -> a.getFirst())
                 .extracting(Imp::getBanner)
                 .isNotNull();
 
         assertThat(result.getValue().get(1))
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getImp)
-                .extracting(a -> a.get(0))
+                .extracting(a -> a.getFirst())
                 .extracting(Imp::getAudio)
                 .isNotNull();
     }
@@ -210,14 +207,14 @@ public class ResetDigitalBidderTest extends VertxTest {
         assertThat(result.getValue().get(0))
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getImp)
-                .extracting(a -> a.get(0))
+                .extracting(a -> a.getFirst())
                 .extracting(Imp::getVideo)
                 .isNotNull();
 
         assertThat(result.getValue().get(1))
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getImp)
-                .extracting(a -> a.get(0))
+                .extracting(a -> a.getFirst())
                 .extracting(Imp::getAudio)
                 .isNotNull();
     }

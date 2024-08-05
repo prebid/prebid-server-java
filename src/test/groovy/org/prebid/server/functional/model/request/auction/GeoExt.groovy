@@ -8,6 +8,6 @@ import groovy.transform.ToString
 @ToString(includeNames = true, ignoreNulls = true)
 class GeoExt {
 
-    @JsonProperty("netacuity")
-    GeoExtNetAcuity netAcuity
+    @JsonProperty("geoprovider")
+    GeoExtGeoProvider geoProvider
 }

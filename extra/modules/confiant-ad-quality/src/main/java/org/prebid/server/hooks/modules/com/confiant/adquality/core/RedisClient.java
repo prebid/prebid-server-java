@@ -4,13 +4,13 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.redis.client.Redis;
 import io.vertx.redis.client.RedisAPI;
 import io.vertx.redis.client.RedisConnection;
 import io.vertx.redis.client.RedisOptions;
 import org.prebid.server.hooks.modules.com.confiant.adquality.model.RedisRetryConfig;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 
 public class RedisClient {
 
@@ -45,7 +45,7 @@ public class RedisClient {
     public void start(Promise<Void> startFuture) {
         createRedisClient(onCreate -> {
             if (onCreate.succeeded()) {
-                logger.info("Confiant Redis {0} connection is established", type);
+                logger.info("Confiant Redis {} connection is established", type);
                 startFuture.tryComplete();
             }
         }, false);

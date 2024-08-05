@@ -156,7 +156,7 @@ public class AdtelligentBidder implements Bidder<BidRequest> {
         }
 
         final ObjectNode impExt = imp.getExt();
-        if (impExt == null || impExt.size() == 0) {
+        if (impExt == null || impExt.isEmpty()) {
             throw new PreBidException("ignoring imp id=%s, extImpBidder is empty".formatted(impId));
         }
     }

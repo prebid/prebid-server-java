@@ -10,11 +10,12 @@ adapters:
       site-media-types:
         - banner
         - video
+        - native
       supported-vendors:
       vendor-id: 333
     usersync:
       cookie-family-name: inmobi
-      redirect:
-        url: https://sync.inmobi.com/prebid?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+      iframe:
+        url: https://sync.inmobi.com/prebid?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redirect={{redirect_url}}
         support-cors: false
         uid-macro: '{ID5UID}'

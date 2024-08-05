@@ -19,9 +19,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.validation.annotation.Validated;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 @Configuration
 @PropertySource(value = "classpath:/bidder-config/rubicon.yaml", factory = YamlPropertySourceFactory.class)
@@ -47,11 +47,13 @@ public class RubiconConfiguration {
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config ->
                         new RubiconBidder(
+                                BIDDER_NAME,
                                 config.getEndpoint(),
                                 config.getXapi().getUsername(),
                                 config.getXapi().getPassword(),
                                 config.getMetaInfo().getSupportedVendors(),
                                 config.getGenerateBidId(),
+                                config.getUseVideoSizeIdLogic(),
                                 currencyConversionService,
                                 floorResolver,
                                 mapper))
@@ -70,6 +72,9 @@ public class RubiconConfiguration {
 
         @NotNull
         private Boolean generateBidId;
+
+        @NotNull
+        private Boolean useVideoSizeIdLogic;
     }
 
     @Data

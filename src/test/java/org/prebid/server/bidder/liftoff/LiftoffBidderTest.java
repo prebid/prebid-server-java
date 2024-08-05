@@ -6,17 +6,17 @@ import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.liftoff.model.LiftoffImpressionExt;
 import org.prebid.server.bidder.model.BidderBid;
@@ -39,25 +39,25 @@ import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.groups.Tuple.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.when;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
+@ExtendWith(MockitoExtension.class)
 public class LiftoffBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
 
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
-    @Mock
+    @Mock(strictness = LENIENT)
     private CurrencyConversionService currencyConversionService;
 
     private LiftoffBidder target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new LiftoffBidder(ENDPOINT_URL, currencyConversionService, jacksonMapper);
     }
@@ -205,8 +205,8 @@ public class LiftoffBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestShouldUpdateAppIdWhenExtImpLiftoffContainAppStoreId() {
         // given
-        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder.app(App.builder().build()),
-                identity());
+        final App givenApp = App.builder().name("appName").build();
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder.app(givenApp), identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -216,8 +216,45 @@ public class LiftoffBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getApp)
-                .extracting(App::getId)
-                .containsExactly("any-app-store-id");
+                .containsExactly(givenApp.toBuilder().id("any-app-store-id").build());
+    }
+
+    @Test
+    public void makeHttpRequestShouldCreateAppWithIdWhenExtImpLiftoffContainAppStoreIdAndAppIsAbsentAndSiteIsPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
+                        .site(Site.builder().build())
+                        .app(null),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getApp, BidRequest::getSite)
+                .containsExactly(tuple(App.builder().id("any-app-store-id").build(), null));
+    }
+
+    @Test
+    public void makeHttpRequestShouldReturnErrorWhenAppAndSiteAreAbsent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.site(null).app(null),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+                    assertThat(error.getMessage()).startsWith("The bid request must have an app or site object");
+                });
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
@@ -348,6 +385,7 @@ public class LiftoffBidderTest extends VertxTest {
             UnaryOperator<Imp.ImpBuilder>... impCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
+                        .app(App.builder().build())
                         .imp(Arrays.stream(impCustomizer).map(LiftoffBidderTest::givenImp).toList()))
                 .build();
     }

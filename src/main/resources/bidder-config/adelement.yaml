@@ -1,14 +1,17 @@
 adapters:
   adelement:
-    endpoint: https://rtb-all.adelement.com/ortb?exId=xxx
+    endpoint: https://amp.adelement.com/openrtb2/auction?supply_id={{SupplyId}}
+    endpoint-compression: gzip
     meta-info:
       maintainer-email: tech@adelement.com
       app-media-types:
         - banner
+        - native
         - video
         - audio
       site-media-types:
         - banner
+        - native
         - video
         - audio
       supported-vendors:

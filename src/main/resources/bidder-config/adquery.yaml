@@ -1,0 +1,16 @@
+adapters:
+  adquery:
+    endpoint: https://bidder2.adquery.io/prebid/bid
+    meta-info:
+      maintainer-email: prebid@adquery.io
+      app-media-types:
+      site-media-types:
+        - banner
+      supported-vendors:
+      vendor-id: 902
+    usersync:
+      cookie-family-name: adquery
+      iframe:
+        url: https://api.adquery.io/storage?gdpr={{gdpr}}&consent={{gdpr_consent}}&ccpa_consent={{us_privacy}}&redirect={{redirect_url}}
+        support-cors: false
+        uid-macro: '$UID'

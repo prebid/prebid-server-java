@@ -58,7 +58,7 @@ public class AdheseBidder implements Bidder<BidRequest> {
 
         final ExtImpAdhese extImpAdhese;
         try {
-            extImpAdhese = parseImpExt(request.getImp().get(0));
+            extImpAdhese = parseImpExt(request.getImp().getFirst());
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
@@ -89,7 +89,7 @@ public class AdheseBidder implements Bidder<BidRequest> {
         final ObjectNode adheseExtInnerNode = mapper.mapper().valueToTree(parameterMap);
         final ObjectNode adheseExtNode = mapper.mapper().createObjectNode().set("adhese", adheseExtInnerNode);
 
-        final Imp imp = bidRequest.getImp().get(0).toBuilder()
+        final Imp imp = bidRequest.getImp().getFirst().toBuilder()
                 .ext(adheseExtNode)
                 .build();
 
@@ -166,7 +166,7 @@ public class AdheseBidder implements Bidder<BidRequest> {
             throw new PreBidException("No Imps available");
         }
 
-        final Imp firstImp = impList.get(0);
+        final Imp firstImp = impList.getFirst();
         if (firstImp.getBanner() != null) {
             return BidType.banner;
         } else if (firstImp.getVideo() != null) {

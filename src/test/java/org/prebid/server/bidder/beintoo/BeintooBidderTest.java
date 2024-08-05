@@ -10,7 +10,7 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -61,7 +61,7 @@ public class BeintooBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage())
+        assertThat(result.getErrors().getFirst().getMessage())
                 .startsWith("Cannot deserialize value");
         assertThat(result.getValue()).isEmpty();
     }
@@ -81,7 +81,7 @@ public class BeintooBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage())
+        assertThat(result.getErrors().getFirst().getMessage())
                 .startsWith("Request needs to include a Banner object");
         assertThat(result.getValue()).isEmpty();
     }
@@ -102,7 +102,7 @@ public class BeintooBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage())
+        assertThat(result.getErrors().getFirst().getMessage())
                 .startsWith("tagid must be a String of numbers");
         assertThat(result.getValue()).isEmpty();
     }
@@ -123,7 +123,7 @@ public class BeintooBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage())
+        assertThat(result.getErrors().getFirst().getMessage())
                 .startsWith("tagid must be a String of numbers");
         assertThat(result.getValue()).isEmpty();
     }
@@ -144,7 +144,7 @@ public class BeintooBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage())
+        assertThat(result.getErrors().getFirst().getMessage())
                 .startsWith("tagid cant be 0");
         assertThat(result.getValue()).isEmpty();
     }
@@ -165,7 +165,7 @@ public class BeintooBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage())
+        assertThat(result.getErrors().getFirst().getMessage())
                 .startsWith("Need at least one size to build request");
         assertThat(result.getValue()).isEmpty();
     }
@@ -186,7 +186,7 @@ public class BeintooBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage())
+        assertThat(result.getErrors().getFirst().getMessage())
                 .startsWith("Need at least one size to build request");
         assertThat(result.getValue()).isEmpty();
     }
@@ -301,9 +301,9 @@ public class BeintooBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage())
+        assertThat(result.getErrors().getFirst().getMessage())
                 .startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType())
+        assertThat(result.getErrors().getFirst().getType())
                 .isEqualTo(BidderError.Type.bad_server_response);
         assertThat(result.getValue()).isEmpty();
     }

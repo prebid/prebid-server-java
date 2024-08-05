@@ -11,7 +11,7 @@ Other available metrics not mentioned here can found at
 
 where:
 - `[IP]` should be equal to IP address of bound network interface on cluster node for Prebid Server (for example: `0.0.0.0`)
-- `[PORT]` should be equal to `http.port` configuration property
+- `[PORT]` should be equal to `server.http.port` configuration property
 
 ### HTTP client metrics
 - `vertx.http.clients.connections.{min,max,mean,p95,p99}` - how long connections live
@@ -44,7 +44,7 @@ where `[DATASOURCE]` is a data source name, `DEFAULT_DS` by defaul.
 - `imps_video` - number of video impressions
 - `imps_native` - number of native impressions
 - `imps_audio` - number of audio impressions
-- `requests.(ok|badinput|err|networkerr|blacklisted_account|blacklisted_app).(openrtb2-web|openrtb-app|amp|legacy)` - number of requests broken down by status and type
+- `requests.(ok|badinput|err|networkerr|blocklisted_account|blocklisted_app).(openrtb2-web|openrtb-app|amp|legacy)` - number of requests broken down by status and type
 - `bidder-cardinality.<cardinality>.requests` - number of requests targeting `<cardinality>` of bidders
 - `connection_accept_errors` - number of errors occurred while establishing HTTP connection
 - `db_query_time` - timer tracking how long did it take for database client to obtain the result for a query
@@ -106,8 +106,6 @@ Following metrics are collected and submitted if account is configured with `det
 
 ## /cookie_sync endpoint metrics
 - `cookie_sync_requests` - number of requests received
-- `cookie_sync.<bidder-name>.gen` - number of times cookies was synced per bidder 
-- `cookie_sync.<bidder-name>.matches` - number of times cookie was already matched when synced per bidder 
 - `cookie_sync.<bidder-name>.tcf.blocked` - number of times cookie sync was prevented by TCF per bidder
 
 ## /setuid endpoint metrics
@@ -135,29 +133,3 @@ Following metrics are collected and submitted if account is configured with `det
 - `analytics.<reporter-name>.(auction|amp|video|cookie_sync|event|setuid).timeout` - number of event requests, failed with timeout cause
 - `analytics.<reporter-name>.(auction|amp|video|cookie_sync|event|setuid).err` - number of event requests, failed with errors
 - `analytics.<reporter-name>.(auction|amp|video|cookie_sync|event|setuid).badinput` - number of event requests, rejected with bad input cause
-
-## win notifications
-- `win_notifications` - total number of win notifications.
-- `win_requests` - total number of requests sent to user service for win notifications.
-- `win_request_preparation_failed` - number of request failed validation and were not sent.
-- `win_request_time` - latency between request to user service and response for win notifications.
-- `win_request_failed` - number of failed request sent to user service for win notifications.
-- `win_request_successful` - number of successful request sent to user service for win notifications.
-
-## user details
-- `user_details_requests` - total number of requests sent to user service to get user details.
-- `user_details_request_preparation_failed` - number of request failed validation and were not sent.
-- `user_details_request_time` - latency between request to user service and response to get user details.
-- `user_details_request_failed` - number of failed request sent to user service to get user details.
-- `user_details_request_successful` -  number of successful request sent to user service to get user details.
-
-## Programmatic guaranteed metrics
-- `pg.planner_lineitems_received` - number of line items received from general planner.
-- `pg.planner_requests` - total number of requests sent to general planner.
-- `pg.planner_request_failed` - number of failed request sent to general planner.
-- `pg.planner_request_successful` - number of successful requests sent to general planner.
-- `pg.planner_request_time` - latency between request to general planner and its successful (200 OK) response.
-- `pg.delivery_requests` - total number of requests to delivery stats service.
-- `pg.delivery_request_failed` - number of failed requests to delivery stats service.
-- `pg.delivery_request_successful` - number of successful requests to delivery stats service.
-- `pg.delivery_request_time` - latency between request to delivery stats and its successful (200 OK) response.

@@ -16,7 +16,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -88,7 +88,7 @@ public class RichaudienceBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).hasSize(1)
-                .extracting(request -> request.getPayload().getImp().get(0).getId(), HttpRequest::getImpIds)
+                .extracting(request -> request.getPayload().getImp().getFirst().getId(), HttpRequest::getImpIds)
                 .containsExactly(tuple("imp_id1", Set.of("imp_id1")));
         assertThat(result.getErrors()).hasSize(1)
                 .containsExactly(BidderError.badInput("Banner W/H/Format is required. ImpId: imp_id2"));
@@ -106,7 +106,7 @@ public class RichaudienceBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).hasSize(1)
-                .extracting(request -> request.getPayload().getImp().get(0).getId(), HttpRequest::getImpIds)
+                .extracting(request -> request.getPayload().getImp().getFirst().getId(), HttpRequest::getImpIds)
                 .containsExactly(tuple("imp_id1", Set.of("imp_id1")));
         assertThat(result.getErrors()).hasSize(1)
                 .containsExactly(BidderError.badInput("Video W and H are required. ImpId: imp_id2"));
@@ -128,7 +128,7 @@ public class RichaudienceBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).hasSize(4)
-                .extracting(request -> request.getPayload().getImp().get(0).getId(), HttpRequest::getImpIds)
+                .extracting(request -> request.getPayload().getImp().getFirst().getId(), HttpRequest::getImpIds)
                 .containsExactly(
                         tuple("imp_id1", Set.of("imp_id1")),
                         tuple("imp_id3", Set.of("imp_id3")),

@@ -1,20 +1,26 @@
 package org.prebid.server.functional.model.request.auction
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import groovy.transform.ToString
 
 @ToString(includeNames = true, ignoreNulls = true)
 class Format {
 
-    Integer w
-    Integer h
-    Integer wratio
-    Integer hratio
-    Integer wmin
+    @JsonProperty("w")
+    Integer weight
+    @JsonProperty("h")
+    Integer height
+    @JsonProperty("wratio")
+    Integer weightRatio
+    @JsonProperty("hratio")
+    Integer heightRatio
+    @JsonProperty("wmin")
+    Integer weightMin
 
     static Format getDefaultFormat() {
         new Format().tap {
-            w = 300
-            h = 250
+            weight = 300
+            height = 250
         }
     }
 }

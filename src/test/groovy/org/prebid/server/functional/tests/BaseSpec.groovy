@@ -1,5 +1,9 @@
 package org.prebid.server.functional.tests
 
+import org.prebid.server.functional.model.bidderspecific.BidderRequest
+import org.prebid.server.functional.model.response.amp.AmpResponse
+import org.prebid.server.functional.model.response.auction.BidResponse
+import org.prebid.server.functional.model.response.auction.BidderCall
 import org.prebid.server.functional.repository.HibernateRepositoryService
 import org.prebid.server.functional.repository.dao.AccountDao
 import org.prebid.server.functional.repository.dao.StoredImpDao
@@ -10,6 +14,7 @@ import org.prebid.server.functional.testcontainers.Dependencies
 import org.prebid.server.functional.testcontainers.PbsServiceFactory
 import org.prebid.server.functional.testcontainers.scaffolding.Bidder
 import org.prebid.server.functional.testcontainers.scaffolding.PrebidCache
+import org.prebid.server.functional.testcontainers.scaffolding.VendorList
 import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Specification
@@ -22,6 +27,7 @@ abstract class BaseSpec extends Specification implements ObjectMapperWrapper {
 
     protected static final PbsServiceFactory pbsServiceFactory = new PbsServiceFactory(networkServiceContainer)
     protected static final Bidder bidder = new Bidder(networkServiceContainer)
+    protected static final VendorList vendorList = new VendorList(networkServiceContainer)
     protected static final PrebidCache prebidCache = new PrebidCache(networkServiceContainer)
 
     protected static final HibernateRepositoryService repository = new HibernateRepositoryService(Dependencies.mysqlContainer)
@@ -34,18 +40,22 @@ abstract class BaseSpec extends Specification implements ObjectMapperWrapper {
     private static final int MIN_TIMEOUT = DEFAULT_TIMEOUT
     private static final int DEFAULT_TARGETING_PRECISION = 1
     private static final String DEFAULT_CACHE_DIRECTORY = "/app/prebid-server/data"
+    protected static final Map<String, String> GENERIC_ALIAS_CONFIG = ["adapters.generic.aliases.alias.enabled" : "true",
+                                                                       "adapters.generic.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
 
     protected final PrebidServerService defaultPbsService = pbsServiceFactory.getService([:])
 
     def setupSpec() {
         prebidCache.setResponse()
         bidder.setResponse()
+        vendorList.setResponse()
     }
 
     def cleanupSpec() {
         bidder.reset()
         prebidCache.reset()
         repository.removeAllDatabaseData()
+        vendorList.reset()
     }
 
     protected static int getRandomTimeout() {
@@ -72,5 +82,22 @@ abstract class BaseSpec extends Specification implements ObjectMapperWrapper {
 
     protected static String getRoundedTargetingValueWithDefaultPrecision(BigDecimal value) {
         "${value.setScale(DEFAULT_TARGETING_PRECISION, DOWN)}0"
+    }
+
+    protected static Map<String, List<BidderRequest>> getRequests(BidResponse bidResponse) {
+        bidResponse.ext.debug.bidders.collectEntries { bidderName, bidderCalls ->
+            collectRequestByBidderName(bidderName, bidderCalls)
+        }
+    }
+
+    protected static Map<String, List<BidderRequest>> getRequests(AmpResponse ampResponse) {
+        ampResponse.ext.debug.bidders.collectEntries { bidderName, bidderCalls ->
+            collectRequestByBidderName(bidderName, bidderCalls)
+        }
+    }
+
+    private static LinkedHashMap<String, List<BidderRequest>> collectRequestByBidderName(String bidderName,
+                                                                                         List<BidderCall> bidderCalls) {
+        [(bidderName): bidderCalls.collect { bidderCall -> decode(bidderCall.requestBody as String, BidderRequest) }]
     }
 }

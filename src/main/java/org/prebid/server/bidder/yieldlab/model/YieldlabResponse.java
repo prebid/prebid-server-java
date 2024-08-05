@@ -22,4 +22,6 @@ public class YieldlabResponse {
     Integer did;
 
     String pvid;
+
+    YieldlabDigitalServicesActResponse dsa;
 }

@@ -71,6 +71,12 @@ public class ExtRequestPrebid {
     ExtStoredRequest storedrequest;
 
     /**
+     * Defines the contract for bidrequest.ext.prebid.storedauctionresponse
+     */
+    @JsonProperty("storedauctionresponse")
+    ExtStoredAuctionResponse storedAuctionResponse;
+
+    /**
      * Defines the contract for bidrequest.ext.prebid.cache
      */
     ExtRequestPrebidCache cache;
@@ -109,6 +115,11 @@ public class ExtRequestPrebid {
      * Defines the contract for bidrequest.ext.prebid.bidders
      */
     ObjectNode bidders;
+
+    /**
+     * Defines the contract for bidrequest.ext.prebid.biddercontrols
+     */
+    ObjectNode biddercontrols;
 
     /**
      * Defines the contract for bidrequest.ext.prebid.amp

@@ -17,10 +17,10 @@ jobs:
 
     strategy:
       matrix:
-        java: [ 17 ]
+        java: [ 21 ]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up JDK
         uses: actions/setup-java@v3
@@ -30,4 +30,4 @@ jobs:
           java-version: ${{ matrix.java }}
 
       - name: Build with Maven
-        run: mvn -B verify -DskipUnitTests=true -Dtests.max-container-count=5 --file extra/pom.xml
+        run: mvn -B verify -DskipUnitTests=true -DskipModuleFunctionalTests=true -Dtests.max-container-count=5 -DdockerfileName=Dockerfile --file extra/pom.xml

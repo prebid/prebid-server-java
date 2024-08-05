@@ -1,7 +1,6 @@
 package org.prebid.server.log;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
-import io.vertx.core.logging.Logger;
 import org.apache.commons.lang3.ObjectUtils;
 
 import java.time.Instant;

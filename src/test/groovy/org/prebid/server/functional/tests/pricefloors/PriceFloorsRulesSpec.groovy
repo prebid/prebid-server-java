@@ -1,6 +1,9 @@
 package org.prebid.server.functional.tests.pricefloors
 
 import org.prebid.server.functional.model.ChannelType
+import org.prebid.server.functional.model.bidder.Generic
+import org.prebid.server.functional.model.bidder.Openx
+import org.prebid.server.functional.model.bidderspecific.BidderRequest
 import org.prebid.server.functional.model.db.StoredImp
 import org.prebid.server.functional.model.pricefloors.Country
 import org.prebid.server.functional.model.pricefloors.MediaType
@@ -23,7 +26,9 @@ import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
 
 import static org.prebid.server.functional.model.ChannelType.WEB
+import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.pricefloors.Country.USA
 import static org.prebid.server.functional.model.pricefloors.DeviceType.DESKTOP
 import static org.prebid.server.functional.model.pricefloors.DeviceType.MULTIPLE
@@ -32,6 +37,7 @@ import static org.prebid.server.functional.model.pricefloors.DeviceType.TABLET
 import static org.prebid.server.functional.model.pricefloors.MediaType.BANNER
 import static org.prebid.server.functional.model.pricefloors.MediaType.VIDEO
 import static org.prebid.server.functional.model.pricefloors.PriceFloorField.AD_UNIT_CODE
+import static org.prebid.server.functional.model.pricefloors.PriceFloorField.BIDDER
 import static org.prebid.server.functional.model.pricefloors.PriceFloorField.BOGUS
 import static org.prebid.server.functional.model.pricefloors.PriceFloorField.BUNDLE
 import static org.prebid.server.functional.model.pricefloors.PriceFloorField.CHANNEL
@@ -50,6 +56,7 @@ import static org.prebid.server.functional.model.request.auction.FetchStatus.ERR
 import static org.prebid.server.functional.model.request.auction.Location.NO_DATA
 import static org.prebid.server.functional.model.request.auction.Prebid.Channel
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.REJECTED_DUE_TO_PRICE_FLOOR
+import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 
 class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
@@ -284,8 +291,8 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         def higherWidth = lowerWidth + 1
         def higherHigh = lowerHigh + 1
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp[0].banner.format = [new Format(w: lowerWidth, h: lowerHigh),
-                                    new Format(w: higherWidth, h: higherHigh)]
+            imp[0].banner.format = [new Format(weight: lowerWidth, height: lowerHigh),
+                                    new Format(weight: higherWidth, height: higherHigh)]
         }
 
         and: "Account with enabled fetch, fetch.url in the DB"
@@ -352,20 +359,20 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         mediaType                                                            | impClosure
         org.prebid.server.functional.model.response.auction.MediaType.BANNER | { int widthVal, int heightVal ->
             Imp.getDefaultImpression(mediaType).tap {
-                banner.format = [new Format(w: widthVal, h: heightVal)]
+                banner.format = [new Format(weight: widthVal, height: heightVal)]
             }
         }
         org.prebid.server.functional.model.response.auction.MediaType.BANNER | { int widthVal, int heightVal ->
             Imp.getDefaultImpression(mediaType).tap {
                 banner.format = null
-                banner.w = widthVal
-                banner.h = heightVal
+                banner.weight = widthVal
+                banner.height = heightVal
             }
         }
         org.prebid.server.functional.model.response.auction.MediaType.VIDEO  | { int widthVal, int heightVal ->
             Imp.getDefaultImpression(mediaType).tap {
-                video.w = widthVal
-                video.h = heightVal
+                video.weight = widthVal
+                video.height = heightVal
             }
         }
     }
@@ -405,32 +412,38 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
             BidRequest.getDefaultBidRequest(distributionChannel).tap {
                 site.domain = publisherDomain
                 site.publisher.id = publisherAccountId
-        }   }
+            }
+        }
         SITE                | { String publisherDomain, String publisherAccountId ->
             BidRequest.getDefaultBidRequest(distributionChannel).tap {
                 site.publisher.domain = publisherDomain
                 site.publisher.id = publisherAccountId
-        }   }
+            }
+        }
         APP                 | { String publisherDomain, String publisherAccountId ->
             BidRequest.getDefaultBidRequest(distributionChannel).tap {
                 app.domain = publisherDomain
                 app.publisher.id = publisherAccountId
-        }   }
+            }
+        }
         APP                 | { String publisherDomain, String publisherAccountId ->
             BidRequest.getDefaultBidRequest(distributionChannel).tap {
                 app.publisher.domain = publisherDomain
                 app.publisher.id = publisherAccountId
-        }   }
-        DOOH                 | { String publisherDomain, String publisherAccountId ->
+            }
+        }
+        DOOH                | { String publisherDomain, String publisherAccountId ->
             BidRequest.getDefaultBidRequest(distributionChannel).tap {
                 dooh.domain = publisherDomain
                 dooh.publisher.id = publisherAccountId
-            }   }
-        DOOH                 | { String publisherDomain, String publisherAccountId ->
+            }
+        }
+        DOOH                | { String publisherDomain, String publisherAccountId ->
             BidRequest.getDefaultBidRequest(distributionChannel).tap {
                 dooh.publisher.domain = publisherDomain
                 dooh.publisher.id = publisherAccountId
-            }   }
+            }
+        }
     }
 
     def "PBS should choose correct rule when siteDomain is defined in rules for #distributionChannel channel"() {
@@ -476,7 +489,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
                 app.publisher.id = publisherAccountId
             }
         }
-        DOOH                 | { String publisherDomain, String publisherAccountId ->
+        DOOH                | { String publisherDomain, String publisherAccountId ->
             BidRequest.getDefaultBidRequest(distributionChannel).tap {
                 dooh.domain = publisherDomain
                 dooh.publisher.id = publisherAccountId
@@ -527,7 +540,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
                 app.publisher.id = publisherAccountId
             }
         }
-        DOOH                 | { String publisherDomain, String publisherAccountId ->
+        DOOH                | { String publisherDomain, String publisherAccountId ->
             BidRequest.getDefaultBidRequest(distributionChannel).tap {
                 dooh.publisher.domain = publisherDomain
                 dooh.publisher.id = publisherAccountId
@@ -923,7 +936,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
         and: "PBS cache rules"
-        cacheFloorsProviderRules(pbsService, bidRequest, floorValue)
+        cacheFloorsProviderRules(bidRequest, floorValue, pbsService)
 
         and: "Set bidder response"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
@@ -970,7 +983,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
         and: "PBS cache rules"
-        cacheFloorsProviderRules(pbsService, bidRequest, floorValue)
+        cacheFloorsProviderRules(bidRequest, floorValue, pbsService)
 
         and: "Set bidder response"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
@@ -987,5 +1000,153 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
         where:
         enforcePbs << [true, null]
+    }
+
+    def "PBS should use correct rule for each bidder when a bidder is defined with valid bid floor value"() {
+        given: "PBS config with openX bidder"
+        def floorsPbsService = pbsServiceFactory.getService(
+                FLOORS_CONFIG + GENERIC_ALIAS_CONFIG +
+                        ["adapters.openx.enabled" : "true",
+                         "adapters.openx.endpoint": "$networkServiceContainer.rootUri/auction".toString()])
+
+        and: "Default bid Request with generic and openx bidder within separate imps"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            addImp(Imp.defaultImpression.tap {
+                ext.prebid.bidder.generic = null
+                ext.prebid.bidder.openx = Openx.defaultOpenx
+            })
+        }
+
+        and: "Account with enabled fetch, fetch.url in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.accountId)
+        accountDao.save(account)
+
+        and: "Set Floors Provider response"
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].schema = new PriceFloorSchema(fields: [BIDDER])
+            modelGroups[0].values = [(new Rule(bidder: GENERIC).rule): genericBidFloorRuleValue,
+                                     (new Rule(bidder: OPENX).rule)  : openxBidFloorRuleValue]
+        }
+        floorsProvider.setResponse(bidRequest.accountId, floorsResponse)
+
+        and: "PBS fetch rules from floors provider"
+        cacheFloorsProviderRules(bidRequest, floorsPbsService)
+
+        when: "PBS processes auction request"
+        def response = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request bidFloor should correspond to appropriate rule"
+        def bidderRequest = getRequests(response)
+        assert bidderRequest.size() == 2
+        assert bidderRequest[GENERIC.value].first.imp[0].bidFloor == genericBidFloorRuleValue
+        assert bidderRequest[OPENX.value].first.imp[0].bidFloor == openxBidFloorRuleValue
+
+        and: "Bidder request should contain proper bid floor value"
+        def bidderRequests = bidder.getBidderRequests(bidRequest.id)
+        def impIdToBidderCallImp =  impIdToBidderCallImp(bidderRequests)
+        assert impIdToBidderCallImp[bidRequest.imp[0].id].bidFloor == genericBidFloorRuleValue
+        assert impIdToBidderCallImp[bidRequest.imp[1].id].bidFloor == openxBidFloorRuleValue
+
+        where:
+        genericBidFloorRuleValue  | openxBidFloorRuleValue
+        null                      | PBSUtils.randomFloorValue
+        PBSUtils.randomFloorValue | null
+        PBSUtils.randomFloorValue | PBSUtils.randomFloorValue
+    }
+
+    def "PBS shouldn't apply the floor rule for the main bidder to alias bidder"() {
+        given: "Default bid request with generic and alias bidder within separate imps"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.aliases = [(ALIAS.value): GENERIC]
+            addImp(Imp.defaultImpression.tap {
+                ext.prebid.bidder.generic = null
+                ext.prebid.bidder.alias = new Generic()
+            })
+        }
+
+        and: "Account with enabled fetch, fetch.url in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.accountId)
+        accountDao.save(account)
+
+        and: "Set Floors Provider response"
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].schema = new PriceFloorSchema(fields: [BIDDER])
+            modelGroups[0].values = [(new Rule(bidder: GENERIC).rule): genericBidFloorRuleValue]
+        }
+        floorsProvider.setResponse(bidRequest.accountId, floorsResponse)
+
+        and: "PBS fetch rules from floors provider"
+        cacheFloorsProviderRules(bidRequest, floorsPbsService)
+
+        when: "PBS processes auction request"
+        def response = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request bidFloor should correspond to appropriate rule"
+        def bidderRequest = getRequests(response)
+        assert bidderRequest.size() == 2
+        assert bidderRequest[GENERIC.value].first.imp[0].bidFloor == genericBidFloorRuleValue
+        assert !bidderRequest[ALIAS.value].first.imp[0].bidFloor
+
+        and: "Bidder request should contain proper bid floor value"
+        def bidderRequests = bidder.getBidderRequests(bidRequest.id)
+        def impIdToBidderCallImp = impIdToBidderCallImp(bidderRequests)
+        assert impIdToBidderCallImp[bidRequest.imp[0].id].bidFloor == genericBidFloorRuleValue
+        assert !impIdToBidderCallImp[bidRequest.imp[1].id].bidFloor
+
+        where:
+        genericBidFloorRuleValue  | aliasBidFloorRuleValue
+        null                      | PBSUtils.randomFloorValue
+        PBSUtils.randomFloorValue | null
+        PBSUtils.randomFloorValue | PBSUtils.randomFloorValue
+    }
+
+    def "PBS shouldn't apply the floor rule for the alias bidder to main bidder"() {
+        given: "Default bid request with generic and alias bidder within separate imp"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.aliases = [(ALIAS.value): GENERIC]
+            addImp(Imp.defaultImpression.tap {
+                ext.prebid.bidder.generic = null
+                ext.prebid.bidder.alias = new Generic()
+            })
+        }
+
+        and: "Account with enabled fetch, fetch.url in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.accountId)
+        accountDao.save(account)
+
+        and: "Set Floors Provider response"
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].schema = new PriceFloorSchema(fields: [BIDDER])
+            modelGroups[0].values = [(new Rule(bidder: ALIAS).rule): aliasBidFloorRuleValue]
+        }
+        floorsProvider.setResponse(bidRequest.accountId, floorsResponse)
+
+        and: "PBS fetch rules from floors provider"
+        cacheFloorsProviderRules(bidRequest, floorsPbsService)
+
+        when: "PBS processes auction request"
+        def response = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request bidFloor should correspond to appropriate rule"
+        def bidderRequest = getRequests(response)
+        assert bidderRequest.size() == 2
+        assert bidderRequest[ALIAS.value].first.imp[0].bidFloor == aliasBidFloorRuleValue
+        assert !bidderRequest[GENERIC.value].first.imp[0].bidFloor
+
+        and: "Bidder request should contain proper bid floor value"
+        def bidderRequests = bidder.getBidderRequests(bidRequest.id)
+        def impIdToBidderCallImp = impIdToBidderCallImp(bidderRequests)
+        assert impIdToBidderCallImp[bidRequest.imp[1].id].bidFloor == aliasBidFloorRuleValue
+        assert !impIdToBidderCallImp[bidRequest.imp[0].id].bidFloor
+
+        where:
+        genericBidFloorRuleValue  | aliasBidFloorRuleValue
+        null                      | PBSUtils.randomFloorValue
+        PBSUtils.randomFloorValue | null
+        PBSUtils.randomFloorValue | PBSUtils.randomFloorValue
+    }
+
+    private static Map<String, Imp> impIdToBidderCallImp(List<BidderRequest> bidderRequests) {
+        bidderRequests.imp.flatten().collectEntries { [it.id, it] } as Map<String, Imp>
     }
 }

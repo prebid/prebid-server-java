@@ -1,7 +1,7 @@
 package org.prebid.server.handler;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import io.vertx.core.Handler;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import lombok.AllArgsConstructor;
 import lombok.Value;
@@ -10,12 +10,16 @@ import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.vertx.verticles.server.HttpEndpoint;
+import org.prebid.server.vertx.verticles.server.application.ApplicationResource;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-public class GetuidsHandler implements Handler<RoutingContext> {
+public class GetuidsHandler implements ApplicationResource {
 
     private final UidsCookieService uidsCookieService;
     private final JacksonMapper mapper;
@@ -23,6 +27,11 @@ public class GetuidsHandler implements Handler<RoutingContext> {
     public GetuidsHandler(UidsCookieService uidsCookieService, JacksonMapper mapper) {
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.mapper = Objects.requireNonNull(mapper);
+    }
+
+    @Override
+    public List<HttpEndpoint> endpoints() {
+        return Collections.singletonList(HttpEndpoint.of(HttpMethod.GET, Endpoint.getuids.value()));
     }
 
     @Override

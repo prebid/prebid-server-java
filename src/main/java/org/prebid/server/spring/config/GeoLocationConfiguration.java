@@ -3,9 +3,14 @@ package org.prebid.server.spring.config;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClientOptions;
 import lombok.Data;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.GeoLocationServiceWrapper;
+import org.prebid.server.auction.requestfactory.Ortb2ImplicitParametersResolver;
 import org.prebid.server.execution.RemoteFileSyncer;
+import org.prebid.server.execution.retry.ExponentialBackoffRetryPolicy;
 import org.prebid.server.execution.retry.FixedIntervalRetryPolicy;
+import org.prebid.server.execution.retry.RetryPolicy;
 import org.prebid.server.geolocation.CircuitBreakerSecuredGeoLocationService;
 import org.prebid.server.geolocation.ConfigurationGeoLocationService;
 import org.prebid.server.geolocation.CountryCodeMapper;
@@ -13,8 +18,10 @@ import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.geolocation.MaxMindGeoLocationService;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.spring.config.model.CircuitBreakerProperties;
+import org.prebid.server.spring.config.model.ExponentialBackoffProperties;
 import org.prebid.server.spring.config.model.HttpClientProperties;
 import org.prebid.server.spring.config.model.RemoteFileSyncerProperties;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
@@ -34,6 +41,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 
+@Configuration
 public class GeoLocationConfiguration {
 
     @Configuration
@@ -78,24 +86,47 @@ public class GeoLocationConfiguration {
         }
 
         private GeoLocationService createGeoLocationService(RemoteFileSyncerProperties properties, Vertx vertx) {
+            final MaxMindGeoLocationService maxMindGeoLocationService = new MaxMindGeoLocationService();
             final HttpClientProperties httpClientProperties = properties.getHttpClient();
             final HttpClientOptions httpClientOptions = new HttpClientOptions()
                     .setConnectTimeout(httpClientProperties.getConnectTimeoutMs())
                     .setMaxRedirects(httpClientProperties.getMaxRedirects());
 
             final RemoteFileSyncer remoteFileSyncer = new RemoteFileSyncer(
+                    maxMindGeoLocationService,
                     properties.getDownloadUrl(),
                     properties.getSaveFilepath(),
                     properties.getTmpFilepath(),
-                    FixedIntervalRetryPolicy.limited(properties.getRetryIntervalMs(), properties.getRetryCount()),
+                    toRetryPolicy(properties),
                     properties.getTimeoutMs(),
                     properties.getUpdateIntervalMs(),
                     vertx.createHttpClient(httpClientOptions),
                     vertx);
-            final MaxMindGeoLocationService maxMindGeoLocationService = new MaxMindGeoLocationService();
 
-            remoteFileSyncer.sync(maxMindGeoLocationService);
+            remoteFileSyncer.sync();
             return maxMindGeoLocationService;
+        }
+
+        // TODO: remove after transition period
+        private static RetryPolicy toRetryPolicy(RemoteFileSyncerProperties properties) {
+            final Long retryIntervalMs = properties.getRetryIntervalMs();
+            final Integer retryCount = properties.getRetryCount();
+            final boolean fixedRetryPolicyDefined = ObjectUtils.anyNotNull(retryIntervalMs, retryCount);
+            final boolean fixedRetryPolicyValid = ObjectUtils.allNotNull(retryIntervalMs, retryCount)
+                    || !fixedRetryPolicyDefined;
+
+            if (!fixedRetryPolicyValid) {
+                throw new IllegalArgumentException("fixed interval retry policy is invalid");
+            }
+
+            final ExponentialBackoffProperties exponentialBackoffProperties = properties.getRetry();
+            return fixedRetryPolicyDefined
+                    ? FixedIntervalRetryPolicy.limited(retryIntervalMs, retryCount)
+                    : ExponentialBackoffRetryPolicy.of(
+                    exponentialBackoffProperties.getDelayMillis(),
+                    exponentialBackoffProperties.getMaxDelayMillis(),
+                    exponentialBackoffProperties.getFactor(),
+                    exponentialBackoffProperties.getJitter());
         }
     }
 
@@ -180,22 +211,31 @@ public class GeoLocationConfiguration {
         }
     }
 
-    @Configuration
-    static class CountryCodeMapperConfiguration {
+    @Bean
+    public CountryCodeMapper countryCodeMapper(@Value("classpath:country-codes.csv") Resource countryCodes,
+                                               @Value("classpath:mcc-country-codes.csv") Resource mccCountryCodes)
+            throws IOException {
 
-        @Bean
-        public CountryCodeMapper countryCodeMapper(@Value("classpath:country-codes.csv") Resource countryCodes,
-                                                   @Value("classpath:mcc-country-codes.csv") Resource mccCountryCodes)
-                throws IOException {
-
-            return new CountryCodeMapper(readCsv(countryCodes), readCsv(mccCountryCodes));
-        }
-
-        private String readCsv(Resource resource) throws IOException {
-            final Reader reader = new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8);
-            final String csv = FileCopyUtils.copyToString(reader);
-            reader.close();
-            return csv;
-        }
+        return new CountryCodeMapper(readCsv(countryCodes), readCsv(mccCountryCodes));
     }
+
+    private String readCsv(Resource resource) throws IOException {
+        final Reader reader = new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8);
+        final String csv = FileCopyUtils.copyToString(reader);
+        reader.close();
+        return csv;
+    }
+
+    @Bean
+    GeoLocationServiceWrapper geoLocationServiceWrapper(
+            @Autowired(required = false) GeoLocationService geoLocationService,
+            Ortb2ImplicitParametersResolver implicitParametersResolver,
+            Metrics metrics) {
+
+        return new GeoLocationServiceWrapper(
+                geoLocationService,
+                implicitParametersResolver,
+                metrics);
+    }
+
 }

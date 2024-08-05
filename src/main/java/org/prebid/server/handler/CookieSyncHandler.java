@@ -3,19 +3,17 @@ package org.prebid.server.handler;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.BooleanUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
 import org.prebid.server.analytics.model.CookieSyncEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
-import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.gpp.CookieSyncGppService;
+import org.prebid.server.auction.privacy.contextfactory.CookieSyncPrivacyContextFactory;
 import org.prebid.server.bidder.UsersyncMethodChooser;
+import org.prebid.server.cookie.CookieDeprecationService;
 import org.prebid.server.cookie.CookieSyncService;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
@@ -24,12 +22,15 @@ import org.prebid.server.cookie.exception.InvalidCookieSyncRequestException;
 import org.prebid.server.cookie.exception.UnauthorizedUidsException;
 import org.prebid.server.cookie.model.BiddersContext;
 import org.prebid.server.cookie.model.CookieSyncContext;
+import org.prebid.server.cookie.model.PartitionedCookie;
 import org.prebid.server.exception.InvalidAccountConfigException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
@@ -39,11 +40,16 @@ import org.prebid.server.proto.response.CookieSyncResponse;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.vertx.verticles.server.HttpEndpoint;
+import org.prebid.server.vertx.verticles.server.application.ApplicationResource;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
-public class CookieSyncHandler implements Handler<RoutingContext> {
+public class CookieSyncHandler implements ApplicationResource {
 
     private static final Logger logger = LoggerFactory.getLogger(CookieSyncHandler.class);
     private static final ConditionalLogger BAD_REQUEST_LOGGER = new ConditionalLogger(logger);
@@ -51,11 +57,12 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     private final long defaultTimeout;
     private final double logSamplingRate;
     private final UidsCookieService uidsCookieService;
+    private final CookieDeprecationService cookieDeprecationService;
     private final CookieSyncGppService gppService;
     private final ActivityInfrastructureCreator activityInfrastructureCreator;
     private final CookieSyncService cookieSyncService;
     private final ApplicationSettings applicationSettings;
-    private final PrivacyEnforcementService privacyEnforcementService;
+    private final CookieSyncPrivacyContextFactory cookieSyncPrivacyContextFactory;
     private final AnalyticsReporterDelegator analyticsDelegator;
     private final Metrics metrics;
     private final TimeoutFactory timeoutFactory;
@@ -64,11 +71,12 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     public CookieSyncHandler(long defaultTimeout,
                              double logSamplingRate,
                              UidsCookieService uidsCookieService,
+                             CookieDeprecationService cookieDeprecationService,
                              CookieSyncGppService gppService,
                              ActivityInfrastructureCreator activityInfrastructureCreator,
                              CookieSyncService cookieSyncService,
                              ApplicationSettings applicationSettings,
-                             PrivacyEnforcementService privacyEnforcementService,
+                             CookieSyncPrivacyContextFactory cookieSyncPrivacyContextFactory,
                              AnalyticsReporterDelegator analyticsDelegator,
                              Metrics metrics,
                              TimeoutFactory timeoutFactory,
@@ -77,15 +85,21 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         this.defaultTimeout = defaultTimeout;
         this.logSamplingRate = logSamplingRate;
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
+        this.cookieDeprecationService = Objects.requireNonNull(cookieDeprecationService);
         this.gppService = Objects.requireNonNull(gppService);
         this.activityInfrastructureCreator = Objects.requireNonNull(activityInfrastructureCreator);
         this.cookieSyncService = Objects.requireNonNull(cookieSyncService);
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
-        this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
+        this.cookieSyncPrivacyContextFactory = Objects.requireNonNull(cookieSyncPrivacyContextFactory);
         this.analyticsDelegator = Objects.requireNonNull(analyticsDelegator);
         this.metrics = Objects.requireNonNull(metrics);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
         this.mapper = Objects.requireNonNull(mapper);
+    }
+
+    @Override
+    public List<HttpEndpoint> endpoints() {
+        return Collections.singletonList(HttpEndpoint.of(HttpMethod.POST, Endpoint.cookie_sync.value()));
     }
 
     @Override
@@ -152,10 +166,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     }
 
     private Future<Account> accountById(String accountId, Timeout timeout) {
-        return StringUtils.isBlank(accountId)
-                ? Future.succeededFuture(Account.empty(accountId))
-                : applicationSettings.getAccountById(accountId, timeout)
-                .otherwise(Account.empty(accountId));
+        return applicationSettings.getAccountById(accountId, timeout).otherwise(Account.empty(accountId));
     }
 
     private CookieSyncContext fillWithGppContext(CookieSyncContext cookieSyncContext) {
@@ -179,7 +190,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     }
 
     private Future<CookieSyncContext> fillWithPrivacyContext(CookieSyncContext cookieSyncContext) {
-        return privacyEnforcementService.contextFromCookieSyncRequest(
+        return cookieSyncPrivacyContextFactory.contextFrom(
                         cookieSyncContext.getCookieSyncRequest(),
                         cookieSyncContext.getRoutingContext().request(),
                         cookieSyncContext.getAccount(),
@@ -189,12 +200,20 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
     private void respondWithResult(CookieSyncContext cookieSyncContext, CookieSyncResponse cookieSyncResponse) {
         final HttpResponseStatus status = HttpResponseStatus.OK;
+        final PartitionedCookie deprecationCookie = cookieDeprecationService.makeCookie(
+                cookieSyncContext.getAccount(),
+                cookieSyncContext.getRoutingContext());
 
         HttpUtil.executeSafely(cookieSyncContext.getRoutingContext(), Endpoint.cookie_sync,
-                response -> response
-                        .setStatusCode(status.code())
-                        .putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON)
-                        .end(mapper.encodeToString(cookieSyncResponse)));
+                response -> {
+                    response.setStatusCode(status.code())
+                            .putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
+
+                    Optional.ofNullable(deprecationCookie)
+                            .ifPresent(cookie -> response.putHeader(HttpUtil.SET_COOKIE_HEADER, cookie.encode()));
+
+                    response.end(mapper.encodeToString(cookieSyncResponse));
+                });
 
         final CookieSyncEvent event = CookieSyncEvent.builder()
                 .status(status.code())
@@ -213,27 +232,32 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         final HttpResponseStatus status;
         final String body;
 
-        if (error instanceof InvalidCookieSyncRequestException) {
-            status = HttpResponseStatus.BAD_REQUEST;
-            body = "Invalid request format: " + message;
+        switch (error) {
+            case InvalidCookieSyncRequestException invalidCookieSyncRequestException -> {
+                status = HttpResponseStatus.BAD_REQUEST;
+                body = "Invalid request format: " + message;
 
-            metrics.updateUserSyncBadRequestMetric();
-            BAD_REQUEST_LOGGER.info(message, logSamplingRate);
-        } else if (error instanceof UnauthorizedUidsException) {
-            status = HttpResponseStatus.UNAUTHORIZED;
-            body = "Unauthorized: " + message;
+                metrics.updateUserSyncBadRequestMetric();
+                BAD_REQUEST_LOGGER.info(message, logSamplingRate);
+            }
+            case UnauthorizedUidsException unauthorizedUidsException -> {
+                status = HttpResponseStatus.UNAUTHORIZED;
+                body = "Unauthorized: " + message;
 
-            metrics.updateUserSyncOptoutMetric();
-        } else if (error instanceof InvalidAccountConfigException) {
-            status = HttpResponseStatus.BAD_REQUEST;
-            body = "Invalid account configuration: " + message;
+                metrics.updateUserSyncOptoutMetric();
+            }
+            case InvalidAccountConfigException invalidAccountConfigException -> {
+                status = HttpResponseStatus.BAD_REQUEST;
+                body = "Invalid account configuration: " + message;
 
-            BAD_REQUEST_LOGGER.info(message, logSamplingRate);
-        } else {
-            status = HttpResponseStatus.INTERNAL_SERVER_ERROR;
-            body = "Unexpected setuid processing error: " + message;
+                BAD_REQUEST_LOGGER.info(message, logSamplingRate);
+            }
+            default -> {
+                status = HttpResponseStatus.INTERNAL_SERVER_ERROR;
+                body = "Unexpected setuid processing error: " + message;
 
-            logger.warn(body, error);
+                logger.warn(body, error);
+            }
         }
 
         HttpUtil.executeSafely(routingContext, Endpoint.cookie_sync,

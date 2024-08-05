@@ -1,13 +1,13 @@
 package org.prebid.server.bidder.openweb;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -23,13 +23,10 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 public class OpenWebBidder implements Bidder<BidRequest> {
@@ -38,132 +35,110 @@ public class OpenWebBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private final JacksonMapper mapper;
     private final String endpointUrl;
+    private final JacksonMapper mapper;
 
     public OpenWebBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = Objects.requireNonNull(HttpUtil.validateUrl(endpointUrl));
+        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final Map<Integer, List<Imp>> sourceIdToModifiedImp = new HashMap<>();
-        final List<BidderError> errors = new ArrayList<>();
+        String org = null;
 
         for (Imp imp : request.getImp()) {
             try {
                 final ExtImpOpenweb extImpOpenweb = parseImpExt(imp);
-                final Integer sourceId = extImpOpenweb.getSourceId();
-                final Imp modifiedImp = modifyImp(imp, extImpOpenweb);
+                validateImpExt(extImpOpenweb);
 
-                if (sourceIdToModifiedImp.containsKey(sourceId)) {
-                    sourceIdToModifiedImp.get(sourceId).add(modifiedImp);
-                } else {
-                    sourceIdToModifiedImp.put(sourceId, new ArrayList<>(Collections.singletonList(modifiedImp)));
+                org = orgFrom(extImpOpenweb);
+                if (org != null) {
+                    break;
                 }
             } catch (PreBidException e) {
-                errors.add(BidderError.badInput(e.getMessage()));
+                return Result.withError(BidderError.badInput("checkExtAndExtractOrg: " + e.getMessage()));
             }
         }
 
-        if (sourceIdToModifiedImp.isEmpty()) {
-            return Result.withErrors(errors);
+        if (org == null) {
+            return Result.withError(BidderError.badInput("checkExtAndExtractOrg: no org or aid supplied"));
         }
-        return Result.of(makeGroupRequests(request, sourceIdToModifiedImp), errors);
+
+        return Result.withValue(BidderUtil.defaultRequest(request, resolveEndpoint(org), mapper));
     }
 
     private ExtImpOpenweb parseImpExt(Imp imp) {
         try {
             return mapper.mapper().convertValue(imp.getExt(), OPENWEB_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException("ignoring imp id=%s, error while encoding impExt, err: %s"
-                    .formatted(imp.getId(), e.getMessage()));
+            throw new PreBidException("unmarshal ExtImpOpenWeb: " + e.getMessage());
         }
     }
 
-    private Imp modifyImp(Imp imp, ExtImpOpenweb impExt) {
-        final ObjectNode modifiedImpExt = mapper.mapper().createObjectNode()
-                .set("openweb", mapper.mapper().valueToTree(impExt));
-        final BigDecimal bidFloor = impExt.getBidFloor();
-        final BigDecimal resolvedBidFloor = BidderUtil.isValidPrice(bidFloor)
-                ? bidFloor
-                : imp.getBidfloor();
-
-        return imp.toBuilder()
-                .bidfloor(resolvedBidFloor)
-                .ext(modifiedImpExt)
-                .build();
+    private static void validateImpExt(ExtImpOpenweb extImpOpenweb) {
+        if (StringUtils.isBlank(extImpOpenweb.getPlacementId())) {
+            throw new PreBidException("no placement id supplied");
+        }
     }
 
-    private List<HttpRequest<BidRequest>> makeGroupRequests(BidRequest request,
-                                                            Map<Integer, List<Imp>> sourceIdToImps) {
+    private static String orgFrom(ExtImpOpenweb extImpOpenweb) {
+        final String org = extImpOpenweb.getOrg();
+        if (StringUtils.isNotBlank(org)) {
+            return StringUtils.trim(org);
+        }
 
-        return sourceIdToImps.entrySet().stream()
-                .map(impGroupEntry -> makeGroupRequest(request, impGroupEntry.getValue(), impGroupEntry.getKey()))
-                .toList();
+        final Integer aid = extImpOpenweb.getAid();
+        return aid != null && aid != 0
+                ? aid.toString()
+                : null;
     }
 
-    private HttpRequest<BidRequest> makeGroupRequest(BidRequest request, List<Imp> imps, Integer sourceId) {
-        final BidRequest modifiedRequest = request.toBuilder().imp(imps).build();
-        return BidderUtil.defaultRequest(modifiedRequest, resolveEndpoint(sourceId), mapper);
-    }
-
-    private String resolveEndpoint(Integer sourceId) {
-        return "%s?aid=%d".formatted(endpointUrl, sourceId);
+    private String resolveEndpoint(String org) {
+        return "%s?publisher_id=%s".formatted(endpointUrl, HttpUtil.encodeUrl(org));
     }
 
     @Override
     public final Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
-        final List<BidderError> errors = new ArrayList<>();
-
         try {
+            final List<BidderError> errors = new ArrayList<>();
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse, errors), errors);
+            return Result.of(extractBids(bidResponse, errors), errors);
         } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse, List<BidderError> errors) {
+    private List<BidderBid> extractBids(BidResponse bidResponse, List<BidderError> errors) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
-        return bidsFromResponse(bidRequest, bidResponse, errors);
-    }
 
-    private List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse, List<BidderError> errors) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> toBidderBid(bid, bidResponse, bidRequest.getImp(), errors))
+                .filter(Objects::nonNull)
+                .map(bid -> toBidderBid(bid, bidResponse.getCur(), errors))
                 .filter(Objects::nonNull)
                 .toList();
     }
 
-    private BidderBid toBidderBid(Bid bid, BidResponse bidResponse, List<Imp> imps, List<BidderError> errors) {
+    private BidderBid toBidderBid(Bid bid, String currency, List<BidderError> errors) {
         try {
-            return BidderBid.of(bid, getBidType(bid.getId(), bid.getImpid(), imps), bidResponse.getCur());
+            return BidderBid.of(bid, getBidType(bid.getMtype()), currency);
         } catch (PreBidException e) {
             errors.add(BidderError.badServerResponse(e.getMessage()));
             return null;
         }
     }
 
-    private static BidType getBidType(String bidId, String impId, List<Imp> imps) {
-        for (Imp imp : imps) {
-            if (impId.equals(imp.getId())) {
-                if (imp.getVideo() != null) {
-                    return BidType.video;
-                } else if (imp.getBanner() != null) {
-                    return BidType.banner;
-                }
-            }
-        }
-
-        throw new PreBidException(
-                "ignoring bid id=%s, request doesn't contain any impression with id=%s".formatted(bidId, impId));
+    private static BidType getBidType(Integer mType) {
+        return switch (mType) {
+            case 1 -> BidType.banner;
+            case 2 -> BidType.video;
+            case null, default -> throw new PreBidException("unsupported MType " + mType);
+        };
     }
 }

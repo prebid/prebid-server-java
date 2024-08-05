@@ -2,7 +2,7 @@ package org.prebid.server.auction.gpp;
 
 import com.iab.gpp.encoder.GppModel;
 import com.iab.gpp.encoder.error.EncodingException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.auction.gpp.model.GppContext;
 import org.prebid.server.auction.gpp.model.GppContextCreator;
 import org.prebid.server.auction.gpp.model.GppContextWrapper;

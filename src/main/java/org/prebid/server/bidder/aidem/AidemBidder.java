@@ -1,5 +1,6 @@
 package org.prebid.server.bidder.aidem;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
@@ -15,6 +16,8 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.aidem.ExtImpAidem;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
@@ -27,6 +30,11 @@ import java.util.Objects;
 
 public class AidemBidder implements Bidder<BidRequest> {
 
+    private static final TypeReference<ExtPrebid<?, ExtImpAidem>> AIDEM_EXT_TYPE_REFERENCE =
+            new TypeReference<>() {
+            };
+    private static final String PUBLISHER_ID_MACRO = "{{PublisherId}}";
+
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
@@ -37,7 +45,24 @@ public class AidemBidder implements Bidder<BidRequest> {
 
     @Override
     public final Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
-        return Result.withValue(BidderUtil.defaultRequest(bidRequest, endpointUrl, mapper));
+        try {
+            final ExtImpAidem impExt = parseImpExt(bidRequest.getImp().getFirst());
+            return Result.withValue(BidderUtil.defaultRequest(bidRequest, makeUrl(impExt), mapper));
+        } catch (PreBidException e) {
+            return Result.withError(BidderError.badInput(e.getMessage()));
+        }
+    }
+
+    private ExtImpAidem parseImpExt(Imp imp) {
+        try {
+            return mapper.mapper().convertValue(imp.getExt(), AIDEM_EXT_TYPE_REFERENCE).getBidder();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException("Missing bidder ext in impression with id: " + imp.getId());
+        }
+    }
+
+    private String makeUrl(ExtImpAidem extImpAidem) {
+        return endpointUrl.replace(PUBLISHER_ID_MACRO, extImpAidem.getPublisherId());
     }
 
     @Override
@@ -50,13 +75,12 @@ public class AidemBidder implements Bidder<BidRequest> {
         }
 
         final List<BidderError> errors = new ArrayList<>();
-        final List<BidderBid> bids = extractBids(httpCall.getRequest().getPayload(), bidResponse, errors);
+        final List<BidderBid> bids = extractBids(bidResponse, errors);
 
         return Result.of(bids, errors);
     }
 
-    private static List<BidderBid> extractBids(BidRequest bidRequest,
-                                               BidResponse bidResponse,
+    private static List<BidderBid> extractBids(BidResponse bidResponse,
                                                List<BidderError> errors) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
@@ -68,12 +92,12 @@ public class AidemBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
-                .map(bid -> makeBidderBid(bid, bidRequest.getImp(), bidResponse.getCur(), errors))
+                .map(bid -> makeBidderBid(bid, bidResponse.getCur(), errors))
                 .filter(Objects::nonNull)
                 .toList();
     }
 
-    private static BidderBid makeBidderBid(Bid bid, List<Imp> imps, String currency, List<BidderError> errors) {
+    private static BidderBid makeBidderBid(Bid bid, String currency, List<BidderError> errors) {
         try {
             return BidderBid.of(bid, resolveBidType(bid), currency);
         } catch (PreBidException e) {
@@ -93,9 +117,8 @@ public class AidemBidder implements Bidder<BidRequest> {
             case 2 -> BidType.video;
             case 3 -> BidType.audio;
             case 4 -> BidType.xNative;
-            default ->
-                    throw new PreBidException("Unable to fetch mediaType in multi-format: %s"
-                            .formatted(bid.getImpid()));
+            default -> throw new PreBidException("Unable to fetch mediaType in multi-format: %s"
+                    .formatted(bid.getImpid()));
         };
     }
 }

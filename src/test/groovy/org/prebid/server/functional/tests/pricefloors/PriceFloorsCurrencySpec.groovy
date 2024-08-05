@@ -1,6 +1,8 @@
 package org.prebid.server.functional.tests.pricefloors
 
 import org.prebid.server.functional.model.Currency
+import org.prebid.server.functional.model.config.AccountPriceFloorsConfig
+import org.prebid.server.functional.model.config.PriceFloorsFetch
 import org.prebid.server.functional.model.mock.services.currencyconversion.CurrencyConversionRatesResponse
 import org.prebid.server.functional.model.pricefloors.PriceFloorData
 import org.prebid.server.functional.model.request.auction.ImpExtPrebidFloors
@@ -32,6 +34,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
     private static final CurrencyConversion currencyConversion = new CurrencyConversion(networkServiceContainer).tap {
         setCurrencyConversionRatesResponse(CurrencyConversionRatesResponse.getDefaultCurrencyConversionRatesResponse(DEFAULT_CURRENCY_RATES))
     }
+    private static final String GENERAL_ERROR_METRIC = "price-floors.general.err"
     private static final Map<String, String> CURRENCY_CONVERTER_CONFIG = ["auction.ad-server-currency"                          : "USD",
                                                                           "currency-converter.external-rates.enabled"           : "true",
                                                                           "currency-converter.external-rates.url"               : "$networkServiceContainer.rootUri/currency".toString(),
@@ -39,8 +42,6 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
                                                                           "currency-converter.external-rates.refresh-period-ms" : "900000"]
     private final PrebidServerService currencyFloorsPbsService = pbsServiceFactory.getService(FLOORS_CONFIG +
             CURRENCY_CONVERTER_CONFIG)
-
-    private static final String GENERAL_ERROR_METRIC = "price-floors.general.err"
 
     def "PBS should update bidFloor, bidFloorCur for signalling when request.cur is specified"() {
         given: "Default BidRequest with cur"
@@ -61,7 +62,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
         and: "PBS fetch rules from floors provider"
-        cacheFloorsProviderRules(currencyFloorsPbsService, bidRequest)
+        cacheFloorsProviderRules(bidRequest, currencyFloorsPbsService)
 
         when: "PBS processes auction request"
         currencyFloorsPbsService.sendAuctionRequest(bidRequest)
@@ -93,7 +94,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
         and: "PBS fetch rules from floors provider"
-        cacheFloorsProviderRules(currencyFloorsPbsService, bidRequest)
+        cacheFloorsProviderRules(bidRequest, currencyFloorsPbsService)
 
         and: "Get currency rates"
         def currencyRatesResponse = currencyFloorsPbsService.sendCurrencyRatesRequest()
@@ -148,7 +149,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
         and: "PBS fetch rules from floors provider"
-        cacheFloorsProviderRules(currencyFloorsPbsService, bidRequest)
+        cacheFloorsProviderRules(bidRequest, currencyFloorsPbsService)
 
         when: "PBS processes auction request"
         currencyFloorsPbsService.sendAuctionRequest(bidRequest)
@@ -192,7 +193,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
         and: "PBS fetch rules from floors provider"
-        cacheFloorsProviderRules(pbsService, bidRequest)
+        cacheFloorsProviderRules(bidRequest, pbsService)
 
         and: "Flush metrics"
         flushMetrics(pbsService)
@@ -239,8 +240,10 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         }
 
         and: "Account with disabled fetch in the DB"
-        def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id).tap {
-            config.auction.priceFloors.fetch.enabled = false
+        def account = getAccountWithEnabledFetch(bidRequest.accountId).tap {
+            config.auction.priceFloors.fetch.enabled = priceFloors
+            config.auction.priceFloorsSnakeCase = new AccountPriceFloorsConfig(enabled: true,
+                    fetch: new PriceFloorsFetch(url: basicFetchUrl + bidRequest.accountId, enabled: priceFloorsSnakeCase))
         }
         accountDao.save(account)
 
@@ -254,6 +257,11 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
             imp[0].bidFloorCur == floorCur
             ext?.prebid?.floors?.fetchStatus == NONE
         }
+
+        where:
+        priceFloors | priceFloorsSnakeCase
+        false       | null
+        null        | false
     }
 
     def "PBS should prefer ext.prebid.floors for setting bidFloor, bidFloorCur for signalling"() {
@@ -308,7 +316,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
         and: "PBS fetch rules from floors provider"
-        cacheFloorsProviderRules(currencyFloorsPbsService, bidRequest)
+        cacheFloorsProviderRules(bidRequest, currencyFloorsPbsService)
 
         and: "Get currency rates"
         def currencyRatesResponse = currencyFloorsPbsService.sendCurrencyRatesRequest()
@@ -368,7 +376,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
         and: "PBS fetch rules from floors provider"
-        cacheFloorsProviderRules(currencyFloorsPbsService, bidRequest)
+        cacheFloorsProviderRules(bidRequest, currencyFloorsPbsService)
 
         and: "Flush metrics"
         flushMetrics(currencyFloorsPbsService)

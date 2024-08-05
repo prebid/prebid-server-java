@@ -2,13 +2,13 @@ package org.prebid.server.functional.util.privacy.gpp
 
 import com.iab.gpp.encoder.GppModel
 import com.iab.gpp.encoder.section.TcfEuV2
-import com.iab.gpp.encoder.section.UspCaV1
-import com.iab.gpp.encoder.section.UspCoV1
-import com.iab.gpp.encoder.section.UspCtV1
-import com.iab.gpp.encoder.section.UspNatV1
-import com.iab.gpp.encoder.section.UspUtV1
+import com.iab.gpp.encoder.section.UsCaV1
+import com.iab.gpp.encoder.section.UsCoV1
+import com.iab.gpp.encoder.section.UsCtV1
+import com.iab.gpp.encoder.section.UsNatV1
+import com.iab.gpp.encoder.section.UsUtV1
+import com.iab.gpp.encoder.section.UsVaV1
 import com.iab.gpp.encoder.section.UspV1
-import com.iab.gpp.encoder.section.UspVaV1
 import org.prebid.server.functional.util.privacy.ConsentString
 
 abstract class GppConsent implements ConsentString {
@@ -62,14 +62,14 @@ abstract class GppConsent implements ConsentString {
 
     enum Section {
 
-        TCF_EU_V2(TcfEuV2.NAME, TcfEuV2.VERSION),    //2
-        USP_V1(UspV1.NAME, UspV1.VERSION),           //6
-        USP_NAT_V1(UspNatV1.NAME, UspNatV1.VERSION), //7
-        USP_CA_V1(UspCaV1.NAME, UspCaV1.VERSION),    //8
-        USP_VA_V1(UspVaV1.NAME, UspVaV1.VERSION),    //9
-        USP_CO_V1(UspCoV1.NAME, UspCoV1.VERSION),    //10
-        USP_UT_V1(UspUtV1.NAME, UspUtV1.VERSION),    //11
-        USP_CT_V1(UspCtV1.NAME, UspCtV1.VERSION),    // 12
+        TCF_EU_V2(TcfEuV2.NAME, TcfEuV2.VERSION),  //2
+        USP_V1(UspV1.NAME, UspV1.VERSION),         //6
+        US_NAT_V1(UsNatV1.NAME, UsNatV1.VERSION),  //7
+        US_CA_V1(UsCaV1.NAME, UsCaV1.VERSION),     //8
+        US_VA_V1(UsVaV1.NAME, UsVaV1.VERSION),     //9
+        US_CO_V1(UsCoV1.NAME, UsCoV1.VERSION),     //10
+        US_UT_V1(UsUtV1.NAME, UsUtV1.VERSION),     //11
+        US_CT_V1(UsCtV1.NAME, UsCtV1.VERSION),     //12
 
         final String name
         final int version

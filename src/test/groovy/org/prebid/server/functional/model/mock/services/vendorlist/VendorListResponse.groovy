@@ -1,16 +1,15 @@
 package org.prebid.server.functional.model.mock.services.vendorlist
 
 import org.prebid.server.functional.util.PBSUtils
-import org.prebid.server.functional.util.privacy.TcfConsent
-
 import java.time.Clock
 import java.time.ZonedDateTime
 
-import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
+import static org.prebid.server.functional.model.mock.services.vendorlist.GvlSpecificationVersion.V2
+import static org.prebid.server.functional.util.privacy.TcfConsent.VENDOR_LIST_VERSION
 
 class VendorListResponse {
 
-    Integer gvlSpecificationVersion
+    GvlSpecificationVersion gvlSpecificationVersion
     Integer vendorListVersion
     Integer tcfPolicyVersion
     ZonedDateTime lastUpdated
@@ -18,10 +17,9 @@ class VendorListResponse {
 
     static VendorListResponse getDefaultVendorListResponse() {
         new VendorListResponse().tap {
-            it.gvlSpecificationVersion = 2
-            it.tcfPolicyVersion = 2
+            it.gvlSpecificationVersion = V2
+            it.vendorListVersion = VENDOR_LIST_VERSION
             it.lastUpdated = ZonedDateTime.now(Clock.systemUTC()).minusWeeks(2)
-            it.vendors = [(GENERIC_VENDOR_ID): Vendor.defaultVendor]
         }
     }
 
@@ -43,9 +41,9 @@ class VendorListResponse {
         Boolean usesNonCookieAccess
         Boolean deviceStorageDisclosureUrl
 
-        static Vendor getDefaultVendor() {
+        static Vendor getDefaultVendor(int id) {
             new Vendor().tap {
-                it.id = GENERIC_VENDOR_ID
+                it.id = id
                 it.name = PBSUtils.randomString
                 it.purposes = [1, 3, 4, 5]
                 it.legIntPurposes = [2, 7, 10]

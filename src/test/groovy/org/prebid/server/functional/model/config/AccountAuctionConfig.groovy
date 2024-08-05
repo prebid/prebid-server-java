@@ -17,11 +17,30 @@ class AccountAuctionConfig {
     Integer videoCacheTtl
     Integer truncateTargetAttr
     String defaultIntegration
+    Boolean debugAllow
     AccountBidValidationConfig bidValidations
     AccountEventsConfig events
-    Boolean debugAllow
     AccountPriceFloorsConfig priceFloors
     Targeting targeting
     @JsonProperty("preferredmediatype")
     Map<BidderName, MediaType> preferredMediaType
+    @JsonProperty("privacysandbox")
+    PrivacySandbox privacySandbox
+
+    @JsonProperty("price_granularity")
+    String priceGranularitySnakeCase
+    @JsonProperty("banner_cache_ttl")
+    Integer bannerCacheTtlSnakeCase
+    @JsonProperty("video_cache_ttl")
+    Integer videoCacheTtlSnakeCase
+    @JsonProperty("truncate_target_attr")
+    Integer truncateTargetAttrSnakeCase
+    @JsonProperty("default_integration")
+    String defaultIntegrationSnakeCase
+    @JsonProperty("debug_allow")
+    Boolean debugAllowSnakeCase
+    @JsonProperty("bid_validation")
+    AccountBidValidationConfig bidValidationsSnakeCase
+    @JsonProperty("price_floors")
+    AccountPriceFloorsConfig priceFloorsSnakeCase
 }

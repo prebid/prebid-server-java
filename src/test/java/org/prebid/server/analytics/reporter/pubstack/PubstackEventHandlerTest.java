@@ -4,23 +4,21 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.analytics.reporter.pubstack.model.PubstackAnalyticsProperties;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.TimeoutContext;
 import org.prebid.server.cookie.UidsCookie;
-import org.prebid.server.deals.model.DeepDebugLog;
-import org.prebid.server.deals.model.TxnLog;
 import org.prebid.server.execution.Timeout;
-import org.prebid.server.vertx.http.HttpClient;
-import org.prebid.server.vertx.http.model.HttpClientResponse;
+import org.prebid.server.vertx.httpclient.HttpClient;
+import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Set;
@@ -38,10 +36,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
+@ExtendWith(MockitoExtension.class)
 public class PubstackEventHandlerTest extends VertxTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private Vertx vertx;
@@ -51,7 +47,7 @@ public class PubstackEventHandlerTest extends VertxTest {
 
     private PubstackEventHandler pubstackEventHandler;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(vertx.setTimer(anyLong(), any())).willReturn(1L, 2L);
         final PubstackAnalyticsProperties properties = PubstackAnalyticsProperties.builder()
@@ -159,9 +155,7 @@ public class PubstackEventHandlerTest extends VertxTest {
         final AuctionEvent event = AuctionEvent.builder()
                 .auctionContext(AuctionContext.builder()
                         .uidsCookie(mock(UidsCookie.class))
-                        .timeout(mock(Timeout.class))
-                        .txnLog(mock(TxnLog.class))
-                        .deepDebugLog(mock(DeepDebugLog.class))
+                        .timeoutContext(TimeoutContext.of(0, mock(Timeout.class), 0))
                         .build())
                 .build();
 

@@ -3,10 +3,8 @@ package org.prebid.server.it;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import io.restassured.response.Response;
 import org.json.JSONException;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.model.Endpoint;
-import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
 
@@ -14,7 +12,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static java.util.Collections.singletonList;
 
-@RunWith(SpringRunner.class)
 public class AdoceanTest extends IntegrationTest {
 
     @Test

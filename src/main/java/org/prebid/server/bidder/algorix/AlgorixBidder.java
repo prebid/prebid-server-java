@@ -46,9 +46,9 @@ public class AlgorixBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private static final String URL_REGION_MACRO = "{HOST}";
-    private static final String URL_SID_MACRO = "{SID}";
-    private static final String URL_TOKEN_MACRO = "{TOKEN}";
+    private static final String URL_REGION_MACRO = "{{HOST}}";
+    private static final String URL_SID_MACRO = "{{SID}}";
+    private static final String URL_TOKEN_MACRO = "{{TOKEN}}";
 
     private static final int FIRST_INDEX = 0;
 
@@ -115,7 +115,7 @@ public class AlgorixBidder implements Bidder<BidRequest> {
         final Banner banner = imp.getBanner();
         if (!(isValidSizeValue(banner.getW()) && isValidSizeValue(banner.getH()))
                 && CollectionUtils.isNotEmpty(banner.getFormat())) {
-            final Format firstFormat = banner.getFormat().get(FIRST_INDEX);
+            final Format firstFormat = banner.getFormat().getFirst();
             return imp.toBuilder()
                     .banner(banner.toBuilder()
                             .w(firstFormat.getW())

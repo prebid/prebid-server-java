@@ -1,7 +1,7 @@
 package org.prebid.server.auction.model;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 import java.util.Set;
@@ -14,7 +14,7 @@ public class BidRejectionTrackerTest {
 
     private BidRejectionTracker target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new BidRejectionTracker("bidder", singleton("1"), 0);
     }

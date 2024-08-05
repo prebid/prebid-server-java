@@ -1,13 +1,16 @@
 package org.prebid.server.functional.model.request.auction
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import groovy.transform.ToString
 
 @ToString(includeNames = true, ignoreNulls = true)
 class Banner {
 
     List<Format> format
-    Integer w
-    Integer h
+    @JsonProperty("w")
+    Integer weight
+    @JsonProperty("h")
+    Integer height
     List<Integer> btype
     List<Integer> battr
     Integer pos

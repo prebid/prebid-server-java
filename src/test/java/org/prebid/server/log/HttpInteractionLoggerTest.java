@@ -4,14 +4,12 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import io.vertx.core.http.HttpServerRequest;
-import io.vertx.core.logging.Logger;
 import io.vertx.ext.web.RoutingContext;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderRequest;
@@ -28,25 +26,24 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
+@ExtendWith(MockitoExtension.class)
 public class HttpInteractionLoggerTest extends VertxTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private Logger logger;
-    @Mock
+    @Mock(strictness = LENIENT)
     private RoutingContext routingContext;
-    @Mock
+    @Mock(strictness = LENIENT)
     private HttpServerRequest serverRequest;
 
     private HttpInteractionLogger target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new HttpInteractionLogger(jacksonMapper);
         given(routingContext.getBodyAsString()).willReturn("{}");
@@ -68,7 +65,7 @@ public class HttpInteractionLoggerTest extends VertxTest {
 
         // then
         verify(logger)
-                .info("Requested URL: \"{0}\", request body: \"{1}\", response status: \"{2}\", response body: \"{3}\"",
+                .info("Requested URL: \"{}\", request body: \"{}\", response status: \"{}\", response body: \"{}\"",
                         "example.com",
                         "{}",
                         200,
@@ -198,7 +195,7 @@ public class HttpInteractionLoggerTest extends VertxTest {
 
         // then
         verify(logger)
-                .info("Requested URL: \"{0}\", response status: \"{1}\", response body: \"{2}\"",
+                .info("Requested URL: \"{}\", response status: \"{}\", response body: \"{}\"",
                         "example.com",
                         200,
                         "responseBody");
@@ -292,7 +289,7 @@ public class HttpInteractionLoggerTest extends VertxTest {
         target.maybeLogBidderRequest(givenAuctionContext, givenBidderRequest);
 
         // then
-        verify(logger).info("Request body to {0}: \"{1}\"", "bidderName", "{}");
+        verify(logger).info("Request body to {}: \"{}\"", "bidderName", "{}");
     }
 
     @Test

@@ -1,11 +1,11 @@
 package org.prebid.server.settings;
 
 import io.vertx.core.Future;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.helper.StoredDataFetcher;
@@ -48,16 +48,21 @@ public class CachingApplicationSettings implements ApplicationSettings {
                                       SettingsCache videoCache,
                                       Metrics metrics,
                                       int ttl,
-                                      int size) {
+                                      int size,
+                                      int jitter) {
 
         if (ttl <= 0 || size <= 0) {
             throw new IllegalArgumentException("ttl and size must be positive");
         }
+        if (jitter < 0 || jitter >= ttl) {
+            throw new IllegalArgumentException("jitter must match the inequality: 0 <= jitter < ttl");
+        }
+
         this.delegate = Objects.requireNonNull(delegate);
-        this.accountCache = SettingsCache.createCache(ttl, size);
-        this.accountToErrorCache = SettingsCache.createCache(ttl, size);
-        this.adServerPublisherToErrorCache = SettingsCache.createCache(ttl, size);
-        this.categoryConfigCache = SettingsCache.createCache(ttl, size);
+        this.accountCache = SettingsCache.createCache(ttl, size, jitter);
+        this.accountToErrorCache = SettingsCache.createCache(ttl, size, jitter);
+        this.adServerPublisherToErrorCache = SettingsCache.createCache(ttl, size, jitter);
+        this.categoryConfigCache = SettingsCache.createCache(ttl, size, jitter);
         this.cache = Objects.requireNonNull(cache);
         this.ampCache = Objects.requireNonNull(ampCache);
         this.videoCache = Objects.requireNonNull(videoCache);
@@ -72,7 +77,7 @@ public class CachingApplicationSettings implements ApplicationSettings {
         return getFromCacheOrDelegate(
                 accountCache,
                 accountToErrorCache,
-                accountId,
+                StringUtils.isBlank(accountId) ? StringUtils.EMPTY : accountId,
                 timeout,
                 delegate::getAccountById,
                 event -> metrics.updateSettingsCacheEventMetric(MetricName.account, event));
@@ -243,12 +248,8 @@ public class CachingApplicationSettings implements ApplicationSettings {
 
     public void invalidateAccountCache(String accountId) {
         accountCache.remove(accountId);
-        logger.debug("Account with id {0} was invalidated", accountId);
-    }
-
-    public void invalidateAllAccountCache() {
-        accountCache.clear();
-        logger.debug("All accounts cache were invalidated");
+        accountToErrorCache.remove(accountId);
+        logger.debug("Account with id {} was invalidated", accountId);
     }
 
     private static <ANY> void noOp(ANY any) {

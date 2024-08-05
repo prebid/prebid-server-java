@@ -7,11 +7,15 @@ adapters:
       app-media-types:
         - banner
         - video
+        - native
       site-media-types:
         - banner
         - video
+        - native
       supported-vendors:
       vendor-id: 82
+    # This bidder does not sync when GDPR is in-scope. Please consider removing the usersync
+    # block when deploying to European datacenters
     usersync:
       cookie-family-name: smaato
       redirect:

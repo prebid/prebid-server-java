@@ -1,8 +1,13 @@
 adapters:
   rubicon:
     ortb-version: "2.6"
-    endpoint: http://exapi-us-east.rubiconproject.com/a/api/exchange.json
+    # Contact global-support@magnite.com to ask about enabling a connection to the Magnite (formerly Rubicon) exchange.
+    # We have the following regional endpoint domains: exapi-us-east, exapi-us-west, exapi-apac, exapi-eu
+    # Please deploy this config in each of your datacenters with the appropriate regional subdomain
+    endpoint: "https://REGION.rubiconproject.com/a/api/exchange"
     endpoint-compression: gzip
+    geoscope:
+      - global
     aliases:
       magnite:
         enabled: false
@@ -31,6 +36,7 @@ adapters:
         url: GET_FROM_globalsupport@magnite.com
         support-cors: false
     generate-bid-id: false
+    use-video-size-id-logic: true
     XAPI:
       Username: GET_FROM_globalsupport@magnite.com
       Password: GET_FROM_globalsupport@magnite.com

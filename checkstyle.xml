@@ -8,7 +8,9 @@
 
     <module name="NewlineAtEndOfFile"/>
     <module name="Translation"/>
-    <module name="FileLength"/>
+    <module name="FileLength">
+        <property name="max" value="2024"/>
+    </module>
     <module name="FileTabCharacter"/>
     <module name="RegexpSingleline">
         <property name="format" value="\s+$"/>
@@ -66,6 +68,7 @@
                         autovalue.shaded.com.google,
                         org.inferred.freebuilder.shaded.com.google,
                         org.apache.commons.lang"/>
+            <property name="illegalClasses" value="org.junit.Test" />
         </module>
         <module name="RedundantImport"/>
         <module name="UnusedImports">
@@ -73,7 +76,7 @@
         </module>
         <module name="ImportOrder">
             <property name="option" value="bottom"/>
-            <property name="groups" value="*,/^java/"/>
+            <property name="groups" value="*,/^java|^jakarta/"/>
             <property name="ordered" value="false"/>
             <property name="separated" value="true"/>
             <property name="caseSensitive" value="true"/>

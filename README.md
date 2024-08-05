@@ -73,8 +73,8 @@ For more information how to build the server follow [documentation](docs/build.m
 
 ## Configuration
 
-The source code includes an example configuration file `sample/prebid-config.yaml`.
-Also, check the account settings file `sample/sample-app-settings.yaml`.
+The source code includes an example configuration file `sample/configs/prebid-config.yaml`.
+Also, check the account settings file `sample/configs/sample-app-settings.yaml`.
 
 For more information how to configure the server follow [documentation](docs/config.md). There are many settings you'll want to consider such as which bidders you're going to enable, privacy defaults, admin endpoints, etc.
 
@@ -83,10 +83,13 @@ For more information how to configure the server follow [documentation](docs/con
 
 Run your local server with the command:
 ```bash
-java -jar target/prebid-server.jar --spring.config.additional-location=sample/prebid-config.yaml
+java -jar target/prebid-server.jar --spring.config.additional-location=sample/configs/prebid-config.yaml
 ```
-
 For more options how to start the server, please follow [documentation](docs/run.md).
+
+## Running prebuilt .jar
+Starting from PBS Java v2.9, you can download prebuilt .jar packages from [Release Notes](https://github.com/prebid/prebid-server-java/releases) page, instead of building them by yourself. 
+This prebuilt packages are delivered with or without extra modules.
 
 ## Verifying
 
@@ -94,6 +97,15 @@ To check the server is started go to [http://localhost:8080/status](http://local
 and verify response status is `200 OK`.
 
 There are a couple of 'hello world' test requests described in sample/requests/README.txt
+
+## Running Docker image
+
+Starting from PBS Java v2.9, you can download prebuilt Docker images from [GitHub Packages](https://github.com/orgs/prebid/packages?repo_name=prebid-server-java) page,
+and use them instead of plain .jar files. This prebuilt images are delivered with or without extra modules.
+
+In order to run such image correctly, you should attach PBS config file. Easiest way is to mount config file into container,
+using [--mount or --volume (-v) Docker CLI arguments](https://docs.docker.com/engine/reference/commandline/run/).
+Keep in mind, that config file should be mounted into specific location: ```/app/prebid-server/``` or ```/app/prebid-server/conf/```.
 
 # Documentation
 

@@ -13,14 +13,13 @@ import io.vertx.core.Promise;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.BDDMockito;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.model.BidRejectionReason;
@@ -40,16 +39,16 @@ import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
 import org.prebid.server.util.HttpUtil;
-import org.prebid.server.vertx.http.HttpClient;
-import org.prebid.server.vertx.http.model.HttpClientResponse;
+import org.prebid.server.vertx.httpclient.HttpClient;
+import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.UnaryOperator;
 
 import static java.util.Arrays.asList;
@@ -64,6 +63,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.atLeast;
@@ -74,13 +74,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 public class HttpBidderRequesterTest extends VertxTest {
 
     private static final byte[] EMPTY_BYTE_BODY = "{}".getBytes();
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private Bidder<BidRequest> bidder;
     @Mock
     private BidRejectionTracker bidRejectionTracker;
@@ -88,13 +87,13 @@ public class HttpBidderRequesterTest extends VertxTest {
     private BidderAliases bidderAliases;
     @Mock
     private HttpClient httpClient;
-    @Mock
+    @Mock(strictness = LENIENT)
     private BidderErrorNotifier bidderErrorNotifier;
-    @Mock
+    @Mock(strictness = LENIENT)
     private HttpBidderRequestEnricher requestEnricher;
-    @Mock
+    @Mock(strictness = LENIENT)
     private RoutingContext routingContext;
-    @Mock
+    @Mock(strictness = LENIENT)
     private HttpServerRequest httpServerRequest;
 
     private HttpBidderRequester target;
@@ -102,7 +101,7 @@ public class HttpBidderRequesterTest extends VertxTest {
     private Timeout timeout;
     private Timeout expiredTimeout;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(bidderErrorNotifier.processTimeout(any(), any())).will(invocation -> invocation.getArgument(0));
         given(routingContext.request()).willReturn(httpServerRequest);
@@ -358,10 +357,9 @@ public class HttpBidderRequesterTest extends VertxTest {
         // given
         givenSuccessfulBidderMakeHttpRequests();
 
-        final List<BidderBid> bids = asList(
-                BidderBid.of(Bid.builder().impid("1").build(), null, null),
-                BidderBid.of(Bid.builder().impid("2").build(), null, null));
-        given(bidder.makeBids(any(), any())).willReturn(Result.of(bids, emptyList()));
+        final List<BidderBid> bids = emptyList();
+        given(bidder.makeBidderResponse(any(), any()))
+                .willReturn(CompositeBidderResponse.withBids(bids, null));
 
         final BidderRequest bidderRequest = BidderRequest.builder()
                 .bidder("bidder")
@@ -382,8 +380,6 @@ public class HttpBidderRequesterTest extends VertxTest {
                         .result();
 
         // then
-        verify(bidder, times(1)).makeBids(any(), any());
-        verify(bidder, times(1)).makeBidderResponse(any(), any());
         assertThat(bidderSeatBid.getBids()).hasSameElementsAs(bids);
     }
 
@@ -459,8 +455,28 @@ public class HttpBidderRequesterTest extends VertxTest {
     @Test
     public void shouldNotWaitForResponsesWhenAllDealsIsGathered() throws JsonProcessingException {
         // given
-        target = new HttpBidderRequester(httpClient, new DealsBidderRequestCompletionTrackerFactory(),
-                bidderErrorNotifier, requestEnricher, jacksonMapper);
+        target = new HttpBidderRequester(
+                httpClient,
+                bidRequest -> new BidderRequestCompletionTracker() {
+
+                    private final AtomicInteger waitAllDeals = new AtomicInteger(2);
+                    private final Promise<Void> promise = Promise.promise();
+
+                    @Override
+                    public Future<Void> future() {
+                        return promise.future();
+                    }
+
+                    @Override
+                    public void processBids(List<BidderBid> bids) {
+                        if (waitAllDeals.decrementAndGet() <= 0) {
+                            promise.complete();
+                        }
+                    }
+                },
+                bidderErrorNotifier,
+                requestEnricher,
+                jacksonMapper);
 
         final BidRequest bidRequest = bidRequestWithDeals("deal1", "deal2");
         final BidderRequest bidderRequest = BidderRequest.builder()
@@ -512,16 +528,15 @@ public class HttpBidderRequesterTest extends VertxTest {
                 CompositeBidderResponse.withBids(singletonList(bidderBidDeal2), emptyList()));
 
         // when
-        final BidderSeatBid bidderSeatBid =
-                target.requestBids(
-                                bidder,
-                                bidderRequest,
-                                bidRejectionTracker,
-                                timeout,
-                                CaseInsensitiveMultiMap.empty(),
-                                bidderAliases,
-                                false)
-                        .result();
+        final BidderSeatBid bidderSeatBid = target.requestBids(
+                        bidder,
+                        bidderRequest,
+                        bidRejectionTracker,
+                        timeout,
+                        CaseInsensitiveMultiMap.empty(),
+                        bidderAliases,
+                        false)
+                .result();
 
         // then
         verify(bidder).makeHttpRequests(any());
@@ -707,20 +722,23 @@ public class HttpBidderRequesterTest extends VertxTest {
     }
 
     @Test
-    public void shouldNotReturnSensitiveHeadersInFullDebugInfo() {
+    public void shouldNotReturnSensitiveHeadersInFullDebugInfo()
+            throws JsonProcessingException {
         // given
         final MultiMap headers = MultiMap.caseInsensitiveMultiMap();
         headers.add("headerKey", "headerValue");
         headers.add("Authorization", "authorizationValue");
+        final BidRequest givenBidRequest = givenBidRequest(identity());
+        final byte[] requestBody = mapper.writeValueAsBytes(givenBidRequest);
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
                         givenSimpleHttpRequest(httpRequestBuilder -> httpRequestBuilder
                                 .uri("uri1")
-                                .headers(headers))),
+                                .headers(headers)
+                                .payload(givenBidRequest)
+                                .body(requestBody))),
                 emptyList()));
-        given(requestEnricher.enrichHeaders(anyString(), any(), any(), any(), any())).willReturn(headers);
 
-        givenHttpClientReturnsResponses(
-                HttpClientResponse.of(200, null, "responseBody1"));
+        given(requestEnricher.enrichHeaders(anyString(), any(), any(), any(), any())).willReturn(headers);
 
         final BidderRequest bidderRequest = BidderRequest.builder()
                 .bidder("bidder")
@@ -729,12 +747,11 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         // when
         final BidderSeatBid bidderSeatBid =
-                target
-                        .requestBids(
+                target.requestBids(
                                 bidder,
                                 bidderRequest,
                                 bidRejectionTracker,
-                                timeout,
+                                expiredTimeout,
                                 CaseInsensitiveMultiMap.empty(),
                                 bidderAliases,
                                 true)
@@ -743,8 +760,7 @@ public class HttpBidderRequesterTest extends VertxTest {
         // then
         assertThat(bidderSeatBid.getHttpCalls())
                 .extracting(ExtHttpCall::getRequestheaders)
-                .flatExtracting(Map::keySet)
-                .containsExactly("headerKey");
+                .containsExactly(singletonMap("headerKey", singletonList("headerValue")));
     }
 
     @Test

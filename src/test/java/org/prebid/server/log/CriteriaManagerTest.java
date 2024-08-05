@@ -1,24 +1,20 @@
 package org.prebid.server.log;
 
 import io.vertx.core.Vertx;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
-import org.prebid.server.deals.model.LogCriteriaFilter;
 
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 
+@ExtendWith(MockitoExtension.class)
 public class CriteriaManagerTest extends VertxTest {
-
-    @Rule
-    public final MockitoRule rule = MockitoJUnit.rule();
 
     @Mock
     private CriteriaLogManager criteriaLogManager;
@@ -27,7 +23,7 @@ public class CriteriaManagerTest extends VertxTest {
 
     private CriteriaManager criteriaManager;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         criteriaManager = new CriteriaManager(criteriaLogManager, vertx);
     }
@@ -35,14 +31,14 @@ public class CriteriaManagerTest extends VertxTest {
     @Test
     public void addCriteriaShouldThrowIllegalArgumentExceptionWhenLoggerLevelHasInvalidValue() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> criteriaManager.addCriteria("1001", "rubicon", "lineItemId1", "invalid", 800))
+                .isThrownBy(() -> criteriaManager.addCriteria("1001", "rubicon", "invalid", 800))
                 .withMessage("Invalid LoggingLevel: invalid");
     }
 
     @Test
     public void addCriteriaShouldAddVertxTimerWithLimitedDurationInMillis() {
         // given and when
-        criteriaManager.addCriteria("1001", "rubicon", "lineItemId1", "error", 800000);
+        criteriaManager.addCriteria("1001", "rubicon", "error", 800000);
 
         // then
         verify(vertx).setTimer(eq(300000L), any());
@@ -51,25 +47,7 @@ public class CriteriaManagerTest extends VertxTest {
     @Test
     public void addCriteriaShouldAddVertxTimerWithDefaultDurationInMillis() {
         // given and when
-        criteriaManager.addCriteria("1001", "rubicon", "lineItemId1", "error", 200000);
-
-        // then
-        verify(vertx).setTimer(eq(200000L), any());
-    }
-
-    @Test
-    public void addCriteriaByFilterShouldAddVertxTimeWithLimitedDurationInMillis() {
-        // given and when
-        criteriaManager.addCriteria(LogCriteriaFilter.of("1001", "rubicon", "lineItemId1"), 800L);
-
-        // then
-        verify(vertx).setTimer(eq(300000L), any());
-    }
-
-    @Test
-    public void addCriteriaByFilterShouldAddVertxTimeWithNotLimitedDurationInMillis() {
-        // given and when
-        criteriaManager.addCriteria(LogCriteriaFilter.of("1001", "rubicon", "lineItemId1"), 200L);
+        criteriaManager.addCriteria("1001", "rubicon", "error", 200000);
 
         // then
         verify(vertx).setTimer(eq(200000L), any());
