@@ -11,7 +11,9 @@
       "ext": {
         "tid": "${json-unit.any-string}",
         "bidder": {
-          "tokenId": "testTokenId"
+          "tokenId": "testTokenId",
+          "seatId" : "testSeatId",
+          "sspId" : "testSspId"
         }
       }
     }

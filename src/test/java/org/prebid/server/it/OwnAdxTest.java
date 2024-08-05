@@ -2,7 +2,7 @@ package org.prebid.server.it;
 
 import io.restassured.response.Response;
 import org.json.JSONException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
 import org.prebid.server.model.Endpoint;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -22,7 +22,7 @@ public class OwnAdxTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromOwnAdx() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/ownadx-exchange/bid//"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/ownadx-exchange/bid/testSeatId/testSspId"))
                 .withQueryParam("token", equalTo("testTokenId"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/ownadx/test-ownadx-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/ownadx/test-ownadx-bid-response.json"))));

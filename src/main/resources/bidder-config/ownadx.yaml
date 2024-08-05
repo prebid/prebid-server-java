@@ -1,6 +1,6 @@
 adapters:
   ownadx:
-    endpoint: "https://pbs.prebid-ownadx.com/bidder/bid/{{AccountID}}/{{ZoneID}}?token={{SourceId}}"
+    endpoint: "https://pbs.prebid-ownadx.com/bidder/bid/{{SeatID}}/{{SspID}}?token={{TokenID}}"
     meta-info:
       maintainer-email: prebid-team@techbravo.com
       app-media-types:
@@ -11,3 +11,9 @@ adapters:
         - video
       supported-vendors:
       vendor-id: 0
+    usersync:
+      cookie-family-name: ownadx
+      redirect:
+        url: https://sync.spoutroserve.com/user-sync?t=image&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&s3={{redirect_url}}
+        support-cors: false
+        uid-macro: '{USER_ID}'

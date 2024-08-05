@@ -38,9 +38,9 @@ public class OwnAdxBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
     private static final String X_OPEN_RTB_VERSION = "2.5";
-    private static final String ACCOUNT_ID_MACROS_ENDPOINT = "{{AccountID}}";
-    private static final String ZONE_ID_MACROS_ENDPOINT = "{{ZoneID}}";
-    private static final String SOURCE_ID_MACROS_ENDPOINT = "{{SourceId}}";
+    private static final String SEAT_ID_MACROS_ENDPOINT = "{{SeatID}}";
+    private static final String SSP_ID_MACROS_ENDPOINT = "{{SspID}}";
+    private static final String TOKEN_ID_MACROS_ENDPOINT = "{{TokenID}}";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -88,9 +88,9 @@ public class OwnAdxBidder implements Bidder<BidRequest> {
     private String makeUrl(ExtImpOwnAdx extImpOwnAdx) {
         final Optional<ExtImpOwnAdx> ownAdx = Optional.ofNullable(extImpOwnAdx);
         return endpointUrl
-                .replace(ACCOUNT_ID_MACROS_ENDPOINT, ownAdx.map(ExtImpOwnAdx::getSspId).orElse(StringUtils.EMPTY))
-                .replace(ZONE_ID_MACROS_ENDPOINT, ownAdx.map(ExtImpOwnAdx::getSeatId).orElse(StringUtils.EMPTY))
-                .replace(SOURCE_ID_MACROS_ENDPOINT, ownAdx.map(ExtImpOwnAdx::getTokenId).orElse(StringUtils.EMPTY));
+                .replace(SEAT_ID_MACROS_ENDPOINT, ownAdx.map(ExtImpOwnAdx::getSeatId).orElse(StringUtils.EMPTY))
+                .replace(SSP_ID_MACROS_ENDPOINT, ownAdx.map(ExtImpOwnAdx::getSspId).orElse(StringUtils.EMPTY))
+                .replace(TOKEN_ID_MACROS_ENDPOINT, ownAdx.map(ExtImpOwnAdx::getTokenId).orElse(StringUtils.EMPTY));
     }
 
     private static MultiMap makeHeaders() {

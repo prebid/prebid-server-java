@@ -9,7 +9,9 @@
       },
       "ext": {
         "ownadx": {
-          "tokenId": "testTokenId"
+          "tokenId": "testTokenId",
+          "seatId": "testSeatId",
+          "sspId": "testSspId"
         }
       }
     }

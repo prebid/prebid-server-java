@@ -8,7 +8,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -35,7 +35,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class OwnAdxBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.com/test/{{AccountID}}/{{ZoneID}}?token={{SourceId}}";
+    private static final String ENDPOINT_URL = "https://test.com/test/{{SeatID}}/{{SspID}}?token={{TokenID}}";
 
     private final OwnAdxBidder target = new OwnAdxBidder(ENDPOINT_URL, jacksonMapper);
 
@@ -139,7 +139,7 @@ public class OwnAdxBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://test.com/test/sspId/seatId?token=token");
+                .containsExactly("https://test.com/test/seatId/sspId?token=token");
     }
 
     @Test
