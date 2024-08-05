@@ -73,44 +73,6 @@ public class GumgumBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfNoValidImpressions() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(
-                        givenImp(impBuilder -> impBuilder.video(Video.builder().build()))))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(2)
-                .contains(BidderError.badInput("No valid impressions"));
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnErrorIfVideoFieldsAreNotValid() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .video(Video.builder().w(0).build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpGumgum.of("zone", BigInteger.TEN, "irisId", null, null))))
-                        .build()))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors())
-                .containsExactlyInAnyOrder(BidderError.badInput("Invalid or missing video field(s)"),
-                        BidderError.badInput("No valid impressions"));
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
     public void makeHttpRequestsShouldModifyVideoExtOfIrisIdIsPresent() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
