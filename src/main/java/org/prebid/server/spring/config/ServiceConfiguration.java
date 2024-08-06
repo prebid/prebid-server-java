@@ -97,9 +97,7 @@ import org.prebid.server.json.JsonMerger;
 import org.prebid.server.log.CriteriaLogManager;
 import org.prebid.server.log.CriteriaManager;
 import org.prebid.server.log.HttpInteractionLogger;
-import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerControlKnob;
-import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.privacy.HostVendorTcfDefinerService;
@@ -148,8 +146,6 @@ import java.util.stream.Stream;
 
 @Configuration
 public class ServiceConfiguration {
-
-    private static final Logger logger = LoggerFactory.getLogger(ServiceConfiguration.class);
 
     @Value("${logging.sampling-rate:0.01}")
     private double logSamplingRate;
@@ -293,6 +289,7 @@ public class ServiceConfiguration {
             @Value("${external-url}") String externalUrl,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
             @Value("${datacenter-region}") String datacenterRegion,
+            BidderCatalog bidderCatalog,
             ImplicitParametersExtractor implicitParametersExtractor,
             TimeoutResolver timeoutResolver,
             IpAddressHelper ipAddressHelper,
@@ -309,6 +306,7 @@ public class ServiceConfiguration {
                 externalUrl,
                 hostVendorId,
                 datacenterRegion,
+                bidderCatalog,
                 implicitParametersExtractor,
                 timeoutResolver,
                 ipAddressHelper,
