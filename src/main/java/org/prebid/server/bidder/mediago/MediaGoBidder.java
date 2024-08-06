@@ -70,7 +70,7 @@ public class MediaGoBidder implements Bidder<BidRequest> {
         }
 
         final List<Imp> modifiedImps = new ArrayList<>();
-        for (Imp imp: request.getImp()) {
+        for (Imp imp : request.getImp()) {
             final Imp modifiedImp = imp.toBuilder().banner(modifyBanner(imp.getBanner())).build();
             modifiedImps.add(modifiedImp);
         }
@@ -195,11 +195,11 @@ public class MediaGoBidder implements Bidder<BidRequest> {
     }
 
     private static Optional<BidType> getBidTypeFromMtype(Integer mType) {
-        final BidType bidType = mType != null ? switch (mType) {
+        final BidType bidType = switch (mType) {
             case 1 -> BidType.banner;
             case 4 -> BidType.xNative;
-            default -> null;
-        } : null;
+            case null, default -> null;
+        };
 
         return Optional.ofNullable(bidType);
     }

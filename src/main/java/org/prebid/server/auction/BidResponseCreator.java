@@ -181,10 +181,24 @@ public class BidResponseCreator {
         return truncateAttrChars;
     }
 
-    /**
-     * Creates an OpenRTB {@link BidResponse} from the bids supplied by the bidder,
-     * including processing of winning bids with cache IDs.
-     */
+    Future<BidResponse> createOnSkippedAuction(AuctionContext auctionContext, List<SeatBid> seatBids) {
+        final BidRequest bidRequest = auctionContext.getBidRequest();
+
+        final ExtBidResponse extBidResponse = ExtBidResponse.builder()
+                .warnings(extractContextWarnings(auctionContext))
+                .tmaxrequest(bidRequest.getTmax())
+                .build();
+
+        final BidResponse bidResponse = BidResponse.builder()
+                .id(bidRequest.getId())
+                .cur(Stream.ofNullable(bidRequest.getCur()).flatMap(Collection::stream).findFirst().orElse(null))
+                .seatbid(Optional.ofNullable(seatBids).orElse(Collections.emptyList()))
+                .ext(extBidResponse)
+                .build();
+
+        return Future.succeededFuture(bidResponse);
+    }
+
     Future<BidResponse> create(AuctionContext auctionContext,
                                BidRequestCacheInfo cacheInfo,
                                Map<String, MultiBidConfig> bidderToMultiBids) {

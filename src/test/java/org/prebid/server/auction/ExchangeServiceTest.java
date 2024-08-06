@@ -385,7 +385,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .map(user -> UpdateResult.updated(null))
                         .orElse(UpdateResult.unaltered(null)));
 
-        given(storedResponseProcessor.getStoredResponseResult(any(), any()))
+        given(storedResponseProcessor.getStoredResponseResult(anyList(), any()))
                 .willAnswer(inv -> Future.succeededFuture(StoredResponseResult.of(inv.getArgument(0), emptyList(),
                         emptyMap())));
         given(storedResponseProcessor.mergeWithBidderResponses(any(), any(), any(), any()))
@@ -1763,7 +1763,7 @@ public class ExchangeServiceTest extends VertxTest {
                                         .build()))),
                 builder -> builder.id("requestId").tmax(500L));
 
-        given(storedResponseProcessor.getStoredResponseResult(any(), any()))
+        given(storedResponseProcessor.getStoredResponseResult(anyList(), any()))
                 .willReturn(Future.succeededFuture(StoredResponseResult
                         .of(singletonList(givenImp(singletonMap("someBidder1", 1), builder -> builder
                                 .id("impId1")
@@ -1826,7 +1826,7 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureWhenStoredResponseProcessorGetStoredResultReturnsFailedFuture() {
         // given
-        given(storedResponseProcessor.getStoredResponseResult(any(), any()))
+        given(storedResponseProcessor.getStoredResponseResult(anyList(), any()))
                 .willReturn(Future.failedFuture(new InvalidRequestException("Error")));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(

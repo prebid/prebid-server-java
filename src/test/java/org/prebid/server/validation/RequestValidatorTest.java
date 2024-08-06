@@ -16,8 +16,8 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Uid;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -70,7 +70,7 @@ public class RequestValidatorTest extends VertxTest {
 
     @Mock(strictness = LENIENT)
     private BidderCatalog bidderCatalog;
-    @Mock(strictness = LENIENT)
+    @Mock
     private ImpValidator impValidator;
     @Mock
     private Metrics metrics;

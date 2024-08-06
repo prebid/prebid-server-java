@@ -246,11 +246,7 @@ public class AdkernelBidder implements Bidder<BidRequest> {
         final Optional<String> mfSuffix = getMfSuffix(bid.getImpid());
         final Bid updatedBid = mfSuffix.map(suffix -> removeMfSuffixFromImpId(bid, suffix)).orElse(bid);
 
-        final BidType bidType = mfSuffix
-                .flatMap(AdkernelBidder::getTypeFromMsSuffix)
-                .orElseGet(() -> getTypeFromImp(updatedBid.getImpid(), imps));
-
-        return BidderBid.of(updatedBid, bidType, currency);
+        return BidderBid.of(updatedBid, getBidType(bid), currency);
     }
 
     private static Optional<String> getMfSuffix(String impId) {
@@ -265,35 +261,19 @@ public class AdkernelBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private static Optional<BidType> getTypeFromMsSuffix(String msSuffix) {
-        final BidType bidType = switch (msSuffix) {
-            case MF_SUFFIX_BANNER -> BidType.banner;
-            case MF_SUFFIX_VIDEO -> BidType.video;
-            case MF_SUFFIX_AUDIO -> BidType.audio;
-            case MF_SUFFIX_NATIVE -> BidType.xNative;
-            default -> null;
-        };
-
-        return Optional.ofNullable(bidType);
-    }
-
-    private static BidType getTypeFromImp(String impId, List<Imp> imps) {
-        for (Imp imp : imps) {
-            if (!imp.getId().equals(impId)) {
-                continue;
-            }
-
-            if (imp.getBanner() != null) {
-                return BidType.banner;
-            } else if (imp.getVideo() != null) {
-                return BidType.video;
-            } else if (imp.getAudio() != null) {
-                return BidType.audio;
-            } else if (imp.getXNative() != null) {
-                return BidType.xNative;
-            }
+    private static BidType getBidType(Bid bid) {
+        final Integer markupType = bid.getMtype();
+        if (markupType == null) {
+            throw new PreBidException("Missing MType for bid: " + bid.getId());
         }
 
-        return BidType.video;
+        return switch (markupType) {
+            case 1 -> BidType.banner;
+            case 2 -> BidType.video;
+            case 3 -> BidType.audio;
+            case 4 -> BidType.xNative;
+            default -> throw new PreBidException(
+                    "Unsupported MType %d".formatted(markupType));
+        };
     }
 }

@@ -1347,7 +1347,7 @@ public class ImpValidatorTest extends VertxTest {
         // given
         final ObjectNode prebid = mapper.valueToTree(ExtImpPrebid.builder()
                 .storedBidResponse(singletonList(ExtStoredBidResponse.of("bidder", "id")))
-                .storedAuctionResponse(ExtStoredAuctionResponse.of("id"))
+                .storedAuctionResponse(ExtStoredAuctionResponse.of("id", null))
                 .build());
 
         final List<Imp> givenImps = singletonList(validImpBuilder()
@@ -1565,6 +1565,45 @@ public class ImpValidatorTest extends VertxTest {
                 .extracting(impExt -> impExt.get("prebid"))
                 .extracting(prebid -> prebid.get("imp"))
                 .containsOnly(mapper.createObjectNode().put("rubiconAlias", 0));
+    }
+
+    @Test
+    public void validateImpsShouldReturnValidationMessageWhenExtImpPrebidHasStoredAuctionResponseWithoutId()
+            throws ValidationException {
+
+        // given
+        final List<Imp> givenImps = singletonList(validImpBuilder()
+                        .ext(mapper.valueToTree(singletonMap("prebid", singletonMap(
+                                "storedauctionresponse", mapper.createObjectNode()))))
+                .build());
+
+        // when & then
+        assertThatThrownBy(() -> target.validateImps(givenImps, Collections.emptyMap(), null))
+                .isInstanceOf(ValidationException.class)
+                .hasMessage("request.imp[0].ext.prebid.storedauctionresponse.id should be defined");
+    }
+
+    @Test
+    public void validateImpsShouldReturnWarningMessageWhenExtImpPrebidHasStoredAuctionResponseSeatBidArr()
+            throws ValidationException {
+
+        // given
+        final List<Imp> givenImps = singletonList(validImpBuilder()
+                        .ext(mapper.valueToTree(singletonMap("prebid", Map.of(
+                                "storedauctionresponse", mapper.createObjectNode()
+                                        .put("id", "1")
+                                        .set("seatbidarr", mapper.createArrayNode())))
+                        )).build());
+
+        final List<String> debugMessages = new ArrayList<>();
+
+        // when
+        target.validateImps(givenImps, Collections.emptyMap(), debugMessages);
+
+        // then
+        assertThat(debugMessages)
+                .containsOnly("WARNING: request.imp[0].ext.prebid.storedauctionresponse.seatbidarr "
+                        + "is not supported at the imp level");
     }
 
     // validateImp method tests

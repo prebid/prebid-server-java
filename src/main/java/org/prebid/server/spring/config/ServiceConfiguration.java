@@ -24,6 +24,7 @@ import org.prebid.server.auction.InterstitialProcessor;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.OrtbTypesResolver;
 import org.prebid.server.auction.SecBrowsingTopicsResolver;
+import org.prebid.server.auction.SkippedAuctionService;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.StoredResponseProcessor;
 import org.prebid.server.auction.SupplyChainResolver;
@@ -70,9 +71,9 @@ import org.prebid.server.bidder.BidderErrorNotifier;
 import org.prebid.server.bidder.BidderRequestCompletionTrackerFactory;
 import org.prebid.server.bidder.HttpBidderRequestEnricher;
 import org.prebid.server.bidder.HttpBidderRequester;
-import org.prebid.server.cache.BasicModuleCacheService;
+import org.prebid.server.cache.BasicPbcStorageService;
 import org.prebid.server.cache.CoreCacheService;
-import org.prebid.server.cache.ModuleCacheService;
+import org.prebid.server.cache.PbcStorageService;
 import org.prebid.server.cache.model.CacheTtl;
 import org.prebid.server.cache.utils.CacheServiceUtil;
 import org.prebid.server.cookie.CookieDeprecationService;
@@ -97,9 +98,7 @@ import org.prebid.server.json.JsonMerger;
 import org.prebid.server.log.CriteriaLogManager;
 import org.prebid.server.log.CriteriaManager;
 import org.prebid.server.log.HttpInteractionLogger;
-import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerControlKnob;
-import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.privacy.HostVendorTcfDefinerService;
@@ -150,8 +149,6 @@ import java.util.stream.Stream;
 @Configuration
 public class ServiceConfiguration {
 
-    private static final Logger logger = LoggerFactory.getLogger(ServiceConfiguration.class);
-
     @Value("${logging.sampling-rate:0.01}")
     private double logSamplingRate;
 
@@ -184,22 +181,22 @@ public class ServiceConfiguration {
 
     @Bean
     @ConditionalOnProperty(prefix = "cache.module", name = "enabled", havingValue = "false", matchIfMissing = true)
-    ModuleCacheService noOpModuleCacheService() {
-        return ModuleCacheService.noOp();
+    PbcStorageService noOpModuleCacheService() {
+        return PbcStorageService.noOp();
     }
 
     @Bean
     @ConditionalOnProperty(prefix = "cache.module", name = "enabled", havingValue = "true")
-    ModuleCacheService basicModuleCacheService(
+    PbcStorageService basicModuleCacheService(
             @Value("${cache.scheme}") String scheme,
             @Value("${cache.host}") String host,
-            @Value("${cache.module.path}") String path,
-            @Value("${cache.module.call-timeout-ms}") int callTimeoutMs,
-            @Value("${cache.api.key}") String apiKey,
+            @Value("${storage.pbc.path}") String path,
+            @Value("${storage.pbc.call-timeout-ms}") int callTimeoutMs,
+            @Value("${pbc.api.key}") String apiKey,
             HttpClient httpClient,
             JacksonMapper mapper) {
 
-        return new BasicModuleCacheService(
+        return new BasicPbcStorageService(
                 httpClient,
                 CacheServiceUtil.getCacheEndpointUrl(scheme, host, path),
                 apiKey,
@@ -299,6 +296,7 @@ public class ServiceConfiguration {
             @Value("${external-url}") String externalUrl,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
             @Value("${datacenter-region}") String datacenterRegion,
+            BidderCatalog bidderCatalog,
             ImplicitParametersExtractor implicitParametersExtractor,
             TimeoutResolver timeoutResolver,
             IpAddressHelper ipAddressHelper,
@@ -315,6 +313,7 @@ public class ServiceConfiguration {
                 externalUrl,
                 hostVendorId,
                 datacenterRegion,
+                bidderCatalog,
                 implicitParametersExtractor,
                 timeoutResolver,
                 ipAddressHelper,
@@ -1152,6 +1151,13 @@ public class ServiceConfiguration {
     @Bean
     DsaEnforcer dsaEnforcer(JacksonMapper mapper) {
         return new DsaEnforcer(mapper);
+    }
+
+    @Bean
+    SkippedAuctionService skipAuctionService(StoredResponseProcessor storedResponseProcessor,
+                                             BidResponseCreator bidResponseCreator) {
+
+        return new SkippedAuctionService(storedResponseProcessor, bidResponseCreator);
     }
 
     private static List<String> splitToList(String listAsString) {

@@ -5,7 +5,7 @@ import io.vertx.core.MultiMap;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.cache.proto.request.module.ModuleCacheRequest;
-import org.prebid.server.cache.proto.request.module.ModuleCacheType;
+import org.prebid.server.cache.proto.request.module.StorageDataType;
 import org.prebid.server.cache.proto.response.module.ModuleCacheResponse;
 import org.prebid.server.cache.utils.CacheServiceUtil;
 import org.prebid.server.exception.PreBidException;
@@ -17,7 +17,7 @@ import org.prebid.server.vertx.httpclient.HttpClient;
 import java.net.URL;
 import java.util.Objects;
 
-public class BasicModuleCacheService implements ModuleCacheService {
+public class BasicPbcStorageService implements PbcStorageService {
 
     public static final String MODULE_KEY_PREFIX = "module";
     public static final String MODULE_KEY_DELIMETER = ".";
@@ -28,11 +28,11 @@ public class BasicModuleCacheService implements ModuleCacheService {
     private final int callTimeoutMs;
     private final JacksonMapper mapper;
 
-    public BasicModuleCacheService(HttpClient httpClient,
-                                   URL endpointUrl,
-                                   String apiKey,
-                                   int callTimeoutMs,
-                                   JacksonMapper mapper) {
+    public BasicPbcStorageService(HttpClient httpClient,
+                                  URL endpointUrl,
+                                  String apiKey,
+                                  int callTimeoutMs,
+                                  JacksonMapper mapper) {
 
         this.httpClient = Objects.requireNonNull(httpClient);
         this.endpointUrl = Objects.requireNonNull(endpointUrl);
@@ -42,12 +42,12 @@ public class BasicModuleCacheService implements ModuleCacheService {
     }
 
     @Override
-    public Future<Void> storeModuleEntry(String key,
-                                         String value,
-                                         ModuleCacheType type,
-                                         Integer ttlseconds,
-                                         String application,
-                                         String moduleCode) {
+    public Future<Void> storeEntry(String key,
+                                   String value,
+                                   StorageDataType type,
+                                   Integer ttlseconds,
+                                   String application,
+                                   String moduleCode) {
 
         try {
             validateStoreData(key, value, application, type, moduleCode);
@@ -75,7 +75,7 @@ public class BasicModuleCacheService implements ModuleCacheService {
     private static void validateStoreData(String key,
                                           String value,
                                           String application,
-                                          ModuleCacheType type,
+                                          StorageDataType type,
                                           String moduleCode) {
 
         if (StringUtils.isBlank(key)) {
@@ -99,8 +99,8 @@ public class BasicModuleCacheService implements ModuleCacheService {
         }
     }
 
-    private static String prepareValueForStoring(String value, ModuleCacheType type) {
-        return type == ModuleCacheType.TEXT
+    private static String prepareValueForStoring(String value, StorageDataType type) {
+        return type == StorageDataType.TEXT
                 ? new String(Base64.encodeBase64(value.getBytes()))
                 : value;
     }
@@ -186,8 +186,8 @@ public class BasicModuleCacheService implements ModuleCacheService {
                 : ModuleCacheResponse.of(moduleCacheResponse.getKey(), moduleCacheResponse.getType(), processedValue);
     }
 
-    private static String prepareValueAfterRetrieve(String value, ModuleCacheType type) {
-        return type == ModuleCacheType.TEXT
+    private static String prepareValueAfterRetrieve(String value, StorageDataType type) {
+        return type == StorageDataType.TEXT
                 ? new String(Base64.decodeBase64(value.getBytes()))
                 : value;
     }

@@ -104,7 +104,7 @@ public class SmrtconnectBidder implements Bidder<BidRequest> {
             case 3 -> BidType.audio;
             case 4 -> BidType.xNative;
 
-            default -> throw new PreBidException("Unsupported mType " + mType);
+            case null, default -> throw new PreBidException("Unsupported mType " + mType);
         };
     }
 }

@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
         <groupId>org.prebid</groupId>
         <artifactId>prebid-server-aggregator</artifactId>
-        <version>3.7.0-SNAPSHOT</version>
+        <version>3.9.0-SNAPSHOT</version>
         <relativePath>extra/pom.xml</relativePath>
     </parent>
 
@@ -25,12 +26,9 @@
         <checkstyle-plugin.version>3.4.0</checkstyle-plugin.version>
         <checkstyle.version>10.17.0</checkstyle.version>
         <download-plugin.version>1.9.0</download-plugin.version>
-        <jacoco-plugin.version>0.8.12</jacoco-plugin.version>
         <git-commmit-plugin.version>4.9.10</git-commmit-plugin.version>
 
         <gmavenplus-plugin.version>3.0.2</gmavenplus-plugin.version>
-        <skipFunctionalTests>false</skipFunctionalTests>
-        <skipModuleFunctionalTests>true</skipModuleFunctionalTests>
         <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
         <build-helper-maven-plugin.version>3.6.0</build-helper-maven-plugin.version>
         <protobuf-maven-plugin.version>0.6.1</protobuf-maven-plugin.version>
@@ -366,7 +364,6 @@
                             <launchContainers>false</launchContainers>
                         </systemPropertyVariables>
                         <skipTests>${skipUnitTests}</skipTests>
-                        <argLine>${surefire.jacoco.args}</argLine>
                     </configuration>
                 </plugin>
                 <plugin>
@@ -536,53 +533,18 @@
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <version>${jacoco-plugin.version}</version>
                 <configuration>
+                    <skip>${skipUnitTests}</skip>
                     <excludes>
                         <exclude>com/iab/openrtb/**</exclude>
+                        <exclude>com/iabtechlab/openrtb/**</exclude>
+                        <exclude>com/magnite/openrtb/**</exclude>
                         <exclude>**/proto/**</exclude>
                         <exclude>**/model/**</exclude>
                         <exclude>**/functional/**</exclude>
                         <exclude>org/prebid/server/spring/config/**</exclude>
                     </excludes>
                 </configuration>
-                <executions>
-                    <execution>
-                        <id>before-unit-test-execution</id>
-                        <goals>
-                            <goal>prepare-agent</goal>
-                        </goals>
-                        <configuration>
-                            <propertyName>surefire.jacoco.args</propertyName>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>after-unit-test-execution</id>
-                        <goals>
-                            <goal>report</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>check</id>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                        <configuration>
-                            <rules>
-                                <rule>
-                                    <element>BUNDLE</element>
-                                    <limits>
-                                        <limit>
-                                            <counter>INSTRUCTION</counter>
-                                            <value>COVEREDRATIO</value>
-                                            <minimum>90%</minimum>
-                                        </limit>
-                                    </limits>
-                                </rule>
-                            </rules>
-                        </configuration>
-                    </execution>
-                </executions>
             </plugin>
             <plugin>
                 <groupId>pl.project13.maven</groupId>

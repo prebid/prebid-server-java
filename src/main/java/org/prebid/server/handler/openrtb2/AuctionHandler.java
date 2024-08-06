@@ -5,6 +5,7 @@ import com.iab.openrtb.request.Imp;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
+import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerResponse;
@@ -12,6 +13,7 @@ import io.vertx.ext.web.RoutingContext;
 import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.ExchangeService;
+import org.prebid.server.auction.SkippedAuctionService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
 import org.prebid.server.cookie.UidsCookie;
@@ -50,6 +52,7 @@ public class AuctionHandler implements ApplicationResource {
     private final double logSamplingRate;
     private final AuctionRequestFactory auctionRequestFactory;
     private final ExchangeService exchangeService;
+    private final SkippedAuctionService skippedAuctionService;
     private final AnalyticsReporterDelegator analyticsDelegator;
     private final Metrics metrics;
     private final Clock clock;
@@ -60,6 +63,7 @@ public class AuctionHandler implements ApplicationResource {
     public AuctionHandler(double logSamplingRate,
                           AuctionRequestFactory auctionRequestFactory,
                           ExchangeService exchangeService,
+                          SkippedAuctionService skippedAuctionService,
                           AnalyticsReporterDelegator analyticsDelegator,
                           Metrics metrics,
                           Clock clock,
@@ -70,6 +74,7 @@ public class AuctionHandler implements ApplicationResource {
         this.logSamplingRate = logSamplingRate;
         this.auctionRequestFactory = Objects.requireNonNull(auctionRequestFactory);
         this.exchangeService = Objects.requireNonNull(exchangeService);
+        this.skippedAuctionService = Objects.requireNonNull(skippedAuctionService);
         this.analyticsDelegator = Objects.requireNonNull(analyticsDelegator);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
@@ -94,8 +99,16 @@ public class AuctionHandler implements ApplicationResource {
         final AuctionEvent.AuctionEventBuilder auctionEventBuilder = AuctionEvent.builder()
                 .httpContext(HttpRequestContext.from(routingContext));
 
-        auctionRequestFactory.fromRequest(routingContext, startTime)
+        auctionRequestFactory.parseRequest(routingContext, startTime)
+                .compose(auctionContext -> skippedAuctionService.skipAuction(auctionContext)
+                        .recover(throwable -> holdAuction(auctionEventBuilder, auctionContext)))
+                .onComplete(context -> handleResult(context, auctionEventBuilder, routingContext, startTime));
+    }
 
+    private Future<AuctionContext> holdAuction(AuctionEvent.AuctionEventBuilder auctionEventBuilder,
+                                               AuctionContext auctionContext) {
+
+        return auctionRequestFactory.enrichAuctionContext(auctionContext)
                 .map(this::updateAppAndNoCookieAndImpsMetrics)
 
                 // In case of holdAuction Exception and auctionContext is not present below
@@ -104,8 +117,7 @@ public class AuctionHandler implements ApplicationResource {
                 .compose(exchangeService::holdAuction)
                 // populate event with updated context
                 .map(context -> addToEvent(context, auctionEventBuilder::auctionContext, context))
-                .map(context -> addToEvent(context.getBidResponse(), auctionEventBuilder::bidResponse, context))
-                .onComplete(context -> handleResult(context, auctionEventBuilder, routingContext, startTime));
+                .map(context -> addToEvent(context.getBidResponse(), auctionEventBuilder::bidResponse, context));
     }
 
     private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {
@@ -138,6 +150,7 @@ public class AuctionHandler implements ApplicationResource {
         final boolean responseSucceeded = responseResult.succeeded();
 
         final AuctionContext auctionContext = responseSucceeded ? responseResult.result() : null;
+        final boolean isAuctionSkipped = responseSucceeded && auctionContext.isAuctionSkipped();
         final MetricName requestType = responseSucceeded
                 ? auctionContext.getRequestTypeMetric()
                 : MetricName.openrtb2web;
@@ -215,28 +228,27 @@ public class AuctionHandler implements ApplicationResource {
         final PrivacyContext privacyContext = auctionContext != null ? auctionContext.getPrivacyContext() : null;
         final TcfContext tcfContext = privacyContext != null ? privacyContext.getTcfContext() : TcfContext.empty();
 
-        respondWith(
-                routingContext,
-                status,
-                body,
-                startTime,
-                requestType,
-                metricRequestStatus,
-                auctionEvent,
-                tcfContext);
+        final boolean responseSent = respondWith(routingContext, status, body, requestType);
+
+        if (responseSent) {
+            metrics.updateRequestTimeMetric(MetricName.request_time, clock.millis() - startTime);
+            metrics.updateRequestTypeMetric(requestType, metricRequestStatus);
+            if (!isAuctionSkipped) {
+                analyticsDelegator.processEvent(auctionEvent, tcfContext);
+            }
+        } else {
+            metrics.updateRequestTypeMetric(requestType, MetricName.networkerr);
+        }
+
         httpInteractionLogger.maybeLogOpenrtb2Auction(auctionContext, routingContext, status.code(), body);
     }
 
-    private void respondWith(RoutingContext routingContext,
-                             HttpResponseStatus status,
-                             String body,
-                             long startTime,
-                             MetricName requestType,
-                             MetricName metricRequestStatus,
-                             AuctionEvent event,
-                             TcfContext tcfContext) {
+    private boolean respondWith(RoutingContext routingContext,
+                                HttpResponseStatus status,
+                                String body,
+                                MetricName requestType) {
 
-        final boolean responseSent = HttpUtil.executeSafely(
+        return HttpUtil.executeSafely(
                 routingContext,
                 Endpoint.openrtb2_auction,
                 response -> response
@@ -244,13 +256,6 @@ public class AuctionHandler implements ApplicationResource {
                         .setStatusCode(status.code())
                         .end(body));
 
-        if (responseSent) {
-            metrics.updateRequestTimeMetric(MetricName.request_time, clock.millis() - startTime);
-            metrics.updateRequestTypeMetric(requestType, metricRequestStatus);
-            analyticsDelegator.processEvent(event, tcfContext);
-        } else {
-            metrics.updateRequestTypeMetric(requestType, MetricName.networkerr);
-        }
     }
 
     private void handleResponseException(Throwable throwable, MetricName requestType) {
