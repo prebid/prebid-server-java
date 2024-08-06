@@ -135,7 +135,6 @@ public class GumgumBidder implements Bidder<BidRequest> {
 
         final Video video = imp.getVideo();
         if (video != null) {
-            validateVideoParams(video);
             final String irisId = extImp.getIrisId();
             if (StringUtils.isNotEmpty(irisId)) {
                 final Video resolvedVideo = resolveVideo(video, irisId);
@@ -172,18 +171,6 @@ public class GumgumBidder implements Bidder<BidRequest> {
                         .thenComparing(Format::getH))
                 .map(format -> ExtImpGumgumBanner.of(slot, format.getW(), format.getH()))
                 .orElseGet(() -> ExtImpGumgumBanner.of(slot, 0, 0));
-    }
-
-    private void validateVideoParams(Video video) {
-        if (anyOfNull(
-                video.getW(),
-                video.getH(),
-                video.getMinduration(),
-                video.getMaxduration(),
-                video.getPlacement(),
-                video.getLinearity())) {
-            throw new PreBidException("Invalid or missing video field(s)");
-        }
     }
 
     private Video resolveVideo(Video video, String irisId) {
