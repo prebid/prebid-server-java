@@ -12,4 +12,3 @@ public class ExtImpQt {
     @JsonProperty("endpointId")
     String endpointId;
 }
-
