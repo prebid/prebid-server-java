@@ -11,6 +11,8 @@ adapters:
     aliases:
       magnite:
         enabled: false
+    ortb:
+      multiformat-supported: true
     meta-info:
       maintainer-email: header-bidding@rubiconproject.com
       app-media-types:
