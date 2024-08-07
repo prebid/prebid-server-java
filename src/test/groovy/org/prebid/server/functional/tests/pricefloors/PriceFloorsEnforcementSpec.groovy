@@ -869,7 +869,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
         and: "PBS cache rules"
-        cacheFloorsProviderRules(bidRequest, floorValue, floorsPbsService)
+        cacheFloorsProviderRules(bidRequest, floorValue, pbsService)
 
         and: "Bid response with 2 bids: bid.price = floorValue, dealBid.price < floorValue"
         def dealBidPrice = floorValue - 0.1
