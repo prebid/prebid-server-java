@@ -1,6 +1,5 @@
 package org.prebid.server.bidder.tradplus;
 
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -30,7 +29,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
-public class TradPlusBidderTest  extends VertxTest {
+public class TradPlusBidderTest extends VertxTest {
 
     private static final String ENDPOINT_TEMPLATE = "http://{{ZoneID}}/openrtb2?sid={{AccountID}}";
 
