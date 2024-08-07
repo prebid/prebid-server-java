@@ -259,6 +259,51 @@ Here's an example YAML file containing account-specific settings:
           default: true
 ```
 
+## Setting Account Configuration in S3
+
+This is identical to the account configuration in a file system, with the main difference that your file system is
+[AWS S3](https://aws.amazon.com/de/s3/) or any S3 compatible storage, such as [MinIO](https://min.io/).
+
+
+The general idea is that you'll place all the account-specific settings in a separate YAML file and point to that file.
+
+```yaml
+settings:
+  s3:
+      accessKeyId: <S3 access key>
+      secretAccessKey: <S3 access key>
+      endpoint: <endpoint> # http://s3.storage.com
+      bucket: <bucket name> # prebid-application-settings
+      region: <region name> # if not provided AWS_GLOBAL will be used. Example value: 'eu-central-1'
+      accounts-dir: accounts
+      stored-imps-dir: stored-impressions
+      stored-requests-dir: stored-requests
+      stored-responses-dir: stored-responses
+
+  # recommended to configure an in memory cache, but this is optional
+  in-memory-cache:
+      # example settings, tailor to your needs
+      cache-size: 100000
+      ttl-seconds: 1200 # 20 minutes
+      # recommended to configure
+      s3-update:
+          refresh-rate: 900000 # Refresh every 15 minutes
+          timeout: 5000
+```
+
+### File format
+
+We recommend using the `json` format for your account configuration. A minimal configuration may look like this.
+
+```json
+{
+  "id" : "979c7116-1f5a-43d4-9a87-5da3ccc4f52c",
+  "status" : "active"
+}
+```
+
+This pairs nicely if you have a default configuration defined in your prebid server config under `settings.default-account-config`.
+
 ## Setting Account Configuration in the Database
 
 In database approach account properties are stored in database table(s).
