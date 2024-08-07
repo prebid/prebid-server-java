@@ -1,20 +1,30 @@
 {
   "id" : "tid",
   "imp" : [ {
-    "id" : "impId001",
-    "video" : {
-      "mimes" : [ "mimes" ],
-      "w" : 300,
-      "h" : 250
+    "id": "impId001",
+    "video": {
+      "mimes": [
+        "mimes"
+      ],
+      "w": 300,
+      "h": 250
     },
-    "secure" : 1,
-    "ext" : {
-      "tid" : "${json-unit.any-string}",
-      "bidder" : {
-        "accountId" : 2001,
-        "siteId" : 3001,
-        "zoneId" : 4001
-      }
+    "pmp": {
+      "deals": [
+        {
+          "id": "dealId"
+        }
+      ]
+    },
+    "secure": 1,
+    "ext": {
+      "tid": "${json-unit.any-string}",
+      "bidder": {
+        "accountId": 2001,
+        "siteId": 3001,
+        "zoneId": 4001
+      },
+      "someExt": "someExt"
     }
   } ],
   "site" : {

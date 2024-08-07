@@ -56,4 +56,9 @@ public class ExtImpPrebid {
      * Defines the contract for bidrequest.imp[i].ext.prebid.passthrough
      */
     JsonNode passthrough;
+
+    /**
+     * Defines the contract for bidrequest.imp[i].ext.prebid.imp
+     */
+    ObjectNode imp;
 }
