@@ -53,6 +53,11 @@
           "greenbids": {
             "pbuid": "PBUID_FROM_GREENBIDS",
             "greenbidsSampling": 1.0
+          },
+          "greenbids-rtd": {
+            "pbuid": "PBUID_FROM_GREENBIDS",
+            "targetTpr": 0.95,
+            "explorationRate": 0.001
           }
         }
       }
