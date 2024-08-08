@@ -8,8 +8,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.cloud.storage.Blob;
-import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import com.iab.openrtb.request.BidRequest;
@@ -20,16 +18,14 @@ import com.maxmind.geoip2.model.CountryResponse;
 import com.maxmind.geoip2.record.Country;
 import io.vertx.core.Future;
 import org.apache.commons.collections4.CollectionUtils;
-import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsPrebidExt;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.core.AuthorizedPartner;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.Partner;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingThresholds;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.AnalyticsResult;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.ExplorationResult;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.GreenbidsUserAgent;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.model.OnnxModelRunner;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.Ortb2ImpExtResult;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.ThrottlingMessage;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.model.InvocationResultImpl;
@@ -58,7 +54,6 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -74,7 +69,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
     private static final String CODE = "greenbids-real-time-data-processed-auction-request-hook";
     private static final String ACTIVITY = "greenbids-filter";
     private static final String SUCCESS_STATUS = "success";
-    private static final String BID_REQUEST_ANALYTICS_EXTENSION_NAME = "greenbids";
+    private static final String BID_REQUEST_ANALYTICS_EXTENSION_NAME = "greenbids-rtd";
     private static final Double EXPLORATION_RATE = 0.0001;
     private static final int RANGE_16_BIT_INTEGER_DIVISION_BASIS = 0x10000;
     private static final String GCS_BUCKET_NAME = "greenbids-europe-west1-prebid-server-staging";
@@ -105,17 +100,24 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
 
         // extract pbuid from BidRequest extension
         final BidRequest bidRequest = auctionContext.getBidRequest();
-        final GreenbidsPrebidExt greenbidsBidRequestExt = parseBidRequestExt(bidRequest);
+        final Partner partner = parseBidRequestExt(bidRequest);
+
+        if (partner == null) {
+            return Future.succeededFuture();
+        }
+
+        // check if publisher activated RTD
         GreenbidsUserAgent greenbidsUserAgent = new GreenbidsUserAgent(bidRequest.getDevice().getUa());
 
         // select partner + extract threshold by TPR
-        Partner partner = AuthorizedPartner.getPartnerByPbuid(greenbidsBidRequestExt.getPbuid());
-
-        //thresholds array for debug;
-        // List<Double> threshold = Arrays.asList(0.1, 0.9, 0.2);
         Storage storage = StorageOptions.newBuilder()
                 .setProjectId(GOOGLE_CLOUD_GREENBIDS_PROJECT).build().getService();
-        Double threshold = getThresholdForPartner(partner, storage);
+        Double threshold = partner.getThresholdForPartner(storage, mapper);
+        OnnxModelRunner onnxModelRunner = partner.getOnnxModelRunner(storage);
+
+        if (threshold == null | threshold == null) {
+            return Future.succeededFuture();
+        }
 
         List<ThrottlingMessage> throttlingMessages = extractThrottlingMessages(
                 bidRequest,
@@ -129,6 +131,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                 "GreenbidsRealTimeDataProcessedAuctionRequestHook/call" + "\n" +
                         "partner: " + partner + "\n" +
                         "threshold: " + threshold + "\n" +
+                        "onnxModelRunner: " + onnxModelRunner + "\n" +
                         "throttlingMessages: " + throttlingMessages + "\n"
         );
 
@@ -144,7 +147,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
 
         OrtSession.Result results;
         try {
-            results = partner.getOnnxModelRunner().runModel(throttlingInferenceRow);
+            results = onnxModelRunner.runModel(throttlingInferenceRow);
         } catch (OrtException e) {
             throw new RuntimeException(e);
         }
@@ -173,11 +176,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                             ThrottlingMessage message = throttlingMessages.get(i);
                             String impId = message.getAdUnitCode();
                             String bidder = message.getBidder();
-
-                            // thresholds array for debug
-                            // boolean isKeptInAuction = probas[i][1] > threshold.get(i);
                             boolean isKeptInAuction = probas[i][1] > threshold;
-
                             impsBiddersFilterMap.computeIfAbsent(impId, k -> new HashMap<>())
                                     .put(bidder, isKeptInAuction);
                         }
@@ -205,12 +204,12 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                 "success", ort2ImpExtResultMap, null, null);
 
         // update invocation result
-        InvocationResult<AuctionRequestPayload> invocationResult = InvocationResultImpl.<AuctionRequestPayload>builder()
+        InvocationResult<AuctionRequestPayload> invocationResult = InvocationResultImpl
+                .<AuctionRequestPayload>builder()
                 .status(InvocationStatus.success)
                 .action(InvocationAction.update)
                 .errors(null)
                 .debugMessages(null)
-                .analyticsTags(null)
                 .payloadUpdate(payload -> AuctionRequestPayloadImpl.of(updatedBidRequest))
                 .analyticsTags(toAnalyticsTags(Collections.singletonList(analyticsResult)))
                 .build();
@@ -229,50 +228,20 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
         return Future.succeededFuture(invocationResult);
     }
 
-    private Double getThresholdForPartner(Partner partner, Storage storage) {
-        byte[] jsonBytes = readGcsFile(storage, partner.getThresholdsJsonPath());
-
-        JsonNode thresholdsJsonNode;
-        ThrottlingThresholds throttlingThresholds;
-        try {
-            //thresholdsJsonNode = mapper.readTree(Files.newInputStream(Paths.get(partner.getThresholdsJsonPath())));
-            thresholdsJsonNode = mapper.readTree(jsonBytes);
-            throttlingThresholds =
-                    mapper.treeToValue(thresholdsJsonNode, ThrottlingThresholds.class);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
-        List<Double> truePositiveRates = throttlingThresholds.getTpr();
-        List<Double> thresholds = throttlingThresholds.getThresholds();
-
-        return truePositiveRates.stream()
-                .filter(truePositiveRate -> truePositiveRate >= partner.getTargetTpr())
-                .map(truePositiveRate -> thresholds.get(truePositiveRates.indexOf(truePositiveRate)))
-                .max(Comparator.naturalOrder())
-                .orElse(0.0);
-    }
-
-    private static byte[] readGcsFile(Storage storage, String fileName) {
-        Bucket bucket = storage.get(GCS_BUCKET_NAME);
-        Blob blob = bucket.get(fileName);
-        return blob.getContent();
-    }
-
-    private GreenbidsPrebidExt parseBidRequestExt(BidRequest bidRequest) {
+    private Partner parseBidRequestExt(BidRequest bidRequest) {
         return Optional.ofNullable(bidRequest)
                 .map(BidRequest::getExt)
                 .map(ExtRequest::getPrebid)
                 .map(ExtRequestPrebid::getAnalytics)
                 .filter(this::isNotEmptyObjectNode)
                 .map(analytics -> (ObjectNode) analytics.get(BID_REQUEST_ANALYTICS_EXTENSION_NAME))
-                .map(this::toGreenbidsPrebidExt)
-                .orElse(GreenbidsPrebidExt.of(null, null));
+                .map(this::toPartner)
+                .orElse(null);
     }
 
-    private GreenbidsPrebidExt toGreenbidsPrebidExt(ObjectNode adapterNode) {
+    private Partner toPartner(ObjectNode adapterNode) {
         try {
-            return jacksonMapper.mapper().treeToValue(adapterNode, GreenbidsPrebidExt.class);
+            return jacksonMapper.mapper().treeToValue(adapterNode, Partner.class);
         } catch (JsonProcessingException e) {
             throw new PreBidException("Error decoding bid request analytics extension: " + e.getMessage(), e);
         }

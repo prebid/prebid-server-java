@@ -130,12 +130,23 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
 
         final Map<String, Ortb2ImpExtResult> analyticsResultFromAnalyticsTag = extractAnalyticsResultFromAnalyticsTag(bidResponse);
 
+        final String greenbidsId = Optional.ofNullable(analyticsResultFromAnalyticsTag)
+                .flatMap(analyticsResult -> analyticsResult.values().stream()
+                        .map(ortb2ImpExtResult ->
+                                Optional.ofNullable(ortb2ImpExtResult.getGreenbids())
+                                        .map(ExplorationResult::getFingerprint)
+                                        .orElse(UUID.randomUUID().toString()))
+                        .findFirst())
+                .orElse(UUID.randomUUID().toString());
+
+        /*
         final String greenbidsId = analyticsResultFromAnalyticsTag.values().stream()
                 .map(ortb2ImpExtResult ->
                         Optional.ofNullable(ortb2ImpExtResult.getGreenbids())
                                 .map(ExplorationResult::getFingerprint)
                                 .orElse(UUID.randomUUID().toString()))
-                .toString();
+                .findFirst().orElse(null);
+         */
 
         System.out.println(
                 "GreenbidsAnalyticsReporter/processEvent" + "\n" +
@@ -195,14 +206,6 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
     }
 
     private Map<String, Ortb2ImpExtResult> extractAnalyticsResultFromAnalyticsTag(BidResponse bidResponse) {
-        final Optional<ExtBidResponse> extBidResponse = Optional.ofNullable(bidResponse)
-                .map(BidResponse::getExt);
-
-        final Optional<ExtBidResponsePrebid> extBidResponsePrebid = extBidResponse
-                .map(ExtBidResponse::getPrebid);
-
-        final Optional<ExtModules> extModules = extBidResponsePrebid
-                .map(ExtBidResponsePrebid::getModules);
 
         final List<ExtModulesTraceStageOutcome> stageOutcomes = Optional.ofNullable(bidResponse)
                 .map(BidResponse::getExt)
@@ -235,6 +238,13 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                         .findFirst())
                 .map(ExtModulesTraceAnalyticsResult::getValues);
 
+        System.out.println(
+                "GreenbidsAnalyticsReporter/ extractAnalyticsResultFromAnalyticsTag" + "\n" +
+                        "outcomes: " + stageOutcomes + "\n" +
+                        "extModulesTraceInvocationResult: " + extModulesTraceInvocationResult + "\n" +
+                        "analyticsResultValue: " + analyticsResultValue
+        );
+
         final Map<String, Ortb2ImpExtResult> parsedAnalyticsResultsMap =  analyticsResultValue
                 .map(analyticsResult -> {
                     try {
@@ -263,8 +273,8 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
 
         System.out.println(
                 "GreenbidsAnalyticsReporter/ extractAnalyticsResultFromAnalyticsTag" + "\n" +
-                        "extBidResponsePrebid: " + extBidResponsePrebid + "\n" +
-                        "extModules: " + extModules + "\n" +
+                        //"extBidResponsePrebid: " + extBidResponsePrebid + "\n" +
+                        //"extModules: " + extModules + "\n" +
                         "outcomes: " + stageOutcomes + "\n" +
                         "extModulesTraceInvocationResult: " + extModulesTraceInvocationResult + "\n" +
                         "analyticsResultValue: " + analyticsResultValue + "\n" +
@@ -272,37 +282,6 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
         );
 
         return parsedAnalyticsResultsMap;
-
-        /*
-        return Optional.ofNullable(bidResponse)
-                .map(BidResponse::getExt)
-                .map(ExtBidResponse::getPrebid)
-                .map(ExtBidResponsePrebid::getModules)
-                .map(ExtModules::getTrace)
-                .map(ExtModulesTrace::getStages)
-                .flatMap(stages -> stages.stream()
-                        .filter(stage -> Stage.processed_auction_request.equals(stage.getStage()))
-                        .findFirst())
-                .map(ExtModulesTraceStage::getOutcomes) // OK
-                .flatMap(outcomes -> outcomes.stream()
-                        .filter(outcome -> "auction-request".equals(outcome.getEntity()))
-                        .findFirst())
-                .map(ExtModulesTraceStageOutcome::getGroups)
-                .flatMap(groups -> groups.stream().findFirst())
-                .map(ExtModulesTraceGroup::getInvocationResults)
-                .flatMap(invocationResults -> invocationResults.stream()
-                        .filter(invocationResult -> "greenbids-real-time-data"
-                                .equals(invocationResult.getHookId().getModuleCode()))
-                        .findFirst()) // OK
-                .map(ExtModulesTraceInvocationResult::getAnalyticsTags)
-                .map(ExtModulesTraceAnalyticsTags::getActivities)
-                .flatMap(activities -> activities.stream()
-                        .flatMap(activity -> activity.getResults().stream())
-                        .findFirst())
-                .map(ExtModulesTraceAnalyticsResult::getValues)
-                .map(values -> values.get("greenbidsId"))
-                .map(JsonNode::asText).orElse(null);
-         */
     }
 
     private GreenbidsPrebidExt parseBidRequestExt(BidRequest bidRequest) {
@@ -386,8 +365,13 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
 
         final Map<String, NonBid> seatsWithNonBids = getSeatsWithNonBids(auctionContext);
 
-        final List<GreenbidsAdUnit> adUnitsWithBidResponses = imps.stream().map(imp -> createAdUnit(
-                imp, seatsWithBids, seatsWithNonBids, bidResponse.getCur(), analyticsResultFromAnalyticsTag.get(imp.getId()))).toList();
+        final List<GreenbidsAdUnit> adUnitsWithBidResponses = imps.stream().map(imp -> {
+                    final Ortb2ImpExtResult ortb2ImpExtResult = Optional.ofNullable(analyticsResultFromAnalyticsTag)
+                            .map(analyticsResult -> analyticsResult.get(imp.getId()))
+                            .orElse(null);
+
+                    return createAdUnit(imp, seatsWithBids, seatsWithNonBids, bidResponse.getCur(), ortb2ImpExtResult);
+        }).toList();
 
         final String auctionId = bidRequest
                 .map(BidRequest::getId)
@@ -473,12 +457,16 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
         final List<GreenbidsBid> bids = extractBidders(
                 imp.getId(), seatsWithBids, seatsWithNonBids, impExtPrebid, currency);
 
+        final Ortb2ImpResult ortb2ImpResult = Optional.ofNullable(analyticsResultFromAnalyticsTag)
+                .map(Ortb2ImpResult::of)
+                .orElse(null);
+
         return GreenbidsAdUnit.builder()
                 .code(adUnitCode)
                 .unifiedCode(greenbidsUnifiedCode)
                 .mediaTypes(mediaTypes)
                 .bids(bids)
-                .ortb2ImpResult(Ortb2ImpResult.of(analyticsResultFromAnalyticsTag))
+                .ortb2ImpResult(ortb2ImpResult)
                 .build();
     }
 

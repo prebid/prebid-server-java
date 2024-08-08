@@ -5,69 +5,68 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.Storage;
-import com.google.cloud.storage.StorageOptions;
 
-import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class ModelCache {
 
     long CACHE_EXPIRATION_MINUTES = 15;
-    static String GCS_BUCKET_NAME = "greenbids-europe-west1-prebid-server-staging";
-    static String GOOGLE_CLOUD_GREENBIDS_PROJECT = "greenbids-357713";
+    String gcsBucketName;
     String modelPath;
     Cache<String, OnnxModelRunner> cache;
-    Instant lastModifiedTime;
     Storage storage;
     ReentrantLock lock;
 
-    public ModelCache(String modelPath) {
+    public ModelCache(String modelPath, Storage storage, String gcsBucketName) {
+        this.gcsBucketName = gcsBucketName;
         this.modelPath = modelPath;
         this.cache = Caffeine.newBuilder()
                 .expireAfterWrite(CACHE_EXPIRATION_MINUTES, TimeUnit.MINUTES)
                 .build();
-        // force cache load on first access
-        this.lastModifiedTime = Instant.EPOCH;
-        this.storage = StorageOptions.newBuilder().setProjectId(GOOGLE_CLOUD_GREENBIDS_PROJECT).build().getService();
+        this.storage = storage;
         this.lock = new ReentrantLock();
     }
 
     public OnnxModelRunner getModelRunner() {
-        lock.lock();
+        OnnxModelRunner cachedOnnxModelRunner = cache.getIfPresent("onnxModelRunner");
+        if (cachedOnnxModelRunner != null) {
+            return cachedOnnxModelRunner;
+        };
+
+        boolean locked = lock.tryLock();
         try {
-            Blob blob = getBlob();
-            Instant currentLastModifiedTime = Instant.ofEpochMilli(blob.getUpdateTime());
+            if (locked) {
+                Blob blob = getBlob();
 
-            System.out.println(
-                    "getModelRunner: \n" +
-                            "blob: " + blob + "\n" +
-                            "currentLastModifiedTime: " + currentLastModifiedTime + "\n" +
-                            "lastModifiedTime: " + lastModifiedTime + "\n" +
-                            "cache: " + cache
-            );
+                System.out.println(
+                        "getModelRunner: \n" +
+                                "blob: " + blob + "\n" +
+                                "cache: " + cache
+                );
 
-            if (!lastModifiedTime.equals(currentLastModifiedTime)) {
-                cache.invalidateAll();
-                lastModifiedTime = currentLastModifiedTime;
+                cache.put("onnxModelRunner", loadModelRunner(blob));
+            } else {
+                System.out.println("Another thread is updating the cache. Skipping fetching predictor.");
+                return null;
             }
-
-            return cache.get("onnxModelRunner", key -> loadModelRunner(blob));
         } finally {
-            lock.unlock();
+            if (locked) {
+                lock.unlock();
+            }
         }
 
-
+        return cache.getIfPresent("onnxModelRunner");
     }
 
     private Blob getBlob() {
         System.out.println(
                 "getBlob: \n" +
                         "storage: " + storage + "\n" +
-                        "GCS_BUCKET_NAME: " + GCS_BUCKET_NAME + "\n" +
+                        "gcsBucketName: " + gcsBucketName + "\n" +
                         "modelPath: " + modelPath + "\n"
         );
-        return storage.get(GCS_BUCKET_NAME).get(modelPath);
+        return storage.get(gcsBucketName).get(modelPath);
     }
 
     private OnnxModelRunner loadModelRunner(Blob blob) {
