@@ -47,18 +47,19 @@ public class QtBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<HttpRequest<BidRequest>> outgoingRequests = new ArrayList<>();
+        final List<BidderError> errors = new ArrayList<>();
 
         for (Imp imp : request.getImp()) {
             final ExtImpQt extImpQt;
             try {
                 extImpQt = parseImpExt(imp);
+                outgoingRequests.add(createSingleRequest(modifyImp(imp, extImpQt), request));
             } catch (PreBidException e) {
-                return Result.withError(BidderError.badInput(e.getMessage()));
+                errors.add(BidderError.badInput(e.getMessage()));
             }
-            outgoingRequests.add(createSingleRequest(modifyImp(imp, extImpQt), request));
         }
 
-        return Result.withValues(outgoingRequests);
+        return Result.of(outgoingRequests, errors);
     }
 
     private ExtImpQt parseImpExt(Imp imp) {
@@ -79,15 +80,14 @@ public class QtBidder implements Bidder<BidRequest> {
     }
 
     private QtImpExtBidder getImpExtQtWithType(ExtImpQt extImpQt) {
-        final QtImpExtBidder.QtImpExtBidderBuilder impExtQt = QtImpExtBidder.builder();
+        boolean hasPlacementId = StringUtils.isNotBlank(extImpQt.getPlacementId());
+        boolean hasEndpointId = StringUtils.isNotBlank(extImpQt.getEndpointId());
 
-        if (StringUtils.isNotEmpty(extImpQt.getPlacementId())) {
-            impExtQt.type("publisher").placementId(extImpQt.getPlacementId());
-        } else if (StringUtils.isNotEmpty(extImpQt.getEndpointId())) {
-            impExtQt.type("network").endpointId(extImpQt.getEndpointId());
-        }
-
-        return impExtQt.build();
+        return QtImpExtBidder.builder()
+                .type(hasPlacementId ? "publisher" : hasEndpointId ? "network" : null)
+                .placementId(hasPlacementId ? extImpQt.getPlacementId() : null)
+                .endpointId(hasEndpointId ? extImpQt.getEndpointId() : null)
+                .build();
     }
 
     private HttpRequest<BidRequest> createSingleRequest(Imp imp, BidRequest request) {
@@ -130,9 +130,8 @@ public class QtBidder implements Bidder<BidRequest> {
             case 1 -> BidType.banner;
             case 2 -> BidType.video;
             case 4 -> BidType.xNative;
-            default ->
-                    throw new PreBidException("Unable to fetch mediaType in multi-format: %s"
-                            .formatted(bid.getImpid()));
+            default -> throw new PreBidException("Unable to fetch mediaType in multi-format: %s"
+                    .formatted(bid.getImpid()));
         };
     }
 }
