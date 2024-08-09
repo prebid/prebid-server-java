@@ -50,6 +50,7 @@ import java.util.List;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -60,6 +61,7 @@ import static java.util.function.UnaryOperator.identity;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
@@ -147,6 +149,8 @@ public class HttpBidderRequesterTest extends VertxTest {
         assertThat(bidderSeatBid.getErrors())
                 .containsOnly(BidderError.failedToRequestBids(
                         "The bidder failed to generate any bid requests, but also failed to generate an error"));
+
+        verifyNoInteractions(bidRejectionTracker);
     }
 
     @Test
@@ -177,6 +181,8 @@ public class HttpBidderRequesterTest extends VertxTest {
         assertThat(bidderSeatBid.getHttpCalls()).isEmpty();
         assertThat(bidderSeatBid.getErrors())
                 .extracting(BidderError::getMessage).containsOnly("error1", "error2");
+
+        verifyNoInteractions(bidRejectionTracker);
     }
 
     @Test
@@ -219,6 +225,9 @@ public class HttpBidderRequesterTest extends VertxTest {
                 .extracting(HttpResponse::getBody)
                 .isEqualTo("storedResponse");
         assertThat(bidderSeatBid.getBids()).hasSameElementsAs(bids);
+
+        verify(bidRejectionTracker, never()).reject(anyString(), any());
+        verify(bidRejectionTracker, never()).reject(anyList(), any());
     }
 
     @Test
@@ -255,6 +264,9 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         // then
         verify(httpClient, times(2)).request(any(), anyString(), any(), any(byte[].class), anyLong());
+
+        verify(bidRejectionTracker, never()).reject(anyString(), any());
+        verify(bidRejectionTracker, never()).reject(anyList(), any());
     }
 
     @Test
@@ -287,6 +299,9 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         // then
         verify(httpClient).request(any(), anyString(), any(), (byte[]) isNull(), anyLong());
+
+        verify(bidRejectionTracker, never()).reject(anyString(), any());
+        verify(bidRejectionTracker, never()).reject(anyList(), any());
     }
 
     @Test
@@ -320,6 +335,9 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         // then
         verify(httpClient, times(2)).request(any(), anyString(), any(), any(byte[].class), anyLong());
+
+        verify(bidRejectionTracker, never()).reject(anyString(), any());
+        verify(bidRejectionTracker, never()).reject(anyList(), any());
     }
 
     @Test
@@ -350,6 +368,9 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         // then
         assertThat(bidderSeatBid.getBids()).hasSameElementsAs(bids);
+
+        verify(bidRejectionTracker, never()).reject(anyString(), any());
+        verify(bidRejectionTracker, never()).reject(anyList(), any());
     }
 
     @Test
@@ -381,6 +402,9 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         // then
         assertThat(bidderSeatBid.getBids()).hasSameElementsAs(bids);
+
+        verify(bidRejectionTracker, never()).reject(anyString(), any());
+        verify(bidRejectionTracker, never()).reject(anyList(), any());
     }
 
     @Test
@@ -417,6 +441,9 @@ public class HttpBidderRequesterTest extends VertxTest {
         // then
         assertThat(bidderSeatBid.getBids()).hasSameElementsAs(bids);
         assertThat(bidderSeatBid.getFledgeAuctionConfigs()).hasSameElementsAs(fledgeAuctionConfigs);
+
+        verify(bidRejectionTracker, never()).reject(anyString(), any());
+        verify(bidRejectionTracker, never()).reject(anyList(), any());
     }
 
     @Test
@@ -450,6 +477,9 @@ public class HttpBidderRequesterTest extends VertxTest {
         final ArgumentCaptor<byte[]> actualRequestBody = ArgumentCaptor.forClass(byte[].class);
         verify(httpClient).request(any(), anyString(), any(), actualRequestBody.capture(), anyLong());
         assertThat(actualRequestBody.getValue()).isNotSameAs(EMPTY_BYTE_BODY);
+
+        verify(bidRejectionTracker, never()).reject(anyString(), any());
+        verify(bidRejectionTracker, never()).reject(anyList(), any());
     }
 
     @Test
@@ -544,6 +574,9 @@ public class HttpBidderRequesterTest extends VertxTest {
         verify(bidder, times(2)).makeBidderResponse(any(), any());
 
         assertThat(bidderSeatBid.getBids()).containsOnly(bidderBidDeal1, bidderBidDeal2);
+
+        verify(bidRejectionTracker, never()).reject(anyString(), any());
+        verify(bidRejectionTracker, never()).reject(anyList(), any());
     }
 
     @Test
@@ -590,6 +623,9 @@ public class HttpBidderRequesterTest extends VertxTest {
         verify(bidder, times(4)).makeBidderResponse(any(), any());
 
         assertThat(bidderSeatBid.getBids()).contains(bidderBid, bidderBid, bidderBid, bidderBid);
+
+        verify(bidRejectionTracker, never()).reject(anyString(), any());
+        verify(bidRejectionTracker, never()).reject(anyList(), any());
     }
 
     @Test
@@ -654,6 +690,9 @@ public class HttpBidderRequesterTest extends VertxTest {
                         .requestheaders(singletonMap("headerKey", singletonList("headerValue")))
                         .status(200)
                         .build());
+
+        verify(bidRejectionTracker, never()).reject(anyString(), any());
+        verify(bidRejectionTracker, never()).reject(anyList(), any());
     }
 
     @Test
@@ -717,8 +756,8 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         // then
         verify(bidRejectionTracker, atLeast(1)).succeed(secondRequestBids);
-        verify(bidRejectionTracker).reject(singleton("1"), BidRejectionReason.REJECTED_DUE_TO_PRICE_FLOOR);
-        verify(bidRejectionTracker).reject(singleton("3"), BidRejectionReason.OTHER_ERROR);
+        verify(bidRejectionTracker).reject(singleton("1"), BidRejectionReason.REQUEST_BLOCKED_GENERAL);
+        verify(bidRejectionTracker).reject(singleton("3"), BidRejectionReason.ERROR_INVALID_BID_RESPONSE);
     }
 
     @Test
@@ -761,6 +800,9 @@ public class HttpBidderRequesterTest extends VertxTest {
         assertThat(bidderSeatBid.getHttpCalls())
                 .extracting(ExtHttpCall::getRequestheaders)
                 .containsExactly(singletonMap("headerKey", singletonList("headerValue")));
+
+        verify(bidRejectionTracker, never()).reject(anyString(), any());
+        verify(bidRejectionTracker, never()).reject(anyList(), any());
     }
 
     @Test
@@ -775,7 +817,9 @@ public class HttpBidderRequesterTest extends VertxTest {
                                 .uri("uri1")
                                 .headers(headers)
                                 .payload(givenBidRequest)
-                                .body(requestBody))),
+                                .body(requestBody)
+                                .impIds(givenBidRequest.getImp().stream().map(Imp::getId)
+                                        .collect(Collectors.toSet())))),
                 emptyList()));
 
         given(requestEnricher.enrichHeaders(anyString(), any(), any(), any(), any())).willReturn(headers);
@@ -804,6 +848,8 @@ public class HttpBidderRequesterTest extends VertxTest {
                         .requestbody(mapper.writeValueAsString(givenBidRequest))
                         .requestheaders(singletonMap("headerKey", singletonList("headerValue")))
                         .build());
+
+        verify(bidRejectionTracker).reject(singleton("impId"), BidRejectionReason.ERROR_TIMED_OUT);
     }
 
     @Test
@@ -817,6 +863,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                                 .uri("uri1")
                                 .headers(headers)
                                 .payload(givenBidRequest)
+                                .impIds(givenBidRequest.getImp().stream().map(Imp::getId).collect(Collectors.toSet()))
                                 .body(requestBody))),
                 emptyList()));
 
@@ -849,6 +896,8 @@ public class HttpBidderRequesterTest extends VertxTest {
                         .requestbody(mapper.writeValueAsString(givenBidRequest))
                         .requestheaders(singletonMap("headerKey", singletonList("headerValue")))
                         .build());
+
+        verify(bidRejectionTracker).reject(singleton("impId"), BidRejectionReason.ERROR_GENERAL);
     }
 
     @Test
@@ -862,6 +911,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                                 .uri("uri1")
                                 .headers(headers)
                                 .payload(givenBidRequest)
+                                .impIds(givenBidRequest.getImp().stream().map(Imp::getId).collect(Collectors.toSet()))
                                 .body(requestBody))),
                 emptyList()));
 
@@ -899,15 +949,75 @@ public class HttpBidderRequesterTest extends VertxTest {
         assertThat(bidderSeatBid.getErrors())
                 .extracting(BidderError::getMessage)
                 .containsExactly("Unexpected status code: 500. Run with request.test = 1 for more info");
+
+        verify(bidRejectionTracker).reject(singleton("impId"), BidRejectionReason.ERROR_INVALID_BID_RESPONSE);
     }
 
     @Test
-    public void shouldTolerateAlreadyExpiredGlobalTimeout() {
+    public void shouldReturnFullDebugInfoIfDebugEnabledAndBidderIsUnreachable() throws JsonProcessingException {
         // given
-        given(bidder.makeHttpRequests(any())).willReturn(Result.of(
-                singletonList(givenSimpleHttpRequest(identity())),
+        final MultiMap headers = MultiMap.caseInsensitiveMultiMap().add("headerKey", "headerValue");
+        final BidRequest givenBidRequest = givenBidRequest(identity());
+        final byte[] requestBody = mapper.writeValueAsBytes(givenBidRequest);
+        given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
+                        givenSimpleHttpRequest(httpRequestBuilder -> httpRequestBuilder
+                                .uri("uri1")
+                                .headers(headers)
+                                .payload(givenBidRequest)
+                                .impIds(givenBidRequest.getImp().stream().map(Imp::getId).collect(Collectors.toSet()))
+                                .body(requestBody))),
                 emptyList()));
 
+        given(requestEnricher.enrichHeaders(anyString(), any(), any(), any(), any())).willReturn(headers);
+
+        givenHttpClientReturnsResponses(HttpClientResponse.of(503, null, "responseBody1"));
+
+        final BidderRequest bidderRequest = BidderRequest.builder()
+                .bidder("bidder")
+                .bidRequest(BidRequest.builder().build())
+                .build();
+
+        // when
+        final BidderSeatBid bidderSeatBid =
+                target
+                        .requestBids(
+                                bidder,
+                                bidderRequest,
+                                bidRejectionTracker,
+                                timeout,
+                                CaseInsensitiveMultiMap.empty(),
+                                bidderAliases,
+                                true)
+                        .result();
+
+        // then
+        assertThat(bidderSeatBid.getHttpCalls()).containsExactly(
+                ExtHttpCall.builder()
+                        .uri("uri1")
+                        .requestbody(mapper.writeValueAsString(givenBidRequest))
+                        .responsebody("responseBody1")
+                        .requestheaders(singletonMap("headerKey", singletonList("headerValue")))
+                        .status(503).build());
+
+        assertThat(bidderSeatBid.getErrors())
+                .extracting(BidderError::getMessage)
+                .containsExactly("Unexpected status code: 503. Run with request.test = 1 for more info");
+
+        verify(bidRejectionTracker).reject(singleton("impId"), BidRejectionReason.ERROR_BIDDER_UNREACHABLE);
+    }
+
+    @Test
+    public void shouldTolerateAlreadyExpiredGlobalTimeout() throws JsonProcessingException {
+        // given
+        final BidRequest givenBidRequest = givenBidRequest(identity());
+        final byte[] requestBody = mapper.writeValueAsBytes(givenBidRequest);
+        given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
+                        givenSimpleHttpRequest(httpRequestBuilder -> httpRequestBuilder
+                                .uri("uri1")
+                                .payload(givenBidRequest)
+                                .impIds(givenBidRequest.getImp().stream().map(Imp::getId).collect(Collectors.toSet()))
+                                .body(requestBody))),
+                emptyList()));
         final BidderRequest bidderRequest = BidderRequest.builder()
                 .bidder("bidder")
                 .bidRequest(BidRequest.builder().build())
@@ -929,6 +1039,8 @@ public class HttpBidderRequesterTest extends VertxTest {
                 .extracting(BidderError::getMessage)
                 .containsOnly("Timeout has been exceeded");
         verifyNoInteractions(httpClient);
+
+        verify(bidRejectionTracker).reject(singleton("impId"), BidRejectionReason.ERROR_TIMED_OUT);
     }
 
     @Test
@@ -960,7 +1072,6 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         // then
         verify(bidderErrorNotifier).processTimeout(any(), same(bidder));
-        verify(bidRejectionTracker).reject(singleton("1"), BidRejectionReason.TIMED_OUT);
     }
 
     @Test
@@ -968,17 +1079,19 @@ public class HttpBidderRequesterTest extends VertxTest {
         // given
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(asList(
                         // this request will fail with response exception
-                        givenSimpleHttpRequest(identity()),
+                        givenSimpleHttpRequest(builder -> builder.impIds(singleton("1"))),
                         // this request will fail with timeout
-                        givenSimpleHttpRequest(identity()),
-                        // this request will fail with 500 status
-                        givenSimpleHttpRequest(identity()),
+                        givenSimpleHttpRequest(builder -> builder.impIds(singleton("2"))),
+                        // this request will fail with 503 status
+                        givenSimpleHttpRequest(builder -> builder.impIds(singleton("3"))),
                         // this request will fail with 400 status
-                        givenSimpleHttpRequest(identity()),
+                        givenSimpleHttpRequest(builder -> builder.impIds(singleton("4"))),
+                        // this request will fail with 404 status
+                        givenSimpleHttpRequest(builder -> builder.impIds(singleton("5"))),
                         // this request will get 204 status
-                        givenSimpleHttpRequest(identity()),
+                        givenSimpleHttpRequest(builder -> builder.impIds(singleton("6"))),
                         // finally this request will succeed
-                        givenSimpleHttpRequest(identity())),
+                        givenSimpleHttpRequest(builder -> builder.impIds(singleton("7")))),
                 singletonList(BidderError.badInput("makeHttpRequestsError"))));
         when(requestEnricher.enrichHeaders(anyString(), any(), any(), any(), any()))
                 .thenAnswer(invocation -> MultiMap.caseInsensitiveMultiMap());
@@ -987,10 +1100,12 @@ public class HttpBidderRequesterTest extends VertxTest {
                 .willReturn(Future.failedFuture(new RuntimeException("Response exception")))
                 // simulate timeout for the second request
                 .willReturn(Future.failedFuture(new TimeoutException("Timeout exception")))
-                // simulate 500 status
-                .willReturn(Future.succeededFuture(HttpClientResponse.of(500, null, EMPTY)))
+                // simulate 503 status
+                .willReturn(Future.succeededFuture(HttpClientResponse.of(503, null, EMPTY)))
                 // simulate 400 status
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(400, null, EMPTY)))
+                // simulate 400 status
+                .willReturn(Future.succeededFuture(HttpClientResponse.of(404, null, EMPTY)))
                 // simulate 204 status
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(204, null, EMPTY)))
                 // simulate 200 status
@@ -1027,9 +1142,19 @@ public class HttpBidderRequesterTest extends VertxTest {
                 BidderError.badInput("makeHttpRequestsError"),
                 BidderError.generic("Response exception"),
                 BidderError.timeout("Timeout exception"),
-                BidderError.badServerResponse("Unexpected status code: 500. Run with request.test = 1 for more info"),
+                BidderError.badServerResponse("Unexpected status code: 503. Run with request.test = 1 for more info"),
                 BidderError.badInput("Unexpected status code: 400. Run with request.test = 1 for more info"),
+                BidderError.badServerResponse("Unexpected status code: 404. Run with request.test = 1 for more info"),
                 BidderError.badServerResponse("makeBidsError"));
+
+        verify(bidRejectionTracker).reject(singleton("1"), BidRejectionReason.ERROR_GENERAL);
+        verify(bidRejectionTracker).reject(singleton("2"), BidRejectionReason.ERROR_TIMED_OUT);
+        verify(bidRejectionTracker).reject(singleton("3"), BidRejectionReason.ERROR_BIDDER_UNREACHABLE);
+        verify(bidRejectionTracker).reject(singleton("4"), BidRejectionReason.ERROR_INVALID_BID_RESPONSE);
+        verify(bidRejectionTracker).reject(singleton("5"), BidRejectionReason.ERROR_INVALID_BID_RESPONSE);
+        verify(bidRejectionTracker, never()).reject(eq(singleton("6")), any());
+        verify(bidRejectionTracker, never()).reject(eq(singleton("7")), any());
+
     }
 
     @Test
@@ -1060,6 +1185,9 @@ public class HttpBidderRequesterTest extends VertxTest {
         // then
         verify(bidder, never()).makeBidderResponse(any(), any());
         verify(bidder, never()).makeBids(any(), any());
+
+        verify(bidRejectionTracker, never()).reject(anyString(), any());
+        verify(bidRejectionTracker, never()).reject(anyList(), any());
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer) {

@@ -12,11 +12,11 @@ import org.prebid.server.functional.model.request.auction.RichmediaFilter
 import org.prebid.server.functional.model.request.auction.StoredBidResponse
 import org.prebid.server.functional.model.response.auction.AnalyticResult
 import org.prebid.server.functional.model.response.auction.BidResponse
-import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.tests.module.ModuleBaseSpec
 import org.prebid.server.functional.util.PBSUtils
 
+import static org.prebid.server.functional.model.response.auction.BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE
 import static org.prebid.server.functional.model.ModuleName.PB_RICHMEDIA_FILTER
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.config.Endpoint.OPENRTB2_AUCTION
@@ -30,7 +30,8 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
     private final PrebidServerService pbsServiceWithEnabledMediaFilter = pbsServiceFactory.getService(getRichMediaFilterSettings(PATTERN_NAME))
     private final PrebidServerService pbsServiceWithEnabledMediaFilterAndDifferentCaseStrategy = pbsServiceFactory.getService(
             (getRichMediaFilterSettings(PATTERN_NAME) + ["hooks.host-execution-plan": encode(ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, PB_RICHMEDIA_FILTER, [ALL_PROCESSED_BID_RESPONSES]).tap {
-                endpoints.values().first().stages.values().first().groups.first.hookSequenceSnakeCase = [new HookId(moduleCodeSnakeCase: PB_RICHMEDIA_FILTER.code, hookImplCodeSnakeCase: "${PB_RICHMEDIA_FILTER.code}-${ALL_PROCESSED_BID_RESPONSES.value}-hook")]})])
+                endpoints.values().first().stages.values().first().groups.first.hookSequenceSnakeCase = [new HookId(moduleCodeSnakeCase: PB_RICHMEDIA_FILTER.code, hookImplCodeSnakeCase: "${PB_RICHMEDIA_FILTER.code}-${ALL_PROCESSED_BID_RESPONSES.value}-hook")]
+            })])
                     .collectEntries { key, value -> [(key.toString()): value.toString()] })
     private final PrebidServerService pbsServiceWithDisabledMediaFilter = pbsServiceFactory.getService(getRichMediaFilterSettings(PATTERN_NAME, false))
 
@@ -38,6 +39,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         given: "BidRequest with stored response"
         def storedResponseId = PBSUtils.randomNumber
         def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.returnAllBidStatus = true
             it.ext.prebid.trace = VERBOSE
             it.imp.first().ext.prebid.storedBidResponse = [new StoredBidResponse(id: storedResponseId, bidder: GENERIC)]
         }
@@ -73,6 +75,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         given: "BidRequest with stored response"
         def storedResponseId = PBSUtils.randomNumber
         def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.returnAllBidStatus = true
             it.ext.prebid.trace = VERBOSE
             it.imp.first().ext.prebid.storedBidResponse = [new StoredBidResponse(id: storedResponseId, bidder: GENERIC)]
         }
@@ -95,10 +98,12 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         assert !response.seatbid
 
         and: "Response should contain error of invalid creation for imp with code 350"
-        def responseErrors = response.ext.errors
-        assert responseErrors[ErrorType.GENERIC]*.message == ['Invalid creatives']
-        assert responseErrors[ErrorType.GENERIC]*.code == [350]
-        assert responseErrors[ErrorType.GENERIC].collectMany { it.impIds } == bidRequest.imp.id
+        assert response.ext.seatnonbid.size() == 1
+
+        def seatNonBid = response.ext.seatnonbid[0]
+        assert seatNonBid.seat == GENERIC.value
+        assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
+        assert seatNonBid.nonBid[0].statusCode == RESPONSE_REJECTED_INVALID_CREATIVE
 
         and: "Add an entry to the analytics tag for this rejected bid response"
         def analyticsTags = getAnalyticResults(response)
@@ -114,6 +119,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         given: "BidRequest with stored response"
         def storedResponseId = PBSUtils.randomNumber
         def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.returnAllBidStatus = true
             it.ext.prebid.trace = VERBOSE
             it.imp.first().ext.prebid.storedBidResponse = [new StoredBidResponse(id: storedResponseId, bidder: GENERIC)]
         }
@@ -151,6 +157,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         given: "BidRequest with stored response"
         def storedResponseId = PBSUtils.randomNumber
         def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.returnAllBidStatus = true
             it.ext.prebid.trace = VERBOSE
             it.imp.first().ext.prebid.storedBidResponse = [new StoredBidResponse(id: storedResponseId, bidder: GENERIC)]
         }
@@ -175,10 +182,12 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         assert !response.seatbid
 
         and: "Response should contain error of invalid creation for imp with code 350"
-        def responseErrors = response.ext.errors
-        assert responseErrors[ErrorType.GENERIC]*.message == ['Invalid creatives']
-        assert responseErrors[ErrorType.GENERIC]*.code == [350]
-        assert responseErrors[ErrorType.GENERIC].collectMany { it.impIds } == bidRequest.imp.id
+        assert response.ext.seatnonbid.size() == 1
+
+        def seatNonBid = response.ext.seatnonbid[0]
+        assert seatNonBid.seat == GENERIC.value
+        assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
+        assert seatNonBid.nonBid[0].statusCode == RESPONSE_REJECTED_INVALID_CREATIVE
 
         and: "Add an entry to the analytics tag for this rejected bid response"
         def analyticsTags = getAnalyticResults(response)
@@ -194,6 +203,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         given: "BidRequest with stored response"
         def storedResponseId = PBSUtils.randomNumber
         def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.returnAllBidStatus = true
             it.ext.prebid.trace = VERBOSE
             it.imp.first().ext.prebid.storedBidResponse = [new StoredBidResponse(id: storedResponseId, bidder: GENERIC)]
         }
@@ -231,6 +241,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         given: "BidRequest with stored response"
         def storedResponseId = PBSUtils.randomNumber
         def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.returnAllBidStatus = true
             it.ext.prebid.trace = VERBOSE
             it.imp.first().ext.prebid.storedBidResponse = [new StoredBidResponse(id: storedResponseId, bidder: GENERIC)]
         }
@@ -255,10 +266,12 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         assert !response.seatbid
 
         and: "Response should contain error of invalid creation for imp with code 350"
-        def responseErrors = response.ext.errors
-        assert responseErrors[ErrorType.GENERIC]*.message == ['Invalid creatives']
-        assert responseErrors[ErrorType.GENERIC]*.code == [350]
-        assert responseErrors[ErrorType.GENERIC].collectMany { it.impIds } == bidRequest.imp.id
+        assert response.ext.seatnonbid.size() == 1
+
+        def seatNonBid = response.ext.seatnonbid[0]
+        assert seatNonBid.seat == GENERIC.value
+        assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
+        assert seatNonBid.nonBid[0].statusCode == RESPONSE_REJECTED_INVALID_CREATIVE
 
         and: "Add an entry to the analytics tag for this rejected bid response"
         def analyticsTags = getAnalyticResults(response)
@@ -271,6 +284,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         given: "BidRequest with stored response"
         def storedResponseId = PBSUtils.randomNumber
         def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.returnAllBidStatus = true
             it.ext.prebid.trace = VERBOSE
             it.imp.first().ext.prebid.storedBidResponse = [new StoredBidResponse(id: storedResponseId, bidder: GENERIC)]
         }
@@ -308,6 +322,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         and: "BidRequest with stored response"
         def storedResponseId = PBSUtils.randomNumber
         def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.returnAllBidStatus = true
             it.ext.prebid.trace = VERBOSE
             it.imp.first().ext.prebid.storedBidResponse = [new StoredBidResponse(id: storedResponseId, bidder: GENERIC)]
         }
@@ -345,6 +360,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         given: "BidRequest with stored response"
         def storedResponseId = PBSUtils.randomNumber
         def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.returnAllBidStatus = true
             it.ext.prebid.trace = VERBOSE
             it.imp.first().ext.prebid.storedBidResponse = [new StoredBidResponse(id: storedResponseId, bidder: GENERIC)]
         }
@@ -367,10 +383,12 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         assert !response.seatbid
 
         and: "Response should contain error of invalid creation for imp with code 350"
-        def responseErrors = response.ext.errors
-        assert responseErrors[ErrorType.GENERIC]*.message == ['Invalid creatives']
-        assert responseErrors[ErrorType.GENERIC]*.code == [350]
-        assert responseErrors[ErrorType.GENERIC].collectMany { it.impIds } == bidRequest.imp.id
+        assert response.ext.seatnonbid.size() == 1
+
+        def seatNonBid = response.ext.seatnonbid[0]
+        assert seatNonBid.seat == GENERIC.value
+        assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
+        assert seatNonBid.nonBid[0].statusCode == RESPONSE_REJECTED_INVALID_CREATIVE
 
         and: "Add an entry to the analytics tag for this rejected bid response"
         def analyticsTags = getAnalyticResults(response)

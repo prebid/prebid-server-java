@@ -19,7 +19,7 @@ import static org.prebid.server.functional.model.request.auction.DsaRequired.NOT
 import static org.prebid.server.functional.model.request.auction.DsaRequired.REQUIRED
 import static org.prebid.server.functional.model.request.auction.DsaRequired.REQUIRED_PUBLISHER_IS_ONLINE_PLATFORM
 import static org.prebid.server.functional.model.request.auction.DsaRequired.SUPPORTED
-import static org.prebid.server.functional.model.response.auction.BidRejectionReason.REJECTED_DUE_TO_DSA
+import static org.prebid.server.functional.model.response.auction.BidRejectionReason.RESPONSE_REJECTED_DUE_TO_DSA
 import static org.prebid.server.functional.model.response.auction.DsaAdRender.ADVERTISER_WILL_RENDER
 import static org.prebid.server.functional.model.response.auction.DsaAdRender.ADVERTISER_WONT_RENDER
 import static org.prebid.server.functional.model.response.auction.ErrorType.GENERIC
@@ -316,7 +316,7 @@ class DsaSpec extends PrivacyBaseSpec {
         def seatNonBid = response.ext.seatnonbid[0]
         assert seatNonBid.seat == GENERIC.value
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
-        assert seatNonBid.nonBid[0].statusCode == REJECTED_DUE_TO_DSA
+        assert seatNonBid.nonBid[0].statusCode == RESPONSE_REJECTED_DUE_TO_DSA
 
         and: "Response should contain an error"
         def bidId = bidResponse.seatbid[0].bid[0].id
@@ -496,7 +496,7 @@ class DsaSpec extends PrivacyBaseSpec {
         def seatNonBid = response.ext.seatnonbid[0]
         assert seatNonBid.seat == GENERIC.value
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
-        assert seatNonBid.nonBid[0].statusCode == REJECTED_DUE_TO_DSA
+        assert seatNonBid.nonBid[0].statusCode == RESPONSE_REJECTED_DUE_TO_DSA
 
         and: "Response should contain an error"
         def bidId = bidResponse.seatbid[0].bid[0].id
@@ -536,7 +536,7 @@ class DsaSpec extends PrivacyBaseSpec {
         def seatNonBid = response.ext.seatnonbid[0]
         assert seatNonBid.seat == GENERIC.value
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
-        assert seatNonBid.nonBid[0].statusCode == REJECTED_DUE_TO_DSA
+        assert seatNonBid.nonBid[0].statusCode == RESPONSE_REJECTED_DUE_TO_DSA
 
         and: "Response should contain an error"
         def bidId = bidResponse.seatbid[0].bid[0].id

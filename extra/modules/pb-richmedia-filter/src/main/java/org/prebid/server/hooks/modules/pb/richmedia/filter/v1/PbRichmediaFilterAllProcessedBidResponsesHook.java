@@ -58,7 +58,10 @@ public class PbRichmediaFilterAllProcessedBidResponsesHook implements AllProcess
         final List<BidderResponse> responses = allProcessedBidResponsesPayload.bidResponses();
 
         if (BooleanUtils.isTrue(properties.getFilterMraid())) {
-            final MraidFilterResult filterResult = mraidFilter.filterByPattern(properties.getMraidScriptPattern(), responses);
+            final MraidFilterResult filterResult = mraidFilter.filterByPattern(
+                    properties.getMraidScriptPattern(),
+                    responses,
+                    auctionInvocationContext.auctionContext().getBidRejectionTrackers());
             final InvocationAction action = filterResult.hasRejectedBids()
                     ? InvocationAction.update
                     : InvocationAction.no_action;

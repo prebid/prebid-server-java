@@ -55,7 +55,7 @@ import static org.prebid.server.functional.model.request.auction.DistributionCha
 import static org.prebid.server.functional.model.request.auction.FetchStatus.ERROR
 import static org.prebid.server.functional.model.request.auction.Location.NO_DATA
 import static org.prebid.server.functional.model.request.auction.Prebid.Channel
-import static org.prebid.server.functional.model.response.auction.BidRejectionReason.REJECTED_DUE_TO_PRICE_FLOOR
+import static org.prebid.server.functional.model.response.auction.BidRejectionReason.RESPONSE_REJECTED_DUE_TO_PRICE_FLOOR
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 
 class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
@@ -954,7 +954,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         def seatNonBid = seatNonBids[0]
         assert seatNonBid.seat == GENERIC.value
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
-        assert seatNonBid.nonBid[0].statusCode == REJECTED_DUE_TO_PRICE_FLOOR
+        assert seatNonBid.nonBid[0].statusCode == RESPONSE_REJECTED_DUE_TO_PRICE_FLOOR
         assert seatNonBid.nonBid.size() == bidResponse.seatbid[0].bid.size()
 
         where:

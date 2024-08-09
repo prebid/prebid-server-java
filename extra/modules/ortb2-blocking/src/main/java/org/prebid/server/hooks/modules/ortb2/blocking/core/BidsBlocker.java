@@ -5,6 +5,8 @@ import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.model.BidRejectionReason;
+import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.exception.InvalidAccountConfigurationException;
@@ -45,6 +47,7 @@ public class BidsBlocker {
     private final OrtbVersion ortbVersion;
     private final ObjectNode accountConfig;
     private final BlockedAttributes blockedAttributes;
+    private final BidRejectionTracker bidRejectionTracker;
     private final boolean debugEnabled;
 
     private BidsBlocker(List<BidderBid> bids,
@@ -52,6 +55,7 @@ public class BidsBlocker {
                         OrtbVersion ortbVersion,
                         ObjectNode accountConfig,
                         BlockedAttributes blockedAttributes,
+                        BidRejectionTracker bidRejectionTracker,
                         boolean debugEnabled) {
 
         this.bids = bids;
@@ -59,6 +63,7 @@ public class BidsBlocker {
         this.ortbVersion = ortbVersion;
         this.accountConfig = accountConfig;
         this.blockedAttributes = blockedAttributes;
+        this.bidRejectionTracker = bidRejectionTracker;
         this.debugEnabled = debugEnabled;
     }
 
@@ -67,6 +72,7 @@ public class BidsBlocker {
                                      OrtbVersion ortbVersion,
                                      ObjectNode accountConfig,
                                      BlockedAttributes blockedAttributes,
+                                     BidRejectionTracker bidRejectionTracker,
                                      boolean debugEnabled) {
 
         return new BidsBlocker(
@@ -75,6 +81,7 @@ public class BidsBlocker {
                 Objects.requireNonNull(ortbVersion),
                 accountConfig,
                 blockedAttributes,
+                bidRejectionTracker,
                 debugEnabled);
     }
 
@@ -95,6 +102,10 @@ public class BidsBlocker {
 
             final BlockedBids blockedBids = !blockedBidIndexes.isEmpty() ? BlockedBids.of(blockedBidIndexes) : null;
             final List<String> warnings = MergeUtils.mergeMessages(blockedBidResults);
+
+            if (blockedBids != null) {
+                rejectBlockedBids(blockedBidResults);
+            }
 
             return ExecutionResult.<BlockedBids>builder()
                     .value(blockedBids)
@@ -254,6 +265,30 @@ public class BidsBlocker {
                 index,
                 bidder,
                 blockingResult.getFailedChecks());
+    }
+
+    private void rejectBlockedBids(List<Result<BlockingResult>> blockedBidResults) {
+        blockedBidResults.stream()
+                .map(Result::getValue)
+                .filter(BlockingResult::isBlocked)
+                .forEach(this::rejectBlockedBid);
+    }
+
+    private void rejectBlockedBid(BlockingResult blockingResult) {
+        if (blockingResult.getBattrCheckResult().isFailed()
+                || blockingResult.getBappCheckResult().isFailed()
+                || blockingResult.getBcatCheckResult().isFailed()) {
+
+            bidRejectionTracker.reject(
+                    blockingResult.getImpId(),
+                    BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE);
+        }
+
+        if (blockingResult.getBadvCheckResult().isFailed()) {
+            bidRejectionTracker.reject(
+                    blockingResult.getImpId(),
+                    BidRejectionReason.RESPONSE_REJECTED_ADVERTISER_BLOCKED);
+        }
     }
 
     private List<AnalyticsResult> toAnalyticsResults(List<Result<BlockingResult>> blockedBidResults) {

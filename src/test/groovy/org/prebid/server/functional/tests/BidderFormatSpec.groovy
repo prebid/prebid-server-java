@@ -26,6 +26,8 @@ import static org.prebid.server.functional.model.AccountStatus.ACTIVE
 import static org.prebid.server.functional.model.config.BidValidationEnforcement.ENFORCE
 import static org.prebid.server.functional.model.config.BidValidationEnforcement.SKIP
 import static org.prebid.server.functional.model.config.BidValidationEnforcement.WARN
+import static org.prebid.server.functional.model.request.auction.SecurityLevel.NON_SECURE
+import static org.prebid.server.functional.model.request.auction.SecurityLevel.SECURE
 import static org.prebid.server.functional.model.response.auction.ErrorType.GENERIC
 
 class BidderFormatSpec extends BaseSpec {
@@ -580,13 +582,13 @@ class BidderFormatSpec extends BaseSpec {
         assert !bidder.getBidderRequests(bidRequest.id)
 
         where:
-        secure | secureMarkup
-        1      | SKIP.value
-        1      | ENFORCE.value
-        1      | WARN.value
-        0      | SKIP.value
-        0      | ENFORCE.value
-        0      | WARN.value
+        secure     | secureMarkup
+        SECURE     | SKIP.value
+        SECURE     | ENFORCE.value
+        SECURE     | WARN.value
+        NON_SECURE | SKIP.value
+        NON_SECURE | ENFORCE.value
+        NON_SECURE | WARN.value
     }
 
     def "PBS should emit metrics and error when imp[0].secure = 1 and config WARN and bid response adm contain #url"() {
@@ -596,7 +598,7 @@ class BidderFormatSpec extends BaseSpec {
         and: "Default bid request with secure and banner or video or nativeObj"
         def storedResponseId = PBSUtils.randomNumber
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp[0].secure = 1
+            imp[0].secure = SECURE
             imp[0].banner = banner
             imp[0].video = video
             imp[0].nativeObj = nativeObj
@@ -654,7 +656,7 @@ class BidderFormatSpec extends BaseSpec {
         and: "Default bid request with secure and banner or video or nativeObj"
         def storedResponseId = PBSUtils.randomNumber
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp[0].secure = 1
+            imp[0].secure = SECURE
             imp[0].banner = banner
             imp[0].video = video
             imp[0].nativeObj = nativeObj
@@ -704,7 +706,7 @@ class BidderFormatSpec extends BaseSpec {
         and: "Default bid request with secure and banner or video or nativeObj"
         def storedResponseId = PBSUtils.randomNumber
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp[0].secure = 1
+            imp[0].secure = SECURE
             imp[0].banner = banner
             imp[0].video = video
             imp[0].nativeObj = nativeObj
@@ -796,16 +798,16 @@ class BidderFormatSpec extends BaseSpec {
         assert !bidder.getBidderRequests(bidRequest.id)
 
         where:
-        url       | secure | secureMarkup
-        "http%3A" | 0      | SKIP.value
-        "http"    | 0      | SKIP.value
-        "https"   | 1      | SKIP.value
-        "http%3A" | 0      | WARN.value
-        "http"    | 0      | WARN.value
-        "https"   | 1      | WARN.value
-        "http%3A" | 0      | ENFORCE.value
-        "http"    | 0      | ENFORCE.value
-        "https"   | 1      | ENFORCE.value
+        url       | secure     | secureMarkup
+        "http%3A" | NON_SECURE | SKIP.value
+        "http"    | NON_SECURE | SKIP.value
+        "https"   | SECURE     | SKIP.value
+        "http%3A" | NON_SECURE | WARN.value
+        "http"    | NON_SECURE | WARN.value
+        "https"   | SECURE     | WARN.value
+        "http%3A" | NON_SECURE | ENFORCE.value
+        "http"    | NON_SECURE | ENFORCE.value
+        "https"   | SECURE     | ENFORCE.value
     }
 
     def "PBS should ignore specified secureMarkup #secureMarkup validation when secure is 0"() {
@@ -816,7 +818,7 @@ class BidderFormatSpec extends BaseSpec {
         def storedResponseId = PBSUtils.randomNumber
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].tap {
-                secure = 0
+                secure = NON_SECURE
                 ext.prebid.storedBidResponse = [new StoredBidResponse(id: storedResponseId, bidder: BidderName.GENERIC)]
             }
         }

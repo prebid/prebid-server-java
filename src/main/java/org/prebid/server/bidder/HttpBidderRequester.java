@@ -100,7 +100,8 @@ public class HttpBidderRequester {
         final List<BidderError> errors = httpRequestsWithErrors.getErrors();
         final List<HttpRequest<T>> httpRequests = enrichRequests(
                 bidderName, httpRequestsWithErrors.getValue(), requestHeaders, aliases, bidRequest);
-        recordBidderProvidedErrors(bidRejectionTracker, errors);
+
+        rejectErrors(bidRejectionTracker, errors, BidRejectionReason.REQUEST_BLOCKED_GENERAL);
 
         if (CollectionUtils.isEmpty(httpRequests)) {
             return emptyBidderSeatBidWithErrors(errors);
@@ -144,11 +145,13 @@ public class HttpBidderRequester {
                 .toList();
     }
 
-    private static void recordBidderProvidedErrors(BidRejectionTracker rejectionTracker, List<BidderError> errors) {
-        errors.stream()
+    private static void rejectErrors(BidRejectionTracker bidRejectionTracker,
+                                     List<BidderError> bidderErrors,
+                                     BidRejectionReason reason) {
+
+        bidderErrors.stream()
                 .filter(error -> CollectionUtils.isNotEmpty(error.getImpIds()))
-                .forEach(error -> rejectionTracker.reject(
-                        error.getImpIds(), BidRejectionReason.fromBidderError(error)));
+                .forEach(error -> bidRejectionTracker.reject(error.getImpIds(), reason));
     }
 
     private <T> boolean isStoredResponse(List<HttpRequest<T>> httpRequests, String storedResponse, String bidder) {
@@ -374,16 +377,44 @@ public class HttpBidderRequester {
             final List<BidderError> bidderErrors = bidderResponse != null ? bidderResponse.getErrors() : null;
             if (bidderErrors != null) {
                 errorsRecorded.addAll(bidderErrors);
-                recordBidderProvidedErrors(bidRejectionTracker, bidderErrors);
+                rejectErrors(bidRejectionTracker, bidderErrors, BidRejectionReason.ERROR_GENERAL);
             }
         }
 
         private void handleBidderCallError(BidderCall<T> bidderCall) {
+            final Set<String> requestedImpIds = bidderCall.getRequest().getImpIds();
+            if (CollectionUtils.isEmpty(requestedImpIds)) {
+                return;
+            }
+
+            final Integer statusCode = Optional.ofNullable(bidderCall.getResponse())
+                    .map(HttpResponse::getStatusCode)
+                    .orElse(null);
+
+            if (statusCode != null && statusCode == HttpResponseStatus.SERVICE_UNAVAILABLE.code()) {
+                bidRejectionTracker.reject(requestedImpIds, BidRejectionReason.ERROR_BIDDER_UNREACHABLE);
+                return;
+            }
+
+            if (statusCode != null
+                    && (statusCode < HttpResponseStatus.OK.code()
+                    || statusCode >= HttpResponseStatus.BAD_REQUEST.code())) {
+
+                bidRejectionTracker.reject(requestedImpIds, BidRejectionReason.ERROR_INVALID_BID_RESPONSE);
+                return;
+            }
+
             final BidderError callError = bidderCall.getError();
             final BidderError.Type callErrorType = callError != null ? callError.getType() : null;
-            final Set<String> requestedImpIds = bidderCall.getRequest().getImpIds();
-            if (callErrorType != null && CollectionUtils.isNotEmpty(requestedImpIds)) {
-                bidRejectionTracker.reject(requestedImpIds, BidRejectionReason.fromBidderError(callError));
+
+            if (callErrorType == null) {
+                return;
+            }
+
+            if (callErrorType == BidderError.Type.timeout) {
+                bidRejectionTracker.reject(requestedImpIds, BidRejectionReason.ERROR_TIMED_OUT);
+            } else {
+                bidRejectionTracker.reject(requestedImpIds, BidRejectionReason.ERROR_GENERAL);
             }
         }
 
