@@ -4,7 +4,6 @@ import com.github.tomakehurst.wiremock.stubbing.StubMapping;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 import org.json.JSONException;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.util.IntegrationTestsUtil;
@@ -32,14 +31,6 @@ public class PriceFloorsTest extends IntegrationTest {
     private static final String FLOORS_FROM_PROVIDER = "Floors from provider";
 
     private static final RequestSpecification SPEC = IntegrationTest.spec(APP_PORT);
-
-    @BeforeAll
-    public static void setUpJunk() throws IOException {
-        WIRE_MOCK_RULE.stubFor(get(urlPathEqualTo("/periodic-update"))
-                .willReturn(aResponse().withBody(jsonFrom("storedrequests/test-periodic-refresh.json"))));
-        WIRE_MOCK_RULE.stubFor(get(urlPathEqualTo("/currency-rates"))
-                .willReturn(aResponse().withBody(jsonFrom("currency/latest.json"))));
-    }
 
     @Test
     public void openrtb2AuctionShouldApplyPriceFloorsForTheGenericBidder() throws IOException, JSONException {
