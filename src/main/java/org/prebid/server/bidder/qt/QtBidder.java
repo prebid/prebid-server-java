@@ -80,8 +80,8 @@ public class QtBidder implements Bidder<BidRequest> {
     }
 
     private QtImpExtBidder getImpExtQtWithType(ExtImpQt extImpQt) {
-        boolean hasPlacementId = StringUtils.isNotBlank(extImpQt.getPlacementId());
-        boolean hasEndpointId = StringUtils.isNotBlank(extImpQt.getEndpointId());
+        final boolean hasPlacementId = StringUtils.isNotBlank(extImpQt.getPlacementId());
+        final boolean hasEndpointId = StringUtils.isNotBlank(extImpQt.getEndpointId());
 
         return QtImpExtBidder.builder()
                 .type(hasPlacementId ? "publisher" : hasEndpointId ? "network" : null)
