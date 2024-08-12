@@ -11,6 +11,8 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.BidRejectionReason;
+import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.Logger;
@@ -72,6 +74,7 @@ public class ResponseBidValidator {
         final Bid bid = bidderBid.getBid();
         final BidRequest bidRequest = auctionContext.getBidRequest();
         final Account account = auctionContext.getAccount();
+        final BidRejectionTracker bidRejectionTracker = auctionContext.getBidRejectionTrackers().get(bidder);
         final List<String> warnings = new ArrayList<>();
 
         try {
@@ -81,10 +84,25 @@ public class ResponseBidValidator {
 
             final Imp correspondingImp = findCorrespondingImp(bid, bidRequest);
             if (bidderBid.getType() == BidType.banner) {
-                warnings.addAll(validateBannerFields(bid, bidder, bidRequest, account, correspondingImp, aliases));
+                warnings.addAll(validateBannerFields(
+                        bid,
+                        bidder,
+                        bidRequest,
+                        account,
+                        correspondingImp,
+                        aliases,
+                        bidRejectionTracker));
             }
 
-            warnings.addAll(validateSecureMarkup(bid, bidder, bidRequest, account, correspondingImp, aliases));
+            warnings.addAll(validateSecureMarkup(
+                    bid,
+                    bidder,
+                    bidRequest,
+                    account,
+                    correspondingImp,
+                    aliases,
+                    bidRejectionTracker));
+
         } catch (ValidationException e) {
             return ValidationResult.error(warnings, e.getMessage());
         }
@@ -148,7 +166,8 @@ public class ResponseBidValidator {
                                               BidRequest bidRequest,
                                               Account account,
                                               Imp correspondingImp,
-                                              BidderAliases aliases) throws ValidationException {
+                                              BidderAliases aliases,
+                                              BidRejectionTracker bidRejectionTracker) throws ValidationException {
 
         final BidValidationEnforcement bannerMaxSizeEnforcement = effectiveBannerMaxSizeEnforcement(account);
         if (bannerMaxSizeEnforcement != BidValidationEnforcement.skip) {
@@ -169,6 +188,10 @@ public class ResponseBidValidator {
                         maxSize.getH(),
                         bid.getW(),
                         bid.getH());
+
+                bidRejectionTracker.reject(
+                        correspondingImp.getId(),
+                        BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_SIZE_NOT_ALLOWED);
 
                 return singleWarningOrValidationException(
                         bannerMaxSizeEnforcement,
@@ -218,7 +241,8 @@ public class ResponseBidValidator {
                                               BidRequest bidRequest,
                                               Account account,
                                               Imp correspondingImp,
-                                              BidderAliases aliases) throws ValidationException {
+                                              BidderAliases aliases,
+                                              BidRejectionTracker bidRejectionTracker) throws ValidationException {
 
         if (secureMarkupEnforcement == BidValidationEnforcement.skip) {
             return Collections.emptyList();
@@ -233,6 +257,10 @@ public class ResponseBidValidator {
                     BidResponse validation `%s`: bidder `%s` response triggers secure \
                     creative validation for bid %s, account=%s, referrer=%s, adm=%s"""
                     .formatted(secureMarkupEnforcement, bidder, bid.getId(), accountId, referer, adm);
+
+            bidRejectionTracker.reject(
+                    correspondingImp.getId(),
+                    BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_NOT_SECURE);
 
             return singleWarningOrValidationException(
                     secureMarkupEnforcement,
