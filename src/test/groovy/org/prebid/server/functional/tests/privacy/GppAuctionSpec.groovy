@@ -2,6 +2,7 @@ package org.prebid.server.functional.tests.privacy
 
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Regs
+import org.prebid.server.functional.model.request.auction.RegsExt
 import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.util.PBSUtils
@@ -235,7 +236,7 @@ class GppAuctionSpec extends PrivacyBaseSpec {
     def "PBS should populate gpc when header sec-gpc has value 1"() {
         given: "Default bid request with gpc"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            regs.ext.gpc = null
+            regs.ext = new RegsExt(gpc: null)
         }
 
         when: "PBS processes auction request with headers"
@@ -252,7 +253,7 @@ class GppAuctionSpec extends PrivacyBaseSpec {
     def "PBS shouldn't populate gpc when header sec-gpc has #gpcInvalid value"() {
         given: "Default bid request with gpc"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            regs.ext.gpc = null
+            regs.ext = new RegsExt(gpc: null)
         }
 
         when: "PBS processes auction request with headers"
@@ -270,7 +271,7 @@ class GppAuctionSpec extends PrivacyBaseSpec {
         given: "Default bid request with gpc"
         def randomGpc = PBSUtils.randomNumber as String
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            regs.ext.gpc = randomGpc
+            regs.ext = new RegsExt(gpc: randomGpc)
         }
 
         when: "PBS processes auction request with headers"

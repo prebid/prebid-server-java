@@ -608,7 +608,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         given: "Generic bid request with account connection"
         def accountId = PBSUtils.randomNumber as String
         def bidRequest = getBidRequestWithPersonalData(accountId).tap {
-            it.regs.ext.gpc = PBSUtils.randomNumber as String
+            it.regs.ext = new RegsExt(gpc: PBSUtils.randomNumber as String)
         }
 
         and: "Setup condition"
@@ -667,7 +667,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def gpc = PBSUtils.randomNumber as String
         def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             it.setAccountId(accountId)
-            it.regs.ext.gpc = gpc
+            it.regs.ext = new RegsExt(gpc: gpc)
         }
 
         and: "Setup activity"
@@ -725,7 +725,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         given: "Generic bid request with account connection"
         def accountId = PBSUtils.randomNumber as String
         def bidRequest = getBidRequestWithPersonalData(accountId).tap {
-            it.regs.ext.gpc = PBSUtils.randomNumber as String
+            it.regs.ext = new RegsExt(gpc: PBSUtils.randomNumber as String)
         }
 
         and: "Setup condition"
@@ -784,7 +784,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             it.setAccountId(accountId)
-            it.regs.ext.gpc = null
+            it.regs.ext = new RegsExt(gpc: null)
         }
 
         and: "Setup activity"
@@ -1966,7 +1966,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         given: "Default Generic BidRequest with UFPD fields field and account id"
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = getBidRequestWithPersonalData(accountId).tap {
-            regs.ext.gpc = null
+            it.regs.ext = new RegsExt(gpc: null)
         }
 
         and: "amp request with link to account"

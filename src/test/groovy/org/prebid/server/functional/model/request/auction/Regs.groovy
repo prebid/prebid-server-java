@@ -18,7 +18,6 @@ class Regs {
     static Regs getDefaultRegs() {
         new Regs().tap {
             gdpr = 0
-            ext = new RegsExt()
         }
     }
 }
