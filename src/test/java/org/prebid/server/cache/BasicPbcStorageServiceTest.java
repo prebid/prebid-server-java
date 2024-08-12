@@ -225,10 +225,10 @@ public class BasicPbcStorageServiceTest extends VertxTest {
     }
 
     @Test
-    public void retrieveModuleEntryShouldReturnFailedFutureIfModuleKeyIsMissed() {
+    public void retrieveModuleEntryShouldReturnFailedFutureIfKeyIsMissed() {
         // when
         final Future<ModuleCacheResponse> result =
-                target.retrieveModuleEntry(null, "some-module-code", "some-app");
+                target.retrieveEntry(null, "some-module-code", "some-app");
 
         // then
         assertThat(result.failed()).isTrue();
@@ -237,10 +237,10 @@ public class BasicPbcStorageServiceTest extends VertxTest {
     }
 
     @Test
-    public void retrieveModuleEntryShouldReturnFailedFutureIfModuleApplicationIsMissed() {
+    public void retrieveModuleEntryShouldReturnFailedFutureIfApplicationIsMissed() {
         // when
         final Future<ModuleCacheResponse> result =
-                target.retrieveModuleEntry("some-key", "some-module-code", null);
+                target.retrieveEntry("some-key", "some-module-code", null);
 
         // then
         assertThat(result.failed()).isTrue();
@@ -249,10 +249,10 @@ public class BasicPbcStorageServiceTest extends VertxTest {
     }
 
     @Test
-    public void retrieveModuleEntryShouldReturnFailedFutureIfModuleCodeIsMissed() {
+    public void retrieveModuleEntryShouldReturnFailedFutureIfCodeIsMissed() {
         // when
         final Future<ModuleCacheResponse> result =
-                target.retrieveModuleEntry("some-key", null, "some-app");
+                target.retrieveEntry("some-key", null, "some-app");
 
         // then
         assertThat(result.failed()).isTrue();
@@ -261,9 +261,9 @@ public class BasicPbcStorageServiceTest extends VertxTest {
     }
 
     @Test
-    public void retrieveModuleEntryShouldCreateCallWithApiKeyInHeader() {
+    public void retrieveEntryShouldCreateCallWithApiKeyInHeader() {
         // when
-        target.retrieveModuleEntry("some-key", "some-module-code", "some-app");
+        target.retrieveEntry("some-key", "some-module-code", "some-app");
 
         // then
         final MultiMap result = captureRetrieveRequestHeaders();
@@ -271,9 +271,9 @@ public class BasicPbcStorageServiceTest extends VertxTest {
     }
 
     @Test
-    public void retrieveModuleEntryShouldCreateCallWithKeyInParams() {
+    public void retrieveEntryShouldCreateCallWithKeyInParams() {
         // when
-        target.retrieveModuleEntry("some-key", "some-module-code", "some-app");
+        target.retrieveEntry("some-key", "some-module-code", "some-app");
 
         // then
         final String result = captureRetrieveUrl();
@@ -282,10 +282,10 @@ public class BasicPbcStorageServiceTest extends VertxTest {
     }
 
     @Test
-    public void retrieveModuleEntryShouldReturnExpectedResponse() {
+    public void retrieveEntryShouldReturnExpectedResponse() {
         // when
         final Future<ModuleCacheResponse> result =
-                target.retrieveModuleEntry("some-key", "some-module-code", "some-app");
+                target.retrieveEntry("some-key", "some-module-code", "some-app");
 
         // then
         assertThat(result.result())
