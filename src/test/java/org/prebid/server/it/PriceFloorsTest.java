@@ -4,7 +4,6 @@ import com.github.tomakehurst.wiremock.stubbing.StubMapping;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 import org.json.JSONException;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.util.IntegrationTestsUtil;
@@ -25,21 +24,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class PriceFloorsTest extends IntegrationTest {
 
     private static final int APP_PORT = 8050;
-    private static final int WIREMOCK_PORT = 8090;
 
     private static final String PRICE_FLOORS = "Price Floors Test";
     private static final String FLOORS_FROM_REQUEST = "Floors from request";
     private static final String FLOORS_FROM_PROVIDER = "Floors from provider";
 
     private static final RequestSpecification SPEC = IntegrationTest.spec(APP_PORT);
-
-    @BeforeAll
-    public static void setUpJunk() throws IOException {
-        WIRE_MOCK_RULE.stubFor(get(urlPathEqualTo("/periodic-update"))
-                .willReturn(aResponse().withBody(jsonFrom("storedrequests/test-periodic-refresh.json"))));
-        WIRE_MOCK_RULE.stubFor(get(urlPathEqualTo("/currency-rates"))
-                .willReturn(aResponse().withBody(jsonFrom("currency/latest.json"))));
-    }
 
     @Test
     public void openrtb2AuctionShouldApplyPriceFloorsForTheGenericBidder() throws IOException, JSONException {
@@ -61,11 +51,10 @@ public class PriceFloorsTest extends IntegrationTest {
                 SPEC);
 
         // then
-        IntegrationTestsUtil.assertJsonEquals(
+        assertJsonEquals(
                 "openrtb2/floors/floors-test-auction-response.json",
                 firstResponse,
-                singletonList("generic"),
-                PriceFloorsTest::replaceBidderRelatedStaticInfo);
+                singletonList("generic"));
 
         // given
         final StubMapping stubMapping = WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/generic-exchange"))
@@ -83,11 +72,10 @@ public class PriceFloorsTest extends IntegrationTest {
 
         // then
         assertThat(stubMapping.getNewScenarioState()).isEqualTo(FLOORS_FROM_PROVIDER);
-        IntegrationTestsUtil.assertJsonEquals(
+        assertJsonEquals(
                 "openrtb2/floors/floors-test-auction-response.json",
                 secondResponse,
-                singletonList("generic"),
-                PriceFloorsTest::replaceBidderRelatedStaticInfo);
+                singletonList("generic"));
     }
 
     @Test
@@ -105,14 +93,9 @@ public class PriceFloorsTest extends IntegrationTest {
                 SPEC);
 
         // then
-        IntegrationTestsUtil.assertJsonEquals(
+        assertJsonEquals(
                 "openrtb2/floors/floors-test-auction-response-no-signal.json",
                 firstResponse,
-                singletonList("generic"),
-                PriceFloorsTest::replaceBidderRelatedStaticInfo);
-    }
-
-    private static String replaceBidderRelatedStaticInfo(String json, String bidder) {
-        return IntegrationTestsUtil.replaceBidderRelatedStaticInfo(json, bidder, WIREMOCK_PORT);
+                singletonList("generic"));
     }
 }
