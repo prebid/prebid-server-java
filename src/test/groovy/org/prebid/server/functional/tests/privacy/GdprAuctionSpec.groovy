@@ -21,13 +21,13 @@ import java.time.Instant
 import static org.prebid.server.functional.model.ChannelType.PBJS
 import static org.prebid.server.functional.model.ChannelType.WEB
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
-import static org.prebid.server.functional.model.pricefloors.Country.BULGARIA
-import static org.prebid.server.functional.model.pricefloors.Country.CAN
-import static org.prebid.server.functional.model.pricefloors.Country.USA
 import static org.prebid.server.functional.model.config.Purpose.P1
 import static org.prebid.server.functional.model.config.Purpose.P2
 import static org.prebid.server.functional.model.config.Purpose.P4
-import static org.prebid.server.functional.model.config.PurposeEnforcement.*
+import static org.prebid.server.functional.model.config.PurposeEnforcement.NO
+import static org.prebid.server.functional.model.pricefloors.Country.BULGARIA
+import static org.prebid.server.functional.model.pricefloors.Country.CAN
+import static org.prebid.server.functional.model.pricefloors.Country.USA
 import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ACCOUNT_DISALLOWED_COUNT
 import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ADAPTER_DISALLOWED_COUNT
 import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_REQUEST_DISALLOWED_COUNT
@@ -38,7 +38,7 @@ import static org.prebid.server.functional.model.request.auction.ActivityType.TR
 import static org.prebid.server.functional.model.request.auction.Prebid.Channel
 import static org.prebid.server.functional.model.request.auction.TraceLevel.BASIC
 import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
-import static org.prebid.server.functional.model.response.auction.BidRejectionReason.REJECTED_BY_PRIVACY
+import static org.prebid.server.functional.model.response.auction.BidRejectionReason.REQUEST_BLOCKED_PRIVACY
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.DEVICE_ACCESS
@@ -263,7 +263,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         def seatNonBid = seatNonBids[0]
         assert seatNonBid.seat == GENERIC.value
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
-        assert seatNonBid.nonBid[0].statusCode == REJECTED_BY_PRIVACY
+        assert seatNonBid.nonBid[0].statusCode == REQUEST_BLOCKED_PRIVACY
 
         and: "seatbid should be empty"
         assert response.seatbid.isEmpty()

@@ -14,6 +14,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.BidRejectionReason;
+import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
@@ -24,6 +26,7 @@ import org.prebid.server.settings.model.AccountBidValidationConfig;
 import org.prebid.server.validation.model.ValidationResult;
 
 import java.math.BigDecimal;
+import java.util.Map;
 import java.util.function.UnaryOperator;
 
 import static java.util.Arrays.asList;
@@ -34,6 +37,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.prebid.server.settings.model.BidValidationEnforcement.enforce;
 import static org.prebid.server.settings.model.BidValidationEnforcement.skip;
 import static org.prebid.server.settings.model.BidValidationEnforcement.warn;
@@ -46,6 +50,9 @@ public class ResponseBidValidatorTest extends VertxTest {
 
     @Mock
     private Metrics metrics;
+
+    @Mock
+    private BidRejectionTracker bidRejectionTracker;
 
     private ResponseBidValidator target;
 
@@ -70,6 +77,7 @@ public class ResponseBidValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).containsOnly("BidResponse currency \"invalid\" is not valid");
+        verifyNoInteractions(bidRejectionTracker);
     }
 
     @Test
@@ -80,6 +88,7 @@ public class ResponseBidValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).containsOnly("Empty bid object submitted");
+        verifyNoInteractions(bidRejectionTracker);
     }
 
     @Test
@@ -90,6 +99,7 @@ public class ResponseBidValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).containsOnly("Bid missing required field 'id'");
+        verifyNoInteractions(bidRejectionTracker);
     }
 
     @Test
@@ -100,6 +110,7 @@ public class ResponseBidValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).containsOnly("Bid \"bidId1\" missing required field 'impid'");
+        verifyNoInteractions(bidRejectionTracker);
     }
 
     @Test
@@ -113,6 +124,7 @@ public class ResponseBidValidatorTest extends VertxTest {
 
         // then
         assertThat(result.hasErrors()).isFalse();
+        verifyNoInteractions(bidRejectionTracker);
     }
 
     @Test
@@ -123,6 +135,7 @@ public class ResponseBidValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).containsOnly("Bid \"bidId1\" missing creative ID");
+        verifyNoInteractions(bidRejectionTracker);
     }
 
     @Test
@@ -137,6 +150,8 @@ public class ResponseBidValidatorTest extends VertxTest {
                         BidResponse validation `enforce`: bidder `bidder` response triggers \
                         creative size validation for bid bidId1, account=account, referrer=unknown, \
                         max imp size='100x200', bid response size='nullxnull'""");
+        verify(bidRejectionTracker)
+                .reject("impId1", BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_SIZE_NOT_ALLOWED);
     }
 
     @Test
@@ -151,6 +166,8 @@ public class ResponseBidValidatorTest extends VertxTest {
                         BidResponse validation `enforce`: bidder `bidder` response triggers \
                         creative size validation for bid bidId1, account=account, referrer=unknown, \
                         max imp size='100x200', bid response size='150x150'""");
+        verify(bidRejectionTracker)
+                .reject("impId1", BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_SIZE_NOT_ALLOWED);
     }
 
     @Test
@@ -168,6 +185,8 @@ public class ResponseBidValidatorTest extends VertxTest {
                         BidResponse validation `enforce`: bidder `bidder` response triggers \
                         creative size validation for bid bidId1, account=account, referrer=unknown, \
                         max imp size='100x200', bid response size='50x250'""");
+        verify(bidRejectionTracker)
+                .reject("impId1", BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_SIZE_NOT_ALLOWED);
     }
 
     @Test
@@ -181,6 +200,7 @@ public class ResponseBidValidatorTest extends VertxTest {
 
         // then
         assertThat(result.hasErrors()).isFalse();
+        verifyNoInteractions(bidRejectionTracker);
     }
 
     @Test
@@ -198,6 +218,7 @@ public class ResponseBidValidatorTest extends VertxTest {
 
         // then
         assertThat(result.hasErrors()).isFalse();
+        verifyNoInteractions(bidRejectionTracker);
     }
 
     @Test
@@ -214,6 +235,7 @@ public class ResponseBidValidatorTest extends VertxTest {
 
         // then
         assertThat(result.hasErrors()).isFalse();
+        verifyNoInteractions(bidRejectionTracker);
     }
 
     @Test
@@ -228,6 +250,7 @@ public class ResponseBidValidatorTest extends VertxTest {
         // then
         assertThat(result.getErrors())
                 .containsOnly("Bid \"bidId1\" has no corresponding imp in request");
+        verifyNoInteractions(bidRejectionTracker);
     }
 
     @Test
@@ -245,6 +268,8 @@ public class ResponseBidValidatorTest extends VertxTest {
                         BidResponse validation `enforce`: bidder `bidder` response triggers \
                         secure creative validation for bid bidId1, account=account, referrer=unknown, \
                         adm=<tag>http://site.com/creative.jpg</tag>""");
+        verify(bidRejectionTracker)
+                .reject("impId1", BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_NOT_SECURE);
     }
 
     @Test
@@ -262,6 +287,8 @@ public class ResponseBidValidatorTest extends VertxTest {
                         BidResponse validation `enforce`: bidder `bidder` response triggers \
                         secure creative validation for bid bidId1, account=account, referrer=unknown, \
                         adm=<tag>http%3A//site.com/creative.jpg</tag>""");
+        verify(bidRejectionTracker)
+                .reject("impId1", BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_NOT_SECURE);
     }
 
     @Test
@@ -279,6 +306,8 @@ public class ResponseBidValidatorTest extends VertxTest {
                         BidResponse validation `enforce`: bidder `bidder` response triggers \
                         secure creative validation for bid bidId1, account=account, referrer=unknown, \
                         adm=<tag>//site.com/creative.jpg</tag>""");
+        verify(bidRejectionTracker)
+                .reject("impId1", BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_NOT_SECURE);
     }
 
     @Test
@@ -292,6 +321,7 @@ public class ResponseBidValidatorTest extends VertxTest {
 
         // then
         assertThat(result.hasErrors()).isFalse();
+        verifyNoInteractions(bidRejectionTracker);
     }
 
     @Test
@@ -307,6 +337,7 @@ public class ResponseBidValidatorTest extends VertxTest {
         assertThat(result.getErrors())
                 .containsOnly("Bid \"bidId1\" with video type missing adm and nurl");
         verify(metrics).updateAdapterRequestErrorMetric(BIDDER_NAME, MetricName.badserverresponse);
+        verifyNoInteractions(bidRejectionTracker);
     }
 
     @Test
@@ -320,6 +351,7 @@ public class ResponseBidValidatorTest extends VertxTest {
 
         // then
         assertThat(result.hasErrors()).isFalse();
+        verifyNoInteractions(bidRejectionTracker);
     }
 
     @Test
@@ -333,6 +365,7 @@ public class ResponseBidValidatorTest extends VertxTest {
 
         // then
         assertThat(result.hasErrors()).isFalse();
+        verifyNoInteractions(bidRejectionTracker);
     }
 
     @Test
@@ -346,6 +379,7 @@ public class ResponseBidValidatorTest extends VertxTest {
 
         // then
         assertThat(result.hasErrors()).isFalse();
+        verifyNoInteractions(bidRejectionTracker);
     }
 
     @Test
@@ -362,6 +396,7 @@ public class ResponseBidValidatorTest extends VertxTest {
 
         // then
         assertThat(result.hasErrors()).isFalse();
+        verifyNoInteractions(bidRejectionTracker);
     }
 
     @Test
@@ -383,6 +418,8 @@ public class ResponseBidValidatorTest extends VertxTest {
                         BidResponse validation `warn`: bidder `bidder` response triggers \
                         creative size validation for bid bidId1, account=account, referrer=unknown, \
                         max imp size='100x200', bid response size='nullxnull'""");
+        verify(bidRejectionTracker)
+                .reject("impId1", BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_SIZE_NOT_ALLOWED);
     }
 
     @Test
@@ -399,6 +436,7 @@ public class ResponseBidValidatorTest extends VertxTest {
 
         // then
         assertThat(result.hasErrors()).isFalse();
+        verifyNoInteractions(bidRejectionTracker);
     }
 
     @Test
@@ -420,6 +458,8 @@ public class ResponseBidValidatorTest extends VertxTest {
                         BidResponse validation `warn`: bidder `bidder` response triggers \
                         secure creative validation for bid bidId1, account=account, referrer=unknown, \
                         adm=<tag>http://site.com/creative.jpg</tag>""");
+        verify(bidRejectionTracker)
+                .reject("impId1", BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_NOT_SECURE);
     }
 
     @Test
@@ -433,6 +473,8 @@ public class ResponseBidValidatorTest extends VertxTest {
 
         // then
         verify(metrics).updateSizeValidationMetrics(BIDDER_NAME, ACCOUNT_ID, MetricName.err);
+        verify(bidRejectionTracker)
+                .reject("impId1", BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_SIZE_NOT_ALLOWED);
     }
 
     @Test
@@ -449,6 +491,8 @@ public class ResponseBidValidatorTest extends VertxTest {
 
         // then
         verify(metrics).updateSizeValidationMetrics(BIDDER_NAME, ACCOUNT_ID, MetricName.warn);
+        verify(bidRejectionTracker)
+                .reject("impId1", BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_SIZE_NOT_ALLOWED);
     }
 
     @Test
@@ -462,6 +506,8 @@ public class ResponseBidValidatorTest extends VertxTest {
 
         // then
         verify(metrics).updateSecureValidationMetrics(BIDDER_NAME, ACCOUNT_ID, MetricName.err);
+        verify(bidRejectionTracker)
+                .reject("impId1", BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_NOT_SECURE);
     }
 
     @Test
@@ -478,6 +524,8 @@ public class ResponseBidValidatorTest extends VertxTest {
 
         // then
         verify(metrics).updateSecureValidationMetrics(BIDDER_NAME, ACCOUNT_ID, MetricName.warn);
+        verify(bidRejectionTracker)
+                .reject("impId1", BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_NOT_SECURE);
     }
 
     private BidRequest givenRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
@@ -522,22 +570,23 @@ public class ResponseBidValidatorTest extends VertxTest {
         return BidderBid.of(bidCustomizer.apply(bidBuilder).build(), type, bidCurrency);
     }
 
-    private static AuctionContext givenAuctionContext(BidRequest bidRequest, Account account) {
+    private AuctionContext givenAuctionContext(BidRequest bidRequest, Account account) {
         return AuctionContext.builder()
+                .bidRejectionTrackers(Map.of("bidder", bidRejectionTracker))
                 .account(account)
                 .bidRequest(bidRequest)
                 .build();
     }
 
-    private static AuctionContext givenAuctionContext(BidRequest bidRequest) {
+    private AuctionContext givenAuctionContext(BidRequest bidRequest) {
         return givenAuctionContext(bidRequest, givenAccount());
     }
 
-    private static AuctionContext givenAuctionContext(Account account) {
+    private AuctionContext givenAuctionContext(Account account) {
         return givenAuctionContext(givenBidRequest(identity()), account);
     }
 
-    private static AuctionContext givenAuctionContext() {
+    private AuctionContext givenAuctionContext() {
         return givenAuctionContext(givenBidRequest(identity()), givenAccount());
     }
 
