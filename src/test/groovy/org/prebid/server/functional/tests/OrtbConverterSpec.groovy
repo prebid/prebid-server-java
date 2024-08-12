@@ -17,6 +17,7 @@ import org.prebid.server.functional.model.request.auction.RefSettings
 import org.prebid.server.functional.model.request.auction.RefType
 import org.prebid.server.functional.model.request.auction.Refresh
 import org.prebid.server.functional.model.request.auction.Regs
+import org.prebid.server.functional.model.request.auction.RegsExt
 import org.prebid.server.functional.model.request.auction.Source
 import org.prebid.server.functional.model.request.auction.SourceType
 import org.prebid.server.functional.model.request.auction.User
@@ -1137,7 +1138,7 @@ class OrtbConverterSpec extends BaseSpec {
         def randomGpc = PBSUtils.randomNumber as String
         def bidRequest = BidRequest.defaultBidRequest.tap {
             regs = Regs.defaultRegs.tap {
-                ext.gpc = randomGpc
+                ext = new RegsExt(gpc: randomGpc)
             }
         }
 
@@ -1153,7 +1154,7 @@ class OrtbConverterSpec extends BaseSpec {
         def randomGpc = PBSUtils.randomNumber as String
         def bidRequest = BidRequest.defaultBidRequest.tap {
             regs = Regs.defaultRegs.tap {
-                ext.gpc = randomGpc
+                ext = new RegsExt(gpc: randomGpc)
             }
         }
 
