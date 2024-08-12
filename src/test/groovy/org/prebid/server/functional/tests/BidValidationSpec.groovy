@@ -269,12 +269,15 @@ class BidValidationSpec extends BaseSpec {
         }
         bidder.setResponse(bidRequest.id, bidResponse)
 
+        and: "Flush metric"
+        flushMetrics(defaultPbsService)
+
         when: "Sending auction request to PBS"
         defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bid validation metric value is incremented"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        assert metrics["adapter.generic.requests.bid_validation"] == initialMetricValue + 1
+        assert metrics["adapter.generic.requests.bid_validation"] == 1
     }
 
     def "PBS shouldn't throw error when two separate eids with same eids.source"() {

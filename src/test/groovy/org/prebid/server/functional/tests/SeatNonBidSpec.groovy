@@ -15,8 +15,11 @@ import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.SeatBid
 import org.prebid.server.functional.util.PBSUtils
 
+import static org.mockserver.model.HttpStatusCode.BAD_REQUEST_400
+import static org.mockserver.model.HttpStatusCode.INTERNAL_SERVER_ERROR_500
 import static org.mockserver.model.HttpStatusCode.NO_CONTENT_204
 import static org.mockserver.model.HttpStatusCode.OK_200
+import static org.mockserver.model.HttpStatusCode.PROCESSING_102
 import static org.mockserver.model.HttpStatusCode.SERVICE_UNAVAILABLE_503
 import static org.prebid.server.functional.model.AccountStatus.ACTIVE
 import static org.prebid.server.functional.model.config.BidValidationEnforcement.ENFORCE
@@ -68,8 +71,7 @@ class SeatNonBidSpec extends BaseSpec {
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
 
         and: "Set bidder response"
-        def successStatuses = [OK_200, NO_CONTENT_204]
-        def statusCode = PBSUtils.getRandomElement(HttpStatusCode.values() - successStatuses as List)
+        def statusCode = PBSUtils.getRandomElement([PROCESSING_102, BAD_REQUEST_400, INTERNAL_SERVER_ERROR_500])
         bidder.setResponse(bidRequest.id, bidResponse, statusCode)
 
         when: "PBS processes auction request"
