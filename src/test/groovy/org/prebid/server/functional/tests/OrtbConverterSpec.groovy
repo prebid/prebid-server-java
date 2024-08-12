@@ -46,10 +46,7 @@ class OrtbConverterSpec extends BaseSpec {
         def usPrivacyRandomString = PBSUtils.randomString
         def gdpr = 0
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            regs = Regs.defaultRegs.tap {
-                it.usPrivacy = usPrivacyRandomString
-                it.gdpr = gdpr
-            }
+            regs = new Regs(usPrivacy: usPrivacyRandomString, gdpr: gdpr)
         }
 
         when: "Requesting PBS auction with ortb 2.6"
