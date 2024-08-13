@@ -4,8 +4,8 @@ import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 import org.prebid.server.functional.model.request.auction.Imp
 
-@ToString(includeNames = true, ignoreNulls = true)
 @EqualsAndHashCode
+@ToString(includeNames = true, ignoreNulls = true)
 class BidderImp extends Imp {
 
     BidderImpExt ext
