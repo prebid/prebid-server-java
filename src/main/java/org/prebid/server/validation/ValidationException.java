@@ -1,12 +1,12 @@
 package org.prebid.server.validation;
 
-class ValidationException extends Exception {
+public class ValidationException extends Exception {
 
-    ValidationException(String errorMessageFormat) {
+    public ValidationException(String errorMessageFormat) {
         super(errorMessageFormat);
     }
 
-    ValidationException(String errorMessageFormat, Object... args) {
+    public ValidationException(String errorMessageFormat, Object... args) {
         super(errorMessageFormat.formatted(args));
     }
 }
