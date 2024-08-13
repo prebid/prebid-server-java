@@ -44,6 +44,9 @@ public class TheTradeDeskBidder implements Bidder<BidRequest> {
 
     private static final String PREBID_INTEGRATION_TYPE_HEADER = "x-integration-type";
     private static final String PREBID_INTEGRATION_TYPE = "1";
+    private static final MultiMap HEADERS = HttpUtil.headers()
+            .add(PREBID_INTEGRATION_TYPE_HEADER, PREBID_INTEGRATION_TYPE);
+
     private static final String SUPPLY_ID_MACRO = "{{SupplyId}}";
     private static final Pattern SUPPLY_ID_PATTERN = Pattern.compile("([a-z]+)$");
 
@@ -69,11 +72,11 @@ public class TheTradeDeskBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<Imp> modifiedImps = new ArrayList<>();
 
-        String publisherId = StringUtils.EMPTY;
+        String publisherId = null;
         for (Imp imp : request.getImp()) {
             try {
                 final ExtImpTheTradeDesk extImp = parseImpExt(imp);
-                publisherId = StringUtils.isBlank(publisherId)
+                publisherId = publisherId == null
                         ? StringUtils.isNotBlank(extImp.getPublisherId())
                         ? extImp.getPublisherId()
                         : publisherId
@@ -88,7 +91,7 @@ public class TheTradeDeskBidder implements Bidder<BidRequest> {
         final BidRequest outgoingRequest = modifyRequest(request, modifiedImps, publisherId);
         final HttpRequest<BidRequest> httpRequest = BidderUtil.defaultRequest(
                 outgoingRequest,
-                makeHeaders(),
+                HEADERS,
                 resolveEndpoint(),
                 mapper);
 
@@ -103,7 +106,7 @@ public class TheTradeDeskBidder implements Bidder<BidRequest> {
         }
     }
 
-    private Imp modifyImp(Imp imp) {
+    private static Imp modifyImp(Imp imp) {
         final Banner banner = imp.getBanner();
 
         if (banner != null && CollectionUtils.isNotEmpty(banner.getFormat())) {
@@ -116,7 +119,7 @@ public class TheTradeDeskBidder implements Bidder<BidRequest> {
         return imp;
     }
 
-    private BidRequest modifyRequest(BidRequest request, List<Imp> modifiedImps, String publisherId) {
+    private static BidRequest modifyRequest(BidRequest request, List<Imp> modifiedImps, String publisherId) {
         return request.toBuilder()
                 .imp(modifiedImps)
                 .site(modifySite(request, publisherId))
@@ -124,7 +127,7 @@ public class TheTradeDeskBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private Site modifySite(BidRequest request, String publisherId) {
+    private static Site modifySite(BidRequest request, String publisherId) {
         final Site site = request.getSite();
         if (site == null) {
             return null;
@@ -145,7 +148,7 @@ public class TheTradeDeskBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private App modifyApp(BidRequest request, String publisherId) {
+    private static App modifyApp(BidRequest request, String publisherId) {
         final Site site = request.getSite();
         final App app = request.getApp();
 
@@ -160,11 +163,6 @@ public class TheTradeDeskBidder implements Bidder<BidRequest> {
         return app.toBuilder()
                 .publisher(modifyPublisher(app.getPublisher(), publisherId))
                 .build();
-    }
-
-    private MultiMap makeHeaders() {
-        return HttpUtil.headers()
-                .add(PREBID_INTEGRATION_TYPE_HEADER, PREBID_INTEGRATION_TYPE);
     }
 
     private String resolveEndpoint() {
