@@ -347,7 +347,7 @@ public class BasicPriceFloorEnforcerTest {
         // then
         verify(priceFloorAdjuster, times(2)).revertAdjustmentForImp(any(), any(), any(), any());
 
-        verify(rejectionTracker).reject("impId1", BidRejectionReason.REJECTED_DUE_TO_PRICE_FLOOR);
+        verify(rejectionTracker).reject("impId1", BidRejectionReason.RESPONSE_REJECTED_BELOW_FLOOR);
         assertThat(singleton(result))
                 .extracting(AuctionParticipation::getBidderResponse)
                 .extracting(BidderResponse::getSeatBid)

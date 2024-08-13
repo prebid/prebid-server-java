@@ -1,13 +1,16 @@
 package org.prebid.server.bidder.amx;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -280,6 +283,101 @@ public class AmxBidderTest extends VertxTest {
                             .element(0).asString().startsWith("Cannot deserialize value");
                 });
         assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldSetADomainsFromBidAdomainsField() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().video(Video.builder().build()).id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.adomain(singletonList("someAdomain")).impid("123"))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        final ArrayNode metaAdvrtisers = mapper.createArrayNode();
+        metaAdvrtisers.add("someAdomain");
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getExt)
+                .extracting(bidExt -> bidExt.get("prebid"))
+                .extracting(bidExtPrebid -> bidExtPrebid.get("meta"))
+                .extracting(bidExtPrebidMeta -> bidExtPrebidMeta.get("advertiserDomains"))
+                .containsExactly(metaAdvrtisers);
+    }
+
+    @Test
+    public void makeBidsShouldSetDemandSourceFromBidExtDsField() throws JsonProcessingException {
+        // given
+        final ObjectNode givenBidExt = mapper.createObjectNode();
+        givenBidExt.set("ds", new TextNode("someDs"));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().video(Video.builder().build()).id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.ext(givenBidExt).impid("123"))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getExt)
+                .extracting(bidExt -> bidExt.get("prebid"))
+                .extracting(bidExtPrebid -> bidExtPrebid.get("meta"))
+                .extracting(bidExtPrebidMeta -> bidExtPrebidMeta.get("demandSource"))
+                .containsExactly(new TextNode("someDs"));
+    }
+
+    @Test
+    public void makeBidsShouldSetDemandSourceAndADomainsAndTolerateExistingBidExt() throws JsonProcessingException {
+        // given
+        final ObjectNode givenBidExt = mapper.createObjectNode();
+        final ObjectNode givenBidExtPrebid = mapper.createObjectNode();
+        givenBidExtPrebid.set("property1", new TextNode("someValue"));
+        givenBidExt.set("prebid", givenBidExtPrebid);
+        givenBidExt.set("ds", new TextNode("someDs"));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().video(Video.builder().build()).id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder
+                                .ext(givenBidExt)
+                                .adomain(singletonList("someAdomain"))
+                                .impid("123"))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        final ObjectNode expectedBidExt = mapper.createObjectNode();
+        final ObjectNode expectedBidExtPrebid = mapper.createObjectNode();
+        expectedBidExtPrebid.set("property1", new TextNode("someValue"));
+        final ObjectNode expectedBidExtPrebidMeta = mapper.createObjectNode();
+        expectedBidExtPrebidMeta.set("demandSource", new TextNode("someDs"));
+
+        final ArrayNode metaAdvrtisers = mapper.createArrayNode();
+        metaAdvrtisers.add("someAdomain");
+        expectedBidExtPrebidMeta.set("advertiserDomains", metaAdvrtisers);
+        expectedBidExtPrebid.set("property1", new TextNode("someValue"));
+        expectedBidExtPrebid.set("meta", expectedBidExtPrebidMeta);
+        expectedBidExt.set("prebid", expectedBidExtPrebid);
+        expectedBidExt.set("ds", new TextNode("someDs"));
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getExt)
+                .containsExactly(expectedBidExt);
     }
 
     private static BidRequest givenBidRequest(

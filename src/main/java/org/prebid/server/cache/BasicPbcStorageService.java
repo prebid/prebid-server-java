@@ -47,17 +47,17 @@ public class BasicPbcStorageService implements PbcStorageService {
                                    StorageDataType type,
                                    Integer ttlseconds,
                                    String application,
-                                   String moduleCode) {
+                                   String appCode) {
 
         try {
-            validateStoreData(key, value, application, type, moduleCode);
+            validateStoreData(key, value, application, type, appCode);
         } catch (PreBidException e) {
             return Future.failedFuture(e);
         }
 
         final ModuleCacheRequest moduleCacheRequest =
                 ModuleCacheRequest.of(
-                        constructEntryKey(key, moduleCode),
+                        constructEntryKey(key, appCode),
                         type,
                         prepareValueForStoring(value, type),
                         application,
@@ -124,18 +124,18 @@ public class BasicPbcStorageService implements PbcStorageService {
     }
 
     @Override
-    public Future<ModuleCacheResponse> retrieveModuleEntry(String key,
-                                                           String moduleCode,
-                                                           String application) {
+    public Future<ModuleCacheResponse> retrieveEntry(String key,
+                                                     String appCode,
+                                                     String application) {
 
         try {
-            validateRetrieveData(key, application, moduleCode);
+            validateRetrieveData(key, application, appCode);
         } catch (PreBidException e) {
             return Future.failedFuture(e);
         }
 
         return httpClient.get(
-                        getRetrieveEndpoint(key, moduleCode, application),
+                        getRetrieveEndpoint(key, appCode, application),
                         securedCallHeaders(),
                         callTimeoutMs)
                 .map(response -> toModuleCacheResponse(response.getStatusCode(), response.getBody()));

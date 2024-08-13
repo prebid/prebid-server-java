@@ -18,6 +18,7 @@ import org.prebid.server.auction.DsaEnforcer;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.FpdResolver;
 import org.prebid.server.auction.GeoLocationServiceWrapper;
+import org.prebid.server.auction.ImpAdjuster;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.InterstitialProcessor;
 import org.prebid.server.auction.IpAddressHelper;
@@ -97,9 +98,7 @@ import org.prebid.server.json.JsonMerger;
 import org.prebid.server.log.CriteriaLogManager;
 import org.prebid.server.log.CriteriaManager;
 import org.prebid.server.log.HttpInteractionLogger;
-import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerControlKnob;
-import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.privacy.HostVendorTcfDefinerService;
@@ -113,6 +112,7 @@ import org.prebid.server.spring.config.model.HttpClientProperties;
 import org.prebid.server.util.VersionInfo;
 import org.prebid.server.util.system.CpuLoadAverageStats;
 import org.prebid.server.validation.BidderParamValidator;
+import org.prebid.server.validation.ImpValidator;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.ResponseBidValidator;
 import org.prebid.server.validation.VideoRequestValidator;
@@ -148,8 +148,6 @@ import java.util.stream.Stream;
 
 @Configuration
 public class ServiceConfiguration {
-
-    private static final Logger logger = LoggerFactory.getLogger(ServiceConfiguration.class);
 
     @Value("${logging.sampling-rate:0.01}")
     private double logSamplingRate;
@@ -250,6 +248,11 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    ImpAdjuster impAdjuster(ImpValidator impValidator, JacksonMapper jacksonMapper, JsonMerger jsonMerger) {
+        return new ImpAdjuster(jacksonMapper, jsonMerger, impValidator);
+    }
+
+    @Bean
     OrtbTypesResolver ortbTypesResolver(JacksonMapper jacksonMapper, JsonMerger jsonMerger) {
         return new OrtbTypesResolver(logSamplingRate, jacksonMapper, jsonMerger);
     }
@@ -293,6 +296,7 @@ public class ServiceConfiguration {
             @Value("${external-url}") String externalUrl,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
             @Value("${datacenter-region}") String datacenterRegion,
+            BidderCatalog bidderCatalog,
             ImplicitParametersExtractor implicitParametersExtractor,
             TimeoutResolver timeoutResolver,
             IpAddressHelper ipAddressHelper,
@@ -309,6 +313,7 @@ public class ServiceConfiguration {
                 externalUrl,
                 hostVendorId,
                 datacenterRegion,
+                bidderCatalog,
                 implicitParametersExtractor,
                 timeoutResolver,
                 ipAddressHelper,
@@ -821,6 +826,7 @@ public class ServiceConfiguration {
             StoredResponseProcessor storedResponseProcessor,
             PrivacyEnforcementService privacyEnforcementService,
             FpdResolver fpdResolver,
+            ImpAdjuster impAdjuster,
             SupplyChainResolver supplyChainResolver,
             DebugResolver debugResolver,
             CompositeMediaTypeProcessor mediaTypeProcessor,
@@ -852,6 +858,7 @@ public class ServiceConfiguration {
                 storedResponseProcessor,
                 privacyEnforcementService,
                 fpdResolver,
+                impAdjuster,
                 supplyChainResolver,
                 debugResolver,
                 mediaTypeProcessor,
@@ -992,9 +999,17 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    ImpValidator impValidator(BidderParamValidator bidderParamValidator,
+                              BidderCatalog bidderCatalog,
+                              JacksonMapper mapper) {
+
+        return new ImpValidator(bidderParamValidator, bidderCatalog, mapper);
+    }
+
+    @Bean
     RequestValidator requestValidator(
             BidderCatalog bidderCatalog,
-            BidderParamValidator bidderParamValidator,
+            ImpValidator impValidator,
             Metrics metrics,
             JacksonMapper mapper,
             @Value("${logging.sampling-rate:0.01}") double logSamplingRate,
@@ -1002,7 +1017,7 @@ public class ServiceConfiguration {
 
         return new RequestValidator(
                 bidderCatalog,
-                bidderParamValidator,
+                impValidator,
                 metrics,
                 mapper,
                 logSamplingRate,

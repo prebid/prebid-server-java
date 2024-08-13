@@ -1,0 +1,21 @@
+adapters:
+  qt:
+    endpoint: https://endpoint1.qt.io/pserver
+    meta-info:
+      maintainer-email: qtssp-support@qt.io
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 0
+    usersync:
+      cookie-family-name: qt
+      redirect:
+        support-cors: false
+        url: https://cs.qt.io/pbserver?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redir={{redirect_url}}
+        uid-macro: '[UID]'
