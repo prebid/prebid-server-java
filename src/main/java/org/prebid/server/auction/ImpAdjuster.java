@@ -5,9 +5,9 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Imp;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
+import org.prebid.server.util.StreamUtil;
 import org.prebid.server.validation.ImpValidator;
 
-import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -38,21 +38,20 @@ public class ImpAdjuster {
             return originalImp;
         }
 
-        final JsonNode bidderNode = getBidderNode(bidder, bidderAliases, impExtPrebidImp);
+        final JsonNode bidderNode = getBidderNode(bidder, bidderAliases, impExtPrebidImp, debugMessages);
 
         if (bidderNode == null || bidderNode.isEmpty()) {
+            removeImpExtPrebidImp(originalImp.getExt());
             return originalImp;
         }
 
-        // remove circular references according to the requirements
         removeExtPrebidBidder(bidderNode);
 
         try {
             final JsonNode originalImpNode = jacksonMapper.mapper().valueToTree(originalImp);
             final JsonNode mergedImpNode = jsonMerger.merge(bidderNode, originalImpNode);
 
-            // clean up merged imp.ext.prebid.imp
-            removeImpExtPrebidImp(mergedImpNode);
+            removeImpExtPrebidImp(mergedImpNode.get(IMP_EXT));
 
             final Imp resultImp = jacksonMapper.mapper().convertValue(mergedImpNode, Imp.class);
 
@@ -61,6 +60,7 @@ public class ImpAdjuster {
         } catch (Exception e) {
             debugMessages.add("imp.ext.prebid.imp.%s can not be merged into original imp [id=%s], reason: %s"
                     .formatted(bidder, originalImp.getId(), e.getMessage()));
+            removeImpExtPrebidImp(originalImp.getExt());
             return originalImp;
         }
     }
@@ -72,15 +72,24 @@ public class ImpAdjuster {
                 .orElse(null);
     }
 
-    private static JsonNode getBidderNode(String bidderName, BidderAliases bidderAliases, JsonNode node) {
-        final Iterator<String> fieldNames = node.fieldNames();
-        while (fieldNames.hasNext()) {
-            final String fieldName = fieldNames.next();
-            if (bidderAliases.isSame(fieldName, bidderName)) {
-                return node.get(fieldName);
-            }
-        }
-        return null;
+    private static JsonNode getBidderNode(String bidderName,
+                                          BidderAliases bidderAliases,
+                                          JsonNode node,
+                                          List<String> debugMessages) {
+
+        return StreamUtil.asStream(node.fieldNames())
+                .filter(fieldName -> {
+                    if (bidderAliases.isSame(fieldName, bidderName)) {
+                        return true;
+                    } else {
+                        debugMessages.add(String.format("imp.ext.prebid.imp.%s is not applicable for %s bidder",
+                                fieldName, bidderName));
+                        return false;
+                    }
+                })
+                .findFirst()
+                .map(node::get)
+                .orElse(null);
     }
 
     private static void removeExtPrebidBidder(JsonNode bidderNode) {
@@ -90,9 +99,8 @@ public class ImpAdjuster {
                 .ifPresent(ext -> ext.remove(EXT_PREBID_BIDDER));
     }
 
-    private static void removeImpExtPrebidImp(JsonNode mergedImpNode) {
-        Optional.ofNullable(mergedImpNode.get(IMP_EXT))
-                .map(extNode -> extNode.get(EXT_PREBID))
+    private static void removeImpExtPrebidImp(JsonNode impExp) {
+        Optional.ofNullable(impExp.get(EXT_PREBID))
                 .map(ObjectNode.class::cast)
                 .ifPresent(prebid -> prebid.remove(EXT_PREBID_IMP));
     }
