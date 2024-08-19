@@ -138,7 +138,7 @@ public class S3PeriodicRefreshService implements Initializable {
                 .prefix(prefix)
                 .build();
 
-        return Future.fromCompletionStage(asyncClient.listObjects(listObjectsRequest), vertx.getOrCreateContext())
+        return Future.fromCompletionStage(asyncClient.listObjects(listObjectsRequest))
                 .map(response -> response.contents().stream()
                         .map(S3Object::key)
                         .collect(Collectors.toList()));
@@ -147,9 +147,7 @@ public class S3PeriodicRefreshService implements Initializable {
     private Future<Tuple2<String, String>> downloadFile(String key) {
         final GetObjectRequest request = GetObjectRequest.builder().bucket(bucket).key(key).build();
 
-        return Future.fromCompletionStage(
-                        asyncClient.getObject(request, AsyncResponseTransformer.toBytes()),
-                        vertx.getOrCreateContext())
+        return Future.fromCompletionStage(asyncClient.getObject(request, AsyncResponseTransformer.toBytes()))
                 .map(content -> Tuple2.of(key, content.asUtf8String()));
     }
 
