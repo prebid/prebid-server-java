@@ -27,10 +27,18 @@ public class GreenbidsUserAgent {
     }
 
     public String getDevice() {
+        if (device == null) {
+            return null;
+        }
+
         return isPC() ? "PC" : device.family;
     }
 
     public String getBrowser() {
+        if (userAgent == null) {
+            return null;
+        }
+
         return String.format("%s %s", userAgent.family, userAgent.major).trim();
     }
 

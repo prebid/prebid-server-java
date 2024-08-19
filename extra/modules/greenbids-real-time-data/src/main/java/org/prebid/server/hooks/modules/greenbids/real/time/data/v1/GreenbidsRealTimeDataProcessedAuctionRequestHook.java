@@ -8,9 +8,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.github.benmanes.caffeine.cache.Cache;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.maxmind.geoip2.DatabaseReader;
 import com.maxmind.geoip2.exception.GeoIp2Exception;
@@ -22,11 +24,14 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.Partner;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingThresholds;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.AnalyticsResult;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.ExplorationResult;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.GreenbidsUserAgent;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.model.ModelCache;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.OnnxModelRunner;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.Ortb2ImpExtResult;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.model.ThresholdCache;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.ThrottlingMessage;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.model.InvocationResultImpl;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.model.analytics.ActivityImpl;
@@ -70,21 +75,30 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
     private static final String ACTIVITY = "greenbids-filter";
     private static final String SUCCESS_STATUS = "success";
     private static final String BID_REQUEST_ANALYTICS_EXTENSION_NAME = "greenbids-rtd";
-    private static final Double EXPLORATION_RATE = 0.0001;
     private static final int RANGE_16_BIT_INTEGER_DIVISION_BASIS = 0x10000;
-    private static final String GCS_BUCKET_NAME = "greenbids-europe-west1-prebid-server-staging";
-    private static final String GOOGLE_CLOUD_GREENBIDS_PROJECT = "greenbids-357713";
 
     private final ObjectMapper mapper;
-
     private final JacksonMapper jacksonMapper;
+    private Cache<String, OnnxModelRunner> modelCacheWithExpiration;
+    private Cache<String, ThrottlingThresholds> thresholdsCacheWithExpiration;
+    private static String geoLiteCountryPath;
+    private String googleCloudGreenbidsProject;
+    private String gcsBucketName;
 
-    //private final OnnxModelRunner modelRunner;
-
-    public GreenbidsRealTimeDataProcessedAuctionRequestHook(ObjectMapper mapper) {
+    public GreenbidsRealTimeDataProcessedAuctionRequestHook(
+            ObjectMapper mapper,
+            Cache<String, OnnxModelRunner> modelCacheWithExpiration,
+            Cache<String, ThrottlingThresholds> thresholdsCacheWithExpiration,
+            String geoLiteCountryPath,
+            String googleCloudGreenbidsProject,
+            String gcsBucketName) {
         this.mapper = Objects.requireNonNull(mapper);
         this.jacksonMapper = new JacksonMapper(mapper);
-        //this.modelRunner = modelRunner;
+        this.modelCacheWithExpiration = modelCacheWithExpiration;
+        this.thresholdsCacheWithExpiration = thresholdsCacheWithExpiration;
+        this.geoLiteCountryPath = geoLiteCountryPath;
+        this.googleCloudGreenbidsProject = googleCloudGreenbidsProject;
+        this.gcsBucketName = gcsBucketName;
     }
 
     @Override
@@ -103,20 +117,40 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
         final Partner partner = parseBidRequestExt(bidRequest);
 
         if (partner == null) {
-            return Future.succeededFuture();
+            return Future.succeededFuture(toInvocationResult(
+                    bidRequest, null, InvocationAction.no_action));
         }
 
         // check if publisher activated RTD
-        GreenbidsUserAgent greenbidsUserAgent = new GreenbidsUserAgent(bidRequest.getDevice().getUa());
+        final String userAgent = Optional.ofNullable(bidRequest.getDevice())
+                .map(Device::getUa)
+                .orElse(null);
+        GreenbidsUserAgent greenbidsUserAgent = new GreenbidsUserAgent(userAgent);
 
-        // select partner + extract threshold by TPR
-        Storage storage = StorageOptions.newBuilder()
-                .setProjectId(GOOGLE_CLOUD_GREENBIDS_PROJECT).build().getService();
-        Double threshold = partner.getThresholdForPartner(storage, mapper);
-        OnnxModelRunner onnxModelRunner = partner.getOnnxModelRunner(storage);
+        OnnxModelRunner onnxModelRunner = null;
+        Double threshold = null;
+        try {
+            // select partner + extract threshold by TPR
+            Storage storage = StorageOptions.newBuilder()
+                    .setProjectId(googleCloudGreenbidsProject).build().getService();
 
-        if (threshold == null | threshold == null) {
-            return Future.succeededFuture();
+            String onnxModelPath = "models_pbuid=" + partner.getPbuid() + ".onnx";
+            ModelCache modelCache = new ModelCache(onnxModelPath, storage, gcsBucketName, modelCacheWithExpiration);
+            onnxModelRunner = modelCache.getModelRunner(partner.getPbuid());
+
+            String thresholdJsonPath = "thresholds_pbuid=" + partner.getPbuid() + ".json";
+            ThresholdCache thresholdCache = new ThresholdCache(
+                    thresholdJsonPath,
+                    storage,
+                    gcsBucketName,
+                    mapper,
+                    thresholdsCacheWithExpiration);
+            ThrottlingThresholds throttlingThresholds = thresholdCache.getThrottlingThresholds(partner.getPbuid());
+            threshold = partner.getThresholdForPartner(throttlingThresholds);
+        } catch (PreBidException e) {
+            System.out.println("Return Future.succeededFuture(): " + e);
+            return Future.succeededFuture(toInvocationResult(
+                    bidRequest, null, InvocationAction.no_action));
         }
 
         List<ThrottlingMessage> throttlingMessages = extractThrottlingMessages(
@@ -142,8 +176,10 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
             System.out.println();
         }
 
-        // measure inf time
-        long startTime = System.nanoTime();
+        if (isAnyFeatureNull(throttlingInferenceRow)) {
+            return Future.succeededFuture(toInvocationResult(
+                    bidRequest, null, InvocationAction.no_action));
+        }
 
         OrtSession.Result results;
         try {
@@ -152,12 +188,8 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
             throw new RuntimeException(e);
         }
 
-        long endTime = System.nanoTime();
-        long duration = (endTime - startTime); // in nanoseconds
-        System.out.println("Inference time: " + duration / 1000000.0 + " ms");
-
         Map<String, Map<String, Boolean>> impsBiddersFilterMap = new HashMap<>();
-
+        final Double finalThreshold = threshold;
         StreamSupport.stream(results.spliterator(), false)
                 .filter(onnxItem -> Objects.equals(onnxItem.getKey(), "probabilities"))
                 .forEach(onnxItem -> {
@@ -176,7 +208,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                             ThrottlingMessage message = throttlingMessages.get(i);
                             String impId = message.getAdUnitCode();
                             String bidder = message.getBidder();
-                            boolean isKeptInAuction = probas[i][1] > threshold;
+                            boolean isKeptInAuction = probas[i][1] > finalThreshold;
                             impsBiddersFilterMap.computeIfAbsent(impId, k -> new HashMap<>())
                                     .put(bidder, isKeptInAuction);
                         }
@@ -186,46 +218,76 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                 });
 
         // exploration result for analytics adapter
-        final String greenbidsId = UUID.randomUUID().toString(); //"test-greenbids-id"; //UUID.randomUUID().toString();
+        final String greenbidsId = UUID.randomUUID().toString();
         final int hashInt = Integer.parseInt(
                 greenbidsId.substring(greenbidsId.length() - 4), 16);
-        final boolean isExploration = hashInt < EXPLORATION_RATE * RANGE_16_BIT_INTEGER_DIVISION_BASIS;
+        final boolean isExploration = hashInt < partner.getExplorationRate() * RANGE_16_BIT_INTEGER_DIVISION_BASIS;
 
         // update Bid Request with filtered bidders
         List<Imp> impsWithFilteredBidders = updateImps(bidRequest, impsBiddersFilterMap);
-        BidRequest updatedBidRequest = isExploration
+        BidRequest updatedBidRequest = !isExploration
                 ? bidRequest.toBuilder().imp(impsWithFilteredBidders).build()
                 : bidRequest;
-
+        InvocationAction invocationAction = !isExploration ? InvocationAction.update : InvocationAction.no_action;
+        Map<String, Map<String, Boolean>> impsBiddersFilterMapToAnalyticsTag = !isExploration
+                ? impsBiddersFilterMap
+                : keepAllBiddersForAnalyticsResult(impsBiddersFilterMap);
 
         final Map<String, Ortb2ImpExtResult> ort2ImpExtResultMap = createOrtb2ImpExt(
-                bidRequest, impsBiddersFilterMap, greenbidsId, isExploration);
+                bidRequest, impsBiddersFilterMapToAnalyticsTag, greenbidsId, isExploration);
         final AnalyticsResult analyticsResult = AnalyticsResult.of(
                 "success", ort2ImpExtResultMap, null, null);
 
-        // update invocation result
-        InvocationResult<AuctionRequestPayload> invocationResult = InvocationResultImpl
-                .<AuctionRequestPayload>builder()
-                .status(InvocationStatus.success)
-                .action(InvocationAction.update)
-                .errors(null)
-                .debugMessages(null)
-                .payloadUpdate(payload -> AuctionRequestPayloadImpl.of(updatedBidRequest))
-                .analyticsTags(toAnalyticsTags(Collections.singletonList(analyticsResult)))
-                .build();
-
         System.out.println(
                 "GreenbidsRealTimeDataProcessedAuctionRequestHook/call" + "\n" +
-                        "impsBiddersFilterMap: " + impsBiddersFilterMap + "\n" +
-                        "impsWithFilteredBidders: " + impsWithFilteredBidders + "\n" +
-                        //"updatedBidRequest: " + updatedBidRequest + "\n" +
-                        "AnalyticsTag: " + toAnalyticsTags(Collections.singletonList(analyticsResult)) + "\n" +
-                        "invocationResult: " + invocationResult + "\n" +
-                        "ort2ImpExtResultMap: " + ort2ImpExtResultMap + "\n" +
-                        "analyticsResult: " + analyticsResult
+                        "   explorationRate: " + partner.getExplorationRate() + "\n" +
+                        "   isExploration: " + isExploration + "\n" +
+                        "   impsBiddersFilterMap: " + impsBiddersFilterMap + "\n" +
+                        "   impsBiddersFilterMapToAnalyticsTag: " + impsBiddersFilterMapToAnalyticsTag + "\n" +
+                        "   impsWithFilteredBidders: " + impsWithFilteredBidders + "\n" +
+                        "   updatedBidRequest: " + updatedBidRequest + "\n" +
+                        "   AnalyticsTag: " + toAnalyticsTags(Collections.singletonList(analyticsResult)) + "\n" +
+                        "   ort2ImpExtResultMap: " + ort2ImpExtResultMap + "\n" +
+                        "   analyticsResult: " + analyticsResult
         );
 
-        return Future.succeededFuture(invocationResult);
+        return Future.succeededFuture(toInvocationResult(
+                updatedBidRequest, analyticsResult, invocationAction));
+    }
+
+    private Boolean isAnyFeatureNull(String[][] throttlingInferenceRow) {
+        return Arrays.stream(throttlingInferenceRow)
+                .flatMap(Arrays::stream)
+                .anyMatch(Objects::isNull);
+    }
+
+    private Map<String, Map<String, Boolean>> keepAllBiddersForAnalyticsResult(
+            Map<String, Map<String, Boolean>> impsBiddersFilterMap) {
+        for (Map.Entry<String, Map<String, Boolean>> impEntry: impsBiddersFilterMap.entrySet()) {
+            Map<String, Boolean> biddersMap = impEntry.getValue();
+            biddersMap.replaceAll((bidder, value) -> true);
+        }
+        return impsBiddersFilterMap;
+    }
+
+    private InvocationResult<AuctionRequestPayload> toInvocationResult(
+            BidRequest bidRequest,
+            AnalyticsResult analyticsResult,
+            InvocationAction action
+    ) {
+        List<AnalyticsResult> analyticsResults = (analyticsResult != null)
+                ? Collections.singletonList(analyticsResult)
+                : Collections.emptyList();
+
+        return InvocationResultImpl
+                .<AuctionRequestPayload>builder()
+                .status(InvocationStatus.success)
+                .action(action)
+                .errors(null)
+                .debugMessages(null)
+                .payloadUpdate(payload -> AuctionRequestPayloadImpl.of(bidRequest))
+                .analyticsTags(toAnalyticsTags(analyticsResults))
+                .build();
     }
 
     private Partner parseBidRequestExt(BidRequest bidRequest) {
@@ -349,7 +411,9 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
 
                     List<ThrottlingMessage> throttlingImpMessages = new ArrayList<>();
 
-                    final String ipv4 = bidRequest.getDevice().getIp();
+                    final String ipv4 = Optional.ofNullable(bidRequest.getDevice())
+                            .map(Device::getIp)
+                            .orElse(null);
                     String countryFromIp;
                     try {
                         countryFromIp = getCountry(ipv4);
@@ -388,7 +452,11 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
     }
 
     public static String getCountry(String ip) throws IOException, GeoIp2Exception {
-        File database = new File("extra/modules/greenbids-real-time-data/src/main/resources/GeoLite2-Country.mmdb");
+        if (ip == null) {
+            return null;
+        }
+
+        File database = new File(geoLiteCountryPath);
         DatabaseReader dbReader = new DatabaseReader.Builder(database).build();
 
         InetAddress ipAddress = InetAddress.getByName(ip);
