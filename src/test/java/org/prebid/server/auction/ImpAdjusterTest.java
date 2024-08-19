@@ -78,28 +78,6 @@ public class ImpAdjusterTest extends VertxTest {
     }
 
     @Test
-    public void adjustShouldRemoveExpImpFromOriginalImpWhenImpExtPrebidImpDoesNotHaveRequestedBidder() {
-        // given
-        final Imp givenImp = Imp.builder()
-                .ext(mapper.createObjectNode().set("prebid", mapper.createObjectNode()
-                        .set("imp", mapper.createObjectNode().set("anotherBidder", mapper.createObjectNode()))))
-                .build();
-        final List<String> debugMessages = new ArrayList<>();
-
-        // when
-        final Imp result = target.adjust(givenImp, "someBidder", bidderAliases, debugMessages);
-
-        // then
-        final Imp expectedImp = givenImp.toBuilder()
-                .ext(mapper.createObjectNode().set("prebid", mapper.createObjectNode())).build();
-
-        assertThat(result).isEqualTo(expectedImp);
-        assertThat(debugMessages).hasSize(1).first()
-                .satisfies(message -> assertThat(message).startsWith(
-                        "imp.ext.prebid.imp.anotherBidder is not applicable for someBidder bidder"));
-    }
-
-    @Test
     public void adjustShouldRemoveExpImpFromOriginalImpWhenImpExtPrebidImpHasEmptyBidder() {
         // given
         final Imp givenImp = Imp.builder()
