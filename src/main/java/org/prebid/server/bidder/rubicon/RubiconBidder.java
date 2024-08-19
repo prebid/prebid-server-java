@@ -618,7 +618,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private static BigDecimal resolveBidFloorPrice(Imp imp) {
         final BigDecimal bidFloor = imp.getBidfloor();
-        return BidderUtil.isValidPrice(bidFloor) ? bidFloor : null;
+        return bidFloor != null && bidFloor.compareTo(BigDecimal.ZERO) >= 0 ? bidFloor : null;
     }
 
     private static String resolveBidFloorCurrency(Imp imp, BidRequest bidRequest, List<BidderError> errors) {
