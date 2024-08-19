@@ -325,7 +325,7 @@ public class Ortb2RequestFactory {
 
         System.out.println(
                 "executeProcessedAuctionRequestHooks: " + "\n" +
-                        "origBidRequest.imp[].ext: " + origBidRequest.getImp().stream().map(Imp::getExt).toList()
+                        "   origBidRequest.imp[].ext: " + origBidRequest.getImp().stream().map(Imp::getExt).toList()
         );
 
         return hookStageExecutor.executeProcessedAuctionRequestStage(auctionContext)
@@ -334,7 +334,7 @@ public class Ortb2RequestFactory {
 
                     System.out.println(
                             "executeProcessedAuctionRequestHooks: " + "\n" +
-                                    "updatedBidRequest.imp[].ext: " + updatedBidRequest.getImp().stream().map(Imp::getExt).toList()
+                                    "   updatedBidRequest.imp[].ext: " + updatedBidRequest.getImp().stream().map(Imp::getExt).toList()
                     );
 
                     return updatedBidRequest;

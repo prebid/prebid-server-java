@@ -102,5 +102,9 @@ hooks:
       scan-state-check-interval: 2900
       bidders-to-exclude-from-scan:
     greenbids-real-time-data:
-      param1: "param1_val"
-      param2: 0.1
+      google-cloud-greenbids-project: "greenbids-357713"
+      gcs-bucket-name: "greenbids-europe-west1-prebid-server-staging"
+      cache-expiration-minutes: 15
+      geo-lite-country-path: "extra/modules/greenbids-real-time-data/src/main/resources/GeoLite2-Country.mmdb"
+
+

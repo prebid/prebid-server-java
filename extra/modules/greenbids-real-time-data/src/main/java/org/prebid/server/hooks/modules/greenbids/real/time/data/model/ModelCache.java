@@ -2,35 +2,54 @@ package org.prebid.server.hooks.modules.greenbids.real.time.data.model;
 
 import ai.onnxruntime.OrtException;
 import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.cloud.storage.Blob;
+import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageException;
+import lombok.Getter;
+import org.prebid.server.exception.PreBidException;
 
-import java.util.concurrent.TimeUnit;
+import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class ModelCache {
 
-    long CACHE_EXPIRATION_MINUTES = 15;
     String gcsBucketName;
     String modelPath;
+    @Getter
     Cache<String, OnnxModelRunner> cache;
     Storage storage;
     ReentrantLock lock;
 
-    public ModelCache(String modelPath, Storage storage, String gcsBucketName) {
+    public ModelCache(
+            String modelPath,
+            Storage storage,
+            String gcsBucketName,
+            Cache<String, OnnxModelRunner> cache) {
         this.gcsBucketName = gcsBucketName;
         this.modelPath = modelPath;
-        this.cache = Caffeine.newBuilder()
-                .expireAfterWrite(CACHE_EXPIRATION_MINUTES, TimeUnit.MINUTES)
-                .build();
+        this.cache = cache;
         this.storage = storage;
         this.lock = new ReentrantLock();
     }
 
-    public OnnxModelRunner getModelRunner() {
-        OnnxModelRunner cachedOnnxModelRunner = cache.getIfPresent("onnxModelRunner");
+    public OnnxModelRunner getModelRunner(String pbuid) {
+        String cacheKey = "onnxModelRunner_" + pbuid;
+
+        OnnxModelRunner cachedOnnxModelRunner = cache.getIfPresent(cacheKey);
+        System.out.println(
+                "getModelRunner: \n" +
+                        "   cacheKey: " + cacheKey + "\n" +
+                        "   cachedOnnxModelRunner: " + cachedOnnxModelRunner + "\n" +
+                        "   cache: " + cache
+        );
+
+        for (Map.Entry<String, OnnxModelRunner> entry: cache.asMap().entrySet()) {
+            System.out.println("\nKey: " + entry.getKey() + ", Value: " + entry.getValue() + "\n");
+        }
+
         if (cachedOnnxModelRunner != null) {
+            System.out.println("cachedOnnxModelRunner available");
             return cachedOnnxModelRunner;
         };
 
@@ -41,11 +60,11 @@ public class ModelCache {
 
                 System.out.println(
                         "getModelRunner: \n" +
-                                "blob: " + blob + "\n" +
-                                "cache: " + cache
+                                "   blob: " + blob + "\n" +
+                                "   cache: " + cache
                 );
 
-                cache.put("onnxModelRunner", loadModelRunner(blob));
+                cache.put(cacheKey, loadModelRunner(blob));
             } else {
                 System.out.println("Another thread is updating the cache. Skipping fetching predictor.");
                 return null;
@@ -56,17 +75,23 @@ public class ModelCache {
             }
         }
 
-        return cache.getIfPresent("onnxModelRunner");
+        return cache.getIfPresent(cacheKey);
     }
 
     private Blob getBlob() {
-        System.out.println(
-                "getBlob: \n" +
-                        "storage: " + storage + "\n" +
-                        "gcsBucketName: " + gcsBucketName + "\n" +
-                        "modelPath: " + modelPath + "\n"
-        );
-        return storage.get(gcsBucketName).get(modelPath);
+        try {
+            System.out.println(
+                    "getBlob: \n" +
+                            "   storage: " + storage + "\n" +
+                            "   gcsBucketName: " + gcsBucketName + "\n" +
+                            "   modelPath: " + modelPath + "\n"
+            );
+            Bucket bucket = storage.get(gcsBucketName);
+            return bucket.get(modelPath);
+        } catch (StorageException e) {
+            System.out.println("Error accessing GCS artefact for model: " + e);
+            throw new PreBidException("Error accessing GCS artefact for model: ", e);
+        }
     }
 
     private OnnxModelRunner loadModelRunner(Blob blob) {
