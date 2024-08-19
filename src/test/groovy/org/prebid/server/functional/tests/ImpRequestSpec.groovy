@@ -174,7 +174,7 @@ class ImpRequestSpec extends BaseSpec {
         then: "Bid response should contain warning"
         assert response.ext.warnings[PREBID]?.code == [999]
         assert response.ext.warnings[PREBID]?.message ==
-                ["imp.ext.prebid.imp.${notApplicableBidder.value} is not applicable for generic bidder"]
+                ["WARNING: request.imp[0].ext.prebid.imp.${notApplicableBidder} was dropped with the reason: invalid bidder"]
 
         and: "BidderRequest shouldn't update imp information based on imp.ext.prebid.imp value"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
