@@ -157,7 +157,7 @@ class ImpRequestSpec extends BaseSpec {
         bidderName << [WILDCARD, UNKNOWN]
     }
 
-    def "PBS shouldn't update imp fields and include warning when imp.ext.prebid.imp contain not applicable bidder"() {
+    def "PBS shouldn't update imp fields without warning when imp.ext.prebid.imp contain not applicable bidder"() {
         given: "Default basic BidRequest"
         def notApplicableBidder = RUBICON
         def impPmp = Pmp.defaultPmp
@@ -171,10 +171,8 @@ class ImpRequestSpec extends BaseSpec {
         when: "Requesting PBS auction"
         def response = defaultPbsServiceWithAlias.sendAuctionRequest(bidRequest)
 
-        then: "Bid response should contain warning"
-        assert response.ext.warnings[PREBID]?.code == [999]
-        assert response.ext.warnings[PREBID]?.message ==
-                ["WARNING: request.imp[0].ext.prebid.imp.${notApplicableBidder} was dropped with the reason: invalid bidder"]
+        then: "Bid response should not contain warning"
+        assert !response?.ext?.warnings
 
         and: "BidderRequest shouldn't update imp information based on imp.ext.prebid.imp value"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
