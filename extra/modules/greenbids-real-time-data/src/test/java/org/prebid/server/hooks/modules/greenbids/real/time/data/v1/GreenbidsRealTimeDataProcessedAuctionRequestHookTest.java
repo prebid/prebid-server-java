@@ -59,18 +59,18 @@ import static org.mockito.Mockito.when;
 
 public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
 
-    long CACHE_EXPIRATION_MINUTES = 15;
+    private static final long CACHE_EXPIRATION_MINUTES = 15;
 
-    String GEO_LITE_COUNTRY_PATH =
+    private static final String GEO_LITE_COUNTRY_PATH =
             "src/test/resources/GeoLite2-Country.mmdb";
 
-    String MODEL_PATH = "src/test/resources/models_pbuid=lelp-pbuid.onnx";
+    private static final String MODEL_PATH = "src/test/resources/models_pbuid=lelp-pbuid.onnx";
 
-    String JSON_PATH = "src/test/resources/thresholds_pbuid=lelp-pbuid.json";
+    private static final String JSON_PATH = "src/test/resources/thresholds_pbuid=lelp-pbuid.json";
 
-    String GOOCLE_CLOUD_PROJECT = "test_project";
+    private static final String GOOGLE_CLOUD_PROJECT = "test_project";
 
-    String GCS_BUCKET_NAME = "test_bucket";
+    private static final String GCS_BUCKET_NAME = "test_bucket";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -102,7 +102,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 modelCacheWithExpiration,
                 thresholdsCacheWithExpiration,
                 GEO_LITE_COUNTRY_PATH,
-                GOOCLE_CLOUD_PROJECT,
+                GOOGLE_CLOUD_PROJECT,
                 GCS_BUCKET_NAME);
         modelCache = new ModelCache(
                 null, null, null, modelCacheWithExpiration);
@@ -135,10 +135,10 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         thresholdCache.getCache().put("throttlingThresholds_lelp-pbuid", givenThrottlingThresholds());
 
         // when
-        Future<InvocationResult<AuctionRequestPayload>> future = hook
+        final Future<InvocationResult<AuctionRequestPayload>> future = hook
                 .call(null, invocationContext);
         final InvocationResult<AuctionRequestPayload> result = future.result();
-        BidRequest resultBidRequest = result
+        final BidRequest resultBidRequest = result
                 .payloadUpdate()
                 .apply(AuctionRequestPayloadImpl.of(bidRequest))
                 .bidRequest();
@@ -178,13 +178,13 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
 
         modelCache.getCache().cleanUp();
         thresholdCache.getCache().cleanUp();
-        modelCache.getCache().put("onnxModelRunner_lelp-pbuid", givenOnnxModelRunner() );
+        modelCache.getCache().put("onnxModelRunner_lelp-pbuid", givenOnnxModelRunner());
 
         // when
-        Future<InvocationResult<AuctionRequestPayload>> future = hook
+        final Future<InvocationResult<AuctionRequestPayload>> future = hook
                 .call(null, invocationContext);
         final InvocationResult<AuctionRequestPayload> result = future.result();
-        BidRequest resultBidRequest = result
+        final BidRequest resultBidRequest = result
                 .payloadUpdate()
                 .apply(AuctionRequestPayloadImpl.of(bidRequest))
                 .bidRequest();
@@ -224,13 +224,13 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
 
         modelCache.getCache().cleanUp();
         thresholdCache.getCache().cleanUp();
-        thresholdCache.getCache().put("throttlingThresholds_lelp-pbuid", givenThrottlingThresholds() );
+        thresholdCache.getCache().put("throttlingThresholds_lelp-pbuid", givenThrottlingThresholds());
 
         // when
-        Future<InvocationResult<AuctionRequestPayload>> future = hook
+        final Future<InvocationResult<AuctionRequestPayload>> future = hook
                 .call(null, invocationContext);
         final InvocationResult<AuctionRequestPayload> result = future.result();
-        BidRequest resultBidRequest = result
+        final BidRequest resultBidRequest = result
                 .payloadUpdate()
                 .apply(AuctionRequestPayloadImpl.of(bidRequest))
                 .bidRequest();
@@ -273,13 +273,13 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         modelCache.getCache().put("onnxModelRunner_lelp-pbuid", givenOnnxModelRunner());
         thresholdCache.getCache().put("throttlingThresholds_lelp-pbuid", givenThrottlingThresholds());
 
-        AnalyticsResult expectedAnalyticsResult = expectedAnalyticsResult(true, true);
+        final AnalyticsResult expectedAnalyticsResult = expectedAnalyticsResult(true, true);
 
         // when
-        Future<InvocationResult<AuctionRequestPayload>> future = hook
+        final Future<InvocationResult<AuctionRequestPayload>> future = hook
                 .call(null, invocationContext);
         final InvocationResult<AuctionRequestPayload> result = future.result();
-        BidRequest resultBidRequest = result
+        final BidRequest resultBidRequest = result
                 .payloadUpdate()
                 .apply(AuctionRequestPayloadImpl.of(bidRequest))
                 .bidRequest();
@@ -295,10 +295,10 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         assertThat(result.analyticsTags()).isNotNull();
         assertThat(result.analyticsTags()).usingRecursiveComparison()
                 .ignoringFields(
-                        "activities.results" +
-                                ".values._children" +
-                                ".adunitcodevalue._children" +
-                                ".greenbids._children.fingerprint",
+                        "activities.results"
+                                + ".values._children"
+                                + ".adunitcodevalue._children"
+                                + ".greenbids._children.fingerprint",
                         "activities.results.values._children.adunitcodevalue._children.tid")
                 .isEqualTo(toAnalyticsTags(List.of(expectedAnalyticsResult)));
         assertThat(resultBidRequest).usingRecursiveComparison()
@@ -330,10 +330,10 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         thresholdCache.getCache().put("throttlingThresholds_lelp-pbuid", givenThrottlingThresholds());
 
         // when
-        Future<InvocationResult<AuctionRequestPayload>> future = hook
+        final Future<InvocationResult<AuctionRequestPayload>> future = hook
                 .call(null, invocationContext);
         final InvocationResult<AuctionRequestPayload> result = future.result();
-        BidRequest resultBidRequest = result
+        final BidRequest resultBidRequest = result
                 .payloadUpdate()
                 .apply(AuctionRequestPayloadImpl.of(bidRequest))
                 .bidRequest();
@@ -378,13 +378,13 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         modelCache.getCache().put("onnxModelRunner_lelp-pbuid", givenOnnxModelRunner());
         thresholdCache.getCache().put("throttlingThresholds_lelp-pbuid", givenThrottlingThresholds());
 
-        AnalyticsResult expectedAnalyticsResult = expectedAnalyticsResult(false, false);
+        final AnalyticsResult expectedAnalyticsResult = expectedAnalyticsResult(false, false);
 
         // when
-        Future<InvocationResult<AuctionRequestPayload>> future = hook
+        final Future<InvocationResult<AuctionRequestPayload>> future = hook
                 .call(null, invocationContext);
         final InvocationResult<AuctionRequestPayload> result = future.result();
-        BidRequest resultBidRequest = result
+        final BidRequest resultBidRequest = result
                 .payloadUpdate()
                 .apply(AuctionRequestPayloadImpl.of(bidRequest))
                 .bidRequest();
@@ -400,10 +400,10 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         assertThat(result.analyticsTags()).isNotNull();
         assertThat(result.analyticsTags()).usingRecursiveComparison()
                 .ignoringFields(
-                        "activities.results" +
-                                ".values._children" +
-                                ".adunitcodevalue._children" +
-                                ".greenbids._children.fingerprint",
+                        "activities.results"
+                                + ".values._children"
+                                + ".adunitcodevalue._children"
+                                + ".greenbids._children.fingerprint",
                         "activities.results.values._children.adunitcodevalue._children.tid")
                 .isEqualTo(toAnalyticsTags(List.of(expectedAnalyticsResult)));
         assertThat(resultBidRequest).usingRecursiveComparison()
@@ -412,39 +412,39 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
     }
 
     private OnnxModelRunner givenOnnxModelRunner() throws OrtException, IOException {
-        byte[] onnxModelBytes = Files.readAllBytes(Paths.get(MODEL_PATH));
+        final byte[] onnxModelBytes = Files.readAllBytes(Paths.get(MODEL_PATH));
         return new OnnxModelRunner(onnxModelBytes);
     }
 
     private ThrottlingThresholds givenThrottlingThresholds() throws IOException {
-        JsonNode thresholdsJsonNode = jacksonMapper.mapper().readTree(
+        final JsonNode thresholdsJsonNode = jacksonMapper.mapper().readTree(
                 Files.newInputStream(Paths.get(JSON_PATH)));
         return jacksonMapper.mapper()
                 .treeToValue(thresholdsJsonNode, ThrottlingThresholds.class);
     }
 
     private ObjectNode givenImpExt() {
-        ObjectNode bidderNode = jacksonMapper.mapper().createObjectNode();
+        final ObjectNode bidderNode = jacksonMapper.mapper().createObjectNode();
 
-        ObjectNode rubiconNode = jacksonMapper.mapper().createObjectNode();
+        final ObjectNode rubiconNode = jacksonMapper.mapper().createObjectNode();
         rubiconNode.put("accountId", 1001);
         rubiconNode.put("siteId", 267318);
         rubiconNode.put("zoneId", 1861698);
         bidderNode.set("rubicon", rubiconNode);
 
-        ObjectNode appnexusNode = jacksonMapper.mapper().createObjectNode();
+        final ObjectNode appnexusNode = jacksonMapper.mapper().createObjectNode();
         appnexusNode.put("placementId", 123456);
         bidderNode.set("appnexus", appnexusNode);
 
-        ObjectNode pubmaticNode = jacksonMapper.mapper().createObjectNode();
+        final ObjectNode pubmaticNode = jacksonMapper.mapper().createObjectNode();
         pubmaticNode.put("publisherId", "156209");
         pubmaticNode.put("adSlot", "slot1@300x250");
         bidderNode.set("pubmatic", pubmaticNode);
 
-        ObjectNode prebidNode = jacksonMapper.mapper().createObjectNode();
+        final ObjectNode prebidNode = jacksonMapper.mapper().createObjectNode();
         prebidNode.set("bidder", bidderNode);
 
-        ObjectNode extNode = jacksonMapper.mapper().createObjectNode();
+        final ObjectNode extNode = jacksonMapper.mapper().createObjectNode();
         extNode.set("prebid", prebidNode);
         extNode.set("tid", null);
 
@@ -452,7 +452,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
     }
 
     private AuctionInvocationContext givenAuctionInvocationContext(AuctionContext auctionContext) {
-        AuctionInvocationContext invocationContext = mock(AuctionInvocationContext.class);
+        final AuctionInvocationContext invocationContext = mock(AuctionInvocationContext.class);
         when(invocationContext.auctionContext()).thenReturn(auctionContext);
         return invocationContext;
     }
@@ -486,8 +486,8 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
             Double explorationRate) {
         final Banner banner = givenBanner();
 
-        ObjectNode bidderNode = jacksonMapper.mapper().createObjectNode();
-        ObjectNode prebidNode = jacksonMapper.mapper().createObjectNode();
+        final ObjectNode bidderNode = jacksonMapper.mapper().createObjectNode();
+        final ObjectNode prebidNode = jacksonMapper.mapper().createObjectNode();
         prebidNode.set("bidder", bidderNode);
 
         final ObjectNode extNode = jacksonMapper.mapper().createObjectNode();
@@ -509,7 +509,8 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
     }
 
     private static Device givenDevice(UnaryOperator<Device.DeviceBuilder> deviceCustomizer) {
-        final String userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36";
+        final String userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36"
+                + " (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36";
         return deviceCustomizer.apply(Device.builder().ua(userAgent).ip("151.101.194.216")).build();
     }
 
@@ -585,7 +586,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
     }
 
     private static ExplorationResult expectedExplorationResult(Boolean isExploration, Boolean isKeptInAuction) {
-        Map<String, Boolean> keptInAuction = new HashMap<>();
+        final Map<String, Boolean> keptInAuction = new HashMap<>();
         keptInAuction.put("appnexus", isKeptInAuction);
         keptInAuction.put("pubmatic", isKeptInAuction);
         keptInAuction.put("rubicon", isKeptInAuction);

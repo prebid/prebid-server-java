@@ -7,6 +7,7 @@ import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingT
 
 @Value(staticConstructor = "of")
 public class GreenbidsRealTimeDataProperties {
+
     @JsonProperty(value = "modelCacheWithExpiration", required = true)
     Cache<String, OnnxModelRunner> modelCacheWithExpiration;
 

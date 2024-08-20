@@ -11,7 +11,6 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingThresholds;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class ThresholdCache {
@@ -39,39 +38,19 @@ public class ThresholdCache {
     }
 
     public ThrottlingThresholds getThrottlingThresholds(String pbuid) {
-        String cacheKey = "throttlingThresholds_" + pbuid;
-
-        ThrottlingThresholds cachedThrottlingThresholds = cache.getIfPresent(cacheKey);
-        System.out.println(
-                "getThrottlingThresholds: \n" +
-                        "   cacheKey: " + cacheKey + "\n" +
-                        "   cachedThrottlingThresholds: " + cachedThrottlingThresholds + "\n" +
-                        "   cache: " + cache
-        );
-
-        for (Map.Entry<String, ThrottlingThresholds> entry: cache.asMap().entrySet()) {
-            System.out.println("\nKey: " + entry.getKey() + ", Value: " + entry.getValue() + "\n");
-        }
+        final String cacheKey = "throttlingThresholds_" + pbuid;
+        final ThrottlingThresholds cachedThrottlingThresholds = cache.getIfPresent(cacheKey);
 
         if (cachedThrottlingThresholds != null) {
-            System.out.println("cachedThrottlingThresholds available");
             return cachedThrottlingThresholds;
-        };
+        }
 
-        boolean locked = lock.tryLock();
+        final boolean locked = lock.tryLock();
         try {
             if (locked) {
-                Blob blob = getBlob();
-
-                System.out.println(
-                        "getThrottlingThresholds: \n" +
-                                "read blob: " + blob + "\n" +
-                                "put in cache: " + cache
-                );
-
+                final Blob blob = getBlob();
                 cache.put(cacheKey, loadThrottlingThresholds(blob));
             } else {
-                System.out.println("Another thread is updating the cache. Skipping fetching predictor.");
                 return null;
             }
         } finally {
@@ -85,26 +64,18 @@ public class ThresholdCache {
 
     private Blob getBlob() {
         try {
-            System.out.println(
-                    "getBlob: \n" +
-                            "storage: " + storage + "\n" +
-                            "gcsBucketName: " + gcsBucketName + "\n" +
-                            "thresholdPath: " + thresholdPath + "\n"
-            );
             return storage.get(gcsBucketName).get(thresholdPath);
         } catch (StorageException e) {
-            System.out.println("Error accessing GCS artefact for threshold: " + e);
             throw new PreBidException("Error accessing GCS artefact for threshold: ", e);
         }
     }
 
     private ThrottlingThresholds loadThrottlingThresholds(Blob blob) {
-        JsonNode thresholdsJsonNode;
+        final JsonNode thresholdsJsonNode;
         try {
-            byte[] jsonBytes = blob.getContent();
+            final byte[] jsonBytes = blob.getContent();
             thresholdsJsonNode = mapper.readTree(jsonBytes);
-            ThrottlingThresholds throttlingThresholds = mapper.treeToValue(thresholdsJsonNode, ThrottlingThresholds.class);
-            return throttlingThresholds;
+            return mapper.treeToValue(thresholdsJsonNode, ThrottlingThresholds.class);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

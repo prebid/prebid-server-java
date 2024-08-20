@@ -9,6 +9,7 @@ import org.prebid.server.hooks.v1.analytics.Result;
 @Accessors(fluent = true)
 @Value(staticConstructor = "of")
 public class ResultImpl implements Result {
+
     String status;
 
     ObjectNode values;

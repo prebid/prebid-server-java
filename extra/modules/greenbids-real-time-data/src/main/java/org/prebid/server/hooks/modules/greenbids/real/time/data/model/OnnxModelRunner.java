@@ -8,17 +8,19 @@ import ai.onnxruntime.OrtSession;
 import java.util.Collections;
 
 public class OnnxModelRunner {
+
     private OrtSession session;
+
     private OrtEnvironment environment;
 
     public OnnxModelRunner(byte[] onnxModelBytes) throws OrtException {
         environment = OrtEnvironment.getEnvironment();
-        OrtSession.SessionOptions options = new OrtSession.SessionOptions();
+        final OrtSession.SessionOptions options = new OrtSession.SessionOptions();
         session = environment.createSession(onnxModelBytes, options);
     }
 
     public OrtSession.Result runModel(String[][] throttlingInferenceRow) throws OrtException {
-        OnnxTensor inputTensor = OnnxTensor.createTensor(OrtEnvironment.getEnvironment(), throttlingInferenceRow);
+        final OnnxTensor inputTensor = OnnxTensor.createTensor(OrtEnvironment.getEnvironment(), throttlingInferenceRow);
         return session.run(Collections.singletonMap("input", inputTensor));
     }
 }

@@ -144,7 +144,8 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .banner(banner)
                 .build();
 
-        final AuctionContext auctionContext = givenAuctionContextWithAnalyticsTag(context -> context, List.of(imp), true);
+        final AuctionContext auctionContext = givenAuctionContextWithAnalyticsTag(
+                context -> context, List.of(imp), true);
         final AuctionEvent event = AuctionEvent.builder()
                 .auctionContext(auctionContext)
                 .bidResponse(auctionContext.getBidResponse())
@@ -647,63 +648,53 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                         "adunitcodevalue",
                         createAnalyticsResultNode()));
 
+        final ExtModulesTraceAnalyticsTags analyticsTags = ExtModulesTraceAnalyticsTags.of(
+                Collections.singletonList(
+                        ExtModulesTraceAnalyticsActivity.of(
+                                null, null, Collections.singletonList(
+                                        ExtModulesTraceAnalyticsResult.of(
+                                                null, analyticsResultNode, null)))));
+
+        final ExtModulesTraceInvocationResult invocationResult = ExtModulesTraceInvocationResult.builder()
+                .hookId(HookId.of("greenbids-real-time-data", null))
+                .analyticsTags(analyticsTags)
+                .build();
+
+        final ExtModulesTraceStageOutcome outcome = ExtModulesTraceStageOutcome.of(
+                "auction-request", null,
+                Collections.singletonList(ExtModulesTraceGroup.of(
+                        null, Collections.singletonList(invocationResult))));
+
+        final ExtModulesTraceStage stage = ExtModulesTraceStage.of(
+                Stage.processed_auction_request, null,
+                Collections.singletonList(outcome));
+
+        final ExtModulesTrace modulesTrace = ExtModulesTrace.of(null, Collections.singletonList(stage));
+
+        final ExtModules modules = ExtModules.of(null, null, modulesTrace);
+
+        final ExtBidResponsePrebid prebid = ExtBidResponsePrebid.builder().modules(modules).build();
+
+        final ExtBidResponse extBidResponse = ExtBidResponse.builder().prebid(prebid).build();
+
         return bidResponseCustomizer.apply(BidResponse.builder()
                 .id("response2")
                 .seatbid(Collections.singletonList(givenSeatBid(seatBid -> seatBid)))
                 .cur("USD")
-                .ext(
-                        ExtBidResponse.builder().prebid(
-                                ExtBidResponsePrebid.builder()
-                                        .modules(
-                                                ExtModules.of(
-                                                        null, null, ExtModulesTrace.of(
-                                                                null, Collections.singletonList(
-                                                                        ExtModulesTraceStage.of(
-                                                                                Stage.processed_auction_request, null, Collections.singletonList(
-                                                                                        ExtModulesTraceStageOutcome.of(
-                                                                                                "auction-request", null, Collections.singletonList(
-                                                                                                        ExtModulesTraceGroup.of(
-                                                                                                                null, Collections.singletonList(
-                                                                                                                        ExtModulesTraceInvocationResult.builder()
-                                                                                                                                .hookId(HookId.of("greenbids-real-time-data", null))
-                                                                                                                                .analyticsTags(ExtModulesTraceAnalyticsTags.of(
-                                                                                                                                        Collections.singletonList(
-                                                                                                                                                ExtModulesTraceAnalyticsActivity.of(
-                                                                                                                                                        null, null, Collections.singletonList(
-                                                                                                                                                                ExtModulesTraceAnalyticsResult.of(
-                                                                                                                                                                        null, analyticsResultNode, null
-                                                                                                                                                                )
-                                                                                                                                                        )
-                                                                                                                                                )
-                                                                                                                                        )
-                                                                                                                                ))
-                                                                                                                                .build()
-                                                                                                                )
-                                                                                                        )
-                                                                                                )
-                                                                                        )
-                                                                                )
-                                                                        )
-                                                                )
-                                                        )
-                                                )
-                                        ).build()
-                        ).build()
-                )
-        ).build();
+                .ext(extBidResponse)).build();
     }
 
     private static ObjectNode createAnalyticsResultNode() {
-        ObjectNode keptInAuctionNode = new ObjectNode(JsonNodeFactory.instance);
+        final ObjectNode keptInAuctionNode = new ObjectNode(JsonNodeFactory.instance);
         keptInAuctionNode.put("rubicon", true);
         keptInAuctionNode.put("criteo", false);
 
-        ObjectNode explorationResultNode = new ObjectNode(JsonNodeFactory.instance);
+        final ObjectNode explorationResultNode = new ObjectNode(JsonNodeFactory.instance);
         explorationResultNode.put("fingerprint", "4f8d2e76-87fe-47c7-993f-d905b5fe2aa7");
         explorationResultNode.set("keptInAuction", keptInAuctionNode);
         explorationResultNode.put("isExploration", false);
 
-        ObjectNode analyticsResultNode = new ObjectNode(JsonNodeFactory.instance);
+        final ObjectNode analyticsResultNode = new ObjectNode(JsonNodeFactory.instance);
         analyticsResultNode.set("greenbids", explorationResultNode);
         analyticsResultNode.put("tid", "c65c165d-f4ea-4301-bb91-982ce813dd3e");
 
