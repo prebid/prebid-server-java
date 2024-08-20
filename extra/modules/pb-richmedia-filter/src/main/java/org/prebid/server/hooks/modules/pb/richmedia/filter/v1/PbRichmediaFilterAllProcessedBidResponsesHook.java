@@ -65,12 +65,11 @@ public class PbRichmediaFilterAllProcessedBidResponsesHook implements AllProcess
             final InvocationAction action = filterResult.hasRejectedBids()
                     ? InvocationAction.update
                     : InvocationAction.no_action;
-            return Future.succeededFuture(toInvocationResult(filterResult.getFilterResult(), toAnalyticsTags(filterResult.getAnalyticsResult()), action));
+            return Future.succeededFuture(toInvocationResult(
+                    filterResult.getFilterResult(),
+                    toAnalyticsTags(filterResult.getAnalyticsResult()),
+                    action));
         }
-
-
-
-
 
         return Future.succeededFuture(toInvocationResult(
                 responses,
