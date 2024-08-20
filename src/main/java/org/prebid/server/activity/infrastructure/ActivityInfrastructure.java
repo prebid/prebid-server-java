@@ -5,6 +5,7 @@ import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.debug.ActivityInfrastructureDebug;
 import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
+import org.prebid.server.activity.infrastructure.payload.CompositeActivityInvocationPayload;
 import org.prebid.server.proto.openrtb.ext.response.ExtTraceActivityInfrastructure;
 
 import java.util.List;
@@ -33,12 +34,22 @@ public class ActivityInfrastructure {
         }
     }
 
-    public boolean isAllowed(Activity activity, ActivityInvocationPayload activityInvocationPayload) {
-        debug.emitActivityInvocation(activity, activityInvocationPayload);
-        final boolean result = activitiesControllers.get(activity).isAllowed(activityInvocationPayload);
-        debug.emitActivityInvocationResult(activity, activityInvocationPayload, result);
+    public boolean isAllowed(Activity activity, ActivityInvocationPayload payload) {
+        validatePayloadType(payload);
+
+        final CompositeActivityInvocationPayload compositePayload = (CompositeActivityInvocationPayload) payload;
+        debug.emitActivityInvocation(activity, compositePayload);
+        final boolean result = activitiesControllers.get(activity).isAllowed(compositePayload);
+        debug.emitActivityInvocationResult(activity, compositePayload, result);
 
         return result;
+    }
+
+    private static void validatePayloadType(ActivityInvocationPayload activityInvocationPayload) {
+        if (!(activityInvocationPayload instanceof CompositeActivityInvocationPayload)) {
+            throw new IllegalArgumentException(
+                    "Invalid payload type. Please, consider to use 'ActivityPayload.builder()'.");
+        }
     }
 
     public void updateActivityMetrics(Activity activity, ComponentType componentType, String componentName) {

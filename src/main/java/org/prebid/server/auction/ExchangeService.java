@@ -29,8 +29,6 @@ import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
-import org.prebid.server.activity.infrastructure.payload.impl.ActivityInvocationPayloadImpl;
-import org.prebid.server.activity.infrastructure.payload.impl.BidRequestActivityInvocationPayload;
 import org.prebid.server.auction.adjustment.BidAdjustmentFactorResolver;
 import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessingResult;
 import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessor;
@@ -558,9 +556,10 @@ public class ExchangeService {
 
     private static boolean isBidderCallActivityAllowed(String bidder, AuctionContext auctionContext) {
         final ActivityInfrastructure activityInfrastructure = auctionContext.getActivityInfrastructure();
-        final ActivityInvocationPayload activityInvocationPayload = BidRequestActivityInvocationPayload.of(
-                ActivityInvocationPayloadImpl.of(ComponentType.BIDDER, bidder),
-                auctionContext.getBidRequest());
+        final ActivityInvocationPayload activityInvocationPayload = ActivityInvocationPayload.builder()
+                .component(ComponentType.BIDDER, bidder)
+                .forBidRequest(auctionContext.getBidRequest())
+                .build();
 
         return activityInfrastructure.isAllowed(
                 Activity.CALL_BIDDER,
@@ -961,9 +960,10 @@ public class ExchangeService {
                 .orElse(null);
 
         if (createTids == null) {
-            final ActivityInvocationPayload payload = BidRequestActivityInvocationPayload.of(
-                    ActivityInvocationPayloadImpl.of(ComponentType.BIDDER, bidder),
-                    bidRequest);
+            final ActivityInvocationPayload payload = ActivityInvocationPayload.builder()
+                    .component(ComponentType.BIDDER, bidder)
+                    .forBidRequest(bidRequest)
+                    .build();
             return context.getActivityInfrastructure().isAllowed(Activity.TRANSMIT_TID, payload);
         }
 

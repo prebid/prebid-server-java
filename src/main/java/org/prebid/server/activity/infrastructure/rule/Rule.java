@@ -1,10 +1,10 @@
 package org.prebid.server.activity.infrastructure.rule;
 
-import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
+import org.prebid.server.activity.infrastructure.payload.CompositeActivityInvocationPayload;
 
 public interface Rule {
 
-    Result proceed(ActivityInvocationPayload activityInvocationPayload);
+    Result proceed(CompositeActivityInvocationPayload payload);
 
     enum Result {
 

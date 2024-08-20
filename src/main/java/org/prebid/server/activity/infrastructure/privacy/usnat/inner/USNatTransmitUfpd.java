@@ -3,7 +3,7 @@ package org.prebid.server.activity.infrastructure.privacy.usnat.inner;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.prebid.server.activity.infrastructure.debug.Loggable;
-import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
+import org.prebid.server.activity.infrastructure.payload.CompositeActivityInvocationPayload;
 import org.prebid.server.activity.infrastructure.privacy.PrivacyModule;
 import org.prebid.server.activity.infrastructure.privacy.usnat.USNatGppReader;
 import org.prebid.server.activity.infrastructure.privacy.usnat.debug.USNatModuleLogEntry;
@@ -43,7 +43,7 @@ public class USNatTransmitUfpd implements PrivacyModule, Loggable {
     }
 
     @Override
-    public Result proceed(ActivityInvocationPayload activityInvocationPayload) {
+    public Result proceed(CompositeActivityInvocationPayload payload) {
         return result;
     }
 

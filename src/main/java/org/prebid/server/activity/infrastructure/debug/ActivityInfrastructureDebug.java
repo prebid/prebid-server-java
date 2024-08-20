@@ -3,6 +3,8 @@ package org.prebid.server.activity.infrastructure.debug;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
+import org.prebid.server.activity.infrastructure.payload.ComponentActivityInvocationPayload;
+import org.prebid.server.activity.infrastructure.payload.CompositeActivityInvocationPayload;
 import org.prebid.server.activity.infrastructure.rule.Rule;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
@@ -43,7 +45,7 @@ public class ActivityInfrastructureDebug {
             traceLog.add(ExtTraceActivityInvocation.of(
                     "Invocation of Activity Infrastructure.",
                     activity,
-                    activityInvocationPayload));
+                    ActivityDebugUtils.asLogEntry(activityInvocationPayload, jacksonMapper.mapper())));
         }
     }
 
@@ -70,7 +72,7 @@ public class ActivityInfrastructureDebug {
     }
 
     public void emitActivityInvocationResult(Activity activity,
-                                             ActivityInvocationPayload activityInvocationPayload,
+                                             CompositeActivityInvocationPayload compositePayload,
                                              boolean result) {
 
         if (atLeast(TraceLevel.basic)) {
@@ -81,10 +83,13 @@ public class ActivityInfrastructureDebug {
         }
 
         if (!result) {
+            final ComponentActivityInvocationPayload componentPayload =
+                    compositePayload.get(ComponentActivityInvocationPayload.class);
+
             updateActivityMetrics(
                     activity,
-                    activityInvocationPayload.componentType(),
-                    activityInvocationPayload.componentName());
+                    componentPayload.componentType(),
+                    componentPayload.componentName());
         }
     }
 

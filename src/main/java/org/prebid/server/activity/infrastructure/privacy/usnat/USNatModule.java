@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.infrastructure.debug.ActivityDebugUtils;
 import org.prebid.server.activity.infrastructure.debug.Loggable;
-import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
+import org.prebid.server.activity.infrastructure.payload.CompositeActivityInvocationPayload;
 import org.prebid.server.activity.infrastructure.privacy.PrivacyModule;
 import org.prebid.server.activity.infrastructure.privacy.usnat.inner.USNatDefault;
 import org.prebid.server.activity.infrastructure.privacy.usnat.inner.USNatSyncUser;
@@ -35,8 +35,8 @@ public class USNatModule implements PrivacyModule, Loggable {
     }
 
     @Override
-    public Result proceed(ActivityInvocationPayload activityInvocationPayload) {
-        return innerModule.proceed(activityInvocationPayload);
+    public Result proceed(CompositeActivityInvocationPayload payload) {
+        return innerModule.proceed(payload);
     }
 
     @Override

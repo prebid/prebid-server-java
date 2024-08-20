@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.prebid.server.activity.infrastructure.debug.ActivityDebugUtils;
 import org.prebid.server.activity.infrastructure.debug.Loggable;
-import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
+import org.prebid.server.activity.infrastructure.payload.CompositeActivityInvocationPayload;
 
 import java.util.List;
 import java.util.Objects;
@@ -20,11 +20,11 @@ public class AndRule implements Rule, Loggable {
     }
 
     @Override
-    public Result proceed(ActivityInvocationPayload activityInvocationPayload) {
+    public Result proceed(CompositeActivityInvocationPayload payload) {
         Result result = Result.ABSTAIN;
 
         for (Rule rule : rules) {
-            final Result ruleResult = rule.proceed(activityInvocationPayload);
+            final Result ruleResult = rule.proceed(payload);
             if (ruleResult != Result.ABSTAIN) {
                 result = ruleResult;
             }

@@ -1,5 +1,6 @@
 package org.prebid.server.activity.infrastructure.creator.rule;
 
+import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.activity.infrastructure.creator.ActivityControllerCreationContext;
 import org.prebid.server.activity.infrastructure.rule.Rule;
 
@@ -30,4 +31,8 @@ public abstract class AbstractRuleCreator<T> implements RuleCreator<T> {
     }
 
     protected abstract Rule fromConfiguration(T ruleConfiguration, ActivityControllerCreationContext creationContext);
+
+    protected static boolean allowFromConfig(Boolean configValue) {
+        return configValue != null ? configValue : ActivityInfrastructure.ALLOW_ACTIVITY_BY_DEFAULT;
+    }
 }

@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import io.github.jamsesso.jsonlogic.ast.JsonLogicNode;
 import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException;
 import org.prebid.server.activity.infrastructure.debug.Loggable;
-import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
+import org.prebid.server.activity.infrastructure.payload.CompositeActivityInvocationPayload;
 import org.prebid.server.activity.infrastructure.privacy.PrivacyModule;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JsonLogic;
@@ -32,7 +32,7 @@ public class USCustomLogicModule implements PrivacyModule, Loggable {
     }
 
     @Override
-    public Result proceed(ActivityInvocationPayload activityInvocationPayload) {
+    public Result proceed(CompositeActivityInvocationPayload payload) {
         return result;
     }
 

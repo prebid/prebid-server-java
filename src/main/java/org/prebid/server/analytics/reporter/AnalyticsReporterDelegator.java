@@ -15,8 +15,6 @@ import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
-import org.prebid.server.activity.infrastructure.payload.impl.ActivityInvocationPayloadImpl;
-import org.prebid.server.activity.infrastructure.payload.impl.BidRequestActivityInvocationPayload;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.AmpEvent;
 import org.prebid.server.analytics.model.AuctionEvent;
@@ -171,23 +169,27 @@ public class AnalyticsReporterDelegator {
                 final AuctionContext auctionContext = auctionEvent.getAuctionContext();
                 activityInfrastructure = auctionContext != null ? auctionContext.getActivityInfrastructure() : null;
                 activityInvocationPayload = auctionContext != null
-                        ? BidRequestActivityInvocationPayload.of(
-                        activityInvocationPayload(adapter),
-                        auctionContext.getBidRequest())
+                        ? ActivityInvocationPayload.builder()
+                        .component(ComponentType.ANALYTICS, adapter)
+                        .forBidRequest(auctionContext.getBidRequest())
+                        .build()
                         : null;
             }
             case AmpEvent ampEvent -> {
                 final AuctionContext auctionContext = ampEvent.getAuctionContext();
                 activityInfrastructure = auctionContext != null ? auctionContext.getActivityInfrastructure() : null;
                 activityInvocationPayload = auctionContext != null
-                        ? BidRequestActivityInvocationPayload.of(
-                        activityInvocationPayload(adapter),
-                        auctionContext.getBidRequest())
+                        ? ActivityInvocationPayload.builder()
+                        .component(ComponentType.ANALYTICS, adapter)
+                        .forBidRequest(auctionContext.getBidRequest())
+                        .build()
                         : null;
             }
             case NotificationEvent notificationEvent -> {
                 activityInfrastructure = notificationEvent.getActivityInfrastructure();
-                activityInvocationPayload = activityInvocationPayload(adapter);
+                activityInvocationPayload = ActivityInvocationPayload.builder()
+                        .component(ComponentType.ANALYTICS, adapter)
+                        .build();
             }
             case null, default -> {
                 activityInfrastructure = null;
@@ -196,10 +198,6 @@ public class AnalyticsReporterDelegator {
         }
 
         return isAllowedActivity(activityInfrastructure, Activity.REPORT_ANALYTICS, activityInvocationPayload);
-    }
-
-    private static ActivityInvocationPayload activityInvocationPayload(String adapterName) {
-        return ActivityInvocationPayloadImpl.of(ComponentType.ANALYTICS, adapterName);
     }
 
     private <T> T updateEvent(T event, String adapter) {
@@ -234,9 +232,10 @@ public class AnalyticsReporterDelegator {
                                         String adapter,
                                         ActivityInfrastructure infrastructure) {
 
-        final ActivityInvocationPayload payload = BidRequestActivityInvocationPayload.of(
-                activityInvocationPayload(adapter),
-                bidRequest);
+        final ActivityInvocationPayload payload = ActivityInvocationPayload.builder()
+                .component(ComponentType.ANALYTICS, adapter)
+                .forBidRequest(bidRequest)
+                .build();
 
         final boolean disallowTransmitUfpd = !isAllowedActivity(infrastructure, Activity.TRANSMIT_UFPD, payload);
         final boolean disallowTransmitEids = !isAllowedActivity(infrastructure, Activity.TRANSMIT_EIDS, payload);

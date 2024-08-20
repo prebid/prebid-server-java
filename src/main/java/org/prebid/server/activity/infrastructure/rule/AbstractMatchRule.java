@@ -1,19 +1,19 @@
 package org.prebid.server.activity.infrastructure.rule;
 
-import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
+import org.prebid.server.activity.infrastructure.payload.CompositeActivityInvocationPayload;
 
 public abstract class AbstractMatchRule implements Rule {
 
     @Override
-    public Result proceed(ActivityInvocationPayload activityInvocationPayload) {
-        if (!matches(activityInvocationPayload)) {
+    public Result proceed(CompositeActivityInvocationPayload payload) {
+        if (!matches(payload)) {
             return Result.ABSTAIN;
         }
 
-        return allowed() ? Result.ALLOW : Result.DISALLOW;
+        return isAllowed() ? Result.ALLOW : Result.DISALLOW;
     }
 
-    public abstract boolean matches(ActivityInvocationPayload activityInvocationPayload);
+    public abstract boolean matches(CompositeActivityInvocationPayload payload);
 
-    public abstract boolean allowed();
+    public abstract boolean isAllowed();
 }

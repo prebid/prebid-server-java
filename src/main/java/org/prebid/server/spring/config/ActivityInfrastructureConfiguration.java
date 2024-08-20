@@ -7,7 +7,10 @@ import org.prebid.server.activity.infrastructure.creator.privacy.uscustomlogic.U
 import org.prebid.server.activity.infrastructure.creator.privacy.uscustomlogic.USCustomLogicModuleCreator;
 import org.prebid.server.activity.infrastructure.creator.privacy.usnat.USNatGppReaderFactory;
 import org.prebid.server.activity.infrastructure.creator.privacy.usnat.USNatModuleCreator;
+import org.prebid.server.activity.infrastructure.creator.rule.ComponentRuleCreator;
 import org.prebid.server.activity.infrastructure.creator.rule.ConditionsRuleCreator;
+import org.prebid.server.activity.infrastructure.creator.rule.GeoRuleCreator;
+import org.prebid.server.activity.infrastructure.creator.rule.GpcRuleCreator;
 import org.prebid.server.activity.infrastructure.creator.rule.PrivacyModulesRuleCreator;
 import org.prebid.server.activity.infrastructure.creator.rule.RuleCreator;
 import org.prebid.server.json.JacksonMapper;
@@ -65,8 +68,11 @@ public class ActivityInfrastructureConfiguration {
     static class RuleCreatorConfiguration {
 
         @Bean
-        ConditionsRuleCreator geoRuleCreator() {
-            return new ConditionsRuleCreator();
+        ConditionsRuleCreator conditionsRuleCreator() {
+            return new ConditionsRuleCreator(
+                    new ComponentRuleCreator(),
+                    new GeoRuleCreator(),
+                    new GpcRuleCreator());
         }
 
         @Bean

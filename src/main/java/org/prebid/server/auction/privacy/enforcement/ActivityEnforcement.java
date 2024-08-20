@@ -10,8 +10,6 @@ import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
-import org.prebid.server.activity.infrastructure.payload.impl.ActivityInvocationPayloadImpl;
-import org.prebid.server.activity.infrastructure.payload.impl.PrivacyEnforcementServiceActivityInvocationPayload;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
@@ -70,13 +68,13 @@ public class ActivityEnforcement {
                                                                        Geo geo,
                                                                        BidRequest bidRequest) {
 
-        return PrivacyEnforcementServiceActivityInvocationPayload.of(
-                ActivityInvocationPayloadImpl.of(ComponentType.BIDDER, bidder),
-                geo != null ? geo.getCountry() : null,
-                geo != null ? geo.getRegion() : null,
-                Optional.ofNullable(bidRequest.getRegs())
+        return ActivityInvocationPayload.builder()
+                .component(ComponentType.BIDDER, bidder)
+                .geo(geo != null ? geo.getCountry() : null, geo != null ? geo.getRegion() : null)
+                .gpc(Optional.ofNullable(bidRequest.getRegs())
                         .map(Regs::getExt)
                         .map(ExtRegs::getGpc)
-                        .orElse(null));
+                        .orElse(null))
+                .build();
     }
 }

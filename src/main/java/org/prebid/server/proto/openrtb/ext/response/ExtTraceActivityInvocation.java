@@ -1,8 +1,8 @@
 package org.prebid.server.proto.openrtb.ext.response;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Value;
 import org.prebid.server.activity.Activity;
-import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
 
 @Value(staticConstructor = "of")
 public class ExtTraceActivityInvocation implements ExtTraceActivityInfrastructure {
@@ -11,5 +11,5 @@ public class ExtTraceActivityInvocation implements ExtTraceActivityInfrastructur
 
     Activity activity;
 
-    ActivityInvocationPayload activityInvocationPayload;
+    JsonNode activityInvocationPayload;
 }

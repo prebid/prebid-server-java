@@ -17,8 +17,6 @@ import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
 import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
-import org.prebid.server.activity.infrastructure.payload.impl.ActivityInvocationPayloadImpl;
-import org.prebid.server.activity.infrastructure.payload.impl.TcfContextActivityInvocationPayload;
 import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.gpp.SetuidGppService;
@@ -246,9 +244,10 @@ public class SetuidHandler implements ApplicationResource {
         }
 
         final ActivityInfrastructure activityInfrastructure = setuidContext.getActivityInfrastructure();
-        final ActivityInvocationPayload activityInvocationPayload = TcfContextActivityInvocationPayload.of(
-                ActivityInvocationPayloadImpl.of(ComponentType.BIDDER, bidder),
-                tcfContext);
+        final ActivityInvocationPayload activityInvocationPayload = ActivityInvocationPayload.builder()
+                .component(ComponentType.BIDDER, bidder)
+                .forTcfContext(tcfContext)
+                .build();
 
         if (!activityInfrastructure.isAllowed(Activity.SYNC_USER, activityInvocationPayload)) {
             throw new UnavailableForLegalReasonsException();

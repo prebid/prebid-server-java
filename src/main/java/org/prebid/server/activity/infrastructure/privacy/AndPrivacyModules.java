@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.prebid.server.activity.infrastructure.debug.ActivityDebugUtils;
 import org.prebid.server.activity.infrastructure.debug.Loggable;
-import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
+import org.prebid.server.activity.infrastructure.payload.CompositeActivityInvocationPayload;
 import org.prebid.server.activity.infrastructure.rule.AndRule;
 
 import java.util.List;
@@ -18,8 +18,8 @@ public class AndPrivacyModules implements PrivacyModule, Loggable {
     }
 
     @Override
-    public Result proceed(ActivityInvocationPayload activityInvocationPayload) {
-        return and.proceed(activityInvocationPayload);
+    public Result proceed(CompositeActivityInvocationPayload payload) {
+        return and.proceed(payload);
     }
 
     @Override
