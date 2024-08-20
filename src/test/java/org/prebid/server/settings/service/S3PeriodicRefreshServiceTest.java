@@ -1,8 +1,12 @@
 package org.prebid.server.settings.service;
 
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
+import io.vertx.junit5.VertxExtension;
+import io.vertx.junit5.VertxTestContext;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,6 +44,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
+@ExtendWith(VertxExtension.class)
 public class S3PeriodicRefreshServiceTest extends VertxTest {
 
     private static final String BUCKET = "bucket";
@@ -48,8 +53,11 @@ public class S3PeriodicRefreshServiceTest extends VertxTest {
 
     @Mock
     private CacheNotificationListener cacheNotificationListener;
+
     @Mock
     private Vertx vertx;
+    private Vertx vertxImpl;
+
     @Mock(strictness = LENIENT)
     private S3AsyncClient s3AsyncClient;
     private final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
@@ -61,6 +69,7 @@ public class S3PeriodicRefreshServiceTest extends VertxTest {
 
     @BeforeEach
     public void setUp() {
+        vertxImpl = Vertx.vertx();
         given(s3AsyncClient.listObjects(any(ListObjectsRequest.class)))
                 .willReturn(listObjectResponse(STORED_REQ_DIR + "/id1.json"),
                         listObjectResponse(STORED_IMP_DIR + "/id2.json"));
@@ -74,65 +83,85 @@ public class S3PeriodicRefreshServiceTest extends VertxTest {
                                 ResponseBytes.fromByteArray(
                                         GetObjectResponse.builder().build(),
                                         "value2".getBytes())));
+
+        given(vertx.getOrCreateContext()).willReturn(vertxImpl.getOrCreateContext());
+    }
+
+    @AfterEach
+    public void tearDown(VertxTestContext context) {
+        vertxImpl.close(context.succeedingThenComplete());
     }
 
     @Test
-    public void shouldCallSaveWithExpectedParameters() {
+    public void shouldCallSaveWithExpectedParameters(VertxTestContext context) {
         // when
-        createAndInitService(1000);
+        createAndInitService(1000)
+                .onSuccess((unused) -> {
+                    verify(cacheNotificationListener).save(expectedRequests, expectedImps);
+                })
+                .onComplete(context.succeedingThenComplete());
 
-        // then
-        verify(cacheNotificationListener).save(expectedRequests, expectedImps);
     }
 
     @Test
-    public void initializeShouldMakeOneInitialRequestAndTwoScheduledRequestsWithParam() {
+    public void initializeShouldMakeOneInitialRequestAndTwoScheduledRequestsWithParam(VertxTestContext context) {
         // given
         given(vertx.setPeriodic(anyLong(), any()))
                 .willAnswer(withSelfAndPassObjectToHandler(1L, 2L));
 
         // when
-        createAndInitService(1000);
+        createAndInitService(1000)
+                .onSuccess((unused) -> {
+                    // then
+                    verify(s3AsyncClient, times(6)).listObjects(any(ListObjectsRequest.class));
+                    verify(s3AsyncClient, times(6)).getObject(any(GetObjectRequest.class), any(AsyncResponseTransformer.class));
+                })
+                .onComplete(context.succeedingThenComplete());
 
-        // then
-        verify(s3AsyncClient, times(6)).listObjects(any(ListObjectsRequest.class));
-        verify(s3AsyncClient, times(6)).getObject(any(GetObjectRequest.class), any(AsyncResponseTransformer.class));
     }
 
     @Test
-    public void initializeShouldMakeOnlyOneInitialRequestIfRefreshPeriodIsNegative() {
+    public void initializeShouldMakeOnlyOneInitialRequestIfRefreshPeriodIsNegative(VertxTestContext context) {
         // when
-        createAndInitService(-1);
+        createAndInitService(-1)
+                .onSuccess((unused) -> {
+                    // then
+                    verify(vertx, never()).setPeriodic(anyLong(), any());
+                    verify(s3AsyncClient, times(2)).listObjects(any(ListObjectsRequest.class));
+                })
+                .onComplete(context.succeedingThenComplete());;
 
-        // then
-        verify(vertx, never()).setPeriodic(anyLong(), any());
-        verify(s3AsyncClient, times(2)).listObjects(any(ListObjectsRequest.class));
     }
 
     @Test
-    public void shouldUpdateTimerMetric() {
+    public void shouldUpdateTimerMetric(VertxTestContext context) {
         // when
-        createAndInitService(1000);
-
-        // then
-        verify(metrics).updateSettingsCacheRefreshTime(
-                eq(MetricName.stored_request), eq(MetricName.initialize), anyLong());
+        createAndInitService(1000)
+                .onSuccess((unused) -> {
+                    // then
+                    verify(metrics).updateSettingsCacheRefreshTime(
+                            eq(MetricName.stored_request), eq(MetricName.initialize), anyLong());
+                })
+                .onComplete(context.succeedingThenComplete());
     }
 
     @Test
-    public void shouldUpdateTimerAndErrorMetric() {
+    public void shouldUpdateTimerAndErrorMetric(VertxTestContext context) {
         // given
         given(s3AsyncClient.listObjects(any(ListObjectsRequest.class)))
                 .willReturn(CompletableFuture.failedFuture(new IllegalStateException("Failed")));
 
         // when
-        createAndInitService(1000);
+        createAndInitService(1000)
+                .onFailure((unused) -> {
+                    // then
+                    verify(metrics).updateSettingsCacheRefreshTime(
+                            eq(MetricName.stored_request), eq(MetricName.initialize), anyLong());
+                    verify(metrics).updateSettingsCacheRefreshErrorMetric(
+                            eq(MetricName.stored_request), eq(MetricName.initialize));
+                })
+                .onComplete(context.failingThenComplete());
 
-        // then
-        verify(metrics).updateSettingsCacheRefreshTime(
-                eq(MetricName.stored_request), eq(MetricName.initialize), anyLong());
-        verify(metrics).updateSettingsCacheRefreshErrorMetric(
-                eq(MetricName.stored_request), eq(MetricName.initialize));
     }
 
     private CompletableFuture<ListObjectsResponse> listObjectResponse(String... keys) {
@@ -150,7 +179,7 @@ public class S3PeriodicRefreshServiceTest extends VertxTest {
                         value.getBytes()));
     }
 
-    private void createAndInitService(long refreshPeriod) {
+    private Future<Void> createAndInitService(long refreshPeriod) {
         final S3PeriodicRefreshService s3PeriodicRefreshService = new S3PeriodicRefreshService(
                 s3AsyncClient,
                 BUCKET,
@@ -162,7 +191,9 @@ public class S3PeriodicRefreshServiceTest extends VertxTest {
                 vertx,
                 metrics,
                 clock);
-        s3PeriodicRefreshService.initialize(Promise.promise());
+        Promise<Void> init = Promise.promise();
+        s3PeriodicRefreshService.initialize(init);
+        return init.future();
     }
 
     @SuppressWarnings("unchecked")
