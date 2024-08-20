@@ -790,6 +790,31 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldResolveImpBidFloorCurrencyIfNotUSDAndBidFloorIsZero() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder
+                        .banner(Banner.builder().format(singletonList(Format.builder().w(300).h(250).build())).build())
+                        .bidfloor(BigDecimal.ZERO).bidfloorcur("EUR"),
+                identity());
+
+        given(currencyConversionService.convertCurrency(any(), any(), anyString(), anyString()))
+                .willReturn(BigDecimal.ZERO);
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        verify(currencyConversionService).convertCurrency(eq(BigDecimal.ZERO), any(), eq("EUR"), eq("USD"));
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp).doesNotContainNull()
+                .extracting(Imp::getBidfloor, Imp::getBidfloorcur)
+                .containsOnly(tuple(BigDecimal.ZERO, "USD"));
+    }
+
+    @Test
     public void makeHttpRequestsShouldNotSetBidFloorCurrencyToUSDIfNull() {
         // given
         final BidRequest bidRequest = givenBidRequest(
