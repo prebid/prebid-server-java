@@ -13,11 +13,8 @@ import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import io.vertx.core.Future;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingThresholds;
@@ -72,9 +69,6 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
 
     private static final String GCS_BUCKET_NAME = "test_bucket";
 
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
     private GreenbidsRealTimeDataProcessedAuctionRequestHook hook;
 
     private JacksonMapper jacksonMapper;
@@ -87,7 +81,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
 
     private ThresholdCache thresholdCache;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         final ObjectMapper mapper = new ObjectMapper();
         jacksonMapper = new JacksonMapper(mapper);

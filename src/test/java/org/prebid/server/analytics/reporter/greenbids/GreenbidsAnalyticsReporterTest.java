@@ -716,13 +716,6 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
     private static Bid givenBid(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
         return bidCustomizer.apply(Bid.builder()
                 .impid("adunitcodevalue")
-                        .bid(givenBids(bidCustomizers))).build();
-    }
-
-    private static List<Bid> givenBids(UnaryOperator<Bid.BidBuilder>... bidCustomizers) {
-        return Arrays.stream(bidCustomizers)
-                .map(GreenbidsAnalyticsReporterTest::givenBid)
-                .toList();
                 .adm("<div>Ad Markup</div>")).build();
     }
 
@@ -784,12 +777,12 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
     }
 
     private static CommonMessage givenCommonMessageForBannerWithRtb2Imp() {
-        return givenCommonMessage(
+        return expectedCommonMessage(
                 adUnit -> adUnit
                         .code("adunitcodevalue")
                         .unifiedCode(GreenbidsUnifiedCode.of("gpidvalue", "gpidSource"))
                         .mediaTypes(MediaTypes.of(givenExtBanner(320, 50, null), null, null))
-                        .bids(givenGreenbidsBids())
+                        .bids(expectedGreenbidBids())
                         .ortb2ImpResult(givenOrtb2Imp()));
     }
 
