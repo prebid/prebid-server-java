@@ -79,19 +79,23 @@ public class CurrencyConversionService implements Initializable {
                     currencyServerUrl,
                     defaultTimeout,
                     httpClient));
-            populatesLatestCurrencyRates(currencyServerUrl, defaultTimeout, httpClient);
+            populatesLatestCurrencyRates(currencyServerUrl, defaultTimeout, httpClient)
+                    .onComplete(initializePromise);
 
             externalConversionProperties.getMetrics().createCurrencyRatesGauge(this::isRatesStale);
+        } else {
+            initializePromise.tryComplete();
         }
-
-        initializePromise.tryComplete();
     }
 
     /**
      * Updates latest currency rates by making a call to currency server.
      */
-    private void populatesLatestCurrencyRates(String currencyServerUrl, Long defaultTimeout, HttpClient httpClient) {
-        httpClient.get(currencyServerUrl, defaultTimeout)
+    private Future<Void> populatesLatestCurrencyRates(String currencyServerUrl,
+                                                      Long defaultTimeout,
+                                                      HttpClient httpClient) {
+
+        return httpClient.get(currencyServerUrl, defaultTimeout)
                 .map(this::processResponse)
                 .map(this::updateCurrencyRates)
                 .otherwise(this::handleErrorResponse);
