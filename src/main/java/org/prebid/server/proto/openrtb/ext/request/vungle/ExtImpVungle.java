@@ -1,9 +1,9 @@
-package org.prebid.server.proto.openrtb.ext.request.liftoff;
+package org.prebid.server.proto.openrtb.ext.request.vungle;
 
 import lombok.Value;
 
 @Value(staticConstructor = "of")
-public class ExtImpLiftoff {
+public class ExtImpVungle {
 
     String bidToken;
 

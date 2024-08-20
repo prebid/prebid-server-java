@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.liftoff;
+package org.prebid.server.bidder.vungle;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
@@ -13,18 +13,18 @@ import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.liftoff.model.LiftoffImpressionExt;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Price;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.bidder.vungle.model.VungleImpressionExt;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.request.liftoff.ExtImpLiftoff;
+import org.prebid.server.proto.openrtb.ext.request.vungle.ExtImpVungle;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
@@ -37,7 +37,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-public class LiftoffBidder implements Bidder<BidRequest> {
+public class VungleBidder implements Bidder<BidRequest> {
 
     private static final String BIDDER_CURRENCY = "USD";
     private static final String X_OPENRTB_VERSION = "2.5";
@@ -46,9 +46,9 @@ public class LiftoffBidder implements Bidder<BidRequest> {
     private final CurrencyConversionService currencyConversionService;
     private final JacksonMapper mapper;
 
-    public LiftoffBidder(String endpointUrl,
-                         CurrencyConversionService currencyConversionService,
-                         JacksonMapper mapper) {
+    public VungleBidder(String endpointUrl,
+                        CurrencyConversionService currencyConversionService,
+                        JacksonMapper mapper) {
 
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
@@ -63,8 +63,8 @@ public class LiftoffBidder implements Bidder<BidRequest> {
         for (Imp imp : bidRequest.getImp()) {
             try {
                 final Price price = resolveBidFloor(imp, bidRequest);
-                final LiftoffImpressionExt impExt = parseImpExt(imp);
-                final LiftoffImpressionExt modifiedImpExt = modifyImpExt(impExt, bidRequest);
+                final VungleImpressionExt impExt = parseImpExt(imp);
+                final VungleImpressionExt modifiedImpExt = modifyImpExt(impExt, bidRequest);
                 final Imp modifiedImp = modifyImp(imp, modifiedImpExt, price);
                 final BidRequest modifiedRequest = modifyBidRequest(
                         bidRequest,
@@ -92,14 +92,14 @@ public class LiftoffBidder implements Bidder<BidRequest> {
         return Price.of(BIDDER_CURRENCY, bigDecimal);
     }
 
-    private LiftoffImpressionExt parseImpExt(Imp imp) {
-        return mapper.mapper().convertValue(imp.getExt(), LiftoffImpressionExt.class);
+    private VungleImpressionExt parseImpExt(Imp imp) {
+        return mapper.mapper().convertValue(imp.getExt(), VungleImpressionExt.class);
     }
 
-    private static LiftoffImpressionExt modifyImpExt(LiftoffImpressionExt impExt, BidRequest bidRequest) {
-        final ExtImpLiftoff bidder = impExt.getBidder();
+    private static VungleImpressionExt modifyImpExt(VungleImpressionExt impExt, BidRequest bidRequest) {
+        final ExtImpVungle bidder = impExt.getBidder();
         final String buyerId = ObjectUtil.getIfNotNull(bidRequest.getUser(), User::getBuyeruid);
-        final ExtImpLiftoff vungle = ExtImpLiftoff.of(
+        final ExtImpVungle vungle = ExtImpVungle.of(
                 buyerId,
                 bidder.getAppStoreId(),
                 bidder.getPlacementReferenceId());
@@ -107,7 +107,7 @@ public class LiftoffBidder implements Bidder<BidRequest> {
         return impExt.toBuilder().vungle(vungle).build();
     }
 
-    private Imp modifyImp(Imp imp, LiftoffImpressionExt modifiedImpExt, Price price) {
+    private Imp modifyImp(Imp imp, VungleImpressionExt modifiedImpExt, Price price) {
         return imp.toBuilder()
                 .tagid(modifiedImpExt.getBidder().getPlacementReferenceId())
                 .ext(mapper.mapper().convertValue(modifiedImpExt, ObjectNode.class))

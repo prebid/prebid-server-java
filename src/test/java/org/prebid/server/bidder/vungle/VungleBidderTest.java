@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.liftoff;
+package org.prebid.server.bidder.vungle;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -18,17 +18,17 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
-import org.prebid.server.bidder.liftoff.model.LiftoffImpressionExt;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.bidder.vungle.model.VungleImpressionExt;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.liftoff.ExtImpLiftoff;
+import org.prebid.server.proto.openrtb.ext.request.vungle.ExtImpVungle;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
@@ -48,23 +48,23 @@ import static org.mockito.Mockito.when;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
 @ExtendWith(MockitoExtension.class)
-public class LiftoffBidderTest extends VertxTest {
+public class VungleBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
 
     @Mock(strictness = LENIENT)
     private CurrencyConversionService currencyConversionService;
 
-    private LiftoffBidder target;
+    private VungleBidder target;
 
     @BeforeEach
     public void setUp() {
-        target = new LiftoffBidder(ENDPOINT_URL, currencyConversionService, jacksonMapper);
+        target = new VungleBidder(ENDPOINT_URL, currencyConversionService, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new LiftoffBidder(
+        assertThatIllegalArgumentException().isThrownBy(() -> new VungleBidder(
                 "invalid_url",
                 currencyConversionService,
                 jacksonMapper));
@@ -176,7 +176,7 @@ public class LiftoffBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestShouldUpdateExtImpLiftoffWhenUserBuyeruidPresent() {
+    public void makeHttpRequestShouldUpdateExtImpVungleWhenUserBuyeruidPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 bidRequestBuilder -> bidRequestBuilder.user(User.builder().buyeruid("123").build()), identity());
@@ -190,12 +190,12 @@ public class LiftoffBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
-                .containsExactly(mapper.convertValue(LiftoffImpressionExt.builder()
-                        .bidder(ExtImpLiftoff.of(
+                .containsExactly(mapper.convertValue(VungleImpressionExt.builder()
+                        .bidder(ExtImpVungle.of(
                                 "any-bid-token",
                                 "any-app-store-id",
                                 "any-placement-reference-id"))
-                        .vungle(ExtImpLiftoff.of(
+                        .vungle(ExtImpVungle.of(
                                 "123",
                                 "any-app-store-id",
                                 "any-placement-reference-id"))
@@ -203,7 +203,7 @@ public class LiftoffBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestShouldUpdateAppIdWhenExtImpLiftoffContainAppStoreId() {
+    public void makeHttpRequestShouldUpdateAppIdWhenExtImpVungleContainAppStoreId() {
         // given
         final App givenApp = App.builder().name("appName").build();
         final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder.app(givenApp), identity());
@@ -220,7 +220,7 @@ public class LiftoffBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestShouldCreateAppWithIdWhenExtImpLiftoffContainAppStoreIdAndAppIsAbsentAndSiteIsPresent() {
+    public void makeHttpRequestShouldCreateAppWithIdWhenExtImpVungleContainAppStoreIdAndAppIsAbsentAndSiteIsPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
                         .site(Site.builder().build())
@@ -258,7 +258,7 @@ public class LiftoffBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestShouldUpdateImpTagidWhenExtImpLiftoffContainPlacementReferenceId() {
+    public void makeHttpRequestShouldUpdateImpTagidWhenExtImpVungleContainPlacementReferenceId() {
         // given
         final BidRequest bidRequest = givenBidRequest(identity(), identity());
 
@@ -275,7 +275,7 @@ public class LiftoffBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestShouldUpdateExtImpLiftoffBidTokenWhenInRequestPresentUserBuyeruid() {
+    public void makeHttpRequestShouldUpdateExtImpVungleBidTokenWhenInRequestPresentUserBuyeruid() {
         // given
         final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
                 bidRequestBuilder.user(User.builder().buyeruid("Came-from-request").build()), identity());
@@ -289,11 +289,11 @@ public class LiftoffBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
-                .containsExactly(mapper.convertValue(LiftoffImpressionExt.builder()
-                        .bidder(ExtImpLiftoff.of("any-bid-token",
+                .containsExactly(mapper.convertValue(VungleImpressionExt.builder()
+                        .bidder(ExtImpVungle.of("any-bid-token",
                                 "any-app-store-id",
                                 "any-placement-reference-id"))
-                        .vungle(ExtImpLiftoff.of(
+                        .vungle(ExtImpVungle.of(
                                 "Came-from-request",
                                 "any-app-store-id",
                                 "any-placement-reference-id"))
@@ -386,7 +386,7 @@ public class LiftoffBidderTest extends VertxTest {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
                         .app(App.builder().build())
-                        .imp(Arrays.stream(impCustomizer).map(LiftoffBidderTest::givenImp).toList()))
+                        .imp(Arrays.stream(impCustomizer).map(VungleBidderTest::givenImp).toList()))
                 .build();
     }
 
@@ -395,7 +395,7 @@ public class LiftoffBidderTest extends VertxTest {
                         .id("123")
                         .banner(Banner.builder().w(23).h(25).build())
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpLiftoff.of("any-bid-token",
+                                ExtImpVungle.of("any-bid-token",
                                         "any-app-store-id",
                                         "any-placement-reference-id")))))
                 .build();

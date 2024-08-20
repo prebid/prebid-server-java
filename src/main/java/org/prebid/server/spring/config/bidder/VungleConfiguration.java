@@ -1,7 +1,7 @@
 package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.liftoff.LiftoffBidder;
+import org.prebid.server.bidder.vungle.VungleBidder;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
@@ -17,27 +17,27 @@ import org.springframework.context.annotation.PropertySource;
 import jakarta.validation.constraints.NotBlank;
 
 @Configuration
-@PropertySource(value = "classpath:/bidder-config/liftoff.yaml", factory = YamlPropertySourceFactory.class)
-public class LiftoffConfiguration {
+@PropertySource(value = "classpath:/bidder-config/vungle.yaml", factory = YamlPropertySourceFactory.class)
+public class VungleConfiguration {
 
-    private static final String BIDDER_NAME = "liftoff";
+    private static final String BIDDER_NAME = "vungle";
 
-    @Bean("liftoffConfigurationProperties")
-    @ConfigurationProperties("adapters.liftoff")
+    @Bean("vungleConfigurationProperties")
+    @ConfigurationProperties("adapters.vungle")
     BidderConfigurationProperties configurationProperties() {
         return new BidderConfigurationProperties();
     }
 
     @Bean
-    BidderDeps liftoffBidderDeps(BidderConfigurationProperties liftoffConfigurationProperties,
-                                 @NotBlank @Value("${external-url}") String externalUrl,
-                                 CurrencyConversionService currencyConversionService,
-                                 JacksonMapper mapper) {
+    BidderDeps vungleBidderDeps(BidderConfigurationProperties vungleConfigurationProperties,
+                                @NotBlank @Value("${external-url}") String externalUrl,
+                                CurrencyConversionService currencyConversionService,
+                                JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
-                .withConfig(liftoffConfigurationProperties)
+                .withConfig(vungleConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new LiftoffBidder(config.getEndpoint(), currencyConversionService, mapper))
+                .bidderCreator(config -> new VungleBidder(config.getEndpoint(), currencyConversionService, mapper))
                 .assemble();
     }
 }
