@@ -1,6 +1,9 @@
 adapters:
-  liftoff:
+  vungle:
     endpoint: https://rtb.ads.vungle.com/bid/t/c770f32
+    aliases:
+      liftoff:
+        enabled: false
     modifying-vast-xml-allowed: true
     endpoint-compression: gzip
     meta-info:

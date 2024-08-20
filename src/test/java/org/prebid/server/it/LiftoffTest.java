@@ -13,7 +13,7 @@ import static java.util.Collections.singletonList;
 public class LiftoffTest extends IntegrationTest {
 
     @Test
-    public void openrtb2AuctionShouldRespondWithBidsFromliftoff() throws IOException, JSONException {
+    public void openrtb2AuctionShouldRespondWithBidsFromLiftoff() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(WireMock.post(WireMock.urlPathEqualTo("/liftoff-exchange"))
                 .withRequestBody(WireMock.equalToJson(
