@@ -8,6 +8,7 @@ import java.util.Collection;
 import java.util.List;
 
 public class GreenbidsRealTimeDataModule implements Module {
+
     public static final String CODE = "greenbids-real-time-data";
 
     private final List<? extends Hook<?, ? extends InvocationContext>> hooks;

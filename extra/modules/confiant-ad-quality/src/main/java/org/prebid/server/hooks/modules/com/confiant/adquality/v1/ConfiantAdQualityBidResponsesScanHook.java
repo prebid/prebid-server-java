@@ -119,8 +119,6 @@ public class ConfiantAdQualityBidResponsesScanHook implements AllProcessedBidRes
                         .payloadUpdate(payload -> AllProcessedBidResponsesPayloadImpl.of(
                                 Stream.concat(bidderResponsesWithoutIssues.stream(), notScannedBidderResponses.stream()).toList()));
 
-        System.out.println("ConfiantAdQualityBidResponsesScanHook/ InvocationResult: " +  resultBuilder.build());
-
         return resultBuilder.build();
     }
 
