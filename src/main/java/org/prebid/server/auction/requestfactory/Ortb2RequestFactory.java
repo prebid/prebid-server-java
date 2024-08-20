@@ -1,6 +1,13 @@
 package org.prebid.server.auction.requestfactory;
 
-import com.iab.openrtb.request.*;
+import com.iab.openrtb.request.App;
+import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Dooh;
+import com.iab.openrtb.request.Geo;
+import com.iab.openrtb.request.Publisher;
+import com.iab.openrtb.request.Regs;
+import com.iab.openrtb.request.Site;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.ext.web.RoutingContext;
@@ -320,25 +327,8 @@ public class Ortb2RequestFactory {
     }
 
     public Future<BidRequest> executeProcessedAuctionRequestHooks(AuctionContext auctionContext) {
-
-        BidRequest origBidRequest = auctionContext.getBidRequest();
-
-        System.out.println(
-                "executeProcessedAuctionRequestHooks: " + "\n" +
-                        "   origBidRequest.imp[].ext: " + origBidRequest.getImp().stream().map(Imp::getExt).toList()
-        );
-
         return hookStageExecutor.executeProcessedAuctionRequestStage(auctionContext)
-                .map(stageResult -> {
-                    BidRequest updatedBidRequest = toBidRequest(stageResult, auctionContext);
-
-                    System.out.println(
-                            "executeProcessedAuctionRequestHooks: " + "\n" +
-                                    "   updatedBidRequest.imp[].ext: " + updatedBidRequest.getImp().stream().map(Imp::getExt).toList()
-                    );
-
-                    return updatedBidRequest;
-                });
+                .map(stageResult -> toBidRequest(stageResult, auctionContext));
     }
 
     public Future<AuctionContext> restoreResultFromRejection(Throwable throwable) {

@@ -8,19 +8,23 @@ import ua_parser.UserAgent;
 import java.util.Set;
 
 public class GreenbidsUserAgent {
+
     public static final Set<String> PC_OS_FAMILIES = Set.of(
             "Windows 95", "Windows 98", "Solaris");
 
-    private final String userAgentString;
-    private final UserAgent userAgent;
-    private final ua_parser.Device device;
-    private final ua_parser.OS os;
+    private static final Parser UA_PARSER = new Parser();
 
-    private static final Parser uaParser = new Parser();
+    private final String userAgentString;
+
+    private final UserAgent userAgent;
+
+    private final ua_parser.Device device;
+
+    private final ua_parser.OS os;
 
     public GreenbidsUserAgent(String userAgentString) {
         this.userAgentString = userAgentString;
-        Client client = uaParser.parse(userAgentString);
+        final Client client = UA_PARSER.parse(userAgentString);
         this.userAgent = client.userAgent;
         this.device = client.device;
         this.os = client.os;
@@ -43,10 +47,10 @@ public class GreenbidsUserAgent {
     }
 
     public boolean isPC() {
-        return userAgentString.contains("Windows NT") ||
-                PC_OS_FAMILIES.contains(os.family) ||
-                ("Windows".equals(os.family) && "ME".equals(os.major)) ||
-                ("Mac OS X".equals(os.family) && !userAgentString.contains("Silk")) ||
-                userAgentString.contains("Linux") && userAgentString.contains("X11");
+        return userAgentString.contains("Windows NT")
+                || PC_OS_FAMILIES.contains(os.family)
+                || ("Windows".equals(os.family) && "ME".equals(os.major))
+                || ("Mac OS X".equals(os.family) && !userAgentString.contains("Silk"))
+                || userAgentString.contains("Linux") && userAgentString.contains("X11");
     }
 }

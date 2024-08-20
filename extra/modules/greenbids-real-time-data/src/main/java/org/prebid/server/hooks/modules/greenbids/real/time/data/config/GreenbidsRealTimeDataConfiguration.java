@@ -23,7 +23,8 @@ public class GreenbidsRealTimeDataConfiguration {
 
     @Bean
     GreenbidsRealTimeDataModule greenbidsRealTimeDataModule(
-            @Value("${hooks.modules.greenbids-real-time-data.google-cloud-greenbids-project}") String googleCloudGreenbidsProject,
+            @Value("${hooks.modules.greenbids-real-time-data.google-cloud-greenbids-project}")
+            String googleCloudGreenbidsProject,
             @Value("${hooks.modules.greenbids-real-time-data.gcs-bucket-name}") String gcsBucketName,
             @Value("${hooks.modules.greenbids-real-time-data.cache-expiration-minutes}") Integer cacheExpirationMinutes,
             @Value("${hooks.modules.greenbids-real-time-data.geo-lite-country-path}") String geoLiteCountryPath) {

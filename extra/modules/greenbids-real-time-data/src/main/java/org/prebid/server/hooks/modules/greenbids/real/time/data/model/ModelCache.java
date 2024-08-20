@@ -9,16 +9,19 @@ import com.google.cloud.storage.StorageException;
 import lombok.Getter;
 import org.prebid.server.exception.PreBidException;
 
-import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class ModelCache {
 
     String gcsBucketName;
+
     String modelPath;
+
     @Getter
     Cache<String, OnnxModelRunner> cache;
+
     Storage storage;
+
     ReentrantLock lock;
 
     public ModelCache(
@@ -34,39 +37,19 @@ public class ModelCache {
     }
 
     public OnnxModelRunner getModelRunner(String pbuid) {
-        String cacheKey = "onnxModelRunner_" + pbuid;
-
-        OnnxModelRunner cachedOnnxModelRunner = cache.getIfPresent(cacheKey);
-        System.out.println(
-                "getModelRunner: \n" +
-                        "   cacheKey: " + cacheKey + "\n" +
-                        "   cachedOnnxModelRunner: " + cachedOnnxModelRunner + "\n" +
-                        "   cache: " + cache
-        );
-
-        for (Map.Entry<String, OnnxModelRunner> entry: cache.asMap().entrySet()) {
-            System.out.println("\nKey: " + entry.getKey() + ", Value: " + entry.getValue() + "\n");
-        }
+        final String cacheKey = "onnxModelRunner_" + pbuid;
+        final OnnxModelRunner cachedOnnxModelRunner = cache.getIfPresent(cacheKey);
 
         if (cachedOnnxModelRunner != null) {
-            System.out.println("cachedOnnxModelRunner available");
             return cachedOnnxModelRunner;
-        };
+        }
 
-        boolean locked = lock.tryLock();
+        final boolean locked = lock.tryLock();
         try {
             if (locked) {
-                Blob blob = getBlob();
-
-                System.out.println(
-                        "getModelRunner: \n" +
-                                "   blob: " + blob + "\n" +
-                                "   cache: " + cache
-                );
-
+                final Blob blob = getBlob();
                 cache.put(cacheKey, loadModelRunner(blob));
             } else {
-                System.out.println("Another thread is updating the cache. Skipping fetching predictor.");
                 return null;
             }
         } finally {
@@ -80,23 +63,16 @@ public class ModelCache {
 
     private Blob getBlob() {
         try {
-            System.out.println(
-                    "getBlob: \n" +
-                            "   storage: " + storage + "\n" +
-                            "   gcsBucketName: " + gcsBucketName + "\n" +
-                            "   modelPath: " + modelPath + "\n"
-            );
-            Bucket bucket = storage.get(gcsBucketName);
+            final Bucket bucket = storage.get(gcsBucketName);
             return bucket.get(modelPath);
         } catch (StorageException e) {
-            System.out.println("Error accessing GCS artefact for model: " + e);
             throw new PreBidException("Error accessing GCS artefact for model: ", e);
         }
     }
 
     private OnnxModelRunner loadModelRunner(Blob blob) {
         try {
-            byte[] onnxModelBytes = blob.getContent();
+            final byte[] onnxModelBytes = blob.getContent();
             return new OnnxModelRunner(onnxModelBytes);
         } catch (OrtException e) {
             throw new RuntimeException("Failed to load ONNX model", e);

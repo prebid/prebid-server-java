@@ -32,8 +32,8 @@ public class Partner {
     }
 
     public Double getThresholdForPartner(ThrottlingThresholds throttlingThresholds) {
-        List<Double> truePositiveRates = throttlingThresholds.getTpr();
-        List<Double> thresholds = throttlingThresholds.getThresholds();
+        final List<Double> truePositiveRates = throttlingThresholds.getTpr();
+        final List<Double> thresholds = throttlingThresholds.getThresholds();
 
         return truePositiveRates.stream()
                 .filter(truePositiveRate -> truePositiveRate >= targetTpr)
