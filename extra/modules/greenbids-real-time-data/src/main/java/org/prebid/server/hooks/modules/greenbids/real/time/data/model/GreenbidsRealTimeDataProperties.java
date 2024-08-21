@@ -25,4 +25,10 @@ public class GreenbidsRealTimeDataProperties {
 
     @JsonProperty(value = "cacheExpirationMinutes", required = true)
     Integer cacheExpirationMinutes;
+
+    @JsonProperty(value = "onnxModelCacheKeyPrefix", required = true)
+    String onnxModelCacheKeyPrefix;
+
+    @JsonProperty(value = "thresholdsCacheKeyPrefix", required = true)
+    String thresholdsCacheKeyPrefix;
 }

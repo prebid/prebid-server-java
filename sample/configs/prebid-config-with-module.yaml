@@ -106,5 +106,7 @@ hooks:
       gcs-bucket-name: "greenbids-europe-west1-prebid-server-staging"
       cache-expiration-minutes: 15
       geo-lite-country-path: "extra/modules/greenbids-real-time-data/src/main/resources/GeoLite2-Country.mmdb"
+      onnx-model-cache-key-prefix: "onnxModelRunner_"
+      thresholds-cache-key-prefix: "throttlingThresholds_"
 
 
