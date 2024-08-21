@@ -78,24 +78,7 @@ public class ImpAdjusterTest extends VertxTest {
     }
 
     @Test
-    public void adjustShouldReturnOriginalImpWhenImpExtPrebidImpDoesNotHaveRequestedBidder() {
-        // given
-        final Imp givenImp = Imp.builder()
-                .ext(mapper.createObjectNode().set("prebid", mapper.createObjectNode()
-                        .set("imp", mapper.createObjectNode().set("anotherBidder", mapper.createObjectNode()))))
-                .build();
-        final List<String> debugMessages = new ArrayList<>();
-
-        // when
-        final Imp result = target.adjust(givenImp, "someBidder", bidderAliases, debugMessages);
-
-        // then
-        assertThat(result).isSameAs(givenImp);
-        assertThat(debugMessages).isEmpty();
-    }
-
-    @Test
-    public void adjustShouldReturnOriginalImpWhenImpExtPrebidImpHasEmptyBidder() {
+    public void adjustShouldRemoveExpImpFromOriginalImpWhenImpExtPrebidImpHasEmptyBidder() {
         // given
         final Imp givenImp = Imp.builder()
                 .ext(mapper.createObjectNode().set("prebid", mapper.createObjectNode()
@@ -107,24 +90,10 @@ public class ImpAdjusterTest extends VertxTest {
         final Imp result = target.adjust(givenImp, "someBidder", bidderAliases, debugMessages);
 
         // then
-        assertThat(result).isSameAs(givenImp);
-        assertThat(debugMessages).isEmpty();
-    }
+        final Imp expectedImp = givenImp.toBuilder()
+                .ext(mapper.createObjectNode().set("prebid", mapper.createObjectNode())).build();
 
-    @Test
-    public void adjustShouldReturnOriginalImpWhenMergedImpNodeIsEmpty() {
-        // given
-        final Imp givenImp = Imp.builder()
-                .ext(mapper.createObjectNode().set("prebid", mapper.createObjectNode()
-                        .set("imp", mapper.createObjectNode().set("someBidder", mapper.createObjectNode()))))
-                .build();
-        final List<String> debugMessages = new ArrayList<>();
-
-        // when
-        final Imp result = target.adjust(givenImp, "someBidder", bidderAliases, debugMessages);
-
-        // then
-        assertThat(result).isSameAs(givenImp);
+        assertThat(result).isEqualTo(expectedImp);
         assertThat(debugMessages).isEmpty();
     }
 
@@ -214,7 +183,7 @@ public class ImpAdjusterTest extends VertxTest {
     }
 
     @Test
-    public void resolveImpShouldReturnOriginalImpWhenResultingImpValidationFailed() throws ValidationException {
+    public void resolveImpShouldReturnImpWithoutExpImpWhenResultingImpValidationFailed() throws ValidationException {
         // given
         doThrow(new ValidationException("imp validation failed")).when(impValidator).validateImp(any());
 
@@ -231,14 +200,19 @@ public class ImpAdjusterTest extends VertxTest {
         final Imp result = target.adjust(givenImp, "someBidder", bidderAliases, debugMessages);
 
         // then
-        assertThat(result).isSameAs(givenImp);
+        final Imp expectedImp = givenImp.toBuilder()
+                .ext(mapper.createObjectNode().put("originAttr", "originValue")
+                        .set("prebid", mapper.createObjectNode().put("prebidOriginAttr", "prebidOriginValue")))
+                .build();
+
+        assertThat(result).isEqualTo(expectedImp);
         assertThat(debugMessages).containsOnly(
                 "imp.ext.prebid.imp.someBidder can not be merged into original imp [id=impId], "
                         + "reason: imp validation failed");
     }
 
     @Test
-    public void resolveImpShouldReturnOriginalImpWhenMergingFailed() {
+    public void resolveImpShouldReturnImpWithoutExpWhenMergingFailed() {
         // given
         final ObjectNode invalidBidderImp = mapper.createObjectNode()
                 .put("bidfloor", "2.0")
@@ -251,7 +225,12 @@ public class ImpAdjusterTest extends VertxTest {
         final Imp result = target.adjust(givenImp, "someBidder", bidderAliases, debugMessages);
 
         // then
-        assertThat(result).isSameAs(givenImp);
+        final Imp expectedImp = givenImp.toBuilder()
+                .ext(mapper.createObjectNode().put("originAttr", "originValue")
+                        .set("prebid", mapper.createObjectNode().put("prebidOriginAttr", "prebidOriginValue")))
+                .build();
+
+        assertThat(result).isEqualTo(expectedImp);
         assertThat(debugMessages).hasSize(1).first()
                 .satisfies(message -> assertThat(message).startsWith(
                         "imp.ext.prebid.imp.someBidder can not be merged into original imp [id=impId],"
