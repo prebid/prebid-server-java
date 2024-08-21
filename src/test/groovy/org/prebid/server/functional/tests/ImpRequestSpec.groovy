@@ -13,6 +13,7 @@ import static org.prebid.server.functional.model.bidder.BidderName.ALIAS_CAMEL_C
 import static org.prebid.server.functional.model.bidder.BidderName.EMPTY
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC_CAMEL_CASE
+import static org.prebid.server.functional.model.bidder.BidderName.RUBICON
 import static org.prebid.server.functional.model.bidder.BidderName.UNKNOWN
 import static org.prebid.server.functional.model.bidder.BidderName.WILDCARD
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
@@ -154,6 +155,33 @@ class ImpRequestSpec extends BaseSpec {
 
         where:
         bidderName << [WILDCARD, UNKNOWN]
+    }
+
+    def "PBS shouldn't update imp fields and without warning when imp.ext.prebid.imp contain not applicable bidder"() {
+        given: "Default basic BidRequest"
+        def impPmp = Pmp.defaultPmp
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp.first.tap {
+                pmp = impPmp
+                ext.prebid.imp = [(RUBICON): new Imp(pmp: Pmp.defaultPmp)]
+            }
+        }
+
+        when: "Requesting PBS auction"
+        def response = defaultPbsServiceWithAlias.sendAuctionRequest(bidRequest)
+
+        then: "Bid response should not contain warning"
+        assert !response?.ext?.warnings
+
+        and: "BidderRequest should contain pmp from original imp"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.imp.pmp == [impPmp]
+
+        and: "PBS should remove imp.ext.prebid.imp from bidderRequest"
+        assert !bidderRequest?.imp?.first?.ext?.prebid?.imp
+
+        and: "PBS should remove imp.ext.prebid.bidder from bidderRequest"
+        assert !bidderRequest?.imp?.first?.ext?.prebid?.bidder
     }
 
     def "PBS should validate imp and add proper warning when imp.ext.prebid.imp contain invalid ortb data"() {

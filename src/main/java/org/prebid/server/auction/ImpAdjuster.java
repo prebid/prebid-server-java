@@ -41,18 +41,17 @@ public class ImpAdjuster {
         final JsonNode bidderNode = getBidderNode(bidder, bidderAliases, impExtPrebidImp);
 
         if (bidderNode == null || bidderNode.isEmpty()) {
+            removeImpExtPrebidImp(originalImp.getExt());
             return originalImp;
         }
 
-        // remove circular references according to the requirements
         removeExtPrebidBidder(bidderNode);
 
         try {
             final JsonNode originalImpNode = jacksonMapper.mapper().valueToTree(originalImp);
             final JsonNode mergedImpNode = jsonMerger.merge(bidderNode, originalImpNode);
 
-            // clean up merged imp.ext.prebid.imp
-            removeImpExtPrebidImp(mergedImpNode);
+            removeImpExtPrebidImp(mergedImpNode.get(IMP_EXT));
 
             final Imp resultImp = jacksonMapper.mapper().convertValue(mergedImpNode, Imp.class);
 
@@ -61,6 +60,7 @@ public class ImpAdjuster {
         } catch (Exception e) {
             debugMessages.add("imp.ext.prebid.imp.%s can not be merged into original imp [id=%s], reason: %s"
                     .formatted(bidder, originalImp.getId(), e.getMessage()));
+            removeImpExtPrebidImp(originalImp.getExt());
             return originalImp;
         }
     }
@@ -90,9 +90,8 @@ public class ImpAdjuster {
                 .ifPresent(ext -> ext.remove(EXT_PREBID_BIDDER));
     }
 
-    private static void removeImpExtPrebidImp(JsonNode mergedImpNode) {
-        Optional.ofNullable(mergedImpNode.get(IMP_EXT))
-                .map(extNode -> extNode.get(EXT_PREBID))
+    private static void removeImpExtPrebidImp(JsonNode impExt) {
+        Optional.ofNullable(impExt.get(EXT_PREBID))
                 .map(ObjectNode.class::cast)
                 .ifPresent(prebid -> prebid.remove(EXT_PREBID_IMP));
     }
