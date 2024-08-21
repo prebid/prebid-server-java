@@ -138,8 +138,8 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
 
         modelCache.getCache().cleanUp();
         thresholdCache.getCache().cleanUp();
-        modelCache.getCache().put("onnxModelRunner_lelp-pbuid", givenOnnxModelRunner());
-        thresholdCache.getCache().put("throttlingThresholds_lelp-pbuid", givenThrottlingThresholds());
+        modelCache.getCache().put("onnxModelRunner_test-pbuid", givenOnnxModelRunner());
+        thresholdCache.getCache().put("throttlingThresholds_test-pbuid", givenThrottlingThresholds());
 
         // when
         final Future<InvocationResult<AuctionRequestPayload>> future = hook
@@ -185,7 +185,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
 
         modelCache.getCache().cleanUp();
         thresholdCache.getCache().cleanUp();
-        modelCache.getCache().put("onnxModelRunner_lelp-pbuid", givenOnnxModelRunner());
+        modelCache.getCache().put("onnxModelRunner_test-pbuid", givenOnnxModelRunner());
 
         // when
         final Future<InvocationResult<AuctionRequestPayload>> future = hook
@@ -231,7 +231,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
 
         modelCache.getCache().cleanUp();
         thresholdCache.getCache().cleanUp();
-        thresholdCache.getCache().put("throttlingThresholds_lelp-pbuid", givenThrottlingThresholds());
+        thresholdCache.getCache().put("throttlingThresholds_test-pbuid", givenThrottlingThresholds());
 
         // when
         final Future<InvocationResult<AuctionRequestPayload>> future = hook
@@ -277,8 +277,8 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
 
         modelCache.getCache().cleanUp();
         thresholdCache.getCache().cleanUp();
-        modelCache.getCache().put("onnxModelRunner_lelp-pbuid", givenOnnxModelRunner());
-        thresholdCache.getCache().put("throttlingThresholds_lelp-pbuid", givenThrottlingThresholds());
+        modelCache.getCache().put("onnxModelRunner_test-pbuid", givenOnnxModelRunner());
+        thresholdCache.getCache().put("throttlingThresholds_test-pbuid", givenThrottlingThresholds());
 
         final AnalyticsResult expectedAnalyticsResult = expectedAnalyticsResult(true, true);
 
@@ -333,8 +333,8 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
 
         modelCache.getCache().cleanUp();
         thresholdCache.getCache().cleanUp();
-        modelCache.getCache().put("onnxModelRunner_lelp-pbuid", givenOnnxModelRunner());
-        thresholdCache.getCache().put("throttlingThresholds_lelp-pbuid", givenThrottlingThresholds());
+        modelCache.getCache().put("onnxModelRunner_test-pbuid", givenOnnxModelRunner());
+        thresholdCache.getCache().put("throttlingThresholds_test-pbuid", givenThrottlingThresholds());
 
         final BidRequest expectedBidRequest = expectedUpdatedBidRequest(
                 request -> request, jacksonMapper, explorationRate);
@@ -393,8 +393,8 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
 
         modelCache.getCache().cleanUp();
         thresholdCache.getCache().cleanUp();
-        modelCache.getCache().put("onnxModelRunner_lelp-pbuid", givenOnnxModelRunner());
-        thresholdCache.getCache().put("throttlingThresholds_lelp-pbuid", givenThrottlingThresholds());
+        modelCache.getCache().put("onnxModelRunner_test-pbuid", givenOnnxModelRunner());
+        thresholdCache.getCache().put("throttlingThresholds_test-pbuid", givenThrottlingThresholds());
 
         final BidRequest expectedBidRequest = expectedUpdatedBidRequest(
                 request -> request, jacksonMapper, explorationRate);
@@ -540,7 +540,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
 
     private static ExtRequest givenExtRequest(Double explorationRate) {
         final ObjectNode greenbidsNode = new ObjectMapper().createObjectNode();
-        greenbidsNode.put("pbuid", "lelp-pbuid");
+        greenbidsNode.put("pbuid", "test-pbuid");
         greenbidsNode.put("targetTpr", 0.60);
         greenbidsNode.put("explorationRate", explorationRate);
 

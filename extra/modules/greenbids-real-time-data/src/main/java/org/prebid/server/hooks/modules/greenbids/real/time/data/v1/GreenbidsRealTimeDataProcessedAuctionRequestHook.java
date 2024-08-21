@@ -414,7 +414,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                     try {
                         countryFromIp = getCountry(ipv4);
                     } catch (IOException | GeoIp2Exception e) {
-                        throw new RuntimeException(e);
+                        throw new PreBidException("Failed to get country for IP", e);
                     }
 
                     if (bidderNode.isObject()) {
@@ -451,7 +451,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                         final Country country = response.getCountry();
                         return country.getName();
                     } catch (IOException | GeoIp2Exception e) {
-                        throw new PreBidException("Failed to get country for IP", e);
+                        throw new PreBidException("Failed to fetch country from geoLite DB", e);
                     }
                 }).orElse(null);
     }
