@@ -61,13 +61,17 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
     private static final String GEO_LITE_COUNTRY_PATH =
             "src/test/resources/GeoLite2-Country.mmdb";
 
-    private static final String MODEL_PATH = "src/test/resources/models_pbuid=lelp-pbuid.onnx";
+    private static final String MODEL_PATH = "src/test/resources/models_pbuid=test-pbuid.onnx";
 
-    private static final String JSON_PATH = "src/test/resources/thresholds_pbuid=lelp-pbuid.json";
+    private static final String JSON_PATH = "src/test/resources/thresholds_pbuid=test-pbuid.json";
 
     private static final String GOOGLE_CLOUD_PROJECT = "test_project";
 
     private static final String GCS_BUCKET_NAME = "test_bucket";
+
+    private static final String ONNX_MODEL_CACHE_KEY_PREFIX = "onnxModelRunner_";
+
+    private static final String THRESHOLDS_CACHE_KEY_PREFIX = "throttlingThresholds_";
 
     private GreenbidsRealTimeDataProcessedAuctionRequestHook hook;
 
@@ -97,13 +101,22 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 thresholdsCacheWithExpiration,
                 GEO_LITE_COUNTRY_PATH,
                 GOOGLE_CLOUD_PROJECT,
-                GCS_BUCKET_NAME);
+                GCS_BUCKET_NAME,
+                ONNX_MODEL_CACHE_KEY_PREFIX,
+                THRESHOLDS_CACHE_KEY_PREFIX);
         modelCache = new ModelCache(
-                null, null, null, modelCacheWithExpiration);
+                null,
+                null,
+                null,
+                modelCacheWithExpiration,
+                ONNX_MODEL_CACHE_KEY_PREFIX);
         thresholdCache = new ThresholdCache(
-                null, null, null,
-                jacksonMapper.mapper(), thresholdsCacheWithExpiration);
-
+                null,
+                null,
+                null,
+                jacksonMapper.mapper(),
+                thresholdsCacheWithExpiration,
+                THRESHOLDS_CACHE_KEY_PREFIX);
     }
 
     @Test
@@ -301,7 +314,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
     }
 
     @Test
-    public void shouldNotFilterBiddersIfAnyFeatureNotAvailable() throws OrtException, IOException {
+    public void shouldFilterBiddersBasedOnModelIfAnyFeatureNotAvailable() throws OrtException, IOException {
         // given
         final Banner banner = givenBanner();
 
@@ -323,6 +336,10 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         modelCache.getCache().put("onnxModelRunner_lelp-pbuid", givenOnnxModelRunner());
         thresholdCache.getCache().put("throttlingThresholds_lelp-pbuid", givenThrottlingThresholds());
 
+        final BidRequest expectedBidRequest = expectedUpdatedBidRequest(
+                request -> request, jacksonMapper, explorationRate);
+        final AnalyticsResult expectedAnalyticsResult = expectedAnalyticsResult(false, false);
+
         // when
         final Future<InvocationResult<AuctionRequestPayload>> future = hook
                 .call(null, invocationContext);
@@ -338,12 +355,21 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
 
         assertThat(result).isNotNull();
         assertThat(result.status()).isEqualTo(InvocationStatus.success);
-        assertThat(result.action()).isEqualTo(InvocationAction.no_action);
+        assertThat(result.action()).isEqualTo(InvocationAction.update);
 
-        assertThat(result.analyticsTags()).isNull();
+        assertThat(result.analyticsTags()).isNotNull();
+        assertThat(result.analyticsTags()).usingRecursiveComparison()
+                .ignoringFields(
+                        "activities.results"
+                                + ".values._children"
+                                + ".adunitcodevalue._children"
+                                + ".greenbids._children.fingerprint",
+                        "activities.results.values._children.adunitcodevalue._children.tid")
+                .isEqualTo(toAnalyticsTags(List.of(expectedAnalyticsResult)));
         assertThat(resultBidRequest).usingRecursiveComparison()
-                .ignoringFields("imp.ext._children.tid")
-                .isEqualTo(bidRequest);
+                .ignoringFields("imp.ext._children.tid", "device")
+                .isEqualTo(expectedBidRequest);
+        assertThat(resultBidRequest.getDevice()).isNull();
     }
 
     @Test
@@ -361,8 +387,6 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final Device device = givenDevice(deviceBuilder -> deviceBuilder);
         final ExtRequest extRequest = givenExtRequest(explorationRate);
         final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device, extRequest);
-        final BidRequest expectedBidRequest = expectedUpdatedBidRequest(
-                request -> request, jacksonMapper, explorationRate);
         final AuctionContext auctionContext = givenAuctionContext(bidRequest, context -> context);
         final AuctionInvocationContext invocationContext = givenAuctionInvocationContext(auctionContext);
         when(invocationContext.auctionContext()).thenReturn(auctionContext);
@@ -372,6 +396,8 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         modelCache.getCache().put("onnxModelRunner_lelp-pbuid", givenOnnxModelRunner());
         thresholdCache.getCache().put("throttlingThresholds_lelp-pbuid", givenThrottlingThresholds());
 
+        final BidRequest expectedBidRequest = expectedUpdatedBidRequest(
+                request -> request, jacksonMapper, explorationRate);
         final AnalyticsResult expectedAnalyticsResult = expectedAnalyticsResult(false, false);
 
         // when

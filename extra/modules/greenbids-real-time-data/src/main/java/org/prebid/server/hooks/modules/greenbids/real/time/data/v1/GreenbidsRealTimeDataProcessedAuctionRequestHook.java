@@ -85,6 +85,8 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
     private final String geoLiteCountryPath;
     private final String googleCloudGreenbidsProject;
     private final String gcsBucketName;
+    private final String onnxModelCacheKeyPrefix;
+    private final String thresholdsCacheKeyPrefix;
 
     public GreenbidsRealTimeDataProcessedAuctionRequestHook(
             ObjectMapper mapper,
@@ -92,7 +94,9 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
             Cache<String, ThrottlingThresholds> thresholdsCacheWithExpiration,
             String geoLiteCountryPath,
             String googleCloudGreenbidsProject,
-            String gcsBucketName) {
+            String gcsBucketName,
+            String onnxModelCacheKeyPrefix,
+            String thresholdsCacheKeyPrefix) {
         this.mapper = Objects.requireNonNull(mapper);
         this.jacksonMapper = new JacksonMapper(mapper);
         this.modelCacheWithExpiration = modelCacheWithExpiration;
@@ -100,13 +104,14 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
         this.geoLiteCountryPath = geoLiteCountryPath;
         this.googleCloudGreenbidsProject = googleCloudGreenbidsProject;
         this.gcsBucketName = gcsBucketName;
+        this.onnxModelCacheKeyPrefix = onnxModelCacheKeyPrefix;
+        this.thresholdsCacheKeyPrefix = thresholdsCacheKeyPrefix;
     }
 
     @Override
     public Future<InvocationResult<AuctionRequestPayload>> call(
             AuctionRequestPayload auctionRequestPayload,
             AuctionInvocationContext invocationContext) {
-
         final AuctionContext auctionContext = invocationContext.auctionContext();
 
         final ZonedDateTime timestamp = ZonedDateTime.now(ZoneId.of("UTC"));
@@ -131,22 +136,8 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
         try {
             final Storage storage = StorageOptions.newBuilder()
                     .setProjectId(googleCloudGreenbidsProject).build().getService();
-
-            final String onnxModelPath = "models_pbuid=" + partner.getPbuid() + ".onnx";
-            final ModelCache modelCache = new ModelCache(
-                    onnxModelPath, storage, gcsBucketName, modelCacheWithExpiration);
-            onnxModelRunner = modelCache.getModelRunner(partner.getPbuid());
-
-            final String thresholdJsonPath = "thresholds_pbuid=" + partner.getPbuid() + ".json";
-            final ThresholdCache thresholdCache = new ThresholdCache(
-                    thresholdJsonPath,
-                    storage,
-                    gcsBucketName,
-                    mapper,
-                    thresholdsCacheWithExpiration);
-            final ThrottlingThresholds throttlingThresholds = thresholdCache
-                    .getThrottlingThresholds(partner.getPbuid());
-            threshold = partner.getThresholdForPartner(throttlingThresholds);
+            onnxModelRunner = retrieveOnnxModelRunner(partner, storage);
+            threshold = retrieveThreshold(partner, storage);
         } catch (PreBidException e) {
             return Future.succeededFuture(toInvocationResult(
                     bidRequest, null, InvocationAction.no_action));
@@ -158,49 +149,18 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                 hourBucket,
                 minuteQuadrant);
 
-        final String[][] throttlingInferenceRow = convertToArray(throttlingMessages);
+        final String[][] throttlingInferenceRows = convertToArray(throttlingMessages);
 
-        if (isAnyFeatureNull(throttlingInferenceRow)) {
+        if (isAnyFeatureNull(throttlingInferenceRows)) {
             return Future.succeededFuture(toInvocationResult(
                     bidRequest, null, InvocationAction.no_action));
         }
 
-        final OrtSession.Result results;
-        try {
-            results = onnxModelRunner.runModel(throttlingInferenceRow);
-        } catch (OrtException e) {
-            throw new RuntimeException(e);
-        }
-
-        final Map<String, Map<String, Boolean>> impsBiddersFilterMap = new HashMap<>();
-        final Double finalThreshold = threshold;
-        StreamSupport.stream(results.spliterator(), false)
-                .filter(onnxItem -> Objects.equals(onnxItem.getKey(), "probabilities"))
-                .forEach(onnxItem -> {
-                    final OnnxValue onnxValue = onnxItem.getValue();
-                    final OnnxTensor tensor = (OnnxTensor) onnxValue;
-                    try {
-                        final float[][] probas = (float[][]) tensor.getValue();
-                        IntStream.range(0, probas.length)
-                                .mapToObj(i -> {
-                                    final ThrottlingMessage message = throttlingMessages.get(i);
-                                    final String impId = message.getAdUnitCode();
-                                    final String bidder = message.getBidder();
-                                    final boolean isKeptInAuction = probas[i][1] > finalThreshold;
-                                    return Map.entry(impId, Map.entry(bidder, isKeptInAuction));
-                                })
-                                .forEach(entry -> impsBiddersFilterMap
-                                        .computeIfAbsent(entry.getKey(), k -> new HashMap<>())
-                                        .put(entry.getValue().getKey(), entry.getValue().getValue()));
-                    } catch (OrtException e) {
-                        throw new RuntimeException(e);
-                    }
-                });
+        final Map<String, Map<String, Boolean>> impsBiddersFilterMap = runModeAndFilterBidders(
+                onnxModelRunner, throttlingMessages, throttlingInferenceRows, threshold);
 
         final String greenbidsId = UUID.randomUUID().toString();
-        final int hashInt = Integer.parseInt(
-                greenbidsId.substring(greenbidsId.length() - 4), 16);
-        final boolean isExploration = hashInt < partner.getExplorationRate() * RANGE_16_BIT_INTEGER_DIVISION_BASIS;
+        final boolean isExploration = determineIsExploration(partner, greenbidsId);
 
         final List<Imp> impsWithFilteredBidders = updateImps(bidRequest, impsBiddersFilterMap);
         final BidRequest updatedBidRequest = !isExploration
@@ -220,6 +180,83 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
 
         return Future.succeededFuture(toInvocationResult(
                 updatedBidRequest, analyticsResult, invocationAction));
+    }
+
+    private OnnxModelRunner retrieveOnnxModelRunner(Partner partner, Storage storage) {
+        final String onnxModelPath = "models_pbuid=" + partner.getPbuid() + ".onnx";
+        final ModelCache modelCache = new ModelCache(
+                onnxModelPath,
+                storage,
+                gcsBucketName,
+                modelCacheWithExpiration,
+                onnxModelCacheKeyPrefix);
+        return modelCache.getModelRunner(partner.getPbuid());
+    }
+
+    private Double retrieveThreshold(Partner partner, Storage storage) {
+        final String thresholdJsonPath = "thresholds_pbuid=" + partner.getPbuid() + ".json";
+        final ThresholdCache thresholdCache = new ThresholdCache(
+                thresholdJsonPath,
+                storage,
+                gcsBucketName,
+                mapper,
+                thresholdsCacheWithExpiration,
+                thresholdsCacheKeyPrefix);
+        final ThrottlingThresholds throttlingThresholds = thresholdCache
+                .getThrottlingThresholds(partner.getPbuid());
+        return partner.getThresholdForPartner(throttlingThresholds);
+    }
+
+    private Map<String, Map<String, Boolean>> runModeAndFilterBidders(
+            OnnxModelRunner onnxModelRunner,
+            List<ThrottlingMessage> throttlingMessages,
+            String[][] throttlingInferenceRows,
+            Double threshold
+    ) {
+        final Map<String, Map<String, Boolean>> impsBiddersFilterMap = new HashMap<>();
+        final OrtSession.Result results;
+        try {
+            results = onnxModelRunner.runModel(throttlingInferenceRows);
+            processModelResults(results, throttlingMessages, threshold, impsBiddersFilterMap);
+        } catch (OrtException e) {
+            throw new PreBidException("Exception during model inference: ", e);
+        }
+        return impsBiddersFilterMap;
+    }
+
+    private void processModelResults(
+            OrtSession.Result results,
+            List<ThrottlingMessage> throttlingMessages,
+            Double threshold,
+            Map<String, Map<String, Boolean>> impsBiddersFilterMap) {
+        StreamSupport.stream(results.spliterator(), false)
+                .filter(onnxItem -> Objects.equals(onnxItem.getKey(), "probabilities"))
+                .forEach(onnxItem -> {
+                    final OnnxValue onnxValue = onnxItem.getValue();
+                    final OnnxTensor tensor = (OnnxTensor) onnxValue;
+                    try {
+                        final float[][] probas = (float[][]) tensor.getValue();
+                        IntStream.range(0, probas.length)
+                                .mapToObj(i -> {
+                                    final ThrottlingMessage message = throttlingMessages.get(i);
+                                    final String impId = message.getAdUnitCode();
+                                    final String bidder = message.getBidder();
+                                    final boolean isKeptInAuction = probas[i][1] > threshold;
+                                    return Map.entry(impId, Map.entry(bidder, isKeptInAuction));
+                                })
+                                .forEach(entry -> impsBiddersFilterMap
+                                        .computeIfAbsent(entry.getKey(), k -> new HashMap<>())
+                                        .put(entry.getValue().getKey(), entry.getValue().getValue()));
+                    } catch (OrtException e) {
+                        throw new PreBidException("Exception when extracting proba from OnnxTensor: ", e);
+                    }
+                });
+    }
+
+    private Boolean determineIsExploration(Partner partner, String greenbidsId) {
+        final int hashInt = Integer.parseInt(
+                greenbidsId.substring(greenbidsId.length() - 4), 16);
+        return hashInt < partner.getExplorationRate() * RANGE_16_BIT_INTEGER_DIVISION_BASIS;
     }
 
     private Boolean isAnyFeatureNull(String[][] throttlingInferenceRow) {
@@ -404,17 +441,19 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
     }
 
     private String getCountry(String ip) throws IOException, GeoIp2Exception {
-        if (ip == null) {
-            return null;
-        }
-
-        final File database = new File(geoLiteCountryPath);
-        final DatabaseReader dbReader = new DatabaseReader.Builder(database).build();
-
-        final InetAddress ipAddress = InetAddress.getByName(ip);
-        final CountryResponse response = dbReader.country(ipAddress);
-        final Country country = response.getCountry();
-        return country.getName();
+        return Optional.ofNullable(ip)
+                .map(ipAddress -> {
+                    try {
+                        final File database = new File(geoLiteCountryPath);
+                        final DatabaseReader dbReader = new DatabaseReader.Builder(database).build();
+                        final InetAddress inetAddress = InetAddress.getByName(ipAddress);
+                        final CountryResponse response = dbReader.country(inetAddress);
+                        final Country country = response.getCountry();
+                        return country.getName();
+                    } catch (IOException | GeoIp2Exception e) {
+                        throw new PreBidException("Failed to get country for IP", e);
+                    }
+                }).orElse(null);
     }
 
     private ExtImpPrebid extImpPrebid(JsonNode extImpPrebid) {
@@ -428,14 +467,14 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
     private String[][] convertToArray(List<ThrottlingMessage> messages) {
         return messages.stream()
                 .map(message -> new String[]{
-                        message.getBrowser(),
-                        message.getBidder(),
-                        message.getAdUnitCode(),
-                        message.getCountry(),
-                        message.getHostname(),
-                        message.getDevice(),
-                        message.getHourBucket(),
-                        message.getMinuteQuadrant()})
+                        Optional.ofNullable(message.getBrowser()).orElse(""),
+                        Optional.ofNullable(message.getBidder()).orElse(""),
+                        Optional.ofNullable(message.getAdUnitCode()).orElse(""),
+                        Optional.ofNullable(message.getCountry()).orElse(""),
+                        Optional.ofNullable(message.getHostname()).orElse(""),
+                        Optional.ofNullable(message.getDevice()).orElse(""),
+                        Optional.ofNullable(message.getHourBucket()).orElse(""),
+                        Optional.ofNullable(message.getMinuteQuadrant()).orElse("")})
                 .toArray(String[][]::new);
     }
 

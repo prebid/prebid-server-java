@@ -27,7 +27,11 @@ public class GreenbidsRealTimeDataConfiguration {
             String googleCloudGreenbidsProject,
             @Value("${hooks.modules.greenbids-real-time-data.gcs-bucket-name}") String gcsBucketName,
             @Value("${hooks.modules.greenbids-real-time-data.cache-expiration-minutes}") Integer cacheExpirationMinutes,
-            @Value("${hooks.modules.greenbids-real-time-data.geo-lite-country-path}") String geoLiteCountryPath) {
+            @Value("${hooks.modules.greenbids-real-time-data.geo-lite-country-path}") String geoLiteCountryPath,
+            @Value("${hooks.modules.greenbids-real-time-data.onnx-model-cache-key-prefix}")
+            String onnxModelCacheKeyPrefix,
+            @Value("${hooks.modules.greenbids-real-time-data.thresholds-cache-key-prefix}")
+            String thresholdsCacheKeyPrefix) {
         final ObjectMapper mapper = ObjectMapperProvider.mapper();
 
         final Cache<String, OnnxModelRunner> modelCacheWithExpiration = Caffeine.newBuilder()
@@ -44,7 +48,9 @@ public class GreenbidsRealTimeDataConfiguration {
                 geoLiteCountryPath,
                 googleCloudGreenbidsProject,
                 gcsBucketName,
-                cacheExpirationMinutes
+                cacheExpirationMinutes,
+                onnxModelCacheKeyPrefix,
+                thresholdsCacheKeyPrefix
         );
 
         return new GreenbidsRealTimeDataModule(List.of(
@@ -54,6 +60,8 @@ public class GreenbidsRealTimeDataConfiguration {
                         thresholdsCacheWithExpiration,
                         geoLiteCountryPath,
                         googleCloudGreenbidsProject,
-                        gcsBucketName)));
+                        gcsBucketName,
+                        onnxModelCacheKeyPrefix,
+                        thresholdsCacheKeyPrefix)));
     }
 }
