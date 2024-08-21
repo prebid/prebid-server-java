@@ -203,7 +203,7 @@ public class BidderParamValidatorTest extends VertxTest {
     @Test
     public void validateShouldNotReturnValidationMessagesWhenAdtelligentImpExtIsOk() {
         // given
-        final ExtImpAdtelligent ext = ExtImpAdtelligent.of(15, 1, 2, BigDecimal.valueOf(3));
+        final ExtImpAdtelligent ext = ExtImpAdtelligent.of("15", 1, 2, BigDecimal.valueOf(3));
 
         final JsonNode node = mapper.convertValue(ext, JsonNode.class);
 

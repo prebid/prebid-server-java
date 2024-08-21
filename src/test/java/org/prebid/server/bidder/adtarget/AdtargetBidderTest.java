@@ -15,6 +15,7 @@ import io.vertx.core.http.HttpMethod;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.adtarget.proto.AdtargetImpExt;
+import org.prebid.server.bidder.adtarget.proto.ExtImpAdtargetBidRequest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
@@ -59,7 +60,7 @@ public class AdtargetBidderTest extends VertxTest {
                 .imp(singletonList(bidRequest.getImp().getFirst().toBuilder()
                         .bidfloor(BigDecimal.valueOf(3))
                         .ext(mapper.valueToTree(AdtargetImpExt.of(
-                                ExtImpAdtarget.of(15, 1, 2, BigDecimal.valueOf(3)))))
+                                ExtImpAdtargetBidRequest.of(15, 1, 2, BigDecimal.valueOf(3)))))
                         .build()))
                 .build();
         assertThat(result.getErrors()).isEmpty();
@@ -133,7 +134,7 @@ public class AdtargetBidderTest extends VertxTest {
                                 .id("impId2")
                                 .banner(Banner.builder().build())
                                 .ext(mapper.valueToTree(
-                                        ExtPrebid.of(null, ExtImpAdtarget.of(15, 1, 2, BigDecimal.valueOf(3)))))
+                                        ExtPrebid.of(null, ExtImpAdtarget.of("15", 1, 2, BigDecimal.valueOf(3)))))
                                 .build()))
                 .build();
 
@@ -157,7 +158,7 @@ public class AdtargetBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().build())
                         .bidfloor(BigDecimal.valueOf(16))
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdtarget.of(15, 1, 2, null))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdtarget.of("15", 1, 2, null))))
                         .build()))
                 .build();
 
@@ -179,12 +180,12 @@ public class AdtargetBidderTest extends VertxTest {
                 .imp(asList(Imp.builder()
                                 .banner(Banner.builder().build())
                                 .ext(mapper.valueToTree(
-                                        ExtPrebid.of(null, ExtImpAdtarget.of(15, 1, 2, BigDecimal.valueOf(3)))))
+                                        ExtPrebid.of(null, ExtImpAdtarget.of("15", 1, 2, BigDecimal.valueOf(3)))))
                                 .build(),
                         Imp.builder()
                                 .banner(Banner.builder().build())
                                 .ext(mapper.valueToTree(
-                                        ExtPrebid.of(null, ExtImpAdtarget.of(16, 1, 2, BigDecimal.valueOf(3)))))
+                                        ExtPrebid.of(null, ExtImpAdtarget.of("16", 1, 2, BigDecimal.valueOf(3)))))
                                 .build()))
                 .build();
 
@@ -224,12 +225,12 @@ public class AdtargetBidderTest extends VertxTest {
                 .imp(asList(Imp.builder()
                                 .banner(Banner.builder().build())
                                 .ext(mapper.valueToTree(
-                                        ExtPrebid.of(null, ExtImpAdtarget.of(15, 1, 2, BigDecimal.valueOf(3)))))
+                                        ExtPrebid.of(null, ExtImpAdtarget.of("15", 1, 2, BigDecimal.valueOf(3)))))
                                 .build(),
                         Imp.builder()
                                 .banner(Banner.builder().build())
                                 .ext(mapper.valueToTree(
-                                        ExtPrebid.of(null, ExtImpAdtarget.of(15, 1, 2, BigDecimal.valueOf(3)))))
+                                        ExtPrebid.of(null, ExtImpAdtarget.of("15", 1, 2, BigDecimal.valueOf(3)))))
                                 .build()))
                 .build();
 
@@ -409,7 +410,7 @@ public class AdtargetBidderTest extends VertxTest {
                         .id("impId")
                         .banner(Banner.builder().build())
                         .ext(mapper.valueToTree(
-                                ExtPrebid.of(null, ExtImpAdtarget.of(15, 1, 2, BigDecimal.valueOf(3))))))
+                                ExtPrebid.of(null, ExtImpAdtarget.of("15", 1, 2, BigDecimal.valueOf(3))))))
                 .build();
     }
 
