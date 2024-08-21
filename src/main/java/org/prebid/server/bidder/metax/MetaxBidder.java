@@ -9,7 +9,7 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -24,13 +24,13 @@ import org.prebid.server.proto.openrtb.ext.request.metax.ExtImpMetax;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
-import org.prebid.server.util.ObjectUtil;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Function;
 
 public class MetaxBidder implements Bidder<BidRequest> {
@@ -44,9 +44,7 @@ public class MetaxBidder implements Bidder<BidRequest> {
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
-    public MetaxBidder(String endpointUrl,
-                       JacksonMapper mapper) {
-
+    public MetaxBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -107,13 +105,22 @@ public class MetaxBidder implements Bidder<BidRequest> {
     }
 
     private static Integer zeroIfFormatMeasureNull(Format format, Function<Format, Integer> measureExtractor) {
-        return ObjectUtils.defaultIfNull(ObjectUtil.getIfNotNull(format, measureExtractor), 0);
+        return Optional.ofNullable(format)
+                .map(measureExtractor)
+                .orElse(0);
     }
 
     private String resolveEndpoint(ExtImpMetax extImpMetax) {
+        final String publisherIdAsString = Optional.ofNullable(extImpMetax.getPublisherId())
+                .map(Object::toString)
+                .orElse(StringUtils.EMPTY);
+        final String adUnitAsString = Optional.ofNullable(extImpMetax.getAdUnit())
+                .map(Object::toString)
+                .orElse(StringUtils.EMPTY);
+
         return endpointUrl
-                .replace(PUBLISHER_ID_MACRO, String.valueOf(extImpMetax.getPublisherId()))
-                .replace(AD_UNIT_MACRO, String.valueOf(extImpMetax.getAdUnit()));
+                .replace(PUBLISHER_ID_MACRO, publisherIdAsString)
+                .replace(AD_UNIT_MACRO, adUnitAsString);
     }
 
     @Override
