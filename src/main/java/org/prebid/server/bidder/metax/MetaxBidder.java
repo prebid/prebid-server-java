@@ -31,7 +31,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Function;
 
 public class MetaxBidder implements Bidder<BidRequest> {
 
@@ -98,16 +97,10 @@ public class MetaxBidder implements Bidder<BidRequest> {
         final Format firstFormat = formats.getFirst();
         return imp.toBuilder()
                 .banner(banner.toBuilder()
-                        .w(zeroIfFormatMeasureNull(firstFormat, Format::getW))
-                        .h(zeroIfFormatMeasureNull(firstFormat, Format::getH))
+                        .w(Optional.ofNullable(firstFormat).map(Format::getW).orElse(0))
+                        .h(Optional.ofNullable(firstFormat).map(Format::getH).orElse(0))
                         .build())
                 .build();
-    }
-
-    private static Integer zeroIfFormatMeasureNull(Format format, Function<Format, Integer> measureExtractor) {
-        return Optional.ofNullable(format)
-                .map(measureExtractor)
-                .orElse(0);
     }
 
     private String resolveEndpoint(ExtImpMetax extImpMetax) {
