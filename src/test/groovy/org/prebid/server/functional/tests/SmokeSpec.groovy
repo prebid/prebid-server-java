@@ -13,7 +13,6 @@ import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.util.ResourceUtil
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
-import static org.prebid.server.functional.model.bidder.BidderName.bidderNameByString
 import static org.prebid.server.functional.model.response.status.Status.OK
 
 class SmokeSpec extends BaseSpec {
@@ -73,7 +72,7 @@ class SmokeSpec extends BaseSpec {
 
         then: "Response should contain bidder uids"
         assert response.buyeruids?.size() == uidsCookie.tempUIDs.size()
-        assert response.buyeruids.every { bidder, uid -> uidsCookie.tempUIDs[bidderNameByString(bidder)].uid == uid }
+        assert response.buyeruids["generic"] == uidsCookie.tempUIDs[GENERIC].uid
     }
 
     def "PBS should return tracking pixel on event request"() {
@@ -129,14 +128,6 @@ class SmokeSpec extends BaseSpec {
 
         then: "Response should contain bidders params"
         assert response.parameters.size() > 0
-    }
-
-    def "PBS should return currency rates"() {
-        when: "PBS processes bidders params request"
-        def response = defaultPbsService.sendCurrencyRatesRequest()
-
-        then: "Response should contain bidders params"
-        assert response.rates?.size() > 0
     }
 
     def "PBS should return empty body on httpinteraction request"() {

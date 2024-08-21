@@ -2,7 +2,7 @@
   "id": "request_id",
   "imp": [
     {
-      "id": "imp_id",
+      "id": "test-imp-id",
       "secure": 1,
       "video": {
         "mimes": [
@@ -14,6 +14,7 @@
       "tagid": "slot9",
       "bidfloor" : 0.12,
       "ext": {
+        "ae": 1,
         "pmZoneId": "Zone1,Zone2",
         "preference": "sports,movies",
         "dfp_ad_unit_code": "thirdPbAdSlot"
@@ -49,13 +50,29 @@
     }
   },
   "ext": {
+    "prebid": {
+      "server": {
+        "externalurl": "http://localhost:8080",
+        "gvlid": 1,
+        "datacenter": "local",
+        "endpoint": "/openrtb2/auction"
+      },
+      "bidderparams": {
+        "pubmatic": {
+          "acat": [
+            "testValue1",
+            "testValue2"
+          ]
+        }
+      }
+    },
     "acat": [
       "testValue1",
       "testValue2"
     ],
     "wrapper": {
-      "version": 1,
-      "profile": 5123
+      "profile": 5123,
+      "version": 1
     }
   }
 }

@@ -1,0 +1,72 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "video": {
+        "mimes": [
+          "mimes"
+        ],
+        "w": 300,
+        "h": 250
+      },
+      "ext": {
+        "magnite": {
+          "accountId": "2001",
+          "siteId": 3001,
+          "zoneId": 4001
+        }
+      }
+    }
+  ],
+  "site": {
+    "content": {
+      "language": "en",
+      "data": [
+        {
+          "ext": {
+            "segtax": 1
+          },
+          "segment": [
+            {
+              "id": "segmentId1"
+            },
+            {
+              "id": "segmentId2"
+            }
+          ]
+        },
+        {
+          "ext": {
+            "segtax": 2
+          },
+          "segment": [
+            {
+              "id": "segmentId3"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "user": {
+    "data": [
+      {
+        "ext": {
+          "segtax": 4
+        },
+        "segment": [
+          {
+            "id": "segmentId4"
+          }
+        ]
+      }
+    ]
+  },
+  "tmax": 5000,
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

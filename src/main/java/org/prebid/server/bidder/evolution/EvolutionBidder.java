@@ -57,7 +57,7 @@ public class EvolutionBidder implements Bidder<BidRequest> {
     }
 
     private List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
-        final SeatBid firstSeatBid = bidResponse.getSeatbid().get(0);
+        final SeatBid firstSeatBid = bidResponse.getSeatbid().getFirst();
         return CollectionUtils.emptyIfNull(firstSeatBid.getBid()).stream()
                 .filter(Objects::nonNull)
                 .map(bid -> BidderBid.of(bid, getBidMediaType(bid.getExt()), bidResponse.getCur()))

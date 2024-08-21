@@ -6,7 +6,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
@@ -41,7 +41,7 @@ public class UndertoneBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         assertThat(result.getErrors()).hasSize(1);
-        final BidderError bidderError = result.getErrors().get(0);
+        final BidderError bidderError = result.getErrors().getFirst();
 
         assertThat(bidderError.getMessage()).isEqualTo("invalid bidRequest: no App/Site objects");
         assertThat(bidderError.getType()).isEqualTo(BidderError.Type.bad_input);
@@ -63,7 +63,7 @@ public class UndertoneBidderTest extends VertxTest {
 
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
         assertThat(result.getErrors()).hasSize(1);
-        final BidderError bidderError = result.getErrors().get(0);
+        final BidderError bidderError = result.getErrors().getFirst();
 
         assertThat(bidderError.getMessage()).isEqualTo("invalid bidRequest: no publisher-id");
         assertThat(bidderError.getType()).isEqualTo(BidderError.Type.bad_input);
@@ -86,7 +86,7 @@ public class UndertoneBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         assertThat(result.getErrors()).hasSize(1);
-        final BidderError bidderError = result.getErrors().get(0);
+        final BidderError bidderError = result.getErrors().getFirst();
 
         assertThat(bidderError.getMessage()).isEqualTo("invalid bidRequest: no valid imps");
         assertThat(bidderError.getType()).isEqualTo(BidderError.Type.bad_input);
@@ -171,4 +171,3 @@ public class UndertoneBidderTest extends VertxTest {
     }
 
 }
-

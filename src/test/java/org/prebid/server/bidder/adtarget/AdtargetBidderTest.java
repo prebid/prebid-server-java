@@ -12,7 +12,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.http.HttpMethod;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.adtarget.proto.AdtargetImpExt;
 import org.prebid.server.bidder.model.BidderBid;
@@ -56,7 +56,7 @@ public class AdtargetBidderTest extends VertxTest {
         // then
         final BidRequest expectedBidRequest = bidRequest
                 .toBuilder()
-                .imp(singletonList(bidRequest.getImp().get(0).toBuilder()
+                .imp(singletonList(bidRequest.getImp().getFirst().toBuilder()
                         .bidfloor(BigDecimal.valueOf(3))
                         .ext(mapper.valueToTree(AdtargetImpExt.of(
                                 ExtImpAdtarget.of(15, 1, 2, BigDecimal.valueOf(3)))))
@@ -396,7 +396,7 @@ public class AdtargetBidderTest extends VertxTest {
                 .user(User.builder()
                         .ext(ExtUser.builder().consent("consent").build())
                         .build())
-                .regs(Regs.builder().coppa(0).ext(ExtRegs.of(1, null, null)).build())
+                .regs(Regs.builder().coppa(0).ext(ExtRegs.of(1, null, null, null)).build())
                 .build();
     }
 

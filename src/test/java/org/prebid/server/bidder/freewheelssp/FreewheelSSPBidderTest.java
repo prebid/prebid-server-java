@@ -10,7 +10,8 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Test;
+import io.vertx.core.MultiMap;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -22,6 +23,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.freewheelssp.ExtImpFreewheelSSP;
 
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
@@ -29,6 +31,7 @@ import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
 public class FreewheelSSPBidderTest extends VertxTest {
@@ -58,11 +61,30 @@ public class FreewheelSSPBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldReturnResultWithHttpRequestsContainingExpectedHeader() {
+        // given
+        final String expectedHeaderName = "Componentid";
+        final String expectedHeaderValue = "prebid-java";
+        final BidRequest bidRequest = givenBidRequest(identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getHeaders)
+                .flatExtracting(MultiMap::entries)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .contains(tuple(expectedHeaderName, expectedHeaderValue));
+    }
+
+    @Test
     public void makeHttpRequestsShouldHaveTheSameIncomingAndOutGoingBidRequest() {
         // given
         final BidRequest bidRequest = givenBidRequest(impCustomizer -> impCustomizer
                 .ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpFreewheelSSP.of(123456789)))));
+                        ExtImpFreewheelSSP.of("123456789")))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
@@ -73,7 +95,7 @@ public class FreewheelSSPBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
                 .containsExactly(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpFreewheelSSP.of(123456789))));
+                        ExtImpFreewheelSSP.of("123456789"))));
     }
 
     @Test
@@ -217,7 +239,7 @@ public class FreewheelSSPBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                         .id("123")
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpFreewheelSSP.of(123456789)))))
+                                ExtImpFreewheelSSP.of("123456789")))))
                 .build();
     }
 

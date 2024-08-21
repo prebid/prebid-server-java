@@ -9,41 +9,30 @@ import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtAppPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfig;
-import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigOrtb;
 import org.prebid.server.proto.openrtb.ext.request.ExtDooh;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidBidderConfig;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-import org.prebid.server.proto.request.Targeting;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@ExtendWith(MockitoExtension.class)
 public class FpdResolverTest extends VertxTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     private FpdResolver target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new FpdResolver(jacksonMapper, new JsonMerger(jacksonMapper));
     }
@@ -817,149 +806,4 @@ public class FpdResolverTest extends VertxTest {
                 .put("attr1", "value1"));
     }
 
-    @Test
-    public void resolveBidRequestExtShouldReturnSameExtIfTargetingIsNull() {
-        // given
-        final ExtRequest givenExtRequest = ExtRequest.of(null);
-
-        // when
-        final ExtRequest result = target.resolveBidRequestExt(givenExtRequest, null);
-
-        // then
-        assertThat(result).isSameAs(givenExtRequest);
-    }
-
-    @Test
-    public void resolveBidRequestExtShouldTolerateMissingBidders() {
-        // given
-        final ExtRequest givenExtRequest = ExtRequest.of(ExtRequestPrebid.builder()
-                .data(ExtRequestPrebidData.of(Arrays.asList("rubicon", "appnexus"), null)).build());
-
-        // when
-        final ExtRequest result = target.resolveBidRequestExt(givenExtRequest,
-                Targeting.of(null, null, null)); // no bidders
-
-        // then
-        assertThat(result.getPrebid().getData().getBidders()).contains("rubicon", "appnexus");
-    }
-
-    @Test
-    public void resolveBidRequestExtShouldMergeBiddersIgnoringCase() {
-        // given
-        final ExtRequest givenExtRequest = ExtRequest.of(ExtRequestPrebid.builder()
-                .data(ExtRequestPrebidData.of(Arrays.asList("rubicon", "appnexus"), null)).build());
-
-        // when
-        final ExtRequest result = target.resolveBidRequestExt(givenExtRequest,
-                Targeting.of(Arrays.asList("rUbIcOn", "between"), null, null));
-
-        // then
-        assertThat(result.getPrebid().getData().getBidders()).contains("rubicon", "appnexus", "between");
-    }
-
-    @Test
-    public void resolveBidRequestExtShouldAddBiddersIfExtIsNull() {
-        // when
-        final ExtRequest result = target.resolveBidRequestExt(null,
-                Targeting.of(Arrays.asList("rubicon", "appnexus"), null, null));
-
-        // then
-        assertThat(result.getPrebid().getData().getBidders()).contains("rubicon", "appnexus");
-    }
-
-    @Test
-    public void resolveBidRequestExtShouldAddBiddersIfExtPrebidIsNull() {
-        // given
-        final ExtRequest givenExtRequest = ExtRequest.of(null);
-
-        // when
-        final ExtRequest result = target.resolveBidRequestExt(givenExtRequest,
-                Targeting.of(Arrays.asList("rubicon", "appnexus"), null, null));
-
-        // then
-        assertThat(result.getPrebid().getData().getBidders()).contains("rubicon", "appnexus");
-    }
-
-    @Test
-    public void resolveBidRequestExtShouldAddBiddersIfExtPrebidDataIsNullKeepingOtherValues() {
-        // given
-        final ExtRequest givenExtRequest = ExtRequest.of(ExtRequestPrebid.builder().debug(1).build());
-
-        // when
-        final ExtRequest result = target.resolveBidRequestExt(givenExtRequest,
-                Targeting.of(Arrays.asList("rubicon", "appnexus"), null, null));
-
-        // then
-        assertThat(result).isEqualTo(ExtRequest.of(ExtRequestPrebid.builder().debug(1)
-                .data(ExtRequestPrebidData.of(Arrays.asList("rubicon", "appnexus"), null)).build()));
-    }
-
-    @Test
-    public void resolveBidRequestExtShouldAddBiddersIfExtPrebidDataBiddersIsNull() {
-        // given
-        final ExtRequest givenExtRequest = ExtRequest.of(ExtRequestPrebid.builder().debug(1)
-                .data(ExtRequestPrebidData.of(null, null)).build());
-
-        // when
-        final ExtRequest result = target.resolveBidRequestExt(givenExtRequest,
-                Targeting.of(Arrays.asList("rubicon", "appnexus"), null, null));
-
-        // then
-        assertThat(result).isEqualTo(ExtRequest.of(ExtRequestPrebid.builder().debug(1)
-                .data(ExtRequestPrebidData.of(Arrays.asList("rubicon", "appnexus"), null)).build()));
-    }
-
-    @Test
-    public void resolveBidRequestExtShouldAddBidderConfig() {
-        // given
-        final ExtRequest givenExtRequest = ExtRequest.of(null);
-        final ObjectNode siteNode = mapper.valueToTree(Site.builder().id("id").build());
-        final ObjectNode userNode = mapper.valueToTree(User.builder().id("id").build());
-        final Targeting targeting = Targeting.of(Collections.emptyList(), siteNode, userNode);
-
-        // when
-        final ExtRequest result = target.resolveBidRequestExt(givenExtRequest, targeting);
-
-        // then
-        final ExtRequestPrebidBidderConfig expectedBidderConfig = ExtRequestPrebidBidderConfig.of(
-                Collections.singletonList("*"),
-                ExtBidderConfig.of(null, ExtBidderConfigOrtb.of(siteNode, null, null, userNode)));
-
-        assertThat(result).isEqualTo(ExtRequest.of(ExtRequestPrebid.builder()
-                .bidderconfig(Collections.singletonList(expectedBidderConfig))
-                .build()));
-    }
-
-    @Test
-    public void resolveBidRequestExtShouldNotAddBidderConfigWhenUserAndSiteIsNull() {
-        // given
-        final ExtRequest givenExtRequest = ExtRequest.of(null);
-        final Targeting targeting = Targeting.of(Collections.emptyList(), null, null);
-
-        // when
-        final ExtRequest result = target.resolveBidRequestExt(givenExtRequest, targeting);
-
-        // then
-        assertThat(result).isEqualTo(ExtRequest.of(null));
-    }
-
-    @Test
-    public void resolveBidRequestExtShoulUpdateBidderConfigAndData() {
-        // given
-        final ExtRequest givenExtRequest = ExtRequest.of(null);
-        final Targeting targeting = Targeting.of(Arrays.asList("rubicon", "appnexus"),
-                mapper.valueToTree(Site.builder().id("id").build()),
-                mapper.valueToTree(User.builder().id("id").build()));
-
-        // when
-        final ExtRequest result = target.resolveBidRequestExt(givenExtRequest, targeting);
-
-        // then
-        assertThat(result).isEqualTo(ExtRequest.of(ExtRequestPrebid.builder()
-                .data(ExtRequestPrebidData.of(Arrays.asList("rubicon", "appnexus"), null))
-                .bidderconfig(Collections.singletonList(ExtRequestPrebidBidderConfig.of(
-                        Collections.singletonList("*"), ExtBidderConfig.of(null, ExtBidderConfigOrtb.of(
-                                mapper.valueToTree(Site.builder().id("id").build()), null, null,
-                                mapper.valueToTree(User.builder().id("id").build())))))).build()));
-    }
 }

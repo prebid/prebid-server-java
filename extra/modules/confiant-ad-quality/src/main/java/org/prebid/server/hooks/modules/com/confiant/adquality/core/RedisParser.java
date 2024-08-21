@@ -2,11 +2,10 @@ package org.prebid.server.hooks.modules.com.confiant.adquality.core;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import org.prebid.server.hooks.modules.com.confiant.adquality.model.BidScanResult;
-import org.prebid.server.hooks.modules.com.confiant.adquality.model.OperationResult;
 import org.prebid.server.hooks.modules.com.confiant.adquality.model.RedisError;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -16,9 +15,13 @@ public class RedisParser {
 
     private static final Logger logger = LoggerFactory.getLogger(RedisParser.class);
 
-    public OperationResult<List<BidScanResult>> parseBidsScanResult(String redisResponse) {
-        final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
 
+    public RedisParser(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
+
+    public BidsScanResult parseBidsScanResult(String redisResponse) {
         try {
             final BidScanResult[][][] draftResponse = objectMapper.readValue(redisResponse, BidScanResult[][][].class);
             final List<BidScanResult> scanResultsFlat = Arrays.stream(draftResponse)
@@ -26,8 +29,8 @@ public class RedisParser {
                     .map(array -> array[0])
                     .toList();
 
-            return OperationResult.<List<BidScanResult>>builder()
-                    .value(scanResultsFlat)
+            return BidsScanResult.builder()
+                    .bidScanResults(scanResultsFlat)
                     .debugMessages(Collections.emptyList())
                     .build();
         } catch (JsonProcessingException resultParse) {
@@ -38,9 +41,9 @@ public class RedisParser {
             } catch (JsonProcessingException errorParse) {
                 message = String.format("Error during parse redis response: %s", redisResponse);
             }
-            logger.info(message);
-            return OperationResult.<List<BidScanResult>>builder()
-                    .value(Collections.emptyList())
+            logger.warn(message);
+            return BidsScanResult.builder()
+                    .bidScanResults(Collections.emptyList())
                     .debugMessages(List.of(message))
                     .build();
         }

@@ -62,7 +62,7 @@ public class GamoshiBidder implements Bidder<BidRequest> {
 
         final ExtImpGamoshi firstImpExt;
         try {
-            firstImpExt = parseAndValidateImpExt(validImps.get(0));
+            firstImpExt = parseAndValidateImpExt(validImps.getFirst());
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
@@ -87,7 +87,7 @@ public class GamoshiBidder implements Bidder<BidRequest> {
         final Banner banner = imp.getBanner();
         if (banner != null && banner.getH() == null && banner.getW() == null
                 && CollectionUtils.isNotEmpty(banner.getFormat())) {
-            final Format firstFormat = banner.getFormat().get(0);
+            final Format firstFormat = banner.getFormat().getFirst();
             final Banner modifiedBanner = banner.toBuilder()
                     .h(firstFormat.getH())
                     .w(firstFormat.getW())

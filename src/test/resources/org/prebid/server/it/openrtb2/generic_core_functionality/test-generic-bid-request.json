@@ -38,8 +38,29 @@
     "tid" : "${json-unit.any-string}"
   },
   "regs" : {
+    "gpp_sid" : [ 1, 3, 7 ],
     "ext" : {
-      "gdpr" : 0
+      "gdpr" : 0,
+      "dsa": {
+        "dsarequired": 1,
+        "pubrender": 0,
+        "datatopub": 2,
+        "transparency": [
+          {
+            "domain": "platform1domain.com",
+            "dsaparams": [
+              1
+            ]
+          },
+          {
+            "domain": "SSP2domain.com",
+            "dsaparams": [
+              1,
+              2
+            ]
+          }
+        ]
+      }
     }
   },
   "ext" : {
@@ -71,6 +92,22 @@
         "gvlid" : 1,
         "datacenter" : "local",
         "endpoint" : "/openrtb2/auction"
+      },
+      "sdk": {
+        "renderers": [
+          {
+            "name":"PrebidRenderer",
+            "version":"2.1.1",
+            "data": {
+              "someData": "someData"
+            }
+          },
+          {
+            "name":"SampleRenderer",
+            "version":"1.0.0",
+            "url": "rendererUrl"
+          }
+        ]
       }
     }
   }

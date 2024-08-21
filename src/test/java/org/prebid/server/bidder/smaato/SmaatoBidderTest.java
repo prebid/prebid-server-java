@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Publisher;
@@ -18,12 +17,11 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import org.apache.commons.lang3.ObjectUtils;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.Endpoint;
 import org.prebid.server.bidder.model.BidderBid;
@@ -62,19 +60,17 @@ import static org.mockito.Mockito.when;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
+@ExtendWith(MockitoExtension.class)
 public class SmaatoBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private Clock clock;
 
     private SmaatoBidder target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new SmaatoBidder(ENDPOINT_URL, jacksonMapper, clock);
     }
@@ -139,7 +135,7 @@ public class SmaatoBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getExt)
                 .containsExactly(jacksonMapper.fillExtension(ExtRequest.empty(),
-                        SmaatoBidRequestExt.of("prebid_server_0.4")));
+                        SmaatoBidRequestExt.of("prebid_server_0.7")));
     }
 
     @Test
@@ -510,19 +506,6 @@ public class SmaatoBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeIndividualHttpRequestsShouldReturnErrorIfBannerSizesAndFormatsAreAbsent() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.banner(Banner.builder().build()));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).containsExactly(BidderError.badInput("No sizes provided for Banner."));
-    }
-
-    @Test
     public void makeIndividualHttpRequestsShouldNotModifyBannerIfBannerSizesArePresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder ->
@@ -538,24 +521,6 @@ public class SmaatoBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getBanner)
                 .containsExactly(Banner.builder().w(1).h(1).build());
-    }
-
-    @Test
-    public void makeIndividualHttpRequestsShouldReplaceBannerSizesWithFirstFormatIfFormatsArePresent() {
-        // given
-        final Banner banner = Banner.builder().format(singletonList(Format.builder().w(2).h(2).build())).build();
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.banner(banner));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getBanner)
-                .containsExactly(banner.toBuilder().w(2).h(2).build());
     }
 
     @Test
@@ -732,8 +697,8 @@ public class SmaatoBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot decode bid.adm:");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_input);
+        assertThat(result.getErrors().getFirst().getMessage()).startsWith("Cannot decode bid.adm:");
+        assertThat(result.getErrors().getFirst().getType()).isEqualTo(BidderError.Type.bad_input);
     }
 
     @Test

@@ -45,6 +45,8 @@ import java.util.Objects;
 
 public class GumgumBidder implements Bidder<BidRequest> {
 
+    private static final String REQUEST_EXT_PRODUCT = "product";
+
     private static final TypeReference<ExtPrebid<?, ExtImpGumgum>> GUMGUM_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
@@ -116,6 +118,13 @@ public class GumgumBidder implements Bidder<BidRequest> {
 
     private Imp modifyImp(Imp imp, ExtImpGumgum extImp) {
         final Imp.ImpBuilder impBuilder = imp.toBuilder();
+
+        final String product = extImp.getProduct();
+        if (StringUtils.isNotEmpty(product)) {
+            final ObjectNode productExt = mapper.mapper().createObjectNode().put(REQUEST_EXT_PRODUCT, product);
+            impBuilder.ext(productExt);
+        }
+
         final Banner banner = imp.getBanner();
         if (banner != null) {
             final Banner resolvedBanner = resolveBanner(banner, extImp);
@@ -133,14 +142,13 @@ public class GumgumBidder implements Bidder<BidRequest> {
                 impBuilder.video(resolvedVideo);
             }
         }
-
         return impBuilder.build();
     }
 
     private Banner resolveBanner(Banner banner, ExtImpGumgum extImpGumgum) {
         final List<Format> format = banner.getFormat();
         if (banner.getH() == null && banner.getW() == null && CollectionUtils.isNotEmpty(format)) {
-            final Format firstFormat = format.get(0);
+            final Format firstFormat = format.getFirst();
 
             final Long slot = extImpGumgum.getSlot();
             final ObjectNode bannerExt = slot != null && slot != 0L
@@ -256,3 +264,4 @@ public class GumgumBidder implements Bidder<BidRequest> {
         return StringUtils.isNotBlank(bidAdm) ? bidAdm.replace("${AUCTION_PRICE}", String.valueOf(price)) : bidAdm;
     }
 }
+

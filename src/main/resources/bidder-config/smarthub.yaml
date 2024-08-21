@@ -1,6 +1,13 @@
 adapters:
   smarthub:
-    endpoint: http://{{Host}}-prebid.smart-hub.io/?seat={{AccountId}}&token={{SourceId}}
+    endpoint: http://prebid.smart-hub.io/pbserver?partnerName={{Host}}&seat={{AccountID}}&token={{SourceId}}
+    aliases:
+      markapp:
+        enabled: false
+        endpoint: http://markapp-prebid.smart-hub.io/pbserver/?seat={{AccountID}}&token={{SourceId}}
+      jdpmedia:
+        enabled: false
+        endpoint: http://jdpmedia-prebid.smart-hub.io/pbserver/?seat={{AccountID}}&token={{SourceId}}
     meta-info:
       maintainer-email: support@smart-hub.io
       app-media-types:

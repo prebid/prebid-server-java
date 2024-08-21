@@ -9,6 +9,7 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -33,8 +34,10 @@ public class BizzclickBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpBizzclick>> BIZZCLICK_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
-    private static final String URL_SOURCE_ID_MACRO = "{{.SourceId}}";
-    private static final String URL_ACCOUNT_ID_MACRO = "{{.AccountID}}";
+    private static final String DEFAULT_HOST = "us-e-node1";
+    private static final String URL_HOST_MACRO = "{{Host}}";
+    private static final String URL_SOURCE_ID_MACRO = "{{SourceId}}";
+    private static final String URL_ACCOUNT_ID_MACRO = "{{AccountID}}";
     private static final String DEFAULT_CURRENCY = "USD";
 
     private final String endpointUrl;
@@ -50,7 +53,7 @@ public class BizzclickBidder implements Bidder<BidRequest> {
         final List<Imp> imps = request.getImp();
         final ExtImpBizzclick extImpBizzclick;
         try {
-            extImpBizzclick = parseImpExt(imps.get(0));
+            extImpBizzclick = parseImpExt(imps.getFirst());
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
@@ -100,7 +103,11 @@ public class BizzclickBidder implements Bidder<BidRequest> {
     }
 
     private String buildEndpointUrl(ExtImpBizzclick ext) {
-        return endpointUrl.replace(URL_SOURCE_ID_MACRO, HttpUtil.encodeUrl(ext.getPlacementId()))
+        final String host = StringUtils.isBlank(ext.getHost()) ? DEFAULT_HOST : ext.getHost();
+        final String sourceId = StringUtils.isBlank(ext.getSourceId()) ? ext.getPlacementId() : ext.getSourceId();
+        return endpointUrl
+                .replace(URL_HOST_MACRO, HttpUtil.encodeUrl(host))
+                .replace(URL_SOURCE_ID_MACRO, HttpUtil.encodeUrl(sourceId))
                 .replace(URL_ACCOUNT_ID_MACRO, HttpUtil.encodeUrl(ext.getAccountId()));
     }
 
@@ -127,7 +134,7 @@ public class BizzclickBidder implements Bidder<BidRequest> {
             throw new PreBidException("Empty SeatBid array");
         }
 
-        final SeatBid seatBid = bidResponse.getSeatbid().get(0);
+        final SeatBid seatBid = bidResponse.getSeatbid().getFirst();
         if (seatBid == null || CollectionUtils.isEmpty(seatBid.getBid())) {
             return Collections.emptyList();
         }

@@ -16,8 +16,8 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -83,7 +83,7 @@ public class IntertechBidder implements Bidder<BidRequest> {
 
     private String getCur(BidRequest request) {
         final List<String> curs = request.getCur();
-        return curs != null && !curs.isEmpty() ? curs.get(0) : "";
+        return curs != null && !curs.isEmpty() ? curs.getFirst() : "";
     }
 
     private ExtImpIntertech parseAndValidateImpExt(ObjectNode impExtNode, final String impId) {
@@ -124,7 +124,7 @@ public class IntertechBidder implements Bidder<BidRequest> {
         final List<Format> format = banner.getFormat();
         if (w == null || h == null || w == 0 || h == 0) {
             if (CollectionUtils.isNotEmpty(format)) {
-                final Format firstFormat = format.get(0);
+                final Format firstFormat = format.getFirst();
                 return banner.toBuilder().w(firstFormat.getW()).h(firstFormat.getH()).build();
             }
             throw new PreBidException("Invalid sizes provided for Banner %sx%s".formatted(w, h));

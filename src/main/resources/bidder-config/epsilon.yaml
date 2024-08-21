@@ -1,0 +1,24 @@
+adapters:
+  epsilon:
+    endpoint: http://api.hb.ad.cpe.dotomi.com/cvx/server/hb/ortb
+    ortb-version: "2.6"
+    aliases:
+      conversant:
+        usersync:
+          cookie-family-name: conversant
+    meta-info:
+      maintainer-email: PublisherIntegration@epsilon.com
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 24
+    usersync:
+      cookie-family-name: epsilon
+      redirect:
+        url: https://prebid-match.dotomi.com/match/bounce/current?version=1&networkId=72582&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&rurl={{redirect_url}}
+        support-cors: false
+    generate-bid-id: true

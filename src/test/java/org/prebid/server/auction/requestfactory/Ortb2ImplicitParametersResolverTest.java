@@ -7,27 +7,33 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Data;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Dooh;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
+import com.iab.openrtb.request.Segment;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.SupplyChain;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.assertj.core.api.InstanceOfAssertFactories;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.IpAddressHelper;
+import org.prebid.server.auction.SecBrowsingTopicsResolver;
 import org.prebid.server.auction.TimeoutResolver;
+import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.IpAddress;
-import org.prebid.server.exception.BlacklistedAppException;
+import org.prebid.server.auction.model.SecBrowsingTopic;
+import org.prebid.server.auction.model.debug.DebugContext;
+import org.prebid.server.exception.BlocklistedAppException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.identity.IdGenerator;
@@ -53,12 +59,16 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 
 import java.math.BigDecimal;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
+import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -66,35 +76,38 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.groups.Tuple.tuple;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 public class Ortb2ImplicitParametersResolverTest extends VertxTest {
 
     private static final String ENDPOINT = Endpoint.openrtb2_amp.value();
 
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
-    @Mock
+    @Mock(strictness = LENIENT)
     private ImplicitParametersExtractor paramsExtractor;
-    @Mock
+    @Mock(strictness = LENIENT)
     private TimeoutResolver timeoutResolver;
-    @Mock
+    @Mock(strictness = LENIENT)
     private IpAddressHelper ipAddressHelper;
-    @Mock
+    @Mock(strictness = LENIENT)
     private IdGenerator idGenerator;
+    @Mock(strictness = LENIENT)
+    private SecBrowsingTopicsResolver topicsResolver;
     @Mock
     private JsonMerger jsonMerger;
 
     private Ortb2ImplicitParametersResolver target;
 
     private BidRequest defaultBidRequest;
-    private HttpRequestContext httpRequest;
+    private AuctionContext auctionContext;
 
     public Ortb2ImplicitParametersResolver target(boolean shouldCacheOnlyWinningsBids) {
         return new Ortb2ImplicitParametersResolver(
@@ -109,19 +122,21 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 timeoutResolver,
                 ipAddressHelper,
                 idGenerator,
+                topicsResolver,
                 jsonMerger,
                 jacksonMapper);
     }
 
-    @Before
+    @BeforeEach
     public void setUp() {
         defaultBidRequest = BidRequest.builder().build();
 
-        httpRequest = HttpRequestContext.builder()
+        auctionContext = givenAuctionContext(HttpRequestContext.builder()
                 .headers(CaseInsensitiveMultiMap.empty())
-                .build();
+                .build());
 
         given(idGenerator.generateId()).willReturn(null);
+        given(topicsResolver.resolve(any(), anyBoolean(), anyList())).willReturn(emptyList());
         given(timeoutResolver.limitToMax(any())).willReturn(2000L);
 
         target = target(false);
@@ -133,7 +148,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         givenImplicitParams("http://example.com", "example.com", "192.168.244.1", IpAddress.IP.v4, "UnitTest");
 
         // when
-        final BidRequest result = target.resolve(defaultBidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(defaultBidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getSite()).isEqualTo(Site.builder()
@@ -158,7 +173,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         givenImplicitParams("http://example.com", "example.com", "192.168.244.1", IpAddress.IP.v4, "UnitTest");
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getSite()).isEqualTo(Site.builder()
@@ -182,7 +197,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 "UnitTest");
 
         // when
-        final BidRequest result = target.resolve(defaultBidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(defaultBidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getSite()).isEqualTo(Site.builder()
@@ -212,7 +227,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 "UnitTest");
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getSite()).isEqualTo(Site.builder()
@@ -243,7 +258,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 "UnitTest");
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getSite()).isEqualTo(Site.builder()
@@ -267,7 +282,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .willReturn(IpAddress.of("2001:0db8:85a3:0000::", IpAddress.IP.v6));
 
         // when
-        target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         verify(paramsExtractor, never()).ipFrom(any(CaseInsensitiveMultiMap.class), any());
@@ -281,9 +296,10 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                         .add("DNT", "invalid")
                         .build())
                 .build();
+        final AuctionContext auctionContext = givenAuctionContext(httpRequest);
 
         // when
-        final BidRequest result = target.resolve(defaultBidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(defaultBidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getDnt()).isNull();
@@ -297,9 +313,10 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                         .add("DNT", "1")
                         .build())
                 .build();
+        final AuctionContext auctionContext = givenAuctionContext(httpRequest);
 
         // when
-        final BidRequest result = target.resolve(defaultBidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(defaultBidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getDnt()).isOne();
@@ -313,13 +330,14 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                         .add("DNT", "0")
                         .build())
                 .build();
+        final AuctionContext auctionContext = givenAuctionContext(httpRequest);
 
         final BidRequest bidRequest = BidRequest.builder()
                 .device(Device.builder().dnt(1).build())
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getDnt()).isZero();
@@ -336,7 +354,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isNull();
@@ -353,7 +371,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isNull();
@@ -371,7 +389,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isNull();
@@ -389,7 +407,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isNull();
@@ -407,7 +425,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isNull();
@@ -425,7 +443,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isNull();
@@ -443,7 +461,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isNull();
@@ -461,7 +479,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -479,7 +497,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -498,7 +516,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -518,7 +536,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -537,7 +555,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -556,7 +574,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isZero();
@@ -575,7 +593,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isZero();
@@ -595,7 +613,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isZero();
@@ -613,7 +631,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -632,7 +650,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -652,7 +670,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -671,7 +689,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -691,7 +709,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isZero();
@@ -710,7 +728,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -730,7 +748,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -749,7 +767,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -769,7 +787,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -788,7 +806,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -807,7 +825,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -826,7 +844,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -846,7 +864,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -865,7 +883,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isZero();
@@ -885,7 +903,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isZero();
@@ -904,7 +922,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isNull();
@@ -923,7 +941,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getDevice().getLmt()).isNull();
@@ -936,7 +954,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         given(paramsExtractor.secureFrom(any())).willReturn(1);
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getImp()).flatExtracting(Imp::getSecure).containsOnly(1);
@@ -952,7 +970,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         given(paramsExtractor.secureFrom(any())).willReturn(1);
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getImp()).isSameAs(imps);
@@ -962,12 +980,12 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     public void shouldUpdateImpsOnlyWithNotDefinedSecurityWithSecurityOneIfRequestIsSecure() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(Arrays.asList(Imp.builder().build(), Imp.builder().secure(0).build()))
+                .imp(asList(Imp.builder().build(), Imp.builder().secure(0).build()))
                 .build();
         given(paramsExtractor.secureFrom(any())).willReturn(1);
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getImp()).extracting(Imp::getSecure).containsOnly(1, 0);
@@ -983,7 +1001,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         given(paramsExtractor.secureFrom(any())).willReturn(0);
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getImp()).isSameAs(imps);
@@ -997,7 +1015,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getImp())
@@ -1015,7 +1033,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getImp().stream()
@@ -1055,7 +1073,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         final Imp expectedImp = Imp.builder()
@@ -1102,7 +1120,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         // when
         final BidRequest result = target.resolve(
                 bidRequest,
-                httpRequest,
+                auctionContext,
                 Endpoint.openrtb2_auction.value(),
                 false);
 
@@ -1128,7 +1146,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         // when
         final BidRequest result = target.resolve(
                 bidRequest,
-                httpRequest,
+                auctionContext,
                 Endpoint.openrtb2_auction.value(),
                 true);
 
@@ -1154,7 +1172,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         // when
         final BidRequest result = target.resolve(
                 bidRequest,
-                httpRequest,
+                auctionContext,
                 ENDPOINT,
                 false);
 
@@ -1178,7 +1196,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getImp())
@@ -1202,7 +1220,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         // when
         final BidRequest result = target.resolve(
                 bidRequest,
-                httpRequest,
+                auctionContext,
                 ENDPOINT,
                 false);
 
@@ -1224,7 +1242,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         // when
         final BidRequest result = target.resolve(
                 bidRequest,
-                httpRequest,
+                auctionContext,
                 ENDPOINT,
                 false);
 
@@ -1245,7 +1263,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         // when
         final BidRequest result = target.resolve(
                 bidRequest,
-                httpRequest,
+                auctionContext,
                 Endpoint.openrtb2_auction.value(),
                 true);
 
@@ -1264,7 +1282,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getSource())
@@ -1283,7 +1301,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         // when
         final BidRequest result = target.resolve(
                 bidRequest,
-                httpRequest,
+                auctionContext,
                 ENDPOINT,
                 false);
 
@@ -1302,7 +1320,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getSource())
@@ -1324,7 +1342,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         final Imp expectedImp = Imp.builder()
@@ -1355,7 +1373,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().imp(singletonList(imp)).build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         final Imp expectedImp = Imp.builder()
@@ -1388,7 +1406,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().imp(singletonList(imp)).build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         final Imp expectedImp = Imp.builder()
@@ -1424,7 +1442,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getImp()).isSameAs(imps);
@@ -1454,7 +1472,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 "http://anotherexample.com", "anotherexample.com", "192.168.244.2", IpAddress.IP.v4, "UnitTest2");
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result)
@@ -1465,7 +1483,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     @Test
     public void shouldSetSiteExtIfNoReferer() {
         // when
-        final BidRequest result = target.resolve(defaultBidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(defaultBidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getSite())
@@ -1481,7 +1499,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getSite()).isEqualTo(
@@ -1495,7 +1513,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         given(paramsExtractor.domainFrom(anyString())).willThrow(new PreBidException("Couldn't derive domain"));
 
         // when
-        final BidRequest result = target.resolve(defaultBidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(defaultBidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getSite().getPage()).isNull();
@@ -1512,7 +1530,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         given(paramsExtractor.domainFrom(anyString())).willReturn("site.com");
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         verify(paramsExtractor).domainFrom(eq("page.site.com"));
@@ -1536,7 +1554,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 "http://anotherexample.com", "anotherexample.com", "192.168.244.2", IpAddress.IP.v4, "UnitTest2");
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getSite()).isEqualTo(
@@ -1563,7 +1581,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 "http://anotherexample.com", "anotherexample.com", "192.168.244.2", IpAddress.IP.v4, "UnitTest2");
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getSite()).isEqualTo(Site.builder()
@@ -1582,7 +1600,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getSite()).isEqualTo(
@@ -1601,7 +1619,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().ext(extRequest).build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getSource())
@@ -1618,7 +1636,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().ext(extRequest).build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getSource())
@@ -1632,7 +1650,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().at(0).build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getAt()).isEqualTo(1);
@@ -1644,7 +1662,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().at(null).build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getAt()).isEqualTo(1);
@@ -1656,7 +1674,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().cur(null).build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getCur()).isEqualTo(singletonList("USD"));
@@ -1668,7 +1686,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getTmax()).isEqualTo(2000L);
@@ -1685,7 +1703,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         // result was wrapped to list because extracting method works different on iterable and not iterable objects,
@@ -1707,7 +1725,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(singletonList(result))
@@ -1728,7 +1746,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThatThrownBy(() -> target.resolve(bidRequest, httpRequest, ENDPOINT, false))
+        assertThatThrownBy(() -> target.resolve(bidRequest, auctionContext, ENDPOINT, false))
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessage("Invalid string price granularity with value: invalid");
     }
@@ -1744,7 +1762,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(singletonList(result))
@@ -1773,7 +1791,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(singletonList(result))
@@ -1795,7 +1813,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(singletonList(result))
@@ -1821,7 +1839,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         given(paramsExtractor.secureFrom(any())).willReturn(0);
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         final ObjectNode expectedResult = mapper.createObjectNode()
@@ -1853,7 +1871,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         given(paramsExtractor.secureFrom(any())).willReturn(0);
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         final ObjectNode expectedResult = mapper.createObjectNode()
@@ -1884,7 +1902,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         given(paramsExtractor.secureFrom(any())).willReturn(0);
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         final ObjectNode expectedResult = mapper.createObjectNode()
@@ -1917,7 +1935,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         given(paramsExtractor.secureFrom(any())).willReturn(0);
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getImp()).extracting(Imp::getExt)
@@ -1946,7 +1964,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         given(paramsExtractor.secureFrom(any())).willReturn(0);
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getImp()).extracting(Imp::getExt).element(0).isNotNull().isEqualTo(impBidderParams);
@@ -1963,7 +1981,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(singletonList(result))
@@ -1986,7 +2004,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(singletonList(result))
@@ -2010,7 +2028,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getExt())
@@ -2029,7 +2047,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(singletonList(result))
@@ -2051,7 +2069,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(singletonList(result))
@@ -2075,7 +2093,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(singletonList(result))
@@ -2099,7 +2117,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(singletonList(result))
@@ -2124,7 +2142,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(singletonList(result))
@@ -2148,7 +2166,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result)
@@ -2172,7 +2190,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result)
@@ -2193,7 +2211,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
 
         // when
         final BidRequest result = target.resolve(
-                bidRequest, httpRequest, Endpoint.openrtb2_auction.value(), false);
+                bidRequest, auctionContext, Endpoint.openrtb2_auction.value(), false);
 
         // then
         assertThat(result)
@@ -2210,7 +2228,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(request -> request.app(App.builder().build()));
 
         //when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, Endpoint.openrtb2_auction.value(), false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, Endpoint.openrtb2_auction.value(), false);
 
         // then
         assertThat(singletonList(result))
@@ -2226,7 +2244,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(request -> request.dooh(Dooh.builder().build()));
 
         //when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, Endpoint.openrtb2_auction.value(), false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, Endpoint.openrtb2_auction.value(), false);
 
         // then
         assertThat(singletonList(result))
@@ -2242,7 +2260,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(request -> request.site(Site.builder().build()));
 
         //when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, Endpoint.openrtb2_auction.value(), false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, Endpoint.openrtb2_auction.value(), false);
 
         // then
         assertThat(singletonList(result))
@@ -2260,7 +2278,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .app(App.builder().build()));
 
         //when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, Endpoint.openrtb2_auction.value(), false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, Endpoint.openrtb2_auction.value(), false);
 
         // then
         assertThat(singletonList(result))
@@ -2278,7 +2296,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .dooh(Dooh.builder().build()));
 
         //when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, Endpoint.openrtb2_auction.value(), false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, Endpoint.openrtb2_auction.value(), false);
 
         // then
         assertThat(singletonList(result))
@@ -2296,7 +2314,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .dooh(Dooh.builder().build()));
 
         //when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, Endpoint.openrtb2_auction.value(), false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, Endpoint.openrtb2_auction.value(), false);
 
         // then
         assertThat(singletonList(result))
@@ -2315,7 +2333,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .dooh(Dooh.builder().build()));
 
         //when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, Endpoint.openrtb2_auction.value(), false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, Endpoint.openrtb2_auction.value(), false);
 
         // then
         assertThat(singletonList(result))
@@ -2327,8 +2345,8 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
 
     private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer) {
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
-                .ext(ExtRequest.of(ExtRequestPrebid.builder().build())))
+                        .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
+                        .ext(ExtRequest.of(ExtRequestPrebid.builder().build())))
                 .build();
     }
 
@@ -2342,7 +2360,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
 
         // when
         final BidRequest result = target.resolve(
-                bidRequest, httpRequest, Endpoint.openrtb2_auction.value(), false);
+                bidRequest, auctionContext, Endpoint.openrtb2_auction.value(), false);
 
         // then
         assertThat(singletonList(result))
@@ -2362,7 +2380,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThatThrownBy(() -> target.resolve(bidRequest, httpRequest, ENDPOINT, false))
+        assertThatThrownBy(() -> target.resolve(bidRequest, auctionContext, ENDPOINT, false))
                 .isInstanceOf(PreBidException.class)
                 .hasMessage("ext.prebid.channel.name can't be empty");
     }
@@ -2377,7 +2395,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(singletonList(result))
@@ -2399,7 +2417,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(singletonList(result))
@@ -2420,7 +2438,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(singletonList(result))
@@ -2438,7 +2456,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, httpRequest, ENDPOINT, false);
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result)
@@ -2449,16 +2467,322 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnFailedFutureWhenAppIdIsBlacklisted() {
+    public void shouldReturnFailedFutureWhenAppIdIsBlocklisted() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .app(App.builder().id("bad_app").build())
                 .build();
 
         // when and then
-        assertThatExceptionOfType(BlacklistedAppException.class)
-                .isThrownBy(() -> target.resolve(bidRequest, httpRequest, ENDPOINT, false))
+        assertThatExceptionOfType(BlocklistedAppException.class)
+                .isThrownBy(() -> target.resolve(bidRequest, auctionContext, ENDPOINT, false))
                 .withMessage("Prebid-server does not process requests from App ID: bad_app");
+    }
+
+    @Test
+    public void shouldReturnWithSameUserIfNoTopicsFound() {
+        // given
+        final User user = User.builder().build();
+        final BidRequest bidRequest = BidRequest.builder().user(user).build();
+
+        // when
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
+
+        // then
+        assertThat(result)
+                .extracting(BidRequest::getUser)
+                .isSameAs(user);
+    }
+
+    @Test
+    public void shouldReturnWithCreatedUserIfNotProvidedAndTopicsFound() {
+        // given
+        given(topicsResolver.resolve(any(), anyBoolean(), anyList()))
+                .willReturn(singletonList(SecBrowsingTopic.of("domain", Set.of("segment"), 1, "modelVersion")));
+
+        final BidRequest bidRequest = BidRequest.builder().build();
+
+        // when
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
+
+        // then
+        assertThat(result)
+                .extracting(BidRequest::getUser)
+                .extracting(User::getData)
+                .asInstanceOf(InstanceOfAssertFactories.list(Data.class))
+                .containsExactly(Data.builder()
+                        .name("domain")
+                        .segment(singletonList(Segment.builder().id("segment").build()))
+                        .ext(mapper.createObjectNode()
+                                .put("segtax", 600)
+                                .put("segclass", "modelVersion"))
+                        .build());
+    }
+
+    @Test
+    public void shouldReturnWithRightTaxonomy() {
+        // given
+        given(topicsResolver.resolve(any(), anyBoolean(), anyList()))
+                .willReturn(IntStream.range(1, 11)
+                        .mapToObj(i -> SecBrowsingTopic.of("domain", Set.of("segment"), i, "modelVersion"))
+                        .toList());
+
+        final BidRequest bidRequest = BidRequest.builder().build();
+
+        // when
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
+
+        // then
+        assertThat(result)
+                .extracting(BidRequest::getUser)
+                .extracting(User::getData)
+                .asInstanceOf(InstanceOfAssertFactories.list(Data.class))
+                .extracting(Data::getExt)
+                .extracting(ext -> ext.get("segtax"))
+                .map(JsonNode::asInt)
+                .containsExactlyInAnyOrder(600, 601, 602, 603, 604, 605, 606, 607, 608, 609);
+    }
+
+    @Test
+    public void shouldReturnWithNewDataOnNewDomain() {
+        // given
+        given(topicsResolver.resolve(any(), anyBoolean(), anyList()))
+                .willReturn(singletonList(SecBrowsingTopic.of("newDomain", Set.of("1"), 1, "segClass")));
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .user(User.builder()
+                        .data(singletonList(Data.builder()
+                                .name("domain")
+                                .segment(singletonList(Segment.builder().id("2").build()))
+                                .ext(mapper.createObjectNode()
+                                        .put("segtax", 600)
+                                        .put("segclass", "segClass"))
+                                .build()))
+                        .build())
+                .build();
+
+        // when
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
+
+        // then
+        assertThat(result)
+                .extracting(BidRequest::getUser)
+                .extracting(User::getData)
+                .asInstanceOf(InstanceOfAssertFactories.list(Data.class))
+                .containsExactlyInAnyOrder(
+                        Data.builder()
+                                .name("domain")
+                                .segment(singletonList(Segment.builder().id("2").build()))
+                                .ext(mapper.createObjectNode()
+                                        .put("segtax", 600)
+                                        .put("segclass", "segClass"))
+                                .build(),
+                        Data.builder()
+                                .name("newDomain")
+                                .segment(singletonList(Segment.builder().id("1").build()))
+                                .ext(mapper.createObjectNode()
+                                        .put("segtax", 600)
+                                        .put("segclass", "segClass"))
+                                .build());
+    }
+
+    @Test
+    public void shouldReturnWithNewDataOnNotMatchedSegTax() {
+        // given
+        given(topicsResolver.resolve(any(), anyBoolean(), anyList()))
+                .willReturn(singletonList(SecBrowsingTopic.of("notMatchedSegTaxDomain", Set.of("1"), 1, "segClass")));
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .user(User.builder()
+                        .data(singletonList(Data.builder()
+                                .name("notMatchedSegTaxDomain")
+                                .segment(singletonList(Segment.builder().id("2").build()))
+                                .ext(mapper.createObjectNode()
+                                        .put("segtax", 609)
+                                        .put("segclass", "segClass"))
+                                .build()))
+                        .build())
+                .build();
+
+        // when
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
+
+        // then
+        assertThat(result)
+                .extracting(BidRequest::getUser)
+                .extracting(User::getData)
+                .asInstanceOf(InstanceOfAssertFactories.list(Data.class))
+                .containsExactlyInAnyOrder(
+                        Data.builder()
+                                .name("notMatchedSegTaxDomain")
+                                .segment(singletonList(Segment.builder().id("2").build()))
+                                .ext(mapper.createObjectNode()
+                                        .put("segtax", 609)
+                                        .put("segclass", "segClass"))
+                                .build(),
+                        Data.builder()
+                                .name("notMatchedSegTaxDomain")
+                                .segment(singletonList(Segment.builder().id("1").build()))
+                                .ext(mapper.createObjectNode()
+                                        .put("segtax", 600)
+                                        .put("segclass", "segClass"))
+                                .build());
+    }
+
+    @Test
+    public void shouldReturnWithNewDataOnNotMatchedSegClass() {
+        // given
+        given(topicsResolver.resolve(any(), anyBoolean(), anyList()))
+                .willReturn(singletonList(SecBrowsingTopic.of("notMatchedSegClassDomain", Set.of("1"), 1, "segClass")));
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .user(User.builder()
+                        .data(singletonList(Data.builder()
+                                .name("notMatchedSegClassDomain")
+                                .segment(singletonList(Segment.builder().id("2").build()))
+                                .ext(mapper.createObjectNode()
+                                        .put("segtax", 600)
+                                        .put("segclass", "otherSegClass"))
+                                .build()))
+                        .build())
+                .build();
+
+        // when
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
+
+        // then
+        assertThat(result)
+                .extracting(BidRequest::getUser)
+                .extracting(User::getData)
+                .asInstanceOf(InstanceOfAssertFactories.list(Data.class))
+                .containsExactlyInAnyOrder(
+                        Data.builder()
+                                .name("notMatchedSegClassDomain")
+                                .segment(singletonList(Segment.builder().id("2").build()))
+                                .ext(mapper.createObjectNode()
+                                        .put("segtax", 600)
+                                        .put("segclass", "otherSegClass"))
+                                .build(),
+                        Data.builder()
+                                .name("notMatchedSegClassDomain")
+                                .segment(singletonList(Segment.builder().id("1").build()))
+                                .ext(mapper.createObjectNode()
+                                        .put("segtax", 600)
+                                        .put("segclass", "segClass"))
+                                .build());
+    }
+
+    @Test
+    public void shouldReturnWithMergedData() {
+        // given
+        given(topicsResolver.resolve(any(), anyBoolean(), anyList())).willReturn(asList(
+                SecBrowsingTopic.of("matchedDomain", Set.of("1", "4"), 1, "segClass"),
+                SecBrowsingTopic.of("newDomain", Set.of("2"), 1, "segClass"),
+                SecBrowsingTopic.of("newDomain", Set.of("3"), 1, "segClass")));
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .user(User.builder()
+                        .data(singletonList(Data.builder()
+                                .name("matchedDomain")
+                                .segment(singletonList(Segment.builder().id("4").build()))
+                                .ext(mapper.createObjectNode()
+                                        .put("segtax", 600)
+                                        .put("segclass", "segClass"))
+                                .build()))
+                        .build())
+                .build();
+
+        // when
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
+
+        // then
+        assertThat(result)
+                .extracting(BidRequest::getUser)
+                .extracting(User::getData)
+                .asInstanceOf(InstanceOfAssertFactories.list(Data.class))
+                .containsExactlyInAnyOrder(
+                        Data.builder()
+                                .name("matchedDomain")
+                                .segment(asList(
+                                        Segment.builder().id("4").build(),
+                                        Segment.builder().id("1").build()))
+                                .ext(mapper.createObjectNode()
+                                        .put("segtax", 600)
+                                        .put("segclass", "segClass"))
+                                .build(),
+                        Data.builder()
+                                .name("newDomain")
+                                .segment(asList(
+                                        Segment.builder().id("2").build(),
+                                        Segment.builder().id("3").build()))
+                                .ext(mapper.createObjectNode()
+                                        .put("segtax", 600)
+                                        .put("segclass", "segClass"))
+                                .build());
+    }
+
+    @Test
+    public void shouldNotDropDuplicatedAndNotFilledUserData() {
+        // given
+        given(topicsResolver.resolve(any(), anyBoolean(), anyList())).willReturn(asList(
+                SecBrowsingTopic.of("matchedDomain", Set.of("1", "2"), 1, "segClass"),
+                SecBrowsingTopic.of("matchedDomain", Set.of("2", "3"), 1, "segClass")));
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .user(User.builder()
+                        .data(asList(Data.builder()
+                                        .name("matchedDomain")
+                                        .segment(singletonList(Segment.builder().id("2").build()))
+                                        .ext(mapper.createObjectNode()
+                                                .put("segtax", 600)
+                                                .put("segclass", "segClass"))
+                                        .build(),
+                                Data.builder()
+                                        .name("matchedDomain")
+                                        .segment(singletonList(Segment.builder().id("2").build()))
+                                        .ext(mapper.createObjectNode()
+                                                .put("segtax", 600)
+                                                .put("segclass", "segClass"))
+                                        .build(),
+                                Data.builder().build()))
+                        .build())
+                .build();
+
+        // when
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
+
+        // then
+        assertThat(result)
+                .extracting(BidRequest::getUser)
+                .extracting(User::getData)
+                .asInstanceOf(InstanceOfAssertFactories.list(Data.class))
+                .containsExactlyInAnyOrder(
+                        Data.builder()
+                                .name("matchedDomain")
+                                .segment(asList(
+                                        Segment.builder().id("2").build(),
+                                        Segment.builder().id("1").build(),
+                                        Segment.builder().id("3").build()))
+                                .ext(mapper.createObjectNode()
+                                        .put("segtax", 600)
+                                        .put("segclass", "segClass"))
+                                .build(),
+                        Data.builder()
+                                .name("matchedDomain")
+                                .segment(singletonList(Segment.builder().id("2").build()))
+                                .ext(mapper.createObjectNode()
+                                        .put("segtax", 600)
+                                        .put("segclass", "segClass"))
+                                .build(),
+                        Data.builder().build());
+    }
+
+    private static AuctionContext givenAuctionContext(HttpRequestContext httpRequestContext) {
+        return AuctionContext.builder()
+                .httpRequest(httpRequestContext)
+                .debugContext(DebugContext.empty())
+                .debugWarnings(new ArrayList<>())
+                .build();
     }
 
     private void givenImplicitParams(String referer, String domain, String ip, IpAddress.IP ipVersion, String ua) {

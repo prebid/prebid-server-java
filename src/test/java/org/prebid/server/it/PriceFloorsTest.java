@@ -1,20 +1,14 @@
 package org.prebid.server.it;
 
-import com.github.tomakehurst.wiremock.junit.WireMockClassRule;
 import com.github.tomakehurst.wiremock.stubbing.StubMapping;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 import org.json.JSONException;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.prebid.server.VertxTest;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.util.IntegrationTestsUtil;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
 
@@ -23,21 +17,12 @@ import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
-import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
 import static com.github.tomakehurst.wiremock.stubbing.Scenario.STARTED;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.prebid.server.util.IntegrationTestsUtil.assertJsonEquals;
-import static org.prebid.server.util.IntegrationTestsUtil.jsonFrom;
-import static org.prebid.server.util.IntegrationTestsUtil.responseFor;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
-@RunWith(SpringRunner.class)
-@TestPropertySource(
-        value = {"test-application.properties"},
-        properties = {"price-floors.enabled=true", "server.http.port=8050", "admin.port=0"}
-)
-public class PriceFloorsTest extends VertxTest {
+@TestPropertySource(properties = {"price-floors.enabled=true", "server.http.port=8050", "admin.port=0"})
+public class PriceFloorsTest extends IntegrationTest {
 
     private static final int APP_PORT = 8050;
     private static final int WIREMOCK_PORT = 8090;
@@ -48,22 +33,20 @@ public class PriceFloorsTest extends VertxTest {
 
     private static final RequestSpecification SPEC = IntegrationTest.spec(APP_PORT);
 
-    @ClassRule
-    public static final WireMockClassRule WIRE_MOCK_RULE = new WireMockClassRule(options().port(WIREMOCK_PORT));
-
-    @BeforeClass
-    public static void setUp() throws IOException {
+    @BeforeAll
+    public static void setUpJunk() throws IOException {
         WIRE_MOCK_RULE.stubFor(get(urlPathEqualTo("/periodic-update"))
                 .willReturn(aResponse().withBody(jsonFrom("storedrequests/test-periodic-refresh.json"))));
         WIRE_MOCK_RULE.stubFor(get(urlPathEqualTo("/currency-rates"))
                 .willReturn(aResponse().withBody(jsonFrom("currency/latest.json"))));
-        WIRE_MOCK_RULE.stubFor(get(urlPathEqualTo("/floors-provider"))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/floors/provided-floors.json"))));
     }
 
     @Test
     public void openrtb2AuctionShouldApplyPriceFloorsForTheGenericBidder() throws IOException, JSONException {
         // given
+        WIRE_MOCK_RULE.stubFor(get(urlPathEqualTo("/floors-provider"))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/floors/provided-floors.json"))));
+
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/generic-exchange"))
                 .inScenario(PRICE_FLOORS)
                 .whenScenarioStateIs(STARTED)
@@ -72,13 +55,13 @@ public class PriceFloorsTest extends VertxTest {
                 .willSetStateTo(FLOORS_FROM_REQUEST));
 
         // when
-        final Response firstResponse = responseFor(
+        final Response firstResponse = IntegrationTestsUtil.responseFor(
                 "openrtb2/floors/floors-test-auction-request-1.json",
                 Endpoint.openrtb2_auction,
                 SPEC);
 
         // then
-        assertJsonEquals(
+        IntegrationTestsUtil.assertJsonEquals(
                 "openrtb2/floors/floors-test-auction-response.json",
                 firstResponse,
                 singletonList("generic"),
@@ -93,16 +76,38 @@ public class PriceFloorsTest extends VertxTest {
                 .willSetStateTo(FLOORS_FROM_PROVIDER));
 
         // when
-        final Response secondResponse = responseFor(
+        final Response secondResponse = IntegrationTestsUtil.responseFor(
                 "openrtb2/floors/floors-test-auction-request-2.json",
                 Endpoint.openrtb2_auction,
                 SPEC);
 
         // then
         assertThat(stubMapping.getNewScenarioState()).isEqualTo(FLOORS_FROM_PROVIDER);
-        assertJsonEquals(
+        IntegrationTestsUtil.assertJsonEquals(
                 "openrtb2/floors/floors-test-auction-response.json",
                 secondResponse,
+                singletonList("generic"),
+                PriceFloorsTest::replaceBidderRelatedStaticInfo);
+    }
+
+    @Test
+    public void openrtb2AuctionShouldSkipPriceFloorsForTheGenericBidderWhenGenericIsInNoSignalBiddersList()
+            throws IOException, JSONException {
+
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/generic-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/floors/floors-test-bid-request-no-signal.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/floors/floors-test-bid-response.json"))));
+
+        // when
+        final Response firstResponse = IntegrationTestsUtil.responseFor(
+                "openrtb2/floors/floors-test-auction-request-no-signal.json",
+                Endpoint.openrtb2_auction,
+                SPEC);
+
+        // then
+        IntegrationTestsUtil.assertJsonEquals(
+                "openrtb2/floors/floors-test-auction-response-no-signal.json",
+                firstResponse,
                 singletonList("generic"),
                 PriceFloorsTest::replaceBidderRelatedStaticInfo);
     }

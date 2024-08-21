@@ -2,7 +2,7 @@ adapters:
   boldwin:
     endpoint: http://ssp.videowalldirect.com/pserver
     meta-info:
-      maintainer-email: wls_demo_box@smartyads.com
+      maintainer-email: info@bold-win.com
       app-media-types:
         - banner
         - video
@@ -13,3 +13,9 @@ adapters:
         - native
       supported-vendors:
       vendor-id: 0
+    usersync:
+      cookie-family-name: boldwin
+      redirect:
+        support-cors: false
+        url: https://sync.videowalldirect.com/pbserver?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&redir={{redirect_url}}
+        uid-macro: '[UID]'

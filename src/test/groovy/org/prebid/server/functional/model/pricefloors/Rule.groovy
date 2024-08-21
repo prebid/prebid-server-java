@@ -2,6 +2,7 @@ package org.prebid.server.functional.model.pricefloors
 
 import com.fasterxml.jackson.annotation.JsonValue
 import org.apache.commons.lang3.StringUtils
+import org.prebid.server.functional.model.bidder.BidderName
 
 import java.lang.reflect.Modifier
 
@@ -21,6 +22,7 @@ class Rule {
     private String adUnitCode
     private Country country
     private DeviceType deviceType
+    private BidderName bidder
 
     // TODO add factory for delimiter
     @JsonValue

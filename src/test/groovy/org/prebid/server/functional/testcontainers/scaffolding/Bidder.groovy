@@ -64,6 +64,10 @@ class Bidder extends NetworkScaffolding {
         bidderRequests.first()
     }
 
+    Map<String, List<String>> getLastRecordedBidderRequestHeaders(String bidRequestId) {
+        return getLastRecordedRequestHeaders(bidRequestId)
+    }
+
     private String getBodyByRequest(HttpRequest request) {
         def requestString = request.bodyAsString
         def jsonNode = toJsonNode(requestString)
@@ -73,7 +77,7 @@ class Bidder extends NetworkScaffolding {
             def formatNode = it.get("banner") != null ? it.get("banner").get("format") : null
             new Imp(id: it.get("id").asText(),
                     banner: formatNode != null
-                            ? new Banner(format: [new Format(w: formatNode.first().get("w").asInt(), h: formatNode.first().get("h").asInt())])
+                            ? new Banner(format: [new Format(weight: formatNode.first().get("w").asInt(), height: formatNode.first().get("h").asInt())])
                             : null)}
         def bidRequest = new BidRequest(id: id, imp: imps)
         def response = BidResponse.getDefaultBidResponse(bidRequest)

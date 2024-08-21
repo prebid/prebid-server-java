@@ -9,7 +9,7 @@ import com.iab.openrtb.request.Native;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.appush.proto.AppushImpExtBidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -116,7 +116,7 @@ public class MgidxBidderTest extends VertxTest {
 
         final List<BidderError> errors = result.getErrors();
         assertThat(errors).hasSize(1);
-        assertThat(errors.get(0).getMessage())
+        assertThat(errors.getFirst().getMessage())
                 .startsWith("Cannot deserialize value of type ");
     }
 

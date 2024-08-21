@@ -2,7 +2,7 @@
   "id": "request_id",
   "imp": [
     {
-      "id": "imp_id",
+      "id": "test-imp-id",
       "video": {
         "mimes": [
           "mimes"
@@ -11,6 +11,7 @@
         "h": 600
       },
       "ext": {
+        "ae": 1,
         "pubmatic": {
           "adSlot": "slot9@300x250:zzz",
           "publisherId": "   publisherId   ",

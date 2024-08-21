@@ -1,11 +1,12 @@
 package org.prebid.server.hooks.modules.com.confiant.adquality.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import org.prebid.server.auction.PrivacyEnforcementService;
+import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
 import org.prebid.server.hooks.modules.com.confiant.adquality.core.BidsScanner;
-import org.prebid.server.hooks.modules.com.confiant.adquality.core.RedisScanStateChecker;
 import org.prebid.server.hooks.modules.com.confiant.adquality.core.RedisClient;
+import org.prebid.server.hooks.modules.com.confiant.adquality.core.RedisScanStateChecker;
 import org.prebid.server.hooks.modules.com.confiant.adquality.model.RedisConfig;
 import org.prebid.server.hooks.modules.com.confiant.adquality.model.RedisConnectionConfig;
 import org.prebid.server.hooks.modules.com.confiant.adquality.model.RedisRetryConfig;
@@ -19,6 +20,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 
+import java.util.Collections;
 import java.util.List;
 
 @ConditionalOnProperty(prefix = "hooks." + ConfiantAdQualityModule.CODE, name = "enabled", havingValue = "true")
@@ -32,10 +34,13 @@ public class ConfiantAdQualityModuleConfiguration {
     ConfiantAdQualityModule confiantAdQualityModule(
             @Value("${hooks.modules.confiant-ad-quality.api-key}") String apiKey,
             @Value("${hooks.modules.confiant-ad-quality.scan-state-check-interval}") int scanStateCheckInterval,
+            @Value("${hooks.modules.confiant-ad-quality.bidders-to-exclude-from-scan}") List<String> biddersToExcludeFromScan,
             RedisConfig redisConfig,
             RedisRetryConfig retryConfig,
             Vertx vertx,
-            PrivacyEnforcementService privacyEnforcementService) {
+            UserFpdActivityMask userFpdActivityMask,
+            ObjectMapper objectMapper) {
+
         final RedisConnectionConfig writeNodeConfig = redisConfig.getWriteNode();
         final RedisClient writeRedisNode = new RedisClient(
                 vertx, writeNodeConfig.getHost(), writeNodeConfig.getPort(), writeNodeConfig.getPassword(), retryConfig, "write node");
@@ -43,7 +48,7 @@ public class ConfiantAdQualityModuleConfiguration {
         final RedisClient readRedisNode = new RedisClient(
                 vertx, readNodeConfig.getHost(), readNodeConfig.getPort(), readNodeConfig.getPassword(), retryConfig, "read node");
 
-        final BidsScanner bidsScanner = new BidsScanner(writeRedisNode, readRedisNode, apiKey);
+        final BidsScanner bidsScanner = new BidsScanner(writeRedisNode, readRedisNode, apiKey, objectMapper);
         final RedisScanStateChecker redisScanStateChecker = new RedisScanStateChecker(bidsScanner, scanStateCheckInterval, vertx);
 
         final Promise<Void> scannerPromise = Promise.promise();
@@ -51,8 +56,13 @@ public class ConfiantAdQualityModuleConfiguration {
 
         bidsScanner.start(scannerPromise);
 
-        return new ConfiantAdQualityModule(List.of(
-                new ConfiantAdQualityBidResponsesScanHook(bidsScanner, privacyEnforcementService)));
+        return new ConfiantAdQualityModule(Collections.singletonList(
+                new ConfiantAdQualityBidResponsesScanHook(bidsScanner, biddersToExcludeFromScan, userFpdActivityMask)));
+    }
+
+    @Bean
+    ObjectMapper objectMapper() {
+        return new ObjectMapper();
     }
 
     @Bean

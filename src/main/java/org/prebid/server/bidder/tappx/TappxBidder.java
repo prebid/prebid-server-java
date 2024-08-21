@@ -42,7 +42,7 @@ public class TappxBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpTappx>> TAPX_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
-    private static final Pattern NEW_ENDPOINT_PATTERN = Pattern.compile("^(zz|vz)[0-9]{3,}([a-z]{2}|test)$");
+    private static final Pattern NEW_ENDPOINT_PATTERN = Pattern.compile("^(zz|vz)[0-9]{3,}([a-z]{2,3}|test)$");
     private static final String SUBDOMAIN_MACRO = "{{subdomain}}";
 
     private final String endpointUrl;
@@ -62,7 +62,7 @@ public class TappxBidder implements Bidder<BidRequest> {
         final ExtImpTappx extImpTappx;
         final String url;
         try {
-            extImpTappx = parseImpExt(imps.get(0));
+            extImpTappx = parseImpExt(imps.getFirst());
             url = resolveUrl(extImpTappx, request.getTest());
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
@@ -82,7 +82,7 @@ public class TappxBidder implements Bidder<BidRequest> {
 
     private static List<Imp> modifyImps(List<Imp> imps, ExtImpTappx extImpTappx) {
         final List<Imp> modifiedImps = new ArrayList<>(imps);
-        modifiedImps.set(0, modifyImp(imps.get(0), extImpTappx));
+        modifiedImps.set(0, modifyImp(imps.getFirst(), extImpTappx));
 
         return modifiedImps;
     }

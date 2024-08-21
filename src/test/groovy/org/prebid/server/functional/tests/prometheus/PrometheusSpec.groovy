@@ -111,7 +111,7 @@ class PrometheusSpec extends BaseSpec {
 
         and: "PBS container is prepared"
         def pbsContainer = new PrebidServerContainer(config)
-        pbsContainer.setWaitStrategy(Wait.defaultWaitStrategy())
+        pbsContainer.waitingFor(Wait.defaultWaitStrategy())
 
         when: "PBS is started"
         pbsContainer.start()

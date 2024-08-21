@@ -1,0 +1,17 @@
+{
+  "id": "test-request-id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "8400d766-58b3-47d4-80d7-6658b337d403",
+          "impid": "test-imp-id",
+          "adm": "{\"ver\":\"1.2\"}",
+          "price": 1.2,
+          "cid": "1",
+          "crid": "1"
+        }
+      ]
+    }
+  ]
+}

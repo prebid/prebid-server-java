@@ -12,13 +12,12 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import org.apache.commons.lang3.StringUtils;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
@@ -27,8 +26,9 @@ import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.AmpEvent;
 import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.model.NotificationEvent;
-import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.privacy.enforcement.TcfEnforcement;
+import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
@@ -52,29 +52,29 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willAnswer;
-import static org.mockito.Mockito.mock;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+@ExtendWith(MockitoExtension.class)
 public class AnalyticsReporterDelegatorTest {
 
     private static final String EVENT = StringUtils.EMPTY;
     private static final Integer FIRST_REPORTER_ID = 1;
     private static final Integer SECOND_REPORTER_ID = 2;
 
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
-    @Mock
+    @Mock(strictness = LENIENT)
     private Vertx vertx;
+    @Mock(strictness = LENIENT)
+    private TcfEnforcement tcfEnforcement;
     @Mock
-    private PrivacyEnforcementService privacyEnforcementService;
+    private UserFpdActivityMask userFpdActivityMask;
     @Mock
     private Metrics metrics;
-
+    @Mock(strictness = LENIENT)
     private AnalyticsReporter firstReporter;
-
+    @Mock(strictness = LENIENT)
     private AnalyticsReporter secondReporter;
 
     private AnalyticsReporterDelegator target;
@@ -82,14 +82,12 @@ public class AnalyticsReporterDelegatorTest {
     @Mock
     private ActivityInfrastructure activityInfrastructure;
 
-    @Before
+    @BeforeEach
     public void setUp() {
-        firstReporter = mock(AnalyticsReporter.class);
         given(firstReporter.vendorId()).willReturn(FIRST_REPORTER_ID);
         given(firstReporter.name()).willReturn("logAnalytics");
         given(firstReporter.processEvent(any())).willReturn(Future.succeededFuture());
 
-        secondReporter = mock(AnalyticsReporter.class);
         given(secondReporter.vendorId()).willReturn(SECOND_REPORTER_ID);
         given(secondReporter.name()).willReturn("adapter");
         given(secondReporter.processEvent(any())).willReturn(Future.succeededFuture());
@@ -98,11 +96,11 @@ public class AnalyticsReporterDelegatorTest {
         final Map<Integer, PrivacyEnforcementAction> enforcementActionMap = new HashMap<>();
         enforcementActionMap.put(SECOND_REPORTER_ID, PrivacyEnforcementAction.allowAll());
         enforcementActionMap.put(FIRST_REPORTER_ID, PrivacyEnforcementAction.allowAll());
-        given(privacyEnforcementService.resultForVendorIds(any(), any()))
+        given(tcfEnforcement.enforce(any(), any()))
                 .willReturn(Future.succeededFuture(enforcementActionMap));
 
         target = new AnalyticsReporterDelegator(
-                0.01, List.of(firstReporter, secondReporter), vertx, privacyEnforcementService, metrics);
+                vertx, List.of(firstReporter, secondReporter), tcfEnforcement, userFpdActivityMask, metrics, 0.01);
     }
 
     @Test
@@ -251,7 +249,7 @@ public class AnalyticsReporterDelegatorTest {
         enforcementActionMap.put(FIRST_REPORTER_ID, PrivacyEnforcementAction.restrictAll());
         enforcementActionMap.put(SECOND_REPORTER_ID, PrivacyEnforcementAction.allowAll());
 
-        given(privacyEnforcementService.resultForVendorIds(any(), any()))
+        given(tcfEnforcement.enforce(any(), any()))
                 .willReturn(Future.succeededFuture(enforcementActionMap));
 
         willAnswer(withNullAndInvokeHandler()).given(vertx).runOnContext(any());
@@ -271,7 +269,7 @@ public class AnalyticsReporterDelegatorTest {
         enforcementActionMap.put(FIRST_REPORTER_ID, PrivacyEnforcementAction.restrictAll());
         enforcementActionMap.put(SECOND_REPORTER_ID, PrivacyEnforcementAction.restrictAll());
 
-        given(privacyEnforcementService.resultForVendorIds(any(), any()))
+        given(tcfEnforcement.enforce(any(), any()))
                 .willReturn(Future.succeededFuture(enforcementActionMap));
 
         willAnswer(withNullAndInvokeHandler()).given(vertx).runOnContext(any());
@@ -349,11 +347,12 @@ public class AnalyticsReporterDelegatorTest {
         // given
         given(activityInfrastructure.isAllowed(eq(Activity.REPORT_ANALYTICS), any())).willReturn(true);
         given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_UFPD), any())).willReturn(false);
+        given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_EIDS), any())).willReturn(false);
         given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_GEO), any())).willReturn(false);
 
-        given(privacyEnforcementService.maskUserConsideringActivityRestrictions(any(), eq(true), eq(true)))
+        given(userFpdActivityMask.maskUser(any(), eq(true), eq(true)))
                 .willReturn(User.builder().id("masked").build());
-        given(privacyEnforcementService.maskDeviceConsideringActivityRestrictions(any(), eq(true), eq(true)))
+        given(userFpdActivityMask.maskDevice(any(), eq(true), eq(true)))
                 .willReturn(Device.builder().model("masked").build());
 
         final AuctionEvent auctionEvent = AuctionEvent.builder()

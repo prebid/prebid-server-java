@@ -3,30 +3,28 @@ package org.prebid.server.events;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 
+@ExtendWith(MockitoExtension.class)
 public class EventUtilTest {
 
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
-    @Mock
+    @Mock(strictness = LENIENT)
     private RoutingContext routingContext;
-    @Mock
+    @Mock(strictness = LENIENT)
     private HttpServerRequest httpRequest;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(routingContext.request()).willReturn(httpRequest);
         given(httpRequest.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
@@ -216,8 +214,7 @@ public class EventUtilTest {
                 .add("b", "bidId")
                 .add("ts", "1000")
                 .add("f", "i")
-                .add("x", "0")
-                .add("l", "lineItemId"));
+                .add("x", "0"));
 
         // when
         final EventRequest result = EventUtil.from(routingContext);
@@ -231,7 +228,6 @@ public class EventUtilTest {
                 .timestamp(1000L)
                 .format(EventRequest.Format.image)
                 .analytics(EventRequest.Analytics.disabled)
-                .lineItemId("lineItemId")
                 .build());
     }
 
@@ -273,7 +269,6 @@ public class EventUtilTest {
                 .integration("pbjs")
                 .analytics(EventRequest.Analytics.enabled)
                 .timestamp(1000L)
-                .lineItemId("lineItemId")
                 .build();
 
         // when
@@ -282,12 +277,11 @@ public class EventUtilTest {
         // then
         assertThat(result).isEqualTo(
                 "http://external-url/event?t=win&b=bidId&a=accountId"
-                        + "&aid=auctionId&ts=1000&bidder=bidder&f=b&int=pbjs&x=1"
-                        + "&l=lineItemId");
+                        + "&aid=auctionId&ts=1000&bidder=bidder&f=b&int=pbjs&x=1");
     }
 
     @Test
-    public void toUrlShouldReturnExpectedUrlWithoutFormatAndAnalyticsAndLineItemId() {
+    public void toUrlShouldReturnExpectedUrlWithoutFormatAndAnalytics() {
         // given
         final EventRequest eventRequest = EventRequest.builder()
                 .type(EventRequest.Type.win)

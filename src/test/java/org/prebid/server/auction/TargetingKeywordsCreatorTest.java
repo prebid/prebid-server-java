@@ -1,10 +1,9 @@
 package org.prebid.server.auction;
 
 import com.iab.openrtb.response.Bid;
-import org.junit.Rule;
-import org.junit.Test;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 
@@ -20,10 +19,10 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 
+@ExtendWith(MockitoExtension.class)
 public class TargetingKeywordsCreatorTest {
 
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
+    private final String defaultKeyPrefix = "hb";
 
     @Test
     public void shouldReturnTargetingKeywordsForOrdinaryBidOpenrtb() {
@@ -44,7 +43,8 @@ public class TargetingKeywordsCreatorTest {
                         0,
                         null,
                         null,
-                        null)
+                        null,
+                        defaultKeyPrefix)
                 .makeFor(bid, "bidder1", false, null, null, null, null);
 
         // then
@@ -74,7 +74,8 @@ public class TargetingKeywordsCreatorTest {
                         0,
                         null,
                         null,
-                        null)
+                        null,
+                        defaultKeyPrefix)
                 .makeFor(bid, "veryververyverylongbidder1", false, null, null, null, null);
 
         // then
@@ -108,7 +109,8 @@ public class TargetingKeywordsCreatorTest {
                         0,
                         null,
                         null,
-                        null)
+                        null,
+                        defaultKeyPrefix)
                 .makeFor(bid, "bidder1", true, "cacheId1", "banner", "videoCacheId1", "categoryDuration");
 
         // then
@@ -150,7 +152,8 @@ public class TargetingKeywordsCreatorTest {
                         0,
                         null,
                         null,
-                        null)
+                        null,
+                        defaultKeyPrefix)
                 .makeFor(bid, "", true, null, "banner", null, null);
 
         // then
@@ -175,7 +178,8 @@ public class TargetingKeywordsCreatorTest {
                         0,
                         null,
                         null,
-                        null)
+                        null,
+                        defaultKeyPrefix)
                 .makeFor(bid, "bidder", true, null, null, null, null);
 
         // then
@@ -201,7 +205,8 @@ public class TargetingKeywordsCreatorTest {
                         0,
                         null,
                         null,
-                        null)
+                        null,
+                        defaultKeyPrefix)
                 .makeFor(bid, "bidder", true, null, null, null, null);
 
         // then
@@ -228,7 +233,8 @@ public class TargetingKeywordsCreatorTest {
                         0,
                         null,
                         null,
-                        null)
+                        null,
+                        defaultKeyPrefix)
                 .makeFor(bid, "bidder1", true, null, null, null, null);
 
         // then
@@ -253,7 +259,8 @@ public class TargetingKeywordsCreatorTest {
                         0,
                         null,
                         null,
-                        null)
+                        null,
+                        defaultKeyPrefix)
                 .makeFor(bid, "bidder1", true, null, null, null, null);
 
         // then
@@ -278,7 +285,8 @@ public class TargetingKeywordsCreatorTest {
                         0,
                         null,
                         null,
-                        null)
+                        null,
+                        defaultKeyPrefix)
                 .makeFor(bid, "bidder1", true, null, null, null, null);
 
         // then
@@ -303,7 +311,8 @@ public class TargetingKeywordsCreatorTest {
                         0,
                         null,
                         null,
-                        null)
+                        null,
+                        defaultKeyPrefix)
                 .makeFor(bid, "bidder1", true, null, null, null, null);
 
         // then
@@ -328,7 +337,8 @@ public class TargetingKeywordsCreatorTest {
                         20,
                         null,
                         null,
-                        null)
+                        null,
+                        defaultKeyPrefix)
                 .makeFor(bid, "someVeryLongBidderName", true, null, null, null, null);
 
         // then
@@ -354,7 +364,8 @@ public class TargetingKeywordsCreatorTest {
                         7,
                         null,
                         null,
-                        null)
+                        null,
+                        defaultKeyPrefix)
                 .makeFor(bid, "bidder", true, null, null, null, null);
 
         // then
@@ -380,7 +391,8 @@ public class TargetingKeywordsCreatorTest {
                         6,
                         null,
                         null,
-                        null)
+                        null,
+                        defaultKeyPrefix)
                 .makeFor(bid, "bidder", true, null, null, null, null);
 
         // then
@@ -407,7 +419,8 @@ public class TargetingKeywordsCreatorTest {
                         0,
                         null,
                         null,
-                        null)
+                        null,
+                        defaultKeyPrefix)
                 .makeFor(bid, "someVeryLongBidderName", true, null, null, null, null);
 
         // then
@@ -439,7 +452,8 @@ public class TargetingKeywordsCreatorTest {
                         20,
                         null,
                         null,
-                        resolver)
+                        resolver,
+                        defaultKeyPrefix)
                 .makeFor(bid, "bidder1", true, null, null, null, null);
 
         // then
@@ -470,7 +484,8 @@ public class TargetingKeywordsCreatorTest {
                         0,
                         null,
                         null,
-                        resolver)
+                        resolver,
+                        defaultKeyPrefix)
                 .makeFor(bid, "bidder1", true, null, null, null, null);
 
         // then
@@ -495,7 +510,8 @@ public class TargetingKeywordsCreatorTest {
                         0,
                         null,
                         null,
-                        null)
+                        null,
+                        defaultKeyPrefix)
                 .makeFor(bid, "bidder1", false, null, null, null, null);
 
         // then
@@ -520,7 +536,8 @@ public class TargetingKeywordsCreatorTest {
                         0,
                         null,
                         null,
-                        null)
+                        null,
+                        defaultKeyPrefix)
                 .makeFor(bid, "bidder1", false, null, null, null, null);
 
         // then

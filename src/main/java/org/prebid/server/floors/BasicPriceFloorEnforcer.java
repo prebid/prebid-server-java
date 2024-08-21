@@ -3,8 +3,6 @@ package org.prebid.server.floors;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.BooleanUtils;
@@ -18,12 +16,15 @@ import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
+import org.prebid.server.bidder.model.Price;
 import org.prebid.server.bidder.model.PriceFloorInfo;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.floors.model.PriceFloorEnforcement;
 import org.prebid.server.floors.model.PriceFloorRules;
 import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
@@ -49,10 +50,15 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
     private static final int ENFORCE_RATE_MAX = 100;
 
     private final CurrencyConversionService currencyConversionService;
+    private final PriceFloorAdjuster priceFloorAdjuster;
     private final Metrics metrics;
 
-    public BasicPriceFloorEnforcer(CurrencyConversionService currencyConversionService, Metrics metrics) {
+    public BasicPriceFloorEnforcer(CurrencyConversionService currencyConversionService,
+                                   PriceFloorAdjuster priceFloorAdjuster,
+                                   Metrics metrics) {
+
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
+        this.priceFloorAdjuster = Objects.requireNonNull(priceFloorAdjuster);
         this.metrics = Objects.requireNonNull(metrics);
     }
 
@@ -135,7 +141,12 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
         final BidderResponse bidderResponse = auctionParticipation.getBidderResponse();
         final BidderSeatBid seatBid = ObjectUtil.getIfNotNull(bidderResponse, BidderResponse::getSeatBid);
         final List<BidderBid> bidderBids = ObjectUtil.getIfNotNull(seatBid, BidderSeatBid::getBids);
-        if (CollectionUtils.isEmpty(bidderBids)) {
+
+        final BidRequest bidderBidRequest = Optional.ofNullable(auctionParticipation.getBidderRequest())
+                .map(BidderRequest::getBidRequest)
+                .orElse(null);
+
+        if (CollectionUtils.isEmpty(bidderBids) || bidderBidRequest == null) {
             return auctionParticipation;
         }
 
@@ -143,9 +154,6 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
         final List<BidderError> errors = new ArrayList<>(seatBid.getErrors());
         final List<BidderError> warnings = new ArrayList<>(seatBid.getWarnings());
 
-        final BidRequest bidderBidRequest = Optional.ofNullable(auctionParticipation.getBidderRequest())
-                .map(BidderRequest::getBidRequest)
-                .orElse(null);
         final boolean enforceDealFloors = enforceDealFloors(auctionParticipation, account);
 
         for (BidderBid bidderBid : bidderBids) {
@@ -157,7 +165,13 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
             }
 
             final BigDecimal price = bid.getPrice();
-            final BigDecimal floor = resolveFloor(bidderBid, bidderBidRequest, bidRequest, errors);
+            final BigDecimal floor = resolveFloor(
+                    bidderResponse.getBidder(),
+                    account,
+                    bidderBid,
+                    bidderBidRequest,
+                    bidRequest,
+                    errors);
 
             if (isPriceBelowFloor(price, floor)) {
                 final String impId = bid.getImpid();
@@ -197,7 +211,9 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
         return BooleanUtils.isTrue(requestEnforceDealFloors) && BooleanUtils.isTrue(accountEnforceDealFloors);
     }
 
-    private BigDecimal resolveFloor(BidderBid bidderBid,
+    private BigDecimal resolveFloor(String bidder,
+                                    Account account,
+                                    BidderBid bidderBid,
                                     BidRequest bidderBidRequest,
                                     BidRequest bidRequest,
                                     List<BidderError> errors) {
@@ -210,9 +226,15 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
                 return convertIfRequired(customBidderFloor, priceFloorInfo.getCurrency(), bidderBidRequest, bidRequest);
             }
 
-            final Imp imp = correspondingImp(bidderBid.getBid(), bidRequest.getImp());
+            final Imp imp = correspondingImp(bidderBid.getBid(), bidderBidRequest.getImp());
+            final Price correctedImpFloor = priceFloorAdjuster.revertAdjustmentForImp(imp, bidder, bidRequest, account);
             final String bidRequestCurrency = resolveBidRequestCurrency(bidRequest);
-            return convertCurrency(imp.getBidfloor(), bidRequest, imp.getBidfloorcur(), bidRequestCurrency);
+
+            return convertCurrency(
+                    correctedImpFloor.getValue(),
+                    bidRequest,
+                    correctedImpFloor.getCurrency(),
+                    bidRequestCurrency);
         } catch (PreBidException e) {
             final String logMessage = "Price floors enforcement failed for request id: %s, reason: %s"
                     .formatted(bidRequest.getId(), e.getMessage());
@@ -261,7 +283,7 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
 
     private static String resolveBidRequestCurrency(BidRequest bidRequest) {
         final List<String> currencies = ObjectUtil.getIfNotNull(bidRequest, BidRequest::getCur);
-        return CollectionUtils.isEmpty(currencies) ? null : currencies.get(0);
+        return CollectionUtils.isEmpty(currencies) ? null : currencies.getFirst();
     }
 
     private static Imp correspondingImp(Bid bid, List<Imp> imps) {

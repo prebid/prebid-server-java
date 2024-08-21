@@ -1,16 +1,13 @@
 package org.prebid.server.hooks.modules.com.confiant.adquality.core;
 
-import org.junit.Test;
-import org.prebid.server.hooks.modules.com.confiant.adquality.model.BidScanResult;
-import org.prebid.server.hooks.modules.com.confiant.adquality.model.OperationResult;
-
-import java.util.List;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class RedisParserTest {
 
-    private final RedisParser redisParser = new RedisParser();
+    private final RedisParser redisParser = new RedisParser(new ObjectMapper());
 
     @Test
     public void shouldParseBidsScanResult() {
@@ -18,13 +15,13 @@ public class RedisParserTest {
         final String redisResponse = "[[[{\"tag_key\": \"key_a\", \"imp_id\": \"imp_a\"}]],[[{\"tag_key\": \"key_b\", \"imp_id\": \"imp_b\"}]]]";
 
         // when
-        final OperationResult<List<BidScanResult>> actualScanResults = redisParser.parseBidsScanResult(redisResponse);
+        final BidsScanResult actualScanResults = redisParser.parseBidsScanResult(redisResponse);
 
         // then
-        assertThat(actualScanResults.getValue().get(0).getTagKey()).isEqualTo("key_a");
-        assertThat(actualScanResults.getValue().get(0).getImpId()).isEqualTo("imp_a");
-        assertThat(actualScanResults.getValue().get(1).getTagKey()).isEqualTo("key_b");
-        assertThat(actualScanResults.getValue().get(1).getImpId()).isEqualTo("imp_b");
+        assertThat(actualScanResults.getBidScanResults().get(0).getTagKey()).isEqualTo("key_a");
+        assertThat(actualScanResults.getBidScanResults().get(0).getImpId()).isEqualTo("imp_a");
+        assertThat(actualScanResults.getBidScanResults().get(1).getTagKey()).isEqualTo("key_b");
+        assertThat(actualScanResults.getBidScanResults().get(1).getImpId()).isEqualTo("imp_b");
         assertThat(actualScanResults.getDebugMessages().size()).isEqualTo(0);
     }
 
@@ -79,11 +76,11 @@ public class RedisParserTest {
                 "}]]]";
 
         // when
-        final OperationResult<List<BidScanResult>> actualScanResults = redisParser.parseBidsScanResult(redisResponse);
+        final BidsScanResult actualScanResults = redisParser.parseBidsScanResult(redisResponse);
 
         // then
-        assertThat(actualScanResults.getValue().get(0).getTagKey()).isEqualTo("tg");
-        assertThat(actualScanResults.getValue().size()).isEqualTo(1);
+        assertThat(actualScanResults.getBidScanResults().get(0).getTagKey()).isEqualTo("tg");
+        assertThat(actualScanResults.getBidScanResults().size()).isEqualTo(1);
         assertThat(actualScanResults.getDebugMessages().size()).isEqualTo(0);
     }
 
@@ -93,10 +90,10 @@ public class RedisParserTest {
         final String redisResponse = "{\"code\": \"123\", \"message\": \"error message\", \"error\": true, \"dsp_id\": \"cri\"}";
 
         // when
-        final OperationResult<List<BidScanResult>> actualScanResults = redisParser.parseBidsScanResult(redisResponse);
+        final BidsScanResult actualScanResults = redisParser.parseBidsScanResult(redisResponse);
 
         // then
-        assertThat(actualScanResults.getValue().size()).isEqualTo(0);
+        assertThat(actualScanResults.getBidScanResults().size()).isEqualTo(0);
         assertThat(actualScanResults.getDebugMessages().get(0)).isEqualTo("Redis error - 123: error message");
     }
 
@@ -106,10 +103,10 @@ public class RedisParserTest {
         final String redisResponse = "invalid redis response";
 
         // when
-        final OperationResult<List<BidScanResult>> actualScanResults = redisParser.parseBidsScanResult(redisResponse);
+        final BidsScanResult actualScanResults = redisParser.parseBidsScanResult(redisResponse);
 
         // then
-        assertThat(actualScanResults.getValue().size()).isEqualTo(0);
+        assertThat(actualScanResults.getBidScanResults().size()).isEqualTo(0);
         assertThat(actualScanResults.getDebugMessages().get(0)).isEqualTo("Error during parse redis response: invalid redis response");
     }
 }

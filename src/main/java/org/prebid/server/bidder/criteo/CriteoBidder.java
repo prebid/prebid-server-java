@@ -18,6 +18,7 @@ import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidMeta;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
@@ -90,7 +91,7 @@ public class CriteoBidder implements Bidder<BidRequest> {
 
     private ObjectNode makeExt(String networkName) {
         return mapper.mapper().valueToTree(ExtBidPrebid.builder()
-                .meta(mapper.mapper().createObjectNode().put("networkName", networkName))
+                .meta(ExtBidPrebidMeta.builder().networkName(networkName).build())
                 .build());
     }
 }

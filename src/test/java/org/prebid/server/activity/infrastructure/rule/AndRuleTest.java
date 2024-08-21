@@ -1,35 +1,38 @@
 package org.prebid.server.activity.infrastructure.rule;
 
-import org.junit.Before;
-import org.junit.Test;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.TextNode;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.prebid.server.VertxTest;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
-public class AndRuleTest {
+@ExtendWith(MockitoExtension.class)
+public class AndRuleTest extends VertxTest {
 
-    @org.junit.Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
-    @Mock
+    @Mock(strictness = LENIENT)
     private Rule allowRule;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private Rule disallowRule;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private Rule abstainRule;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(allowRule.proceed(any())).willReturn(Rule.Result.ALLOW);
         given(disallowRule.proceed(any())).willReturn(Rule.Result.DISALLOW);
@@ -74,5 +77,21 @@ public class AndRuleTest {
         // then
         assertThat(result).isEqualTo(Rule.Result.ABSTAIN);
         verify(abstainRule).proceed(any());
+    }
+
+    @Test
+    public void asLogEntryShouldReturnExpectedObjectNode() {
+        // given
+        final AndRule rule = new AndRule(asList(
+                TestRule.allowIfMatches(payload -> true),
+                TestRule.disallowIfMatches(payload -> false)));
+
+        // when
+        final JsonNode result = rule.asLogEntry(mapper);
+
+        // then
+        assertThat(result.get("and"))
+                .isInstanceOf(ArrayNode.class)
+                .containsExactly(TextNode.valueOf("TestRule"), TextNode.valueOf("TestRule"));
     }
 }

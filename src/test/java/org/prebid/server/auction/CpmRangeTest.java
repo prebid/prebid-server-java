@@ -1,12 +1,13 @@
 package org.prebid.server.auction;
 
 import org.assertj.core.api.Assertions;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 
 import java.math.BigDecimal;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -119,6 +120,21 @@ public class CpmRangeTest {
 
         // then
         assertThat(result.compareTo(BigDecimal.valueOf(2.33))).isEqualTo(0);
+    }
+
+    @Test
+    public void fromCpmAsNumberShouldReturnExpectedResultForMultipleRanges() {
+        // given
+        final PriceGranularity priceGranularity = PriceGranularity.createFromExtPriceGranularity(
+                ExtPriceGranularity.of(2, asList(
+                        ExtGranularityRange.of(BigDecimal.valueOf(1.5), BigDecimal.ONE),
+                        ExtGranularityRange.of(BigDecimal.valueOf(2.5), BigDecimal.valueOf(1.2)))));
+
+        // when
+        final BigDecimal result = CpmRange.fromCpmAsNumber(BigDecimal.valueOf(2), priceGranularity);
+
+        // then
+        assertThat(result.compareTo(BigDecimal.valueOf(1.5))).isEqualTo(0);
     }
 
     @Test

@@ -7,20 +7,21 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.function.Executable;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
 import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
-import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.gpp.SetuidGppService;
+import org.prebid.server.auction.privacy.contextfactory.SetuidPrivacyContextFactory;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.UsersyncMethod;
 import org.prebid.server.bidder.UsersyncMethodType;
@@ -64,33 +65,32 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anySet;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+@ExtendWith(MockitoExtension.class)
 public class SetuidHandlerTest extends VertxTest {
 
     private static final String RUBICON = "rubicon";
     private static final String FACEBOOK = "audienceNetwork";
     private static final String ADNXS = "adnxs";
 
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
-    @Mock
+    @Mock(strictness = LENIENT)
     private UidsCookieService uidsCookieService;
-    @Mock
+    @Mock(strictness = LENIENT)
     private ApplicationSettings applicationSettings;
     @Mock
     private BidderCatalog bidderCatalog;
-    @Mock
-    private PrivacyEnforcementService privacyEnforcementService;
-    @Mock
+    @Mock(strictness = LENIENT)
+    private SetuidPrivacyContextFactory setuidPrivacyContextFactory;
+    @Mock(strictness = LENIENT)
     private SetuidGppService gppService;
-    @Mock
+    @Mock(strictness = LENIENT)
     private ActivityInfrastructureCreator activityInfrastructureCreator;
-    @Mock
+    @Mock(strictness = LENIENT)
     private HostVendorTcfDefinerService tcfDefinerService;
     @Mock
     private AnalyticsReporterDelegator analyticsReporterDelegator;
@@ -98,24 +98,24 @@ public class SetuidHandlerTest extends VertxTest {
     private Metrics metrics;
 
     private SetuidHandler setuidHandler;
-    @Mock
+    @Mock(strictness = LENIENT)
     private RoutingContext routingContext;
-    @Mock
+    @Mock(strictness = LENIENT)
     private HttpServerRequest httpRequest;
-    @Mock
+    @Mock(strictness = LENIENT)
     private HttpServerResponse httpResponse;
-    @Mock
+    @Mock(strictness = LENIENT)
     private ActivityInfrastructure activityInfrastructure;
 
     private TcfContext tcfContext;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         final Map<Integer, PrivacyEnforcementAction> vendorIdToGdpr = singletonMap(1,
                 PrivacyEnforcementAction.allowAll());
 
         tcfContext = TcfContext.builder().inGdprScope(false).build();
-        given(privacyEnforcementService.contextFromSetuidRequest(any(), any(), any()))
+        given(setuidPrivacyContextFactory.contextFrom(any(), any(), any()))
                 .willReturn(Future.succeededFuture(PrivacyContext.of(null, tcfContext)));
         given(gppService.contextFrom(any())).willReturn(Future.succeededFuture());
         given(gppService.updateSetuidContext(any()))
@@ -149,6 +149,9 @@ public class SetuidHandlerTest extends VertxTest {
         given(activityInfrastructure.isAllowed(any(), any()))
                 .willReturn(true);
 
+        given(applicationSettings.getAccountById(any(), any()))
+                .willReturn(Future.succeededFuture(Account.builder().build()));
+
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
         setuidHandler = new SetuidHandler(
@@ -156,7 +159,7 @@ public class SetuidHandlerTest extends VertxTest {
                 uidsCookieService,
                 applicationSettings,
                 bidderCatalog,
-                privacyEnforcementService,
+                setuidPrivacyContextFactory,
                 gppService,
                 activityInfrastructureCreator,
                 tcfDefinerService,
@@ -228,7 +231,7 @@ public class SetuidHandlerTest extends VertxTest {
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
         tcfContext = TcfContext.builder().inGdprScope(true).consentValid(false).build();
-        given(privacyEnforcementService.contextFromSetuidRequest(any(), any(), any()))
+        given(setuidPrivacyContextFactory.contextFrom(any(), any(), any()))
                 .willReturn(Future.succeededFuture(PrivacyContext.of(null, tcfContext)));
 
         // when
@@ -392,7 +395,7 @@ public class SetuidHandlerTest extends VertxTest {
                 .enabledForRequestType(EnabledForRequestType.of(true, true, true, true, true))
                 .build();
         final Account account = Account.builder()
-                .privacy(AccountPrivacyConfig.of(accountGdprConfig, null, null, null))
+                .privacy(AccountPrivacyConfig.builder().gdpr(accountGdprConfig).build())
                 .build();
         final Future<Account> accountFuture = Future.succeededFuture(account);
         given(applicationSettings.getAccountById(any(), any())).willReturn(accountFuture);
@@ -402,7 +405,7 @@ public class SetuidHandlerTest extends VertxTest {
 
         // then
         verify(applicationSettings).getAccountById(eq("accId"), any());
-        verify(privacyEnforcementService).contextFromSetuidRequest(any(), eq(account), any());
+        verify(setuidPrivacyContextFactory).contextFrom(any(), eq(account), any());
     }
 
     @Test
@@ -424,7 +427,7 @@ public class SetuidHandlerTest extends VertxTest {
 
         // then
         verify(applicationSettings).getAccountById(eq("accId"), any());
-        verify(privacyEnforcementService).contextFromSetuidRequest(any(), eq(Account.empty("accId")), any());
+        verify(setuidPrivacyContextFactory).contextFrom(any(), eq(Account.empty("accId")), any());
     }
 
     @Test
@@ -505,7 +508,7 @@ public class SetuidHandlerTest extends VertxTest {
                 uidsCookieService,
                 applicationSettings,
                 bidderCatalog,
-                privacyEnforcementService,
+                setuidPrivacyContextFactory,
                 gppService,
                 activityInfrastructureCreator,
                 tcfDefinerService,
@@ -549,7 +552,7 @@ public class SetuidHandlerTest extends VertxTest {
                 uidsCookieService,
                 applicationSettings,
                 bidderCatalog,
-                privacyEnforcementService,
+                setuidPrivacyContextFactory,
                 gppService,
                 activityInfrastructureCreator,
                 tcfDefinerService,
@@ -592,7 +595,7 @@ public class SetuidHandlerTest extends VertxTest {
                 uidsCookieService,
                 applicationSettings,
                 bidderCatalog,
-                privacyEnforcementService,
+                setuidPrivacyContextFactory,
                 gppService,
                 activityInfrastructureCreator,
                 tcfDefinerService,
@@ -685,7 +688,7 @@ public class SetuidHandlerTest extends VertxTest {
                 uidsCookieService,
                 applicationSettings,
                 bidderCatalog,
-                privacyEnforcementService,
+                setuidPrivacyContextFactory,
                 gppService,
                 activityInfrastructureCreator,
                 tcfDefinerService,
@@ -769,6 +772,39 @@ public class SetuidHandlerTest extends VertxTest {
                 .uid("updatedUid")
                 .success(true)
                 .build());
+    }
+
+    @Test
+    public void shouldThrowExceptionInCaseOfCookieFamilyNameDuplicates() {
+        // given
+        final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
+        final String firstDuplicateName = "firstBidderWithDuplicate";
+        final String secondDuplicateName = "secondBidderWithDuplicate";
+        given(bidderCatalog.names())
+                .willReturn(new HashSet<>(asList(RUBICON, FACEBOOK, firstDuplicateName, secondDuplicateName)));
+        given(bidderCatalog.usersyncerByName(eq(firstDuplicateName))).willReturn(
+                Optional.of(Usersyncer.of(RUBICON, iframeMethod(), redirectMethod())));
+        given(bidderCatalog.usersyncerByName(eq(secondDuplicateName))).willReturn(
+                Optional.of(Usersyncer.of(FACEBOOK, iframeMethod(), redirectMethod())));
+        final Executable exceptionSource = () -> new SetuidHandler(
+                2000,
+                uidsCookieService,
+                applicationSettings,
+                bidderCatalog,
+                setuidPrivacyContextFactory,
+                gppService,
+                activityInfrastructureCreator,
+                tcfDefinerService,
+                analyticsReporterDelegator,
+                metrics,
+                new TimeoutFactory(clock));
+
+        //when
+        final IllegalArgumentException exception =
+                Assertions.assertThrows(IllegalArgumentException.class, exceptionSource);
+
+        //then
+        assertThat(exception).hasMessage("Duplicated \"cookie-family-name\" found, values: audienceNetwork, rubicon");
     }
 
     private String getUidsCookie() {

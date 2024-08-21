@@ -11,6 +11,7 @@ There are two ways to configure application settings: database and file. This do
 - `auction.video-cache-ttl`- how long (in seconds) video creative will be available via the external Cache Service.
 - `auction.truncate-target-attr` - Maximum targeting attributes size. Values between 1 and 255.
 - `auction.default-integration` - Default integration to assume.
+- `auction.debug-allow` - enables debug output in the auction response. Default `true`.
 - `auction.bid-validations.banner-creative-max-size` - Overrides creative max size validation for banners. Valid values
   are:
     - "skip": don't do anything about creative max size for this publisher
@@ -19,18 +20,40 @@ There are two ways to configure application settings: database and file. This do
     - "enforce": if a bidder returns a creative that's larger in height or width than any of the allowed sizes, reject
       the bid and log an operational warning.
 - `auction.events.enabled` - enables events for account if true
-- `auction.debug-allow` - enables debug output in the auction response. Default `true`.
-- `privacy.ccpa.enabled` - enables gdpr verifications if true. Has higher priority than configuration in application.yaml.
-- `privacy.ccpa.channel-enabled.web` - overrides `ccpa.enforce` property behaviour for web requests type.
-- `privacy.ccpa.channel-enabled.amp` - overrides `ccpa.enforce` property behaviour for amp requests type.
-- `privacy.ccpa.channel-enabled.app` - overrides `ccpa.enforce` property behaviour for app requests type.
-- `privacy.ccpa.channel-enabled.video` - overrides `ccpa.enforce` property behaviour for video requests type.
+- `auction.price-floors.enabeled` - enables price floors for account if true. Defaults to true.
+- `auction.price-floors.fetch.enabled`- enables data fetch for price floors for account if true. Defaults to false.
+- `auction.price-floors.fetch.url` - url to fetch price floors data from.
+- `auction.price-floors.fetch.timeout-ms` - timeout for fetching price floors data. Defaults to 5000.
+- `auction.price-floors.fetch.max-file-size-kb` - maximum size of price floors data to be fetched. Defaults to 200.
+- `auction.price-floors.fetch.max-rules` - maximum number of rules per model group. Defaults to 0.
+- `auction.price-floors.fetch.max-age-sec` - maximum time that fetched price floors data remains in cache. Defaults to 86400.
+- `auction.price-floors.fetch.period-sec` - time between two consecutive fetches. Defaults to 3600.
+- `auction.price-floors.enforce-floors-rate` - what percentage of the time a defined floor is enforced. Default is 100.
+- `auction.price-floors.adjust-for-bid-adjustment` - boolean for whether to use the bidAdjustment function to adjust the floor per bidder. Defaults to true.
+- `auction.price-floors.enforce-deal-floors` - boolean for whether to enforce floors on deals. Defaults to true.
+- `auction.price-floors.use-dynamic-data` - boolean that can be used as an emergency override to start ignoring dynamic floors data if something goes wrong. Defaults to true.
+- `auction.targeting.includewinners` - whether to include targeting for the winning bids in response. Default `false`.
+- `auction.targeting.includebidderkeys` - whether to include targeting for the best bid from each bidder in response. Default `false`.
+- `auction.targeting.includeformat` - whether to include the “hb_format” targeting key. Default `false`.
+- `auction.targeting.preferdeals` - if targeting is returned and this is `true`, PBS will choose the highest value deal before choosing the highest value non-deal. Default `false`.
+- `auction.targeting.alwaysincludedeals` - PBS-Java only. If true, generate `hb_ATTR_BIDDER` values for all bids that have a `dealid`. Default to `false`.
+- `auction.targeting.prefix` - defines prefix for targeting keywords. Default `hb`. 
+Keep in mind following restrictions:
+    - this prefix value may be overridden by correspond property from bid request
+    - prefix length is limited by `auction.truncate-target-attr`
+    - if custom prefix may produce keywords that exceed `auction.truncate-target-attr`, prefix value will drop to default `hb`
+- `auction.preferredmediatype.<bidder>.<media-type>` - <media-type> that will be left for <bidder> that doesn't support multi-format. Other media types will be removed. Acceptable values: `banner`, `video`, `audio`, `native`.
+- `auction.privacysandbox.cookiedeprecation.enabled` - boolean that turns on setting and reading of the Chrome Privacy Sandbox testing label header. Defaults to false.
+- `auction.privacysandbox.cookiedeprecation.ttlsec` - if the above setting is true, how long to set the receive-cookie-deprecation cookie's expiration
 - `privacy.gdpr.enabled` - enables gdpr verifications if true. Has higher priority than configuration in
   application.yaml.
+- `privacy.gdpr.eea-countries` - overrides the host-level list of 2-letter country codes where TCF processing is applied
 - `privacy.gdpr.channel-enabled.web` - overrides `privacy.gdpr.enabled` property behaviour for web requests type.
 - `privacy.gdpr.channel-enabled.amp` - overrides `privacy.gdpr.enabled` property behaviour for amp requests type.
 - `privacy.gdpr.channel-enabled.app` - overrides `privacy.gdpr.enabled` property behaviour for app requests type.
 - `privacy.gdpr.channel-enabled.video` - overrides `privacy.gdpr.enabled` property behaviour for video requests
+  type.
+- `privacy.gdpr.channel-enabled.dooh` - overrides `privacy.gdpr.enabled` property behaviour for dooh requests
   type.
 - `privacy.gdpr.purposes.[p1-p10].enforce-purpose` - define type of enforcement confirmation: `no`/`basic`/`full`.
   Default `full`
@@ -38,21 +61,41 @@ There are two ways to configure application settings: database and file. This do
   Purposes will be omitted. Default `true`
 - `privacy.gdpr.purposes.[p1-p10].vendor-exceptions[]` - bidder names that will be treated opposite
   to `pN.enforce-vendors` value.
-- `privacy.gdpr.special-features.[f1-f2].enforce`- if equals to `true`, special feature will be enforced for purpose.
+- `privacy.gdpr.purposes.p4.eid.activity_transition` - defaults to `true`. If `true` and transmitEids is not specified, but transmitUfpd is specified, then the logic of transmitUfpd is used. This is to avoid breaking changes to existing configurations. The default value of the flag will be changed in a future release. 
+- `privacy.gdpr.purposes.p4.eid.require_consent` - if equals to `true`, transmitting EIDs require P4 legal basis unless excepted.
+- `privacy.gdpr.purposes.p4.eid.exceptions` - list of EID sources that are excepted from P4 enforcement and will be transmitted if any P2-P10 is consented.
+- `privacy.gdpr.special-features.[sf1-sf2].enforce`- if equals to `true`, special feature will be enforced for purpose.
   Default `true`
-- `privacy.gdpr.special-features.[f1-f2].vendor-exceptions` - bidder names that will be treated opposite
+- `privacy.gdpr.special-features.[sf1-sf2].vendor-exceptions` - bidder names that will be treated opposite
   to `sfN.enforce` value.
 - `privacy.gdpr.purpose-one-treatment-interpretation` - option that allows to skip the Purpose one enforcement workflow.
   Values: ignore, no-access-allowed, access-allowed.
-- `metrics.verbosity-level` - defines verbosity level of metrics for this account, overrides `metrics.accounts` application settings configuration. 
+- `privacy.gdpr.basic-enforcement-vendors` - bypass vendor-level checks for these biddercodes.
+- `privacy.ccpa.enabled` - enables gdpr verifications if true. Has higher priority than configuration in application.yaml.
+- `privacy.ccpa.channel-enabled.web` - overrides `ccpa.enforce` property behaviour for web requests type.
+- `privacy.ccpa.channel-enabled.amp` - overrides `ccpa.enforce` property behaviour for amp requests type.
+- `privacy.ccpa.channel-enabled.app` - overrides `ccpa.enforce` property behaviour for app requests type.
+- `privacy.ccpa.channel-enabled.video` - overrides `ccpa.enforce` property behaviour for video requests type.
+- `privacy.ccpa.channel-enabled.dooh` - overrides `ccpa.enforce` property behaviour for dooh requests type.
+- `privacy.dsa.default.dsarequired` - inject this dsarequired value for this account. See https://github.com/InteractiveAdvertisingBureau/openrtb/blob/main/extensions/community_extensions/dsa_transparency.md for details.
+- `privacy.dsa.default.pubrender` - inject this pubrender value for this account. See https://github.com/InteractiveAdvertisingBureau/openrtb/blob/main/extensions/community_extensions/dsa_transparency.md for details.
+- `privacy.dsa.default.datatopub` - inject this datatopub value for this account. See https://github.com/InteractiveAdvertisingBureau/openrtb/blob/main/extensions/community_extensions/dsa_transparency.md for details.
+- `privacy.dsa.default.transparency[].domain` - inject this domain value for this account. See https://github.com/InteractiveAdvertisingBureau/openrtb/blob/main/extensions/community_extensions/dsa_transparency.md for details.
+- `privacy.dsa.default.transparency[].dsaparams` - inject this dsaparams value for this account. See https://github.com/InteractiveAdvertisingBureau/openrtb/blob/main/extensions/community_extensions/dsa_transparency.md for details.
+- `privacy.dsa.gdpr-only` - When true, DSA default injection only happens when in GDPR scope. Defaults to false, meaning all the time.
+- `privacy.allowactivities` - configuration for Activity Infrastructure. For further details, see: https://docs.prebid.org/prebid-server/features/pbs-activitycontrols.html
+- `privacy.modules` - configuration for Privacy Modules. Each privacy module have own configuration.
+- `analytics.allow-client-details` - when true, this boolean setting allows responses to transmit the server-side analytics tags to support client-side analytics adapters. Defaults to false.
 - `analytics.auction-events.<channel>` - defines which channels are supported by analytics for this account
 - `analytics.modules.<module-name>.*` - space for `module-name` analytics module specific configuration, may be of any shape
-- `cookie-sync.default-timeout-ms` - overrides host level config
+- `metrics.verbosity-level` - defines verbosity level of metrics for this account, overrides `metrics.accounts` application settings configuration. 
 - `cookie-sync.default-limit` - if the "limit" isn't specified in the `/cookie_sync` request, this is what to use
-- `cookie-sync.pri` - a list of prioritized bidder codes 
 - `cookie-sync.max-limit` - if the "limit" is specified in the `/cookie_sync` request, it can't be greater than this
   value
+- `cookie-sync.pri` - a list of prioritized bidder codes
 - `cookie-sync.coop-sync.default` - if the "coopSync" value isn't specified in the `/cookie_sync` request, use this
+- `hooks` - configuration for Prebid Server Modules. For further details, see: https://docs.prebid.org/prebid-server/pbs-modules/index.html#2-define-an-execution-plan
+- `settings.geo-lookup` - enables geo lookup for account if true. Defaults to false.
 
 Here are the definitions of the "purposes" that can be defined in the GDPR setting configurations:
 
@@ -108,6 +151,13 @@ Here's an example YAML file containing account-specific settings:
           enabled: true
         price-floors:
           enabled: false
+        targeting:
+            includewinners: false
+            includebidderkeys: false
+            includeformat: false
+            preferdeals: false
+            alwaysincludedeals: false
+            prefix: hb
         debug-allow: true
       metrics:
         verbosity-level: basic
@@ -205,7 +255,8 @@ Here's an example YAML file containing account-specific settings:
       cookie-sync:
         default-limit: 5
         max-limit: 8
-        default-coop-sync: true
+        coop-sync:
+          default: true
 ```
 
 ## Setting Account Configuration in S3
@@ -223,6 +274,7 @@ settings:
       secretAccessKey: <S3 access key>
       endpoint: <endpoint> # http://s3.storage.com
       bucket: <bucket name> # prebid-application-settings
+      region: <region name> # if not provided AWS_GLOBAL will be used. Example value: 'eu-central-1'
       accounts-dir: accounts
       stored-imps-dir: stored-impressions
       stored-requests-dir: stored-requests
@@ -453,7 +505,9 @@ example:
   "cookie-sync": {
     "default-limit": 5,
     "max-limit": 8,
-    "default-coop-sync": true
+    "coop-sync": {
+      "default": true
+    }
   }
 }
 ```

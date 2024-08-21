@@ -1,5 +1,9 @@
 package org.prebid.server.functional.tests
 
+import org.prebid.server.functional.model.config.AccountAuctionConfig
+import org.prebid.server.functional.model.config.AccountConfig
+import org.prebid.server.functional.model.config.AccountEventsConfig
+import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.Asset
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Imp
@@ -191,5 +195,51 @@ class CacheSpec extends BaseSpec {
         returnCreative | mediaType
         false          | BANNER
         true           | VIDEO
+    }
+
+    def "PBS should update prebid_cache.creative_size.xml metric and adding tracking xml when xml creative contain #wrapper and impression are valid xml value"() {
+        given: "Current value of metric prebid_cache.requests.ok"
+        def initialValue = getCurrentMetricValue(defaultPbsService, "prebid_cache.requests.ok")
+
+        and: "Create and save enabled events config in account"
+        def accountId = PBSUtils.randomNumber.toString()
+        def account = new Account().tap {
+            uuid = accountId
+            config = new AccountConfig().tap {
+                auction = new AccountAuctionConfig(events: new AccountEventsConfig(enabled: true))
+            }
+        }
+        accountDao.save(account)
+
+        and: "Vtrack request with custom tags"
+        def payload = PBSUtils.randomString
+        def creative = "<VAST version=\"3.0\"><Ad><${wrapper}><AdSystem>prebid.org wrapper</AdSystem>" +
+                "<VASTAdTagURI>&lt;![CDATA[//${payload}]]&gt;</VASTAdTagURI>" +
+                "<${impression}> &lt;![CDATA[ ]]&gt; </${impression}><Creatives></Creatives></${wrapper}></Ad></VAST>"
+        def request = VtrackRequest.getDefaultVtrackRequest(creative)
+
+        when: "PBS processes vtrack request"
+        defaultPbsService.sendVtrackRequest(request, accountId)
+
+        then: "Vast xml is modified"
+        def prebidCacheRequest = prebidCache.getXmlRecordedRequestsBody(payload)
+        assert prebidCacheRequest.size() == 1
+        assert prebidCacheRequest[0].contains("/event?t=imp&b=${request.puts[0].bidid}&a=$accountId&bidder=${request.puts[0].bidder}")
+
+        and: "prebid_cache.creative_size.xml metric should be updated"
+        def metrics = defaultPbsService.sendCollectedMetricsRequest()
+        assert metrics["prebid_cache.requests.ok"] == initialValue + 1
+
+        and: "account.<account-id>.prebid_cache.creative_size.xml should be updated"
+        assert metrics["account.${accountId}.prebid_cache.requests.ok" as String] == 1
+
+        where:
+        wrapper                                     | impression
+        " wrapper "                                 | " impression "
+        PBSUtils.getRandomCase(" wrapper ")         | PBSUtils.getRandomCase(" impression ")
+        "  wraPPer ${PBSUtils.getRandomString()}  " | "  imPreSSion ${PBSUtils.getRandomString()}"
+        "    inLine    "                            | " ImpreSSion $PBSUtils.randomNumber"
+        PBSUtils.getRandomCase(" inline ")          | " ${PBSUtils.getRandomCase(" impression ")} $PBSUtils.randomNumber "
+        "  inline ${PBSUtils.getRandomString()}  "  | "   ImpreSSion    "
     }
 }

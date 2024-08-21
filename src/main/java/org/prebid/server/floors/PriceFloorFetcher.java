@@ -6,8 +6,6 @@ import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.impl.ConcurrentHashSet;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import lombok.Value;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
@@ -22,6 +20,8 @@ import org.prebid.server.floors.proto.FetchResult;
 import org.prebid.server.floors.proto.FetchStatus;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.ApplicationSettings;
@@ -31,8 +31,8 @@ import org.prebid.server.settings.model.AccountPriceFloorsConfig;
 import org.prebid.server.settings.model.AccountPriceFloorsFetchConfig;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
-import org.prebid.server.vertx.http.HttpClient;
-import org.prebid.server.vertx.http.model.HttpClientResponse;
+import org.prebid.server.vertx.httpclient.HttpClient;
+import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.util.Map;
 import java.util.Objects;
@@ -137,13 +137,13 @@ public class PriceFloorFetcher {
     }
 
     private void fetchPriceFloorDataAsynchronous(AccountPriceFloorsFetchConfig fetchConfig, String accountId) {
-        final Long accountTimeout = ObjectUtil.getIfNotNull(fetchConfig, AccountPriceFloorsFetchConfig::getTimeout);
+        final Long accountTimeout = ObjectUtil.getIfNotNull(fetchConfig, AccountPriceFloorsFetchConfig::getTimeoutMs);
         final Long timeout = ObjectUtils.firstNonNull(
                 ObjectUtil.getIfNotNull(debugProperties, PriceFloorDebugProperties::getMinTimeoutMs),
                 ObjectUtil.getIfNotNull(debugProperties, PriceFloorDebugProperties::getMaxTimeoutMs),
                 accountTimeout);
         final Long maxFetchFileSizeKb =
-                ObjectUtil.getIfNotNull(fetchConfig, AccountPriceFloorsFetchConfig::getMaxFileSize);
+                ObjectUtil.getIfNotNull(fetchConfig, AccountPriceFloorsFetchConfig::getMaxFileSizeKb);
         final String fetchUrl = fetchConfig.getUrl();
 
         fetchInProgress.add(accountId);
@@ -310,11 +310,8 @@ public class PriceFloorFetcher {
     }
 
     private Future<Account> accountById(String accountId) {
-        return StringUtils.isBlank(accountId)
-                ? Future.succeededFuture()
-                : applicationSettings
-                .getAccountById(accountId, timeoutFactory.create(ACCOUNT_FETCH_TIMEOUT_MS))
-                .recover(ignored -> Future.succeededFuture());
+        return applicationSettings.getAccountById(accountId, timeoutFactory.create(ACCOUNT_FETCH_TIMEOUT_MS))
+                .otherwiseEmpty();
     }
 
     @Value(staticConstructor = "of")

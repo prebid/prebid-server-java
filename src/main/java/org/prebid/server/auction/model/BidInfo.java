@@ -25,15 +25,15 @@ public class BidInfo {
 
     CacheInfo cacheInfo;
 
-    String lineItemId;
-
-    String lineItemSource;
-
     TargetingInfo targetingInfo;
 
     String category;
 
     Boolean satisfiedPriority;
+
+    Integer ttl;
+
+    Integer videoTtl;
 
     public String getBidId() {
         final ObjectNode extNode = bid != null ? bid.getExt() : null;

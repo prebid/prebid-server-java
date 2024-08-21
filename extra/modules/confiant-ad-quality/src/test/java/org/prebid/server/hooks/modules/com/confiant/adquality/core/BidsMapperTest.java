@@ -2,18 +2,13 @@ package org.prebid.server.hooks.modules.com.confiant.adquality.core;
 
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.auction.model.BidderResponse;
-import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.hooks.modules.com.confiant.adquality.model.RedisBidResponseData;
 import org.prebid.server.hooks.modules.com.confiant.adquality.model.RedisBidsData;
-import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.hooks.modules.com.confiant.adquality.util.AdQualityModuleTestUtils;
 
-import java.math.BigDecimal;
-import java.util.Collections;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -29,8 +24,8 @@ public class BidsMapperTest {
                 .cur(List.of("EUR"))
                 .build();
 
-        final BidderResponse bidderResponse1 = getBidderResponse("a", "idA");
-        final BidderResponse bidderResponse2 = getBidderResponse("b", "idB");
+        final BidderResponse bidderResponse1 = AdQualityModuleTestUtils.getBidderResponse("a", "idA", "bidIdA");
+        final BidderResponse bidderResponse2 = AdQualityModuleTestUtils.getBidderResponse("b", "idB", "bidIdB");
 
         final List<BidderResponse> bidderResponses = List.of(bidderResponse1, bidderResponse2);
 
@@ -59,20 +54,5 @@ public class BidsMapperTest {
         final SeatBid seatBid2 = redisBidResponseData2.getBidresponse().getSeatbid().get(0);
         assertThat(seatBid2.getBid()).hasSize(1);
         assertThat(seatBid2.getBid().get(0).getId()).isEqualTo(bidderResponse2.getSeatBid().getBids().get(0).getBid().getId());
-    }
-
-    private BidderResponse getBidderResponse(String bidderName, String bidId) {
-        return BidderResponse.of(bidderName, BidderSeatBid.builder()
-                .bids(Collections.singletonList(BidderBid.builder()
-                        .type(BidType.banner)
-                        .bid(Bid.builder()
-                                .id(bidId)
-                                .price(BigDecimal.valueOf(11))
-                                .impid("1")
-                                .adm("adm")
-                                .adomain(Collections.singletonList("www.example.com"))
-                                .build())
-                        .build()))
-                .build(), 11);
     }
 }

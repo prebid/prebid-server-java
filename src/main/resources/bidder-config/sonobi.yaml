@@ -14,6 +14,6 @@ adapters:
     usersync:
       cookie-family-name: sonobi
       redirect:
-        url: https://sync.go.sonobi.com/us.gif?loc={{redirect_url}}
+        url: https://sync.go.sonobi.com/us.gif?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&loc={{redirect_url}}
         support-cors: false
         uid-macro: '[UID]'

@@ -11,7 +11,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -41,7 +41,7 @@ public class AceexBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test-url.com/?param={{AccountId}}";
 
-    private AceexBidder target = new AceexBidder(ENDPOINT_URL, jacksonMapper);
+    private final AceexBidder target = new AceexBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {

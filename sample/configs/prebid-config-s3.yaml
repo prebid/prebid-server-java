@@ -1,0 +1,59 @@
+status-response: "ok"
+
+server:
+  enable-quickack: true
+  enable-reuseport: true
+
+adapters:
+  appnexus:
+    enabled: true
+  ix:
+    enabled: true
+  openx:
+    enabled: true
+  pubmatic:
+    enabled: true
+  rubicon:
+    enabled: true
+metrics:
+  prefix: prebid
+cache:
+  scheme: http
+  host: localhost
+  path: /cache
+  query: uuid=
+settings:
+  enforce-valid-account: false
+  generate-storedrequest-bidrequest-id: true
+  s3:
+    accessKeyId: prebid-server-test
+    secretAccessKey: nq9h6whXQURNL2NnWg3rcMlLMtGGDJeWrdl8hC9g
+    endpoint: http://localhost:9000
+    bucket: prebid-server-configs-dev.h5v.eu # prebid-application-settings
+    # region: <region name> # if not provided AWS_GLOBAL will be used. Example value: 'eu-central-1'
+    accounts-dir: accounts
+    stored-imps-dir: stored-impressions
+    stored-requests-dir: stored-requests
+    stored-responses-dir: stored-responses
+
+  in-memory-cache:
+    cache-size: 10000
+    ttl-seconds: 1200 # 20 minutes
+    s3-update:
+      refresh-rate: 900000 # Refresh every 15 minutes
+      timeout: 5000
+
+gdpr:
+  default-value: 1
+  vendorlist:
+    v2:
+      cache-dir: /var/tmp/vendor2
+    v3:
+      cache-dir: /var/tmp/vendor3
+
+admin-endpoints:
+  logging-changelevel:
+    enabled: true
+    path: /logging/changelevel
+    on-application-port: true
+    protected: false

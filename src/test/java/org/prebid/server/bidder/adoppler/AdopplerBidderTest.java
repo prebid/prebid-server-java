@@ -10,7 +10,7 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.adoppler.model.AdopplerResponseAdsExt;
 import org.prebid.server.bidder.adoppler.model.AdopplerResponseExt;
@@ -71,7 +71,7 @@ public class AdopplerBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().get(0).getUri()).isEqualTo("http://clientId.test.com/some/path/adUnit");
+        assertThat(result.getValue().getFirst().getUri()).isEqualTo("http://clientId.test.com/some/path/adUnit");
     }
 
     @Test
@@ -87,7 +87,7 @@ public class AdopplerBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().get(0).getUri()).isEqualTo("http://app.test.com/some/path/adUnit");
+        assertThat(result.getValue().getFirst().getUri()).isEqualTo("http://app.test.com/some/path/adUnit");
     }
 
     @Test
@@ -100,7 +100,7 @@ public class AdopplerBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue().get(0).getHeaders()).isNotNull()
+        assertThat(result.getValue().getFirst().getHeaders()).isNotNull()
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsExactlyInAnyOrder(tuple(HttpUtil.X_OPENRTB_VERSION_HEADER.toString(), "2.5"),
                         tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),

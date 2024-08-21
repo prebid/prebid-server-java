@@ -9,7 +9,8 @@
       },
       "ext": {
         "sa_lunamedia": {
-          "key": "someKey"
+          "key": "someKey",
+          "type": "network"
         }
       }
     }

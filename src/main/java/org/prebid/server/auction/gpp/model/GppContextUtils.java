@@ -18,7 +18,7 @@ class GppContextUtils {
         }
 
         try {
-            return new GppModel(gpp);
+            return new GppModelWrapper(gpp);
         } catch (Exception e) {
             throw new PreBidException("GPP string invalid: " + e.getMessage());
         }

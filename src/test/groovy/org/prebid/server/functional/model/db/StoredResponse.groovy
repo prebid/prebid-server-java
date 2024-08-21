@@ -1,18 +1,18 @@
 package org.prebid.server.functional.model.db
 
 import groovy.transform.ToString
-import javax.persistence.Column
-import javax.persistence.Convert
-import javax.persistence.Entity
-import javax.persistence.GeneratedValue
-import javax.persistence.Id
-import javax.persistence.Table
+import jakarta.persistence.Column
+import jakarta.persistence.Convert
+import jakarta.persistence.Entity
+import jakarta.persistence.GeneratedValue
+import jakarta.persistence.Id
+import jakarta.persistence.Table
 import org.prebid.server.functional.model.db.typeconverter.StoredAuctionResponseConfigTypeConverter
 import org.prebid.server.functional.model.db.typeconverter.StoredBidResponseConfigTypeConverter
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.SeatBid
 
-import static javax.persistence.GenerationType.IDENTITY
+import static jakarta.persistence.GenerationType.IDENTITY
 
 @Entity
 @Table(name = "stored_responses")

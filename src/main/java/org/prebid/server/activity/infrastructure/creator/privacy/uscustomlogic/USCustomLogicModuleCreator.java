@@ -7,12 +7,12 @@ import org.apache.commons.collections4.SetUtils;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.infrastructure.creator.PrivacyModuleCreationContext;
 import org.prebid.server.activity.infrastructure.creator.privacy.PrivacyModuleCreator;
+import org.prebid.server.activity.infrastructure.privacy.AndPrivacyModules;
 import org.prebid.server.activity.infrastructure.privacy.PrivacyModule;
 import org.prebid.server.activity.infrastructure.privacy.PrivacyModuleQualifier;
 import org.prebid.server.activity.infrastructure.privacy.PrivacySection;
 import org.prebid.server.activity.infrastructure.privacy.uscustomlogic.USCustomLogicDataSupplier;
 import org.prebid.server.activity.infrastructure.privacy.uscustomlogic.USCustomLogicModule;
-import org.prebid.server.activity.infrastructure.rule.AndRule;
 import org.prebid.server.auction.gpp.model.GppContext;
 import org.prebid.server.exception.InvalidAccountConfigException;
 import org.prebid.server.json.DecodeException;
@@ -55,7 +55,7 @@ public class USCustomLogicModuleCreator implements PrivacyModuleCreator {
         this.metrics = Objects.requireNonNull(metrics);
 
         jsonLogicNodesCache = cacheTtl != null && cacheSize != null
-                ? SettingsCache.createCache(cacheTtl, cacheSize)
+                ? SettingsCache.createCache(cacheTtl, cacheSize, 0)
                 : null;
     }
 
@@ -79,8 +79,7 @@ public class USCustomLogicModuleCreator implements PrivacyModuleCreator {
                 .toList()
                 : Collections.emptyList();
 
-        final AndRule andRule = new AndRule(innerPrivacyModules);
-        return andRule::proceed;
+        return new AndPrivacyModules(innerPrivacyModules);
     }
 
     private static AccountUSCustomLogicModuleConfig moduleConfig(PrivacyModuleCreationContext creationContext) {

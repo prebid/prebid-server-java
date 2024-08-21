@@ -6,13 +6,11 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.Cookie;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerResponse;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.exception.PreBidException;
 import org.prebid.server.log.ConditionalLogger;
-import org.prebid.server.model.CaseInsensitiveMultiMap;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
 
@@ -21,15 +19,12 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.time.ZonedDateTime;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -47,33 +42,41 @@ public final class HttpUtil {
     public static final CharSequence X_FORWARDED_FOR_HEADER = HttpHeaders.createOptimized("X-Forwarded-For");
     public static final CharSequence X_REAL_IP_HEADER = HttpHeaders.createOptimized("X-Real-Ip");
     public static final CharSequence DNT_HEADER = HttpHeaders.createOptimized("DNT");
-    public static final CharSequence X_REQUEST_AGENT_HEADER = HttpHeaders.createOptimized("X-Request-Agent");
     public static final CharSequence ORIGIN_HEADER = HttpHeaders.createOptimized("Origin");
     public static final CharSequence ACCEPT_HEADER = HttpHeaders.createOptimized("Accept");
     public static final CharSequence SEC_GPC_HEADER = HttpHeaders.createOptimized("Sec-GPC");
+    public static final CharSequence SEC_BROWSING_TOPICS_HEADER = HttpHeaders.createOptimized("Sec-Browsing-Topics");
+    public static final CharSequence OBSERVE_BROWSING_TOPICS_HEADER =
+            HttpHeaders.createOptimized("Observe-Browsing-Topics");
     public static final CharSequence CONTENT_TYPE_HEADER = HttpHeaders.createOptimized("Content-Type");
     public static final CharSequence X_REQUESTED_WITH_HEADER = HttpHeaders.createOptimized("X-Requested-With");
     public static final CharSequence REFERER_HEADER = HttpHeaders.createOptimized("Referer");
     public static final CharSequence USER_AGENT_HEADER = HttpHeaders.createOptimized("User-Agent");
     public static final CharSequence COOKIE_HEADER = HttpHeaders.createOptimized("Cookie");
+    public static final CharSequence SEC_COOKIE_DEPRECATION =
+            HttpHeaders.createOptimized("Sec-Cookie-Deprecation");
+
     public static final CharSequence ACCEPT_LANGUAGE_HEADER = HttpHeaders.createOptimized("Accept-Language");
     public static final CharSequence SET_COOKIE_HEADER = HttpHeaders.createOptimized("Set-Cookie");
     public static final CharSequence AUTHORIZATION_HEADER = HttpHeaders.createOptimized("Authorization");
-    public static final CharSequence DATE_HEADER = HttpHeaders.createOptimized("Date");
     public static final CharSequence CACHE_CONTROL_HEADER = HttpHeaders.createOptimized("Cache-Control");
     public static final CharSequence EXPIRES_HEADER = HttpHeaders.createOptimized("Expires");
     public static final CharSequence PRAGMA_HEADER = HttpHeaders.createOptimized("Pragma");
     public static final CharSequence LOCATION_HEADER = HttpHeaders.createOptimized("Location");
     public static final CharSequence CONNECTION_HEADER = HttpHeaders.createOptimized("Connection");
-    public static final CharSequence ACCEPT_ENCODING_HEADER = HttpHeaders.createOptimized("Accept-Encoding");
     public static final CharSequence CONTENT_ENCODING_HEADER = HttpHeaders.createOptimized("Content-Encoding");
     public static final CharSequence X_OPENRTB_VERSION_HEADER = HttpHeaders.createOptimized("x-openrtb-version");
     public static final CharSequence X_PREBID_HEADER = HttpHeaders.createOptimized("x-prebid");
+    public static final CharSequence X_PBC_API_KEY_HEADER = HttpHeaders.createOptimized("x-pbc-api-key");
     private static final Set<String> SENSITIVE_HEADERS = Set.of(AUTHORIZATION_HEADER.toString());
-    public static final CharSequence PG_TRX_ID = HttpHeaders.createOptimized("pg-trx-id");
-    public static final CharSequence PG_IGNORE_PACING = HttpHeaders.createOptimized("X-Prebid-PG-ignore-pacing");
 
-    private static final String BASIC_AUTH_PATTERN = "Basic %s";
+    //the low-entropy client hints
+    public static final CharSequence SAVE_DATA = HttpHeaders.createOptimized("Save-Data");
+    public static final CharSequence SEC_CH_UA = HttpHeaders.createOptimized("Sec-CH-UA");
+    public static final CharSequence SEC_CH_UA_MOBILE = HttpHeaders.createOptimized("Sec-CH-UA-Mobile");
+    public static final CharSequence SEC_CH_UA_PLATFORM = HttpHeaders.createOptimized("Sec-CH-UA-Platform");
+    public static final String MACROS_OPEN = "{{";
+    public static final String MACROS_CLOSE = "}}";
 
     private HttpUtil() {
     }
@@ -82,11 +85,20 @@ public final class HttpUtil {
      * Checks the input string for using as URL.
      */
     public static String validateUrl(String url) {
+        if (containsMacrosses(url)) {
+            return url;
+        }
+
         try {
             return new URL(url).toString();
         } catch (MalformedURLException e) {
             throw new IllegalArgumentException("URL supplied is not valid: " + url, e);
         }
+    }
+
+    // TODO: We need our own way to work with url macrosses
+    private static boolean containsMacrosses(String url) {
+        return StringUtils.contains(url, MACROS_OPEN) && StringUtils.contains(url, MACROS_CLOSE);
     }
 
     /**
@@ -126,28 +138,6 @@ public final class HttpUtil {
         }
     }
 
-    public static ZonedDateTime getDateFromHeader(MultiMap headers, String header) {
-        return getDateFromHeader(headers::get, header);
-    }
-
-    public static ZonedDateTime getDateFromHeader(CaseInsensitiveMultiMap headers, String header) {
-        return getDateFromHeader(headers::get, header);
-    }
-
-    private static ZonedDateTime getDateFromHeader(Function<String, String> headerGetter, String header) {
-        final String isoTimeStamp = headerGetter.apply(header);
-        if (isoTimeStamp == null) {
-            return null;
-        }
-
-        try {
-            return ZonedDateTime.parse(isoTimeStamp);
-        } catch (Exception e) {
-            throw new PreBidException(
-                    "%s header is not compatible to ISO-8601 format: %s".formatted(header, isoTimeStamp));
-        }
-    }
-
     public static String getHostFromUrl(String url) {
         if (StringUtils.isBlank(url)) {
             return null;
@@ -184,20 +174,22 @@ public final class HttpUtil {
                 .collect(Collectors.joining("; "));
     }
 
-    public static boolean executeSafely(RoutingContext routingContext, Endpoint endpoint,
+    public static boolean executeSafely(RoutingContext routingContext,
+                                        Endpoint endpoint,
                                         Consumer<HttpServerResponse> responseConsumer) {
+
         return executeSafely(routingContext, endpoint.value(), responseConsumer);
     }
 
-    public static boolean executeSafely(RoutingContext routingContext, String endpoint,
+    public static boolean executeSafely(RoutingContext routingContext,
+                                        String endpoint,
                                         Consumer<HttpServerResponse> responseConsumer) {
 
         final HttpServerResponse response = routingContext.response();
 
         if (response.closed()) {
-            conditionalLogger.warn(
-                    "Client already closed connection, response to %s will be skipped".formatted(endpoint),
-                    0.01);
+            conditionalLogger
+                    .warn("Client already closed connection, response to %s will be skipped".formatted(endpoint), 0.01);
             return false;
         }
 
@@ -205,17 +197,9 @@ public final class HttpUtil {
             responseConsumer.accept(response);
             return true;
         } catch (Exception e) {
-            logger.warn("Failed to send {0} response: {1}", endpoint, e.getMessage());
+            logger.warn("Failed to send {} response: {}", endpoint, e.getMessage());
             return false;
         }
-    }
-
-    /**
-     * Creates standart basic auth header value
-     */
-    public static String makeBasicAuthHeaderValue(String username, String password) {
-        return BASIC_AUTH_PATTERN
-                .formatted(Base64.getEncoder().encodeToString((username + ':' + password).getBytes()));
     }
 
     /**

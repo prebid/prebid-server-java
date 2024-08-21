@@ -1,6 +1,9 @@
 adapters:
   thirtythreeacross:
     endpoint: https://ssc.33across.com/api/v1/s2s
+    # This bidder does not operate globally. Please consider setting "disabled: true" in European datacenters.
+    geoscope:
+      - "!EEA"
     aliases:
       33across:
         enabled: false
