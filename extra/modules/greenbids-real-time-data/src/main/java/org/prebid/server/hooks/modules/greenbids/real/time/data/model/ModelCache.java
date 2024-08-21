@@ -24,20 +24,24 @@ public class ModelCache {
 
     ReentrantLock lock;
 
+    String onnxModelCacheKeyPrefix;
+
     public ModelCache(
             String modelPath,
             Storage storage,
             String gcsBucketName,
-            Cache<String, OnnxModelRunner> cache) {
+            Cache<String, OnnxModelRunner> cache,
+            String onnxModelCacheKeyPrefix) {
         this.gcsBucketName = gcsBucketName;
         this.modelPath = modelPath;
         this.cache = cache;
         this.storage = storage;
         this.lock = new ReentrantLock();
+        this.onnxModelCacheKeyPrefix = onnxModelCacheKeyPrefix;
     }
 
     public OnnxModelRunner getModelRunner(String pbuid) {
-        final String cacheKey = "onnxModelRunner_" + pbuid;
+        final String cacheKey = onnxModelCacheKeyPrefix + pbuid;
         final OnnxModelRunner cachedOnnxModelRunner = cache.getIfPresent(cacheKey);
 
         if (cachedOnnxModelRunner != null) {

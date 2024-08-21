@@ -16,29 +16,38 @@ import java.util.concurrent.locks.ReentrantLock;
 public class ThresholdCache {
 
     String gcsBucketName;
+
     String thresholdPath;
+
     @Getter
     Cache<String, ThrottlingThresholds> cache;
+
     Storage storage;
+
     ReentrantLock lock;
+
     ObjectMapper mapper;
+
+    String thresholdsCacheKeyPrefix;
 
     public ThresholdCache(
             String thresholdPath,
             Storage storage,
             String gcsBucketName,
             ObjectMapper mapper,
-            Cache<String, ThrottlingThresholds> cache) {
+            Cache<String, ThrottlingThresholds> cache,
+            String thresholdsCacheKeyPrefix) {
         this.gcsBucketName = gcsBucketName;
         this.thresholdPath = thresholdPath;
         this.cache = cache;
         this.storage = storage;
         this.lock = new ReentrantLock();
         this.mapper = mapper;
+        this.thresholdsCacheKeyPrefix = thresholdsCacheKeyPrefix;
     }
 
     public ThrottlingThresholds getThrottlingThresholds(String pbuid) {
-        final String cacheKey = "throttlingThresholds_" + pbuid;
+        final String cacheKey = thresholdsCacheKeyPrefix + pbuid;
         final ThrottlingThresholds cachedThrottlingThresholds = cache.getIfPresent(cacheKey);
 
         if (cachedThrottlingThresholds != null) {

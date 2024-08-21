@@ -135,12 +135,13 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         // given
         final Banner banner = givenBanner();
 
-        final ObjectNode prebidJsonNodes = mapper.valueToTree(
-                singletonMap("gpid", TextNode.valueOf("gpidvalue")));
+        final ObjectNode impExtNode = mapper.createObjectNode();
+        impExtNode.set("gpid", TextNode.valueOf("gpidvalue"));
+        impExtNode.set("prebid", givenPrebidBidderParamsNode());
 
         final Imp imp = Imp.builder()
                 .id("adunitcodevalue")
-                .ext(prebidJsonNodes)
+                .ext(impExtNode)
                 .banner(banner)
                 .build();
 
@@ -173,11 +174,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .readValue(capturedJson, CommonMessage.class);
 
         assertThat(capturedCommonMessage).usingRecursiveComparison()
-                .ignoringFields("billingId",
-                        "greenbidsId"
-                        //"adUnits[0].ortb2Imp.ext.greenbids.fingerprint",
-                        //"adUnits[0].ortb2Imp.ext.tid"
-                        )
+                .ignoringFields("billingId", "greenbidsId")
                 .isEqualTo(expectedCommonMessage);
         assertThat(capturedCommonMessage.getGreenbidsId()).isNotNull();
         assertThat(capturedCommonMessage.getBillingId()).isNotNull();
@@ -594,7 +591,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         final AuctionContext.AuctionContextBuilder auctionContextBuilder = AuctionContext.builder()
                 .httpRequest(HttpRequestContext.builder().build())
                 .bidRequest(givenBidRequest(request -> request, imps))
-                .bidRejectionTrackers(Map.of("seat2", givenBidRejectionTracker()));
+                .bidRejectionTrackers(Map.of("seat3", givenBidRejectionTracker()));
 
         if (includeBidResponse) {
             auctionContextBuilder.bidResponse(givenBidResponseWithAnalyticsTag(response -> response));
@@ -679,15 +676,22 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
 
         return bidResponseCustomizer.apply(BidResponse.builder()
                 .id("response2")
-                .seatbid(Collections.singletonList(givenSeatBid(seatBid -> seatBid)))
+                .seatbid(List.of(
+                        givenSeatBid(
+                                seatBid -> seatBid.seat("seat1"),
+                                bid -> bid.id("bid1").price(BigDecimal.valueOf(1.5))),
+                        givenSeatBid(
+                                seatBid -> seatBid.seat("seat2"),
+                                bid -> bid.id("bid2").price(BigDecimal.valueOf(0.5)))))
                 .cur("USD")
                 .ext(extBidResponse)).build();
     }
 
     private static ObjectNode createAnalyticsResultNode() {
         final ObjectNode keptInAuctionNode = new ObjectNode(JsonNodeFactory.instance);
-        keptInAuctionNode.put("rubicon", true);
-        keptInAuctionNode.put("criteo", false);
+        keptInAuctionNode.put("seat1", true);
+        keptInAuctionNode.put("seat2", true);
+        keptInAuctionNode.put("seat3", true);
 
         final ObjectNode explorationResultNode = new ObjectNode(JsonNodeFactory.instance);
         explorationResultNode.put("fingerprint", "4f8d2e76-87fe-47c7-993f-d905b5fe2aa7");
@@ -889,7 +893,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 Ortb2ImpExtResult.of(
                         ExplorationResult.of(
                                 "4f8d2e76-87fe-47c7-993f-d905b5fe2aa7",
-                                Map.of("rubicon", true, "criteo", false),
+                                Map.of("seat1", true, "seat2", true, "seat3", true),
                                 false
                         ),
                         "c65c165d-f4ea-4301-bb91-982ce813dd3e"
