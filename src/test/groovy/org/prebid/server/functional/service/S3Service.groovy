@@ -6,17 +6,17 @@ import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.db.StoredResponse
 import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.testcontainers.containers.localstack.LocalStackContainer
-import software.amazon.awssdk.services.s3.model.DeleteBucketRequest
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider
+import software.amazon.awssdk.core.sync.RequestBody
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest
+import software.amazon.awssdk.services.s3.model.DeleteBucketRequest
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request
 import software.amazon.awssdk.services.s3.model.PutObjectRequest
 import software.amazon.awssdk.services.s3.model.PutObjectResponse
-import software.amazon.awssdk.core.sync.RequestBody
 
 final class S3Service implements ObjectMapperWrapper {
 
@@ -51,6 +51,10 @@ final class S3Service implements ObjectMapperWrapper {
 
     String getEndpoint() {
         "http://${localStackContainer.getNetworkAliases().get(0)}:${localStackContainer.getExposedPorts().get(0)}"
+    }
+
+    String getRegion() {
+        localStackContainer.region
     }
 
     void createBucket(String bucketName) {

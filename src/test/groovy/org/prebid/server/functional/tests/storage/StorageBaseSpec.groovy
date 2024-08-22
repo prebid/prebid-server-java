@@ -28,6 +28,7 @@ class StorageBaseSpec extends BaseSpec {
             'settings.s3.secretAccessKey'     : s3Service.secretKeyId,
             'settings.s3.endpoint'            : s3Service.endpoint,
             'settings.s3.bucket'              : DEFAULT_BUCKET,
+            'settings.s3.region'              : s3Service.region,
             'settings.s3.accounts-dir'        : S3Service.DEFAULT_ACCOUNT_DIR,
             'settings.s3.stored-imps-dir'     : S3Service.DEFAULT_IMPS_DIR,
             'settings.s3.stored-requests-dir' : S3Service.DEFAULT_REQUEST_DIR,

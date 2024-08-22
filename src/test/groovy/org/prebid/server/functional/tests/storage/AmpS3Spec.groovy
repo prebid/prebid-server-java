@@ -38,8 +38,8 @@ class AmpS3Spec extends StorageBaseSpec {
         assert bidderRequest.site?.page == ampStoredRequest.site.page
         assert bidderRequest.site?.publisher?.id == ampStoredRequest.site.publisher.id
         assert !bidderRequest.imp[0]?.tagId
-        assert bidderRequest.imp[0]?.banner?.format[0]?.h == ampStoredRequest.imp[0].banner.format[0].h
-        assert bidderRequest.imp[0]?.banner?.format[0]?.w == ampStoredRequest.imp[0].banner.format[0].w
+        assert bidderRequest.imp[0]?.banner?.format[0]?.height == ampStoredRequest.imp[0].banner.format[0].height
+        assert bidderRequest.imp[0]?.banner?.format[0]?.weight == ampStoredRequest.imp[0].banner.format[0].weight
         assert bidderRequest.regs?.gdpr == ampStoredRequest.regs.ext.gdpr
     }
 
