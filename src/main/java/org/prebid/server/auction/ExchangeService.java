@@ -1016,12 +1016,12 @@ public class ExchangeService {
                                      BigDecimal adjustedFloor,
                                      boolean transmitTid,
                                      boolean useFirstPartyData) {
-
+        final JsonNode bidderNode = bidderParamsFromImpExt(impExt).get(bidder);
         final JsonNode impExtPrebid = prepareImpExt(impExt.get(PREBID_EXT), adjustedFloor);
         Optional.ofNullable(impExtPrebid).ifPresentOrElse(
                 ext -> impExt.set(PREBID_EXT, ext),
                 () -> impExt.remove(PREBID_EXT));
-        impExt.set(BIDDER_EXT, bidderParamsFromImpExt(impExt).get(bidder));
+        impExt.set(BIDDER_EXT, bidderNode);
         if (!transmitTid) {
             impExt.remove(TID_EXT);
         }
