@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests
 
+import org.prebid.server.functional.model.bidder.Openx
 import org.prebid.server.functional.model.db.StoredImp
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Imp
@@ -13,10 +14,12 @@ import static org.prebid.server.functional.model.bidder.BidderName.ALIAS_CAMEL_C
 import static org.prebid.server.functional.model.bidder.BidderName.EMPTY
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC_CAMEL_CASE
+import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.bidder.BidderName.RUBICON
 import static org.prebid.server.functional.model.bidder.BidderName.UNKNOWN
 import static org.prebid.server.functional.model.bidder.BidderName.WILDCARD
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
+import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 
 class ImpRequestSpec extends BaseSpec {
 
@@ -182,6 +185,41 @@ class ImpRequestSpec extends BaseSpec {
 
         and: "PBS should remove imp.ext.prebid.bidder from bidderRequest"
         assert !bidderRequest?.imp?.first?.ext?.prebid?.bidder
+    }
+
+    def "PBS should always update specified bidder imp when imp.ext.prebid.imp contain such bidder"() {
+        given: "PBs with openx bidder"
+        def pbsService = pbsServiceFactory.getService(
+                ["adapters.openx.enabled" : "true",
+                 "adapters.openx.endpoint": "$networkServiceContainer.rootUri/auction".toString()])
+
+        and: "Default basic BidRequest"
+        def impPmp = Pmp.defaultPmp
+        def extPrebidImpPmp = Pmp.defaultPmp
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp.first.tap {
+                pmp = impPmp
+                ext.prebid.bidder.openx = Openx.defaultOpenx
+                ext.prebid.imp = [(OPENX): new Imp(pmp: extPrebidImpPmp)]
+            }
+        }
+
+        when: "Requesting PBS auction"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bid response should not contain warning"
+        assert !response?.ext?.warnings
+
+        and: "Generic bidderRequest should contain pmp from original imp"
+        def bidderToBidderRequests = getRequests(response)
+        assert bidderToBidderRequests[GENERIC.value].first.imp.pmp == [impPmp]
+
+        and: "OpenX bidderRequest should contain pmp from original imp"
+        assert bidderToBidderRequests[OPENX.value].first.imp.pmp == [extPrebidImpPmp]
+
+        and: "PBS should remove imp.ext.prebid.bidder from bidderRequests"
+        def bidderRequests = bidder.getBidderRequests(bidRequest.id)
+        assert !bidderRequests?.imp?.ext?.prebid?.imp?.flatten()
     }
 
     def "PBS should validate imp and add proper warning when imp.ext.prebid.imp contain invalid ortb data"() {
