@@ -16,6 +16,7 @@ import org.springframework.context.annotation.Configuration;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 
 @ConditionalOnProperty(prefix = "hooks." + GreenbidsRealTimeDataModule.CODE, name = "enabled", havingValue = "true")
 @Configuration
@@ -42,6 +43,8 @@ public class GreenbidsRealTimeDataConfiguration {
                 .expireAfterWrite(cacheExpirationMinutes, TimeUnit.MINUTES)
                 .build();
 
+        final ReentrantLock lock = new ReentrantLock();
+
         final GreenbidsRealTimeDataProperties globalProperties = GreenbidsRealTimeDataProperties.of(
                 modelCacheWithExpiration,
                 thresholdsCacheWithExpiration,
@@ -50,7 +53,8 @@ public class GreenbidsRealTimeDataConfiguration {
                 gcsBucketName,
                 cacheExpirationMinutes,
                 onnxModelCacheKeyPrefix,
-                thresholdsCacheKeyPrefix
+                thresholdsCacheKeyPrefix,
+                lock
         );
 
         return new GreenbidsRealTimeDataModule(List.of(
@@ -62,6 +66,7 @@ public class GreenbidsRealTimeDataConfiguration {
                         googleCloudGreenbidsProject,
                         gcsBucketName,
                         onnxModelCacheKeyPrefix,
-                        thresholdsCacheKeyPrefix)));
+                        thresholdsCacheKeyPrefix,
+                        lock)));
     }
 }
