@@ -179,6 +179,29 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
         return responseFuture.compose(this::processAnalyticServerResponse);
     }
 
+    private GreenbidsPrebidExt parseBidRequestExt(BidRequest bidRequest) {
+        return Optional.ofNullable(bidRequest)
+                .map(BidRequest::getExt)
+                .map(ExtRequest::getPrebid)
+                .map(ExtRequestPrebid::getAnalytics)
+                .filter(this::isNotEmptyObjectNode)
+                .map(analytics -> (ObjectNode) analytics.get(BID_REQUEST_ANALYTICS_EXTENSION_NAME))
+                .map(this::toGreenbidsPrebidExt)
+                .orElse(null);
+    }
+
+    private boolean isNotEmptyObjectNode(JsonNode analytics) {
+        return analytics != null && analytics.isObject() && !analytics.isEmpty();
+    }
+
+    private GreenbidsPrebidExt toGreenbidsPrebidExt(ObjectNode adapterNode) {
+        try {
+            return jacksonMapper.mapper().treeToValue(adapterNode, GreenbidsPrebidExt.class);
+        } catch (JsonProcessingException e) {
+            throw new PreBidException("Error decoding bid request analytics extension: " + e.getMessage(), e);
+        }
+    }
+
     private Map<String, Ortb2ImpExtResult> extractAnalyticsResultFromAnalyticsTag(BidResponse bidResponse) {
         return Optional.ofNullable(bidResponse)
                 .map(BidResponse::getExt)
@@ -225,29 +248,6 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                         throw new PreBidException("Analytics result parsing error", e);
                     }
                 }).orElse(null);
-    }
-
-    private GreenbidsPrebidExt parseBidRequestExt(BidRequest bidRequest) {
-        return Optional.ofNullable(bidRequest)
-                .map(BidRequest::getExt)
-                .map(ExtRequest::getPrebid)
-                .map(ExtRequestPrebid::getAnalytics)
-                .filter(this::isNotEmptyObjectNode)
-                .map(analytics -> (ObjectNode) analytics.get(BID_REQUEST_ANALYTICS_EXTENSION_NAME))
-                .map(this::toGreenbidsPrebidExt)
-                .orElse(null);
-    }
-
-    private GreenbidsPrebidExt toGreenbidsPrebidExt(ObjectNode adapterNode) {
-        try {
-            return jacksonMapper.mapper().treeToValue(adapterNode, GreenbidsPrebidExt.class);
-        } catch (JsonProcessingException e) {
-            throw new PreBidException("Error decoding bid request analytics extension: " + e.getMessage(), e);
-        }
-    }
-
-    private boolean isNotEmptyObjectNode(JsonNode analytics) {
-        return analytics != null && analytics.isObject() && !analytics.isEmpty();
     }
 
     private Future<Void> processAnalyticServerResponse(HttpClientResponse response) {

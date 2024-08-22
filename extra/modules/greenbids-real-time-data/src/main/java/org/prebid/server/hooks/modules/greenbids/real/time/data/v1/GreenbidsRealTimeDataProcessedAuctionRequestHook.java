@@ -186,6 +186,29 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                 updatedBidRequest, analyticsResult, invocationAction));
     }
 
+    private Partner parseBidRequestExt(BidRequest bidRequest) {
+        return Optional.ofNullable(bidRequest)
+                .map(BidRequest::getExt)
+                .map(ExtRequest::getPrebid)
+                .map(ExtRequestPrebid::getAnalytics)
+                .filter(this::isNotEmptyObjectNode)
+                .map(analytics -> (ObjectNode) analytics.get(BID_REQUEST_ANALYTICS_EXTENSION_NAME))
+                .map(this::toPartner)
+                .orElse(null);
+    }
+
+    private boolean isNotEmptyObjectNode(JsonNode analytics) {
+        return analytics != null && analytics.isObject() && !analytics.isEmpty();
+    }
+
+    private Partner toPartner(ObjectNode adapterNode) {
+        try {
+            return jacksonMapper.mapper().treeToValue(adapterNode, Partner.class);
+        } catch (JsonProcessingException e) {
+            throw new PreBidException("Error decoding bid request analytics extension: " + e.getMessage(), e);
+        }
+    }
+
     private OnnxModelRunner retrieveOnnxModelRunner(Partner partner, Storage storage) {
         final String onnxModelPath = "models_pbuid=" + partner.getPbuid() + ".onnx";
         final ModelCache modelCache = new ModelCache(
@@ -211,6 +234,98 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
         final ThrottlingThresholds throttlingThresholds = thresholdCache
                 .getThrottlingThresholds(partner.getPbuid());
         return partner.getThresholdForPartner(throttlingThresholds);
+    }
+
+    private List<ThrottlingMessage> extractThrottlingMessages(
+            BidRequest bidRequest,
+            GreenbidsUserAgent greenbidsUserAgent,
+            Integer hourBucket,
+            Integer minuteQuadrant) {
+        final String hostname = bidRequest.getSite().getDomain();
+        final List<Imp> imps = bidRequest.getImp();
+
+        return imps.stream()
+                .flatMap(imp -> {
+                    final String impId = imp.getId();
+                    final ObjectNode impExt = imp.getExt();
+                    final JsonNode bidderNode = extImpPrebid(impExt.get("prebid")).getBidder();
+
+                    final String ipv4 = Optional.ofNullable(bidRequest.getDevice())
+                            .map(Device::getIp)
+                            .orElse(null);
+                    final String countryFromIp;
+                    try {
+                        countryFromIp = getCountry(ipv4);
+                    } catch (IOException | GeoIp2Exception e) {
+                        throw new PreBidException("Failed to get country for IP", e);
+                    }
+
+                    final List<ThrottlingMessage> throttlingImpMessages = new ArrayList<>();
+                    if (bidderNode.isObject()) {
+                        final ObjectNode bidders = (ObjectNode) bidderNode;
+                        final Iterator<String> fieldNames = bidders.fieldNames();
+                        while (fieldNames.hasNext()) {
+                            final String bidderName = fieldNames.next();
+                            throttlingImpMessages.add(
+                                    ThrottlingMessage.builder()
+                                            .browser(greenbidsUserAgent.getBrowser())
+                                            .bidder(bidderName)
+                                            .adUnitCode(impId)
+                                            .country(countryFromIp)
+                                            .hostname(hostname)
+                                            .device(greenbidsUserAgent.getDevice())
+                                            .hourBucket(hourBucket.toString())
+                                            .minuteQuadrant(minuteQuadrant.toString())
+                                            .build());
+                        }
+                    }
+                    return throttlingImpMessages.stream();
+                })
+                .collect(Collectors.toList());
+    }
+
+    private ExtImpPrebid extImpPrebid(JsonNode extImpPrebid) {
+        try {
+            return jacksonMapper.mapper().treeToValue(extImpPrebid, ExtImpPrebid.class);
+        } catch (JsonProcessingException e) {
+            throw new PreBidException("Error decoding imp.ext.prebid: " + e.getMessage(), e);
+        }
+    }
+
+    private String getCountry(String ip) throws IOException, GeoIp2Exception {
+        return Optional.ofNullable(ip)
+                .map(ipAddress -> {
+                    try {
+                        final File database = new File(geoLiteCountryPath);
+                        final DatabaseReader dbReader = new DatabaseReader.Builder(database).build();
+                        final InetAddress inetAddress = InetAddress.getByName(ipAddress);
+                        final CountryResponse response = dbReader.country(inetAddress);
+                        final Country country = response.getCountry();
+                        return country.getName();
+                    } catch (IOException | GeoIp2Exception e) {
+                        throw new PreBidException("Failed to fetch country from geoLite DB", e);
+                    }
+                }).orElse(null);
+    }
+
+    private String[][] convertToArray(List<ThrottlingMessage> messages) {
+        return messages.stream()
+                .map(message -> new String[]{
+                        Optional.ofNullable(message.getBrowser()).orElse(""),
+                        Optional.ofNullable(message.getBidder()).orElse(""),
+                        Optional.ofNullable(message.getAdUnitCode()).orElse(""),
+                        Optional.ofNullable(message.getCountry()).orElse(""),
+                        Optional.ofNullable(message.getHostname()).orElse(""),
+                        Optional.ofNullable(message.getDevice()).orElse(""),
+                        Optional.ofNullable(message.getHourBucket()).orElse(""),
+                        Optional.ofNullable(message.getMinuteQuadrant()).orElse("")})
+                .toArray(String[][]::new);
+    }
+
+    private Boolean isAnyFeatureNull(String[][] throttlingInferenceRow) {
+        return Arrays.stream(throttlingInferenceRow)
+                .flatMap(Arrays::stream)
+                .anyMatch(Objects::isNull);
     }
 
     private Map<String, Map<String, Boolean>> runModeAndFilterBidders(
@@ -264,10 +379,28 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
         return hashInt < partner.getExplorationRate() * RANGE_16_BIT_INTEGER_DIVISION_BASIS;
     }
 
-    private Boolean isAnyFeatureNull(String[][] throttlingInferenceRow) {
-        return Arrays.stream(throttlingInferenceRow)
-                .flatMap(Arrays::stream)
-                .anyMatch(Objects::isNull);
+    private List<Imp> updateImps(BidRequest bidRequest, Map<String, Map<String, Boolean>> impsBiddersFilterMap) {
+        return bidRequest.getImp().stream()
+                .map(imp -> updateImp(imp, impsBiddersFilterMap.get(imp.getId())))
+                .toList();
+    }
+
+    private Imp updateImp(Imp imp, Map<String, Boolean> bidderFilterMap) {
+        return imp.toBuilder()
+                .ext(updateImpExt(imp.getExt(), bidderFilterMap))
+                .build();
+    }
+
+    private ObjectNode updateImpExt(ObjectNode impExt, Map<String, Boolean> bidderFilterMap) {
+        final ObjectNode updatedExt = impExt.deepCopy();
+        Optional.ofNullable((ObjectNode) updatedExt.get("prebid"))
+                .map(prebidNode -> (ObjectNode) prebidNode.get("bidder"))
+                .ifPresent(bidderNode ->
+                        bidderFilterMap.entrySet().stream()
+                                .filter(entry -> !entry.getValue())
+                                .map(Map.Entry::getKey)
+                                .forEach(bidderNode::remove));
+        return updatedExt;
     }
 
     private Map<String, Map<String, Boolean>> keepAllBiddersForAnalyticsResult(
@@ -277,6 +410,24 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                         .entrySet().stream()
                         .collect(Collectors.toMap(Map.Entry::getKey, entry -> true)));
         return impsBiddersFilterMap;
+    }
+
+    private Map<String, Ortb2ImpExtResult> createOrtb2ImpExt(
+            BidRequest bidRequest,
+            Map<String, Map<String, Boolean>> impsBiddersFilterMap,
+            String greenbidsId,
+            Boolean isExploration) {
+        return bidRequest.getImp().stream()
+                .collect(Collectors.toMap(
+                        Imp::getId,
+                        imp -> {
+                            final String tid = imp.getExt().get("tid").asText();
+                            final Map<String, Boolean> impBiddersFilterMap = impsBiddersFilterMap.get(imp.getId());
+                            final ExplorationResult explorationResult = ExplorationResult.of(
+                                    greenbidsId, impBiddersFilterMap, isExploration);
+                            return Ortb2ImpExtResult.of(
+                                    explorationResult, tid);
+                        }));
     }
 
     private InvocationResult<AuctionRequestPayload> toInvocationResult(
@@ -297,47 +448,6 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                 .payloadUpdate(payload -> AuctionRequestPayloadImpl.of(bidRequest))
                 .analyticsTags(toAnalyticsTags(analyticsResults))
                 .build();
-    }
-
-    private Partner parseBidRequestExt(BidRequest bidRequest) {
-        return Optional.ofNullable(bidRequest)
-                .map(BidRequest::getExt)
-                .map(ExtRequest::getPrebid)
-                .map(ExtRequestPrebid::getAnalytics)
-                .filter(this::isNotEmptyObjectNode)
-                .map(analytics -> (ObjectNode) analytics.get(BID_REQUEST_ANALYTICS_EXTENSION_NAME))
-                .map(this::toPartner)
-                .orElse(null);
-    }
-
-    private Partner toPartner(ObjectNode adapterNode) {
-        try {
-            return jacksonMapper.mapper().treeToValue(adapterNode, Partner.class);
-        } catch (JsonProcessingException e) {
-            throw new PreBidException("Error decoding bid request analytics extension: " + e.getMessage(), e);
-        }
-    }
-
-    private boolean isNotEmptyObjectNode(JsonNode analytics) {
-        return analytics != null && analytics.isObject() && !analytics.isEmpty();
-    }
-
-    private Map<String, Ortb2ImpExtResult> createOrtb2ImpExt(
-            BidRequest bidRequest,
-            Map<String, Map<String, Boolean>> impsBiddersFilterMap,
-            String greenbidsId,
-            Boolean isExploration) {
-        return bidRequest.getImp().stream()
-                .collect(Collectors.toMap(
-                        Imp::getId,
-                        imp -> {
-                            final String tid = imp.getExt().get("tid").asText();
-                            final Map<String, Boolean> impBiddersFilterMap = impsBiddersFilterMap.get(imp.getId());
-                            final ExplorationResult explorationResult = ExplorationResult.of(
-                                    greenbidsId, impBiddersFilterMap, isExploration);
-                            return Ortb2ImpExtResult.of(
-                                    explorationResult, tid);
-                        }));
     }
 
     private Tags toAnalyticsTags(List<AnalyticsResult> analyticsResults) {
@@ -369,116 +479,6 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
 
     private ObjectNode toObjectNode(Map<String, Ortb2ImpExtResult> values) {
         return values != null ? mapper.valueToTree(values) : null;
-    }
-
-    private List<Imp> updateImps(BidRequest bidRequest, Map<String, Map<String, Boolean>> impsBiddersFilterMap) {
-        return bidRequest.getImp().stream()
-                .map(imp -> updateImp(imp, impsBiddersFilterMap.get(imp.getId())))
-                .toList();
-    }
-
-    private Imp updateImp(Imp imp, Map<String, Boolean> bidderFilterMap) {
-        return imp.toBuilder()
-                .ext(updateImpExt(imp.getExt(), bidderFilterMap))
-                .build();
-    }
-
-    private ObjectNode updateImpExt(ObjectNode impExt, Map<String, Boolean> bidderFilterMap) {
-        final ObjectNode updatedExt = impExt.deepCopy();
-        Optional.ofNullable((ObjectNode) updatedExt.get("prebid"))
-                .map(prebidNode -> (ObjectNode) prebidNode.get("bidder"))
-                .ifPresent(bidderNode ->
-                        bidderFilterMap.entrySet().stream()
-                                .filter(entry -> !entry.getValue())
-                                .map(Map.Entry::getKey)
-                                .forEach(bidderNode::remove));
-        return updatedExt;
-    }
-
-    private List<ThrottlingMessage> extractThrottlingMessages(
-            BidRequest bidRequest,
-            GreenbidsUserAgent greenbidsUserAgent,
-            Integer hourBucket,
-            Integer minuteQuadrant) {
-        final String hostname = bidRequest.getSite().getDomain();
-        final List<Imp> imps = bidRequest.getImp();
-
-        return imps.stream()
-                .flatMap(imp -> {
-                    final String impId = imp.getId();
-                    final ObjectNode impExt = imp.getExt();
-                    final JsonNode bidderNode = extImpPrebid(impExt.get("prebid")).getBidder();
-
-                    final String ipv4 = Optional.ofNullable(bidRequest.getDevice())
-                            .map(Device::getIp)
-                            .orElse(null);
-                    final String countryFromIp;
-                    try {
-                        countryFromIp = getCountry(ipv4);
-                    } catch (IOException | GeoIp2Exception e) {
-                        throw new PreBidException("Failed to get country for IP", e);
-                    }
-
-                    final List<ThrottlingMessage> throttlingImpMessages = new ArrayList<>();
-                    if (bidderNode.isObject()) {
-                        final ObjectNode bidders = (ObjectNode) bidderNode;
-                        final Iterator<String> fieldNames = bidders.fieldNames();
-                        while (fieldNames.hasNext()) {
-                            final String bidderName = fieldNames.next();
-                            throttlingImpMessages.add(
-                                    ThrottlingMessage.builder()
-                                            .browser(greenbidsUserAgent.getBrowser())
-                                            .bidder(bidderName)
-                                            .adUnitCode(impId)
-                                            .country(countryFromIp)
-                                            .hostname(hostname)
-                                            .device(greenbidsUserAgent.getDevice())
-                                            .hourBucket(hourBucket.toString())
-                                            .minuteQuadrant(minuteQuadrant.toString())
-                                            .build());
-                        }
-                    }
-                    return throttlingImpMessages.stream();
-                })
-                .collect(Collectors.toList());
-    }
-
-    private String getCountry(String ip) throws IOException, GeoIp2Exception {
-        return Optional.ofNullable(ip)
-                .map(ipAddress -> {
-                    try {
-                        final File database = new File(geoLiteCountryPath);
-                        final DatabaseReader dbReader = new DatabaseReader.Builder(database).build();
-                        final InetAddress inetAddress = InetAddress.getByName(ipAddress);
-                        final CountryResponse response = dbReader.country(inetAddress);
-                        final Country country = response.getCountry();
-                        return country.getName();
-                    } catch (IOException | GeoIp2Exception e) {
-                        throw new PreBidException("Failed to fetch country from geoLite DB", e);
-                    }
-                }).orElse(null);
-    }
-
-    private ExtImpPrebid extImpPrebid(JsonNode extImpPrebid) {
-        try {
-            return jacksonMapper.mapper().treeToValue(extImpPrebid, ExtImpPrebid.class);
-        } catch (JsonProcessingException e) {
-            throw new PreBidException("Error decoding imp.ext.prebid: " + e.getMessage(), e);
-        }
-    }
-
-    private String[][] convertToArray(List<ThrottlingMessage> messages) {
-        return messages.stream()
-                .map(message -> new String[]{
-                        Optional.ofNullable(message.getBrowser()).orElse(""),
-                        Optional.ofNullable(message.getBidder()).orElse(""),
-                        Optional.ofNullable(message.getAdUnitCode()).orElse(""),
-                        Optional.ofNullable(message.getCountry()).orElse(""),
-                        Optional.ofNullable(message.getHostname()).orElse(""),
-                        Optional.ofNullable(message.getDevice()).orElse(""),
-                        Optional.ofNullable(message.getHourBucket()).orElse(""),
-                        Optional.ofNullable(message.getMinuteQuadrant()).orElse("")})
-                .toArray(String[][]::new);
     }
 
     @Override
