@@ -86,6 +86,7 @@ public class S3PeriodicRefreshService implements Initializable {
                 .onComplete(initializePromise);
 
         if (refreshPeriod > 0) {
+            logger.info("Starting s3 periodic refresh for " + cacheType + " every " + refreshPeriod + " s");
             vertx.setPeriodic(refreshPeriod, ignored -> refresh());
         }
     }
