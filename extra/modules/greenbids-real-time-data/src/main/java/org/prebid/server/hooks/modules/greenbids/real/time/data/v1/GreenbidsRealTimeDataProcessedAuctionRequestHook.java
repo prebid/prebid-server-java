@@ -405,8 +405,6 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                     final ObjectNode impExt = imp.getExt();
                     final JsonNode bidderNode = extImpPrebid(impExt.get("prebid")).getBidder();
 
-                    final List<ThrottlingMessage> throttlingImpMessages = new ArrayList<>();
-
                     final String ipv4 = Optional.ofNullable(bidRequest.getDevice())
                             .map(Device::getIp)
                             .orElse(null);
@@ -417,6 +415,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                         throw new PreBidException("Failed to get country for IP", e);
                     }
 
+                    final List<ThrottlingMessage> throttlingImpMessages = new ArrayList<>();
                     if (bidderNode.isObject()) {
                         final ObjectNode bidders = (ObjectNode) bidderNode;
                         final Iterator<String> fieldNames = bidders.fieldNames();

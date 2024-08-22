@@ -44,7 +44,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -73,7 +72,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
 
     private static final String THRESHOLDS_CACHE_KEY_PREFIX = "throttlingThresholds_";
 
-    private GreenbidsRealTimeDataProcessedAuctionRequestHook hook;
+    private GreenbidsRealTimeDataProcessedAuctionRequestHook target;
 
     private JacksonMapper jacksonMapper;
 
@@ -95,7 +94,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         thresholdsCacheWithExpiration = Caffeine.newBuilder()
                 .expireAfterWrite(CACHE_EXPIRATION_MINUTES, TimeUnit.MINUTES)
                 .build();
-        hook = new GreenbidsRealTimeDataProcessedAuctionRequestHook(
+        target = new GreenbidsRealTimeDataProcessedAuctionRequestHook(
                 mapper,
                 modelCacheWithExpiration,
                 thresholdsCacheWithExpiration,
@@ -120,7 +119,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
     }
 
     @Test
-    public void shouldExitEarlyIfPartnerNotActivatedInBidRequest() throws IOException, OrtException {
+    public void shouldExitEarlyWhenPartnerNotActivatedInBidRequest() throws IOException, OrtException {
         // given
         final Banner banner = givenBanner();
 
@@ -142,7 +141,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         thresholdCache.getCache().put("throttlingThresholds_test-pbuid", givenThrottlingThresholds());
 
         // when
-        final Future<InvocationResult<AuctionRequestPayload>> future = hook
+        final Future<InvocationResult<AuctionRequestPayload>> future = target
                 .call(null, invocationContext);
         final InvocationResult<AuctionRequestPayload> result = future.result();
         final BidRequest resultBidRequest = result
@@ -165,7 +164,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
     }
 
     @Test
-    public void shouldExitEarlyIfThresholdIsNotAvailable() throws OrtException, IOException {
+    public void shouldExitEarlyWhenThresholdIsNotAvailable() throws OrtException, IOException {
         // given
         final Banner banner = givenBanner();
 
@@ -188,7 +187,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         modelCache.getCache().put("onnxModelRunner_test-pbuid", givenOnnxModelRunner());
 
         // when
-        final Future<InvocationResult<AuctionRequestPayload>> future = hook
+        final Future<InvocationResult<AuctionRequestPayload>> future = target
                 .call(null, invocationContext);
         final InvocationResult<AuctionRequestPayload> result = future.result();
         final BidRequest resultBidRequest = result
@@ -211,7 +210,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
     }
 
     @Test
-    public void shouldExitEarlyIfModelIsNotAvailable() throws IOException {
+    public void shouldExitEarlyWhenModelIsNotAvailable() throws IOException {
         // given
         final Banner banner = givenBanner();
 
@@ -234,7 +233,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         thresholdCache.getCache().put("throttlingThresholds_test-pbuid", givenThrottlingThresholds());
 
         // when
-        final Future<InvocationResult<AuctionRequestPayload>> future = hook
+        final Future<InvocationResult<AuctionRequestPayload>> future = target
                 .call(null, invocationContext);
         final InvocationResult<AuctionRequestPayload> result = future.result();
         final BidRequest resultBidRequest = result
@@ -283,7 +282,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final AnalyticsResult expectedAnalyticsResult = expectedAnalyticsResult(true, true);
 
         // when
-        final Future<InvocationResult<AuctionRequestPayload>> future = hook
+        final Future<InvocationResult<AuctionRequestPayload>> future = target
                 .call(null, invocationContext);
         final InvocationResult<AuctionRequestPayload> result = future.result();
         final BidRequest resultBidRequest = result
@@ -314,7 +313,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
     }
 
     @Test
-    public void shouldFilterBiddersBasedOnModelIfAnyFeatureNotAvailable() throws OrtException, IOException {
+    public void shouldFilterBiddersBasedOnModelWhenAnyFeatureNotAvailable() throws OrtException, IOException {
         // given
         final Banner banner = givenBanner();
 
@@ -341,7 +340,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final AnalyticsResult expectedAnalyticsResult = expectedAnalyticsResult(false, false);
 
         // when
-        final Future<InvocationResult<AuctionRequestPayload>> future = hook
+        final Future<InvocationResult<AuctionRequestPayload>> future = target
                 .call(null, invocationContext);
         final InvocationResult<AuctionRequestPayload> result = future.result();
         final BidRequest resultBidRequest = result
@@ -401,7 +400,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final AnalyticsResult expectedAnalyticsResult = expectedAnalyticsResult(false, false);
 
         // when
-        final Future<InvocationResult<AuctionRequestPayload>> future = hook
+        final Future<InvocationResult<AuctionRequestPayload>> future = target
                 .call(null, invocationContext);
         final InvocationResult<AuctionRequestPayload> result = future.result();
         final BidRequest resultBidRequest = result
@@ -606,10 +605,10 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
     }
 
     private static ExplorationResult expectedExplorationResult(Boolean isExploration, Boolean isKeptInAuction) {
-        final Map<String, Boolean> keptInAuction = new HashMap<>();
-        keptInAuction.put("appnexus", isKeptInAuction);
-        keptInAuction.put("pubmatic", isKeptInAuction);
-        keptInAuction.put("rubicon", isKeptInAuction);
+        final Map<String, Boolean> keptInAuction = Map.of(
+                "appnexus", isKeptInAuction,
+                "pubmatic", isKeptInAuction,
+                "rubicon", isKeptInAuction);
         return ExplorationResult.of(null, keptInAuction, isExploration);
     }
 }
