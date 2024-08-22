@@ -22,22 +22,23 @@ public class ModelCache {
 
     Storage storage;
 
-    ReentrantLock lock;
-
     String onnxModelCacheKeyPrefix;
+
+    ReentrantLock lock;
 
     public ModelCache(
             String modelPath,
             Storage storage,
             String gcsBucketName,
             Cache<String, OnnxModelRunner> cache,
-            String onnxModelCacheKeyPrefix) {
+            String onnxModelCacheKeyPrefix,
+            ReentrantLock lock) {
         this.gcsBucketName = gcsBucketName;
         this.modelPath = modelPath;
         this.cache = cache;
         this.storage = storage;
-        this.lock = new ReentrantLock();
         this.onnxModelCacheKeyPrefix = onnxModelCacheKeyPrefix;
+        this.lock = lock;
     }
 
     public OnnxModelRunner getModelRunner(String pbuid) {
