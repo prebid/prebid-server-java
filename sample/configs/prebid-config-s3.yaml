@@ -29,7 +29,8 @@ settings:
     accessKeyId: prebid-server-test
     secretAccessKey: nq9h6whXQURNL2NnWg3rcMlLMtGGDJeWrdl8hC9g
     endpoint: http://localhost:9000
-    bucket: prebid-server-configs-dev.h5v.eu # prebid-application-settings
+    bucket: prebid-server-configs.example.com # prebid-application-settings
+    force-path-style: true # virtual bucketing
     # region: <region name> # if not provided AWS_GLOBAL will be used. Example value: 'eu-central-1'
     accounts-dir: accounts
     stored-imps-dir: stored-impressions

@@ -250,6 +250,8 @@ public class SettingsConfiguration {
             @NotBlank
             private String bucket;
             @NotBlank
+            private Boolean forcePathStyle;
+            @NotBlank
             private String accountsDir;
             @NotBlank
             private String storedImpsDir;
@@ -268,10 +270,12 @@ public class SettingsConfiguration {
             final Region awsRegion = awsRegionName != null
                     ? Region.of(s3ConfigurationProperties.getRegion())
                     : Region.AWS_GLOBAL;
+            System.out.println("Path Style: " + s3ConfigurationProperties.getForcePathStyle());
             return S3AsyncClient
                     .builder()
                     .credentialsProvider(StaticCredentialsProvider.create(credentials))
                     .endpointOverride(new URI(s3ConfigurationProperties.getEndpoint()))
+                    .forcePathStyle(s3ConfigurationProperties.getForcePathStyle())
                     .region(awsRegion)
                     .build();
         }
