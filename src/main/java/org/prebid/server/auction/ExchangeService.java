@@ -378,7 +378,6 @@ public class ExchangeService {
                         .build();
             }
         }
-
         return BidRequestCacheInfo.noCache();
     }
 
@@ -981,6 +980,7 @@ public class ExchangeService {
 
         return bidRequest.getImp().stream()
                 .filter(imp -> bidderParamsFromImpExt(imp.getExt()).hasNonNull(bidder))
+                .map(imp -> imp.toBuilder().ext(imp.getExt().deepCopy()).build())
                 .map(imp -> impAdjuster.adjust(imp, bidder, bidderAliases, debugWarnings))
                 .map(imp -> prepareImp(imp, bidder, bidRequest, transmitTid, useFirstPartyData, account, debugWarnings))
                 .toList();
