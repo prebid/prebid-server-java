@@ -1017,17 +1017,16 @@ public class ExchangeService {
                                      boolean transmitTid,
                                      boolean useFirstPartyData) {
 
-        final ObjectNode modifiedImpExt = impExt.deepCopy();
         final JsonNode impExtPrebid = prepareImpExt(impExt.get(PREBID_EXT), adjustedFloor);
         Optional.ofNullable(impExtPrebid).ifPresentOrElse(
-                ext -> modifiedImpExt.set(PREBID_EXT, ext),
-                () -> modifiedImpExt.remove(PREBID_EXT));
-        modifiedImpExt.set(BIDDER_EXT, bidderParamsFromImpExt(impExt).get(bidder));
+                ext -> impExt.set(PREBID_EXT, ext),
+                () -> impExt.remove(PREBID_EXT));
+        impExt.set(BIDDER_EXT, bidderParamsFromImpExt(impExt).get(bidder));
         if (!transmitTid) {
-            modifiedImpExt.remove(TID_EXT);
+            impExt.remove(TID_EXT);
         }
 
-        return fpdResolver.resolveImpExt(modifiedImpExt, useFirstPartyData);
+        return fpdResolver.resolveImpExt(impExt, useFirstPartyData);
     }
 
     private JsonNode prepareImpExt(JsonNode extImpPrebidNode, BigDecimal adjustedFloor) {
