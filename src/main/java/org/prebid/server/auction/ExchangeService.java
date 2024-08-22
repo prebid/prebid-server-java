@@ -378,7 +378,6 @@ public class ExchangeService {
                         .build();
             }
         }
-
         return BidRequestCacheInfo.noCache();
     }
 
