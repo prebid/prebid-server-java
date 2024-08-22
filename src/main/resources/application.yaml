@@ -297,7 +297,7 @@ analytics:
       report-ttl-ms: 900000
   greenbids:
     analytics-server-version: "2.2.0"
-    analytics-server: https://a.greenbids.ai/
+    analytics-server: http://localhost:8090
     exploratory-sampling-split: 0.9
     timeout-ms: 10000
   agma:
