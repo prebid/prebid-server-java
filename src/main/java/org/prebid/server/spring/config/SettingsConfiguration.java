@@ -270,7 +270,6 @@ public class SettingsConfiguration {
             final Region awsRegion = awsRegionName != null
                     ? Region.of(s3ConfigurationProperties.getRegion())
                     : Region.AWS_GLOBAL;
-            System.out.println("Path Style: " + s3ConfigurationProperties.getForcePathStyle());
             return S3AsyncClient
                     .builder()
                     .credentialsProvider(StaticCredentialsProvider.create(credentials))
