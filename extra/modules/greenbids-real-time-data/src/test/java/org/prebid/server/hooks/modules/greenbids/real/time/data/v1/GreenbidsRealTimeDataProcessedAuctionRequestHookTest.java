@@ -54,23 +54,6 @@ import static org.mockito.Mockito.when;
 
 public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
 
-    private static final long CACHE_EXPIRATION_MINUTES = 15;
-
-    private static final String GEO_LITE_COUNTRY_PATH =
-            "src/test/resources/GeoLite2-Country.mmdb";
-
-    private static final String MODEL_PATH = "src/test/resources/models_pbuid=test-pbuid.onnx";
-
-    private static final String JSON_PATH = "src/test/resources/thresholds_pbuid=test-pbuid.json";
-
-    private static final String GOOGLE_CLOUD_PROJECT = "test_project";
-
-    private static final String GCS_BUCKET_NAME = "test_bucket";
-
-    private static final String ONNX_MODEL_CACHE_KEY_PREFIX = "onnxModelRunner_";
-
-    private static final String THRESHOLDS_CACHE_KEY_PREFIX = "throttlingThresholds_";
-
     private GreenbidsRealTimeDataProcessedAuctionRequestHook target;
 
     private JacksonMapper jacksonMapper;
@@ -84,20 +67,20 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final ObjectMapper mapper = new ObjectMapper();
         jacksonMapper = new JacksonMapper(mapper);
         modelCacheWithExpiration = Caffeine.newBuilder()
-                .expireAfterWrite(CACHE_EXPIRATION_MINUTES, TimeUnit.MINUTES)
+                .expireAfterWrite(15, TimeUnit.MINUTES)
                 .build();
         thresholdsCacheWithExpiration = Caffeine.newBuilder()
-                .expireAfterWrite(CACHE_EXPIRATION_MINUTES, TimeUnit.MINUTES)
+                .expireAfterWrite(15, TimeUnit.MINUTES)
                 .build();
         target = new GreenbidsRealTimeDataProcessedAuctionRequestHook(
                 mapper,
                 modelCacheWithExpiration,
                 thresholdsCacheWithExpiration,
-                GEO_LITE_COUNTRY_PATH,
-                GOOGLE_CLOUD_PROJECT,
-                GCS_BUCKET_NAME,
-                ONNX_MODEL_CACHE_KEY_PREFIX,
-                THRESHOLDS_CACHE_KEY_PREFIX,
+                "src/test/resources/GeoLite2-Country.mmdb",
+                "test_project",
+                "test_bucket",
+                "onnxModelRunner_",
+                "throttlingThresholds_",
                 new ReentrantLock());
     }
 
@@ -413,16 +396,17 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 .isEqualTo(expectedBidRequest);
     }
 
-    private OnnxModelRunner givenOnnxModelRunner() throws OrtException, IOException {
-        final byte[] onnxModelBytes = Files.readAllBytes(Paths.get(MODEL_PATH));
-        return new OnnxModelRunner(onnxModelBytes);
-    }
+    private static Banner givenBanner() {
+        final Format format = Format.builder()
+                .w(320)
+                .h(50)
+                .build();
 
-    private ThrottlingThresholds givenThrottlingThresholds() throws IOException {
-        final JsonNode thresholdsJsonNode = jacksonMapper.mapper().readTree(
-                Files.newInputStream(Paths.get(JSON_PATH)));
-        return jacksonMapper.mapper()
-                .treeToValue(thresholdsJsonNode, ThrottlingThresholds.class);
+        return Banner.builder()
+                .format(Collections.singletonList(format))
+                .w(240)
+                .h(400)
+                .build();
     }
 
     private ObjectNode givenImpExt() {
@@ -453,20 +437,25 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         return extNode;
     }
 
-    private AuctionInvocationContext givenAuctionInvocationContext(AuctionContext auctionContext) {
-        final AuctionInvocationContext invocationContext = mock(AuctionInvocationContext.class);
-        when(invocationContext.auctionContext()).thenReturn(auctionContext);
-        return invocationContext;
+    private static Device givenDevice(UnaryOperator<Device.DeviceBuilder> deviceCustomizer) {
+        final String userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36"
+                + " (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36";
+        return deviceCustomizer.apply(Device.builder().ua(userAgent).ip("151.101.194.216")).build();
     }
 
-    private static AuctionContext givenAuctionContext(
-            BidRequest bidRequest,
-            UnaryOperator<AuctionContext.AuctionContextBuilder> auctionContextCustomizer) {
-        final AuctionContext.AuctionContextBuilder auctionContextBuilder = AuctionContext.builder()
-                .httpRequest(HttpRequestContext.builder().build())
-                .bidRequest(bidRequest);
+    private static ExtRequest givenExtRequest(Double explorationRate) {
+        final ObjectNode greenbidsNode = new ObjectMapper().createObjectNode();
+        greenbidsNode.put("pbuid", "test-pbuid");
+        greenbidsNode.put("targetTpr", 0.60);
+        greenbidsNode.put("explorationRate", explorationRate);
 
-        return auctionContextCustomizer.apply(auctionContextBuilder).build();
+        final ObjectNode analyticsNode = new ObjectMapper().createObjectNode();
+        analyticsNode.set("greenbids-rtd", greenbidsNode);
+
+        return ExtRequest.of(ExtRequestPrebid
+                .builder()
+                .analytics(analyticsNode)
+                .build());
     }
 
     private static BidRequest givenBidRequest(
@@ -480,6 +469,36 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 .site(givenSite(site -> site))
                 .device(device)
                 .ext(extRequest)).build();
+    }
+
+    private static AuctionContext givenAuctionContext(
+            BidRequest bidRequest,
+            UnaryOperator<AuctionContext.AuctionContextBuilder> auctionContextCustomizer) {
+        final AuctionContext.AuctionContextBuilder auctionContextBuilder = AuctionContext.builder()
+                .httpRequest(HttpRequestContext.builder().build())
+                .bidRequest(bidRequest);
+
+        return auctionContextCustomizer.apply(auctionContextBuilder).build();
+    }
+
+    private AuctionInvocationContext givenAuctionInvocationContext(AuctionContext auctionContext) {
+        final AuctionInvocationContext invocationContext = mock(AuctionInvocationContext.class);
+        when(invocationContext.auctionContext()).thenReturn(auctionContext);
+        return invocationContext;
+    }
+
+    private OnnxModelRunner givenOnnxModelRunner() throws OrtException, IOException {
+        final byte[] onnxModelBytes = Files.readAllBytes(Paths.get(
+                "src/test/resources/models_pbuid=test-pbuid.onnx"));
+        return new OnnxModelRunner(onnxModelBytes);
+    }
+
+    private ThrottlingThresholds givenThrottlingThresholds() throws IOException {
+        final JsonNode thresholdsJsonNode = jacksonMapper.mapper().readTree(
+                Files.newInputStream(Paths.get(
+                        "src/test/resources/thresholds_pbuid=test-pbuid.json")));
+        return jacksonMapper.mapper()
+                .treeToValue(thresholdsJsonNode, ThrottlingThresholds.class);
     }
 
     private static BidRequest expectedUpdatedBidRequest(
@@ -510,42 +529,28 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 .ext(givenExtRequest(explorationRate))).build();
     }
 
-    private static Device givenDevice(UnaryOperator<Device.DeviceBuilder> deviceCustomizer) {
-        final String userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36"
-                + " (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36";
-        return deviceCustomizer.apply(Device.builder().ua(userAgent).ip("151.101.194.216")).build();
-    }
-
     private static Site givenSite(UnaryOperator<Site.SiteBuilder> siteCustomizer) {
         return siteCustomizer.apply(Site.builder().domain("www.leparisien.fr")).build();
     }
 
-    private static ExtRequest givenExtRequest(Double explorationRate) {
-        final ObjectNode greenbidsNode = new ObjectMapper().createObjectNode();
-        greenbidsNode.put("pbuid", "test-pbuid");
-        greenbidsNode.put("targetTpr", 0.60);
-        greenbidsNode.put("explorationRate", explorationRate);
-
-        final ObjectNode analyticsNode = new ObjectMapper().createObjectNode();
-        analyticsNode.set("greenbids-rtd", greenbidsNode);
-
-        return ExtRequest.of(ExtRequestPrebid
-                .builder()
-                .analytics(analyticsNode)
-                .build());
+    private static AnalyticsResult expectedAnalyticsResult(Boolean isExploration, Boolean isKeptInAuction) {
+        return AnalyticsResult.of(
+                "success",
+                Map.of("adunitcodevalue", expectedOrtb2ImpExtResult(isExploration, isKeptInAuction)),
+                null,
+                null);
     }
 
-    private static Banner givenBanner() {
-        final Format format = Format.builder()
-                .w(320)
-                .h(50)
-                .build();
+    private static Ortb2ImpExtResult expectedOrtb2ImpExtResult(Boolean isExploration, Boolean isKeptInAuction) {
+        return Ortb2ImpExtResult.of(expectedExplorationResult(isExploration, isKeptInAuction), null);
+    }
 
-        return Banner.builder()
-                .format(Collections.singletonList(format))
-                .w(240)
-                .h(400)
-                .build();
+    private static ExplorationResult expectedExplorationResult(Boolean isExploration, Boolean isKeptInAuction) {
+        final Map<String, Boolean> keptInAuction = Map.of(
+                "appnexus", isKeptInAuction,
+                "pubmatic", isKeptInAuction,
+                "rubicon", isKeptInAuction);
+        return ExplorationResult.of(null, keptInAuction, isExploration);
     }
 
     private Tags toAnalyticsTags(List<AnalyticsResult> analyticsResults) {
@@ -573,25 +578,5 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
 
     private ObjectNode toObjectNode(Map<String, Ortb2ImpExtResult> values) {
         return values != null ? jacksonMapper.mapper().valueToTree(values) : null;
-    }
-
-    private static AnalyticsResult expectedAnalyticsResult(Boolean isExploration, Boolean isKeptInAuction) {
-        return AnalyticsResult.of(
-                "success",
-                Map.of("adunitcodevalue", expectedOrtb2ImpExtResult(isExploration, isKeptInAuction)),
-                null,
-                null);
-    }
-
-    private static Ortb2ImpExtResult expectedOrtb2ImpExtResult(Boolean isExploration, Boolean isKeptInAuction) {
-        return Ortb2ImpExtResult.of(expectedExplorationResult(isExploration, isKeptInAuction), null);
-    }
-
-    private static ExplorationResult expectedExplorationResult(Boolean isExploration, Boolean isKeptInAuction) {
-        final Map<String, Boolean> keptInAuction = Map.of(
-                "appnexus", isKeptInAuction,
-                "pubmatic", isKeptInAuction,
-                "rubicon", isKeptInAuction);
-        return ExplorationResult.of(null, keptInAuction, isExploration);
     }
 }
