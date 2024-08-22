@@ -5,6 +5,8 @@ import com.github.benmanes.caffeine.cache.Cache;
 import lombok.Value;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingThresholds;
 
+import java.util.concurrent.locks.Lock;
+
 @Value(staticConstructor = "of")
 public class GreenbidsRealTimeDataProperties {
 
@@ -31,4 +33,7 @@ public class GreenbidsRealTimeDataProperties {
 
     @JsonProperty(value = "thresholdsCacheKeyPrefix", required = true)
     String thresholdsCacheKeyPrefix;
+
+    @JsonProperty(value = "lock", required = true)
+    Lock lock;
 }

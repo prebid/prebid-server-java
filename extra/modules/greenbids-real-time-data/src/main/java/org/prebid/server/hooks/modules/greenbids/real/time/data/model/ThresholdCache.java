@@ -24,11 +24,11 @@ public class ThresholdCache {
 
     Storage storage;
 
-    ReentrantLock lock;
-
     ObjectMapper mapper;
 
     String thresholdsCacheKeyPrefix;
+
+    ReentrantLock lock;
 
     public ThresholdCache(
             String thresholdPath,
@@ -36,14 +36,15 @@ public class ThresholdCache {
             String gcsBucketName,
             ObjectMapper mapper,
             Cache<String, ThrottlingThresholds> cache,
-            String thresholdsCacheKeyPrefix) {
+            String thresholdsCacheKeyPrefix,
+            ReentrantLock lock) {
         this.gcsBucketName = gcsBucketName;
         this.thresholdPath = thresholdPath;
         this.cache = cache;
         this.storage = storage;
-        this.lock = new ReentrantLock();
         this.mapper = mapper;
         this.thresholdsCacheKeyPrefix = thresholdsCacheKeyPrefix;
+        this.lock = lock;
     }
 
     public ThrottlingThresholds getThrottlingThresholds(String pbuid) {

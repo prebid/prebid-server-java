@@ -20,10 +20,8 @@ import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingThresholds;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.AnalyticsResult;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.ExplorationResult;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.model.ModelCache;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.OnnxModelRunner;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.Ortb2ImpExtResult;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.model.ThresholdCache;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.model.analytics.ActivityImpl;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.model.analytics.AppliedToImpl;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.model.analytics.ResultImpl;
@@ -47,6 +45,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.UnaryOperator;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -80,10 +79,6 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
 
     private Cache<String, ThrottlingThresholds> thresholdsCacheWithExpiration;
 
-    private ModelCache modelCache;
-
-    private ThresholdCache thresholdCache;
-
     @BeforeEach
     public void setUp() {
         final ObjectMapper mapper = new ObjectMapper();
@@ -102,20 +97,8 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 GOOGLE_CLOUD_PROJECT,
                 GCS_BUCKET_NAME,
                 ONNX_MODEL_CACHE_KEY_PREFIX,
-                THRESHOLDS_CACHE_KEY_PREFIX);
-        modelCache = new ModelCache(
-                null,
-                null,
-                null,
-                modelCacheWithExpiration,
-                ONNX_MODEL_CACHE_KEY_PREFIX);
-        thresholdCache = new ThresholdCache(
-                null,
-                null,
-                null,
-                jacksonMapper.mapper(),
-                thresholdsCacheWithExpiration,
-                THRESHOLDS_CACHE_KEY_PREFIX);
+                THRESHOLDS_CACHE_KEY_PREFIX,
+                new ReentrantLock());
     }
 
     @Test
@@ -135,10 +118,10 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final AuctionInvocationContext invocationContext = givenAuctionInvocationContext(auctionContext);
         when(invocationContext.auctionContext()).thenReturn(auctionContext);
 
-        modelCache.getCache().cleanUp();
-        thresholdCache.getCache().cleanUp();
-        modelCache.getCache().put("onnxModelRunner_test-pbuid", givenOnnxModelRunner());
-        thresholdCache.getCache().put("throttlingThresholds_test-pbuid", givenThrottlingThresholds());
+        modelCacheWithExpiration.cleanUp();
+        thresholdsCacheWithExpiration.cleanUp();
+        modelCacheWithExpiration.put("onnxModelRunner_test-pbuid", givenOnnxModelRunner());
+        thresholdsCacheWithExpiration.put("throttlingThresholds_test-pbuid", givenThrottlingThresholds());
 
         // when
         final Future<InvocationResult<AuctionRequestPayload>> future = target
@@ -182,9 +165,9 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final AuctionInvocationContext invocationContext = givenAuctionInvocationContext(auctionContext);
         when(invocationContext.auctionContext()).thenReturn(auctionContext);
 
-        modelCache.getCache().cleanUp();
-        thresholdCache.getCache().cleanUp();
-        modelCache.getCache().put("onnxModelRunner_test-pbuid", givenOnnxModelRunner());
+        modelCacheWithExpiration.cleanUp();
+        thresholdsCacheWithExpiration.cleanUp();
+        modelCacheWithExpiration.put("onnxModelRunner_test-pbuid", givenOnnxModelRunner());
 
         // when
         final Future<InvocationResult<AuctionRequestPayload>> future = target
@@ -228,9 +211,9 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final AuctionInvocationContext invocationContext = givenAuctionInvocationContext(auctionContext);
         when(invocationContext.auctionContext()).thenReturn(auctionContext);
 
-        modelCache.getCache().cleanUp();
-        thresholdCache.getCache().cleanUp();
-        thresholdCache.getCache().put("throttlingThresholds_test-pbuid", givenThrottlingThresholds());
+        modelCacheWithExpiration.cleanUp();
+        thresholdsCacheWithExpiration.cleanUp();
+        thresholdsCacheWithExpiration.put("throttlingThresholds_test-pbuid", givenThrottlingThresholds());
 
         // when
         final Future<InvocationResult<AuctionRequestPayload>> future = target
@@ -274,10 +257,10 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final AuctionInvocationContext invocationContext = givenAuctionInvocationContext(auctionContext);
         when(invocationContext.auctionContext()).thenReturn(auctionContext);
 
-        modelCache.getCache().cleanUp();
-        thresholdCache.getCache().cleanUp();
-        modelCache.getCache().put("onnxModelRunner_test-pbuid", givenOnnxModelRunner());
-        thresholdCache.getCache().put("throttlingThresholds_test-pbuid", givenThrottlingThresholds());
+        modelCacheWithExpiration.cleanUp();
+        thresholdsCacheWithExpiration.cleanUp();
+        modelCacheWithExpiration.put("onnxModelRunner_test-pbuid", givenOnnxModelRunner());
+        thresholdsCacheWithExpiration.put("throttlingThresholds_test-pbuid", givenThrottlingThresholds());
 
         final AnalyticsResult expectedAnalyticsResult = expectedAnalyticsResult(true, true);
 
@@ -330,10 +313,10 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final AuctionInvocationContext invocationContext = givenAuctionInvocationContext(auctionContext);
         when(invocationContext.auctionContext()).thenReturn(auctionContext);
 
-        modelCache.getCache().cleanUp();
-        thresholdCache.getCache().cleanUp();
-        modelCache.getCache().put("onnxModelRunner_test-pbuid", givenOnnxModelRunner());
-        thresholdCache.getCache().put("throttlingThresholds_test-pbuid", givenThrottlingThresholds());
+        modelCacheWithExpiration.cleanUp();
+        thresholdsCacheWithExpiration.cleanUp();
+        modelCacheWithExpiration.put("onnxModelRunner_test-pbuid", givenOnnxModelRunner());
+        thresholdsCacheWithExpiration.put("throttlingThresholds_test-pbuid", givenThrottlingThresholds());
 
         final BidRequest expectedBidRequest = expectedUpdatedBidRequest(
                 request -> request, jacksonMapper, explorationRate);
@@ -390,10 +373,10 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final AuctionInvocationContext invocationContext = givenAuctionInvocationContext(auctionContext);
         when(invocationContext.auctionContext()).thenReturn(auctionContext);
 
-        modelCache.getCache().cleanUp();
-        thresholdCache.getCache().cleanUp();
-        modelCache.getCache().put("onnxModelRunner_test-pbuid", givenOnnxModelRunner());
-        thresholdCache.getCache().put("throttlingThresholds_test-pbuid", givenThrottlingThresholds());
+        modelCacheWithExpiration.cleanUp();
+        thresholdsCacheWithExpiration.cleanUp();
+        modelCacheWithExpiration.put("onnxModelRunner_test-pbuid", givenOnnxModelRunner());
+        thresholdsCacheWithExpiration.put("throttlingThresholds_test-pbuid", givenThrottlingThresholds());
 
         final BidRequest expectedBidRequest = expectedUpdatedBidRequest(
                 request -> request, jacksonMapper, explorationRate);
