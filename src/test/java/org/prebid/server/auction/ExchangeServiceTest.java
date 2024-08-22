@@ -512,6 +512,10 @@ public class ExchangeServiceTest extends VertxTest {
                 singletonList(givenImp),
                 builder -> builder.id("requestId").tmax(500L));
 
+        final ObjectNode adjustedExt = givenImp.getExt().deepCopy();
+        final Imp adjustedImp = givenImp.toBuilder().ext(adjustedExt).build();
+        given(impAdjuster.adjust(any(), any(), any(), any())).willReturn(adjustedImp);
+
         // when
         target.holdAuction(givenRequestContext(bidRequest));
 
@@ -535,8 +539,9 @@ public class ExchangeServiceTest extends VertxTest {
 
         final Imp actualImp = impCaptor.getValue();
         assertThat(actualImp).isNotSameAs(givenImp);
-        assertThat(actualImp.getExt()).isNotSameAs(givenImp.getExt());
         assertThat(actualImp).isEqualTo(givenImp);
+        assertThat(actualImp.getExt()).isNotSameAs(givenImp.getExt());
+        assertThat(actualImp.getExt()).isEqualTo(givenImp.getExt());
     }
 
     @Test
