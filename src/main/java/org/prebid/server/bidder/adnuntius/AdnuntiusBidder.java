@@ -208,7 +208,7 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
     private String createUri(BidRequest bidRequest, Boolean noCookies) {
         try {
             final URIBuilder uriBuilder = new URIBuilder(endpointUrl)
-                    .addParameter("format", "json")
+                    .addParameter("format", "prebid")
                     .addParameter("tzo", getTimeZoneOffset());
 
             final String gdpr = extractGdpr(bidRequest.getRegs());
@@ -283,10 +283,10 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
                         .map(User::getExt)
                         .map(ExtUser::getEids)
                         .filter(CollectionUtils::isNotEmpty)
-                        .map(eids -> eids.getFirst())
+                        .map(List::getFirst)
                         .map(Eid::getUids)
                         .filter(CollectionUtils::isNotEmpty)
-                        .map(uids -> uids.getFirst())
+                        .map(List::getFirst)
                         .map(Uid::getId))
                 .map(AdnuntiusMetaData::of)
                 .orElse(null);
