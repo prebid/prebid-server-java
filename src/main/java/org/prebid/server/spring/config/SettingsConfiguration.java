@@ -250,6 +250,8 @@ public class SettingsConfiguration {
             @NotBlank
             private String bucket;
             @NotBlank
+            private Boolean forcePathStyle;
+            @NotBlank
             private String accountsDir;
             @NotBlank
             private String storedImpsDir;
@@ -272,6 +274,7 @@ public class SettingsConfiguration {
                     .builder()
                     .credentialsProvider(StaticCredentialsProvider.create(credentials))
                     .endpointOverride(new URI(s3ConfigurationProperties.getEndpoint()))
+                    .forcePathStyle(s3ConfigurationProperties.getForcePathStyle())
                     .region(awsRegion)
                     .build();
         }
