@@ -214,7 +214,7 @@ class ImpRequestSpec extends BaseSpec {
         def bidderToBidderRequests = getRequests(response)
         assert bidderToBidderRequests[GENERIC.value].first.imp.pmp == [impPmp]
 
-        and: "OpenX bidderRequest should contain pmp from original imp"
+        and: "OpenX bidderRequest should contain pmp from ext.prebid.imp"
         assert bidderToBidderRequests[OPENX.value].first.imp.pmp == [extPrebidImpPmp]
 
         and: "PBS should remove imp.ext.prebid.bidder from bidderRequests"
