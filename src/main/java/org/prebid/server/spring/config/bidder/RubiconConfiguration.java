@@ -12,6 +12,7 @@ import org.prebid.server.spring.config.bidder.model.BidderConfigurationPropertie
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
+import org.prebid.server.version.PrebidVersionProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -40,6 +41,7 @@ public class RubiconConfiguration {
                                  @NotBlank @Value("${external-url}") String externalUrl,
                                  CurrencyConversionService currencyConversionService,
                                  PriceFloorResolver floorResolver,
+                                 PrebidVersionProvider versionProvider,
                                  JacksonMapper mapper) {
 
         return BidderDepsAssembler.<RubiconConfigurationProperties>forBidder(BIDDER_NAME)
@@ -49,6 +51,7 @@ public class RubiconConfiguration {
                         new RubiconBidder(
                                 BIDDER_NAME,
                                 config.getEndpoint(),
+                                externalUrl,
                                 config.getXapi().getUsername(),
                                 config.getXapi().getPassword(),
                                 config.getMetaInfo().getSupportedVendors(),
@@ -56,6 +59,7 @@ public class RubiconConfiguration {
                                 config.getUseVideoSizeIdLogic(),
                                 currencyConversionService,
                                 floorResolver,
+                                versionProvider,
                                 mapper))
                 .assemble();
     }

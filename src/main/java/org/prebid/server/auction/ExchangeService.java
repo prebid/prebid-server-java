@@ -150,9 +150,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-/**
- * Executes an OpenRTB v2.5-2.6 Auction.
- */
 public class ExchangeService {
 
     private static final Logger logger = LoggerFactory.getLogger(ExchangeService.class);
@@ -174,6 +171,7 @@ public class ExchangeService {
     private final StoredResponseProcessor storedResponseProcessor;
     private final PrivacyEnforcementService privacyEnforcementService;
     private final FpdResolver fpdResolver;
+    private final ImpAdjuster impAdjuster;
     private final SupplyChainResolver supplyChainResolver;
     private final DebugResolver debugResolver;
     private final MediaTypeProcessor mediaTypeProcessor;
@@ -204,6 +202,7 @@ public class ExchangeService {
                            StoredResponseProcessor storedResponseProcessor,
                            PrivacyEnforcementService privacyEnforcementService,
                            FpdResolver fpdResolver,
+                           ImpAdjuster impAdjuster,
                            SupplyChainResolver supplyChainResolver,
                            DebugResolver debugResolver,
                            MediaTypeProcessor mediaTypeProcessor,
@@ -234,6 +233,7 @@ public class ExchangeService {
         this.storedResponseProcessor = Objects.requireNonNull(storedResponseProcessor);
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
         this.fpdResolver = Objects.requireNonNull(fpdResolver);
+        this.impAdjuster = Objects.requireNonNull(impAdjuster);
         this.supplyChainResolver = Objects.requireNonNull(supplyChainResolver);
         this.debugResolver = Objects.requireNonNull(debugResolver);
         this.mediaTypeProcessor = Objects.requireNonNull(mediaTypeProcessor);
@@ -299,7 +299,6 @@ public class ExchangeService {
                         .map(receivedContext::with))
 
                 .map(context -> updateRequestMetric(context, uidsCookie, aliases, account, requestTypeMetric))
-
                 .compose(context -> CompositeFuture.join(
                                 context.getAuctionParticipations().stream()
                                         .map(auctionParticipation -> processAndRequestBids(
@@ -528,7 +527,6 @@ public class ExchangeService {
                 .toList();
         final Map<String, Map<String, String>> impBidderToStoredBidResponse =
                 storedResponseResult.getImpBidderToStoredBidResponse();
-
         return makeAuctionParticipation(
                 bidders,
                 context,
@@ -832,7 +830,7 @@ public class ExchangeService {
         if (blockedRequestByTcf) {
             context.getBidRejectionTrackers()
                     .get(bidder)
-                    .rejectAll(BidRejectionReason.REJECTED_BY_PRIVACY);
+                    .rejectAll(BidRejectionReason.REQUEST_BLOCKED_PRIVACY);
 
             return AuctionParticipation.builder()
                     .bidder(bidder)
@@ -852,6 +850,7 @@ public class ExchangeService {
                 bidderToMultiBid,
                 biddersToConfigs,
                 bidderToPrebidBidders,
+                bidderAliases,
                 context);
 
         final BidderRequest bidderRequest = BidderRequest.builder()
@@ -878,6 +877,7 @@ public class ExchangeService {
                                          Map<String, MultiBidConfig> bidderToMultiBid,
                                          Map<String, ExtBidderConfigOrtb> biddersToConfigs,
                                          Map<String, JsonNode> bidderToPrebidBidders,
+                                         BidderAliases bidderAliases,
                                          AuctionContext context) {
 
         final String bidder = bidderPrivacyResult.getRequestBidder();
@@ -938,6 +938,7 @@ public class ExchangeService {
                 transmitTid,
                 useFirstPartyData,
                 context.getAccount(),
+                bidderAliases,
                 context.getDebugWarnings());
 
         return bidRequest.toBuilder()
@@ -975,10 +976,12 @@ public class ExchangeService {
                                   boolean transmitTid,
                                   boolean useFirstPartyData,
                                   Account account,
+                                  BidderAliases bidderAliases,
                                   List<String> debugWarnings) {
 
         return bidRequest.getImp().stream()
                 .filter(imp -> bidderParamsFromImpExt(imp.getExt()).hasNonNull(bidder))
+                .map(imp -> impAdjuster.adjust(imp, bidder, bidderAliases, debugWarnings))
                 .map(imp -> prepareImp(imp, bidder, bidRequest, transmitTid, useFirstPartyData, account, debugWarnings))
                 .toList();
     }
@@ -1240,7 +1243,7 @@ public class ExchangeService {
         if (mediaTypeProcessingResult.isRejected()) {
             auctionContext.getBidRejectionTrackers()
                     .get(bidderName)
-                    .rejectAll(BidRejectionReason.REJECTED_BY_MEDIA_TYPE);
+                    .rejectAll(BidRejectionReason.REQUEST_BLOCKED_UNSUPPORTED_MEDIA_TYPE);
             final BidderSeatBid bidderSeatBid = BidderSeatBid.builder()
                     .warnings(mediaTypeProcessingErrors)
                     .build();
@@ -1287,7 +1290,7 @@ public class ExchangeService {
         if (hookStageResult.isShouldReject()) {
             auctionContext.getBidRejectionTrackers()
                     .get(bidderRequest.getBidder())
-                    .rejectAll(BidRejectionReason.REJECTED_BY_HOOK);
+                    .rejectAll(BidRejectionReason.REQUEST_BLOCKED_GENERAL);
 
             return Future.succeededFuture(BidderResponse.of(bidderRequest.getBidder(), BidderSeatBid.empty(), 0));
         }
@@ -1657,7 +1660,7 @@ public class ExchangeService {
             case failed_to_request_bids -> MetricName.failedtorequestbids;
             case timeout -> MetricName.timeout;
             case invalid_bid -> MetricName.bid_validation;
-            case rejected_ipf, generic, invalid_creative -> MetricName.unknown_error;
+            case rejected_ipf, generic -> MetricName.unknown_error;
         };
     }
 

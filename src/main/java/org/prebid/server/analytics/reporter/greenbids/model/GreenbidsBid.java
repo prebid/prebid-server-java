@@ -42,7 +42,7 @@ public class GreenbidsBid {
     public static GreenbidsBid ofNonBid(String seat, NonBid nonBid, JsonNode params, String currency) {
         return GreenbidsBid.builder()
                 .bidder(seat)
-                .isTimeout(nonBid.getStatusCode() == BidRejectionReason.TIMED_OUT)
+                .isTimeout(nonBid.getStatusCode() == BidRejectionReason.ERROR_TIMED_OUT)
                 .hasBid(false)
                 .params(params)
                 .currency(currency)

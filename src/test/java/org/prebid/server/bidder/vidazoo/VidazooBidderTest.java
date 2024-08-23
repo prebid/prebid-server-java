@@ -101,7 +101,7 @@ class VidazooBidderTest extends VertxTest {
     public void shouldMakeOneRequestWhenOneImpIsValidAndAnotherIsNot() {
         // given
         final Imp givenInvalidImp = givenImp(imp -> imp
-                .id("impId")
+                .id("impIdCorrupted")
                 .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
         final Imp givenValidImp = givenImp(identity());
 

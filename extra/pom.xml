@@ -4,7 +4,7 @@
 
     <groupId>org.prebid</groupId>
     <artifactId>prebid-server-aggregator</artifactId>
-    <version>3.9.0-SNAPSHOT</version>
+    <version>3.11.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <scm>
@@ -27,6 +27,7 @@
         <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>3.3.0</maven-surefire-plugin.version>
         <maven-failsafe-plugin.version>${maven-surefire-plugin.version}</maven-failsafe-plugin.version>
+        <jacoco-maven-plugin.version>0.8.12</jacoco-maven-plugin.version>
         <docker-maven-plugin.version>0.44.0</docker-maven-plugin.version>
 
         <!-- Project production dependency versions -->
@@ -57,6 +58,11 @@
         <spock.version>2.4-M4-groovy-4.0</spock.version>
         <!--TODO: replace with WireMock -->
         <mockserver.version>5.15.0</mockserver.version>
+
+        <!-- Test properties -->
+        <skipUnitTests>false</skipUnitTests>
+        <skipFunctionalTests>false</skipFunctionalTests>
+        <skipModuleFunctionalTests>true</skipModuleFunctionalTests>
     </properties>
 
     <modules>
@@ -259,6 +265,26 @@
                     <tagNameFormat>@{project.version}</tagNameFormat>
                     <scmCommentPrefix xml:space="preserve">Prebid Server </scmCommentPrefix>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco-maven-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>before-unit-test-execution</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>after-unit-test-execution</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

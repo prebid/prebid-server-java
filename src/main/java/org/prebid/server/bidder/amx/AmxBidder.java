@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.amx;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
@@ -10,6 +11,7 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
@@ -25,6 +27,8 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.amx.ExtImpAmx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidMeta;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
@@ -90,7 +94,7 @@ public class AmxBidder implements Bidder<BidRequest> {
         final BidRequest outgoingRequest = createOutgoingRequest(request, publisherId, modifiedImps);
 
         return Result.of(Collections.singletonList(
-                BidderUtil.defaultRequest(outgoingRequest, endpointUrl, mapper)),
+                        BidderUtil.defaultRequest(outgoingRequest, endpointUrl, mapper)),
                 errors);
     }
 
@@ -169,13 +173,13 @@ public class AmxBidder implements Bidder<BidRequest> {
             errors.add(BidderError.badInput(e.getMessage()));
             return null;
         }
-
-        return BidderBid.of(bid, getBidType(amxBidExt), cur);
+        // TODO: After adding support to change seat data, add bid.ext bidderCode processing
+        return BidderBid.of(resolveBid(bid, amxBidExt.getDemandSource()), getBidType(amxBidExt), cur);
     }
 
     private AmxBidExt parseBidderExt(ObjectNode ext) {
-        if (ext == null || StringUtils.isBlank(ext.toPrettyString())) {
-            return AmxBidExt.of(null, null);
+        if (ext == null || ext.isEmpty()) {
+            return AmxBidExt.empty();
         }
 
         try {
@@ -193,6 +197,37 @@ public class AmxBidder implements Bidder<BidRequest> {
         } else {
             return BidType.banner;
         }
+    }
+
+    private Bid resolveBid(Bid bid, String demandSource) {
+        final List<String> aDomains = bid.getAdomain();
+        if (CollectionUtils.isEmpty(aDomains) && StringUtils.isBlank(demandSource)) {
+            return bid;
+        }
+
+        return bid.toBuilder().ext(resolveBidExt(demandSource, aDomains, bid.getExt())).build();
+    }
+
+    private ObjectNode resolveBidExt(String demandSource, List<String> aDomains, ObjectNode bidExt) {
+        final ObjectNode bidExtUpdated = bidExt != null && !bidExt.isMissingNode()
+                ? bidExt
+                : mapper.mapper().createObjectNode();
+        final JsonNode bidExtPrebid = resolveBidExtPrebid(demandSource, aDomains, bidExtUpdated.get("prebid"));
+
+        return bidExtUpdated.set("prebid", bidExtPrebid);
+    }
+
+    private ObjectNode resolveBidExtPrebid(String demandSource, List<String> aDomains, JsonNode bidExtPrebid) {
+        final ExtBidPrebidMeta extBidPrebidMeta = ExtBidPrebidMeta.builder()
+                .demandSource(demandSource)
+                .advertiserDomains(aDomains)
+                .build();
+        if (bidExtPrebid == null || bidExtPrebid.isMissingNode()) {
+            return mapper.mapper().valueToTree(ExtBidPrebid.builder().meta(extBidPrebidMeta).build());
+        }
+
+        final ObjectNode bidExtPrebidCasted = (ObjectNode) bidExtPrebid;
+        return bidExtPrebidCasted.set("meta", mapper.mapper().valueToTree(extBidPrebidMeta));
     }
 }
 
