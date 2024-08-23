@@ -1,6 +1,6 @@
 adapters:
   consumable:
-    endpoint: https://e.serverbid.com
+    endpoint: https://e.serverbid.com/api/v2
     meta-info:
       maintainer-email: prebid@consumable.com
       app-media-types:
