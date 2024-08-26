@@ -16,6 +16,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Collection;
@@ -24,12 +25,10 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Loopme {@link Bidder} implementation.
- */
 public class LoopmeBidder implements Bidder<BidRequest> {
 
     private final String endpointUrl;
+
     private final JacksonMapper mapper;
 
     public LoopmeBidder(String endpointUrl, JacksonMapper mapper) {
@@ -44,8 +43,9 @@ public class LoopmeBidder implements Bidder<BidRequest> {
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
                 .headers(HttpUtil.headers())
-                .payload(request)
+                .impIds(BidderUtil.impIds(request))
                 .body(mapper.encodeToBytes(request))
+                .payload(request)
                 .build());
     }
 

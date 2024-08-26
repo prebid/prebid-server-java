@@ -21,23 +21,85 @@ import org.prebid.server.proto.openrtb.ext.request.loopme.ExtImpLoopme;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.Function;
+import java.util.Set;
+import java.util.function.UnaryOperator;
 
 import static java.util.Collections.singletonList;
-import static java.util.function.Function.identity;
+import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
+import static org.prebid.server.util.HttpUtil.ACCEPT_HEADER;
+import static org.prebid.server.util.HttpUtil.APPLICATION_JSON_CONTENT_TYPE;
+import static org.prebid.server.util.HttpUtil.CONTENT_TYPE_HEADER;
+import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
 
 public class LoopmeBidderTest extends VertxTest {
 
     public static final String ENDPOINT_URL = "https://test.endpoint.com";
 
-    private LoopmeBidder loopmeBidder = new LoopmeBidder(ENDPOINT_URL, jacksonMapper);
+    private final LoopmeBidder loopmeBidder = new LoopmeBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
-    public void makeHttpRequestsShouldMakeOneRequestWithAllImps() {
+    public void creationShouldFailOnInvalidEndpointUrl() {
+        assertThatIllegalArgumentException().isThrownBy(
+                () -> new LoopmeBidder("invalid_url", jacksonMapper));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnExpectedHeaders() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity(), identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = loopmeBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1).first()
+                .extracting(HttpRequest::getHeaders)
+                .satisfies(headers -> assertThat(headers.get(CONTENT_TYPE_HEADER))
+                        .isEqualTo(APPLICATION_JSON_CONTENT_TYPE))
+                .satisfies(headers -> assertThat(headers.get(ACCEPT_HEADER))
+                        .isEqualTo(APPLICATION_JSON_VALUE));
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUseCorrectUri() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity(), identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = loopmeBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://test.endpoint.com");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldHaveImpIds() {
+        // given
+        final Imp givenImp1 = givenImp(imp -> imp.id("givenImp1"));
+        final Imp givenImp2 = givenImp(imp -> imp.id("givenImp2"));
+        final BidRequest bidRequest = BidRequest.builder().imp(List.of(givenImp1, givenImp2)).build();
+
+        //when
+        final Result<List<HttpRequest<BidRequest>>> result = loopmeBidder.makeHttpRequests(bidRequest);
+
+        //then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getImpIds)
+                .containsExactlyInAnyOrder(Set.of("givenImp1", "givenImp2"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldMakeOneRequestForAllImps() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
@@ -155,14 +217,14 @@ public class LoopmeBidderTest extends VertxTest {
     }
 
     private static BidRequest givenBidRequest(
-            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
-            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> requestCustomizer) {
+            UnaryOperator<Imp.ImpBuilder> impCustomizer,
+            UnaryOperator<BidRequest.BidRequestBuilder> requestCustomizer) {
         return requestCustomizer.apply(BidRequest.builder()
                         .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
 
-    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+    private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                         .id("123"))
                 .banner(Banner.builder().build())
@@ -172,7 +234,7 @@ public class LoopmeBidderTest extends VertxTest {
                 .build();
     }
 
-    private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
+    private static BidResponse givenBidResponse(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
                 .cur("USD")
                 .seatbid(singletonList(SeatBid.builder()
