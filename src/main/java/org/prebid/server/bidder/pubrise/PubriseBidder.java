@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.qt;
+package org.prebid.server.bidder.pubrise;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -15,12 +15,12 @@ import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.bidder.qt.proto.QtImpExtBidder;
+import org.prebid.server.bidder.pubrise.proto.PubriseImpExtBidder;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.qt.ExtImpQt;
+import org.prebid.server.proto.openrtb.ext.request.pubrise.ExtImpPubrise;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
@@ -31,15 +31,15 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-public class QtBidder implements Bidder<BidRequest> {
+public class PubriseBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpQt>> QT_EXT_TYPE_REFERENCE = new TypeReference<>() {
+    private static final TypeReference<ExtPrebid<?, ExtImpPubrise>> TYPE_REFERENCE = new TypeReference<>() {
     };
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
-    public QtBidder(String endpointUrl, JacksonMapper mapper) {
+    public PubriseBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -50,49 +50,50 @@ public class QtBidder implements Bidder<BidRequest> {
         final List<BidderError> errors = new ArrayList<>();
 
         for (Imp imp : request.getImp()) {
-            final ExtImpQt extImpQt;
+            final ExtImpPubrise extImp;
             try {
-                extImpQt = parseImpExt(imp);
-                outgoingRequests.add(createSingleRequest(modifyImp(imp, extImpQt), request));
+                extImp = parseImpExt(imp);
+                outgoingRequests.add(makeRequest(modifyImp(imp, extImp), request));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
         }
 
-        return Result.of(outgoingRequests, errors);
+        return CollectionUtils.isEmpty(outgoingRequests)
+                ? Result.withError(BidderError.badInput("found no valid impressions"))
+                : Result.of(outgoingRequests, errors);
     }
 
-    private ExtImpQt parseImpExt(Imp imp) {
+    private ExtImpPubrise parseImpExt(Imp imp) {
         try {
-            return mapper.mapper().convertValue(imp.getExt(), QT_EXT_TYPE_REFERENCE).getBidder();
+            return mapper.mapper().convertValue(imp.getExt(), TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage());
         }
     }
 
-    private Imp modifyImp(Imp imp, ExtImpQt extImpQt) {
-        final QtImpExtBidder qtImpExtBidder = getImpExtQtWithType(extImpQt);
+    private Imp modifyImp(Imp imp, ExtImpPubrise extImp) {
+        final PubriseImpExtBidder impExtBidder = getImpExtWithType(extImp);
         final ObjectNode modifiedImpExtBidder = mapper.mapper().createObjectNode();
 
-        modifiedImpExtBidder.set("bidder", mapper.mapper().valueToTree(qtImpExtBidder));
+        modifiedImpExtBidder.set("bidder", mapper.mapper().valueToTree(impExtBidder));
 
         return imp.toBuilder().ext(modifiedImpExtBidder).build();
     }
 
-    private QtImpExtBidder getImpExtQtWithType(ExtImpQt extImpQt) {
+    private PubriseImpExtBidder getImpExtWithType(ExtImpPubrise extImpQt) {
         final boolean hasPlacementId = StringUtils.isNotBlank(extImpQt.getPlacementId());
         final boolean hasEndpointId = StringUtils.isNotBlank(extImpQt.getEndpointId());
 
-        return QtImpExtBidder.builder()
+        return PubriseImpExtBidder.builder()
                 .type(hasPlacementId ? "publisher" : hasEndpointId ? "network" : null)
                 .placementId(hasPlacementId ? extImpQt.getPlacementId() : null)
                 .endpointId(hasEndpointId ? extImpQt.getEndpointId() : null)
                 .build();
     }
 
-    private HttpRequest<BidRequest> createSingleRequest(Imp imp, BidRequest request) {
+    private HttpRequest<BidRequest> makeRequest(Imp imp, BidRequest request) {
         final BidRequest outgoingRequest = request.toBuilder().imp(Collections.singletonList(imp)).build();
-
         return BidderUtil.defaultRequest(outgoingRequest, endpointUrl, mapper);
     }
 

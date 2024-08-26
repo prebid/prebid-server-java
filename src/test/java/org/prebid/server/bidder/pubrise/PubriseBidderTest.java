@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.qt;
+package org.prebid.server.bidder.pubrise;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -16,16 +16,15 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.bidder.qt.proto.QtImpExtBidder;
-import org.prebid.server.bidder.qt.proto.QtImpExtBidder.QtImpExtBidderBuilder;
+import org.prebid.server.bidder.pubrise.proto.PubriseImpExtBidder;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.qt.ExtImpQt;
+import org.prebid.server.proto.openrtb.ext.request.pubrise.ExtImpPubrise;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
-import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -38,15 +37,15 @@ import static org.prebid.server.util.HttpUtil.APPLICATION_JSON_CONTENT_TYPE;
 import static org.prebid.server.util.HttpUtil.CONTENT_TYPE_HEADER;
 import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
 
-public class QtBidderTest extends VertxTest {
+public class PubriseBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com/";
 
-    private final QtBidder target = new QtBidder(ENDPOINT_URL, jacksonMapper);
+    private final PubriseBidder target = new PubriseBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new QtBidder("invalid_url", jacksonMapper));
+        assertThatIllegalArgumentException().isThrownBy(() -> new PubriseBidder("invalid_url", jacksonMapper));
     }
 
     @Test
@@ -85,9 +84,7 @@ public class QtBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldHaveImpIds() {
         // given
-        final Imp givenImp1 = givenImp(imp -> imp.id("givenImp1"));
-        final Imp givenImp2 = givenImp(imp -> imp.id("givenImp2"));
-        final BidRequest bidRequest = BidRequest.builder().imp(List.of(givenImp1, givenImp2)).build();
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.id("givenImp1"), imp -> imp.id("givenImp2"));
 
         //when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -100,16 +97,13 @@ public class QtBidderTest extends VertxTest {
     }
 
     @Test
-    public void shouldMakeOneRequestWhenOneImpIsValidAndAnotherIsNot() {
+    public void makeHttpRequestsShouldMakeOneRequestWhenOneImpIsValidAndAnotherIsNot() {
         // given
-        final Imp givenInvalidImp = givenImp(imp -> imp
-                .id("impIdCorrupted")
-                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
-        final Imp givenValidImp = givenImp(identity());
-
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(List.of(givenInvalidImp, givenValidImp))
-                .build();
+        final BidRequest bidRequest = givenBidRequest(
+                imp -> imp
+                        .id("invalidImpId")
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))),
+                imp -> imp.id("validImpId"));
 
         //when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -119,15 +113,29 @@ public class QtBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getId)
-                .containsExactly("123");
+                .containsExactly("validImpId");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorWhenNoValidImps() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                imp -> imp
+                        .id("invalidImpId")
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+
+        //when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        //then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).containsOnly(BidderError.badInput("found no valid impressions"));
     }
 
     @Test
     public void makeHttpRequestsShouldMakeOneRequestPerImp() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(asList(givenImp(identity()), givenImp(identity())))
-                .build();
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.id("givenImp1"), imp -> imp.id("givenImp2"));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -144,9 +152,9 @@ public class QtBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnExtTypePublisher() {
         // given
-        final BidRequest bidRequest = givenBidRequest(impCustomizer -> impCustomizer
-                .ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpQt.of("somePlacementId", "")))));
+        final BidRequest bidRequest = givenBidRequest(imp ->
+                imp.ext(mapper.valueToTree(ExtPrebid.of(null,
+                        ExtImpPubrise.of("somePlacementId", "")))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -157,15 +165,15 @@ public class QtBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
-                .containsExactly(givenImpExtQtBidder(ext -> ext.type("publisher").placementId("somePlacementId")));
+                .containsExactly(givenImpExt(ext -> ext.type("publisher").placementId("somePlacementId")));
     }
 
     @Test
     public void makeHttpRequestsShouldReturnExtTypeNetwork() {
         // given
-        final BidRequest bidRequest = givenBidRequest(impCustomizer -> impCustomizer
-                .ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpQt.of("", "someEndpointId")))));
+        final BidRequest bidRequest = givenBidRequest(imp ->
+                imp.ext(mapper.valueToTree(ExtPrebid.of(null,
+                        ExtImpPubrise.of("", "someEndpointId")))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -176,7 +184,7 @@ public class QtBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
-                .containsExactly(givenImpExtQtBidder(ext -> ext.type("network").endpointId("someEndpointId")));
+                .containsExactly(givenImpExt(ext -> ext.type("network").endpointId("someEndpointId")));
     }
 
     @Test
@@ -226,7 +234,7 @@ public class QtBidderTest extends VertxTest {
     public void makeBidsShouldReturnxNativeBid() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                givenBidResponse(bidBuilder -> bidBuilder.mtype(4).impid("123")));
+                givenBidResponse(bidBuilder -> bidBuilder.mtype(4).impid("impId")));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -234,14 +242,14 @@ public class QtBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").mtype(4).build(), xNative, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("impId").mtype(4).build(), xNative, "USD"));
     }
 
     @Test
     public void makeBidsShouldReturnBannerBid() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                givenBidResponse(bidBuilder -> bidBuilder.mtype(1).impid("123")));
+                givenBidResponse(bidBuilder -> bidBuilder.mtype(1).impid("impId")));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -249,14 +257,14 @@ public class QtBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().mtype(1).impid("123").build(), banner, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().mtype(1).impid("impId").build(), banner, "USD"));
     }
 
     @Test
     public void makeBidsShouldReturnVideoBid() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                givenBidResponse(bidBuilder -> bidBuilder.mtype(2).impid("123")));
+                givenBidResponse(bidBuilder -> bidBuilder.mtype(2).impid("impId")));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -264,14 +272,14 @@ public class QtBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().mtype(2).impid("123").build(), video, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().mtype(2).impid("impId").build(), video, "USD"));
     }
 
     @Test
     public void makeBidsShouldThrowErrorWhenMediaTypeIsMissing() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                givenBidResponse(bidBuilder -> bidBuilder.impid("123")));
+                givenBidResponse(bidBuilder -> bidBuilder.impid("impId")));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -285,18 +293,17 @@ public class QtBidderTest extends VertxTest {
                 });
     }
 
-    private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
-
+    private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder>... impCustomizers) {
         return BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer)))
+                .imp(Arrays.stream(impCustomizers).map(PubriseBidderTest::givenImp).toList())
                 .build();
     }
 
     private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                        .id("123")
+                        .id("impId")
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpQt.of("placementId", "endpointId")))))
+                                ExtImpPubrise.of("placementId", "endpointId")))))
                 .build();
     }
 
@@ -316,11 +323,11 @@ public class QtBidderTest extends VertxTest {
                 null);
     }
 
-    private ObjectNode givenImpExtQtBidder(UnaryOperator<QtImpExtBidderBuilder> impExtQt) {
+    private ObjectNode givenImpExt(UnaryOperator<PubriseImpExtBidder.PubriseImpExtBidderBuilder> impExt) {
         final ObjectNode modifiedImpExtBidder = mapper.createObjectNode();
 
         return modifiedImpExtBidder.set("bidder", mapper.convertValue(
-                impExtQt.apply(QtImpExtBidder.builder()).build(),
+                impExt.apply(PubriseImpExtBidder.builder()).build(),
                 JsonNode.class));
     }
 }
