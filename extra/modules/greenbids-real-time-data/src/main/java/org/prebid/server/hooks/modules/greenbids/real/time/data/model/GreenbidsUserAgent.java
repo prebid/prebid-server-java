@@ -1,7 +1,8 @@
 package org.prebid.server.hooks.modules.greenbids.real.time.data.model;
 
-//import com.iab.openrtb.request.UserAgent;
 import ua_parser.Client;
+import ua_parser.Device;
+import ua_parser.OS;
 import ua_parser.Parser;
 import ua_parser.UserAgent;
 
@@ -18,9 +19,9 @@ public class GreenbidsUserAgent {
 
     private final UserAgent userAgent;
 
-    private final ua_parser.Device device;
+    private final Device device;
 
-    private final ua_parser.OS os;
+    private final OS os;
 
     public GreenbidsUserAgent(String userAgentString) {
         this.userAgentString = userAgentString;
@@ -43,10 +44,10 @@ public class GreenbidsUserAgent {
             return null;
         }
 
-        return String.format("%s %s", userAgent.family, userAgent.major).trim();
+        return "%s %s".formatted(userAgent.family, userAgent.major).trim();
     }
 
-    public boolean isPC() {
+    private boolean isPC() {
         return userAgentString.contains("Windows NT")
                 || PC_OS_FAMILIES.contains(os.family)
                 || ("Windows".equals(os.family) && "ME".equals(os.major))
