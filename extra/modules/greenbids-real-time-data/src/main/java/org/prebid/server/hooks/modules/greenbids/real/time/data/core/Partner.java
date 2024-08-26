@@ -12,7 +12,6 @@ import java.util.List;
 @Value
 public class Partner {
 
-    @JsonProperty("pbuid")
     String pbuid;
 
     @JsonProperty("targetTpr")
@@ -31,7 +30,7 @@ public class Partner {
         this.explorationRate = explorationRate;
     }
 
-    public Double getThresholdForPartner(ThrottlingThresholds throttlingThresholds) {
+    public Double getThreshold(ThrottlingThresholds throttlingThresholds) {
         final List<Double> truePositiveRates = throttlingThresholds.getTpr();
         final List<Double> thresholds = throttlingThresholds.getThresholds();
 

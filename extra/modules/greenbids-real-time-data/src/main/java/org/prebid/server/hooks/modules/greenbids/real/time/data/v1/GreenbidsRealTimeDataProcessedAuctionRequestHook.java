@@ -10,7 +10,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.google.cloud.storage.Storage;
-import com.google.cloud.storage.StorageOptions;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
@@ -25,14 +24,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.Partner;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingThresholds;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.model.AnalyticsResult;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.model.ExplorationResult;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.model.GreenbidsUserAgent;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.model.ModelCache;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.model.OnnxModelRunner;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.model.Ortb2ImpExtResult;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.model.ThresholdCache;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.model.ThrottlingMessage;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.model.*;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.model.InvocationResultImpl;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.model.analytics.ActivityImpl;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.model.analytics.AppliedToImpl;
@@ -56,16 +48,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -83,33 +66,33 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
     private final JacksonMapper jacksonMapper;
     private final Cache<String, OnnxModelRunner> modelCacheWithExpiration;
     private final Cache<String, ThrottlingThresholds> thresholdsCacheWithExpiration;
-    private final String geoLiteCountryPath;
-    private final String googleCloudGreenbidsProject;
     private final String gcsBucketName;
     private final String onnxModelCacheKeyPrefix;
     private final String thresholdsCacheKeyPrefix;
     private final ReentrantLock lock;
+    private final Storage storage;
+    private final File database;
 
     public GreenbidsRealTimeDataProcessedAuctionRequestHook(
             ObjectMapper mapper,
             Cache<String, OnnxModelRunner> modelCacheWithExpiration,
             Cache<String, ThrottlingThresholds> thresholdsCacheWithExpiration,
-            String geoLiteCountryPath,
-            String googleCloudGreenbidsProject,
             String gcsBucketName,
             String onnxModelCacheKeyPrefix,
             String thresholdsCacheKeyPrefix,
-            ReentrantLock lock) {
+            ReentrantLock lock,
+            Storage storage,
+            File database) {
         this.mapper = Objects.requireNonNull(mapper);
         this.jacksonMapper = new JacksonMapper(mapper);
         this.modelCacheWithExpiration = modelCacheWithExpiration;
         this.thresholdsCacheWithExpiration = thresholdsCacheWithExpiration;
-        this.geoLiteCountryPath = geoLiteCountryPath;
-        this.googleCloudGreenbidsProject = googleCloudGreenbidsProject;
         this.gcsBucketName = gcsBucketName;
         this.onnxModelCacheKeyPrefix = onnxModelCacheKeyPrefix;
         this.thresholdsCacheKeyPrefix = thresholdsCacheKeyPrefix;
         this.lock = lock;
+        this.storage = storage;
+        this.database = database;
     }
 
     @Override
@@ -138,8 +121,8 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
         OnnxModelRunner onnxModelRunner = null;
         Double threshold = null;
         try {
-            final Storage storage = StorageOptions.newBuilder()
-                    .setProjectId(googleCloudGreenbidsProject).build().getService();
+            //final Storage storage = StorageOptions.newBuilder()
+            //        .setProjectId(googleCloudGreenbidsProject).build().getService();
             onnxModelRunner = retrieveOnnxModelRunner(partner, storage);
             threshold = retrieveThreshold(partner, storage);
         } catch (PreBidException e) {
@@ -233,7 +216,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                 lock);
         final ThrottlingThresholds throttlingThresholds = thresholdCache
                 .getThrottlingThresholds(partner.getPbuid());
-        return partner.getThresholdForPartner(throttlingThresholds);
+        return partner.getThreshold(throttlingThresholds);
     }
 
     private List<ThrottlingMessage> extractThrottlingMessages(
@@ -296,7 +279,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
         return Optional.ofNullable(ip)
                 .map(ipAddress -> {
                     try {
-                        final File database = new File(geoLiteCountryPath);
+                        //final File database = new File(geoLiteCountryPath);
                         final DatabaseReader dbReader = new DatabaseReader.Builder(database).build();
                         final InetAddress inetAddress = InetAddress.getByName(ipAddress);
                         final CountryResponse response = dbReader.country(inetAddress);
