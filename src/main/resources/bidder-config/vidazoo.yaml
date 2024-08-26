@@ -15,6 +15,6 @@ adapters:
     usersync:
       cookie-family-name: vidazoo
       iframe:
-        url: https://sync.cootlogix.com/api/user/html/pbs_sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+        url: https://sync.cootlogix.com/api/user/html/pbs_sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}
         support-cors: false
         uid-macro: '${userId}'
