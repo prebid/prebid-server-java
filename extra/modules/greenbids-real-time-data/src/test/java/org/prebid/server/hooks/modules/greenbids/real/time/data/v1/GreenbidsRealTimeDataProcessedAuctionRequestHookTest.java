@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageOptions;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -38,6 +40,7 @@ import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -72,16 +75,19 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         thresholdsCacheWithExpiration = Caffeine.newBuilder()
                 .expireAfterWrite(15, TimeUnit.MINUTES)
                 .build();
+        final Storage storage = StorageOptions.newBuilder()
+                .setProjectId("test_project").build().getService();
+        final File database = new File("src/test/resources/GeoLite2-Country.mmdb");
         target = new GreenbidsRealTimeDataProcessedAuctionRequestHook(
                 mapper,
                 modelCacheWithExpiration,
                 thresholdsCacheWithExpiration,
-                "src/test/resources/GeoLite2-Country.mmdb",
-                "test_project",
                 "test_bucket",
                 "onnxModelRunner_",
                 "throttlingThresholds_",
-                new ReentrantLock());
+                new ReentrantLock(),
+                storage,
+                database);
     }
 
     @Test
