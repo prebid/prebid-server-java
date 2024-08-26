@@ -186,6 +186,7 @@ import static org.apache.commons.lang3.exception.ExceptionUtils.rethrow;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.mockito.ArgumentCaptor.forClass;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -501,13 +502,19 @@ public class ExchangeServiceTest extends VertxTest {
         // given
         givenBidder(givenEmptySeatBid());
 
-        final BidRequest bidRequest = givenBidRequest(singletonList(
-                        givenImp(singletonMap("someBidder", 1), builder -> builder
-                                .id("impId")
-                                .banner(Banner.builder()
-                                        .format(singletonList(Format.builder().w(400).h(300).build()))
-                                        .build()))),
+        final Imp givenImp = givenImp(singletonMap("someBidder", 1), builder -> builder
+                .id("impId")
+                .banner(Banner.builder()
+                        .format(singletonList(Format.builder().w(400).h(300).build()))
+                        .build()));
+
+        final BidRequest bidRequest = givenBidRequest(
+                singletonList(givenImp),
                 builder -> builder.id("requestId").tmax(500L));
+
+        final ObjectNode adjustedExt = givenImp.getExt().deepCopy();
+        final Imp adjustedImp = givenImp.toBuilder().ext(adjustedExt).build();
+        given(impAdjuster.adjust(any(), any(), any(), any())).willReturn(adjustedImp);
 
         // when
         target.holdAuction(givenRequestContext(bidRequest));
@@ -526,6 +533,15 @@ public class ExchangeServiceTest extends VertxTest {
                         .build()))
                 .tmax(500L)
                 .build());
+
+        final ArgumentCaptor<Imp> impCaptor = forClass(Imp.class);
+        verify(impAdjuster).adjust(impCaptor.capture(), eq("someBidder"), any(), any());
+
+        final Imp actualImp = impCaptor.getValue();
+        assertThat(actualImp).isNotSameAs(givenImp);
+        assertThat(actualImp).isEqualTo(givenImp);
+        assertThat(actualImp.getExt()).isNotSameAs(givenImp.getExt());
+        assertThat(actualImp.getExt()).isEqualTo(givenImp.getExt());
     }
 
     @Test
