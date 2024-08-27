@@ -9,7 +9,9 @@ import com.google.cloud.storage.StorageException;
 import lombok.Getter;
 import org.prebid.server.exception.PreBidException;
 
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class ModelCache {
 
@@ -24,21 +26,20 @@ public class ModelCache {
 
     String onnxModelCacheKeyPrefix;
 
-    ReentrantLock lock;
+    ExecutorService executorService;
 
     public ModelCache(
             String modelPath,
             Storage storage,
             String gcsBucketName,
             Cache<String, OnnxModelRunner> cache,
-            String onnxModelCacheKeyPrefix,
-            ReentrantLock lock) {
+            String onnxModelCacheKeyPrefix) {
         this.gcsBucketName = gcsBucketName;
         this.modelPath = modelPath;
         this.cache = cache;
         this.storage = storage;
         this.onnxModelCacheKeyPrefix = onnxModelCacheKeyPrefix;
-        this.lock = lock;
+        this.executorService = Executors.newSingleThreadExecutor();
     }
 
     public OnnxModelRunner getModelRunner(String pbuid) {
@@ -49,21 +50,14 @@ public class ModelCache {
             return cachedOnnxModelRunner;
         }
 
-        final boolean locked = lock.tryLock();
-        try {
-            if (locked) {
-                final Blob blob = getBlob();
-                cache.put(cacheKey, loadModelRunner(blob));
-            } else {
-                return null;
-            }
-        } finally {
-            if (locked) {
-                lock.unlock();
-            }
-        }
+        CompletableFuture.runAsync(() -> fetchAndCacheModelRunner(cacheKey), executorService);
+        return null;
+    }
 
-        return cache.getIfPresent(cacheKey);
+    private void fetchAndCacheModelRunner(String cacheKey) {
+        final Blob blob = getBlob();
+        final OnnxModelRunner onnxModelRunner = loadModelRunner(blob);
+        cache.put(cacheKey, onnxModelRunner);
     }
 
     private Blob getBlob() {
