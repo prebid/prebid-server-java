@@ -11,7 +11,9 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingThresholds;
 
 import java.io.IOException;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class ThresholdCache {
 
@@ -28,7 +30,7 @@ public class ThresholdCache {
 
     String thresholdsCacheKeyPrefix;
 
-    ReentrantLock lock;
+    ExecutorService executorService;
 
     public ThresholdCache(
             String thresholdPath,
@@ -36,15 +38,14 @@ public class ThresholdCache {
             String gcsBucketName,
             ObjectMapper mapper,
             Cache<String, ThrottlingThresholds> cache,
-            String thresholdsCacheKeyPrefix,
-            ReentrantLock lock) {
+            String thresholdsCacheKeyPrefix) {
         this.gcsBucketName = gcsBucketName;
         this.thresholdPath = thresholdPath;
         this.cache = cache;
         this.storage = storage;
         this.mapper = mapper;
         this.thresholdsCacheKeyPrefix = thresholdsCacheKeyPrefix;
-        this.lock = lock;
+        this.executorService = Executors.newSingleThreadExecutor();
     }
 
     public ThrottlingThresholds getThrottlingThresholds(String pbuid) {
@@ -55,21 +56,14 @@ public class ThresholdCache {
             return cachedThrottlingThresholds;
         }
 
-        final boolean locked = lock.tryLock();
-        try {
-            if (locked) {
-                final Blob blob = getBlob();
-                cache.put(cacheKey, loadThrottlingThresholds(blob));
-            } else {
-                return null;
-            }
-        } finally {
-            if (locked) {
-                lock.unlock();
-            }
-        }
+        CompletableFuture.runAsync(() -> fetchAndCacheThrottlingThresholds(cacheKey), executorService);
+        return null;
+    }
 
-        return cache.getIfPresent(cacheKey);
+    private void fetchAndCacheThrottlingThresholds(String cacheKey) {
+        final Blob blob = getBlob();
+        final ThrottlingThresholds throttlingThresholds = loadThrottlingThresholds(blob);
+        cache.put(cacheKey, throttlingThresholds);
     }
 
     private Blob getBlob() {

@@ -49,7 +49,6 @@ import java.net.InetAddress;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.*;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.StreamSupport;
@@ -69,7 +68,6 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
     private final String gcsBucketName;
     private final String onnxModelCacheKeyPrefix;
     private final String thresholdsCacheKeyPrefix;
-    private final ReentrantLock lock;
     private final Storage storage;
     private final File database;
 
@@ -80,7 +78,6 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
             String gcsBucketName,
             String onnxModelCacheKeyPrefix,
             String thresholdsCacheKeyPrefix,
-            ReentrantLock lock,
             Storage storage,
             File database) {
         this.mapper = Objects.requireNonNull(mapper);
@@ -90,7 +87,6 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
         this.gcsBucketName = gcsBucketName;
         this.onnxModelCacheKeyPrefix = onnxModelCacheKeyPrefix;
         this.thresholdsCacheKeyPrefix = thresholdsCacheKeyPrefix;
-        this.lock = lock;
         this.storage = storage;
         this.database = database;
     }
@@ -119,13 +115,16 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
         final GreenbidsUserAgent greenbidsUserAgent = new GreenbidsUserAgent(userAgent);
 
         OnnxModelRunner onnxModelRunner = null;
-        Double threshold = null;
+        ThrottlingThresholds throttlingThresholds = null;
         try {
-            //final Storage storage = StorageOptions.newBuilder()
-            //        .setProjectId(googleCloudGreenbidsProject).build().getService();
-            onnxModelRunner = retrieveOnnxModelRunner(partner, storage);
-            threshold = retrieveThreshold(partner, storage);
+            onnxModelRunner = retrieveOnnxModelRunner(partner);
+            throttlingThresholds = retrieveThreshold(partner);
         } catch (PreBidException e) {
+            return Future.succeededFuture(toInvocationResult(
+                    bidRequest, null, InvocationAction.no_action));
+        }
+
+        if (onnxModelRunner == null || throttlingThresholds == null) {
             return Future.succeededFuture(toInvocationResult(
                     bidRequest, null, InvocationAction.no_action));
         }
@@ -143,6 +142,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                     bidRequest, null, InvocationAction.no_action));
         }
 
+        Double threshold = partner.getThreshold(throttlingThresholds);
         final Map<String, Map<String, Boolean>> impsBiddersFilterMap = runModeAndFilterBidders(
                 onnxModelRunner, throttlingMessages, throttlingInferenceRows, threshold);
 
@@ -192,19 +192,18 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
         }
     }
 
-    private OnnxModelRunner retrieveOnnxModelRunner(Partner partner, Storage storage) {
+    private OnnxModelRunner retrieveOnnxModelRunner(Partner partner) {
         final String onnxModelPath = "models_pbuid=" + partner.getPbuid() + ".onnx";
         final ModelCache modelCache = new ModelCache(
                 onnxModelPath,
                 storage,
                 gcsBucketName,
                 modelCacheWithExpiration,
-                onnxModelCacheKeyPrefix,
-                lock);
+                onnxModelCacheKeyPrefix);
         return modelCache.getModelRunner(partner.getPbuid());
     }
 
-    private Double retrieveThreshold(Partner partner, Storage storage) {
+    private ThrottlingThresholds retrieveThreshold(Partner partner) {
         final String thresholdJsonPath = "thresholds_pbuid=" + partner.getPbuid() + ".json";
         final ThresholdCache thresholdCache = new ThresholdCache(
                 thresholdJsonPath,
@@ -212,11 +211,8 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                 gcsBucketName,
                 mapper,
                 thresholdsCacheWithExpiration,
-                thresholdsCacheKeyPrefix,
-                lock);
-        final ThrottlingThresholds throttlingThresholds = thresholdCache
-                .getThrottlingThresholds(partner.getPbuid());
-        return partner.getThreshold(throttlingThresholds);
+                thresholdsCacheKeyPrefix);
+        return thresholdCache.getThrottlingThresholds(partner.getPbuid());
     }
 
     private List<ThrottlingMessage> extractThrottlingMessages(
@@ -279,7 +275,6 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
         return Optional.ofNullable(ip)
                 .map(ipAddress -> {
                     try {
-                        //final File database = new File(geoLiteCountryPath);
                         final DatabaseReader dbReader = new DatabaseReader.Builder(database).build();
                         final InetAddress inetAddress = InetAddress.getByName(ipAddress);
                         final CountryResponse response = dbReader.country(inetAddress);
