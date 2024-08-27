@@ -48,7 +48,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.UnaryOperator;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -85,7 +84,6 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 "test_bucket",
                 "onnxModelRunner_",
                 "throttlingThresholds_",
-                new ReentrantLock(),
                 storage,
                 database);
     }

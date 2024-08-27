@@ -8,10 +8,6 @@ import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.GreenbidsReal
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
-
-//@Value(staticConstructor = "of")
-//@NoArgsConstructor
-//@Builder(toBuilder = true)
 @ConfigurationProperties(prefix = "hooks.modules." + GreenbidsRealTimeDataModule.CODE)
 @Validated
 @Data
