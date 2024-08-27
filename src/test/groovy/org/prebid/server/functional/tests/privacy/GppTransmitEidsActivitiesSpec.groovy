@@ -14,6 +14,7 @@ import org.prebid.server.functional.model.request.auction.AllowActivities
 import org.prebid.server.functional.model.request.auction.Condition
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.Geo
+import org.prebid.server.functional.model.request.auction.RegsExt
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.gpp.UsCaV1Consent
@@ -447,7 +448,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         given: "Generic bid request with account connection"
         def accountId = PBSUtils.randomNumber as String
         def bidRequest = getBidRequestWithPersonalData(accountId).tap {
-            it.regs.ext.gpc = PBSUtils.randomNumber as String
+            it.regs.ext = new RegsExt(gpc: PBSUtils.randomNumber as String)
         }
 
         and: "Setup condition"
@@ -487,7 +488,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def gpc = PBSUtils.randomNumber as String
         def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             it.setAccountId(accountId)
-            it.regs.ext.gpc = gpc
+            it.regs.ext = new RegsExt(gpc: gpc)
         }
 
         and: "Setup activity"
@@ -530,7 +531,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         given: "Generic bid request with account connection"
         def accountId = PBSUtils.randomNumber as String
         def bidRequest = getBidRequestWithPersonalData(accountId).tap {
-            it.regs.ext.gpc = PBSUtils.randomNumber as String
+            it.regs.ext = new RegsExt(gpc: PBSUtils.randomNumber as String)
         }
 
         and: "Setup condition"
@@ -570,7 +571,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             it.setAccountId(accountId)
-            it.regs.ext.gpc = null
+            it.regs.ext = new RegsExt(gpc: null)
         }
 
         and: "Setup activity"
@@ -1487,7 +1488,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         given: "Default Generic BidRequest with EIDS fields field and account id"
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = getBidRequestWithPersonalData(accountId).tap {
-            regs.ext.gpc = null
+            it.regs.ext = new RegsExt(gpc: null)
         }
 
         and: "amp request with link to account"

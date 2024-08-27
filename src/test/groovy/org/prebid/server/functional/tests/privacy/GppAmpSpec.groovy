@@ -5,6 +5,7 @@ import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.amp.ConsentType
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Regs
+import org.prebid.server.functional.model.request.auction.RegsExt
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.gpp.TcfEuV2Consent
 import org.prebid.server.functional.util.privacy.gpp.UsV1Consent
@@ -188,7 +189,7 @@ class GppAmpSpec extends PrivacyBaseSpec {
 
         and: "Save storedRequest into DB"
         def ampStoredRequest = BidRequest.defaultStoredRequest.tap {
-            regs.ext.gpc = null
+            regs.ext = new RegsExt(gpc: null)
         }
         def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
@@ -212,7 +213,7 @@ class GppAmpSpec extends PrivacyBaseSpec {
 
         and: "Save storedRequest into DB"
         def ampStoredRequest = BidRequest.defaultStoredRequest.tap {
-            regs.ext.gpc = null
+            regs.ext = new RegsExt(gpc: null)
         }
         def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
@@ -222,6 +223,6 @@ class GppAmpSpec extends PrivacyBaseSpec {
 
         then: "Bidder request shouldn't contain gpc value from header"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
-        assert !bidderRequest.regs.ext
+        assert !bidderRequest?.regs?.ext?.gpc
     }
 }

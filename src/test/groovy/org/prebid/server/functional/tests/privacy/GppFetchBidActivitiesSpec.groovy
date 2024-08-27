@@ -16,6 +16,7 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Condition
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.Geo
+import org.prebid.server.functional.model.request.auction.RegsExt
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.gpp.UsCaV1Consent
@@ -445,7 +446,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         def bidRequest = BidRequest.defaultBidRequest.tap {
             it.setAccountId(accountId)
             it.ext.prebid.trace = VERBOSE
-            it.regs.ext.gpc = randomGpc
+            it.regs.ext = new RegsExt(gpc: randomGpc)
         }
 
         and: "Setup activity"
@@ -483,7 +484,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         def bidRequest = BidRequest.defaultBidRequest.tap {
             it.setAccountId(accountId)
             it.ext.prebid.trace = VERBOSE
-            it.regs.ext.gpc = PBSUtils.randomNumber as String
+            it.regs.ext = new RegsExt(gpc: PBSUtils.randomNumber as String)
         }
 
         and: "Setup activity"
