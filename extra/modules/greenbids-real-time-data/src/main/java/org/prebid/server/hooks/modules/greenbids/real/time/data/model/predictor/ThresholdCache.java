@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ThresholdCache {
 
@@ -32,6 +33,8 @@ public class ThresholdCache {
 
     ExecutorService executorService;
 
+    AtomicBoolean isFetching;
+
     public ThresholdCache(
             String thresholdPath,
             Storage storage,
@@ -45,7 +48,8 @@ public class ThresholdCache {
         this.storage = storage;
         this.mapper = mapper;
         this.thresholdsCacheKeyPrefix = thresholdsCacheKeyPrefix;
-        this.executorService = Executors.newSingleThreadExecutor();
+        this.executorService = Executors.newCachedThreadPool();
+        this.isFetching = new AtomicBoolean(false);
     }
 
     public ThrottlingThresholds getThrottlingThresholds(String pbuid) {
@@ -56,7 +60,15 @@ public class ThresholdCache {
             return cachedThrottlingThresholds;
         }
 
-        CompletableFuture.runAsync(() -> fetchAndCacheThrottlingThresholds(cacheKey), executorService);
+        if (isFetching.compareAndSet(false, true)) {
+            CompletableFuture.runAsync(() -> {
+                try {
+                    fetchAndCacheThrottlingThresholds(cacheKey);
+                } finally {
+                    isFetching.set(false);
+                }
+            }, executorService);
+        }
         return null;
     }
 

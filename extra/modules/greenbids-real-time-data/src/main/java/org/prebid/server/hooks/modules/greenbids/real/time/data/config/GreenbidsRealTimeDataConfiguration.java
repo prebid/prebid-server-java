@@ -11,7 +11,6 @@ import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.
 import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.GreenbidsRealTimeDataModule;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.GreenbidsRealTimeDataProcessedAuctionRequestHook;
 import org.prebid.server.json.ObjectMapperProvider;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -26,20 +25,12 @@ import java.util.concurrent.TimeUnit;
 @EnableConfigurationProperties(GreenbidsRealTimeDataProperties.class)
 public class GreenbidsRealTimeDataConfiguration {
 
-    private final GreenbidsRealTimeDataProperties properties;
-
-    @Autowired
-    public GreenbidsRealTimeDataConfiguration(GreenbidsRealTimeDataProperties properties) {
-        this.properties = properties;
-    }
-
-    @Bean
     GreenbidsRealTimeDataProperties greenbidsRealTimeDataProperties() {
         return new GreenbidsRealTimeDataProperties();
     }
 
     @Bean
-    GreenbidsRealTimeDataModule greenbidsRealTimeDataModule() {
+    GreenbidsRealTimeDataModule greenbidsRealTimeDataModule(GreenbidsRealTimeDataProperties properties) {
         final ObjectMapper mapper = ObjectMapperProvider.mapper();
 
         final Storage storage = StorageOptions.newBuilder()
