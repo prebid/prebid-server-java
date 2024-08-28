@@ -6,8 +6,8 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingThresholds;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.model.GreenbidsRealTimeDataProperties;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.model.OnnxModelRunner;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.model.config.GreenbidsRealTimeDataProperties;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.OnnxModelRunner;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.GreenbidsRealTimeDataModule;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.GreenbidsRealTimeDataProcessedAuctionRequestHook;
 import org.prebid.server.json.ObjectMapperProvider;
@@ -29,7 +29,7 @@ public class GreenbidsRealTimeDataConfiguration {
     private final GreenbidsRealTimeDataProperties properties;
 
     @Autowired
-    public  GreenbidsRealTimeDataConfiguration(GreenbidsRealTimeDataProperties properties) {
+    public GreenbidsRealTimeDataConfiguration(GreenbidsRealTimeDataProperties properties) {
         this.properties = properties;
     }
 
