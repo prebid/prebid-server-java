@@ -1,4 +1,4 @@
-package org.prebid.server.hooks.modules.greenbids.real.time.data.model;
+package org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor;
 
 import ai.onnxruntime.OrtException;
 import com.github.benmanes.caffeine.cache.Cache;
@@ -74,7 +74,7 @@ public class ModelCache {
             final byte[] onnxModelBytes = blob.getContent();
             return new OnnxModelRunner(onnxModelBytes);
         } catch (OrtException e) {
-            throw new RuntimeException("Failed to load ONNX model", e);
+            throw new PreBidException("Failed to load ONNX model", e);
         }
     }
 }

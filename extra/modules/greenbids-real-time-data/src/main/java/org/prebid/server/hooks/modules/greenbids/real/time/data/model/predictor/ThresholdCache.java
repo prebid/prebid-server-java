@@ -1,4 +1,4 @@
-package org.prebid.server.hooks.modules.greenbids.real.time.data.model;
+package org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -81,7 +81,7 @@ public class ThresholdCache {
             thresholdsJsonNode = mapper.readTree(jsonBytes);
             return mapper.treeToValue(thresholdsJsonNode, ThrottlingThresholds.class);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new PreBidException("Failed to load throttling thresholds json", e);
         }
     }
 }
