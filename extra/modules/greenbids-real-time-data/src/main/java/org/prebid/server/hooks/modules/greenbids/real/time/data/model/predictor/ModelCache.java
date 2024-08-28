@@ -12,6 +12,7 @@ import org.prebid.server.exception.PreBidException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ModelCache {
 
@@ -28,6 +29,8 @@ public class ModelCache {
 
     ExecutorService executorService;
 
+    AtomicBoolean isFetching;
+
     public ModelCache(
             String modelPath,
             Storage storage,
@@ -39,7 +42,8 @@ public class ModelCache {
         this.cache = cache;
         this.storage = storage;
         this.onnxModelCacheKeyPrefix = onnxModelCacheKeyPrefix;
-        this.executorService = Executors.newSingleThreadExecutor();
+        this.executorService = Executors.newCachedThreadPool();
+        this.isFetching = new AtomicBoolean(false);
     }
 
     public OnnxModelRunner getModelRunner(String pbuid) {
@@ -50,7 +54,15 @@ public class ModelCache {
             return cachedOnnxModelRunner;
         }
 
-        CompletableFuture.runAsync(() -> fetchAndCacheModelRunner(cacheKey), executorService);
+        if (isFetching.compareAndSet(false, true)) {
+            CompletableFuture.runAsync(() -> {
+                try {
+                    fetchAndCacheModelRunner(cacheKey);
+                } finally {
+                    isFetching.set(false);
+                }
+            }, executorService);
+        }
         return null;
     }
 

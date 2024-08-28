@@ -6,6 +6,7 @@ import ua_parser.OS;
 import ua_parser.Parser;
 import ua_parser.UserAgent;
 
+import java.util.Optional;
 import java.util.Set;
 
 public class GreenbidsUserAgent {
@@ -15,43 +16,47 @@ public class GreenbidsUserAgent {
 
     private static final Parser UA_PARSER = new Parser();
 
-    private final String userAgentString;
+    private final Optional<String> userAgentString;
 
-    private final UserAgent userAgent;
+    private final Optional<UserAgent> userAgent;
 
-    private final Device device;
+    private final Optional<Device> device;
 
-    private final OS os;
+    private final Optional<OS> os;
 
     public GreenbidsUserAgent(String userAgentString) {
-        this.userAgentString = userAgentString;
+        this.userAgentString = Optional.ofNullable(userAgentString);
         final Client client = UA_PARSER.parse(userAgentString);
-        this.userAgent = client.userAgent;
-        this.device = client.device;
-        this.os = client.os;
+        this.userAgent = Optional.ofNullable(client.userAgent);
+        this.device = Optional.ofNullable(client.device);
+        this.os = Optional.ofNullable(client.os);
     }
 
     public String getDevice() {
-        if (device == null) {
-            return null;
-        }
-
-        return isPC() ? "PC" : device.family;
+        return device.map(device -> isPC() ? "PC" : device.family).orElse("");
     }
 
     public String getBrowser() {
-        if (userAgent == null) {
-            return null;
-        }
-
-        return "%s %s".formatted(userAgent.family, userAgent.major).trim();
+        return userAgent
+                .map(userAgent -> "%s %s".formatted(userAgent.family, userAgent.major).trim())
+                .orElse("");
     }
 
     private boolean isPC() {
-        return userAgentString.contains("Windows NT")
-                || PC_OS_FAMILIES.contains(os.family)
-                || ("Windows".equals(os.family) && "ME".equals(os.major))
-                || ("Mac OS X".equals(os.family) && !userAgentString.contains("Silk"))
-                || userAgentString.contains("Linux") && userAgentString.contains("X11");
+        return userAgentString
+                .map(userAgent -> userAgent.contains("Windows NT")
+                        || PC_OS_FAMILIES.contains(osFamily())
+                        || ("Windows".equals(osFamily()) && "ME".equals(osMajor()))
+                        || ("Mac OS X".equals(osFamily()) && !userAgent.contains("Silk"))
+                        || userAgent.contains("Linux") && userAgent.contains("X11"))
+                .orElse(false);
+    }
+
+    private String osFamily() {
+        return os.map(os -> os.family).orElse("");
+    }
+
+    private String osMajor() {
+        return os.map(os -> os.major).orElse("");
     }
 }
