@@ -13,6 +13,7 @@ import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.adtelligent.proto.AdtelligentImpExt;
+import org.prebid.server.bidder.adtelligent.proto.ExtImpAdtelligentBidRequest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
@@ -86,16 +87,17 @@ public class AdtelligentBidder implements Bidder<BidRequest> {
         final Map<Integer, List<Imp>> sourceToImps = new HashMap<>();
         for (final Imp imp : imps) {
             final ExtImpAdtelligent extImpAdtelligent;
+            final Integer sourceId;
             try {
                 validateImpression(imp);
                 extImpAdtelligent = getExtImpAdtelligent(imp);
+                sourceId = resolveSourceId(imp.getId(), extImpAdtelligent.getSourceId());
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
                 continue;
             }
-            final Imp updatedImp = updateImp(imp, extImpAdtelligent);
+            final Imp updatedImp = updateImp(imp, sourceId, extImpAdtelligent);
 
-            final Integer sourceId = extImpAdtelligent.getSourceId();
             final List<Imp> sourceIdImps = sourceToImps.get(sourceId);
             if (sourceIdImps == null) {
                 sourceToImps.put(sourceId, new ArrayList<>(Collections.singleton(updatedImp)));
@@ -164,13 +166,22 @@ public class AdtelligentBidder implements Bidder<BidRequest> {
     /**
      * Updates {@link Imp} with bidfloor if it is present in imp.ext.bidder
      */
-    private Imp updateImp(Imp imp, ExtImpAdtelligent extImpAdtelligent) {
-        final AdtelligentImpExt adtelligentImpExt = AdtelligentImpExt.of(extImpAdtelligent);
+    private Imp updateImp(Imp imp, Integer sourceId, ExtImpAdtelligent extImpAdtelligent) {
+        final AdtelligentImpExt adtelligentImpExt = AdtelligentImpExt.of(
+                ExtImpAdtelligentBidRequest.from(sourceId, extImpAdtelligent));
         final BigDecimal bidFloor = extImpAdtelligent.getBidFloor();
         return imp.toBuilder()
                 .bidfloor(BidderUtil.isValidPrice(bidFloor) ? bidFloor : imp.getBidfloor())
                 .ext(mapper.mapper().valueToTree(adtelligentImpExt))
                 .build();
+    }
+
+    private static Integer resolveSourceId(String impId, String sourceId) {
+        try {
+            return sourceId == null ? 0 : Integer.parseInt(sourceId);
+        } catch (NumberFormatException e) {
+            throw new PreBidException("ignoring imp id=%s, aid parsing err: %s".formatted(impId, e.getMessage()));
+        }
     }
 
     /**
