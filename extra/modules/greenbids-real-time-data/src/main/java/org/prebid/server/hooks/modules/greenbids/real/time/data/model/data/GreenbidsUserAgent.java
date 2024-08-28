@@ -1,4 +1,4 @@
-package org.prebid.server.hooks.modules.greenbids.real.time.data.model;
+package org.prebid.server.hooks.modules.greenbids.real.time.data.model.data;
 
 import ua_parser.Client;
 import ua_parser.Device;
