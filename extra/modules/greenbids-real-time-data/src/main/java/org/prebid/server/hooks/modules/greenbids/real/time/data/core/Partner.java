@@ -1,15 +1,12 @@
 package org.prebid.server.hooks.modules.greenbids.real.time.data.core;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Builder;
 import lombok.Value;
 
 import java.util.Comparator;
 import java.util.List;
 
-@Builder(toBuilder = true)
-@Value
+@Value(staticConstructor = "of")
 public class Partner {
 
     String pbuid;
@@ -19,16 +16,6 @@ public class Partner {
 
     @JsonProperty("explorationRate")
     Double explorationRate;
-
-    @JsonCreator
-    public Partner(
-            @JsonProperty("pbuid") String pbuid,
-            @JsonProperty("targetTpr") Double targetTpr,
-            @JsonProperty("explorationRate") Double explorationRate) {
-        this.pbuid = pbuid;
-        this.targetTpr = targetTpr;
-        this.explorationRate = explorationRate;
-    }
 
     public Double getThreshold(ThrottlingThresholds throttlingThresholds) {
         final List<Double> truePositiveRates = throttlingThresholds.getTpr();
