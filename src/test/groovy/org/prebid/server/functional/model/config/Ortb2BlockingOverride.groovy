@@ -1,13 +1,13 @@
-package org.prebid.server.functional.model.response.auction
+package org.prebid.server.functional.model.config
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.databind.annotation.JsonNaming
 import groovy.transform.ToString
 
 @ToString(includeNames = true, ignoreNulls = true)
-@JsonNaming(PropertyNamingStrategies.LowerCaseStrategy)
-class ExtModule {
+@JsonNaming(PropertyNamingStrategies.KebabCaseStrategy)
+class Ortb2BlockingOverride {
 
-    ModuleTrace trace
-    ModuleError errors
+    Object override
+    Ortb2BlockingConditions conditions
 }
