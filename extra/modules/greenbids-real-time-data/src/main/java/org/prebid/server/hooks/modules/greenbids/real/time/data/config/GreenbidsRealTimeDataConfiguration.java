@@ -25,10 +25,6 @@ import java.util.concurrent.TimeUnit;
 @EnableConfigurationProperties(GreenbidsRealTimeDataProperties.class)
 public class GreenbidsRealTimeDataConfiguration {
 
-    GreenbidsRealTimeDataProperties greenbidsRealTimeDataProperties() {
-        return new GreenbidsRealTimeDataProperties();
-    }
-
     @Bean
     GreenbidsRealTimeDataModule greenbidsRealTimeDataModule(GreenbidsRealTimeDataProperties properties) {
         final ObjectMapper mapper = ObjectMapperProvider.mapper();

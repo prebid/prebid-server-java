@@ -6,7 +6,6 @@ import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
-import lombok.Getter;
 import org.prebid.server.exception.PreBidException;
 
 import java.util.concurrent.CompletableFuture;
@@ -20,7 +19,6 @@ public class ModelCache {
 
     String modelPath;
 
-    @Getter
     Cache<String, OnnxModelRunner> cache;
 
     Storage storage;

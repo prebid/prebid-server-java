@@ -6,7 +6,6 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
-import lombok.Getter;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingThresholds;
 
@@ -22,7 +21,6 @@ public class ThresholdCache {
 
     String thresholdPath;
 
-    @Getter
     Cache<String, ThrottlingThresholds> cache;
 
     Storage storage;

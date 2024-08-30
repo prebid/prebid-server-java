@@ -86,6 +86,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
     public Future<InvocationResult<AuctionRequestPayload>> call(
             AuctionRequestPayload auctionRequestPayload,
             AuctionInvocationContext invocationContext) {
+
         final AuctionContext auctionContext = invocationContext.auctionContext();
         final BidRequest bidRequest = auctionContext.getBidRequest();
         final Partner partner = parseBidRequestExt(bidRequest);
@@ -114,28 +115,28 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                 throw new PreBidException("Cache was empty, fetching and put artefacts for next request");
             }
 
-            final GreenbidsInferenceData greenbidsInferenceData = new GreenbidsInferenceData(jacksonMapper, database);
-            greenbidsInferenceData.prepareData(bidRequest);
+            final GreenbidsInferenceData greenbidsInferenceData = GreenbidsInferenceData.prepareData(
+                    bidRequest, database, jacksonMapper);
 
             final FilterService filterService = new FilterService();
             final Double threshold = partner.getThreshold(throttlingThresholds);
             impsBiddersFilterMap = filterService.runModeAndFilterBidders(
                     onnxModelRunner,
-                    greenbidsInferenceData.throttlingMessages,
-                    greenbidsInferenceData.throttlingInferenceRows,
+                    greenbidsInferenceData.getThrottlingMessages(),
+                    greenbidsInferenceData.getThrottlingInferenceRows(),
                     threshold);
         } catch (PreBidException e) {
             return Future.succeededFuture(toInvocationResult(
                     bidRequest, null, InvocationAction.no_action));
         }
 
-        final GreenbidsInvocationResult greenbidsInvocationResult = new GreenbidsInvocationResult();
-        greenbidsInvocationResult.prepareInvocationResult(partner, bidRequest, impsBiddersFilterMap);
+        final GreenbidsInvocationResult greenbidsInvocationResult = GreenbidsInvocationResult.prepareInvocationResult(
+                partner, bidRequest, impsBiddersFilterMap);
 
         return Future.succeededFuture(toInvocationResult(
-                greenbidsInvocationResult.updatedBidRequest,
-                greenbidsInvocationResult.analyticsResult,
-                greenbidsInvocationResult.invocationAction));
+                greenbidsInvocationResult.getUpdatedBidRequest(),
+                greenbidsInvocationResult.getAnalyticsResult(),
+                greenbidsInvocationResult.getInvocationAction()));
     }
 
     private Partner parseBidRequestExt(BidRequest bidRequest) {
@@ -164,8 +165,8 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
     private InvocationResult<AuctionRequestPayload> toInvocationResult(
             BidRequest bidRequest,
             AnalyticsResult analyticsResult,
-            InvocationAction action
-    ) {
+            InvocationAction action) {
+
         final List<AnalyticsResult> analyticsResults = (analyticsResult != null)
                 ? Collections.singletonList(analyticsResult)
                 : Collections.emptyList();

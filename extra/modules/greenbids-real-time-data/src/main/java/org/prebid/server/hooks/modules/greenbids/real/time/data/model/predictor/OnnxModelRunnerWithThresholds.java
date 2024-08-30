@@ -8,10 +8,9 @@ import org.prebid.server.json.JacksonMapper;
 
 public class OnnxModelRunnerWithThresholds {
 
-    JacksonMapper jacksonMapper;
-    Cache<String, OnnxModelRunner> modelCacheWithExpiration;
-    Cache<String, ThrottlingThresholds> thresholdsCacheWithExpiration;
-
+    private final JacksonMapper jacksonMapper;
+    private final Cache<String, OnnxModelRunner> modelCacheWithExpiration;
+    private final Cache<String, ThrottlingThresholds> thresholdsCacheWithExpiration;
     private final String gcsBucketName;
     private final String onnxModelCacheKeyPrefix;
     private final String thresholdsCacheKeyPrefix;

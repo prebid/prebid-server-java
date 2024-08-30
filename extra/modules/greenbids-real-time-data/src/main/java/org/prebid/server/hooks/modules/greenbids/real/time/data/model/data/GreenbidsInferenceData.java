@@ -10,6 +10,8 @@ import com.maxmind.geoip2.DatabaseReader;
 import com.maxmind.geoip2.exception.GeoIp2Exception;
 import com.maxmind.geoip2.model.CountryResponse;
 import com.maxmind.geoip2.record.Country;
+import lombok.Builder;
+import lombok.Value;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
@@ -26,44 +28,50 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+@Builder(toBuilder = true)
+@Value
 public class GreenbidsInferenceData {
 
-    JacksonMapper jacksonMapper;
+    List<ThrottlingMessage> throttlingMessages;
 
-    File database;
+    String[][] throttlingInferenceRows;
 
-    public List<ThrottlingMessage> throttlingMessages;
+    public static GreenbidsInferenceData prepareData(
+            BidRequest bidRequest,
+            File database,
+            JacksonMapper jacksonMapper) {
 
-    public String[][] throttlingInferenceRows;
-
-    public GreenbidsInferenceData(
-            JacksonMapper jacksonMapper,
-            File database) {
-        this.jacksonMapper = jacksonMapper;
-        this.database = database;
-    }
-
-    public void prepareData(BidRequest bidRequest) {
         final String userAgent = Optional.ofNullable(bidRequest.getDevice())
                 .map(Device::getUa)
                 .orElse(null);
         final GreenbidsUserAgent greenbidsUserAgent = new GreenbidsUserAgent(userAgent);
 
-        throttlingMessages = extractThrottlingMessages(
+        final List<ThrottlingMessage> throttlingMessages = extractThrottlingMessages(
                 bidRequest,
-                greenbidsUserAgent);
+                greenbidsUserAgent,
+                database,
+                jacksonMapper);
 
-        throttlingInferenceRows = convertToArray(throttlingMessages);
+        final String[][] throttlingInferenceRows = convertToArray(throttlingMessages);
 
         if (isAnyFeatureNull(throttlingInferenceRows)) {
             throw new PreBidException("Null features still exist in inference row after fillna");
         }
+
+        return GreenbidsInferenceData.builder()
+                .throttlingInferenceRows(throttlingInferenceRows)
+                .throttlingMessages(throttlingMessages)
+                .build();
     }
 
-    private List<ThrottlingMessage> extractThrottlingMessages(
+    private static List<ThrottlingMessage> extractThrottlingMessages(
             BidRequest bidRequest,
-            GreenbidsUserAgent greenbidsUserAgent) {
+            GreenbidsUserAgent greenbidsUserAgent,
+            File database,
+            JacksonMapper jacksonMapper) {
+
         final ZonedDateTime timestamp = ZonedDateTime.now(ZoneId.of("UTC"));
         final Integer hourBucket = timestamp.getHour();
         final Integer minuteQuadrant = (timestamp.getMinute() / 15) + 1;
@@ -72,46 +80,85 @@ public class GreenbidsInferenceData {
         final List<Imp> imps = bidRequest.getImp();
 
         return imps.stream()
-                .flatMap(imp -> {
-                    final String impId = imp.getId();
-                    final ObjectNode impExt = imp.getExt();
-                    final JsonNode bidderNode = extImpPrebid(impExt.get("prebid")).getBidder();
-
-                    final String ipv4 = Optional.ofNullable(bidRequest.getDevice())
-                            .map(Device::getIp)
-                            .orElse(null);
-                    final String countryFromIp;
-                    try {
-                        countryFromIp = getCountry(ipv4);
-                    } catch (IOException | GeoIp2Exception e) {
-                        throw new PreBidException("Failed to get country for IP", e);
-                    }
-
-                    final List<ThrottlingMessage> throttlingImpMessages = new ArrayList<>();
-                    if (bidderNode.isObject()) {
-                        final ObjectNode bidders = (ObjectNode) bidderNode;
-                        final Iterator<String> fieldNames = bidders.fieldNames();
-                        while (fieldNames.hasNext()) {
-                            final String bidderName = fieldNames.next();
-                            throttlingImpMessages.add(
-                                    ThrottlingMessage.builder()
-                                            .browser(greenbidsUserAgent.getBrowser())
-                                            .bidder(bidderName)
-                                            .adUnitCode(impId)
-                                            .country(countryFromIp)
-                                            .hostname(hostname)
-                                            .device(greenbidsUserAgent.getDevice())
-                                            .hourBucket(hourBucket.toString())
-                                            .minuteQuadrant(minuteQuadrant.toString())
-                                            .build());
-                        }
-                    }
-                    return throttlingImpMessages.stream();
-                })
+                .flatMap(imp -> extractMessagesForImp(
+                        imp,
+                        bidRequest,
+                        greenbidsUserAgent,
+                        hostname,
+                        hourBucket,
+                        minuteQuadrant,
+                        database,
+                        jacksonMapper))
                 .collect(Collectors.toList());
     }
 
-    private ExtImpPrebid extImpPrebid(JsonNode extImpPrebid) {
+    private static Stream<ThrottlingMessage> extractMessagesForImp(
+            Imp imp,
+            BidRequest bidRequest,
+            GreenbidsUserAgent greenbidsUserAgent,
+            String hostname,
+            Integer hourBucket,
+            Integer minuteQuadrant,
+            File database,
+            JacksonMapper jacksonMapper) {
+
+        final String impId = imp.getId();
+        final ObjectNode impExt = imp.getExt();
+        final JsonNode bidderNode = extImpPrebid(impExt.get("prebid"), jacksonMapper).getBidder();
+        final String ip = Optional.ofNullable(bidRequest.getDevice())
+                .map(Device::getIp)
+                .orElse(null);
+        final String countryFromIp = getCountrySafely(ip, database);
+        return createThrottlingMessages(
+                bidderNode,
+                impId,
+                greenbidsUserAgent,
+                countryFromIp,
+                hostname,
+                hourBucket,
+                minuteQuadrant).stream();
+    }
+
+    private static String getCountrySafely(String ip, File database) {
+        try {
+            return getCountry(ip, database);
+        } catch (IOException | GeoIp2Exception e) {
+            throw new PreBidException("Failed to get country for IP", e);
+        }
+    }
+
+    private static List<ThrottlingMessage> createThrottlingMessages(
+            JsonNode bidderNode,
+            String impId,
+            GreenbidsUserAgent greenbidsUserAgent,
+            String countryFromIp,
+            String hostname,
+            Integer hourBucket,
+            Integer minuteQuadrant) {
+
+        final List<ThrottlingMessage> throttlingImpMessages = new ArrayList<>();
+        if (bidderNode.isObject()) {
+            final ObjectNode bidders = (ObjectNode) bidderNode;
+            final Iterator<String> fieldNames = bidders.fieldNames();
+            while (fieldNames.hasNext()) {
+                final String bidderName = fieldNames.next();
+                throttlingImpMessages.add(
+                        ThrottlingMessage.builder()
+                                .browser(greenbidsUserAgent.getBrowser())
+                                .bidder(bidderName)
+                                .adUnitCode(impId)
+                                .country(countryFromIp)
+                                .hostname(hostname)
+                                .device(greenbidsUserAgent.getDevice())
+                                .hourBucket(hourBucket.toString())
+                                .minuteQuadrant(minuteQuadrant.toString())
+                                .build());
+            }
+        }
+        return throttlingImpMessages;
+    }
+
+    private static ExtImpPrebid extImpPrebid(JsonNode extImpPrebid, JacksonMapper jacksonMapper) {
         try {
             return jacksonMapper.mapper().treeToValue(extImpPrebid, ExtImpPrebid.class);
         } catch (JsonProcessingException e) {
@@ -119,7 +166,7 @@ public class GreenbidsInferenceData {
         }
     }
 
-    private String getCountry(String ip) throws IOException, GeoIp2Exception {
+    private static String getCountry(String ip, File database) throws IOException, GeoIp2Exception {
         return Optional.ofNullable(ip)
                 .map(ipAddress -> {
                     try {
@@ -134,7 +181,7 @@ public class GreenbidsInferenceData {
                 }).orElse(null);
     }
 
-    private String[][] convertToArray(List<ThrottlingMessage> messages) {
+    private static String[][] convertToArray(List<ThrottlingMessage> messages) {
         return messages.stream()
                 .map(message -> new String[]{
                         Optional.ofNullable(message.getBrowser()).orElse(""),
@@ -148,7 +195,7 @@ public class GreenbidsInferenceData {
                 .toArray(String[][]::new);
     }
 
-    private Boolean isAnyFeatureNull(String[][] throttlingInferenceRow) {
+    private static Boolean isAnyFeatureNull(String[][] throttlingInferenceRow) {
         return Arrays.stream(throttlingInferenceRow)
                 .flatMap(Arrays::stream)
                 .anyMatch(Objects::isNull);
