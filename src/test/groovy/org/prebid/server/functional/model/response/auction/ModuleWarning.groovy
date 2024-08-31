@@ -5,10 +5,8 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming
 import groovy.transform.ToString
 
 @ToString(includeNames = true, ignoreNulls = true)
-@JsonNaming(PropertyNamingStrategies.LowerCaseStrategy)
-class ExtModule {
+@JsonNaming(PropertyNamingStrategies.KebabCaseStrategy)
+class ModuleWarning {
 
-    ModuleTrace trace
-    ModuleError errors
-    ModuleWarning warnings
+    Map<String, List<String>> ortb2Blocking
 }

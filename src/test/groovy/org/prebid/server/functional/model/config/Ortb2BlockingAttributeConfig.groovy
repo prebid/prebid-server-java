@@ -32,7 +32,7 @@ class Ortb2BlockingAttributeConfig {
 
     Ortb2BlockingActionOverride actionOverrides
 
-    static getDefaultOrtb2BlockingAttributeConfig(Object ortb2Attributes, Ortb2BlockingAttribute attributeName, Object ortb2AttributesForDeals = null) {
+    static getDefaultConfig(Object ortb2Attributes, Ortb2BlockingAttribute attributeName, Object ortb2AttributesForDeals = null) {
         new Ortb2BlockingAttributeConfig().tap {
             enforceBlocks = false
             switch (attributeName) {

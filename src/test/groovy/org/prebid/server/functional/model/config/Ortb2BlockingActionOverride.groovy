@@ -29,30 +29,30 @@ class Ortb2BlockingActionOverride {
     List<Ortb2BlockingOverride> allowedBannerAttrForDeals
     List<Ortb2BlockingOverride> allowedAdvCatForDeals
 
-    static Ortb2BlockingActionOverride getDefaultOrtb2BlockingActionOverride(Ortb2BlockingAttribute attribute,
-                                                                             Ortb2BlockingOverride blocked,
-                                                                             Ortb2BlockingOverride allowedForDeals = null) {
+    static Ortb2BlockingActionOverride getDefaultOverride(Ortb2BlockingAttribute attribute,
+                                                          List<Ortb2BlockingOverride> blocked,
+                                                          List<Ortb2BlockingOverride> allowedForDeals = null) {
 
         new Ortb2BlockingActionOverride().tap {
             switch (attribute) {
                 case BADV:
-                    blockedAdomain = blocked ? [blocked] : null
-                    allowedAdomainForDeals = allowedForDeals ? [allowedForDeals] : null
+                    blockedAdomain = blocked
+                    allowedAdomainForDeals = allowedForDeals
                     break
                 case BAPP:
-                    blockedApp = blocked ? [blocked] : null
-                    allowedAppForDeals = allowedForDeals ? [allowedForDeals] : null
+                    blockedApp = blocked
+                    allowedAppForDeals = allowedForDeals
                     break
                 case BATTR:
-                    blockedBannerAttr = blocked ? [blocked] : null
-                    allowedBannerAttrForDeals = allowedForDeals ? [allowedForDeals] : null
+                    blockedBannerAttr = blocked
+                    allowedBannerAttrForDeals = allowedForDeals
                     break
                 case BCAT:
-                    blockedAdvCat = blocked ? [blocked] : null
-                    allowedAdvCatForDeals = allowedForDeals ? [allowedForDeals] : null
+                    blockedAdvCat = blocked
+                    allowedAdvCatForDeals = allowedForDeals
                     break
                 case BTYPE:
-                    blockedBannerType = blocked ? [blocked] : null
+                    blockedBannerType = blocked
                     break
                 default:
                     throw new IllegalArgumentException("Unknown attribute type: $attribute")
