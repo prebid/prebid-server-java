@@ -4,8 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.github.benmanes.caffeine.cache.Cache;
-import com.google.cloud.storage.Storage;
 import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Future;
 import org.apache.commons.collections4.CollectionUtils;
@@ -34,7 +32,6 @@ import org.prebid.server.hooks.v1.analytics.Tags;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.ProcessedAuctionRequestHook;
-import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 
@@ -53,33 +50,19 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
     private static final String BID_REQUEST_ANALYTICS_EXTENSION_NAME = "greenbids-rtd";
 
     private final ObjectMapper mapper;
-    private final JacksonMapper jacksonMapper;
-    private final Cache<String, OnnxModelRunner> modelCacheWithExpiration;
-    private final Cache<String, ThrottlingThresholds> thresholdsCacheWithExpiration;
-    private final String gcsBucketName;
-    private final String onnxModelCacheKeyPrefix;
-    private final String thresholdsCacheKeyPrefix;
-    private final Storage storage;
     private final File database;
+    private final FilterService filterService;
+    private final OnnxModelRunnerWithThresholds onnxModelRunnerWithThresholds;
 
     public GreenbidsRealTimeDataProcessedAuctionRequestHook(
             ObjectMapper mapper,
-            Cache<String, OnnxModelRunner> modelCacheWithExpiration,
-            Cache<String, ThrottlingThresholds> thresholdsCacheWithExpiration,
-            String gcsBucketName,
-            String onnxModelCacheKeyPrefix,
-            String thresholdsCacheKeyPrefix,
-            Storage storage,
-            File database) {
+            File database,
+            FilterService filterService,
+            OnnxModelRunnerWithThresholds onnxModelRunnerWithThresholds) {
         this.mapper = Objects.requireNonNull(mapper);
-        this.jacksonMapper = new JacksonMapper(mapper);
-        this.modelCacheWithExpiration = modelCacheWithExpiration;
-        this.thresholdsCacheWithExpiration = thresholdsCacheWithExpiration;
-        this.gcsBucketName = gcsBucketName;
-        this.onnxModelCacheKeyPrefix = onnxModelCacheKeyPrefix;
-        this.thresholdsCacheKeyPrefix = thresholdsCacheKeyPrefix;
-        this.storage = storage;
         this.database = database;
+        this.filterService = filterService;
+        this.onnxModelRunnerWithThresholds = onnxModelRunnerWithThresholds;
     }
 
     @Override
@@ -100,25 +83,16 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
         ThrottlingThresholds throttlingThresholds = null;
         Map<String, Map<String, Boolean>> impsBiddersFilterMap = null;
         try {
-            final OnnxModelRunnerWithThresholds onnxModelRunnerWithThresholds = new OnnxModelRunnerWithThresholds(
-                    jacksonMapper,
-                    modelCacheWithExpiration,
-                    thresholdsCacheWithExpiration,
-                    storage,
-                    gcsBucketName,
-                    onnxModelCacheKeyPrefix,
-                    thresholdsCacheKeyPrefix);
             onnxModelRunner = onnxModelRunnerWithThresholds.retrieveOnnxModelRunner(partner);
-            throttlingThresholds = onnxModelRunnerWithThresholds.retrieveThreshold(partner);
+            throttlingThresholds = onnxModelRunnerWithThresholds.retrieveThreshold(partner, mapper);
 
             if (onnxModelRunner == null || throttlingThresholds == null) {
                 throw new PreBidException("Cache was empty, fetching and put artefacts for next request");
             }
 
             final GreenbidsInferenceData greenbidsInferenceData = GreenbidsInferenceData.prepareData(
-                    bidRequest, database, jacksonMapper);
+                    bidRequest, database, mapper);
 
-            final FilterService filterService = new FilterService();
             final Double threshold = partner.getThreshold(throttlingThresholds);
             impsBiddersFilterMap = filterService.runModeAndFilterBidders(
                     onnxModelRunner,
@@ -156,7 +130,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
 
     private Partner toPartner(ObjectNode adapterNode) {
         try {
-            return jacksonMapper.mapper().treeToValue(adapterNode, Partner.class);
+            return mapper.treeToValue(adapterNode, Partner.class);
         } catch (JsonProcessingException e) {
             throw new PreBidException("Error decoding bid request analytics extension: " + e.getMessage(), e);
         }

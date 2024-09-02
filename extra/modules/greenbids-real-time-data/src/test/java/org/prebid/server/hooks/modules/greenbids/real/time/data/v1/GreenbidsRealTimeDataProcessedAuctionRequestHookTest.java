@@ -20,9 +20,11 @@ import org.junit.jupiter.api.Test;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingThresholds;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.FilterService;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.OnnxModelRunner;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.OnnxModelRunnerWithThresholds;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.result.AnalyticsResult;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.result.ExplorationResult;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.OnnxModelRunner;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.result.Ortb2ImpExtResult;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.model.analytics.ActivityImpl;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.model.analytics.AppliedToImpl;
@@ -77,15 +79,19 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final Storage storage = StorageOptions.newBuilder()
                 .setProjectId("test_project").build().getService();
         final File database = new File("src/test/resources/GeoLite2-Country.mmdb");
-        target = new GreenbidsRealTimeDataProcessedAuctionRequestHook(
-                mapper,
+        final FilterService filterService = new FilterService();
+        final OnnxModelRunnerWithThresholds onnxModelRunnerWithThresholds = new OnnxModelRunnerWithThresholds(
                 modelCacheWithExpiration,
                 thresholdsCacheWithExpiration,
+                storage,
                 "test_bucket",
                 "onnxModelRunner_",
-                "throttlingThresholds_",
-                storage,
-                database);
+                "throttlingThresholds_");
+        target = new GreenbidsRealTimeDataProcessedAuctionRequestHook(
+                mapper,
+                database,
+                filterService,
+                onnxModelRunnerWithThresholds);
     }
 
     @Test
@@ -467,6 +473,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
             List<Imp> imps,
             Device device,
             ExtRequest extRequest) {
+
         return bidRequestCustomizer.apply(BidRequest.builder()
                 .id("request")
                 .imp(imps)
@@ -478,6 +485,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
     private static AuctionContext givenAuctionContext(
             BidRequest bidRequest,
             UnaryOperator<AuctionContext.AuctionContextBuilder> auctionContextCustomizer) {
+
         final AuctionContext.AuctionContextBuilder auctionContextBuilder = AuctionContext.builder()
                 .httpRequest(HttpRequestContext.builder().build())
                 .bidRequest(bidRequest);
@@ -509,6 +517,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
             UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
             JacksonMapper jacksonMapper,
             Double explorationRate) {
+
         final Banner banner = givenBanner();
 
         final ObjectNode bidderNode = jacksonMapper.mapper().createObjectNode();

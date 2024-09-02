@@ -7,7 +7,9 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingThresholds;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.config.GreenbidsRealTimeDataProperties;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.FilterService;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.OnnxModelRunner;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.OnnxModelRunnerWithThresholds;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.GreenbidsRealTimeDataModule;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.GreenbidsRealTimeDataProcessedAuctionRequestHook;
 import org.prebid.server.json.ObjectMapperProvider;
@@ -26,13 +28,34 @@ import java.util.concurrent.TimeUnit;
 public class GreenbidsRealTimeDataConfiguration {
 
     @Bean
-    GreenbidsRealTimeDataModule greenbidsRealTimeDataModule(GreenbidsRealTimeDataProperties properties) {
+    GreenbidsRealTimeDataModule greenbidsRealTimeDataModule(
+            GreenbidsRealTimeDataProperties properties,
+            FilterService filterService,
+            OnnxModelRunnerWithThresholds onnxModelRunnerWithThresholds) {
+
         final ObjectMapper mapper = ObjectMapperProvider.mapper();
+
+        final File database = new File(properties.getGeoLiteCountryPath());
+
+        return new GreenbidsRealTimeDataModule(List.of(
+                new GreenbidsRealTimeDataProcessedAuctionRequestHook(
+                        mapper,
+                        database,
+                        filterService,
+                        onnxModelRunnerWithThresholds)));
+    }
+
+    @Bean
+    public FilterService filterService() {
+        return new FilterService();
+    }
+
+    @Bean
+    public OnnxModelRunnerWithThresholds onnxModelRunnerWithThresholds(
+            GreenbidsRealTimeDataProperties properties) {
 
         final Storage storage = StorageOptions.newBuilder()
                 .setProjectId(properties.getGoogleCloudGreenbidsProject()).build().getService();
-
-        final File database = new File(properties.getGeoLiteCountryPath());
 
         final Cache<String, OnnxModelRunner> modelCacheWithExpiration = Caffeine.newBuilder()
                 .expireAfterWrite(properties.getCacheExpirationMinutes(), TimeUnit.MINUTES)
@@ -42,15 +65,12 @@ public class GreenbidsRealTimeDataConfiguration {
                 .expireAfterWrite(properties.getCacheExpirationMinutes(), TimeUnit.MINUTES)
                 .build();
 
-        return new GreenbidsRealTimeDataModule(List.of(
-                new GreenbidsRealTimeDataProcessedAuctionRequestHook(
-                        mapper,
-                        modelCacheWithExpiration,
-                        thresholdsCacheWithExpiration,
-                        properties.getGcsBucketName(),
-                        properties.getOnnxModelCacheKeyPrefix(),
-                        properties.getThresholdsCacheKeyPrefix(),
-                        storage,
-                        database)));
+        return new OnnxModelRunnerWithThresholds(
+                modelCacheWithExpiration,
+                thresholdsCacheWithExpiration,
+                storage,
+                properties.getGcsBucketName(),
+                properties.getOnnxModelCacheKeyPrefix(),
+                properties.getThresholdsCacheKeyPrefix());
     }
 }
