@@ -18,7 +18,6 @@ import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsRequest;
 import software.amazon.awssdk.services.s3.model.S3Object;
 
-import java.util.concurrent.atomic.AtomicReference;
 import java.time.Clock;
 import java.util.Collections;
 import java.util.List;
@@ -41,85 +40,57 @@ public class S3PeriodicRefreshService implements Initializable {
 
     private final S3AsyncClient asyncClient;
     private final String bucket;
-    private final String storedImpressionsDirectory;
     private final String storedRequestsDirectory;
+    private final String storedImpressionsDirectory;
     private final long refreshPeriod;
-    private final MetricName cacheType;
     private final CacheNotificationListener cacheNotificationListener;
-    private final Vertx vertx;
-    private final Metrics metrics;
+    private final MetricName cacheType;
     private final Clock clock;
-    private final AtomicReference<StoredDataResult> lastResult;
+    private final Metrics metrics;
+    private final Vertx vertx;
 
     public S3PeriodicRefreshService(S3AsyncClient asyncClient,
                                     String bucket,
                                     String storedRequestsDirectory,
                                     String storedImpressionsDirectory,
                                     long refreshPeriod,
-                                    MetricName cacheType,
                                     CacheNotificationListener cacheNotificationListener,
-                                    Vertx vertx,
+                                    MetricName cacheType,
+                                    Clock clock,
                                     Metrics metrics,
-                                    Clock clock) {
+                                    Vertx vertx) {
 
         this.asyncClient = Objects.requireNonNull(asyncClient);
         this.bucket = Objects.requireNonNull(bucket);
         this.storedRequestsDirectory = Objects.requireNonNull(storedRequestsDirectory);
         this.storedImpressionsDirectory = Objects.requireNonNull(storedImpressionsDirectory);
         this.refreshPeriod = refreshPeriod;
-        this.cacheType = Objects.requireNonNull(cacheType);
         this.cacheNotificationListener = Objects.requireNonNull(cacheNotificationListener);
-        this.vertx = Objects.requireNonNull(vertx);
-        this.metrics = Objects.requireNonNull(metrics);
+        this.cacheType = Objects.requireNonNull(cacheType);
         this.clock = Objects.requireNonNull(clock);
-        this.lastResult = new AtomicReference<>();
+        this.metrics = Objects.requireNonNull(metrics);
+        this.vertx = Objects.requireNonNull(vertx);
     }
 
     @Override
     public void initialize(Promise<Void> initializePromise) {
-        final long startTime = clock.millis();
-
-        fetchStoredDataResult()
-                .onSuccess(storedDataResult -> handleResult(storedDataResult, startTime, MetricName.initialize))
-                .onFailure(exception -> handleFailure(exception, startTime, MetricName.initialize))
-                .<Void>mapEmpty()
-                .onComplete(initializePromise);
-
+        fetchStoredDataResult(clock.millis(), MetricName.initialize);
         if (refreshPeriod > 0) {
             logger.info("Starting s3 periodic refresh for " + cacheType + " every " + refreshPeriod + " s");
-            vertx.setPeriodic(refreshPeriod, ignored -> refresh());
+            vertx.setPeriodic(refreshPeriod, ignored -> fetchStoredDataResult(clock.millis(), MetricName.update));
         }
+
+        initializePromise.tryComplete();
     }
 
-    private Future<StoredDataResult> fetchStoredDataResult() {
-        return Future.all(
+    private void fetchStoredDataResult(long startTime, MetricName metricName) {
+        Future.all(
                         getFileContentsForDirectory(storedRequestsDirectory),
                         getFileContentsForDirectory(storedImpressionsDirectory))
                 .map(CompositeFuture::<Map<String, String>>list)
-                .map(results -> StoredDataResult.of(results.getFirst(), results.get(1), Collections.emptyList()));
-    }
-
-    private void refresh() {
-        final long startTime = clock.millis();
-
-        fetchStoredDataResult()
-                .onSuccess(storedDataResult -> handleResult(storedDataResult, startTime, MetricName.update))
-                .onFailure(exception -> handleFailure(exception, startTime, MetricName.update));
-    }
-
-    private void handleResult(StoredDataResult storedDataResult, long startTime, MetricName refreshType) {
-        lastResult.set(storedDataResult);
-
-        cacheNotificationListener.save(storedDataResult.getStoredIdToRequest(), storedDataResult.getStoredIdToImp());
-
-        metrics.updateSettingsCacheRefreshTime(cacheType, refreshType, clock.millis() - startTime);
-    }
-
-    private void handleFailure(Throwable exception, long startTime, MetricName refreshType) {
-        logger.warn("Error occurred while request to s3 refresh service", exception);
-
-        metrics.updateSettingsCacheRefreshTime(cacheType, refreshType, clock.millis() - startTime);
-        metrics.updateSettingsCacheRefreshErrorMetric(cacheType, refreshType);
+                .map(results -> StoredDataResult.of(results.getFirst(), results.get(1), Collections.emptyList()))
+                .onSuccess(storedDataResult -> handleResult(storedDataResult, startTime, metricName))
+                .onFailure(exception -> handleFailure(exception, startTime, metricName));
     }
 
     private Future<Map<String, String>> getFileContentsForDirectory(String directory) {
@@ -154,9 +125,21 @@ public class S3PeriodicRefreshService implements Initializable {
                 .map(content -> Tuple2.of(key, content.asUtf8String()));
     }
 
-    private String stripFileName(String directory, String name) {
+    private static String stripFileName(String directory, String name) {
         return name
                 .replace(directory + "/", "")
                 .replace(JSON_SUFFIX, "");
+    }
+
+    private void handleResult(StoredDataResult storedDataResult, long startTime, MetricName refreshType) {
+        cacheNotificationListener.save(storedDataResult.getStoredIdToRequest(), storedDataResult.getStoredIdToImp());
+        metrics.updateSettingsCacheRefreshTime(cacheType, refreshType, clock.millis() - startTime);
+    }
+
+    private void handleFailure(Throwable exception, long startTime, MetricName refreshType) {
+        logger.warn("Error occurred while request to s3 refresh service", exception);
+
+        metrics.updateSettingsCacheRefreshTime(cacheType, refreshType, clock.millis() - startTime);
+        metrics.updateSettingsCacheRefreshErrorMetric(cacheType, refreshType);
     }
 }

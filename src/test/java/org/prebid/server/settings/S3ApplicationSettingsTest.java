@@ -9,16 +9,14 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
-import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.settings.model.Account;
-import org.prebid.server.settings.model.AccountAuctionConfig;
-import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.settings.model.StoredDataResult;
+import org.prebid.server.settings.model.StoredResponseDataResult;
 import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.core.async.AsyncResponseTransformer;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
@@ -26,22 +24,20 @@ import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 
-import java.time.Clock;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeoutException;
 
+import static java.util.Collections.emptySet;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.verify;
 
-@ExtendWith({MockitoExtension.class, VertxExtension.class})
+@ExtendWith(MockitoExtension.class)
+@ExtendWith(VertxExtension.class)
 public class S3ApplicationSettingsTest extends VertxTest {
 
     private static final String BUCKET = "bucket";
@@ -49,23 +45,31 @@ public class S3ApplicationSettingsTest extends VertxTest {
     private static final String STORED_IMPS_DIR = "stored-imps";
     private static final String STORED_REQUESTS_DIR = "stored-requests";
     private static final String STORED_RESPONSES_DIR = "stored-responses";
-    private Timeout timeout;
 
     @Mock
     private S3AsyncClient s3AsyncClient;
+
     private Vertx vertx;
 
     private S3ApplicationSettings target;
 
+    @Mock
+    private Timeout timeout;
+
     @BeforeEach
     public void setUp() {
         vertx = Vertx.vertx();
-        target = new S3ApplicationSettings(s3AsyncClient, BUCKET, ACCOUNTS_DIR,
-                STORED_IMPS_DIR, STORED_REQUESTS_DIR, STORED_RESPONSES_DIR, jacksonMapper, vertx);
+        target = new S3ApplicationSettings(
+                s3AsyncClient,
+                BUCKET,
+                ACCOUNTS_DIR,
+                STORED_IMPS_DIR,
+                STORED_REQUESTS_DIR,
+                STORED_RESPONSES_DIR,
+                jacksonMapper,
+                vertx);
 
-        final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
-        final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
-        timeout = timeoutFactory.create(500L);
+        given(timeout.remaining()).willReturn(500L);
     }
 
     @AfterEach
@@ -76,51 +80,61 @@ public class S3ApplicationSettingsTest extends VertxTest {
     @Test
     public void getAccountByIdShouldReturnFetchedAccount(VertxTestContext context) throws JsonProcessingException {
         // given
-        final Account account = Account.builder()
-                .id("someId")
-                .auction(AccountAuctionConfig.builder()
-                        .priceGranularity("testPriceGranularity")
-                        .build())
-                .privacy(AccountPrivacyConfig.builder().build())
-                .build();
+        final Account account = Account.builder().id("accountId").build();
 
-        given(s3AsyncClient.getObject(any(GetObjectRequest.class), any(AsyncResponseTransformer.class)))
+        given(s3AsyncClient.getObject(
+                eq(GetObjectRequest.builder()
+                        .bucket(BUCKET)
+                        .key("%s/%s.json".formatted(ACCOUNTS_DIR, "accountId"))
+                        .build()),
+                any(AsyncResponseTransformer.class)))
                 .willReturn(CompletableFuture.completedFuture(
                         ResponseBytes.fromByteArray(
                                 GetObjectResponse.builder().build(),
                                 mapper.writeValueAsString(account).getBytes())));
 
         // when
-        final Future<Account> future = target.getAccountById("someId", timeout);
+        final Future<Account> result = target.getAccountById("accountId", timeout);
 
         // then
-
-        future.onComplete(context.succeeding(returnedAccount -> {
-            assertThat(returnedAccount.getId()).isEqualTo("someId");
-            assertThat(returnedAccount.getAuction().getPriceGranularity()).isEqualTo("testPriceGranularity");
-
-            verify(s3AsyncClient).getObject(
-                    eq(GetObjectRequest.builder().bucket(BUCKET).key(ACCOUNTS_DIR + "/someId.json").build()),
-                    any(AsyncResponseTransformer.class));
+        result.onComplete(context.succeeding(returnedAccount -> {
+            assertThat(returnedAccount.getId()).isEqualTo("accountId");
             context.completeNow();
         }));
     }
 
     @Test
-    public void getAccountByIdNoSuchKey(VertxTestContext context) {
+    public void getAccountByIdShouldReturnTimeout(VertxTestContext context) {
+        // given
+        given(timeout.remaining()).willReturn(-1L);
+
+        // when
+        final Future<Account> result = target.getAccountById("account", timeout);
+
+        // then
+        result.onComplete(context.failing(cause -> {
+            assertThat(cause)
+                    .isInstanceOf(TimeoutException.class)
+                    .hasMessage("Timeout has been exceeded");
+
+            context.completeNow();
+        }));
+    }
+
+    @Test
+    public void getAccountByIdShouldReturnAccountNotFound(VertxTestContext context) {
         // given
         given(s3AsyncClient.getObject(any(GetObjectRequest.class), any(AsyncResponseTransformer.class)))
                 .willReturn(CompletableFuture.failedFuture(
                         NoSuchKeyException.create(
                                 "The specified key does not exist.",
-                                new IllegalStateException(""))));
+                                new IllegalStateException("error"))));
 
         // when
-        final Future<Account> future = target.getAccountById("notFoundId", timeout);
+        final Future<Account> result = target.getAccountById("notFoundId", timeout);
 
         // then
-
-        future.onComplete(context.failing(cause -> {
+        result.onComplete(context.failing(cause -> {
             assertThat(cause)
                     .isInstanceOf(PreBidException.class)
                     .hasMessage("Account with id notFoundId not found");
@@ -130,7 +144,7 @@ public class S3ApplicationSettingsTest extends VertxTest {
     }
 
     @Test
-    public void getAccountByIdInvalidJson(VertxTestContext context) {
+    public void getAccountByIdShouldReturnInvalidJson(VertxTestContext context) {
         // given
         given(s3AsyncClient.getObject(any(GetObjectRequest.class), any(AsyncResponseTransformer.class)))
                 .willReturn(CompletableFuture.completedFuture(
@@ -139,45 +153,44 @@ public class S3ApplicationSettingsTest extends VertxTest {
                                 "invalidJson".getBytes())));
 
         // when
-        final Future<Account> future = target.getAccountById("invalidJsonId", timeout);
+        final Future<Account> result = target.getAccountById("invalidJsonId", timeout);
 
         // then
 
-        future.onComplete(context.failing(cause -> {
+        result.onComplete(context.failing(cause -> {
             assertThat(cause)
                     .isInstanceOf(PreBidException.class)
                     .hasMessage("Invalid json for account with id invalidJsonId");
+
             context.completeNow();
         }));
     }
 
     @Test
-    public void getAccountByIdWithAccountIdMismatch(VertxTestContext context) throws JsonProcessingException {
+    public void getAccountByIdShouldReturnAccountIdMismatch(VertxTestContext context) throws JsonProcessingException {
         // given
-        final Account account = Account.builder()
-                .id("wrong-id")
-                .auction(AccountAuctionConfig.builder().build())
-                .privacy(AccountPrivacyConfig.builder().build())
-                .build();
+        final Account account = Account.builder().id("accountId").build();
 
-        given(s3AsyncClient.getObject(any(GetObjectRequest.class), any(AsyncResponseTransformer.class)))
+        given(s3AsyncClient.getObject(
+                eq(GetObjectRequest.builder()
+                        .bucket(BUCKET)
+                        .key("%s/%s.json".formatted(ACCOUNTS_DIR, "anotherAccountId"))
+                        .build()),
+                any(AsyncResponseTransformer.class)))
                 .willReturn(CompletableFuture.completedFuture(
                         ResponseBytes.fromByteArray(
                                 GetObjectResponse.builder().build(),
                                 mapper.writeValueAsString(account).getBytes())));
 
         // when
-        final Future<Account> future = target.getAccountById("another-id", timeout);
+        final Future<Account> result = target.getAccountById("anotherAccountId", timeout);
 
         // then
-        future.onComplete(context.failing(cause -> {
+        result.onComplete(context.failing(cause -> {
             assertThat(cause)
                     .isInstanceOf(PreBidException.class)
-                    .hasMessage("Account with id another-id does not match id wrong-id in file");
+                    .hasMessage("Account with id anotherAccountId does not match id accountId in file");
 
-            verify(s3AsyncClient).getObject(
-                    eq(GetObjectRequest.builder().bucket(BUCKET).key(ACCOUNTS_DIR + "/another-id.json").build()),
-                    any(AsyncResponseTransformer.class));
             context.completeNow();
         }));
     }
@@ -185,26 +198,27 @@ public class S3ApplicationSettingsTest extends VertxTest {
     @Test
     public void getStoredDataShouldReturnFetchedStoredRequest(VertxTestContext context) {
         // given
-        given(s3AsyncClient.getObject(any(GetObjectRequest.class), any(AsyncResponseTransformer.class)))
+        given(s3AsyncClient.getObject(
+                eq(GetObjectRequest.builder()
+                        .bucket(BUCKET)
+                        .key("%s/%s.json".formatted(STORED_REQUESTS_DIR, "request"))
+                        .build()),
+                any(AsyncResponseTransformer.class)))
                 .willReturn(CompletableFuture.completedFuture(
                         ResponseBytes.fromByteArray(
                                 GetObjectResponse.builder().build(),
-                                "req1Result".getBytes())));
+                                "storedRequest".getBytes())));
 
         // when
-        final Future<StoredDataResult> future = target
-                .getStoredData("someId", Set.of("req1"), Collections.emptySet(), timeout);
+        final Future<StoredDataResult> result = target.getStoredData(
+                "accountId", Set.of("request"), emptySet(), timeout);
 
         // then
-        future.onComplete(context.succeeding(account -> {
-            assertThat(account.getStoredIdToRequest().size()).isEqualTo(1);
-            assertThat(account.getStoredIdToImp().size()).isEqualTo(0);
-            assertThat(account.getStoredIdToRequest()).isEqualTo(Map.of("req1", "req1Result"));
-            assertThat(account.getErrors()).isEmpty();
+        result.onComplete(context.succeeding(storedDataResult -> {
+            assertThat(storedDataResult.getStoredIdToRequest()).isEqualTo(Map.of("request", "storedRequest"));
+            assertThat(storedDataResult.getStoredIdToImp()).isEmpty();
+            assertThat(storedDataResult.getErrors()).isEmpty();
 
-            verify(s3AsyncClient).getObject(
-                    eq(GetObjectRequest.builder().bucket(BUCKET).key(STORED_REQUESTS_DIR + "/req1.json").build()),
-                    any(AsyncResponseTransformer.class));
             context.completeNow();
         }));
     }
@@ -212,149 +226,179 @@ public class S3ApplicationSettingsTest extends VertxTest {
     @Test
     public void getStoredDataShouldReturnFetchedStoredImpression(VertxTestContext context) {
         // given
-        given(s3AsyncClient.getObject(any(GetObjectRequest.class), any(AsyncResponseTransformer.class)))
+        given(s3AsyncClient.getObject(
+                eq(GetObjectRequest.builder()
+                        .bucket(BUCKET)
+                        .key("%s/%s.json".formatted(STORED_IMPS_DIR, "imp"))
+                        .build()),
+                any(AsyncResponseTransformer.class)))
                 .willReturn(CompletableFuture.completedFuture(
                         ResponseBytes.fromByteArray(
                                 GetObjectResponse.builder().build(),
-                                "imp1Result".getBytes())));
+                                "storedImp".getBytes())));
 
         // when
-        final Future<StoredDataResult> future = target
-                .getStoredData("someId", Collections.emptySet(), Set.of("imp1"), timeout);
+        final Future<StoredDataResult> result = target.getStoredData(
+                "accountId", emptySet(), Set.of("imp"), timeout);
 
         // then
-        future.onComplete(context.succeeding(account -> {
-            assertThat(account.getStoredIdToRequest().size()).isEqualTo(0);
-            assertThat(account.getStoredIdToImp().size()).isEqualTo(1);
-            assertThat(account.getStoredIdToImp()).isEqualTo(Map.of("imp1", "imp1Result"));
-            assertThat(account.getErrors()).isEmpty();
-
-            verify(s3AsyncClient).getObject(
-                    eq(GetObjectRequest.builder().bucket(BUCKET).key(STORED_IMPS_DIR + "/imp1.json").build()),
-                    any(AsyncResponseTransformer.class));
+        result.onComplete(context.succeeding(storedDataResult -> {
+            assertThat(storedDataResult.getStoredIdToRequest()).isEmpty();
+            assertThat(storedDataResult.getStoredIdToImp()).isEqualTo(Map.of("imp", "storedImp"));
+            assertThat(storedDataResult.getErrors()).isEmpty();
 
             context.completeNow();
         }));
     }
 
     @Test
-    public void getStoredDataShouldReturnFetchedStoredImpressionWithAdUnitPathStoredId(VertxTestContext context) {
+    public void getStoredDataShouldReturnFetchedStoredImpressionWithAdUnitPath(VertxTestContext context) {
         // given
-        given(s3AsyncClient.getObject(any(GetObjectRequest.class), any(AsyncResponseTransformer.class)))
+        given(s3AsyncClient.getObject(
+                eq(GetObjectRequest.builder()
+                        .bucket(BUCKET)
+                        .key("%s/%s.json".formatted(STORED_IMPS_DIR, "imp"))
+                        .build()),
+                any(AsyncResponseTransformer.class)))
                 .willReturn(CompletableFuture.completedFuture(
                         ResponseBytes.fromByteArray(
                                 GetObjectResponse.builder().build(),
-                                "imp1Result".getBytes())));
+                                "storedImp".getBytes())));
 
         // when
-        final Future<StoredDataResult> future = target
-                .getStoredData("/123/root/position-1", Collections.emptySet(), Set.of("imp1"), timeout);
+        final Future<StoredDataResult> result = target.getStoredData("accountId", emptySet(), Set.of("/imp"), timeout);
 
         // then
-        future.onComplete(context.succeeding(account -> {
-            assertThat(account.getStoredIdToRequest().size()).isEqualTo(0);
-            assertThat(account.getStoredIdToImp().size()).isEqualTo(1);
-            assertThat(account.getStoredIdToImp()).isEqualTo(Map.of("imp1", "imp1Result"));
-            assertThat(account.getErrors()).isEmpty();
-
-            verify(s3AsyncClient).getObject(
-                    eq(GetObjectRequest.builder().bucket(BUCKET).key(STORED_IMPS_DIR + "/imp1.json").build()),
-                    any(AsyncResponseTransformer.class));
+        result.onComplete(context.succeeding(storedDataResult -> {
+            assertThat(storedDataResult.getStoredIdToRequest()).isEmpty();
+            assertThat(storedDataResult.getStoredIdToImp()).isEqualTo(Map.of("/imp", "storedImp"));
+            assertThat(storedDataResult.getErrors()).isEmpty();
 
             context.completeNow();
         }));
     }
 
     @Test
-    public void getStoredDataShouldReturnFetchedStoredImpressionAndStoredRequest(VertxTestContext context) {
+    public void getStoredDataShouldReturnFetchedStoredRequestAndStoredImpression(VertxTestContext context) {
         // given
-        given(s3AsyncClient.getObject(any(GetObjectRequest.class), any(AsyncResponseTransformer.class)))
-                .willReturn(
-                        CompletableFuture.completedFuture(
-                                ResponseBytes.fromByteArray(
-                                        GetObjectResponse.builder().build(),
-                                        "req1Result".getBytes())),
-                        CompletableFuture.completedFuture(
-                                ResponseBytes.fromByteArray(
-                                        GetObjectResponse.builder().build(),
-                                        "imp1Result".getBytes())));
+        given(s3AsyncClient.getObject(
+                eq(GetObjectRequest.builder()
+                        .bucket(BUCKET)
+                        .key("%s/%s.json".formatted(STORED_REQUESTS_DIR, "request"))
+                        .build()),
+                any(AsyncResponseTransformer.class)))
+                .willReturn(CompletableFuture.completedFuture(
+                        ResponseBytes.fromByteArray(
+                                GetObjectResponse.builder().build(),
+                                "storedRequest".getBytes())));
+        given(s3AsyncClient.getObject(
+                eq(GetObjectRequest.builder()
+                        .bucket(BUCKET)
+                        .key("%s/%s.json".formatted(STORED_IMPS_DIR, "imp"))
+                        .build()),
+                any(AsyncResponseTransformer.class)))
+                .willReturn(CompletableFuture.completedFuture(
+                        ResponseBytes.fromByteArray(
+                                GetObjectResponse.builder().build(),
+                                "storedImp".getBytes())));
 
         // when
-        final Future<StoredDataResult> future = target
-                .getStoredData("someId", Set.of("req1"), Set.of("imp1"), timeout);
+        final Future<StoredDataResult> result = target.getStoredData(
+                "accountId", Set.of("request"), Set.of("imp"), timeout);
 
         // then
-        future.onComplete(context.succeeding(account -> {
-            assertThat(account.getStoredIdToRequest().size()).isEqualTo(1);
-            assertThat(account.getStoredIdToRequest()).isEqualTo(Map.of("req1", "req1Result"));
-            assertThat(account.getStoredIdToImp().size()).isEqualTo(1);
-            assertThat(account.getStoredIdToImp()).isEqualTo(Map.of("imp1", "imp1Result"));
-            assertThat(account.getErrors()).isEmpty();
-
-            verify(s3AsyncClient).getObject(
-                    eq(GetObjectRequest.builder().bucket(BUCKET).key(STORED_IMPS_DIR + "/imp1.json").build()),
-                    any(AsyncResponseTransformer.class));
-            verify(s3AsyncClient).getObject(
-                    eq(GetObjectRequest.builder().bucket(BUCKET).key(STORED_REQUESTS_DIR + "/req1.json").build()),
-                    any(AsyncResponseTransformer.class));
+        result.onComplete(context.succeeding(storedDataResult -> {
+            assertThat(storedDataResult.getStoredIdToRequest()).isEqualTo(Map.of("request", "storedRequest"));
+            assertThat(storedDataResult.getStoredIdToImp()).isEqualTo(Map.of("imp", "storedImp"));
+            assertThat(storedDataResult.getErrors()).isEmpty();
 
             context.completeNow();
         }));
     }
 
     @Test
-    public void getStoredDataReturnsErrorsForNotFoundRequests(VertxTestContext context) {
+    public void getStoredDataShouldReturnErrorsForNotFoundRequests(VertxTestContext context) {
         // given
         given(s3AsyncClient.getObject(any(GetObjectRequest.class), any(AsyncResponseTransformer.class)))
                 .willReturn(CompletableFuture.failedFuture(
                         NoSuchKeyException.create(
                                 "The specified key does not exist.",
-                                new IllegalStateException(""))));
+                                new IllegalStateException("error"))));
 
         // when
-        final Future<StoredDataResult> future = target
-                .getStoredData("someId", Set.of("req1"), Collections.emptySet(), timeout);
+        final Future<StoredDataResult> result = target.getStoredData(
+                "accountId", Set.of("request"), emptySet(), timeout);
 
         // then
-        future.onComplete(context.succeeding(account -> {
-            assertThat(account.getStoredIdToImp()).isEmpty();
-            assertThat(account.getStoredIdToRequest()).isEmpty();
-            assertThat(account.getErrors().size()).isEqualTo(1);
-            assertThat(account.getErrors())
-                    .isNotNull()
-                    .hasSize(1)
-                    .isEqualTo(singletonList("No stored request found for id: req1"));
+        result.onComplete(context.succeeding(storedDataResult -> {
+            assertThat(storedDataResult.getStoredIdToImp()).isEmpty();
+            assertThat(storedDataResult.getStoredIdToRequest()).isEmpty();
+            assertThat(storedDataResult.getErrors())
+                    .isEqualTo(singletonList("No stored request found for id: request"));
 
             context.completeNow();
         }));
     }
 
     @Test
-    public void getStoredDataReturnsErrorsForNotFoundImpressions(VertxTestContext context) {
+    public void getStoredDataShouldReturnErrorsForNotFoundImpressions(VertxTestContext context) {
         // given
         given(s3AsyncClient.getObject(any(GetObjectRequest.class), any(AsyncResponseTransformer.class)))
-                .willReturn(
-                        CompletableFuture.failedFuture(
-                                NoSuchKeyException.create(
-                                        "The specified key does not exist.",
-                                        new IllegalStateException(""))));
+                .willReturn(CompletableFuture.failedFuture(
+                        NoSuchKeyException.create(
+                                "The specified key does not exist.",
+                                new IllegalStateException("error"))));
 
         // when
-        final Future<StoredDataResult> future = target
-                .getStoredData("someId", Collections.emptySet(), Set.of("imp1"), timeout);
+        final Future<StoredDataResult> result = target.getStoredData(
+                "accountId", emptySet(), Set.of("imp"), timeout);
 
         // then
-        future.onComplete(context.succeeding(account -> {
-            assertThat(account.getStoredIdToImp()).isEmpty();
-            assertThat(account.getStoredIdToRequest()).isEmpty();
-            assertThat(account.getErrors().size()).isEqualTo(1);
-            assertThat(account.getErrors())
-                    .isNotNull()
-                    .hasSize(1)
-                    .isEqualTo(singletonList("No stored impression found for id: imp1"));
+        result.onComplete(context.succeeding(storedDataResult -> {
+            assertThat(storedDataResult.getStoredIdToImp()).isEmpty();
+            assertThat(storedDataResult.getStoredIdToRequest()).isEmpty();
+            assertThat(storedDataResult.getErrors()).isEqualTo(singletonList("No stored impression found for id: imp"));
 
             context.completeNow();
         }));
     }
 
+    @Test
+    public void getStoredResponsesShouldReturnExpectedResult(VertxTestContext context) {
+        // given
+        given(s3AsyncClient.getObject(
+                eq(GetObjectRequest.builder()
+                        .bucket(BUCKET)
+                        .key("%s/%s.json".formatted(STORED_RESPONSES_DIR, "response1"))
+                        .build()),
+                any(AsyncResponseTransformer.class)))
+                .willReturn(CompletableFuture.completedFuture(
+                        ResponseBytes.fromByteArray(
+                                GetObjectResponse.builder().build(),
+                                "storedResponse1".getBytes())));
+        given(s3AsyncClient.getObject(
+                eq(GetObjectRequest.builder()
+                        .bucket(BUCKET)
+                        .key("%s/%s.json".formatted(STORED_RESPONSES_DIR, "response2"))
+                        .build()),
+                any(AsyncResponseTransformer.class)))
+                .willReturn(CompletableFuture.failedFuture(
+                        NoSuchKeyException.create(
+                                "The specified key does not exist.",
+                                new IllegalStateException("error"))));
+
+        // when
+        final Future<StoredResponseDataResult> result = target.getStoredResponses(
+                Set.of("response1", "response2"), timeout);
+
+        // then
+        result.onComplete(context.succeeding(storedResponseDataResult -> {
+            assertThat(storedResponseDataResult.getIdToStoredResponses())
+                    .isEqualTo(Map.of("response1", "storedResponse1"));
+            assertThat(storedResponseDataResult.getErrors())
+                    .isEqualTo(singletonList("No stored response found for id: response2"));
+
+            context.completeNow();
+        }));
+    }
 }

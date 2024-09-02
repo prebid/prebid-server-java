@@ -52,6 +52,7 @@ import java.net.URISyntaxException;
 import java.time.Clock;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 @UtilityClass
@@ -237,26 +238,36 @@ public class SettingsConfiguration {
         @Data
         @NoArgsConstructor
         protected static class S3ConfigurationProperties {
+
             @NotBlank
             private String accessKeyId;
+
             @NotBlank
             private String secretAccessKey;
+
             /**
              * If not provided AWS_GLOBAL will be used as a region
              */
             private String region;
+
             @NotBlank
             private String endpoint;
+
             @NotBlank
             private String bucket;
+
             @NotBlank
             private Boolean forcePathStyle;
+
             @NotBlank
             private String accountsDir;
+
             @NotBlank
             private String storedImpsDir;
+
             @NotBlank
             private String storedRequestsDir;
+
             @NotBlank
             private String storedResponsesDir;
         }
@@ -266,10 +277,10 @@ public class SettingsConfiguration {
             final AwsBasicCredentials credentials = AwsBasicCredentials.create(
                     s3ConfigurationProperties.getAccessKeyId(),
                     s3ConfigurationProperties.getSecretAccessKey());
-            final String awsRegionName = s3ConfigurationProperties.getRegion();
-            final Region awsRegion = awsRegionName != null
-                    ? Region.of(s3ConfigurationProperties.getRegion())
-                    : Region.AWS_GLOBAL;
+            final Region awsRegion = Optional.ofNullable(s3ConfigurationProperties.getRegion())
+                    .map(Region::of)
+                    .orElse(Region.AWS_GLOBAL);
+
             return S3AsyncClient
                     .builder()
                     .credentialsProvider(StaticCredentialsProvider.create(credentials))
@@ -280,11 +291,10 @@ public class SettingsConfiguration {
         }
 
         @Bean
-        S3ApplicationSettings s3ApplicationSettings(
-                JacksonMapper mapper,
-                S3ConfigurationProperties s3ConfigurationProperties,
-                S3AsyncClient s3AsyncClient,
-                Vertx vertx) {
+        S3ApplicationSettings s3ApplicationSettings(S3AsyncClient s3AsyncClient,
+                                                    S3ConfigurationProperties s3ConfigurationProperties,
+                                                    JacksonMapper mapper,
+                                                    Vertx vertx) {
 
             return new S3ApplicationSettings(
                     s3AsyncClient,
@@ -308,9 +318,9 @@ public class SettingsConfiguration {
                 S3SettingsConfiguration.S3ConfigurationProperties s3ConfigurationProperties,
                 @Value("${settings.in-memory-cache.s3-update.refresh-rate}") long refreshPeriod,
                 SettingsCache settingsCache,
-                Vertx vertx,
+                Clock clock,
                 Metrics metrics,
-                Clock clock) {
+                Vertx vertx) {
 
             return new S3PeriodicRefreshService(
                     s3AsyncClient,
@@ -318,11 +328,11 @@ public class SettingsConfiguration {
                     s3ConfigurationProperties.getStoredRequestsDir(),
                     s3ConfigurationProperties.getStoredImpsDir(),
                     refreshPeriod,
-                    MetricName.stored_request,
                     settingsCache,
-                    vertx,
+                    MetricName.stored_request,
+                    clock,
                     metrics,
-                    clock);
+                    vertx);
         }
     }
 
@@ -339,13 +349,13 @@ public class SettingsConfiguration {
                 @Autowired(required = false) HttpApplicationSettings httpApplicationSettings,
                 @Autowired(required = false) S3ApplicationSettings s3ApplicationSettings) {
 
-            final List<ApplicationSettings> applicationSettingsList =
-                    Stream.of(s3ApplicationSettings,
-                                    fileApplicationSettings,
-                                    databaseApplicationSettings,
-                                    httpApplicationSettings)
-                            .filter(Objects::nonNull)
-                            .toList();
+            final List<ApplicationSettings> applicationSettingsList = Stream.of(
+                            fileApplicationSettings,
+                            databaseApplicationSettings,
+                            s3ApplicationSettings,
+                            httpApplicationSettings)
+                    .filter(Objects::nonNull)
+                    .toList();
 
             return new CompositeApplicationSettings(applicationSettingsList);
         }
