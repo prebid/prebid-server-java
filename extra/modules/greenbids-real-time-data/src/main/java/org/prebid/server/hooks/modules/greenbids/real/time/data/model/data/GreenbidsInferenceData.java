@@ -2,6 +2,7 @@ package org.prebid.server.hooks.modules.greenbids.real.time.data.model.data;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -13,7 +14,6 @@ import com.maxmind.geoip2.record.Country;
 import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 
 import java.io.File;
@@ -41,7 +41,7 @@ public class GreenbidsInferenceData {
     public static GreenbidsInferenceData prepareData(
             BidRequest bidRequest,
             File database,
-            JacksonMapper jacksonMapper) {
+            ObjectMapper mapper) {
 
         final String userAgent = Optional.ofNullable(bidRequest.getDevice())
                 .map(Device::getUa)
@@ -52,7 +52,7 @@ public class GreenbidsInferenceData {
                 bidRequest,
                 greenbidsUserAgent,
                 database,
-                jacksonMapper);
+                mapper);
 
         final String[][] throttlingInferenceRows = convertToArray(throttlingMessages);
 
@@ -70,7 +70,7 @@ public class GreenbidsInferenceData {
             BidRequest bidRequest,
             GreenbidsUserAgent greenbidsUserAgent,
             File database,
-            JacksonMapper jacksonMapper) {
+            ObjectMapper mapper) {
 
         final ZonedDateTime timestamp = ZonedDateTime.now(ZoneId.of("UTC"));
         final Integer hourBucket = timestamp.getHour();
@@ -88,7 +88,7 @@ public class GreenbidsInferenceData {
                         hourBucket,
                         minuteQuadrant,
                         database,
-                        jacksonMapper))
+                        mapper))
                 .collect(Collectors.toList());
     }
 
@@ -100,11 +100,11 @@ public class GreenbidsInferenceData {
             Integer hourBucket,
             Integer minuteQuadrant,
             File database,
-            JacksonMapper jacksonMapper) {
+            ObjectMapper mapper) {
 
         final String impId = imp.getId();
         final ObjectNode impExt = imp.getExt();
-        final JsonNode bidderNode = extImpPrebid(impExt.get("prebid"), jacksonMapper).getBidder();
+        final JsonNode bidderNode = extImpPrebid(impExt.get("prebid"), mapper).getBidder();
         final String ip = Optional.ofNullable(bidRequest.getDevice())
                 .map(Device::getIp)
                 .orElse(null);
@@ -158,9 +158,9 @@ public class GreenbidsInferenceData {
         return throttlingImpMessages;
     }
 
-    private static ExtImpPrebid extImpPrebid(JsonNode extImpPrebid, JacksonMapper jacksonMapper) {
+    private static ExtImpPrebid extImpPrebid(JsonNode extImpPrebid, ObjectMapper mapper) {
         try {
-            return jacksonMapper.mapper().treeToValue(extImpPrebid, ExtImpPrebid.class);
+            return mapper.treeToValue(extImpPrebid, ExtImpPrebid.class);
         } catch (JsonProcessingException e) {
             throw new PreBidException("Error decoding imp.ext.prebid: " + e.getMessage(), e);
         }

@@ -1,14 +1,13 @@
 package org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.google.cloud.storage.Storage;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.Partner;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingThresholds;
-import org.prebid.server.json.JacksonMapper;
 
 public class OnnxModelRunnerWithThresholds {
 
-    private final JacksonMapper jacksonMapper;
     private final Cache<String, OnnxModelRunner> modelCacheWithExpiration;
     private final Cache<String, ThrottlingThresholds> thresholdsCacheWithExpiration;
     private final String gcsBucketName;
@@ -17,7 +16,6 @@ public class OnnxModelRunnerWithThresholds {
     private final Storage storage;
 
     public OnnxModelRunnerWithThresholds(
-            JacksonMapper jacksonMapper,
             Cache<String, OnnxModelRunner> modelCacheWithExpiration,
             Cache<String, ThrottlingThresholds> thresholdsCacheWithExpiration,
             Storage storage,
@@ -26,7 +24,6 @@ public class OnnxModelRunnerWithThresholds {
             String thresholdsCacheKeyPrefix) {
         this.modelCacheWithExpiration = modelCacheWithExpiration;
         this.thresholdsCacheWithExpiration = thresholdsCacheWithExpiration;
-        this.jacksonMapper = jacksonMapper;
         this.gcsBucketName = gcsBucketName;
         this.onnxModelCacheKeyPrefix = onnxModelCacheKeyPrefix;
         this.thresholdsCacheKeyPrefix = thresholdsCacheKeyPrefix;
@@ -44,13 +41,13 @@ public class OnnxModelRunnerWithThresholds {
         return modelCache.getModelRunner(partner.getPbuid());
     }
 
-    public ThrottlingThresholds retrieveThreshold(Partner partner) {
+    public ThrottlingThresholds retrieveThreshold(Partner partner, ObjectMapper mapper) {
         final String thresholdJsonPath = "thresholds_pbuid=" + partner.getPbuid() + ".json";
         final ThresholdCache thresholdCache = new ThresholdCache(
                 thresholdJsonPath,
                 storage,
                 gcsBucketName,
-                jacksonMapper.mapper(),
+                mapper,
                 thresholdsCacheWithExpiration,
                 thresholdsCacheKeyPrefix);
         return thresholdCache.getThrottlingThresholds(partner.getPbuid());
