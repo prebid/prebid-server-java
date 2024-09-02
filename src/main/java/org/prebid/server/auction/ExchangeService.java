@@ -50,6 +50,7 @@ import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversio
 import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.bidder.BidderInfo;
 import org.prebid.server.bidder.HttpBidderRequester;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.model.BidderBid;
@@ -296,7 +297,7 @@ public class ExchangeService {
                 .map(storedResponseResult -> populateStoredResponse(storedResponseResult, storedAuctionResponses))
                 .compose(storedResponseResult ->
                         extractAuctionParticipations(receivedContext, storedResponseResult, aliases, bidderToMultiBid)
-                        .map(receivedContext::with))
+                                .map(receivedContext::with))
 
                 .map(context -> updateRequestMetric(context, uidsCookie, aliases, account, requestTypeMetric))
                 .compose(context -> CompositeFuture.join(
@@ -470,44 +471,12 @@ public class ExchangeService {
                 entry -> new BidRejectionTracker(entry.getKey(), entry.getValue(), logSamplingRate)));
     }
 
-    /**
-     * Populates storedResponse parameter with stored {@link List<SeatBid>} and returns {@link List<Imp>} for which
-     * request to bidders should be performed.
-     */
     private static StoredResponseResult populateStoredResponse(StoredResponseResult storedResponseResult,
                                                                List<SeatBid> storedResponse) {
         storedResponse.addAll(storedResponseResult.getAuctionStoredResponse());
         return storedResponseResult;
     }
 
-    /**
-     * Takes an OpenRTB request and returns the OpenRTB requests sanitized for each bidder.
-     * <p>
-     * This will copy the {@link BidRequest} into a list of requests, where the bidRequest.imp[].ext field
-     * will only consist of the "prebid" field and the field for the appropriate bidder parameters. We will drop all
-     * extended fields beyond this context, so this will not be compatible with any other uses of the extension area
-     * i.e. the bidders will not see any other extension fields. If Imp extension name is alias, which is also defined
-     * in bidRequest.ext.prebid.aliases and valid, separate {@link BidRequest} will be created for this alias and sent
-     * to appropriate bidder.
-     * For example suppose {@link BidRequest} has two {@link Imp}s. First one with imp.ext.prebid.bidder.rubicon and
-     * imp.ext.prebid.bidder.rubiconAlias and second with imp.ext.prebid.bidder.appnexus and
-     * imp.ext.prebid.bidder.rubicon. Three {@link BidRequest}s will be created:
-     * 1. {@link BidRequest} with one {@link Imp}, where bidder extension points to rubiconAlias extension and will be
-     * sent to Rubicon bidder.
-     * 2. {@link BidRequest} with two {@link Imp}s, where bidder extension points to appropriate rubicon extension from
-     * original {@link BidRequest} and will be sent to Rubicon bidder.
-     * 3. {@link BidRequest} with one {@link Imp}, where bidder extension points to appnexus extension and will be sent
-     * to Appnexus bidder.
-     * <p>
-     * Each of the created {@link BidRequest}s will have bidrequest.user.buyerid field populated with the value from
-     * bidrequest.user.ext.prebid.buyerids or {@link UidsCookie} corresponding to bidder's family name unless buyerid
-     * is already in the original OpenRTB request (in this case it will not be overridden).
-     * In case if bidrequest.user.ext.prebid.buyerids contains values after extracting those values it will be cleared
-     * in order to avoid leaking of buyerids across bidders.
-     * <p>
-     * NOTE: the return list will only contain entries for bidders that both have the extension field in at least one
-     * {@link Imp}, and are known to {@link BidderCatalog} or aliases from bidRequest.ext.prebid.aliases.
-     */
     private Future<List<AuctionParticipation>> extractAuctionParticipations(
             AuctionContext context,
             StoredResponseResult storedResponseResult,
@@ -546,9 +515,6 @@ public class ExchangeService {
         return ext.get(PREBID_EXT).get(BIDDER_EXT);
     }
 
-    /**
-     * Checks if bidder name is valid in case when bidder can also be alias name.
-     */
     private boolean isValidBidder(String bidder, BidderAliases aliases) {
         return bidderCatalog.isValidName(bidder) || aliases.isAliasDefined(bidder);
     }
@@ -564,21 +530,6 @@ public class ExchangeService {
                 activityInvocationPayload);
     }
 
-    /**
-     * Splits the input request into requests which are sanitized for each bidder. Intended behavior is:
-     * <p>
-     * - bidrequest.imp[].ext will only contain the "prebid" field and a "bidder" field which has the params for
-     * the intended Bidder.
-     * <p>
-     * - bidrequest.user.buyeruid will be set to that Bidder's ID.
-     * <p>
-     * - bidrequest.ext.prebid.data.bidders will be removed.
-     * <p>
-     * - bidrequest.ext.prebid.bidders will be staying in corresponding bidder only.
-     * <p>
-     * - bidrequest.user.ext.data, bidrequest.app.ext.data, bidrequest.dooh.ext.data and bidrequest.site.ext.data
-     * will be removed for bidders that don't have first party data allowed.
-     */
     private Future<List<AuctionParticipation>> makeAuctionParticipation(
             List<String> bidders,
             AuctionContext context,
@@ -631,10 +582,6 @@ public class ExchangeService {
         return bidderToConfig;
     }
 
-    /**
-     * Retrieves user eids from {@link ExtRequestPrebid} and converts them to map, where keys are eids sources
-     * and values are allowed bidders
-     */
     private Map<String, List<String>> getEidPermissions(ExtRequestPrebid prebid) {
         final ExtRequestPrebidData prebidData = prebid != null ? prebid.getData() : null;
         final List<ExtRequestPrebidDataEidPermissions> eidPermissions = prebidData != null
@@ -645,9 +592,6 @@ public class ExchangeService {
                         ExtRequestPrebidDataEidPermissions::getBidders));
     }
 
-    /**
-     * Extracts a list of bidders for which first party data is allowed from {@link ExtRequestPrebidData} model.
-     */
     private static List<String> firstPartyDataBidders(ExtRequest requestExt) {
         final ExtRequestPrebid prebid = requestExt == null ? null : requestExt.getPrebid();
         final ExtRequestPrebidData data = prebid == null ? null : prebid.getData();
@@ -676,13 +620,6 @@ public class ExchangeService {
         return bidderToUser;
     }
 
-    /**
-     * Returns original {@link User} if user.buyeruid already contains uid value for bidder.
-     * Otherwise, returns new {@link User} containing updated {@link ExtUser} and user.buyeruid.
-     * <p>
-     * Also, removes user.ext.prebid (if present), user.ext.data and user.data (in case bidder does not use first
-     * party data).
-     */
     private User prepareUser(String bidder,
                              AuctionContext context,
                              BidderAliases aliases,
@@ -734,9 +671,6 @@ public class ExchangeService {
         return user != null ? user.getEids() : null;
     }
 
-    /**
-     * Returns {@link List<Eid>} allowed by {@param eidPermissions} per source per bidder.
-     */
     private List<Eid> resolveAllowedEids(List<Eid> userEids, String bidder, Map<String, List<String>> eidPermissions) {
         return CollectionUtils.emptyIfNull(userEids)
                 .stream()
@@ -744,10 +678,6 @@ public class ExchangeService {
                 .toList();
     }
 
-    /**
-     * Returns true if {@param source} allowed by {@param eidPermissions} for particular bidder taking into account
-     * ealiases.
-     */
     private boolean isUserEidAllowed(String source, Map<String, List<String>> eidPermissions, String bidder) {
         final List<String> allowedBidders = eidPermissions.get(source);
         return CollectionUtils.isEmpty(allowedBidders) || allowedBidders.stream()
@@ -755,9 +685,6 @@ public class ExchangeService {
                         || EID_ALLOWED_FOR_ALL_BIDDERS.equals(allowedBidder));
     }
 
-    /**
-     * Returns shuffled list of {@link AuctionParticipation} with {@link BidRequest}.
-     */
     private List<AuctionParticipation> getAuctionParticipation(
             List<BidderPrivacyResult> bidderPrivacyResults,
             BidRequest bidRequest,
@@ -810,9 +737,6 @@ public class ExchangeService {
         return bidderToPrebidParameters;
     }
 
-    /**
-     * Returns {@link AuctionParticipation} for the given bidder.
-     */
     private AuctionParticipation createAuctionParticipation(
             BidderPrivacyResult bidderPrivacyResult,
             Map<String, Map<String, String>> impBidderToStoredBidResponse,
@@ -1237,16 +1161,20 @@ public class ExchangeService {
         final String bidderName = bidderRequest.getBidder();
         final MediaTypeProcessingResult mediaTypeProcessingResult = mediaTypeProcessor.process(
                 bidderRequest.getBidRequest(), bidderName, aliases, auctionContext.getAccount());
-
         final List<BidderError> mediaTypeProcessingErrors = mediaTypeProcessingResult.getErrors();
         if (mediaTypeProcessingResult.isRejected()) {
-            auctionContext.getBidRejectionTrackers()
-                    .get(bidderName)
-                    .rejectAll(BidRejectionReason.REQUEST_BLOCKED_UNSUPPORTED_MEDIA_TYPE);
-            final BidderSeatBid bidderSeatBid = BidderSeatBid.builder()
-                    .warnings(mediaTypeProcessingErrors)
-                    .build();
-            return Future.succeededFuture(BidderResponse.of(bidderName, bidderSeatBid, 0));
+            return processReject(
+                    auctionContext,
+                    BidRejectionReason.REQUEST_BLOCKED_UNSUPPORTED_MEDIA_TYPE,
+                    mediaTypeProcessingErrors,
+                    bidderName);
+        }
+        if (isUnacceptableCurrency(auctionContext, aliases.resolveBidder(bidderName))) {
+            return processReject(
+                    auctionContext,
+                    BidRejectionReason.REQUEST_BLOCKED_UNACCEPTABLE_CURRENCY,
+                    List.of(BidderError.generic("No match between the configured currencies and bidRequest.cur")),
+                    bidderName);
         }
 
         return Future.succeededFuture(mediaTypeProcessingResult.getBidRequest())
@@ -1255,6 +1183,34 @@ public class ExchangeService {
                         auctionContext, modifiedBidderRequest, timeout, aliases))
                 .map(bidderResponse -> bidderResponse.with(
                         addWarnings(bidderResponse.getSeatBid(), mediaTypeProcessingErrors)));
+    }
+
+    private boolean isUnacceptableCurrency(AuctionContext auctionContext, String originalBidderName) {
+        final List<String> requestCurrencies = auctionContext.getBidRequest().getCur();
+        final List<String> bidAcceptableCurrencies =
+                Optional.ofNullable(bidderCatalog.bidderInfoByName(originalBidderName))
+                        .map(BidderInfo::getCurrencyAccepted)
+                        .orElse(null);
+
+        if (CollectionUtils.isEmpty(requestCurrencies) || CollectionUtils.isEmpty(bidAcceptableCurrencies)) {
+            return false;
+        }
+
+        return !CollectionUtils.containsAny(requestCurrencies, bidAcceptableCurrencies);
+    }
+
+    private static Future<BidderResponse> processReject(AuctionContext auctionContext,
+                                                        BidRejectionReason bidRejectionReason,
+                                                        List<BidderError> warnings,
+                                                        String bidderName) {
+
+        auctionContext.getBidRejectionTrackers()
+                .get(bidderName)
+                .rejectAll(bidRejectionReason);
+        final BidderSeatBid bidderSeatBid = BidderSeatBid.builder()
+                .warnings(warnings)
+                .build();
+        return Future.succeededFuture(BidderResponse.of(bidderName, bidderSeatBid, 0));
     }
 
     private static BidderSeatBid addWarnings(BidderSeatBid seatBid, List<BidderError> warnings) {
@@ -1416,13 +1372,6 @@ public class ExchangeService {
                 .toList();
     }
 
-    /**
-     * Validates bid response from exchange.
-     * <p>
-     * Removes invalid bids from response and adds corresponding error to {@link BidderSeatBid}.
-     * <p>
-     * Returns input argument as the result if no errors found or creates new {@link BidderResponse} otherwise.
-     */
     private AuctionParticipation validBidderResponse(AuctionParticipation auctionParticipation,
                                                      AuctionContext auctionContext,
                                                      BidderAliases aliases) {
@@ -1483,13 +1432,6 @@ public class ExchangeService {
         return BidderError.invalidBid("BidId `" + bidId + "` validation messages: " + validationErrors);
     }
 
-    /**
-     * Performs changes on {@link Bid}s price depends on different between adServerCurrency and bidCurrency,
-     * and adjustment factor. Will drop bid if currency conversion is needed but not possible.
-     * <p>
-     * This method should always be invoked after {@link ExchangeService#validBidderResponse} to make sure
-     * {@link Bid#getPrice()} is not empty.
-     */
     private AuctionParticipation applyBidPriceChanges(AuctionParticipation auctionParticipation,
                                                       BidRequest bidRequest) {
         if (auctionParticipation.isRequestBlocked()) {
@@ -1594,13 +1536,6 @@ public class ExchangeService {
         return Math.toIntExact(clock.millis() - startTime);
     }
 
-    /**
-     * Updates 'request_time', 'responseTime', 'timeout_request', 'error_requests', 'no_bid_requests',
-     * 'prices' metrics for each {@link AuctionParticipation}.
-     * <p>
-     * This method should always be invoked after {@link ExchangeService#validBidderResponse} to make sure
-     * {@link Bid#getPrice()} is not empty.
-     */
     private List<AuctionParticipation> updateResponsesMetrics(List<AuctionParticipation> auctionParticipations,
                                                               Account account,
                                                               BidderAliases aliases) {
@@ -1649,9 +1584,6 @@ public class ExchangeService {
                 .map(auctionContext::with);
     }
 
-    /**
-     * Resolves {@link MetricName} by {@link BidderError.Type} value.
-     */
     private static MetricName bidderErrorTypeToMetric(BidderError.Type errorType) {
         return switch (errorType) {
             case bad_input -> MetricName.badinput;

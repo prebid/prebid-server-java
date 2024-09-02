@@ -28,6 +28,8 @@ public class BidderInfo {
 
     List<String> vendors;
 
+    List<String> currencyAccepted;
+
     GdprInfo gdpr;
 
     boolean ccpaEnforced;
@@ -49,6 +51,7 @@ public class BidderInfo {
                                     List<MediaType> doohMediaTypes,
                                     List<String> supportedVendors,
                                     int vendorId,
+                                    List<String> currencyAccepted,
                                     boolean ccpaEnforced,
                                     boolean modifyingVastXmlAllowed,
                                     CompressionType compressionType,
@@ -66,6 +69,7 @@ public class BidderInfo {
                         platformInfo(siteMediaTypes),
                         platformInfo(doohMediaTypes)),
                 supportedVendors,
+                currencyAccepted,
                 new GdprInfo(vendorId),
                 ccpaEnforced,
                 modifyingVastXmlAllowed,

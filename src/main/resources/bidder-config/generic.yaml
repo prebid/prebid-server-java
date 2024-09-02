@@ -114,9 +114,9 @@ adapters:
             - video
             - native
           site-media-types:
-           - banner
-           - video
-           - native
+            - banner
+            - video
+            - native
           supported-vendors:
           vendor-id: 263
         usersync:

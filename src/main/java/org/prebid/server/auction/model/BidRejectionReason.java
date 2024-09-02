@@ -59,6 +59,11 @@ public enum BidRejectionReason {
     REQUEST_BLOCKED_PRIVACY(204),
 
     /**
+     * If the bidder was not called due to a mismatch between the bidder’s currency and the request’s currency.
+     */
+    REQUEST_BLOCKED_UNACCEPTABLE_CURRENCY(205),
+
+    /**
      * The bidder is called, but its response is rejected.
      * Applied if any other RESPONSE_REJECTED reason is not recognized.
      */
