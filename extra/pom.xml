@@ -52,6 +52,7 @@
         <protobuf.version>3.21.7</protobuf.version>
         <protoc.version>3.17.3</protoc.version>
         <json-logic.version>1.0.7</json-logic.version>
+        <aws.awssdk.version>2.26.24</aws.awssdk.version>
 
         <!-- Project test dependency versions -->
         <wiremock.version>3.9.1</wiremock.version>
@@ -211,6 +212,11 @@
                 <groupId>com.maxmind.geoip2</groupId>
                 <artifactId>geoip2</artifactId>
                 <version>${maxmind-client.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>s3</artifactId>
+                <version>${aws.awssdk.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.google.protobuf</groupId>
