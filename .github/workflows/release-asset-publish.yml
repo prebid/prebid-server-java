@@ -10,18 +10,11 @@ jobs:
   build:
     name: Publish release .jar
     runs-on: ubuntu-latest
-    if: "contains(github.event.workflow_run.head_commit.message, 'Prebid Server prepare release ')"
     strategy:
       matrix:
         java: [ 21 ]
     steps:
-      - name: Check out Repository
-        uses: actions/checkout@v4
-
-      - name: Get latest tag
-        uses: actions-ecosystem/action-get-latest-tag@v1
-        id: get-latest-tag
-
+      - uses: actions/checkout@v4
       - name: Set up JDK
         uses: actions/setup-java@v3
         with:
@@ -31,24 +24,21 @@ jobs:
 
       - name: Build base .jar via Maven
         run: mvn clean package -Dcheckstyle.skip -Dmaven.test.skip=true
-
       - name: Upload and attach base .jar to release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: target/prebid-server.jar
-          asset_name: prebid-server-${{ steps.get-latest-tag.outputs.tag }}.jar
-          overwrite: true
-          tag: ${{ steps.get-latest-tag.outputs.tag }}
+          asset_name: prebid-server-${{ github.ref_name }}.jar
+          tag: ${{ github.ref }}
 
       - name: Build bundled .jar via Maven
         run: mvn clean package --file extra/pom.xml -Dcheckstyle.skip -Dmaven.test.skip=true
-
       - name: Upload and attach bundled .jar to release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: extra/bundle/target/prebid-server-bundle.jar
-          asset_name: prebid-server-bundle-${{ steps.get-latest-tag.outputs.tag }}.jar
+          asset_name: prebid-server-bundle-${{ github.ref_name }}.jar
           overwrite: true
-          tag: ${{ steps.get-latest-tag.outputs.tag }}
+          tag: ${{ github.ref }}
