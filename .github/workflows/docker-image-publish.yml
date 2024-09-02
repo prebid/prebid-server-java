@@ -1,10 +1,9 @@
 name: Publish Docker image for new tag/release
 
 on:
-  workflow_run:
-    workflows: [Publish release]
-    types:
-      - completed
+  push:
+    tags:
+      - '*'
 
 env:
   REGISTRY: ghcr.io
@@ -14,7 +13,6 @@ jobs:
   build:
     name: Publish Docker image for new tag/release
     runs-on: ubuntu-latest
-    if: "contains(github.event.workflow_run.head_commit.message, 'Prebid Server prepare release ')"
     permissions:
       contents: read
       packages: write
@@ -33,10 +31,6 @@ jobs:
     steps:
       - name: Check out Repository
         uses: actions/checkout@v4
-
-      - name: Get latest tag
-        uses: actions-ecosystem/action-get-latest-tag@v1
-        id: get-latest-tag
 
       - name: Set up JDK
         uses: actions/setup-java@v3
@@ -67,5 +61,5 @@ jobs:
           context: .
           file: ${{ matrix.dockerfile-path }}
           push: true
-          tags: ghcr.io/prebid/prebid-server-java:${{ steps.get-latest-tag.outputs.tag }}
-          labels: ${{ steps.get-latest-tag.outputs.tag }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
