@@ -16,7 +16,6 @@ import org.prebid.server.functional.model.request.auction.ImpExtContext
 import org.prebid.server.functional.model.request.auction.ImpExtContextData
 import org.prebid.server.functional.model.request.auction.Native
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
-import org.prebid.server.functional.model.request.auction.RegsExt
 import org.prebid.server.functional.model.request.auction.Site
 import org.prebid.server.functional.model.request.vtrack.VtrackRequest
 import org.prebid.server.functional.model.request.vtrack.xml.Vast
@@ -27,6 +26,11 @@ import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.CcpaConsent
 
+import static org.prebid.server.functional.model.Currency.CHF
+import static org.prebid.server.functional.model.Currency.EUR
+import static org.prebid.server.functional.model.Currency.JPY
+import static org.prebid.server.functional.model.Currency.USD
+import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.CompressionType.GZIP
@@ -37,11 +41,13 @@ import static org.prebid.server.functional.model.request.auction.DistributionCha
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 import static org.prebid.server.functional.model.request.auction.SecurityLevel.NON_SECURE
 import static org.prebid.server.functional.model.request.auction.SecurityLevel.SECURE
+import static org.prebid.server.functional.model.response.auction.BidRejectionReason.REQUEST_BLOCKED_BY_CURRENCY
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 import static org.prebid.server.functional.model.response.auction.MediaType.AUDIO
 import static org.prebid.server.functional.model.response.auction.MediaType.BANNER
 import static org.prebid.server.functional.model.response.auction.MediaType.NATIVE
 import static org.prebid.server.functional.model.response.auction.MediaType.VIDEO
+import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 import static org.prebid.server.functional.util.HttpUtil.CONTENT_ENCODING_HEADER
 import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.ENFORCED
 
@@ -804,5 +810,210 @@ class BidderParamsSpec extends BaseSpec {
             skadn == impExt.skadn
             tid == impExt.tid
         }
+    }
+
+    def "PBS should send request to bidder when adapters.bidder.meta-info.currency-accepted doesn't specified"() {
+        given: "PBS with adapter configuration"
+        def pbsService = pbsServiceFactory.getService("adapters.generic.meta-info.currency-accepted": null)
+
+        and: "Default basic generic BidRequest"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            cur = [USD]
+            ext.prebid.returnAllBidStatus = true
+        }
+
+        when: "PBS processes auction request"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain http calls"
+        assert response.ext?.debug?.httpcalls[GENERIC.value]
+
+        and: "Response should contain seatBid"
+        assert response.seatbid.bid.flatten().size() == 1
+
+        and: "Bidder request should be valid"
+        assert bidder.getBidderRequest(bidRequest.id)
+
+        and: "Response shouldn't contain error"
+        assert !response.ext?.errors
+
+        and: "PBS response shouldn't contain seatNonBid and contain errors"
+        assert !response.ext.seatnonbid
+    }
+
+    def "PBS should send request to bidder when adapters.bidder.aliases.bidder.meta-info.currency-accepted doesn't specified"() {
+        given: "PBS with adapter configuration"
+        def pbsService = pbsServiceFactory.getService(
+                "adapters.generic.aliases.alias.enabled" : "true",
+                "adapters.generic.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString(),
+                "adapters.generic.aliases.alias.meta-info.currency-accepted": null)
+
+        and: "Default basic generic BidRequest"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            cur = [USD]
+            ext.prebid.returnAllBidStatus = true
+        }
+
+        when: "PBS processes auction request"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain http calls"
+        assert response.ext?.debug?.httpcalls[GENERIC.value]
+
+        and: "Response should contain seatBid"
+        assert response.seatbid.bid.flatten().size() == 1
+
+        and: "Bidder request should be valid"
+        assert bidder.getBidderRequest(bidRequest.id)
+
+        and: "Response shouldn't contain error"
+        assert !response.ext?.errors
+
+        and: "PBS response shouldn't contain seatNonBid and contain errors"
+        assert !response.ext.seatnonbid
+    }
+
+    def "PBS should send request to bidder when adapters.bidder.meta-info.currency-accepted intersect with requested currency"() {
+        given: "PBS with adapter configuration"
+        def pbsService = pbsServiceFactory.getService("adapters.generic.meta-info.currency-accepted": "${USD},${EUR}".toString())
+
+        and: "Default basic generic BidRequest"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            cur = [USD]
+            ext.prebid.returnAllBidStatus = true
+        }
+
+        when: "PBS processes auction request"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain http calls"
+        assert response.ext?.debug?.httpcalls[GENERIC.value]
+
+        and: "Response should contain seatBid"
+        assert response.seatbid.bid.flatten().size() == 1
+
+        and: "Bidder request should be valid"
+        assert bidder.getBidderRequest(bidRequest.id)
+
+        and: "Response shouldn't contain error"
+        assert !response.ext?.errors
+
+        and: "PBS response shouldn't contain seatNonBid and contain errors"
+        assert !response.ext.seatnonbid
+    }
+
+    def "PBS shouldn't send request to bidder when adapters.bidder.meta-info.currency-accepted not intersect with requested currency"() {
+        given: "PBS with adapter configuration"
+        def pbsService = pbsServiceFactory.getService("adapters.generic.meta-info.currency-accepted": "${JPY},${CHF}".toString())
+
+        and: "Default basic generic BidRequest"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            cur = [USD]
+            ext.prebid.returnAllBidStatus = true
+        }
+
+        when: "PBS processes auction request"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response shouldn't contain http calls"
+        assert !response.ext?.debug?.httpcalls
+
+        and: "Response shouldn't contain seatBid"
+        assert !response.seatbid
+
+        and: "Bidder request should be valid"
+        assert !bidder.getBidderRequest(bidRequest.id)
+
+        and: "Response shouldn't contain error"
+        assert !response.ext?.errors
+
+        and: "Response should seatNon bid with code 205"
+        assert response.ext.seatnonbid.size() == 1
+
+        def seatNonBid = response.ext.seatnonbid[0]
+        assert seatNonBid.seat == GENERIC.value
+        assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
+        assert seatNonBid.nonBid[0].statusCode == REQUEST_BLOCKED_BY_CURRENCY
+    }
+
+    def "PBS should send request to bidder when adapters.bidder.aliases.bidder.meta-info.currency-accepted intersect with requested currency"() {
+        given: "PBS with adapter configuration"
+        def pbsService = pbsServiceFactory.getService(
+                "adapters.generic.aliases.alias.enabled" : "true",
+                "adapters.generic.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString(),
+                "adapters.generic.aliases.alias.meta-info.currency-accepted": "${USD},${EUR}".toString())
+
+        and: "Default basic BidRequest with alias bidder"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            cur = [USD]
+            ext.prebid.returnAllBidStatus = true
+            imp[0].ext.prebid.bidder.alias = new Generic()
+            imp[0].ext.prebid.bidder.generic = null
+        }
+
+        and: "Default bid response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain http calls"
+        assert response.ext?.debug?.httpcalls[ALIAS.value]
+
+        and: "Response should contain seatBid"
+        assert response.seatbid.bid.flatten().size() == 1
+
+        and: "Bidder request should be valid"
+        assert bidder.getBidderRequest(bidRequest.id)
+
+        and: "Response shouldn't contain error"
+        assert !response.ext?.errors
+
+        and: "PBS response shouldn't contain seatNonBid and contain errors"
+        assert !response.ext.seatnonbid
+    }
+
+    def "PBS shouldn't send request to bidder when adapters.bidder.aliases.bidder.meta-info.currency-accepted not intersect with requested currency"() {
+        given: "PBS with adapter configuration"
+        def pbsService = pbsServiceFactory.getService(
+                "adapters.generic.aliases.alias.enabled" : "true",
+                "adapters.generic.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString(),
+                "adapters.generic.aliases.alias.meta-info.currency-accepted": "${JPY},${CHF}".toString())
+
+        and: "Default basic BidRequest with alias bidder"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            cur = [USD]
+            ext.prebid.returnAllBidStatus = true
+            imp[0].ext.prebid.bidder.alias = new Generic()
+            imp[0].ext.prebid.bidder.generic = null
+        }
+
+        and: "Default bid response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response shouldn't contain http calls"
+        assert !response.ext?.debug?.httpcalls
+
+        and: "Response shouldn't contain seatBid"
+        assert !response.seatbid
+
+        and: "Bidder request should be valid"
+        assert !bidder.getBidderRequest(bidRequest.id)
+
+        and: "Response shouldn't contain error"
+        assert !response.ext?.errors
+
+        and: "Response should seatNon bid with code 205"
+        assert response.ext.seatnonbid.size() == 1
+
+        def seatNonBid = response.ext.seatnonbid[0]
+        assert seatNonBid.seat == GENERIC.value
+        assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
+        assert seatNonBid.nonBid[0].statusCode == REQUEST_BLOCKED_BY_CURRENCY
     }
 }
