@@ -1,6 +1,7 @@
 adapters:
   kargo:
     endpoint: https://krk.kargo.com/api/v1/openrtb
+    ortb-version: "2.6"
     endpoint-compression: gzip
     modifyingVastXmlAllowed: true
     meta-info:

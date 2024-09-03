@@ -11,6 +11,8 @@ adapters:
     aliases:
       magnite:
         enabled: false
+    ortb:
+      multiformat-supported: true
     meta-info:
       maintainer-email: header-bidding@rubiconproject.com
       app-media-types:
@@ -36,6 +38,7 @@ adapters:
         url: GET_FROM_globalsupport@magnite.com
         support-cors: false
     generate-bid-id: false
+    use-video-size-id-logic: true
     XAPI:
       Username: GET_FROM_globalsupport@magnite.com
       Password: GET_FROM_globalsupport@magnite.com

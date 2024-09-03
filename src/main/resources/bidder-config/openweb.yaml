@@ -1,6 +1,6 @@
 adapters:
   openweb:
-    endpoint: http://ghb.spotim.market/pbs/ortb
+    endpoint: https://pbs.openwebmp.com/pbs
     meta-info:
       maintainer-email: monetization@openweb.com
       app-media-types:
@@ -11,3 +11,9 @@ adapters:
         - video
       supported-vendors:
       vendor-id: 280
+    usersync:
+      cookie-family-name: openweb
+      iframe:
+        url: https://pbs-cs.openwebmp.com/pbs-iframe?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redirect={{redirect_url}}
+        support-cors: false
+        uid-macro: '[PBS_UID]'

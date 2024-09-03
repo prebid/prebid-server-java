@@ -41,7 +41,8 @@ import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDO
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.DEVICE_ACCESS
 import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V2
-import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V3
+import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V4
+import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V5
 
 class GdprAmpSpec extends PrivacyBaseSpec {
 
@@ -356,7 +357,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         serverContainer.stop()
 
         where:
-        tcfPolicyVersion << [TCF_POLICY_V2, TCF_POLICY_V3]
+        tcfPolicyVersion << [TCF_POLICY_V2, TCF_POLICY_V4, TCF_POLICY_V5]
     }
 
     def "PBS amp with invalid consent.tcfPolicyVersion parameter should reject request and include proper warning"() {
@@ -442,7 +443,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         vendorListResponse.reset()
 
         where:
-        tcfPolicyVersion << [TCF_POLICY_V2, TCF_POLICY_V3]
+        tcfPolicyVersion << [TCF_POLICY_V2, TCF_POLICY_V4, TCF_POLICY_V5]
     }
 
     def "PBS amp should update activity controls fetch bids metrics when tcf requirement disallow request"() {

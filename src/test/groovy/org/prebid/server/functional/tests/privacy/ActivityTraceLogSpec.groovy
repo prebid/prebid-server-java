@@ -9,6 +9,7 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Condition
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.Geo
+import org.prebid.server.functional.model.request.auction.RegsExt
 import org.prebid.server.functional.model.response.auction.ActivityInfrastructure
 import org.prebid.server.functional.model.response.auction.ActivityInvocationPayload
 import org.prebid.server.functional.model.response.auction.And
@@ -192,7 +193,7 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.trace = VERBOSE
             device = new Device(geo: new Geo(country: USA, region: ALABAMA.abbreviation))
-            regs.ext.gpc = PBSUtils.randomString
+            regs.ext = new RegsExt(gpc: PBSUtils.randomString)
             regs.gppSid = [US_CA_V1.intValue]
             setAccountId(accountId)
         }
@@ -298,7 +299,7 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.trace = VERBOSE
             device = new Device(geo: new Geo(country: USA, region: ALABAMA.abbreviation))
-            regs.ext.gpc = PBSUtils.randomString
+            regs.ext = new RegsExt(gpc: PBSUtils.randomString)
             regs.gppSid = [US_CA_V1.intValue]
             regs.gpp = new UsNatV1Consent.Builder().setGpc(true).build()
             setAccountId(accountId)

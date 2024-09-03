@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.MissingNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
@@ -16,6 +17,7 @@ import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.grid.model.request.ExtImp;
 import org.prebid.server.bidder.grid.model.request.ExtImpGridData;
 import org.prebid.server.bidder.grid.model.request.ExtImpGridDataAdServer;
+import org.prebid.server.bidder.grid.model.request.GridNative;
 import org.prebid.server.bidder.grid.model.request.Keywords;
 import org.prebid.server.bidder.grid.model.response.GridBidResponse;
 import org.prebid.server.bidder.grid.model.response.GridSeatBid;
@@ -103,19 +105,48 @@ public class GridBidder implements Bidder<BidRequest> {
     }
 
     private Imp modifyImp(Imp imp, ExtImp extImp) {
+        return imp.toBuilder()
+                .xNative(modifyNative(imp.getXNative()))
+                .ext(modifyImpExt(extImp))
+                .build();
+    }
+
+    private ObjectNode modifyImpExt(ExtImp extImp) {
         final ExtImpGridData extImpData = extImp.getData();
         final ExtImpGridDataAdServer adServer = extImpData != null ? extImpData.getAdServer() : null;
         final String adSlot = adServer != null ? adServer.getAdSlot() : null;
 
         if (StringUtils.isNotEmpty(adSlot)) {
-            final ExtImp modifiedExtImp = extImp.toBuilder()
-                    .gpid(adSlot)
-                    .build();
-            return imp.toBuilder()
-                    .ext(mapper.mapper().valueToTree(modifiedExtImp))
-                    .build();
+            final ExtImp modifiedExtImp = extImp.toBuilder().gpid(adSlot).build();
+            return mapper.mapper().valueToTree(modifiedExtImp);
         }
-        return imp;
+
+        return mapper.mapper().valueToTree(extImp);
+    }
+
+    private Native modifyNative(Native xNative) {
+        if (xNative == null) {
+            return null;
+        }
+
+        final String nativeRequest = xNative.getRequest();
+        final JsonNode requestNode = nodeFromString(nativeRequest);
+
+        return GridNative.builder()
+                .requestNative((ObjectNode) requestNode)
+                .ver(xNative.getVer())
+                .api(xNative.getApi())
+                .battr(xNative.getBattr())
+                .ext(xNative.getExt())
+                .build();
+    }
+
+    public final JsonNode nodeFromString(String stringValue) {
+        try {
+            return StringUtils.isNotBlank(stringValue) ? mapper.mapper().readTree(stringValue) : null;
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private Keywords getKeywordsFromImpExt(JsonNode extImp) {
@@ -218,12 +249,22 @@ public class GridBidder implements Bidder<BidRequest> {
     private BidderBid makeBidderBid(ObjectNode bidNode, List<Imp> imps, String currency) {
         try {
             final Bid bid = mapper.mapper().treeToValue(bidNode, Bid.class);
-            final Bid modifiedBid = bid.toBuilder().ext(modifyBidExt(bidNode)).build();
+            final Bid modifiedBid = bid.toBuilder().adm(modifyAdm(bidNode, bid)).ext(modifyBidExt(bidNode)).build();
 
             return BidderBid.of(modifiedBid, resolveBidType(bidNode, bid.getImpid(), imps), currency);
         } catch (JsonProcessingException | IllegalArgumentException e) {
             throw new PreBidException(e.getMessage());
         }
+    }
+
+    private String modifyAdm(ObjectNode bidNode, Bid bid) {
+        final JsonNode admNative = bidNode.at("/adm_native");
+        final String bidAdm = bid.getAdm();
+        if (admNative != null && !admNative.isEmpty() && StringUtils.isBlank(bidAdm)) {
+            return mapper.encodeToString(admNative);
+        }
+
+        return bidAdm;
     }
 
     private ObjectNode modifyBidExt(ObjectNode gridBid) {
@@ -252,6 +293,8 @@ public class GridBidder implements Bidder<BidRequest> {
                     return BidType.banner;
                 } else if (imp.getVideo() != null) {
                     return BidType.video;
+                } else if (imp.getXNative() != null) {
+                    return BidType.xNative;
                 }
                 throw new PreBidException("Unknown impression type for ID: " + impId);
             }

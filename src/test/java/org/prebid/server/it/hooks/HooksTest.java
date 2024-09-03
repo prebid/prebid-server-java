@@ -4,8 +4,10 @@ import io.restassured.response.Response;
 import org.json.JSONException;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.it.IntegrationTest;
+import org.prebid.server.version.PrebidVersionProvider;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.IOException;
 
@@ -22,11 +24,15 @@ public class HooksTest extends IntegrationTest {
 
     private static final String RUBICON = "rubicon";
 
+    @Autowired
+    private PrebidVersionProvider versionProvider;
+
     @Test
     public void openrtb2AuctionShouldRunHooksAtEachStage() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("hooks/sample-module/test-rubicon-bid-request-1.json")))
+                .withRequestBody(equalToJson(
+                        jsonFrom("hooks/sample-module/test-rubicon-bid-request-1.json", versionProvider)))
                 .willReturn(aResponse().withBody(jsonFrom("hooks/sample-module/test-rubicon-bid-response-1.json"))));
 
         // when
@@ -113,7 +119,8 @@ public class HooksTest extends IntegrationTest {
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.LENIENT);
 
         WIRE_MOCK_RULE.verify(1, postRequestedFor(urlPathEqualTo("/rubicon-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("hooks/reject/test-rubicon-bid-request-1.json"))));
+                .withRequestBody(equalToJson(
+                        jsonFrom("hooks/reject/test-rubicon-bid-request-1.json", versionProvider))));
     }
 
     @Test
@@ -139,6 +146,7 @@ public class HooksTest extends IntegrationTest {
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.LENIENT);
 
         WIRE_MOCK_RULE.verify(1, postRequestedFor(urlPathEqualTo("/rubicon-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("hooks/reject/test-rubicon-bid-request-1.json"))));
+                .withRequestBody(equalToJson(
+                        jsonFrom("hooks/reject/test-rubicon-bid-request-1.json", versionProvider))));
     }
 }

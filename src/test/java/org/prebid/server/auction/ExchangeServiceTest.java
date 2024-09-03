@@ -186,6 +186,7 @@ import static org.apache.commons.lang3.exception.ExceptionUtils.rethrow;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.mockito.ArgumentCaptor.forClass;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -229,6 +230,9 @@ public class ExchangeServiceTest extends VertxTest {
 
     @Mock(strictness = LENIENT)
     private SupplyChainResolver supplyChainResolver;
+
+    @Mock(strictness = LENIENT)
+    private ImpAdjuster impAdjuster;
 
     @Mock
     private DebugResolver debugResolver;
@@ -349,6 +353,8 @@ public class ExchangeServiceTest extends VertxTest {
         given(fpdResolver.resolveImpExt(any(), anyBoolean()))
                 .willAnswer(invocation -> invocation.getArgument(0));
 
+        given(impAdjuster.adjust(any(), any(), any(), any())).willAnswer(invocation -> invocation.getArgument(0));
+
         given(supplyChainResolver.resolveForBidder(anyString(), any())).willReturn(null);
 
         given(hookStageExecutor.executeBidderRequestStage(any(), any()))
@@ -380,7 +386,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .map(user -> UpdateResult.updated(null))
                         .orElse(UpdateResult.unaltered(null)));
 
-        given(storedResponseProcessor.getStoredResponseResult(any(), any()))
+        given(storedResponseProcessor.getStoredResponseResult(anyList(), any()))
                 .willAnswer(inv -> Future.succeededFuture(StoredResponseResult.of(inv.getArgument(0), emptyList(),
                         emptyMap())));
         given(storedResponseProcessor.mergeWithBidderResponses(any(), any(), any(), any()))
@@ -496,13 +502,19 @@ public class ExchangeServiceTest extends VertxTest {
         // given
         givenBidder(givenEmptySeatBid());
 
-        final BidRequest bidRequest = givenBidRequest(singletonList(
-                        givenImp(singletonMap("someBidder", 1), builder -> builder
-                                .id("impId")
-                                .banner(Banner.builder()
-                                        .format(singletonList(Format.builder().w(400).h(300).build()))
-                                        .build()))),
+        final Imp givenImp = givenImp(singletonMap("someBidder", 1), builder -> builder
+                .id("impId")
+                .banner(Banner.builder()
+                        .format(singletonList(Format.builder().w(400).h(300).build()))
+                        .build()));
+
+        final BidRequest bidRequest = givenBidRequest(
+                singletonList(givenImp),
                 builder -> builder.id("requestId").tmax(500L));
+
+        final ObjectNode adjustedExt = givenImp.getExt().deepCopy();
+        final Imp adjustedImp = givenImp.toBuilder().ext(adjustedExt).build();
+        given(impAdjuster.adjust(any(), any(), any(), any())).willReturn(adjustedImp);
 
         // when
         target.holdAuction(givenRequestContext(bidRequest));
@@ -521,6 +533,15 @@ public class ExchangeServiceTest extends VertxTest {
                         .build()))
                 .tmax(500L)
                 .build());
+
+        final ArgumentCaptor<Imp> impCaptor = forClass(Imp.class);
+        verify(impAdjuster).adjust(impCaptor.capture(), eq("someBidder"), any(), any());
+
+        final Imp actualImp = impCaptor.getValue();
+        assertThat(actualImp).isNotSameAs(givenImp);
+        assertThat(actualImp).isEqualTo(givenImp);
+        assertThat(actualImp.getExt()).isNotSameAs(givenImp.getExt());
+        assertThat(actualImp.getExt()).isEqualTo(givenImp.getExt());
     }
 
     @Test
@@ -1758,7 +1779,7 @@ public class ExchangeServiceTest extends VertxTest {
                                         .build()))),
                 builder -> builder.id("requestId").tmax(500L));
 
-        given(storedResponseProcessor.getStoredResponseResult(any(), any()))
+        given(storedResponseProcessor.getStoredResponseResult(anyList(), any()))
                 .willReturn(Future.succeededFuture(StoredResponseResult
                         .of(singletonList(givenImp(singletonMap("someBidder1", 1), builder -> builder
                                 .id("impId1")
@@ -1821,7 +1842,7 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureWhenStoredResponseProcessorGetStoredResultReturnsFailedFuture() {
         // given
-        given(storedResponseProcessor.getStoredResponseResult(any(), any()))
+        given(storedResponseProcessor.getStoredResponseResult(anyList(), any()))
                 .willReturn(Future.failedFuture(new InvalidRequestException("Error")));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(
@@ -4713,7 +4734,7 @@ public class ExchangeServiceTest extends VertxTest {
                 storedResponseProcessor,
                 privacyEnforcementService,
                 fpdResolver,
-                supplyChainResolver,
+                impAdjuster, supplyChainResolver,
                 debugResolver,
                 mediaTypeProcessor,
                 uidUpdater,

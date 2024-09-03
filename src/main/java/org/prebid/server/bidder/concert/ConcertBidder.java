@@ -148,7 +148,8 @@ public class ConcertBidder implements Bidder<BidRequest> {
             case 2 -> BidType.video;
             case 3 -> BidType.audio;
             case 4 -> throw new PreBidException("native media types are not yet supported");
-            default -> throw new PreBidException("Failed to parse media type for bid: \"%s\"".formatted(impId));
+            case null, default ->
+                    throw new PreBidException("Failed to parse media type for bid: \"%s\"".formatted(impId));
         };
     }
 }

@@ -142,7 +142,8 @@ class TcfConsent implements ConsentString {
     enum TcfPolicyVersion {
 
         TCF_POLICY_V2(2),
-        TCF_POLICY_V3(4)
+        TCF_POLICY_V4(4),
+        TCF_POLICY_V5(5),
 
         final int value
 
@@ -151,11 +152,11 @@ class TcfConsent implements ConsentString {
         }
 
         int getVendorListVersion() {
-            (this == TCF_POLICY_V3) ? 3 : 2
+            (this < TCF_POLICY_V4) ? 2 : 3
         }
 
         int getReversedListVersion() {
-            (this == TCF_POLICY_V3) ? 2 : 3
+            (this < TCF_POLICY_V4) ? 3 : 2
         }
     }
 

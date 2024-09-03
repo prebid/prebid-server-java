@@ -8,8 +8,12 @@ import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.Banner
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Device
+import org.prebid.server.functional.model.request.auction.AnyUnsupportedBidder
 import org.prebid.server.functional.model.request.auction.Geo
 import org.prebid.server.functional.model.request.auction.Imp
+import org.prebid.server.functional.model.request.auction.ImpExt
+import org.prebid.server.functional.model.request.auction.ImpExtContext
+import org.prebid.server.functional.model.request.auction.ImpExtContextData
 import org.prebid.server.functional.model.request.auction.Native
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
 import org.prebid.server.functional.model.request.auction.RegsExt
@@ -31,6 +35,8 @@ import static org.prebid.server.functional.model.request.auction.Asset.titleAsse
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.DOOH
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
+import static org.prebid.server.functional.model.request.auction.SecurityLevel.NON_SECURE
+import static org.prebid.server.functional.model.request.auction.SecurityLevel.SECURE
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 import static org.prebid.server.functional.model.response.auction.MediaType.AUDIO
 import static org.prebid.server.functional.model.response.auction.MediaType.BANNER
@@ -153,7 +159,7 @@ class BidderParamsSpec extends BaseSpec {
         and: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
         def validCcpa = new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)
-        bidRequest.regs.ext = new RegsExt(usPrivacy: validCcpa)
+        bidRequest.regs.usPrivacy = validCcpa
         def lat = PBSUtils.getRandomDecimal(0, 90)
         def lon = PBSUtils.getRandomDecimal(0, 90)
         bidRequest.device = new Device(geo: new Geo(lat: lat, lon: lon))
@@ -180,7 +186,7 @@ class BidderParamsSpec extends BaseSpec {
         and: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
         def validCcpa = new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)
-        bidRequest.regs.ext = new RegsExt(usPrivacy: validCcpa)
+        bidRequest.regs.usPrivacy = validCcpa
         def lat = PBSUtils.getRandomDecimal(0, 90) as float
         def lon = PBSUtils.getRandomDecimal(0, 90) as float
         bidRequest.device = new Device(geo: new Geo(lat: lat, lon: lon))
@@ -560,7 +566,7 @@ class BidderParamsSpec extends BaseSpec {
 
         then: "Bid response should contain proper warning"
         assert response.ext?.warnings[ErrorType.GENERIC]?.message ==
-                ["Imp ${bidRequest.imp[1].id} does not have a supported media type and has been removed from the request for this bidder." ]
+                ["Imp ${bidRequest.imp[1].id} does not have a supported media type and has been removed from the request for this bidder."]
 
         and: "Bid response should contain seatbid"
         assert response.seatbid
@@ -697,9 +703,9 @@ class BidderParamsSpec extends BaseSpec {
 
         where:
         secureStoredRequest | secureBidderRequest
-        null                | 1
-        1                   | 1
-        0                   | 0
+        null                | SECURE
+        SECURE              | SECURE
+        NON_SECURE          | NON_SECURE
     }
 
     def "PBS auction should populate imp[0].secure depend which value in imp request"() {
@@ -717,8 +723,86 @@ class BidderParamsSpec extends BaseSpec {
 
         where:
         secureRequest | secureBidderRequest
-        null          | 1
-        1             | 1
-        0             | 0
+        null          | SECURE
+        SECURE        | SECURE
+        NON_SECURE    | NON_SECURE
+    }
+
+    def "PBS shouldn't emit warning and proceed auction when imp.ext.anyUnsupportedBidder and imp.ext.prebid.bidder.generic in the request"() {
+        given: "Default bid request"
+        def unsupportedBidder = new AnyUnsupportedBidder(anyUnsupportedField: PBSUtils.randomString)
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.anyUnsupportedBidder = unsupportedBidder
+            imp[0].ext.prebid.bidder.generic = new Generic()
+        }
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain imp.ext.anyUnsupportedBidder"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.imp[0].ext.anyUnsupportedBidder == unsupportedBidder
+
+        and: "Response shouldn't contain warning"
+        assert !response?.ext?.warnings
+    }
+
+    def "PBS should emit warning and proceed auction when imp.ext.anyUnsupportedBidder and imp.ext.generic in the request"() {
+        given: "Default bid request"
+        def unsupportedBidder = new AnyUnsupportedBidder(anyUnsupportedField: PBSUtils.randomString)
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.generic = new Generic()
+            imp[0].ext.anyUnsupportedBidder = unsupportedBidder
+            imp[0].ext.prebid.bidder = null
+        }
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain imp.ext.anyUnsupportedBidder"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.imp[0].ext.anyUnsupportedBidder == unsupportedBidder
+
+        and: "PBS should emit an warning"
+        assert response?.ext?.warnings[PREBID]*.code == [999]
+        assert response?.ext?.warnings[PREBID]*.message ==
+                ["WARNING: request.imp[0].ext.prebid.bidder.anyUnsupportedBidder was dropped with a reason: " +
+                         "request.imp[0].ext.prebid.bidder contains unknown bidder: anyUnsupportedBidder"]
+    }
+
+    def "PBS shouldn't emit warning and proceed auction when all imp.ext fields known for PBS"() {
+        given: "Default bid request with populated imp.ext"
+        def impExt = ImpExt.getDefaultImpExt().tap {
+            prebid.bidder.generic = null
+            generic = new Generic()
+            ae = PBSUtils.randomNumber
+            all = PBSUtils.randomNumber
+            context = new ImpExtContext(data: new ImpExtContextData())
+            data = new ImpExtContextData(pbAdSlot: PBSUtils.randomString)
+            general = PBSUtils.randomString
+            gpid = PBSUtils.randomString
+            skadn = PBSUtils.randomString
+            tid = PBSUtils.randomString
+        }
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext = impExt
+        }
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain same field as requested"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        verifyAll(bidderRequest.imp[0].ext) {
+            bidder == impExt.generic
+            ae == impExt.ae
+            all == impExt.all
+            context == impExt.context
+            data == impExt.data
+            general == impExt.general
+            gpid == impExt.gpid
+            skadn == impExt.skadn
+            tid == impExt.tid
+        }
     }
 }

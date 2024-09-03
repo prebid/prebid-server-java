@@ -1,6 +1,7 @@
 adapters:
   pulsepoint:
     endpoint: http://bid.contextweb.com/header/s/ortb/prebid-s2s
+    ortb-version: "2.6"
     meta-info:
       maintainer-email: ExchangeTeam@pulsepoint.com
       app-media-types:

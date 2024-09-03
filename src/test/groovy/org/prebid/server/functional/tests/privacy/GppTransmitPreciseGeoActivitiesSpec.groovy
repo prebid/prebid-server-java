@@ -13,6 +13,7 @@ import org.prebid.server.functional.model.request.auction.ActivityRule
 import org.prebid.server.functional.model.request.auction.AllowActivities
 import org.prebid.server.functional.model.request.auction.Condition
 import org.prebid.server.functional.model.request.auction.Geo
+import org.prebid.server.functional.model.request.auction.RegsExt
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.gpp.UsCaV1Consent
@@ -731,7 +732,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         def bidRequest = bidRequestWithGeo.tap {
             it.setAccountId(accountId)
             it.ext.prebid.trace = VERBOSE
-            it.regs.ext.gpc = PBSUtils.randomNumber as String
+            it.regs.ext = new RegsExt(gpc: PBSUtils.randomNumber as String)
         }
 
         and: "Setup condition"
@@ -793,7 +794,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
             it.setAccountId(accountId)
             it.regs.gppSid = null
             it.ext.prebid.trace = VERBOSE
-            it.regs.ext.gpc = "1"
+            it.regs.ext = new RegsExt(gpc: "1")
         }
 
         and: "Setup activity"
@@ -861,7 +862,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         def bidRequest = bidRequestWithGeo.tap {
             it.setAccountId(accountId)
             it.ext.prebid.trace = VERBOSE
-            it.regs.ext.gpc = PBSUtils.randomNumber as String
+            it.regs.ext = new RegsExt(gpc: PBSUtils.randomNumber as String)
         }
 
         and: "Setup condition"
@@ -922,7 +923,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         def bidRequest = bidRequestWithGeo.tap {
             it.setAccountId(accountId)
             it.ext.prebid.trace = VERBOSE
-            it.regs.ext.gpc = null
+            it.regs.ext = new RegsExt(gpc: null)
         }
 
         and: "Setup condition"

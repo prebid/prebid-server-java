@@ -947,7 +947,7 @@ public class AdnuntiusBidderTest extends VertxTest {
     }
 
     private static String buildExpectedUrl(Integer gdpr, String consent, Boolean noCookies) {
-        final StringBuilder expectedUri = new StringBuilder("https://test.domain.dm/uri?format=json&tzo=-300");
+        final StringBuilder expectedUri = new StringBuilder("https://test.domain.dm/uri?format=prebid&tzo=-300");
         if (gdpr != null) {
             expectedUri.append("&gdpr=").append(HttpUtil.encodeUrl(gdpr.toString()));
         }

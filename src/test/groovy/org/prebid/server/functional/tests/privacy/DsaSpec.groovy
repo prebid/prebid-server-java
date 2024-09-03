@@ -6,6 +6,7 @@ import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Dsa
 import org.prebid.server.functional.model.request.auction.Dsa as RequestDsa
+import org.prebid.server.functional.model.request.auction.RegsExt
 import org.prebid.server.functional.model.response.auction.BidExt
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.DsaResponse
@@ -19,7 +20,7 @@ import static org.prebid.server.functional.model.request.auction.DsaRequired.NOT
 import static org.prebid.server.functional.model.request.auction.DsaRequired.REQUIRED
 import static org.prebid.server.functional.model.request.auction.DsaRequired.REQUIRED_PUBLISHER_IS_ONLINE_PLATFORM
 import static org.prebid.server.functional.model.request.auction.DsaRequired.SUPPORTED
-import static org.prebid.server.functional.model.response.auction.BidRejectionReason.REJECTED_DUE_TO_DSA
+import static org.prebid.server.functional.model.response.auction.BidRejectionReason.RESPONSE_REJECTED_DUE_TO_DSA
 import static org.prebid.server.functional.model.response.auction.DsaAdRender.ADVERTISER_WILL_RENDER
 import static org.prebid.server.functional.model.response.auction.DsaAdRender.ADVERTISER_WONT_RENDER
 import static org.prebid.server.functional.model.response.auction.ErrorType.GENERIC
@@ -34,7 +35,7 @@ class DsaSpec extends PrivacyBaseSpec {
 
         and: "Default stored request with DSA"
         def ampStoredRequest = BidRequest.defaultBidRequest.tap {
-            regs.ext.dsa = dsa
+            regs.ext = new RegsExt(dsa: dsa)
             setAccountId(ampRequest.account)
         }
 
@@ -63,7 +64,7 @@ class DsaSpec extends PrivacyBaseSpec {
 
         and: "Default stored request with DSA"
         def ampStoredRequest = BidRequest.defaultBidRequest.tap {
-            regs.ext.dsa = dsa
+            regs.ext = new RegsExt(dsa: dsa)
             setAccountId(ampRequest.account)
         }
 
@@ -106,7 +107,7 @@ class DsaSpec extends PrivacyBaseSpec {
 
         and: "Default stored request with DSA"
         def ampStoredRequest = BidRequest.defaultBidRequest.tap {
-            regs.ext.dsa = dsa
+            regs.ext = new RegsExt(dsa: dsa)
             setAccountId(ampRequest.account)
         }
 
@@ -143,7 +144,7 @@ class DsaSpec extends PrivacyBaseSpec {
 
         and: "Default stored bid request with DSA"
         def ampStoredRequest = BidRequest.defaultBidRequest.tap {
-            regs.ext.dsa = dsa
+            regs.ext = new RegsExt(dsa: dsa)
             setAccountId(ampRequest.account)
         }
 
@@ -177,7 +178,7 @@ class DsaSpec extends PrivacyBaseSpec {
     def "Auction request should always forward DSA to bidders"() {
         given: "Default bid request with DSA"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            regs.ext.dsa = dsa
+            regs.ext = new RegsExt(dsa: dsa)
         }
 
         when: "PBS processes auction request"
@@ -198,7 +199,7 @@ class DsaSpec extends PrivacyBaseSpec {
     def "Auction request should always accept bids with DSA"() {
         given: "Default bid request with DSA"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            regs.ext.dsa = dsa
+            regs.ext = new RegsExt(dsa: dsa)
         }
 
         and: "Default bidder response with DSA"
@@ -235,7 +236,7 @@ class DsaSpec extends PrivacyBaseSpec {
     def "Auction request should accept bids without DSA when dsarequired is #dsaRequired"() {
         given: "Default bid request with DSA"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            regs.ext.dsa = RequestDsa.getDefaultDsa(dsaRequired)
+            regs.ext = new RegsExt(dsa: RequestDsa.getDefaultDsa(dsaRequired))
         }
 
         and: "Default bidder response with DSA"
@@ -263,7 +264,7 @@ class DsaSpec extends PrivacyBaseSpec {
     def "Auction request should reject bids without DSA when dsarequired is #dsaRequired"() {
         given: "Default bid request with DSA"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            regs.ext.dsa = RequestDsa.getDefaultDsa(dsaRequired)
+            regs.ext = new RegsExt(dsa: RequestDsa.getDefaultDsa(dsaRequired))
         }
 
         and: "Default bidder response without DSA"
@@ -293,7 +294,7 @@ class DsaSpec extends PrivacyBaseSpec {
         given: "Default bid request with DSA"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.returnAllBidStatus = true
-            regs.ext.dsa = RequestDsa.getDefaultDsa(dsaRequired)
+            regs.ext = new RegsExt(dsa: RequestDsa.getDefaultDsa(dsaRequired))
         }
 
         and: "Default bidder response without DSA"
@@ -316,7 +317,7 @@ class DsaSpec extends PrivacyBaseSpec {
         def seatNonBid = response.ext.seatnonbid[0]
         assert seatNonBid.seat == GENERIC.value
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
-        assert seatNonBid.nonBid[0].statusCode == REJECTED_DUE_TO_DSA
+        assert seatNonBid.nonBid[0].statusCode == RESPONSE_REJECTED_DUE_TO_DSA
 
         and: "Response should contain an error"
         def bidId = bidResponse.seatbid[0].bid[0].id
@@ -332,7 +333,7 @@ class DsaSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber.toString()
         def bidRequest = BidRequest.defaultBidRequest.tap {
             setAccountId(accountId)
-            regs.ext.dsa = null
+            regs.ext = new RegsExt(dsa: null)
         }
 
         and: "Account with default DSA config"
@@ -352,7 +353,7 @@ class DsaSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber.toString()
         def bidRequest = BidRequest.defaultBidRequest.tap {
             setAccountId(accountId)
-            regs.ext.dsa = requestDsa
+            regs.ext = new RegsExt(dsa: requestDsa)
         }
 
         and: "Account with default DSA config"
@@ -378,7 +379,7 @@ class DsaSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber.toString()
         def bidRequest = BidRequest.defaultBidRequest.tap {
             setAccountId(accountId)
-            regs.ext.dsa = null
+            regs.ext = new RegsExt(dsa: null)
         }
 
         and: "Account without default DSA config"
@@ -397,8 +398,8 @@ class DsaSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber.toString()
         def bidRequest = BidRequest.defaultBidRequest.tap {
             setAccountId(accountId)
-            regs.ext.dsa = null
-            regs.ext.gdpr = 0
+            regs.ext = new RegsExt(dsa: null)
+            regs.gdpr = 0
         }
 
         and: "Account with default DSA config"
@@ -424,7 +425,7 @@ class DsaSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber.toString()
         def bidRequest = getGdprBidRequest(consentString).tap {
             setAccountId(accountId)
-            regs.ext.dsa = null
+            regs.ext = new RegsExt(dsa: null)
         }
 
         and: "Account with default DSA config"
@@ -448,8 +449,8 @@ class DsaSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber.toString()
         def bidRequest = BidRequest.defaultBidRequest.tap {
             setAccountId(accountId)
-            regs.ext.dsa = null
-            regs.ext.gdpr = 0
+            regs.ext = new RegsExt(dsa: null)
+            regs.gdpr = 0
         }
 
         and: "Account with default DSA config"
@@ -471,9 +472,9 @@ class DsaSpec extends PrivacyBaseSpec {
         given: "Default bid request with DSA pubRender"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.returnAllBidStatus = true
-            regs.ext.dsa = RequestDsa.getDefaultDsa(REQUIRED).tap {
+            regs.ext = new RegsExt(dsa: RequestDsa.getDefaultDsa(REQUIRED).tap {
                 it.pubRender = pubRender
-            }
+            })
         }
 
         and: "Default bidder response with incorrect DSA adRender"
@@ -496,7 +497,7 @@ class DsaSpec extends PrivacyBaseSpec {
         def seatNonBid = response.ext.seatnonbid[0]
         assert seatNonBid.seat == GENERIC.value
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
-        assert seatNonBid.nonBid[0].statusCode == REJECTED_DUE_TO_DSA
+        assert seatNonBid.nonBid[0].statusCode == RESPONSE_REJECTED_DUE_TO_DSA
 
         and: "Response should contain an error"
         def bidId = bidResponse.seatbid[0].bid[0].id
@@ -513,7 +514,7 @@ class DsaSpec extends PrivacyBaseSpec {
         given: "Default bid request with DSA pubRender"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.returnAllBidStatus = true
-            regs.ext.dsa = RequestDsa.getDefaultDsa(REQUIRED)
+            regs.ext = new RegsExt(dsa: RequestDsa.getDefaultDsa(REQUIRED))
         }
 
         and: "Default bidder response with incorrect DSA"
@@ -536,7 +537,7 @@ class DsaSpec extends PrivacyBaseSpec {
         def seatNonBid = response.ext.seatnonbid[0]
         assert seatNonBid.seat == GENERIC.value
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
-        assert seatNonBid.nonBid[0].statusCode == REJECTED_DUE_TO_DSA
+        assert seatNonBid.nonBid[0].statusCode == RESPONSE_REJECTED_DUE_TO_DSA
 
         and: "Response should contain an error"
         def bidId = bidResponse.seatbid[0].bid[0].id

@@ -3,6 +3,7 @@ package org.prebid.server.bidder.taboola;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -337,6 +338,7 @@ public class TaboolaBidderTest extends VertxTest {
     public void makeHttpRequestShouldContainProperUriWhenTypeIsBanner() {
         // given
         final BidRequest bidRequest = givenBidRequest(
+                request -> request.site(Site.builder().build()),
                 givenBannerImp(identity(), ext -> ext.publisherId("publisherId")));
 
         // when
@@ -353,6 +355,7 @@ public class TaboolaBidderTest extends VertxTest {
     public void makeHttpRequestShouldContainProperUriWithEncodedPublisherId() {
         // given
         final BidRequest bidRequest = givenBidRequest(
+                request -> request.app(App.builder().build()),
                 givenBannerImp(identity(), extImp -> extImp.publisherId("not/encoded")));
 
         // when
@@ -369,6 +372,7 @@ public class TaboolaBidderTest extends VertxTest {
     public void makeHttpRequestShouldContainProperUriWhenTypeIsNative() {
         // given
         final BidRequest bidRequest = givenBidRequest(
+                request -> request.app(App.builder().build()),
                 givenImp(imp -> imp.xNative(Native.builder().build()), ext -> ext.publisherId("publisherId")));
 
         // when
@@ -408,6 +412,33 @@ public class TaboolaBidderTest extends VertxTest {
                             .extracting(Publisher::getId)
                             .isEqualTo("extPublisherId");
                 });
+    }
+
+    @Test
+    public void makeHttpRequestShouldModifyAppDependsOnExtPublisherId() {
+        // given
+        final App givenApp = App.builder()
+                .id("id")
+                .publisher(Publisher.builder().id("id").build())
+                .build();
+
+        final BidRequest bidRequest = givenBidRequest(
+                request -> request.app(givenApp),
+                givenBannerImp(identity(), ext -> ext.publisherId("extPublisherId")));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        final App expectedApp = givenApp.toBuilder()
+                .publisher(Publisher.builder().id("extPublisherId").build())
+                .id("extPublisherId")
+                .build();
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getApp)
+                .containsOnly(expectedApp);
     }
 
     @Test
@@ -468,25 +499,10 @@ public class TaboolaBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestShouldCreateSiteIfNotPresent() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(givenBannerImp(identity(), identity()));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .extracting(BidRequest::getSite)
-                .doesNotContainNull();
-    }
-
-    @Test
     public void makeHttpRequestShouldUseDataFromLastImpExtForRequest() {
         // given
         final BidRequest bidRequest = givenBidRequest(
+                request -> request.site(Site.builder().build()),
                 givenBannerImp(identity(), ext -> ext.publisherId("1")),
                 givenBannerImp(identity(), ext -> ext.publisherId("2")));
 

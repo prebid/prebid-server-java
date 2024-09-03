@@ -4,6 +4,8 @@ import io.restassured.response.Response;
 import org.json.JSONException;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.model.Endpoint;
+import org.prebid.server.version.PrebidVersionProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.IOException;
 
@@ -15,11 +17,15 @@ import static java.util.Collections.singletonList;
 
 public class MagniteTest extends IntegrationTest {
 
+    @Autowired
+    private PrebidVersionProvider versionProvider;
+
     @Test
     public void testOpenrtb2AuctionCoreFunctionality() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/magnite-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/magnite/test-magnite-bid-request.json")))
+                .withRequestBody(equalToJson(
+                        jsonFrom("openrtb2/magnite/test-magnite-bid-request.json", versionProvider)))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/magnite/test-magnite-bid-response.json"))));
 
         // when
