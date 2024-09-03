@@ -15,6 +15,7 @@ import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import io.vertx.core.Future;
+import io.vertx.core.Vertx;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.auction.model.AuctionContext;
@@ -86,7 +87,8 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 storage,
                 "test_bucket",
                 "onnxModelRunner_",
-                "throttlingThresholds_");
+                "throttlingThresholds_",
+                Vertx.vertx());
         target = new GreenbidsRealTimeDataProcessedAuctionRequestHook(
                 mapper,
                 database,

@@ -5,6 +5,7 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
+import io.vertx.core.Vertx;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingThresholds;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.config.GreenbidsRealTimeDataProperties;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.FilterService;
@@ -52,7 +53,7 @@ public class GreenbidsRealTimeDataConfiguration {
 
     @Bean
     public OnnxModelRunnerWithThresholds onnxModelRunnerWithThresholds(
-            GreenbidsRealTimeDataProperties properties) {
+            GreenbidsRealTimeDataProperties properties, Vertx vertx) {
 
         final Storage storage = StorageOptions.newBuilder()
                 .setProjectId(properties.getGoogleCloudGreenbidsProject()).build().getService();
@@ -71,6 +72,7 @@ public class GreenbidsRealTimeDataConfiguration {
                 storage,
                 properties.getGcsBucketName(),
                 properties.getOnnxModelCacheKeyPrefix(),
-                properties.getThresholdsCacheKeyPrefix());
+                properties.getThresholdsCacheKeyPrefix(),
+                vertx);
     }
 }
