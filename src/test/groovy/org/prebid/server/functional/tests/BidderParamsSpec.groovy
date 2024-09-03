@@ -42,6 +42,7 @@ import static org.prebid.server.functional.model.request.auction.DistributionCha
 import static org.prebid.server.functional.model.request.auction.SecurityLevel.NON_SECURE
 import static org.prebid.server.functional.model.request.auction.SecurityLevel.SECURE
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.REQUEST_BLOCKED_BY_CURRENCY
+import static org.prebid.server.functional.model.response.auction.BidRejectionReason.REQUEST_BLOCKED_UNACCEPTABLE_CURRENCY
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 import static org.prebid.server.functional.model.response.auction.MediaType.AUDIO
 import static org.prebid.server.functional.model.response.auction.MediaType.BANNER
@@ -814,7 +815,7 @@ class BidderParamsSpec extends BaseSpec {
 
     def "PBS should send request to bidder when adapters.bidder.meta-info.currency-accepted doesn't specified"() {
         given: "PBS with adapter configuration"
-        def pbsService = pbsServiceFactory.getService("adapters.generic.meta-info.currency-accepted": null)
+        def pbsService = pbsServiceFactory.getService("adapters.generic.meta-info.currency-accepted": "")
 
         and: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -846,7 +847,7 @@ class BidderParamsSpec extends BaseSpec {
         def pbsService = pbsServiceFactory.getService(
                 "adapters.generic.aliases.alias.enabled" : "true",
                 "adapters.generic.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString(),
-                "adapters.generic.aliases.alias.meta-info.currency-accepted": null)
+                "adapters.generic.aliases.alias.meta-info.currency-accepted": "")
 
         and: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -933,7 +934,7 @@ class BidderParamsSpec extends BaseSpec {
         def seatNonBid = response.ext.seatnonbid[0]
         assert seatNonBid.seat == GENERIC.value
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
-        assert seatNonBid.nonBid[0].statusCode == REQUEST_BLOCKED_BY_CURRENCY
+        assert seatNonBid.nonBid[0].statusCode == REQUEST_BLOCKED_UNACCEPTABLE_CURRENCY
     }
 
     def "PBS should send request to bidder when adapters.bidder.aliases.bidder.meta-info.currency-accepted intersect with requested currency"() {
@@ -1014,6 +1015,6 @@ class BidderParamsSpec extends BaseSpec {
         def seatNonBid = response.ext.seatnonbid[0]
         assert seatNonBid.seat == GENERIC.value
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
-        assert seatNonBid.nonBid[0].statusCode == REQUEST_BLOCKED_BY_CURRENCY
+        assert seatNonBid.nonBid[0].statusCode == REQUEST_BLOCKED_UNACCEPTABLE_CURRENCY
     }
 }
