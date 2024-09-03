@@ -40,7 +40,7 @@ class AmpS3Spec extends StorageBaseSpec {
         assert !bidderRequest.imp[0]?.tagId
         assert bidderRequest.imp[0]?.banner?.format[0]?.height == ampStoredRequest.imp[0].banner.format[0].height
         assert bidderRequest.imp[0]?.banner?.format[0]?.weight == ampStoredRequest.imp[0].banner.format[0].weight
-        assert bidderRequest.regs?.gdpr == ampStoredRequest.regs.ext.gdpr
+        assert bidderRequest.regs?.gdpr == ampStoredRequest.regs.gdpr
     }
 
     @PendingFeature
