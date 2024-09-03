@@ -6,11 +6,12 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
+import io.vertx.core.Future;
+import io.vertx.core.Vertx;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingThresholds;
 
 import java.io.IOException;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -33,13 +34,16 @@ public class ThresholdCache {
 
     AtomicBoolean isFetching;
 
+    Vertx vertx;
+
     public ThresholdCache(
             String thresholdPath,
             Storage storage,
             String gcsBucketName,
             ObjectMapper mapper,
             Cache<String, ThrottlingThresholds> cache,
-            String thresholdsCacheKeyPrefix) {
+            String thresholdsCacheKeyPrefix,
+            Vertx vertx) {
         this.gcsBucketName = gcsBucketName;
         this.thresholdPath = thresholdPath;
         this.cache = cache;
@@ -48,32 +52,39 @@ public class ThresholdCache {
         this.thresholdsCacheKeyPrefix = thresholdsCacheKeyPrefix;
         this.executorService = Executors.newCachedThreadPool();
         this.isFetching = new AtomicBoolean(false);
+        this.vertx = vertx;
     }
 
-    public ThrottlingThresholds getThrottlingThresholds(String pbuid) {
+    public Future<ThrottlingThresholds> getThrottlingThresholds(String pbuid) {
         final String cacheKey = thresholdsCacheKeyPrefix + pbuid;
         final ThrottlingThresholds cachedThrottlingThresholds = cache.getIfPresent(cacheKey);
 
         if (cachedThrottlingThresholds != null) {
-            return cachedThrottlingThresholds;
+            return Future.succeededFuture(cachedThrottlingThresholds);
         }
 
         if (isFetching.compareAndSet(false, true)) {
-            CompletableFuture.runAsync(() -> {
-                try {
-                    fetchAndCacheThrottlingThresholds(cacheKey);
-                } finally {
-                    isFetching.set(false);
-                }
-            }, executorService);
+            try {
+                fetchAndCacheThrottlingThresholds(cacheKey);
+            } finally {
+                isFetching.set(false);
+            }
         }
-        return null;
+
+        return Future.failedFuture("ThrottlingThresholds fetching in progress");
     }
 
-    private void fetchAndCacheThrottlingThresholds(String cacheKey) {
-        final Blob blob = getBlob();
-        final ThrottlingThresholds throttlingThresholds = loadThrottlingThresholds(blob);
-        cache.put(cacheKey, throttlingThresholds);
+    private Future<Void> fetchAndCacheThrottlingThresholds(String cacheKey) {
+        return vertx.executeBlocking(promise -> {
+            try {
+                final Blob blob = getBlob();
+                final ThrottlingThresholds throttlingThresholds = loadThrottlingThresholds(blob);
+                cache.put(cacheKey, throttlingThresholds);
+            } catch (RuntimeException e) {
+                promise.fail(e);
+            }
+        });
+
     }
 
     private Blob getBlob() {

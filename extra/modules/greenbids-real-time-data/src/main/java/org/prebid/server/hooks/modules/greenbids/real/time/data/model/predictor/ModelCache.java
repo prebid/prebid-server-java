@@ -6,11 +6,10 @@ import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
+import io.vertx.core.Future;
+import io.vertx.core.Vertx;
 import org.prebid.server.exception.PreBidException;
 
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ModelCache {
@@ -25,49 +24,59 @@ public class ModelCache {
 
     String onnxModelCacheKeyPrefix;
 
-    ExecutorService executorService;
+    //ExecutorService executorService;
 
     AtomicBoolean isFetching;
+
+    Vertx vertx;
 
     public ModelCache(
             String modelPath,
             Storage storage,
             String gcsBucketName,
             Cache<String, OnnxModelRunner> cache,
-            String onnxModelCacheKeyPrefix) {
+            String onnxModelCacheKeyPrefix,
+            Vertx vertx) {
         this.gcsBucketName = gcsBucketName;
         this.modelPath = modelPath;
         this.cache = cache;
         this.storage = storage;
         this.onnxModelCacheKeyPrefix = onnxModelCacheKeyPrefix;
-        this.executorService = Executors.newCachedThreadPool();
+        //this.executorService = Executors.newCachedThreadPool();
         this.isFetching = new AtomicBoolean(false);
+        this.vertx = vertx;
     }
 
-    public OnnxModelRunner getModelRunner(String pbuid) {
+    public Future<OnnxModelRunner> getModelRunner(String pbuid) {
         final String cacheKey = onnxModelCacheKeyPrefix + pbuid;
         final OnnxModelRunner cachedOnnxModelRunner = cache.getIfPresent(cacheKey);
 
         if (cachedOnnxModelRunner != null) {
-            return cachedOnnxModelRunner;
+            return Future.succeededFuture(cachedOnnxModelRunner);
         }
 
         if (isFetching.compareAndSet(false, true)) {
-            CompletableFuture.runAsync(() -> {
-                try {
-                    fetchAndCacheModelRunner(cacheKey);
-                } finally {
-                    isFetching.set(false);
-                }
-            }, executorService);
+            try {
+                fetchAndCacheModelRunner(cacheKey);
+            } finally {
+                isFetching.set(false);
+            }
         }
-        return null;
+
+        return Future.failedFuture("ModelRunner fetching in progress");
     }
 
-    private void fetchAndCacheModelRunner(String cacheKey) {
-        final Blob blob = getBlob();
-        final OnnxModelRunner onnxModelRunner = loadModelRunner(blob);
-        cache.put(cacheKey, onnxModelRunner);
+    private Future<Void> fetchAndCacheModelRunner(String cacheKey) {
+        return vertx.executeBlocking(promise -> {
+            try {
+                final Blob blob = getBlob();
+                final OnnxModelRunner onnxModelRunner = loadModelRunner(blob);
+                cache.put(cacheKey, onnxModelRunner);
+                promise.complete();
+            } catch (RuntimeException e) {
+                promise.fail(e);
+            }
+        });
     }
 
     private Blob getBlob() {
