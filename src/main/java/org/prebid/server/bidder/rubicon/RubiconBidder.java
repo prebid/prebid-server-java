@@ -188,7 +188,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private final String xapiUsername;
     private final Set<String> supportedVendors;
     private final boolean generateBidId;
-    private final boolean useVideoSizeLogic;
     private final CurrencyConversionService currencyConversionService;
     private final PriceFloorResolver floorResolver;
     private final PrebidVersionProvider versionProvider;
@@ -203,7 +202,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
                          String xapiPassword,
                          List<String> supportedVendors,
                          boolean generateBidId,
-                         boolean useVideoSizeLogic,
                          CurrencyConversionService currencyConversionService,
                          PriceFloorResolver floorResolver,
                          PrebidVersionProvider versionProvider,
@@ -215,7 +213,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
         this.xapiUsername = Objects.requireNonNull(xapiUsername);
         this.supportedVendors = Set.copyOf(Objects.requireNonNull(supportedVendors));
         this.generateBidId = generateBidId;
-        this.useVideoSizeLogic = useVideoSizeLogic;
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
         this.floorResolver = Objects.requireNonNull(floorResolver);
         this.versionProvider = Objects.requireNonNull(versionProvider);
@@ -1027,9 +1024,8 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private Integer resolveSizeId(RubiconVideoParams rubiconVideoParams, Imp imp, String referer) {
         final Integer sizeId = rubiconVideoParams != null ? rubiconVideoParams.getSizeId() : null;
-        final Video video = imp.getVideo();
         final Integer resolvedSizeId = BidderUtil.isNullOrZero(sizeId)
-                ? useVideoSizeLogic ? resolveVideoSizeId(video.getPlacement(), imp.getInstl()) : null
+                ? null
                 : sizeId;
         validateVideoSizeId(resolvedSizeId, referer, imp.getId());
 
@@ -1044,23 +1040,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
                             .formatted(referer, impId),
                     0.01d);
         }
-    }
-
-    private static Integer resolveVideoSizeId(Integer placement, Integer instl) {
-        if (placement != null) {
-            if (placement == 1) {
-                return 201;
-            }
-            if (placement == 3) {
-                return 203;
-            }
-        }
-
-        if (instl != null && instl == 1) {
-            return 202;
-        }
-
-        return null;
     }
 
     private Banner makeBanner(Imp imp) {
