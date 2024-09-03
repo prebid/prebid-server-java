@@ -38,8 +38,6 @@ public class BidderConfigurationProperties {
 
     private List<String> deprecatedNames;
 
-    private List<String> currencyAccepted;
-
     private Map<String, Object> aliases;
 
     private Debug debug;
