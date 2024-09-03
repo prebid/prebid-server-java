@@ -4,6 +4,7 @@ import org.prebid.server.functional.model.db.StoredImp
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
+import org.prebid.server.functional.model.request.auction.SecurityLevel
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.S3Service
 import org.prebid.server.functional.util.PBSUtils
@@ -24,10 +25,10 @@ class AuctionS3Spec extends StorageBaseSpec {
         }
 
         and: "Save storedImp into S3 service"
-        def secureStoredRequest = PBSUtils.getRandomNumber(0, 1)
+        def secureStoredRequest = PBSUtils.getRandomEnum(SecurityLevel.class)
         def storedImp = StoredImp.getStoredImp(bidRequest).tap {
             impData = Imp.defaultImpression.tap {
-                it.secure = secureStoredRequest
+                secure = secureStoredRequest
             }
         }
         s3Service.uploadStoredImp(DEFAULT_BUCKET, storedImp)
