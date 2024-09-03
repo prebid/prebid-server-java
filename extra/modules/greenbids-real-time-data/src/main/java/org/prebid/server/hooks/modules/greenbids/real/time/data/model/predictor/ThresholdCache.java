@@ -12,8 +12,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingThresholds;
 
 import java.io.IOException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ThresholdCache {
@@ -29,8 +28,6 @@ public class ThresholdCache {
     ObjectMapper mapper;
 
     String thresholdsCacheKeyPrefix;
-
-    ExecutorService executorService;
 
     AtomicBoolean isFetching;
 
@@ -50,7 +47,6 @@ public class ThresholdCache {
         this.storage = storage;
         this.mapper = mapper;
         this.thresholdsCacheKeyPrefix = thresholdsCacheKeyPrefix;
-        this.executorService = Executors.newCachedThreadPool();
         this.isFetching = new AtomicBoolean(false);
         this.vertx = vertx;
     }
@@ -89,7 +85,9 @@ public class ThresholdCache {
 
     private Blob getBlob() {
         try {
-            return storage.get(gcsBucketName).get(thresholdPath);
+            return Optional.ofNullable(storage.get(gcsBucketName))
+                    .map(bucket -> bucket.get(thresholdPath))
+                    .orElseThrow(() -> new PreBidException("Bucket not found: " + gcsBucketName));
         } catch (StorageException e) {
             throw new PreBidException("Error accessing GCS artefact for threshold: ", e);
         }
