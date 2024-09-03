@@ -3,13 +3,13 @@ package org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor
 import ai.onnxruntime.OrtException;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.google.cloud.storage.Blob;
-import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import org.prebid.server.exception.PreBidException;
 
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ModelCache {
@@ -23,8 +23,6 @@ public class ModelCache {
     Storage storage;
 
     String onnxModelCacheKeyPrefix;
-
-    //ExecutorService executorService;
 
     AtomicBoolean isFetching;
 
@@ -81,8 +79,9 @@ public class ModelCache {
 
     private Blob getBlob() {
         try {
-            final Bucket bucket = storage.get(gcsBucketName);
-            return bucket.get(modelPath);
+            return Optional.ofNullable(storage.get(gcsBucketName))
+                    .map(bucket -> bucket.get(modelPath))
+                    .orElseThrow(() -> new PreBidException("Bucket not found: " + gcsBucketName));
         } catch (StorageException e) {
             throw new PreBidException("Error accessing GCS artefact for model: ", e);
         }
