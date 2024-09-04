@@ -101,17 +101,15 @@ public class S3PeriodicRefreshServiceTest extends VertxTest {
 
     @Test
     public void initializeShouldCallSaveWithExpectedParameters(VertxTestContext context) {
-        // when
-        createAndInitService(100);
-        sleep(10L);
+        // when and then
+        createAndInitService(100).onComplete(context.succeeding(ignored -> {
+            verify(cacheNotificationListener, atLeast(1))
+                    .save(singletonMap("id1", "value1"), singletonMap("id2", "value2"));
+            verify(metrics, atLeast(1)).updateSettingsCacheRefreshTime(
+                    eq(MetricName.stored_request), eq(MetricName.initialize), eq(400L));
 
-        // then
-        verify(cacheNotificationListener, atLeast(1))
-                .save(singletonMap("id1", "value1"), singletonMap("id2", "value2"));
-        verify(metrics, atLeast(1)).updateSettingsCacheRefreshTime(
-                eq(MetricName.stored_request), eq(MetricName.initialize), eq(400L));
-
-        context.completeNow();
+            context.completeNow();
+        }));
     }
 
     @Test
@@ -131,16 +129,14 @@ public class S3PeriodicRefreshServiceTest extends VertxTest {
                 .willReturn(CompletableFuture.failedFuture(new IllegalStateException("Failed")));
 
         // when
-        createAndInitService(100);
-        sleep(10L);
+        createAndInitService(100).onComplete(context.succeeding(ignored -> {
+            verify(metrics, atLeast(1)).updateSettingsCacheRefreshTime(
+                    eq(MetricName.stored_request), eq(MetricName.initialize), eq(400L));
+            verify(metrics, atLeast(1)).updateSettingsCacheRefreshErrorMetric(
+                    eq(MetricName.stored_request), eq(MetricName.initialize));
 
-        // then
-        verify(metrics, atLeast(1)).updateSettingsCacheRefreshTime(
-                eq(MetricName.stored_request), eq(MetricName.initialize), eq(400L));
-        verify(metrics, atLeast(1)).updateSettingsCacheRefreshErrorMetric(
-                eq(MetricName.stored_request), eq(MetricName.initialize));
-
-        context.completeNow();
+            context.completeNow();
+        }));
     }
 
     private CompletableFuture<ListObjectsResponse> listObjectResponse(String key) {
@@ -174,14 +170,5 @@ public class S3PeriodicRefreshServiceTest extends VertxTest {
         final Promise<Void> init = Promise.promise();
         s3PeriodicRefreshService.initialize(init);
         return init.future();
-    }
-
-    private static void sleep(long millis) {
-        try {
-            Thread.sleep(millis);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException(e);
-        }
     }
 }

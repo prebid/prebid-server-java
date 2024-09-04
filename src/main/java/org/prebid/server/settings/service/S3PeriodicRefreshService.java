@@ -74,17 +74,18 @@ public class S3PeriodicRefreshService implements Initializable {
 
     @Override
     public void initialize(Promise<Void> initializePromise) {
-        fetchStoredDataResult(clock.millis(), MetricName.initialize);
+        fetchStoredDataResult(clock.millis(), MetricName.initialize)
+                .<Void>mapEmpty()
+                .onComplete(initializePromise);
+
         if (refreshPeriod > 0) {
             logger.info("Starting s3 periodic refresh for " + cacheType + " every " + refreshPeriod + " s");
             vertx.setPeriodic(refreshPeriod, ignored -> fetchStoredDataResult(clock.millis(), MetricName.update));
         }
-
-        initializePromise.tryComplete();
     }
 
-    private void fetchStoredDataResult(long startTime, MetricName metricName) {
-        Future.all(
+    private Future<StoredDataResult> fetchStoredDataResult(long startTime, MetricName metricName) {
+        return Future.all(
                         getFileContentsForDirectory(storedRequestsDirectory),
                         getFileContentsForDirectory(storedImpressionsDirectory))
                 .map(CompositeFuture::<Map<String, String>>list)
