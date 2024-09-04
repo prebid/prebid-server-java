@@ -1223,7 +1223,6 @@ public class BidResponseCreatorTest extends VertxTest {
         final BidResponse bidResponse = target.create(auctionContext, CACHE_INFO, MULTI_BIDS).result();
 
         // then
-
         assertThat(bidResponse.getSeatbid()).hasSize(1)
                 .flatExtracting(SeatBid::getBid)
                 .extracting(Bid::getAdm)
@@ -1283,7 +1282,6 @@ public class BidResponseCreatorTest extends VertxTest {
         final BidResponse bidResponse = target.create(auctionContext, CACHE_INFO, MULTI_BIDS).result();
 
         // then
-
         assertThat(bidResponse.getSeatbid()).hasSize(1)
                 .flatExtracting(SeatBid::getBid)
                 .extracting(Bid::getAdm)

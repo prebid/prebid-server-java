@@ -184,7 +184,6 @@ public class RtbhouseBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldTakePriceFloorsWhenBidfloorParamIsAlsoPresent() {
         // given
-
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .bidfloor(BigDecimal.TEN).bidfloorcur("USD")
@@ -209,7 +208,6 @@ public class RtbhouseBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldTakeBidfloorExtImpParamIfNoBidfloorInRequest() {
         // given
-
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .ext(mapper.valueToTree(ExtPrebid.of(null,

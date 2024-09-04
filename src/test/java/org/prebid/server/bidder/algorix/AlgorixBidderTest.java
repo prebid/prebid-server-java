@@ -67,7 +67,6 @@ public class AlgorixBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorOfEveryNotValidImp() {
         // given
-
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(asList(Imp.builder()
                                 .id("123")

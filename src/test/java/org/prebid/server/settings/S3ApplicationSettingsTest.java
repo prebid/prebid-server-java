@@ -156,7 +156,6 @@ public class S3ApplicationSettingsTest extends VertxTest {
         final Future<Account> result = target.getAccountById("invalidJsonId", timeout);
 
         // then
-
         result.onComplete(context.failing(cause -> {
             assertThat(cause)
                     .isInstanceOf(PreBidException.class)

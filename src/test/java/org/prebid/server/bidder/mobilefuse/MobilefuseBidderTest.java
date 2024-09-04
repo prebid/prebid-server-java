@@ -221,7 +221,6 @@ public class MobilefuseBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-
         final ObjectNode expectedImpExt = mapper.createObjectNode().set("skadn", skadn);
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)

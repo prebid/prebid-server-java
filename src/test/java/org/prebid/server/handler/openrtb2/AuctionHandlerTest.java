@@ -587,7 +587,6 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldUpdateRequestTimeMetric() {
         // given
-
         // set up clock mock to check that request_time metric has been updated with expected value
         given(clock.millis()).willReturn(5000L).willReturn(5500L);
 
