@@ -129,7 +129,7 @@ public class S3PeriodicRefreshServiceTest extends VertxTest {
                 .willReturn(CompletableFuture.failedFuture(new IllegalStateException("Failed")));
 
         // when
-        createAndInitService(100).onComplete(context.succeeding(ignored -> {
+        createAndInitService(100).onComplete(context.failing(ignored -> {
             verify(metrics, atLeast(1)).updateSettingsCacheRefreshTime(
                     eq(MetricName.stored_request), eq(MetricName.initialize), eq(400L));
             verify(metrics, atLeast(1)).updateSettingsCacheRefreshErrorMetric(
