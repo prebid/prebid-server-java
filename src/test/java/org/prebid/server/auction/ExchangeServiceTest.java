@@ -48,6 +48,8 @@ import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessingResult;
 import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessor;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionParticipation;
+import org.prebid.server.auction.model.BidRejectionReason;
+import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.BidRequestCacheInfo;
 import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.auction.model.BidderRequest;
@@ -329,6 +331,7 @@ public class ExchangeServiceTest extends VertxTest {
                 null,
                 null,
                 0,
+                null,
                 false,
                 false,
                 CompressionType.NONE,
@@ -4666,6 +4669,62 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(result.result())
                 .extracting(AuctionContext::getBidResponse)
                 .isEqualTo(BidResponse.builder().id("uniqId").build());
+    }
+
+    @Test
+    public void shouldResponseWithEmptySeatBidIfBidderNotSupportRequestCurrency() {
+        // given
+        final Imp imp = givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1"));
+        final BidRequest bidRequest = givenBidRequest(singletonList(imp),
+                bidRequestBuilder -> bidRequestBuilder.cur(singletonList("USD")));
+        final AuctionContext auctionContext = givenRequestContext(bidRequest);
+
+        given(bidderCatalog.bidderInfoByName(anyString())).willReturn(BidderInfo.create(
+                true,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                0,
+                singletonList("CAD"),
+                false,
+                false,
+                CompressionType.NONE,
+                Ortb.of(false)));
+        given(bidResponseCreator.create(
+                argThat(argument -> argument.getAuctionParticipations().getFirst()
+                        .getBidderResponse()
+                        .equals(BidderResponse.of(
+                                "bidder1",
+                                BidderSeatBid.builder()
+                                        .warnings(Collections.singletonList(
+                                                BidderError.generic(
+                                                        "No match between the configured currencies and bidRequest.cur"
+                                                )))
+                                        .build(),
+                                0))),
+                any(),
+                any()))
+                .willReturn(Future.succeededFuture(BidResponse.builder().id("uniqId").build()));
+
+        // when
+        final Future<AuctionContext> result = target.holdAuction(auctionContext);
+
+        // then
+        assertThat(result.result())
+                .extracting(AuctionContext::getBidResponse)
+                .isEqualTo(BidResponse.builder().id("uniqId").build());
+        assertThat(result.result())
+                .extracting(AuctionContext::getBidRejectionTrackers)
+                .extracting(rejectionTrackers -> rejectionTrackers.get("bidder1"))
+                .extracting(BidRejectionTracker::getRejectionReasons)
+                .isEqualTo(Map.of("impId1", BidRejectionReason.REQUEST_BLOCKED_UNACCEPTABLE_CURRENCY));
+
     }
 
     @Test

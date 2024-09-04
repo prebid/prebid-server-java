@@ -24,6 +24,8 @@ public class MetaInfo {
 
     private List<String> supportedVendors;
 
+    private List<String> currencyAccepted;
+
     @NotNull
     private Integer vendorId;
 }
