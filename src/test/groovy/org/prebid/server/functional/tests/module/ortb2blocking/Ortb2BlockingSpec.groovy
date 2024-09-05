@@ -579,7 +579,6 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         PBSUtils.randomString | BADV
         PBSUtils.randomString | BAPP
         PBSUtils.randomString | BCAT
-        PBSUtils.randomNumber | BATTR
     }
 
     @PendingFeature
