@@ -118,12 +118,13 @@ Please pay attention to line breaks and escape them if needed.
 
 Example execution using sample configuration:
 ```shell
-docker run --rm -v ./sample:/app/prebid-server/sample:ro -e JAVA_OPTS=-Dspring.config.additional-location=sample/configs/prebid-config.yaml ghcr.io/prebid/prebid-server-java:latest
+docker run --rm -v ./sample:/app/prebid-server/sample:ro -p 8060:8060 -p 8080:8080 ghcr.io/prebid/prebid-server-java:latest --spring.config.additional-location=sample/configs/prebid-config.yaml
 ```
 or
 ```shell
-docker run --rm -v ./sample:/app/prebid-server/sample:ro ghcr.io/prebid/prebid-server-java:latest --spring.config.additional-location=sample/configs/prebid-config.yaml 
+docker run --rm -v ./sample:/app/prebid-server/sample:ro -p 8060:8060 -p 8080:8080 -e JAVA_OPTS=-Dspring.config.additional-location=sample/configs/prebid-config.yaml ghcr.io/prebid/prebid-server-java:latest
 ```
+
 # Documentation
 
 ## Development
