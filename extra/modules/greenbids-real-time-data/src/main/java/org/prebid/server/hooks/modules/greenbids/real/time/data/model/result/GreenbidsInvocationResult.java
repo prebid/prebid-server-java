@@ -32,18 +32,18 @@ public class GreenbidsInvocationResult {
             Map<String, Map<String, Boolean>> impsBiddersFilterMap) {
 
         final String greenbidsId = UUID.randomUUID().toString();
-        final boolean isExploration = determineIsExploration(partner, greenbidsId);
+        final boolean isExploration = isExploration(partner, greenbidsId);
 
         final List<Imp> impsWithFilteredBidders = updateImps(bidRequest, impsBiddersFilterMap);
-        final BidRequest updatedBidRequest = !isExploration
-                ? bidRequest.toBuilder().imp(impsWithFilteredBidders).build()
-                : bidRequest;
-        final InvocationAction invocationAction = !isExploration
-                ? InvocationAction.update
-                : InvocationAction.no_action;
-        final Map<String, Map<String, Boolean>> impsBiddersFilterMapToAnalyticsTag = !isExploration
-                ? impsBiddersFilterMap
-                : keepAllBiddersForAnalyticsResult(impsBiddersFilterMap);
+        final BidRequest updatedBidRequest = isExploration
+                ? bidRequest
+                : bidRequest.toBuilder().imp(impsWithFilteredBidders).build();
+        final InvocationAction invocationAction = isExploration
+                ? InvocationAction.no_action
+                : InvocationAction.update;
+        final Map<String, Map<String, Boolean>> impsBiddersFilterMapToAnalyticsTag = isExploration
+                ? keepAllBiddersForAnalyticsResult(impsBiddersFilterMap)
+                : impsBiddersFilterMap;
         final Map<String, Ortb2ImpExtResult> ort2ImpExtResultMap = createOrtb2ImpExtForImps(
                 bidRequest, impsBiddersFilterMapToAnalyticsTag, greenbidsId, isExploration);
         final AnalyticsResult analyticsResult = AnalyticsResult.of(
@@ -56,7 +56,7 @@ public class GreenbidsInvocationResult {
                 .build();
     }
 
-    private static Boolean determineIsExploration(Partner partner, String greenbidsId) {
+    private static Boolean isExploration(Partner partner, String greenbidsId) {
         final int hashInt = Integer.parseInt(
                 greenbidsId.substring(greenbidsId.length() - 4), 16);
         return hashInt < partner.getExplorationRate() * RANGE_16_BIT_INTEGER_DIVISION_BASIS;
@@ -89,11 +89,11 @@ public class GreenbidsInvocationResult {
     private static Map<String, Map<String, Boolean>> keepAllBiddersForAnalyticsResult(
             Map<String, Map<String, Boolean>> impsBiddersFilterMap) {
 
-        impsBiddersFilterMap.replaceAll((impId, biddersMap) ->
-                biddersMap
-                        .entrySet().stream()
-                        .collect(Collectors.toMap(Map.Entry::getKey, entry -> true)));
-        return impsBiddersFilterMap;
+        return impsBiddersFilterMap.entrySet().stream()
+                        .collect(Collectors.toMap(
+                                Map.Entry::getKey,
+                                entry -> entry.getValue().entrySet().stream()
+                                        .collect(Collectors.toMap(Map.Entry::getKey, e -> true))));
     }
 
     private static Map<String, Ortb2ImpExtResult> createOrtb2ImpExtForImps(
