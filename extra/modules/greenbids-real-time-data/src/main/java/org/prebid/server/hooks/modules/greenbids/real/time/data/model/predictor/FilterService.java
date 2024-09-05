@@ -16,7 +16,7 @@ import java.util.stream.StreamSupport;
 
 public class FilterService {
 
-    public Map<String, Map<String, Boolean>> runModeAndFilterBidders(
+    public Map<String, Map<String, Boolean>> filterBidders(
             OnnxModelRunner onnxModelRunner,
             List<ThrottlingMessage> throttlingMessages,
             String[][] throttlingInferenceRows,

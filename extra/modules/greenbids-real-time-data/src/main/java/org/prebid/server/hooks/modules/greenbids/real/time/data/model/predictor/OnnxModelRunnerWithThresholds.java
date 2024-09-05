@@ -47,7 +47,7 @@ public class OnnxModelRunnerWithThresholds {
         return modelCache.getModelRunner(partner.getPbuid());
     }
 
-    public Future<ThrottlingThresholds> retrieveThreshold(Partner partner, ObjectMapper mapper) {
+    public Future<Double> retrieveThreshold(Partner partner, ObjectMapper mapper) {
         final String thresholdJsonPath = "thresholds_pbuid=" + partner.getPbuid() + ".json";
         final ThresholdCache thresholdCache = new ThresholdCache(
                 thresholdJsonPath,
@@ -57,6 +57,7 @@ public class OnnxModelRunnerWithThresholds {
                 thresholdsCacheWithExpiration,
                 thresholdsCacheKeyPrefix,
                 vertx);
-        return thresholdCache.getThrottlingThresholds(partner.getPbuid());
+        return thresholdCache.getThrottlingThresholds(partner.getPbuid())
+                .map(partner::getThreshold);
     }
 }

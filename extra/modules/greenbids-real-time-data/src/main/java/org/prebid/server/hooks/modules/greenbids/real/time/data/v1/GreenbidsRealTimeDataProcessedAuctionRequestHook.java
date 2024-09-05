@@ -58,9 +58,9 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
             FilterService filterService,
             OnnxModelRunnerWithThresholds onnxModelRunnerWithThresholds) {
         this.mapper = Objects.requireNonNull(mapper);
-        this.database = database;
-        this.filterService = filterService;
-        this.onnxModelRunnerWithThresholds = onnxModelRunnerWithThresholds;
+        this.database = Objects.requireNonNull(database);
+        this.filterService = Objects.requireNonNull(filterService);
+        this.onnxModelRunnerWithThresholds = Objects.requireNonNull(onnxModelRunnerWithThresholds);
     }
 
     @Override
@@ -79,10 +79,10 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
 
         return onnxModelRunnerWithThresholds.retrieveOnnxModelRunner(partner)
                 .compose(onnxModelRunner -> onnxModelRunnerWithThresholds.retrieveThreshold(partner, mapper)
-                        .compose(throttlingThresholds -> {
+                        .compose(threshold -> {
                             Map<String, Map<String, Boolean>> impsBiddersFilterMap = null;
                             try {
-                                if (onnxModelRunner == null || throttlingThresholds == null) {
+                                if (onnxModelRunner == null || threshold == null) {
                                     throw new PreBidException(
                                             "Cache was empty, fetching and put artefacts for next request");
                                 }
@@ -90,8 +90,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                                 final GreenbidsInferenceData greenbidsInferenceData = GreenbidsInferenceData
                                         .prepareData(bidRequest, database, mapper);
 
-                                final Double threshold = partner.getThreshold(throttlingThresholds);
-                                impsBiddersFilterMap = filterService.runModeAndFilterBidders(
+                                impsBiddersFilterMap = filterService.filterBidders(
                                         onnxModelRunner,
                                         greenbidsInferenceData.getThrottlingMessages(),
                                         greenbidsInferenceData.getThrottlingInferenceRows(),
@@ -133,7 +132,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
         try {
             return mapper.treeToValue(adapterNode, Partner.class);
         } catch (JsonProcessingException e) {
-            throw new PreBidException("Error decoding bid request analytics extension: " + e.getMessage(), e);
+            return null;
         }
     }
 
@@ -150,8 +149,6 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                 .<AuctionRequestPayload>builder()
                 .status(InvocationStatus.success)
                 .action(action)
-                .errors(null)
-                .debugMessages(null)
                 .payloadUpdate(payload -> AuctionRequestPayloadImpl.of(bidRequest))
                 .analyticsTags(toAnalyticsTags(analyticsResults))
                 .build();

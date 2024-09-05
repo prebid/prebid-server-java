@@ -43,14 +43,14 @@ public class GreenbidsInferenceData {
             File database,
             ObjectMapper mapper) {
 
-        final String userAgent = Optional.ofNullable(bidRequest.getDevice())
+        final GreenbidsUserAgent userAgent = Optional.ofNullable(bidRequest.getDevice())
                 .map(Device::getUa)
+                .map(GreenbidsUserAgent::new)
                 .orElse(null);
-        final GreenbidsUserAgent greenbidsUserAgent = new GreenbidsUserAgent(userAgent);
 
         final List<ThrottlingMessage> throttlingMessages = extractThrottlingMessages(
                 bidRequest,
-                greenbidsUserAgent,
+                userAgent,
                 database,
                 mapper);
 
@@ -144,12 +144,16 @@ public class GreenbidsInferenceData {
                 final String bidderName = fieldNames.next();
                 throttlingImpMessages.add(
                         ThrottlingMessage.builder()
-                                .browser(greenbidsUserAgent.getBrowser())
+                                .browser(Optional.ofNullable(greenbidsUserAgent)
+                                        .map(GreenbidsUserAgent::getBrowser)
+                                        .orElse(null))
                                 .bidder(bidderName)
                                 .adUnitCode(impId)
                                 .country(countryFromIp)
                                 .hostname(hostname)
-                                .device(greenbidsUserAgent.getDevice())
+                                .device(Optional.ofNullable(greenbidsUserAgent)
+                                        .map(GreenbidsUserAgent::getDevice)
+                                        .orElse(null))
                                 .hourBucket(hourBucket.toString())
                                 .minuteQuadrant(minuteQuadrant.toString())
                                 .build());
