@@ -8,11 +8,15 @@ import com.google.cloud.storage.StorageException;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ModelCache {
+
+    private static final Logger logger = LoggerFactory.getLogger(ModelCache.class);
 
     String gcsBucketName;
 
@@ -40,7 +44,6 @@ public class ModelCache {
         this.cache = cache;
         this.storage = storage;
         this.onnxModelCacheKeyPrefix = onnxModelCacheKeyPrefix;
-        //this.executorService = Executors.newCachedThreadPool();
         this.isFetching = new AtomicBoolean(false);
         this.vertx = vertx;
     }
@@ -64,17 +67,11 @@ public class ModelCache {
         return Future.failedFuture("ModelRunner fetching in progress");
     }
 
-    private Future<Void> fetchAndCacheModelRunner(String cacheKey) {
-        return vertx.executeBlocking(promise -> {
-            try {
-                final Blob blob = getBlob();
-                final OnnxModelRunner onnxModelRunner = loadModelRunner(blob);
-                cache.put(cacheKey, onnxModelRunner);
-                promise.complete();
-            } catch (RuntimeException e) {
-                promise.fail(e);
-            }
-        });
+    private void fetchAndCacheModelRunner(String cacheKey) {
+        vertx.executeBlocking(this::getBlob)
+                .map(this::loadModelRunner)
+                .onSuccess(onnxModelRunner -> cache.put(cacheKey, onnxModelRunner))
+                .onFailure(error -> logger.error("Failed to fetch ONNX model"));
     }
 
     private Blob getBlob() {
@@ -92,7 +89,7 @@ public class ModelCache {
             final byte[] onnxModelBytes = blob.getContent();
             return new OnnxModelRunner(onnxModelBytes);
         } catch (OrtException e) {
-            throw new PreBidException("Failed to load ONNX model", e);
+            throw new PreBidException("Failed to convert blob to ONNX model", e);
         }
     }
 }

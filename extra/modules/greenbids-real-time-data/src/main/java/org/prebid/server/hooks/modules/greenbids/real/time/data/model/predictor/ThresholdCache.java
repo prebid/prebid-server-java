@@ -10,12 +10,16 @@ import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingThresholds;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ThresholdCache {
+
+    private static final Logger logger = LoggerFactory.getLogger(ThresholdCache.class);
 
     String gcsBucketName;
 
@@ -70,17 +74,11 @@ public class ThresholdCache {
         return Future.failedFuture("ThrottlingThresholds fetching in progress");
     }
 
-    private Future<Void> fetchAndCacheThrottlingThresholds(String cacheKey) {
-        return vertx.executeBlocking(promise -> {
-            try {
-                final Blob blob = getBlob();
-                final ThrottlingThresholds throttlingThresholds = loadThrottlingThresholds(blob);
-                cache.put(cacheKey, throttlingThresholds);
-            } catch (RuntimeException e) {
-                promise.fail(e);
-            }
-        });
-
+    private void fetchAndCacheThrottlingThresholds(String cacheKey) {
+        vertx.executeBlocking(this::getBlob)
+                .map(this::loadThrottlingThresholds)
+                .onSuccess(thresholds -> cache.put(cacheKey, thresholds))
+                .onFailure(error -> logger.error("Failed to fetch thresholds"));
     }
 
     private Blob getBlob() {
