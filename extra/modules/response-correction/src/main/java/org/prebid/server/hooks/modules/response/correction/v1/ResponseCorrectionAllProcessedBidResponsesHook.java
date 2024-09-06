@@ -24,7 +24,7 @@ import java.util.Objects;
 
 public class ResponseCorrectionAllProcessedBidResponsesHook implements AllProcessedBidResponsesHook {
 
-    private static final String CODE = "pb-request-correction-all-processed-bid-responses";
+    private static final String CODE = "pb-response-correction-all-processed-bid-responses";
 
     private final CorrectionsProvider correctionsProvider;
     private final ObjectMapper mapper;
