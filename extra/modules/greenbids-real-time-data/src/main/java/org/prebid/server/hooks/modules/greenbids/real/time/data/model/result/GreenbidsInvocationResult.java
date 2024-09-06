@@ -3,7 +3,6 @@ package org.prebid.server.hooks.modules.greenbids.real.time.data.model.result;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
-import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.Partner;
 import org.prebid.server.hooks.v1.InvocationAction;
@@ -14,8 +13,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-@Builder(toBuilder = true)
-@Value
+@Value(staticConstructor = "of")
 public class GreenbidsInvocationResult {
 
     private static final int RANGE_16_BIT_INTEGER_DIVISION_BASIS = 0x10000;
@@ -26,7 +24,7 @@ public class GreenbidsInvocationResult {
 
     AnalyticsResult analyticsResult;
 
-    public static GreenbidsInvocationResult prepareInvocationResult(
+    public static GreenbidsInvocationResult of(
             Partner partner,
             BidRequest bidRequest,
             Map<String, Map<String, Boolean>> impsBiddersFilterMap) {
@@ -49,11 +47,7 @@ public class GreenbidsInvocationResult {
         final AnalyticsResult analyticsResult = AnalyticsResult.of(
                 "success", ort2ImpExtResultMap, null, null);
 
-        return GreenbidsInvocationResult.builder()
-                .analyticsResult(analyticsResult)
-                .invocationAction(invocationAction)
-                .updatedBidRequest(updatedBidRequest)
-                .build();
+        return of(updatedBidRequest, invocationAction, analyticsResult);
     }
 
     private static Boolean isExploration(Partner partner, String greenbidsId) {

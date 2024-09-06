@@ -16,34 +16,36 @@ public class GreenbidsUserAgent {
 
     private static final Parser UA_PARSER = new Parser();
 
-    private final Optional<String> userAgentString;
+    private final String userAgentString;
 
-    private final Optional<UserAgent> userAgent;
+    private final UserAgent userAgent;
 
-    private final Optional<Device> device;
+    private final Device device;
 
-    private final Optional<OS> os;
+    private final OS os;
 
     public GreenbidsUserAgent(String userAgentString) {
-        this.userAgentString = Optional.ofNullable(userAgentString);
+        this.userAgentString = userAgentString;
         final Client client = UA_PARSER.parse(userAgentString);
-        this.userAgent = Optional.ofNullable(client.userAgent);
-        this.device = Optional.ofNullable(client.device);
-        this.os = Optional.ofNullable(client.os);
+        this.userAgent = client.userAgent;
+        this.device = client.device;
+        this.os = client.os;
     }
 
     public String getDevice() {
-        return device.map(device -> isPC() ? "PC" : device.family).orElse("");
+        return Optional.ofNullable(device)
+                .map(device -> isPC() ? "PC" : device.family)
+                .orElse("");
     }
 
     public String getBrowser() {
-        return userAgent
+        return Optional.ofNullable(userAgent)
                 .map(userAgent -> "%s %s".formatted(userAgent.family, userAgent.major).trim())
                 .orElse("");
     }
 
     private boolean isPC() {
-        return userAgentString
+        return Optional.ofNullable(userAgentString)
                 .map(userAgent -> userAgent.contains("Windows NT")
                         || PC_OS_FAMILIES.contains(osFamily())
                         || ("Windows".equals(osFamily()) && "ME".equals(osMajor()))
@@ -53,10 +55,10 @@ public class GreenbidsUserAgent {
     }
 
     private String osFamily() {
-        return os.map(os -> os.family).orElse("");
+        return Optional.ofNullable(os).map(os -> os.family).orElse("");
     }
 
     private String osMajor() {
-        return os.map(os -> os.major).orElse("");
+        return Optional.ofNullable(os).map(os -> os.major).orElse("");
     }
 }
