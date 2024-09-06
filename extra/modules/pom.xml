@@ -21,7 +21,7 @@
         <module>confiant-ad-quality</module>
         <module>pb-richmedia-filter</module>
         <module>fiftyone-devicedetection</module>
-        <module>response-correction</module>
+        <module>pb-response-correction</module>
     </modules>
 
     <dependencyManagement>
