@@ -1,18 +1,17 @@
 adapters:
-  trafficgate:
-    endpoint: http://{{subdomain}}.bc-plugin.com/?c=o&m=rtb
+  escalax:
+    endpoint: http://bidder_us.escalax.io/?partner={{.SourceId}}&token={{.AccountID}}&type=pbs
     modifying-vast-xml-allowed: true
+    endpoint-compression: gzip
     meta-info:
-      maintainer-email: "support@bidscube.com"
+      maintainer-email: connect@escalax.io
       app-media-types:
         - banner
         - video
         - native
-        - audio
       site-media-types:
         - banner
         - video
         - native
-        - audio
       supported-vendors:
       vendor-id: 0
