@@ -14,6 +14,7 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
+import com.maxmind.geoip2.DatabaseReader;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import org.junit.jupiter.api.BeforeEach;
@@ -68,7 +69,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
     private Cache<String, ThrottlingThresholds> thresholdsCacheWithExpiration;
 
     @BeforeEach
-    public void setUp() {
+    public void setUp() throws IOException {
         final ObjectMapper mapper = new ObjectMapper();
         jacksonMapper = new JacksonMapper(mapper);
         modelCacheWithExpiration = Caffeine.newBuilder()
@@ -80,6 +81,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final Storage storage = StorageOptions.newBuilder()
                 .setProjectId("test_project").build().getService();
         final File database = new File("src/test/resources/GeoLite2-Country.mmdb");
+        final DatabaseReader dbReader = new DatabaseReader.Builder(database).build();
         final FilterService filterService = new FilterService();
         final OnnxModelRunnerWithThresholds onnxModelRunnerWithThresholds = new OnnxModelRunnerWithThresholds(
                 modelCacheWithExpiration,
@@ -91,7 +93,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 Vertx.vertx());
         target = new GreenbidsRealTimeDataProcessedAuctionRequestHook(
                 mapper,
-                database,
+                dbReader,
                 filterService,
                 onnxModelRunnerWithThresholds);
     }
