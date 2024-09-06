@@ -15,7 +15,6 @@ import lombok.Value;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.time.ZoneId;
@@ -34,7 +33,7 @@ public class GreenbidsInferenceData {
 
     public static GreenbidsInferenceData of(
             BidRequest bidRequest,
-            File database,
+            DatabaseReader dbReader,
             ObjectMapper mapper) {
 
         final GreenbidsUserAgent userAgent = Optional.ofNullable(bidRequest.getDevice())
@@ -45,7 +44,7 @@ public class GreenbidsInferenceData {
         final List<ThrottlingMessage> throttlingMessages = extractThrottlingMessages(
                 bidRequest,
                 userAgent,
-                database,
+                dbReader,
                 mapper);
 
         return of(throttlingMessages);
@@ -54,7 +53,7 @@ public class GreenbidsInferenceData {
     private static List<ThrottlingMessage> extractThrottlingMessages(
             BidRequest bidRequest,
             GreenbidsUserAgent greenbidsUserAgent,
-            File database,
+            DatabaseReader dbReader,
             ObjectMapper mapper) {
 
         final ZonedDateTime timestamp = ZonedDateTime.now(ZoneId.of("UTC"));
@@ -72,7 +71,7 @@ public class GreenbidsInferenceData {
                         hostname,
                         hourBucket,
                         minuteQuadrant,
-                        database,
+                        dbReader,
                         mapper))
                 .collect(Collectors.toList());
     }
@@ -84,7 +83,7 @@ public class GreenbidsInferenceData {
             String hostname,
             Integer hourBucket,
             Integer minuteQuadrant,
-            File database,
+            DatabaseReader dbReader,
             ObjectMapper mapper) {
 
         final String impId = imp.getId();
@@ -93,7 +92,7 @@ public class GreenbidsInferenceData {
         final String ip = Optional.ofNullable(bidRequest.getDevice())
                 .map(Device::getIp)
                 .orElse(null);
-        final String countryFromIp = getCountrySafely(ip, database);
+        final String countryFromIp = getCountrySafely(ip, dbReader);
         return createThrottlingMessages(
                 bidderNode,
                 impId,
@@ -104,9 +103,9 @@ public class GreenbidsInferenceData {
                 minuteQuadrant).stream();
     }
 
-    private static String getCountrySafely(String ip, File database) {
+    private static String getCountrySafely(String ip, DatabaseReader dbReader) {
         try {
-            return getCountry(ip, database);
+            return getCountry(ip, dbReader);
         } catch (IOException | GeoIp2Exception e) {
             throw new PreBidException("Failed to get country for IP", e);
         }
@@ -172,11 +171,10 @@ public class GreenbidsInferenceData {
         }
     }
 
-    private static String getCountry(String ip, File database) throws IOException, GeoIp2Exception {
+    private static String getCountry(String ip, DatabaseReader dbReader) throws IOException, GeoIp2Exception {
         return Optional.ofNullable(ip)
                 .map(ipAddress -> {
                     try {
-                        final DatabaseReader dbReader = new DatabaseReader.Builder(database).build();
                         final InetAddress inetAddress = InetAddress.getByName(ipAddress);
                         final CountryResponse response = dbReader.country(inetAddress);
                         final Country country = response.getCountry();

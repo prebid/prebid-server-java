@@ -75,16 +75,22 @@ public class FilterService {
     }
 
     private Map<String, Map<String, Boolean>> processProbabilities(
-            float[][] probabiliies,
+            float[][] probabilities,
             List<ThrottlingMessage> throttlingMessages,
             Double threshold) {
-        final Map<String, Map<String, Boolean>> impsBiddersFilterMap = new HashMap<>();
-        IntStream.range(0, probabiliies.length)
-                .mapToObj(i -> createEntry(throttlingMessages.get(i), probabiliies[i][1], threshold))
-                .forEach(entry -> impsBiddersFilterMap
-                        .computeIfAbsent(entry.getKey(), k -> new HashMap<>())
-                        .put(entry.getValue().getKey(), entry.getValue().getValue()));
-        return impsBiddersFilterMap;
+        return IntStream.range(0, probabilities.length)
+                .mapToObj(i -> createEntry(throttlingMessages.get(i), probabilities[i][1], threshold))
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        entry -> {
+                            final Map<String, Boolean> bidderToIsKeptInAuction = new HashMap<>();
+                            bidderToIsKeptInAuction.put(entry.getValue().getKey(), entry.getValue().getValue());
+                            return bidderToIsKeptInAuction;
+                        },
+                        (existingMap, newMap) -> {
+                            existingMap.putAll(newMap);
+                            return existingMap;
+                        }));
     }
 
     private Map.Entry<String, Map.Entry<String, Boolean>> createEntry(

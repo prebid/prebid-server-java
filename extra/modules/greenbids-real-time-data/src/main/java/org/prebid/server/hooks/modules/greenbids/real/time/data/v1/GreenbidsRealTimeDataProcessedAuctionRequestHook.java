@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
+import com.maxmind.geoip2.DatabaseReader;
 import io.vertx.core.Future;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.auction.model.AuctionContext;
@@ -34,7 +35,6 @@ import org.prebid.server.hooks.v1.auction.ProcessedAuctionRequestHook;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 
-import java.io.File;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -49,17 +49,17 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
     private static final String BID_REQUEST_ANALYTICS_EXTENSION_NAME = "greenbids-rtd";
 
     private final ObjectMapper mapper;
-    private final File database;
+    private final DatabaseReader dbReader;
     private final FilterService filterService;
     private final OnnxModelRunnerWithThresholds onnxModelRunnerWithThresholds;
 
     public GreenbidsRealTimeDataProcessedAuctionRequestHook(
             ObjectMapper mapper,
-            File database,
+            DatabaseReader dbReader,
             FilterService filterService,
             OnnxModelRunnerWithThresholds onnxModelRunnerWithThresholds) {
         this.mapper = Objects.requireNonNull(mapper);
-        this.database = Objects.requireNonNull(database);
+        this.dbReader = Objects.requireNonNull(dbReader);
         this.filterService = Objects.requireNonNull(filterService);
         this.onnxModelRunnerWithThresholds = Objects.requireNonNull(onnxModelRunnerWithThresholds);
     }
@@ -121,7 +121,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
         final Map<String, Map<String, Boolean>> impsBiddersFilterMap;
         try {
             final GreenbidsInferenceData greenbidsInferenceData = GreenbidsInferenceData
-                    .of(bidRequest, database, mapper);
+                    .of(bidRequest, dbReader, mapper);
 
             impsBiddersFilterMap = filterService.filterBidders(
                     onnxModelRunner,
