@@ -124,7 +124,7 @@ accounts:
     auction:
       price-floors:
         fetch:
-          url: http://localhost:8090/floors-provider
+          url: http://localhost:8100/floors-provider
           enabled: true
 domains:
   - rubiconproject.com
