@@ -5,7 +5,9 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
+import com.maxmind.geoip2.DatabaseReader;
 import io.vertx.core.Vertx;
+import org.prebid.server.exception.PreBidException;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingThresholds;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.config.GreenbidsRealTimeDataProperties;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.FilterService;
@@ -20,6 +22,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -37,13 +40,17 @@ public class GreenbidsRealTimeDataConfiguration {
         final ObjectMapper mapper = ObjectMapperProvider.mapper();
 
         final File database = new File(properties.getGeoLiteCountryPath());
-
-        return new GreenbidsRealTimeDataModule(List.of(
-                new GreenbidsRealTimeDataProcessedAuctionRequestHook(
-                        mapper,
-                        database,
-                        filterService,
-                        onnxModelRunnerWithThresholds)));
+        try {
+            final DatabaseReader dbReader = new DatabaseReader.Builder(database).build();
+            return new GreenbidsRealTimeDataModule(List.of(
+                    new GreenbidsRealTimeDataProcessedAuctionRequestHook(
+                            mapper,
+                            dbReader,
+                            filterService,
+                            onnxModelRunnerWithThresholds)));
+        } catch (IOException e) {
+            throw new PreBidException("Failed build DatabaseReader from DB", e);
+        }
     }
 
     @Bean
