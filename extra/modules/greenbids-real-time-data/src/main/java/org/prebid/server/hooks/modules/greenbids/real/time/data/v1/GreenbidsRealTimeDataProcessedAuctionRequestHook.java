@@ -13,6 +13,7 @@ import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.Partner;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.data.GreenbidsInferenceData;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.FilterService;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.OnnxModelRunner;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.OnnxModelRunnerWithThresholds;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.result.AnalyticsResult;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.result.GreenbidsInvocationResult;
@@ -77,38 +78,14 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                     bidRequest, null, InvocationAction.no_action));
         }
 
-        return onnxModelRunnerWithThresholds.retrieveOnnxModelRunner(partner)
-                .compose(onnxModelRunner -> onnxModelRunnerWithThresholds.retrieveThreshold(partner, mapper)
-                        .compose(threshold -> {
-                            Map<String, Map<String, Boolean>> impsBiddersFilterMap = null;
-                            try {
-                                if (onnxModelRunner == null || threshold == null) {
-                                    throw new PreBidException(
-                                            "Cache was empty, fetching and put artefacts for next request");
-                                }
-
-                                final GreenbidsInferenceData greenbidsInferenceData = GreenbidsInferenceData
-                                        .prepareData(bidRequest, database, mapper);
-
-                                impsBiddersFilterMap = filterService.filterBidders(
-                                        onnxModelRunner,
-                                        greenbidsInferenceData.getThrottlingMessages(),
-                                        greenbidsInferenceData.getThrottlingInferenceRows(),
-                                        threshold);
-                            } catch (PreBidException e) {
-                                return Future.succeededFuture(toInvocationResult(
-                                        bidRequest, null, InvocationAction.no_action));
-                            }
-
-                            final GreenbidsInvocationResult greenbidsInvocationResult = GreenbidsInvocationResult
-                                    .prepareInvocationResult(
-                                            partner, bidRequest, impsBiddersFilterMap);
-
-                            return Future.succeededFuture(toInvocationResult(
-                                    greenbidsInvocationResult.getUpdatedBidRequest(),
-                                    greenbidsInvocationResult.getAnalyticsResult(),
-                                    greenbidsInvocationResult.getInvocationAction()));
-                        }))
+        return Future.join(
+                        onnxModelRunnerWithThresholds.retrieveOnnxModelRunner(partner),
+                        onnxModelRunnerWithThresholds.retrieveThreshold(partner, mapper))
+                .compose(compositeFuture -> toInvocationResult(
+                        bidRequest,
+                        partner,
+                        compositeFuture.resultAt(0),
+                        compositeFuture.resultAt(1)))
                 .recover(throwable -> Future.succeededFuture(toInvocationResult(
                         bidRequest, null, InvocationAction.no_action)));
     }
@@ -134,6 +111,34 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
         } catch (JsonProcessingException e) {
             return null;
         }
+    }
+
+    private Future<InvocationResult<AuctionRequestPayload>> toInvocationResult(
+            BidRequest bidRequest,
+            Partner partner,
+            OnnxModelRunner onnxModelRunner,
+            Double threshold) {
+        final Map<String, Map<String, Boolean>> impsBiddersFilterMap;
+        try {
+            final GreenbidsInferenceData greenbidsInferenceData = GreenbidsInferenceData
+                    .of(bidRequest, database, mapper);
+
+            impsBiddersFilterMap = filterService.filterBidders(
+                    onnxModelRunner,
+                    greenbidsInferenceData.getThrottlingMessages(),
+                    threshold);
+        } catch (PreBidException e) {
+            return Future.succeededFuture(toInvocationResult(
+                    bidRequest, null, InvocationAction.no_action));
+        }
+
+        final GreenbidsInvocationResult greenbidsInvocationResult = GreenbidsInvocationResult
+                .of(partner, bidRequest, impsBiddersFilterMap);
+
+        return Future.succeededFuture(toInvocationResult(
+                greenbidsInvocationResult.getUpdatedBidRequest(),
+                greenbidsInvocationResult.getAnalyticsResult(),
+                greenbidsInvocationResult.getInvocationAction()));
     }
 
     private InvocationResult<AuctionRequestPayload> toInvocationResult(

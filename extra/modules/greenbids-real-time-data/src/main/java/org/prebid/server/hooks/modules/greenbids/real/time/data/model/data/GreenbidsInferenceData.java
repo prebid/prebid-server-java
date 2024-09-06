@@ -11,7 +11,6 @@ import com.maxmind.geoip2.DatabaseReader;
 import com.maxmind.geoip2.exception.GeoIp2Exception;
 import com.maxmind.geoip2.model.CountryResponse;
 import com.maxmind.geoip2.record.Country;
-import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
@@ -22,23 +21,18 @@ import java.net.InetAddress;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-@Builder(toBuilder = true)
-@Value
+@Value(staticConstructor = "of")
 public class GreenbidsInferenceData {
 
     List<ThrottlingMessage> throttlingMessages;
 
-    String[][] throttlingInferenceRows;
-
-    public static GreenbidsInferenceData prepareData(
+    public static GreenbidsInferenceData of(
             BidRequest bidRequest,
             File database,
             ObjectMapper mapper) {
@@ -54,16 +48,7 @@ public class GreenbidsInferenceData {
                 database,
                 mapper);
 
-        final String[][] throttlingInferenceRows = convertToArray(throttlingMessages);
-
-        if (isAnyFeatureNull(throttlingInferenceRows)) {
-            throw new PreBidException("Null features still exist in inference row after fillna");
-        }
-
-        return GreenbidsInferenceData.builder()
-                .throttlingInferenceRows(throttlingInferenceRows)
-                .throttlingMessages(throttlingMessages)
-                .build();
+        return of(throttlingMessages);
     }
 
     private static List<ThrottlingMessage> extractThrottlingMessages(
@@ -142,24 +127,41 @@ public class GreenbidsInferenceData {
             final Iterator<String> fieldNames = bidders.fieldNames();
             while (fieldNames.hasNext()) {
                 final String bidderName = fieldNames.next();
-                throttlingImpMessages.add(
-                        ThrottlingMessage.builder()
-                                .browser(Optional.ofNullable(greenbidsUserAgent)
-                                        .map(GreenbidsUserAgent::getBrowser)
-                                        .orElse(null))
-                                .bidder(bidderName)
-                                .adUnitCode(impId)
-                                .country(countryFromIp)
-                                .hostname(hostname)
-                                .device(Optional.ofNullable(greenbidsUserAgent)
-                                        .map(GreenbidsUserAgent::getDevice)
-                                        .orElse(null))
-                                .hourBucket(hourBucket.toString())
-                                .minuteQuadrant(minuteQuadrant.toString())
-                                .build());
+                throttlingImpMessages.add(buildThrottlingMessage(
+                        bidderName,
+                        impId,
+                        greenbidsUserAgent,
+                        countryFromIp,
+                        hostname,
+                        hourBucket,
+                        minuteQuadrant));
             }
         }
         return throttlingImpMessages;
+    }
+
+    private static ThrottlingMessage buildThrottlingMessage(
+            String bidderName,
+            String impId,
+            GreenbidsUserAgent greenbidsUserAgent,
+            String countryFromIp,
+            String hostname,
+            Integer hourBucket,
+            Integer minuteQuadrant) {
+        return ThrottlingMessage.builder()
+                .browser(Optional.ofNullable(greenbidsUserAgent)
+                        .map(GreenbidsUserAgent::getBrowser)
+                        .orElse(""))
+                .bidder(Optional.ofNullable(bidderName).orElse(""))
+                .adUnitCode(Optional.ofNullable(impId).orElse(""))
+                .country(Optional.ofNullable(countryFromIp).orElse(""))
+                .hostname(Optional.ofNullable(hostname).orElse(""))
+                .device(Optional.ofNullable(greenbidsUserAgent)
+                        .map(GreenbidsUserAgent::getDevice)
+                        .orElse(""))
+                .hourBucket(Optional.ofNullable(hourBucket).map(String::valueOf).orElse(""))
+                .minuteQuadrant(Optional.ofNullable(minuteQuadrant).map(String::valueOf).orElse(""))
+                .build();
     }
 
     private static ExtImpPrebid extImpPrebid(JsonNode extImpPrebid, ObjectMapper mapper) {
@@ -183,25 +185,5 @@ public class GreenbidsInferenceData {
                         throw new PreBidException("Failed to fetch country from geoLite DB", e);
                     }
                 }).orElse(null);
-    }
-
-    private static String[][] convertToArray(List<ThrottlingMessage> messages) {
-        return messages.stream()
-                .map(message -> new String[]{
-                        Optional.ofNullable(message.getBrowser()).orElse(""),
-                        Optional.ofNullable(message.getBidder()).orElse(""),
-                        Optional.ofNullable(message.getAdUnitCode()).orElse(""),
-                        Optional.ofNullable(message.getCountry()).orElse(""),
-                        Optional.ofNullable(message.getHostname()).orElse(""),
-                        Optional.ofNullable(message.getDevice()).orElse(""),
-                        Optional.ofNullable(message.getHourBucket()).orElse(""),
-                        Optional.ofNullable(message.getMinuteQuadrant()).orElse("")})
-                .toArray(String[][]::new);
-    }
-
-    private static Boolean isAnyFeatureNull(String[][] throttlingInferenceRow) {
-        return Arrays.stream(throttlingInferenceRow)
-                .flatMap(Arrays::stream)
-                .anyMatch(Objects::isNull);
     }
 }
