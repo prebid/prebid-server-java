@@ -636,7 +636,7 @@
                     <systemPropertyVariables>
                         <mockserver.version>${mockserver.version}</mockserver.version>
                         <pbs.version>${project.version}</pbs.version>
-                        <tests.max-container-count>10</tests.max-container-count>
+                        <tests.max-container-count>2</tests.max-container-count>
                         <tests.fixed-container-ports>false</tests.fixed-container-ports>
                     </systemPropertyVariables>
                 </configuration>

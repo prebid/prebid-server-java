@@ -37,7 +37,7 @@
         </dependency>
         <dependency>
             <groupId>org.prebid.server.hooks.modules</groupId>
-            <artifactId>pb-response-correction</artifactId>
+            <artifactId>pb-richmedia-filter</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>
