@@ -11,7 +11,9 @@ import com.maxmind.geoip2.DatabaseReader;
 import com.maxmind.geoip2.exception.GeoIp2Exception;
 import com.maxmind.geoip2.model.CountryResponse;
 import com.maxmind.geoip2.record.Country;
+import io.netty.util.internal.StringUtil;
 import lombok.Value;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 
@@ -72,11 +74,11 @@ public class GreenbidsInferenceData {
                         hourBucket,
                         minuteQuadrant,
                         dbReader,
-                        mapper))
+                        mapper).stream())
                 .collect(Collectors.toList());
     }
 
-    private static Stream<ThrottlingMessage> extractMessagesForImp(
+    private static List<ThrottlingMessage> extractMessagesForImp(
             Imp imp,
             BidRequest bidRequest,
             GreenbidsUserAgent greenbidsUserAgent,
@@ -92,7 +94,7 @@ public class GreenbidsInferenceData {
         final String ip = Optional.ofNullable(bidRequest.getDevice())
                 .map(Device::getIp)
                 .orElse(null);
-        final String countryFromIp = getCountrySafely(ip, dbReader);
+        final String countryFromIp = getCountry(ip, dbReader);
         return createThrottlingMessages(
                 bidderNode,
                 impId,
@@ -100,14 +102,21 @@ public class GreenbidsInferenceData {
                 countryFromIp,
                 hostname,
                 hourBucket,
-                minuteQuadrant).stream();
+                minuteQuadrant);
     }
 
-    private static String getCountrySafely(String ip, DatabaseReader dbReader) {
+    private static String getCountry(String ip, DatabaseReader dbReader) {
+        if (ip == null) {
+            return null;
+        }
+
         try {
-            return getCountry(ip, dbReader);
+            final InetAddress inetAddress = InetAddress.getByName(ip);
+            final CountryResponse response = dbReader.country(inetAddress);
+            final Country country = response.getCountry();
+            return country.getName();
         } catch (IOException | GeoIp2Exception e) {
-            throw new PreBidException("Failed to get country for IP", e);
+            throw new PreBidException("Failed to fetch country from geoLite DB", e);
         }
     }
 
@@ -121,21 +130,25 @@ public class GreenbidsInferenceData {
             Integer minuteQuadrant) {
 
         final List<ThrottlingMessage> throttlingImpMessages = new ArrayList<>();
-        if (bidderNode.isObject()) {
-            final ObjectNode bidders = (ObjectNode) bidderNode;
-            final Iterator<String> fieldNames = bidders.fieldNames();
-            while (fieldNames.hasNext()) {
-                final String bidderName = fieldNames.next();
-                throttlingImpMessages.add(buildThrottlingMessage(
-                        bidderName,
-                        impId,
-                        greenbidsUserAgent,
-                        countryFromIp,
-                        hostname,
-                        hourBucket,
-                        minuteQuadrant));
-            }
+
+        if (!bidderNode.isObject()) {
+            return throttlingImpMessages;
         }
+
+        final ObjectNode bidders = (ObjectNode) bidderNode;
+        final Iterator<String> fieldNames = bidders.fieldNames();
+        while (fieldNames.hasNext()) {
+            final String bidderName = fieldNames.next();
+            throttlingImpMessages.add(buildThrottlingMessage(
+                    bidderName,
+                    impId,
+                    greenbidsUserAgent,
+                    countryFromIp,
+                    hostname,
+                    hourBucket,
+                    minuteQuadrant));
+        }
+
         return throttlingImpMessages;
     }
 
@@ -147,19 +160,24 @@ public class GreenbidsInferenceData {
             String hostname,
             Integer hourBucket,
             Integer minuteQuadrant) {
+
+        final String browser = Optional.ofNullable(greenbidsUserAgent)
+                .map(GreenbidsUserAgent::getBrowser)
+                .orElse(StringUtils.EMPTY);
+
+        final String device = Optional.ofNullable(greenbidsUserAgent)
+                .map(GreenbidsUserAgent::getDevice)
+                .orElse(StringUtils.EMPTY);
+
         return ThrottlingMessage.builder()
-                .browser(Optional.ofNullable(greenbidsUserAgent)
-                        .map(GreenbidsUserAgent::getBrowser)
-                        .orElse(""))
-                .bidder(Optional.ofNullable(bidderName).orElse(""))
-                .adUnitCode(Optional.ofNullable(impId).orElse(""))
-                .country(Optional.ofNullable(countryFromIp).orElse(""))
-                .hostname(Optional.ofNullable(hostname).orElse(""))
-                .device(Optional.ofNullable(greenbidsUserAgent)
-                        .map(GreenbidsUserAgent::getDevice)
-                        .orElse(""))
-                .hourBucket(Optional.ofNullable(hourBucket).map(String::valueOf).orElse(""))
-                .minuteQuadrant(Optional.ofNullable(minuteQuadrant).map(String::valueOf).orElse(""))
+                .browser(browser)
+                .bidder(Optional.ofNullable(bidderName).orElse(StringUtils.EMPTY))
+                .adUnitCode(Optional.ofNullable(impId).orElse(StringUtils.EMPTY))
+                .country(Optional.ofNullable(countryFromIp).orElse(StringUtils.EMPTY))
+                .hostname(Optional.ofNullable(hostname).orElse(StringUtils.EMPTY))
+                .device(device)
+                .hourBucket(Optional.ofNullable(hourBucket).map(String::valueOf).orElse(StringUtils.EMPTY))
+                .minuteQuadrant(Optional.ofNullable(minuteQuadrant).map(String::valueOf).orElse(StringUtils.EMPTY))
                 .build();
     }
 
@@ -169,19 +187,5 @@ public class GreenbidsInferenceData {
         } catch (JsonProcessingException e) {
             throw new PreBidException("Error decoding imp.ext.prebid: " + e.getMessage(), e);
         }
-    }
-
-    private static String getCountry(String ip, DatabaseReader dbReader) throws IOException, GeoIp2Exception {
-        return Optional.ofNullable(ip)
-                .map(ipAddress -> {
-                    try {
-                        final InetAddress inetAddress = InetAddress.getByName(ipAddress);
-                        final CountryResponse response = dbReader.country(inetAddress);
-                        final Country country = response.getCountry();
-                        return country.getName();
-                    } catch (IOException | GeoIp2Exception e) {
-                        throw new PreBidException("Failed to fetch country from geoLite DB", e);
-                    }
-                }).orElse(null);
     }
 }
