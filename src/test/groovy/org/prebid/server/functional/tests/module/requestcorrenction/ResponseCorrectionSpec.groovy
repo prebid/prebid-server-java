@@ -427,7 +427,7 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         assert !response.ext.warnings
     }
 
-    def "PBs shouldn't modify response meta.mediaType to video and and emit logs when requested impression with video and adm obj with asset"() {
+    def "PBs shouldn't modify response meta.mediaType to video and emit logs when requested impression with video and adm obj with asset"() {
         given: "Start up time"
         def start = Instant.now()
 
