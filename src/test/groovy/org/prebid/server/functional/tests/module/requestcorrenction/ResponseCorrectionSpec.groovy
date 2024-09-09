@@ -36,7 +36,6 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
              "adapters.generic.modifying-vast-xml-allowed": "false"] +
                     responseCorrectionConfig)
 
-
     def "PBs shouldn't modify response when in account correction module disabled"() {
         given: "Start up time"
         def start = Instant.now()
@@ -51,12 +50,7 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Save account with enabled response correction module"
-        def modulesConfig = new PbsModulesConfig(pbResponseCorrection: new PbResponseCorrection(
-                enabled: responseCorrectionEnabled,
-                appVideoHtml: new AppVideoHtml(enabled: appVideoHtmlEnabled)))
-        def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(modules: modulesConfig))
-        def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
-        accountDao.save(account)
+        accountDao.save(accountConfigWithResponseCorrectionModule(bidRequest, responseCorrectionEnabled, appVideoHtmlEnabled))
 
         when: "PBS processes auction request"
         def response = pbsServiceWithResponseCorrectionModule.sendAuctionRequest(bidRequest)
@@ -132,17 +126,17 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         }
 
         and: "Set bidder response"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid[0].bid[0].adm = new Adm(assets: null)
+        }
         def bidId = bidResponse.seatbid[0].bid[0].id
+
         bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Save account with enabled response correction module"
-        def modulesConfig = new PbsModulesConfig(
-                pbResponseCorrection: new PbResponseCorrection(
-                        enabled: true, appVideoHtml: new AppVideoHtml(enabled: true, excludedBidders: [GENERIC])))
-        def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(modules: modulesConfig))
-        def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
-        accountDao.save(account)
+        accountDao.save(accountConfigWithResponseCorrectionModule(bidRequest).tap {
+            config.hooks.modules.pbResponseCorrection.appVideoHtml.excludedBidders = [GENERIC]
+        })
 
         when: "PBS processes auction request"
         def response = pbsServiceWithResponseCorrectionModule.sendAuctionRequest(bidRequest)
@@ -177,12 +171,7 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Save account with enabled response correction module"
-        def modulesConfig = new PbsModulesConfig(
-                pbResponseCorrection: new PbResponseCorrection(enabled: true,
-                        appVideoHtml: new AppVideoHtml(enabled: true)))
-        def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(modules: modulesConfig))
-        def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
-        accountDao.save(account)
+        accountDao.save(accountConfigWithResponseCorrectionModule(bidRequest))
 
         when: "PBS processes auction request"
         def response = pbsServiceWithResponseCorrectionModule.sendAuctionRequest(bidRequest)
@@ -217,12 +206,7 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Save account with enabled response correction module"
-        def modulesConfig = new PbsModulesConfig(
-                pbResponseCorrection: new PbResponseCorrection(
-                        enabled: true, appVideoHtml: new AppVideoHtml(enabled: true)))
-        def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(modules: modulesConfig))
-        def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
-        accountDao.save(account)
+        accountDao.save(accountConfigWithResponseCorrectionModule(bidRequest))
 
         when: "PBS processes auction request"
         def response = pbsServiceWithResponseCorrectionModule.sendAuctionRequest(bidRequest)
@@ -262,12 +246,7 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Save account with enabled response correction module"
-        def modulesConfig = new PbsModulesConfig(
-                pbResponseCorrection: new PbResponseCorrection(
-                        enabled: true, appVideoHtml: new AppVideoHtml(enabled: true)))
-        def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(modules: modulesConfig))
-        def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
-        accountDao.save(account)
+        accountDao.save(accountConfigWithResponseCorrectionModule(bidRequest))
 
         when: "PBS processes auction request"
         def response = pbsServiceWithResponseCorrectionModule.sendAuctionRequest(bidRequest)
@@ -306,12 +285,7 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Save account with enabled response correction module"
-        def modulesConfig = new PbsModulesConfig(
-                pbResponseCorrection: new PbResponseCorrection(
-                        enabled: true, appVideoHtml: new AppVideoHtml(enabled: true)))
-        def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(modules: modulesConfig))
-        def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
-        accountDao.save(account)
+        accountDao.save(accountConfigWithResponseCorrectionModule(bidRequest))
 
         when: "PBS processes auction request"
         def response = pbsServiceWithResponseCorrectionModule.sendAuctionRequest(bidRequest)
@@ -348,12 +322,7 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Save account with enabled response correction module"
-        def modulesConfig = new PbsModulesConfig(
-                pbResponseCorrection: new PbResponseCorrection(
-                        enabled: true, appVideoHtml: new AppVideoHtml(enabled: true)))
-        def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(modules: modulesConfig))
-        def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
-        accountDao.save(account)
+        accountDao.save(accountConfigWithResponseCorrectionModule(bidRequest))
 
         when: "PBS processes auction request"
         def response = pbsServiceWithResponseCorrectionModule.sendAuctionRequest(bidRequest)
@@ -391,12 +360,7 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Save account with enabled response correction module"
-        def modulesConfig = new PbsModulesConfig(
-                pbResponseCorrection: new PbResponseCorrection(
-                        enabled: true, appVideoHtml: new AppVideoHtml(enabled: true)))
-        def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(modules: modulesConfig))
-        def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
-        accountDao.save(account)
+        accountDao.save(accountConfigWithResponseCorrectionModule(bidRequest))
 
         when: "PBS processes auction request"
         def response = pbsServiceWithResponseCorrectionModule.sendAuctionRequest(bidRequest)
@@ -439,12 +403,7 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Save account with enabled response correction module"
-        def modulesConfig = new PbsModulesConfig(
-                pbResponseCorrection: new PbResponseCorrection(
-                        enabled: true, appVideoHtml: new AppVideoHtml(enabled: true)))
-        def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(modules: modulesConfig))
-        def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
-        accountDao.save(account)
+        accountDao.save(accountConfigWithResponseCorrectionModule(bidRequest))
 
         when: "PBS processes auction request"
         def response = pbsServiceWithResponseCorrectionModule.sendAuctionRequest(bidRequest)
@@ -483,12 +442,7 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Save account with enabled response correction module"
-        def modulesConfig = new PbsModulesConfig(
-                pbResponseCorrection: new PbResponseCorrection(
-                        enabled: true, appVideoHtml: new AppVideoHtml(enabled: true)))
-        def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(modules: modulesConfig))
-        def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
-        accountDao.save(account)
+        accountDao.save(accountConfigWithResponseCorrectionModule(bidRequest))
 
         when: "PBS processes auction request"
         def response = pbsServiceWithResponseCorrectionModule.sendAuctionRequest(bidRequest)
@@ -531,12 +485,7 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Save account with enabled response correction module"
-        def modulesConfig = new PbsModulesConfig(
-                pbResponseCorrection: new PbResponseCorrection(
-                        enabled: true, appVideoHtml: new AppVideoHtml(enabled: true)))
-        def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(modules: modulesConfig))
-        def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
-        accountDao.save(account)
+        accountDao.save(accountConfigWithResponseCorrectionModule(bidRequest))
 
         when: "PBS processes auction request"
         def response = pbsServiceWithResponseCorrectionModule.sendAuctionRequest(bidRequest)
@@ -562,9 +511,9 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         assert !response.ext.warnings
     }
 
-    private static Account accountConfigWithResponseCorrectionModule(BidRequest bidRequest, Boolean enabledResponseCorrection = true,Boolean enabledAppVideoHtml = true) {
+    private static Account accountConfigWithResponseCorrectionModule(BidRequest bidRequest, Boolean enabledResponseCorrection = true, Boolean enabledAppVideoHtml = true) {
         def modulesConfig = new PbsModulesConfig(pbResponseCorrection: new PbResponseCorrection(
-                enabled: enabledResponseCorrection, appVideoHtml: new AppVideoHtml(enabled: true)))
+                enabled: enabledResponseCorrection, appVideoHtml: new AppVideoHtml(enabled: enabledAppVideoHtml)))
         def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(modules: modulesConfig))
         new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
     }
