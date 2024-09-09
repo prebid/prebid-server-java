@@ -19,7 +19,6 @@ public class MinuteMediaTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromMinuteMedia() throws IOException, JSONException {
         // given
-
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/minutemedia-exchange"))
                 .withQueryParam("publisherId", equalTo("123"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/minutemedia/test-minutemedia-bid-request.json")))
