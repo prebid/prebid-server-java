@@ -195,6 +195,7 @@ public class AgmaAnalyticsReporter implements AnalyticsReporter {
                 .orElse(null);
         final String appSiteId = Optional.ofNullable(site).map(Site::getId)
                 .or(() -> Optional.ofNullable(app).map(App::getId))
+                .or(() -> Optional.ofNullable(app).map(App::getBundle))
                 .orElse(null);
 
         if (publisherId == null && appSiteId == null) {
