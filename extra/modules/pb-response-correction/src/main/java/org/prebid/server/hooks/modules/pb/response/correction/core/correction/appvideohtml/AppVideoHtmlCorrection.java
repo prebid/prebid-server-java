@@ -94,6 +94,7 @@ public class AppVideoHtmlCorrection implements Correction {
                 .map(ExtBidPrebid::toBuilder)
                 .orElseGet(ExtBidPrebid::builder)
                 .meta(modifiedMeta)
+                .type(BidType.banner)
                 .build();
 
         final ObjectNode modifiedBidExt = mapper.valueToTree(ExtPrebid.of(modifiedPrebid, null));

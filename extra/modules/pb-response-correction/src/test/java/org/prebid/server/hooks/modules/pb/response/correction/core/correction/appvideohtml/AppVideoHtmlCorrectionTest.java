@@ -119,6 +119,7 @@ public class AppVideoHtmlCorrectionTest {
         // then
         final ExtBidPrebid expectedPrebid = ExtBidPrebid.builder()
                 .meta(ExtBidPrebidMeta.builder().mediaType("video").build())
+                .type(BidType.banner)
                 .build();
         final ObjectNode expectedBidExt = MAPPER.valueToTree(ExtPrebid.of(expectedPrebid, null));
         final List<BidderResponse> expectedResponses = List.of(BidderResponse.of(
@@ -149,6 +150,7 @@ public class AppVideoHtmlCorrectionTest {
         // then
         final ExtBidPrebid expectedPrebid = ExtBidPrebid.builder()
                 .meta(ExtBidPrebidMeta.builder().mediaType("video").build())
+                .type(BidType.banner)
                 .build();
         final ObjectNode expectedBidExt = MAPPER.valueToTree(ExtPrebid.of(expectedPrebid, null));
         final List<BidderResponse> expectedResponses = List.of(BidderResponse.of(
@@ -181,6 +183,7 @@ public class AppVideoHtmlCorrectionTest {
         final ExtBidPrebid expectedPrebid = ExtBidPrebid.builder()
                 .bidid("someId")
                 .meta(ExtBidPrebidMeta.builder().adapterCode("someCode").mediaType("video").build())
+                .type(BidType.banner)
                 .build();
         final ObjectNode expectedBidExt = MAPPER.valueToTree(ExtPrebid.of(expectedPrebid, null));
         final List<BidderResponse> expectedResponses = List.of(BidderResponse.of(
