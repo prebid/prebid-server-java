@@ -41,6 +41,7 @@ public class RtbhouseBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
     private static final String BIDDER_CURRENCY = "USD";
+    private static final String PRICE_MACRO = "${AUCTION_PRICE}";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -127,7 +128,7 @@ public class RtbhouseBidder implements Bidder<BidRequest> {
                 .build();
 
         return BidderBid.builder()
-                .bid(updatedBid)
+                .bid(resolveMacros(updatedBid))
                 .type(bidType)
                 .bidCurrency(currency)
                 .build();
@@ -210,6 +211,16 @@ public class RtbhouseBidder implements Bidder<BidRequest> {
                     "Unable to convert provided bid floor currency from %s to %s for imp `%s`",
                     bidFloorCur, BIDDER_CURRENCY, impId));
         }
+    }
+
+    private static Bid resolveMacros(Bid bid) {
+        final BigDecimal price = bid.getPrice();
+        final String priceAsString = price != null ? price.toPlainString() : "0";
+
+        return bid.toBuilder()
+                .nurl(StringUtils.replace(bid.getNurl(), PRICE_MACRO, priceAsString))
+                .adm(StringUtils.replace(bid.getAdm(), PRICE_MACRO, priceAsString))
+                .build();
     }
 
 }

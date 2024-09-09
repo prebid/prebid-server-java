@@ -301,6 +301,28 @@ public class RtbhouseBidderTest extends VertxTest {
                 .containsExactly("{\"property1\":\"value1\"}");
     }
 
+    @Test
+    public void makeBidsShouldReturnBidWithResolvedMacros() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.banner(null));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
+                mapper.writeValueAsString(givenBidResponse(
+                        bidBuilder -> bidBuilder
+                                .nurl("nurl:${AUCTION_PRICE}")
+                                .adm("adm:${AUCTION_PRICE}")
+                                .price(BigDecimal.valueOf(12.34)))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getNurl, Bid::getAdm)
+                .containsExactly(tuple("nurl:12.34", "adm:12.34"));
+    }
+
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
                 .cur("USD")
