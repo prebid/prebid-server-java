@@ -1,5 +1,6 @@
 package org.prebid.server.hooks.modules.greenbids.real.time.data.model.data;
 
+import org.apache.commons.lang3.StringUtils;
 import ua_parser.Client;
 import ua_parser.Device;
 import ua_parser.OS;
@@ -35,13 +36,13 @@ public class GreenbidsUserAgent {
     public String getDevice() {
         return Optional.ofNullable(device)
                 .map(device -> isPC() ? "PC" : device.family)
-                .orElse("");
+                .orElse(StringUtils.EMPTY);
     }
 
     public String getBrowser() {
         return Optional.ofNullable(userAgent)
                 .map(userAgent -> "%s %s".formatted(userAgent.family, userAgent.major).trim())
-                .orElse("");
+                .orElse(StringUtils.EMPTY);
     }
 
     private boolean isPC() {
@@ -55,10 +56,10 @@ public class GreenbidsUserAgent {
     }
 
     private String osFamily() {
-        return Optional.ofNullable(os).map(os -> os.family).orElse("");
+        return Optional.ofNullable(os).map(os -> os.family).orElse(StringUtils.EMPTY);
     }
 
     private String osMajor() {
-        return Optional.ofNullable(os).map(os -> os.major).orElse("");
+        return Optional.ofNullable(os).map(os -> os.major).orElse(StringUtils.EMPTY);
     }
 }

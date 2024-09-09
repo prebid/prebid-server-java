@@ -51,23 +51,24 @@ public class FilterService {
             List<ThrottlingMessage> throttlingMessages,
             Double threshold) {
 
-        return extractProbabilitiesTensors(results)
-                .map(tensor -> {
-                    try {
-                        final float[][] probabilities = extractProbabilitiesValues(tensor);
-                        return processProbabilities(probabilities, throttlingMessages, threshold);
-                    } catch (OrtException e) {
-                        throw new PreBidException("Exception when extracting proba from OnnxTensor: ", e);
-                    }
-                })
+        return StreamSupport.stream(results.spliterator(), false)
+                .filter(onnxItem -> Objects.equals(onnxItem.getKey(), "probabilities"))
+                .map(onnxItem -> (OnnxTensor) onnxItem.getValue())
+                .map(tensor -> extractAndProcessProbabilities(tensor, throttlingMessages, threshold))
                 .flatMap(map -> map.entrySet().stream())
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
-    private Stream<OnnxTensor> extractProbabilitiesTensors(OrtSession.Result results) {
-        return StreamSupport.stream(results.spliterator(), false)
-                .filter(onnxItem -> Objects.equals(onnxItem.getKey(), "probabilities"))
-                .map(onnxItem -> (OnnxTensor) onnxItem.getValue());
+    private Map<String, Map<String, Boolean>> extractAndProcessProbabilities(
+            OnnxTensor tensor,
+            List<ThrottlingMessage> throttlingMessages,
+            Double threshold) {
+        try {
+            final float[][] probabilities = extractProbabilitiesValues(tensor);
+            return processProbabilities(probabilities, throttlingMessages, threshold);
+        } catch (OrtException e) {
+            throw new PreBidException("Exception when extracting proba from OnnxTensor: ", e);
+        }
     }
 
     private float[][] extractProbabilitiesValues(OnnxTensor tensor) throws OrtException {
@@ -78,19 +79,17 @@ public class FilterService {
             float[][] probabilities,
             List<ThrottlingMessage> throttlingMessages,
             Double threshold) {
-        return IntStream.range(0, probabilities.length)
-                .mapToObj(i -> createEntry(throttlingMessages.get(i), probabilities[i][1], threshold))
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        entry -> {
-                            final Map<String, Boolean> bidderToIsKeptInAuction = new HashMap<>();
-                            bidderToIsKeptInAuction.put(entry.getValue().getKey(), entry.getValue().getValue());
-                            return bidderToIsKeptInAuction;
-                        },
-                        (existingMap, newMap) -> {
-                            existingMap.putAll(newMap);
-                            return existingMap;
-                        }));
+        Map<String, Map<String, Boolean>> result = new HashMap<>();
+
+        for (int i = 0; i < probabilities.length; i++) {
+            final ThrottlingMessage message = throttlingMessages.get(i);
+            final String impId = message.getAdUnitCode();
+            final String bidder = message.getBidder();
+            final boolean isKeptInAuction = probabilities[i][1] > threshold;
+            result.computeIfAbsent(impId, k -> new HashMap<>()).put(bidder, isKeptInAuction);
+        }
+
+        return result;
     }
 
     private Map.Entry<String, Map.Entry<String, Boolean>> createEntry(
