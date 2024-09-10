@@ -43,6 +43,8 @@ class Video {
     List<Banner> companionad
     List<Integer> api
     List<Integer> companiontype
+    @JsonProperty("poddedupe")
+    List<Integer> podDeduplication
 
     static Video getDefaultVideo() {
         new Video(mimes: ["video/mp4"], weight: 300, height: 200)
