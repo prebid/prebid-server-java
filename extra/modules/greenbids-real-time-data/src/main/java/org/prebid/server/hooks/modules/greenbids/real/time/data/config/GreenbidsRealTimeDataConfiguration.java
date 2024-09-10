@@ -10,6 +10,7 @@ import io.vertx.core.Vertx;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingThresholds;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.config.GreenbidsRealTimeDataProperties;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.model.data.GreenbidsInferenceDataService;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.FilterService;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.OnnxModelRunner;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.OnnxModelRunnerWithThresholds;
@@ -32,25 +33,30 @@ import java.util.concurrent.TimeUnit;
 public class GreenbidsRealTimeDataConfiguration {
 
     @Bean
-    GreenbidsRealTimeDataModule greenbidsRealTimeDataModule(
-            GreenbidsRealTimeDataProperties properties,
-            FilterService filterService,
-            OnnxModelRunnerWithThresholds onnxModelRunnerWithThresholds) {
-
+    public GreenbidsInferenceDataService greenbidsInferenceDataService(GreenbidsRealTimeDataProperties properties) {
         final ObjectMapper mapper = ObjectMapperProvider.mapper();
-
         final File database = new File(properties.getGeoLiteCountryPath());
+        DatabaseReader dbReader;
         try {
-            final DatabaseReader dbReader = new DatabaseReader.Builder(database).build();
-            return new GreenbidsRealTimeDataModule(List.of(
-                    new GreenbidsRealTimeDataProcessedAuctionRequestHook(
-                            mapper,
-                            dbReader,
-                            filterService,
-                            onnxModelRunnerWithThresholds)));
+            dbReader = new DatabaseReader.Builder(database).build();
         } catch (IOException e) {
             throw new PreBidException("Failed build DatabaseReader from DB", e);
         }
+        return new GreenbidsInferenceDataService(dbReader, mapper);
+    }
+
+    @Bean
+    GreenbidsRealTimeDataModule greenbidsRealTimeDataModule(
+            FilterService filterService,
+            OnnxModelRunnerWithThresholds onnxModelRunnerWithThresholds,
+            GreenbidsInferenceDataService greenbidsInferenceDataService) {
+        final ObjectMapper mapper = ObjectMapperProvider.mapper();
+        return new GreenbidsRealTimeDataModule(List.of(
+                new GreenbidsRealTimeDataProcessedAuctionRequestHook(
+                        mapper,
+                        filterService,
+                        onnxModelRunnerWithThresholds,
+                        greenbidsInferenceDataService)));
     }
 
     @Bean
