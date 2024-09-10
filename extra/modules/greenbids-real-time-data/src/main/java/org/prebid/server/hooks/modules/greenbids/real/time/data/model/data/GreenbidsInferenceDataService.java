@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Data;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.maxmind.geoip2.DatabaseReader;
@@ -16,6 +17,7 @@ import lombok.Value;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
+import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -29,27 +31,30 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Value(staticConstructor = "of")
-public class GreenbidsInferenceData {
+@Service
+public class GreenbidsInferenceDataService {
 
-    List<ThrottlingMessage> throttlingMessages;
+    private final DatabaseReader dbReader;
+    private final ObjectMapper mapper;
 
-    public static GreenbidsInferenceData of(
-            BidRequest bidRequest,
-            DatabaseReader dbReader,
-            ObjectMapper mapper) {
+    // List<ThrottlingMessage> throttlingMessages;
 
+    public GreenbidsInferenceDataService(DatabaseReader dbReader, ObjectMapper mapper) {
+        this.dbReader = dbReader;
+        this.mapper = mapper;
+    }
+
+    public List<ThrottlingMessage> extractThrottlingMessagesFromBidRequest(BidRequest bidRequest) {
         final GreenbidsUserAgent userAgent = Optional.ofNullable(bidRequest.getDevice())
                 .map(Device::getUa)
                 .map(GreenbidsUserAgent::new)
                 .orElse(null);
 
-        final List<ThrottlingMessage> throttlingMessages = extractThrottlingMessages(
+        return extractThrottlingMessages(
                 bidRequest,
                 userAgent,
                 dbReader,
                 mapper);
-
-        return of(throttlingMessages);
     }
 
     private static List<ThrottlingMessage> extractThrottlingMessages(

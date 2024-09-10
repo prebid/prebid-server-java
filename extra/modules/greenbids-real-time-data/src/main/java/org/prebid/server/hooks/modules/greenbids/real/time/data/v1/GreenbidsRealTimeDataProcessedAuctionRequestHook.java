@@ -12,7 +12,8 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.Partner;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.model.data.GreenbidsInferenceData;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.model.data.GreenbidsInferenceDataService;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.model.data.ThrottlingMessage;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.FilterService;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.OnnxModelRunner;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.OnnxModelRunnerWithThresholds;
@@ -49,19 +50,19 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
     private static final String BID_REQUEST_ANALYTICS_EXTENSION_NAME = "greenbids-rtd";
 
     private final ObjectMapper mapper;
-    private final DatabaseReader dbReader;
     private final FilterService filterService;
     private final OnnxModelRunnerWithThresholds onnxModelRunnerWithThresholds;
+    private final GreenbidsInferenceDataService greenbidsInferenceDataService;
 
     public GreenbidsRealTimeDataProcessedAuctionRequestHook(
             ObjectMapper mapper,
-            DatabaseReader dbReader,
             FilterService filterService,
-            OnnxModelRunnerWithThresholds onnxModelRunnerWithThresholds) {
+            OnnxModelRunnerWithThresholds onnxModelRunnerWithThresholds,
+            GreenbidsInferenceDataService greenbidsInferenceDataService) {
         this.mapper = Objects.requireNonNull(mapper);
-        this.dbReader = Objects.requireNonNull(dbReader);
         this.filterService = Objects.requireNonNull(filterService);
         this.onnxModelRunnerWithThresholds = Objects.requireNonNull(onnxModelRunnerWithThresholds);
+        this.greenbidsInferenceDataService = Objects.requireNonNull(greenbidsInferenceDataService);
     }
 
     @Override
@@ -118,14 +119,15 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
             Partner partner,
             OnnxModelRunner onnxModelRunner,
             Double threshold) {
+
         final Map<String, Map<String, Boolean>> impsBiddersFilterMap;
         try {
-            final GreenbidsInferenceData greenbidsInferenceData = GreenbidsInferenceData
-                    .of(bidRequest, dbReader, mapper);
+            List<ThrottlingMessage> throttlingMessages = greenbidsInferenceDataService
+                    .extractThrottlingMessagesFromBidRequest(bidRequest);
 
             impsBiddersFilterMap = filterService.filterBidders(
                     onnxModelRunner,
-                    greenbidsInferenceData.getThrottlingMessages(),
+                    throttlingMessages,
                     threshold);
         } catch (PreBidException e) {
             return Future.succeededFuture(toInvocationResult(
