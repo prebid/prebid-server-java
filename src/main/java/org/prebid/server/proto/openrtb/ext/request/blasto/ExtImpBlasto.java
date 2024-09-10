@@ -1,10 +1,10 @@
-package org.prebid.server.proto.openrtb.ext.request.bizzclick;
+package org.prebid.server.proto.openrtb.ext.request.blasto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Value;
 
 @Value(staticConstructor = "of")
-public class ExtImpBizzclick {
+public class ExtImpBlasto {
 
     @JsonProperty("host")
     String host;

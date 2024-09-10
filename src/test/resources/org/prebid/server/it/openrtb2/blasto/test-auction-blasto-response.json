@@ -22,14 +22,14 @@
           }
         }
       ],
-      "seat": "bizzclick",
+      "seat": "blasto",
       "group": 0
     }
   ],
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "bizzclick": "{{ bizzclick.response_time_ms }}"
+      "blasto": "{{ blasto.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 0

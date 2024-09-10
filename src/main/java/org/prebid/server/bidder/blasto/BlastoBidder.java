@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.bizzclick;
+package org.prebid.server.bidder.blasto;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.BidRequest;
@@ -9,7 +9,6 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -21,7 +20,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.bizzclick.ExtImpBizzclick;
+import org.prebid.server.proto.openrtb.ext.request.blasto.ExtImpBlasto;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
@@ -29,13 +28,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-public class BizzclickBidder implements Bidder<BidRequest> {
+public class BlastoBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpBizzclick>> BIZZCLICK_EXT_TYPE_REFERENCE =
+    private static final TypeReference<ExtPrebid<?, ExtImpBlasto>> EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
-    private static final String DEFAULT_HOST = "us-e-node1";
-    private static final String URL_HOST_MACRO = "{{Host}}";
+
     private static final String URL_SOURCE_ID_MACRO = "{{SourceId}}";
     private static final String URL_ACCOUNT_ID_MACRO = "{{AccountID}}";
     private static final String DEFAULT_CURRENCY = "USD";
@@ -43,7 +41,7 @@ public class BizzclickBidder implements Bidder<BidRequest> {
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
-    public BizzclickBidder(String endpointUrl, JacksonMapper mapper) {
+    public BlastoBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -51,23 +49,23 @@ public class BizzclickBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<Imp> imps = request.getImp();
-        final ExtImpBizzclick extImpBizzclick;
+        final ExtImpBlasto extImp;
         try {
-            extImpBizzclick = parseImpExt(imps.getFirst());
+            extImp = parseImpExt(imps.getFirst());
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
         final List<Imp> modifiedImps = imps.stream()
-                .map(BizzclickBidder::modifyImp)
+                .map(BlastoBidder::modifyImp)
                 .toList();
 
-        return Result.withValue(createHttpRequest(request, modifiedImps, extImpBizzclick));
+        return Result.withValue(createHttpRequest(request, modifiedImps, extImp));
     }
 
-    private ExtImpBizzclick parseImpExt(Imp imp) throws PreBidException {
+    private ExtImpBlasto parseImpExt(Imp imp) throws PreBidException {
         try {
-            return mapper.mapper().convertValue(imp.getExt(), BIZZCLICK_EXT_TYPE_REFERENCE).getBidder();
+            return mapper.mapper().convertValue(imp.getExt(), EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException("ext.bidder not provided");
         }
@@ -77,7 +75,7 @@ public class BizzclickBidder implements Bidder<BidRequest> {
         return imp.toBuilder().ext(null).build();
     }
 
-    private HttpRequest<BidRequest> createHttpRequest(BidRequest request, List<Imp> imps, ExtImpBizzclick ext) {
+    private HttpRequest<BidRequest> createHttpRequest(BidRequest request, List<Imp> imps, ExtImpBlasto ext) {
         final BidRequest modifiedRequest = request.toBuilder().imp(imps).build();
 
         return HttpRequest.<BidRequest>builder()
@@ -102,13 +100,10 @@ public class BizzclickBidder implements Bidder<BidRequest> {
         return headers;
     }
 
-    private String buildEndpointUrl(ExtImpBizzclick ext) {
-        final String host = StringUtils.isBlank(ext.getHost()) ? DEFAULT_HOST : ext.getHost();
-        final String sourceId = StringUtils.isBlank(ext.getSourceId()) ? ext.getPlacementId() : ext.getSourceId();
+    private String buildEndpointUrl(ExtImpBlasto extImp) {
         return endpointUrl
-                .replace(URL_HOST_MACRO, HttpUtil.encodeUrl(host))
-                .replace(URL_SOURCE_ID_MACRO, HttpUtil.encodeUrl(sourceId))
-                .replace(URL_ACCOUNT_ID_MACRO, HttpUtil.encodeUrl(ext.getAccountId()));
+                .replace(URL_SOURCE_ID_MACRO, HttpUtil.encodeUrl(extImp.getSourceId()))
+                .replace(URL_ACCOUNT_ID_MACRO, HttpUtil.encodeUrl(extImp.getAccountId()));
     }
 
     @Override
