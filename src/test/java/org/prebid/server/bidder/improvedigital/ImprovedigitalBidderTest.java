@@ -11,7 +11,7 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.improvedigital.proto.ImprovedigitalBidExt;
 import org.prebid.server.bidder.improvedigital.proto.ImprovedigitalBidExtImprovedigital;
@@ -345,8 +345,8 @@ public class ImprovedigitalBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(0);
         assertThat(result.getValue()).isNotEmpty();
-        assertThat(result.getValue().get(0).getBid().getMtype()).isEqualTo(expectedMType);
-        assertThat(result.getValue().get(0).getType()).isEqualTo(expectedType);
+        assertThat(result.getValue().getFirst().getBid().getMtype()).isEqualTo(expectedMType);
+        assertThat(result.getValue().getFirst().getType()).isEqualTo(expectedType);
     }
 
     @Test
@@ -433,7 +433,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue().get(0).getType()).isEqualTo(banner);
+        assertThat(result.getValue().getFirst().getType()).isEqualTo(banner);
     }
 
     @Test

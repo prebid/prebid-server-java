@@ -1,13 +1,11 @@
 package org.prebid.server.vertx;
 
-import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
-import org.junit.Rule;
-import org.junit.Test;
+import io.vertx.core.Promise;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -18,15 +16,13 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.verify;
 
+@ExtendWith(MockitoExtension.class)
 public class CloseableAdapterTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private Closeable closeable;
     @Mock
-    private Handler<AsyncResult<Void>> completionHandler;
+    private Promise<Void> completionPromise;
 
     @Test
     public void creationShouldFailOnNullArguments() {
@@ -36,10 +32,10 @@ public class CloseableAdapterTest {
     @Test
     public void closeShouldInvokeHandlerWithSuccededFuture() {
         // when
-        new CloseableAdapter(closeable).close(completionHandler);
+        new CloseableAdapter(closeable).close(completionPromise);
 
         // then
-        verify(completionHandler).handle(eq(Future.succeededFuture()));
+        verify(completionPromise).handle(eq(Future.succeededFuture()));
     }
 
     @Test
@@ -49,9 +45,9 @@ public class CloseableAdapterTest {
         willThrow(exception).given(closeable).close();
 
         // when
-        new CloseableAdapter(closeable).close(completionHandler);
+        new CloseableAdapter(closeable).close(completionPromise);
 
         // then
-        verify(completionHandler).handle(argThat(future -> future.failed() && future.cause() == exception));
+        verify(completionPromise).handle(argThat(future -> future.failed() && future.cause() == exception));
     }
 }

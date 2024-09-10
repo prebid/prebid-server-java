@@ -30,6 +30,7 @@ import org.prebid.server.bidder.appnexus.proto.AppnexusImpExt;
 import org.prebid.server.bidder.appnexus.proto.AppnexusImpExtAppnexus;
 import org.prebid.server.bidder.appnexus.proto.AppnexusKeyVal;
 import org.prebid.server.bidder.appnexus.proto.AppnexusReqExtAppnexus;
+import org.prebid.server.bidder.appnexus.proto.AppnexusExtImp;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
@@ -39,7 +40,6 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.model.UpdateResult;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtAppPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
@@ -54,7 +54,7 @@ import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
 
-import javax.validation.ValidationException;
+import jakarta.validation.ValidationException;
 import java.math.BigDecimal;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -76,9 +76,6 @@ public class AppnexusBidder implements Bidder<BidRequest> {
     private static final String POD_SEPARATOR = "_";
     private static final int MAX_IMP_PER_REQUEST = 10;
 
-    private static final TypeReference<ExtPrebid<?, ExtImpAppnexus>> APPNEXUS_EXT_TYPE_REFERENCE =
-            new TypeReference<>() {
-            };
     private static final TypeReference<Map<String, List<String>>> KEYWORDS_OBJECT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
@@ -112,10 +109,12 @@ public class AppnexusBidder implements Bidder<BidRequest> {
 
         for (Imp imp : bidRequest.getImp()) {
             try {
-                final ExtImpAppnexus extImpAppnexus = parseImpExt(imp);
+                final AppnexusExtImp extImp = parseImpExt(imp);
+                final ExtImpAppnexus extImpAppnexus = extImp.getBidder();
+                final String gpid = extImp.getGpid();
                 validateExtImpAppnexus(extImpAppnexus, memberValidator, generateAdPodIdValidator);
 
-                updatedImps.add(updateImp(imp, extImpAppnexus, defaultDisplayManagerVer));
+                updatedImps.add(updateImp(imp, extImpAppnexus, gpid, defaultDisplayManagerVer));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             } catch (ValidationException e) {
@@ -162,9 +161,9 @@ public class AppnexusBidder implements Bidder<BidRequest> {
                 : null;
     }
 
-    private ExtImpAppnexus parseImpExt(Imp imp) {
+    private AppnexusExtImp parseImpExt(Imp imp) {
         try {
-            return mapper.mapper().convertValue(imp.getExt(), APPNEXUS_EXT_TYPE_REFERENCE).getBidder();
+            return mapper.mapper().convertValue(imp.getExt(), AppnexusExtImp.class);
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
@@ -190,7 +189,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         }
     }
 
-    private Imp updateImp(Imp imp, ExtImpAppnexus extImpAppnexus, String defaultDisplayManagerVer) {
+    private Imp updateImp(Imp imp, ExtImpAppnexus extImpAppnexus, String gpid, String defaultDisplayManagerVer) {
         final String invCode = extImpAppnexus.getInvCode();
         final BigDecimal impBidFloor = imp.getBidfloor();
         final BigDecimal extBidFloor = extImpAppnexus.getReserve();
@@ -205,7 +204,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
                 .displaymanagerver(StringUtils.isBlank(displayManagerVer) && defaultDisplayManagerVer != null
                         ? defaultDisplayManagerVer
                         : displayManagerVer)
-                .ext(makeImpExt(extImpAppnexus))
+                .ext(makeImpExt(extImpAppnexus, gpid))
                 .build();
     }
 
@@ -218,7 +217,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         final Integer height = banner.getH();
         final List<Format> formats = banner.getFormat();
         final Format firstFormat = CollectionUtils.isNotEmpty(formats)
-                ? formats.get(0)
+                ? formats.getFirst()
                 : null;
 
         final boolean replaceWithFirstFormat = firstFormat != null && width == null && height == null;
@@ -245,7 +244,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         };
     }
 
-    private ObjectNode makeImpExt(ExtImpAppnexus extImpAppnexus) {
+    private ObjectNode makeImpExt(ExtImpAppnexus extImpAppnexus, String gpid) {
         final AppnexusImpExtAppnexus ext = AppnexusImpExtAppnexus.builder()
                 .placementId(extImpAppnexus.getPlacementId())
                 .trafficSourceCode(extImpAppnexus.getTrafficSourceCode())
@@ -256,7 +255,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
                 .externalImpId(extImpAppnexus.getExternalImpId())
                 .build();
 
-        return mapper.mapper().valueToTree(AppnexusImpExt.of(ext));
+        return mapper.mapper().valueToTree(AppnexusImpExt.of(ext, gpid));
     }
 
     private String readKeywords(JsonNode keywords) {

@@ -15,8 +15,6 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.SupplyChain;
 import com.iab.openrtb.request.User;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.SetUtils;
@@ -26,6 +24,7 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.PriceGranularity;
@@ -35,12 +34,15 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.Endpoint;
 import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.auction.model.SecBrowsingTopic;
-import org.prebid.server.exception.BlacklistedAppException;
+import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.exception.BlocklistedAppException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
@@ -91,8 +93,9 @@ public class Ortb2ImplicitParametersResolver {
     private final boolean shouldCacheOnlyWinningBids;
     private final boolean generateBidRequestId;
     private final String adServerCurrency;
-    private final List<String> blacklistedApps;
+    private final List<String> blocklistedApps;
     private final ExtRequestPrebidServer serverInfo;
+    private final BidderCatalog bidderCatalog;
     private final ImplicitParametersExtractor paramsExtractor;
     private final TimeoutResolver timeoutResolver;
     private final IpAddressHelper ipAddressHelper;
@@ -104,10 +107,11 @@ public class Ortb2ImplicitParametersResolver {
     public Ortb2ImplicitParametersResolver(boolean shouldCacheOnlyWinningBids,
                                            boolean generateBidRequestId,
                                            String adServerCurrency,
-                                           List<String> blacklistedApps,
+                                           List<String> blocklistedApps,
                                            String externalUrl,
                                            Integer hostVendorId,
                                            String datacenterRegion,
+                                           BidderCatalog bidderCatalog,
                                            ImplicitParametersExtractor paramsExtractor,
                                            TimeoutResolver timeoutResolver,
                                            IpAddressHelper ipAddressHelper,
@@ -119,8 +123,9 @@ public class Ortb2ImplicitParametersResolver {
         this.shouldCacheOnlyWinningBids = shouldCacheOnlyWinningBids;
         this.generateBidRequestId = generateBidRequestId;
         this.adServerCurrency = validateCurrency(Objects.requireNonNull(adServerCurrency));
-        this.blacklistedApps = Objects.requireNonNull(blacklistedApps);
+        this.blocklistedApps = Objects.requireNonNull(blocklistedApps);
         this.serverInfo = ExtRequestPrebidServer.of(externalUrl, hostVendorId, datacenterRegion, null);
+        this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.paramsExtractor = Objects.requireNonNull(paramsExtractor);
         this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.ipAddressHelper = Objects.requireNonNull(ipAddressHelper);
@@ -153,7 +158,7 @@ public class Ortb2ImplicitParametersResolver {
                               String endpoint,
                               boolean hasStoredBidRequest) {
 
-        checkBlacklistedApp(bidRequest);
+        checkBlocklistedApp(bidRequest);
 
         final HttpRequestContext httpRequest = auctionContext.getHttpRequest();
 
@@ -211,12 +216,12 @@ public class Ortb2ImplicitParametersResolver {
         return !IMP_EXT_NON_BIDDER_FIELDS.contains(field);
     }
 
-    private void checkBlacklistedApp(BidRequest bidRequest) {
+    private void checkBlocklistedApp(BidRequest bidRequest) {
         final App app = bidRequest.getApp();
         final String appId = app != null ? app.getId() : null;
 
-        if (StringUtils.isNotBlank(appId) && blacklistedApps.contains(appId)) {
-            throw new BlacklistedAppException(
+        if (StringUtils.isNotBlank(appId) && blocklistedApps.contains(appId)) {
+            throw new BlocklistedAppException(
                     "Prebid-server does not process requests from App ID: " + appId);
         }
     }
@@ -284,7 +289,7 @@ public class Ortb2ImplicitParametersResolver {
         return ipAddress != null && ipAddress.getVersion() == version ? ipAddress.getIp() : null;
     }
 
-    private IpAddress findIpFromRequest(HttpRequestContext request) {
+    public IpAddress findIpFromRequest(HttpRequestContext request) {
         final CaseInsensitiveMultiMap headers = request.getHeaders();
         final String remoteHost = request.getRemoteHost();
         final List<String> requestIps = paramsExtractor.ipFrom(headers, remoteHost);
@@ -440,7 +445,7 @@ public class Ortb2ImplicitParametersResolver {
         try {
             return paramsExtractor.domainFrom(url);
         } catch (PreBidException e) {
-            logger.warn("Error occurred while populating bid request: {0}", e.getMessage());
+            logger.warn("Error occurred while populating bid request: {}", e.getMessage());
             return null;
         }
     }
@@ -638,6 +643,8 @@ public class Ortb2ImplicitParametersResolver {
             return null;
         }
 
+        final BidderAliases aliases = aliases(bidRequest);
+
         final ObjectNode globalBidderParams = extractGlobalBidderParams(bidRequest);
 
         final boolean isUniqueIds = isUniqueIds(imps);
@@ -645,6 +652,7 @@ public class Ortb2ImplicitParametersResolver {
                 .range(0, imps.size())
                 .mapToObj(index -> new ImpPopulationContext(
                         imps.get(index),
+                        aliases,
                         globalBidderParams,
                         generateBidRequestId,
                         hasStoredBidRequest,
@@ -664,6 +672,14 @@ public class Ortb2ImplicitParametersResolver {
         return impPopulationContexts.stream()
                 .map(ImpPopulationContext::getPopulationResult)
                 .toList();
+    }
+
+    private BidderAliases aliases(BidRequest bidRequest) {
+        final ExtRequest extRequest = bidRequest.getExt();
+        final ExtRequestPrebid prebid = extRequest != null ? extRequest.getPrebid() : null;
+        final Map<String, String> aliases = prebid != null ? prebid.getAliases() : null;
+        final Map<String, Integer> aliasgvlids = prebid != null ? prebid.getAliasgvlids() : null;
+        return BidderAliases.of(aliases, aliasgvlids, bidderCatalog);
     }
 
     private static ObjectNode extractGlobalBidderParams(BidRequest bidRequest) {
@@ -925,7 +941,7 @@ public class Ortb2ImplicitParametersResolver {
     }
 
     @Value
-    private static class ImpPopulationContext {
+    private class ImpPopulationContext {
 
         private static final String DEALS_ONLY = "dealsonly";
         private static final String PG_DEALS_ONLY = "pgdealsonly";
@@ -936,6 +952,7 @@ public class Ortb2ImplicitParametersResolver {
         Imp populatedImp;
 
         ImpPopulationContext(Imp imp,
+                             BidderAliases aliases,
                              ObjectNode globalBidderParams,
                              boolean generateBidRequestId,
                              boolean hasStoredBidRequest,
@@ -947,6 +964,7 @@ public class Ortb2ImplicitParametersResolver {
             this.imp = imp;
             populatedImp = populateImp(
                     imp,
+                    aliases,
                     globalBidderParams,
                     generateBidRequestId,
                     hasStoredBidRequest,
@@ -960,14 +978,15 @@ public class Ortb2ImplicitParametersResolver {
             return populatedImp != null ? populatedImp : imp;
         }
 
-        private static Imp populateImp(Imp imp,
-                                       ObjectNode globalBidderParams,
-                                       boolean generateBidRequestId,
-                                       boolean hasStoredBidRequest,
-                                       String impIdOverride,
-                                       JacksonMapper mapper,
-                                       IdGenerator tidGenerator,
-                                       JsonMerger jsonMerger) {
+        private Imp populateImp(Imp imp,
+                                BidderAliases aliases,
+                                ObjectNode globalBidderParams,
+                                boolean generateBidRequestId,
+                                boolean hasStoredBidRequest,
+                                String impIdOverride,
+                                JacksonMapper mapper,
+                                IdGenerator tidGenerator,
+                                JsonMerger jsonMerger) {
 
             final String impId = imp.getId();
             final String populatedImpId = populateImpId(impId, impIdOverride);
@@ -978,6 +997,7 @@ public class Ortb2ImplicitParametersResolver {
             final ObjectNode impExt = imp.getExt();
             final ObjectNode populatedImpExt = populateImpExt(
                     impExt,
+                    aliases,
                     globalBidderParams,
                     generateBidRequestId,
                     hasStoredBidRequest,
@@ -1011,16 +1031,17 @@ public class Ortb2ImplicitParametersResolver {
             return impSecure == null ? 1 : null;
         }
 
-        private static ObjectNode populateImpExt(ObjectNode impExt,
-                                                 ObjectNode globalBidderParams,
-                                                 boolean generateBidRequestId,
-                                                 boolean hasStoredBidRequest,
-                                                 JacksonMapper mapper,
-                                                 IdGenerator tidGenerator,
-                                                 JsonMerger jsonMerger) {
+        private ObjectNode populateImpExt(ObjectNode impExt,
+                                          BidderAliases aliases,
+                                          ObjectNode globalBidderParams,
+                                          boolean generateBidRequestId,
+                                          boolean hasStoredBidRequest,
+                                          JacksonMapper mapper,
+                                          IdGenerator tidGenerator,
+                                          JsonMerger jsonMerger) {
 
             final ObjectNode modifiedImpExt = prepareValidImpExtCopy(impExt, mapper);
-            final boolean isMoved = moveBidderParamsToPrebid(modifiedImpExt);
+            final boolean isMoved = moveBidderParamsToPrebid(modifiedImpExt, aliases);
             final boolean isMerged = mergeGlobalBidderParamsToImpExt(modifiedImpExt, globalBidderParams, jsonMerger);
             final boolean isDealsOnlyModified = modifyDealsOnly(modifiedImpExt);
             final boolean isNonBidderFieldsModified = modifyNonBidderFields(
@@ -1048,8 +1069,11 @@ public class Ortb2ImplicitParametersResolver {
             return isObjectNode(childNode) ? (ObjectNode) childNode : parentNode.putObject(fieldName);
         }
 
-        private static boolean moveBidderParamsToPrebid(ObjectNode impExt) {
+        private boolean moveBidderParamsToPrebid(ObjectNode impExt, BidderAliases aliases) {
             final ObjectNode extPrebidBidder = bidderParamsFromImpExt(impExt);
+            if (!extPrebidBidder.isEmpty()) {
+                return false;
+            }
 
             final Set<String> bidders = StreamUtil.asStream(impExt.fieldNames())
                     .filter(Ortb2ImplicitParametersResolver::isImpExtBidder)
@@ -1059,16 +1083,22 @@ public class Ortb2ImplicitParametersResolver {
                 return false;
             }
 
+            boolean modified = false;
             for (String bidder : bidders) {
-                final ObjectNode bidderNode = getOrCreateChildObjectNode(extPrebidBidder, bidder);
-
-                final JsonNode impExtBidderNode = impExt.remove(bidder);
-                if (isObjectNode(impExtBidderNode)) {
-                    bidderNode.setAll((ObjectNode) impExtBidderNode);
+                final JsonNode impExtBidderNode = impExt.get(bidder);
+                if (!isObjectNode(impExtBidderNode)) {
+                    continue;
                 }
+
+                final ObjectNode bidderNode = getOrCreateChildObjectNode(extPrebidBidder, bidder);
+                bidderNode.setAll((ObjectNode) impExtBidderNode);
+                if (bidderCatalog.isValidName(aliases.resolveBidder(bidder))) {
+                    impExt.remove(bidder);
+                }
+                modified = true;
             }
 
-            return true;
+            return modified;
         }
 
         private static ObjectNode bidderParamsFromImpExt(ObjectNode ext) {

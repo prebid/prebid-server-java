@@ -5,12 +5,11 @@ import com.iab.openrtb.request.video.PodError;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.CachedDebugLog;
@@ -40,17 +39,15 @@ import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 
+@ExtendWith(MockitoExtension.class)
 public class VideoResponseFactoryTest extends VertxTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private UUIDIdGenerator uuidIdGenerator;
 
     private VideoResponseFactory target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new VideoResponseFactory(uuidIdGenerator, jacksonMapper);
     }
@@ -74,7 +71,7 @@ public class VideoResponseFactoryTest extends VertxTest {
         assertThat(result.getAdPods()).hasSize(1)
                 .extracting(ExtAdPod::getTargeting)
                 .hasSize(1)
-                .extracting(extResponseVideoTargetings -> extResponseVideoTargetings.get(0))
+                .extracting(extResponseVideoTargetings -> extResponseVideoTargetings.getFirst())
                 .extracting(ExtResponseVideoTargeting::getHbCacheID)
                 .containsOnly("generatedId");
         assertThat(cachedDebugLog.hasBids()).isFalse();

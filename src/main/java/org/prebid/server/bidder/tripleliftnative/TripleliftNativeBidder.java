@@ -1,6 +1,5 @@
 package org.prebid.server.bidder.tripleliftnative;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -19,7 +18,6 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisherPrebid;
 import org.prebid.server.proto.openrtb.ext.request.triplelift.ExtImpTriplelift;
@@ -27,19 +25,19 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 public class TripleliftNativeBidder implements Bidder<BidRequest> {
 
     private static final String UNKNOWN_PUBLISHER_ID = "unknown";
 
-    private static final TypeReference<ExtPrebid<?, ExtImpTriplelift>> TRIPLELIFT_EXT_TYPE_REFERENCE =
-            new TypeReference<>() {
-            };
+    private static final String MSN_DOMAIN = "msn.com";
 
     private final String endpointUrl;
     private final List<String> publisherWhiteList;
@@ -55,9 +53,13 @@ public class TripleliftNativeBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         final List<BidderError> errors = new ArrayList<>();
         final List<Imp> validImps = new ArrayList<>();
+        final boolean hasMsnDomain = hasMsnDomain(bidRequest);
+
         for (Imp imp : bidRequest.getImp()) {
             try {
-                validImps.add(modifyImp(imp));
+                validateImp(imp);
+                final TripleliftNativeExtImp impExt = parseExtImp(imp);
+                validImps.add(modifyImp(imp, impExt, hasMsnDomain));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -82,26 +84,47 @@ public class TripleliftNativeBidder implements Bidder<BidRequest> {
                 errors);
     }
 
-    private Imp modifyImp(Imp imp) throws PreBidException {
+    private static boolean hasMsnDomain(BidRequest bidRequest) {
+        final boolean hasMsnDomainInSite = Optional.ofNullable(bidRequest.getSite())
+                .map(Site::getPublisher)
+                .map(Publisher::getDomain)
+                .map(MSN_DOMAIN::equals)
+                .orElse(false);
+
+        final boolean hasMsnDomainInApp = Optional.ofNullable(bidRequest.getApp())
+                .map(App::getPublisher)
+                .map(Publisher::getDomain)
+                .map(MSN_DOMAIN::equals)
+                .orElse(false);
+
+        return hasMsnDomainInSite || hasMsnDomainInApp;
+    }
+
+    private static void validateImp(Imp imp) {
         if (imp.getXNative() == null) {
             throw new PreBidException("no native object specified");
         }
+    }
 
-        final ExtImpTriplelift impExt = parseExtImpTriplelift(imp);
-        final String inventoryCode = impExt.getInventoryCode();
-        if (StringUtils.isBlank(inventoryCode)) {
-            throw new PreBidException("no inv_code specified");
-        }
+    private Imp modifyImp(Imp imp, TripleliftNativeExtImp impExt, boolean hasMsnDomain) throws PreBidException {
+        final ExtImpTriplelift impExtBidder = impExt.getBidder();
+        final TripleliftNativeExtImpData data = impExt.getData();
+
+        final BigDecimal bidFloor = impExtBidder.getFloor();
+        final boolean hasTagCodeInData = Optional.ofNullable(data)
+                .map(TripleliftNativeExtImpData::getTagCode)
+                .map(StringUtils::isNotBlank)
+                .orElse(false);
 
         return imp.toBuilder()
-                .tagid(inventoryCode)
-                .bidfloor(impExt.getFloor())
+                .bidfloor(BidderUtil.isValidPrice(bidFloor) ? bidFloor : imp.getBidfloor())
+                .tagid(hasTagCodeInData && hasMsnDomain ? data.getTagCode() : impExtBidder.getInventoryCode())
                 .build();
     }
 
-    private ExtImpTriplelift parseExtImpTriplelift(Imp imp) {
+    private TripleliftNativeExtImp parseExtImp(Imp imp) {
         try {
-            return mapper.mapper().convertValue(imp.getExt(), TRIPLELIFT_EXT_TYPE_REFERENCE).getBidder();
+            return mapper.mapper().convertValue(imp.getExt(), TripleliftNativeExtImp.class);
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }

@@ -122,36 +122,34 @@ public class AdprimeBidder implements Bidder<BidRequest> {
         try {
             final List<BidderError> errors = new ArrayList<>();
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse, errors), errors);
+            return Result.of(extractBids(bidResponse, errors), errors);
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse,
-                                               List<BidderError> errors) {
+    private static List<BidderBid> extractBids(BidResponse bidResponse, List<BidderError> errors) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
-        return bidsFromResponse(bidRequest, bidResponse, errors);
+        return bidsFromResponse(bidResponse, errors);
     }
 
-    private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse,
-                                                    List<BidderError> errors) {
+    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse, List<BidderError> errors) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> resolveBidderBid(bid, bidResponse.getCur(), bidRequest.getImp(), errors))
+                .map(bid -> resolveBidderBid(bid, bidResponse.getCur(), errors))
                 .filter(Objects::nonNull)
                 .toList();
     }
 
-    private static BidderBid resolveBidderBid(Bid bid, String currency, List<Imp> imps, List<BidderError> errors) {
+    private static BidderBid resolveBidderBid(Bid bid, String currency, List<BidderError> errors) {
         final BidType bidType;
         try {
-            bidType = getBidType(bid.getImpid(), imps);
+            bidType = getBidType(bid);
         } catch (PreBidException e) {
             errors.add(BidderError.badServerResponse(e.getMessage()));
             return null;
@@ -159,22 +157,19 @@ public class AdprimeBidder implements Bidder<BidRequest> {
         return BidderBid.of(bid, bidType, currency);
     }
 
-    private static BidType getBidType(String impId, List<Imp> imps) {
-        for (Imp imp : imps) {
-            if (imp.getId().equals(impId)) {
-                if (imp.getBanner() != null) {
-                    return BidType.banner;
-                }
-                if (imp.getVideo() != null) {
-                    return BidType.video;
-                }
-                if (imp.getXNative() != null) {
-                    return BidType.xNative;
-                }
-                throw new PreBidException("Unknown impression type for ID: '%s'".formatted(impId));
-            }
+    private static BidType getBidType(Bid bid) {
+        final Integer markupType = bid.getMtype();
+        if (markupType == null) {
+            throw new PreBidException("Missing MType for bid: " + bid.getId());
         }
-        throw new PreBidException("Failed to find impression for ID: '%s'".formatted(impId));
+
+        return switch (markupType) {
+            case 1 -> BidType.banner;
+            case 2 -> BidType.video;
+            case 4 -> BidType.xNative;
+            default -> throw new PreBidException(
+                    "Unable to fetch mediaType " + bid.getMtype() + " in multi-format: " + bid.getImpid());
+        };
     }
 
 }

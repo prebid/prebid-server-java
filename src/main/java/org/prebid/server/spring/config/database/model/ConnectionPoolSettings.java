@@ -7,6 +7,12 @@ public class ConnectionPoolSettings {
 
     Integer poolSize;
 
+    Integer idleTimeout;
+
+    Boolean enablePreparedStatementCaching;
+
+    Integer maxPreparedStatementCacheSize;
+
     String user;
 
     String password;

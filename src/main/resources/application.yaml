@@ -67,26 +67,6 @@ admin-endpoints:
     path: /pbs-admin/tracelog
     on-application-port: false
     protected: true
-  deals-status:
-    enabled: false
-    path: /pbs-admin/deals-status
-    on-application-port: false
-    protected: true
-  lineitem-status:
-    enabled: false
-    path: /pbs-admin/lineitem-status
-    on-application-port: false
-    protected: true
-  force-deals-update:
-    enabled: false
-    path: /pbs-admin/force-deals-update
-    on-application-port: false
-    protected: true
-  e2eadmin:
-    enabled: false
-    path: /pbs-admin/e2eAdmin/*
-    on-application-port: false
-    protected: true
   collected-metrics:
     enabled: false
     path: /collected-metrics
@@ -122,14 +102,14 @@ adapter-defaults:
     allow: true
 auction:
   ad-server-currency: USD
-  blacklisted-accounts:
-  blacklisted-apps:
+  blocklisted-accounts:
+  blocklisted-apps:
   biddertmax:
     min: 50
     max: 5000
     percent: 100
   tmax-upstream-response-time: 30
-  stored-requests-timeout-ms: 50
+  stored-requests-timeout-ms: 100
   timeout-notification:
     timeout-ms: 200
     log-result: false
@@ -145,7 +125,7 @@ auction:
     secure-markup: skip
   host-schain-node:
   category-mapping-enabled: false
-  strict-app-site-dooh: false
+  strict-app-site-dooh: true
 video:
   stored-request-required: false
   stored-requests-timeout-ms: 90
@@ -180,7 +160,9 @@ settings:
   enforce-valid-account: false
   database:
     pool-size: 20
-    provider-class: c3p0
+    idle-connection-timeout: 300
+    enable-prepared-statement-caching: false
+    max-prepared-statement-cache-size: 256
   targeting:
     truncate-attr-chars: 20
   default-account-config: >
@@ -311,42 +293,10 @@ analytics:
       size-bytes: 2097152
       count: 100
       report-ttl-ms: 900000
-
-device-info:
-  enabled: false
-deals:
-  enabled: false
-  simulation:
-    enabled: false
-    ready-at-adjustment-ms: 0
-  planner:
-    plan-advance-period: "0 */1 * * * *"
-    update-period: "0 */1 * * * *"
-    timeout-ms: 4000
-    register-period-sec: 60
-  delivery-stats:
-    delivery-period: "0 */1 * * * *"
-    cached-reports-number: 20
-    line-item-status-ttl-sec: 3600
-    line-items-per-report: 25
-    reports-interval-ms: 0
-    batches-interval-ms: 1000
-    request-compression-enabled: true
-  delivery-progress:
-    line-item-status-ttl-sec: 3600
-    cached-plans-number: 20
-    report-reset-period: "0 */1 * * * *"
-  delivery-progress-report:
-    competitors-number: 10
-  max-deals-per-bidder: 3
-  alert-proxy:
-    enabled: false
-    url: http://localhost
-    timeout-sec: 5
-    alert-types:
-      pbs-planner-client-error: 15
-      pbs-planner-empty-response-error: 15
-      pbs-register-client-error: 15
-      pbs-delivery-stats-client-error: 15
+  greenbids:
+    analytics-server-version: "2.2.0"
+    analytics-server: http://localhost:8090
+    exploratory-sampling-split: 0.9
+    timeout-ms: 10000
 price-floors:
   enabled: false

@@ -94,7 +94,6 @@ public class BidderError {
          * Covers the case where a bid was rejected by price-floors feature functionality
          */
         rejected_ipf(6),
-        invalid_creative(350),
 
         timeout(1),
         generic(999);

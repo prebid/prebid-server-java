@@ -1,12 +1,10 @@
 package org.prebid.server.floors;
 
-import io.vertx.core.Future;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
@@ -22,34 +20,34 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
+@ExtendWith(MockitoExtension.class)
 public class PriceFloorsConfigResolverTest extends VertxTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private Metrics metrics;
 
     private PriceFloorsConfigResolver target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
-        target = new PriceFloorsConfigResolver(withDefaultFloorsConfig(identity()), metrics);
+        target = new PriceFloorsConfigResolver(metrics);
     }
 
     @Test
-    public void updateFloorsConfigShouldNotChangeAccountIfConfigIsValid() {
+    public void resolveShouldNotChangeAccountIfConfigIsValid() {
+        // given
+        final Account givenAccount = accountWithFloorsFetchConfig(identity());
+
         // when
-        final Account account = accountWithFloorsFetchConfig(identity());
-        final Future<?> future = target.updateFloorsConfig(account);
+        final Account actualAccount = target.resolve(givenAccount, defaultPriceConfig());
 
         // then
-        assertThat(future.result()).isSameAs(account);
+        assertThat(actualAccount).isSameAs(givenAccount);
         verifyNoInteractions(metrics);
     }
 
     @Test
-    public void updateFloorsConfigShouldReturnDefaultConfigIfEnforceFloorsRateLessThanMinimumValue() {
+    public void resolveShouldReturnGivenAccountIfEnforceFloorsRateLessThanMinimumValue() {
         // given
         final Account givenAccount = Account.builder()
                 .id("some-id")
@@ -60,16 +58,15 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
                 .build();
 
         // when
-        final Future<?> future = target.updateFloorsConfig(givenAccount);
+        final Account actualAccount = target.resolve(givenAccount, defaultPriceConfig());
 
         // then
-        assertThat(future.result())
-                .isEqualTo(withDefaultFloorsConfig(accountBuilder -> accountBuilder.id("some-id")));
+        assertThat(actualAccount).isEqualTo(fallbackAccount());
         verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
     }
 
     @Test
-    public void updateFloorsConfigShouldReturnDefaultConfigIfEnforceFloorsRateMoreThanMaximumValue() {
+    public void resolveShouldReturnGivenAccountIfEnforceFloorsRateMoreThanMaximumValue() {
         // given
         final Account givenAccount = Account.builder()
                 .id("some-id")
@@ -80,211 +77,141 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
                 .build();
 
         // when
-        final Future<?> future = target.updateFloorsConfig(givenAccount);
+        final Account actualAccount = target.resolve(givenAccount, defaultPriceConfig());
 
         // then
-        assertThat(future.result())
-                .isEqualTo(withDefaultFloorsConfig(accountBuilder -> accountBuilder.id("some-id")));
+        assertThat(actualAccount).isEqualTo(fallbackAccount());
         verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
     }
 
     @Test
-    public void updateFloorsConfigShouldReturnDefaultConfigIfPeriodicSecLessThanMinimumValue() {
-        // when
-        final Future<?> future = target.updateFloorsConfig(
-                accountWithFloorsFetchConfig(config -> config.periodSec(200L)));
-
-        // then
-        assertThat(future.result())
-                .isEqualTo(withDefaultFloorsConfig(accountBuilder -> accountBuilder.id("some-id")));
-        verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
-    }
-
-    @Test
-    public void updateFloorsConfigShouldReturnDefaultConfigIfPeriodicSecMoreThanMaxAgeSec() {
-        // when
-        final Future<?> future = target.updateFloorsConfig(accountWithFloorsFetchConfig(config ->
-                config.periodSec(900L).maxAgeSec(800L)));
-
-        // then
-        assertThat(future.result())
-                .isEqualTo(withDefaultFloorsConfig(accountBuilder -> accountBuilder.id("some-id")));
-        verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
-    }
-
-    @Test
-    public void updateFloorsConfigShouldReturnDefaultConfigIfMaxAgeSecLessThanMinimumValue() {
-        // when
-        final Future<?> future = target.updateFloorsConfig(
-                accountWithFloorsFetchConfig(config -> config.maxAgeSec(500L)));
-
-        // then
-        assertThat(future.result())
-                .isEqualTo(withDefaultFloorsConfig(accountBuilder -> accountBuilder.id("some-id")));
-        verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
-    }
-
-    @Test
-    public void updateFloorsConfigShouldReturnDefaultConfigIfMaxAgeSecMoreThanMaximumValue() {
-        // when
-        final Future<?> future = target.updateFloorsConfig(
-                accountWithFloorsFetchConfig(config -> config.maxAgeSec(Integer.MAX_VALUE + 1L)));
-
-        // then
-        assertThat(future.result())
-                .isEqualTo(withDefaultFloorsConfig(accountBuilder -> accountBuilder.id("some-id")));
-        verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
-    }
-
-    @Test
-    public void updateFloorsConfigShouldReturnDefaultConfigIfTimeoutLessThanMinimumValue() {
-        // when
-        final Future<?> future = target.updateFloorsConfig(
-                accountWithFloorsFetchConfig(config -> config.timeout(9L)));
-
-        // then
-        assertThat(future.result())
-                .isEqualTo(withDefaultFloorsConfig(accountBuilder -> accountBuilder.id("some-id")));
-        verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
-    }
-
-    @Test
-    public void updateFloorsConfigShouldReturnDefaultConfigIfTimeoutMoreThanMaximumValue() {
-        // when
-        final Future<?> future = target.updateFloorsConfig(
-                accountWithFloorsFetchConfig(config -> config.timeout(12000L)));
-
-        // then
-        assertThat(future.result())
-                .isEqualTo(withDefaultFloorsConfig(accountBuilder -> accountBuilder.id("some-id")));
-        verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
-    }
-
-    @Test
-    public void updateFloorsConfigShouldReturnDefaultConfigIfMaxRulesLessThanMinimumValue() {
-        // when
-        final Future<?> future = target.updateFloorsConfig(
-                accountWithFloorsFetchConfig(config -> config.maxRules(-1L)));
-
-        // then
-        assertThat(future.result())
-                .isEqualTo(withDefaultFloorsConfig(accountBuilder -> accountBuilder.id("some-id")));
-        verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
-    }
-
-    @Test
-    public void updateFloorsConfigShouldReturnDefaultConfigIfMaxRulesMoreThanMaximumValue() {
-        // when
-        final Future<?> future = target.updateFloorsConfig(
-                accountWithFloorsFetchConfig(config -> config.maxRules(Integer.MAX_VALUE + 1L)));
-
-        // then
-        assertThat(future.result())
-                .isEqualTo(withDefaultFloorsConfig(accountBuilder -> accountBuilder.id("some-id")));
-        verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
-    }
-
-    @Test
-    public void updateFloorsConfigShouldReturnDefaultConfigIfMaxFileSizeLessThanMinimumValue() {
-        // when
-        final Future<?> future = target.updateFloorsConfig(
-                accountWithFloorsFetchConfig(config -> config.maxFileSize(-1L)));
-
-        // then
-        assertThat(future.result())
-                .isEqualTo(withDefaultFloorsConfig(accountBuilder -> accountBuilder.id("some-id")));
-        verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
-    }
-
-    @Test
-    public void updateFloorsConfigShouldReturnDefaultConfigIfMaxFileSizeMoreThanMaximumValue() {
-        // when
-        final Future<?> future = target.updateFloorsConfig(
-                accountWithFloorsFetchConfig(config -> config.maxFileSize(Integer.MAX_VALUE + 1L)));
-
-        // then
-        assertThat(future.result())
-                .isEqualTo(withDefaultFloorsConfig(accountBuilder -> accountBuilder.id("some-id")));
-        verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
-    }
-
-    @Test
-    public void updateFloorsConfigShouldValidateByDefaultConfigWhenAccountEnforceFloorRateIsNotPresent() {
+    public void resolveShouldReturnGivenAccountIfPeriodicSecLessThanMinimumValue() {
         // given
-        final Account givenAccount = Account.builder()
-                .id("some-id")
-                .auction(AccountAuctionConfig.builder()
-                        .priceFloors(AccountPriceFloorsConfig.builder()
-                                .enforceFloorsRate(null).build())
-                        .build())
-                .build();
+        final Account givenAccount = accountWithFloorsFetchConfig(config -> config.periodSec(200L));
 
         // when
-        final Future<?> future = target.updateFloorsConfig(givenAccount);
+        final Account actualAccount = target.resolve(givenAccount, defaultPriceConfig());
 
         // then
-        assertThat(future.result())
-                .isEqualTo(withDefaultFloorsConfig(accountBuilder -> accountBuilder.id("some-id")));
+        assertThat(actualAccount).isEqualTo(fallbackAccount());
         verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
     }
 
     @Test
-    public void updateFloorsConfigShouldValidateByDefaultConfigWhenAccountMaxFileSizeIsNotPresent() {
+    public void resolveShouldReturnGivenAccountIfPeriodicSecMoreThanMaxAgeSec() {
+        // given
+        final Account givenAccount = accountWithFloorsFetchConfig(config -> config.periodSec(900L).maxAgeSec(800L));
+
         // when
-        final Future<?> future = target.updateFloorsConfig(
-                accountWithFloorsFetchConfig(config -> config.maxFileSize(null)));
+        final Account actualAccount = target.resolve(givenAccount, defaultPriceConfig());
 
         // then
-        assertThat(future.result())
-                .isEqualTo(withDefaultFloorsConfig(accountBuilder -> accountBuilder.id("some-id")));
+        assertThat(actualAccount).isEqualTo(fallbackAccount());
         verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
     }
 
     @Test
-    public void updateFloorsConfigShouldValidateByDefaultConfigWhenAccountPeriodicSecIsNotPresent() {
+    public void resolveShouldReturnGivenAccountIfMaxAgeSecLessThanMinimumValue() {
+        // given
+        final Account givenAccount = accountWithFloorsFetchConfig(config -> config.maxAgeSec(500L));
+
         // when
-        final Future<?> future = target.updateFloorsConfig(
-                accountWithFloorsFetchConfig(config -> config.periodSec(null)));
+        final Account actualAccount = target.resolve(givenAccount, defaultPriceConfig());
 
         // then
-        assertThat(future.result())
-                .isEqualTo(withDefaultFloorsConfig(accountBuilder -> accountBuilder.id("some-id")));
+        assertThat(actualAccount).isEqualTo(fallbackAccount());
         verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
     }
 
     @Test
-    public void updateFloorsConfigShouldValidateByDefaultConfigWhenAccountFetchTimeoutIsNotPresent() {
+    public void resolveShouldReturnGivenAccountIfMaxAgeSecMoreThanMaximumValue() {
+        // given
+        final Account givenAccount = accountWithFloorsFetchConfig(config -> config.maxAgeSec(Integer.MAX_VALUE + 1L));
+
         // when
-        final Future<?> future = target.updateFloorsConfig(
-                accountWithFloorsFetchConfig(config -> config.timeout(null)));
+        final Account actualAccount = target.resolve(givenAccount, defaultPriceConfig());
 
         // then
-        assertThat(future.result())
-                .isEqualTo(withDefaultFloorsConfig(accountBuilder -> accountBuilder.id("some-id")));
+        assertThat(actualAccount).isEqualTo(fallbackAccount());
         verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
     }
 
     @Test
-    public void updateFloorsConfigShouldValidateByDefaultConfigWhenAccountMaxRulesIsNotPresent() {
+    public void resolveShouldReturnGivenAccountIfTimeoutLessThanMinimumValue() {
+        // given
+        final Account givenAccount = accountWithFloorsFetchConfig(config -> config.timeoutMs(9L));
+
         // when
-        final Future<?> future = target.updateFloorsConfig(
-                accountWithFloorsFetchConfig(config -> config.maxRules(null)));
+        final Account actualAccount = target.resolve(givenAccount, defaultPriceConfig());
 
         // then
-        assertThat(future.result())
-                .isEqualTo(withDefaultFloorsConfig(accountBuilder -> accountBuilder.id("some-id")));
+        assertThat(actualAccount).isEqualTo(fallbackAccount());
         verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
     }
 
     @Test
-    public void updateFloorsConfigShouldValidateByDefaultConfigWhenAccountMaxAgeSecIsNotPresent() {
+    public void resolveShouldReturnGivenAccountIfTimeoutMoreThanMaximumValue() {
+        // given
+        final Account givenAccount = accountWithFloorsFetchConfig(config -> config.timeoutMs(12000L));
+
         // when
-        final Future<?> future = target.updateFloorsConfig(
-                accountWithFloorsFetchConfig(config -> config.maxAgeSec(null)));
+        final Account actualAccount = target.resolve(givenAccount, defaultPriceConfig());
 
         // then
-        assertThat(future.result())
-                .isEqualTo(withDefaultFloorsConfig(accountBuilder -> accountBuilder.id("some-id")));
+        assertThat(actualAccount).isEqualTo(fallbackAccount());
+        verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
+    }
+
+    @Test
+    public void resolveShouldReturnGivenAccountIfMaxRulesLessThanMinimumValue() {
+        // given
+        final Account givenAccount = accountWithFloorsFetchConfig(config -> config.maxRules(-1L));
+
+        // when
+        final Account actualAccount = target.resolve(givenAccount, defaultPriceConfig());
+
+        // then
+        assertThat(actualAccount).isEqualTo(fallbackAccount());
+        verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
+    }
+
+    @Test
+    public void resolveShouldReturnGivenAccountIfMaxRulesMoreThanMaximumValue() {
+        // given
+        final Account givenAccount = accountWithFloorsFetchConfig(config -> config.maxRules(Integer.MAX_VALUE + 1L));
+
+        // when
+        final Account actualAccount = target.resolve(givenAccount, defaultPriceConfig());
+
+        // then
+        assertThat(actualAccount).isEqualTo(fallbackAccount());
+        verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
+    }
+
+    @Test
+    public void resolveShouldReturnGivenAccountIfMaxFileSizeLessThanMinimumValue() {
+        // given
+        final Account givenAccount = accountWithFloorsFetchConfig(config -> config.maxFileSizeKb(-1L));
+
+        // when
+        final Account actualAccount = target.resolve(givenAccount, defaultPriceConfig());
+
+        // then
+        assertThat(actualAccount).isEqualTo(fallbackAccount());
+        verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
+    }
+
+    @Test
+    public void resolveShouldReturnGivenAccountIfMaxFileSizeMoreThanMaximumValue() {
+        // given
+        final Account givenAccount = accountWithFloorsFetchConfig(config ->
+                config.maxFileSizeKb(Integer.MAX_VALUE + 1L));
+
+        // when
+        final Account actualAccount = target.resolve(givenAccount, defaultPriceConfig());
+
+        // then
+        assertThat(actualAccount).isEqualTo(fallbackAccount());
         verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
     }
 
@@ -296,33 +223,30 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
                         .priceFloors(AccountPriceFloorsConfig.builder()
                                 .enforceFloorsRate(10)
                                 .fetch(configCustomizer.apply(
-                                        AccountPriceFloorsFetchConfig.builder()
-                                                .maxAgeSec(1000L)
-                                                .periodSec(600L)
-                                                .timeout(100L)
-                                                .maxRules(100L)
-                                                .maxFileSize(100L)
-                                ).build())
+                                                AccountPriceFloorsFetchConfig.builder()
+                                                        .maxAgeSec(1000L)
+                                                        .periodSec(600L)
+                                                        .timeoutMs(100L)
+                                                        .maxRules(100L)
+                                                        .maxFileSizeKb(100L))
+                                        .build())
                                 .build())
                         .build())
                 .build();
     }
 
-    private static Account withDefaultFloorsConfig(UnaryOperator<Account.AccountBuilder> configCustomizer) {
-        return configCustomizer.apply(Account.builder()
-                .id("default-account-id")
-                .auction(AccountAuctionConfig.builder()
-                        .priceFloors(AccountPriceFloorsConfig.builder()
-                                .fetch(AccountPriceFloorsFetchConfig.builder()
-                                        .maxAgeSec(500L)
-                                        .periodSec(-1L)
-                                        .timeout(5L)
-                                        .maxRules(-1L)
-                                        .maxFileSize(-1L)
-                                        .build())
-                                .enforceFloorsRate(-1)
-                                .build())
-                        .build())
-        ).build();
+    private static Account fallbackAccount() {
+        return Account.builder()
+                .id("some-id")
+                .auction(AccountAuctionConfig.builder().priceFloors(defaultPriceConfig()).build())
+                .build();
+    }
+
+    private static AccountPriceFloorsConfig defaultPriceConfig() {
+        return AccountPriceFloorsConfig.builder()
+                .enabled(true)
+                .enforceFloorsRate(3)
+                .adjustForBidAdjustment(false)
+                .build();
     }
 }

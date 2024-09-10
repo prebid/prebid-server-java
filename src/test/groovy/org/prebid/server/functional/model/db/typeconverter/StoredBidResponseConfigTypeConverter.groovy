@@ -1,6 +1,6 @@
 package org.prebid.server.functional.model.db.typeconverter
 
-import javax.persistence.AttributeConverter
+import jakarta.persistence.AttributeConverter
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.ObjectMapperWrapper
 

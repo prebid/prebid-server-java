@@ -3,7 +3,6 @@ package org.prebid.server.functional.util.privacy
 import com.iabtcf.encoder.PublisherRestrictionEntry
 import com.iabtcf.encoder.TCStringEncoder
 import com.iabtcf.utils.BitSetIntIterable
-import com.iabtcf.v2.RestrictionType
 import org.prebid.server.functional.model.config.Purpose
 import org.prebid.server.functional.util.PBSUtils
 
@@ -92,6 +91,11 @@ class TcfConsent implements ConsentString {
             this
         }
 
+        Builder setSpecialFeatureOptIns(PurposeId purposeId) {
+            tcStringEncoder.addSpecialFeatureOptIns(purposeId.value)
+            this
+        }
+
         Builder setPublisherRestrictionEntry(PurposeId purposeId, List<RestrictionType> restrictionTypes, Integer vendorId) {
             restrictionTypes.each { restrictionType ->
                 def publisherRestrictionEntry = PublisherRestrictionEntry
@@ -138,7 +142,8 @@ class TcfConsent implements ConsentString {
     enum TcfPolicyVersion {
 
         TCF_POLICY_V2(2),
-        TCF_POLICY_V3(4)
+        TCF_POLICY_V4(4),
+        TCF_POLICY_V5(5),
 
         final int value
 
@@ -147,11 +152,11 @@ class TcfConsent implements ConsentString {
         }
 
         int getVendorListVersion() {
-            (this == TCF_POLICY_V3) ? 3 : 2
+            (this < TCF_POLICY_V4) ? 2 : 3
         }
 
         int getReversedListVersion() {
-            (this == TCF_POLICY_V3) ? 2 : 3
+            (this < TCF_POLICY_V4) ? 3 : 2
         }
     }
 

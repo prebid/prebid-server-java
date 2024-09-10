@@ -14,7 +14,7 @@ import com.iab.openrtb.response.Bid;
 import com.iabtcf.encoder.TCStringEncoder;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.flipp.model.request.CampaignRequestBody;
 import org.prebid.server.bidder.flipp.model.request.CampaignRequestBodyUser;
@@ -768,7 +768,7 @@ public class FlippBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // and
-        final Integer creativeId = 1;
+        final int creativeId = 1;
         final BidderCall<CampaignRequestBody> httpCall = givenHttpCall(CampaignRequestBody.builder().build(),
                 mapper.writeValueAsString(givenCampaignResponseBody(inlineBuilder ->
                         inlineBuilder.creativeId(creativeId))));
@@ -781,7 +781,7 @@ public class FlippBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(BidderBid::getBid)
                 .extracting(Bid::getCrid)
-                .containsExactly(creativeId.toString());
+                .containsExactly(Integer.toString(creativeId));
     }
 
     @Test

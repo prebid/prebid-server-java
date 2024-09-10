@@ -5,4 +5,4 @@ exec java \
   -Dspring.config.additional-location=/app/prebid-server/,/app/prebid-server/conf/ \
   ${JAVA_OPTS} \
   -jar \
-  /app/prebid-server/prebid-server.jar
+  /app/prebid-server/prebid-server.jar "$@"

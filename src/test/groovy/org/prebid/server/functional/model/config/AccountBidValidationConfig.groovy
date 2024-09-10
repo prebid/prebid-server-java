@@ -8,4 +8,6 @@ class AccountBidValidationConfig {
 
     @JsonProperty("banner-creative-max-size")
     BidValidationEnforcement bannerMaxSizeEnforcement
+    @JsonProperty("banner_creative_max_size")
+    BidValidationEnforcement bannerMaxSizeEnforcementSnakeCase
 }

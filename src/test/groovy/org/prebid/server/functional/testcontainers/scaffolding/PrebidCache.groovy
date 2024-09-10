@@ -6,9 +6,9 @@ import org.mockserver.model.HttpRequest
 import org.mockserver.model.HttpResponse
 import org.prebid.server.functional.model.mock.services.prebidcache.response.CacheObject
 import org.prebid.server.functional.model.mock.services.prebidcache.response.PrebidCacheResponse
+import org.prebid.server.functional.model.request.cache.BidCacheRequest
 import org.testcontainers.containers.MockServerContainer
 
-import java.util.stream.Collectors
 import java.util.stream.Stream
 
 import static org.mockserver.model.HttpRequest.request
@@ -45,6 +45,11 @@ class PrebidCache extends NetworkScaffolding {
         request().withMethod("POST")
                  .withPath(CACHE_ENDPOINT)
                  .withBody(jsonPath("\$.puts[?(@.value.impid == '$impId')]"))
+    }
+
+    List<BidCacheRequest> getRecordedRequests(String impId) {
+        mockServerClient.retrieveRecordedRequests(getRequest(impId))
+                .collect { decode(it.body.toString(), BidCacheRequest) }
     }
 
     @Override

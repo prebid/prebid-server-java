@@ -10,7 +10,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.MultiMap;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.adgeneration.model.AdgenerationResponse;
 import org.prebid.server.bidder.model.BidderBid;
@@ -61,7 +61,7 @@ public class AdgenerationBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize value");
+        assertThat(result.getErrors().getFirst().getMessage()).startsWith("Cannot deserialize value");
     }
 
     @Test
@@ -297,8 +297,8 @@ public class AdgenerationBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors().getFirst().getMessage()).startsWith("Failed to decode: Unrecognized token");
+        assertThat(result.getErrors().getFirst().getType()).isEqualTo(BidderError.Type.bad_server_response);
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -341,7 +341,7 @@ public class AdgenerationBidderTest extends VertxTest {
                         .build(),
                 BidType.banner, "JPY");
 
-        assertThat(result.getValue().get(0).getBid().getAdm()).isEqualTo(adm);
+        assertThat(result.getValue().getFirst().getBid().getAdm()).isEqualTo(adm);
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).doesNotContainNull()
                 .hasSize(1).element(0).isEqualTo(expected);
@@ -365,7 +365,7 @@ public class AdgenerationBidderTest extends VertxTest {
 
         // then
         final String adm = "ad";
-        assertThat(result.getValue().get(0).getBid().getAdm()).isEqualTo(adm);
+        assertThat(result.getValue().getFirst().getBid().getAdm()).isEqualTo(adm);
     }
 
     @Test
@@ -387,7 +387,7 @@ public class AdgenerationBidderTest extends VertxTest {
 
         // then
         final String adm = "adscriptbeacon</body>";
-        assertThat(result.getValue().get(0).getBid().getAdm()).isEqualTo(adm);
+        assertThat(result.getValue().getFirst().getBid().getAdm()).isEqualTo(adm);
     }
 
     @Test
@@ -409,7 +409,7 @@ public class AdgenerationBidderTest extends VertxTest {
 
         // then
         final String adm = "adscript</body>";
-        assertThat(result.getValue().get(0).getBid().getAdm()).isEqualTo(adm);
+        assertThat(result.getValue().getFirst().getBid().getAdm()).isEqualTo(adm);
     }
 
     @Test
@@ -434,7 +434,7 @@ public class AdgenerationBidderTest extends VertxTest {
         // then
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize value");
+        assertThat(result.getErrors().getFirst().getMessage()).startsWith("Cannot deserialize value");
     }
 
     private static BidRequest givenBidRequest(

@@ -1,18 +1,15 @@
 package org.prebid.server.log;
 
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import io.vertx.core.logging.Logger;
-import io.vertx.ext.unit.Async;
-import io.vertx.ext.unit.TestContext;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import io.vertx.junit5.VertxExtension;
+import io.vertx.junit5.VertxTestContext;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.concurrent.TimeUnit;
 
@@ -21,11 +18,9 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
-@RunWith(VertxUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
+@ExtendWith(VertxExtension.class)
 public class ConditionalLoggerTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private Logger logger;
@@ -34,15 +29,15 @@ public class ConditionalLoggerTest {
 
     private ConditionalLogger conditionalLogger;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         vertx = Vertx.vertx();
         conditionalLogger = new ConditionalLogger(logger);
     }
 
-    @After
-    public void tearDown(TestContext context) {
-        vertx.close(context.asyncAssertSuccess());
+    @AfterEach
+    public void tearDown(VertxTestContext context) {
+        vertx.close(context.succeedingThenComplete());
     }
 
     @Test
@@ -84,11 +79,11 @@ public class ConditionalLoggerTest {
     }
 
     @Test
-    public void infoShouldCallLoggerWithExpectedTimeout(TestContext context) {
+    public void infoShouldCallLoggerWithExpectedTimeout() {
         // when
         for (int i = 0; i < 5; i++) {
             conditionalLogger.info("Log Message", 200, TimeUnit.MILLISECONDS);
-            doWait(context, 100);
+            doWait(100);
         }
 
         // then
@@ -96,23 +91,23 @@ public class ConditionalLoggerTest {
     }
 
     @Test
-    public void infoShouldCallLoggerBySpecifiedKeyWithExpectedTimeout(TestContext context) {
+    public void infoShouldCallLoggerBySpecifiedKeyWithExpectedTimeout() {
         // given
         conditionalLogger = new ConditionalLogger("key1", logger);
 
         // when
         for (int i = 0; i < 5; i++) {
             conditionalLogger.info("Log Message" + i, 200, TimeUnit.MILLISECONDS);
-            doWait(context, 100);
+            doWait(100);
         }
 
         // then
         verify(logger, times(2)).info(argThat(o -> o.toString().startsWith("Log Message")));
     }
 
-    private void doWait(TestContext context, long timeout) {
-        final Async async = context.async();
-        vertx.setTimer(timeout, id -> async.complete());
-        async.await();
+    private void doWait(long timeout) {
+        final Promise<?> promise = Promise.promise();
+        vertx.setTimer(timeout, id -> promise.complete());
+        promise.future().toCompletionStage().toCompletableFuture().join();
     }
 }

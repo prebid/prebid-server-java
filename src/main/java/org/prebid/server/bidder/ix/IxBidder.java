@@ -41,7 +41,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
 import org.prebid.server.proto.openrtb.ext.request.ix.ExtImpIx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
-import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
 import org.prebid.server.util.BidderUtil;
@@ -107,21 +106,6 @@ public class IxBidder implements Bidder<BidRequest> {
         return Result.of(httpRequests, errors);
     }
 
-    @Override
-    public CompositeBidderResponse makeBidderResponse(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
-        try {
-            final IxBidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), IxBidResponse.class);
-            final List<BidderError> bidderErrors = new ArrayList<>();
-            return CompositeBidderResponse.builder()
-                    .bids(extractIxBids(bidRequest, bidResponse, bidderErrors))
-                    .fledgeAuctionConfigs(extractFledge(bidResponse))
-                    .errors(bidderErrors)
-                    .build();
-        } catch (DecodeException e) {
-            return CompositeBidderResponse.withError(BidderError.badServerResponse(e.getMessage()));
-        }
-    }
-
     private ExtImpIx parseImpExt(Imp imp) {
         try {
             return mapper.mapper().convertValue(imp.getExt(), IX_EXT_TYPE_REFERENCE).getBidder();
@@ -166,7 +150,7 @@ public class IxBidder implements Bidder<BidRequest> {
             final Banner modifiedBanner = banner.toBuilder().format(newFormats).build();
             return UpdateResult.updated(modifiedBanner);
         } else if (formats.size() == 1) {
-            final Format format = formats.get(0);
+            final Format format = formats.getFirst();
             final Banner modifiedBanner = banner.toBuilder().w(format.getW()).h(format.getH()).build();
             return UpdateResult.updated(modifiedBanner);
         }
@@ -175,11 +159,7 @@ public class IxBidder implements Bidder<BidRequest> {
     }
 
     private BidRequest modifyBidRequest(BidRequest bidRequest, List<Imp> imps, Set<String> siteIds) {
-        final String publisherId = Optional.of(siteIds)
-                .filter(siteIdsSet -> siteIdsSet.size() == 1)
-                .map(Collection::stream)
-                .flatMap(Stream::findFirst)
-                .orElse(null);
+        final String publisherId = siteIds.size() == 1 ? siteIds.stream().findAny().get() : null;
 
         return bidRequest.toBuilder()
                 .imp(imps)
@@ -187,36 +167,6 @@ public class IxBidder implements Bidder<BidRequest> {
                 .app(modifyApp(bidRequest.getApp(), publisherId))
                 .ext(modifyRequestExt(bidRequest.getExt(), siteIds))
                 .build();
-    }
-
-    private ExtRequest modifyRequestExt(ExtRequest extRequest, Set<String> siteIds) {
-        final ExtRequest modifiedExt;
-
-        if (extRequest != null) {
-            modifiedExt = ExtRequest.of(extRequest.getPrebid());
-            modifiedExt.addProperties(extRequest.getProperties());
-        } else {
-            modifiedExt = ExtRequest.empty();
-        }
-
-        modifiedExt.addProperty("ixdiag", mapper.mapper().valueToTree(makeDiagData(extRequest, siteIds)));
-        return modifiedExt;
-    }
-
-    private IxDiag makeDiagData(ExtRequest extRequest, Set<String> siteIds) {
-        final String pbjsv = Optional.ofNullable(extRequest)
-                .map(ExtRequest::getPrebid)
-                .map(ExtRequestPrebid::getChannel)
-                .map(ExtRequestPrebidChannel::getVersion)
-                .orElse(null);
-
-        final String pbsv = prebidVersionProvider.getNameVersionRecord();
-
-        final String multipleSiteIds = siteIds.size() > 1
-                ? siteIds.stream().sorted().collect(Collectors.joining(", "))
-                : null;
-
-        return IxDiag.of(pbsv, pbjsv, multipleSiteIds);
     }
 
     private static Site modifySite(Site site, String id) {
@@ -243,20 +193,71 @@ public class IxBidder implements Bidder<BidRequest> {
                 .build();
     }
 
+    private ExtRequest modifyRequestExt(ExtRequest extRequest, Set<String> siteIds) {
+        final ExtRequest modifiedExt;
+
+        if (extRequest != null) {
+            modifiedExt = ExtRequest.of(extRequest.getPrebid());
+            mapper.fillExtension(modifiedExt, extRequest);
+        } else {
+            modifiedExt = ExtRequest.empty();
+        }
+
+        modifiedExt.addProperty("ixdiag", mapper.mapper().valueToTree(makeDiagData(extRequest, siteIds)));
+        return modifiedExt;
+    }
+
+    private IxDiag makeDiagData(ExtRequest extRequest, Set<String> siteIds) {
+        final String pbjsv = Optional.ofNullable(extRequest)
+                .map(ExtRequest::getPrebid)
+                .map(ExtRequestPrebid::getChannel)
+                .map(ExtRequestPrebidChannel::getVersion)
+                .orElse(null);
+
+        final String pbsv = prebidVersionProvider.getNameVersionRecord();
+
+        final String multipleSiteIds = siteIds.size() > 1
+                ? siteIds.stream().sorted().collect(Collectors.joining(", "))
+                : null;
+
+        return IxDiag.of(pbsv, pbjsv, multipleSiteIds);
+    }
+
     @Override
     @Deprecated(since = "Not used, since Bidder.makeBidderResponse(...) was overridden.")
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         return Result.withError(BidderError.generic("Invalid method call"));
     }
 
-    private List<BidderBid> bidsFromResponse(IxBidResponse bidResponse,
-                                             BidRequest bidRequest,
-                                             List<BidderError> errors) {
+    @Override
+    public CompositeBidderResponse makeBidderResponse(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
+        try {
+            final IxBidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), IxBidResponse.class);
+            final List<BidderError> bidderErrors = new ArrayList<>();
+            return CompositeBidderResponse.builder()
+                    .bids(extractBids(bidRequest, bidResponse, bidderErrors))
+                    .fledgeAuctionConfigs(extractFledge(bidResponse))
+                    .errors(bidderErrors)
+                    .build();
+        } catch (DecodeException e) {
+            return CompositeBidderResponse.withError(BidderError.badServerResponse(e.getMessage()));
+        }
+    }
+
+    private List<BidderBid> extractBids(BidRequest bidRequest,
+                                        IxBidResponse bidResponse,
+                                        List<BidderError> errors) {
+
+        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
+            return Collections.emptyList();
+        }
+
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
                 .map(bid -> toBidderBid(bid, bidRequest, bidResponse, errors))
                 .filter(Objects::nonNull)
                 .toList();
@@ -271,68 +272,21 @@ public class IxBidder implements Bidder<BidRequest> {
             return null;
         }
 
+        final ExtBidPrebidVideo extBidPrebidVideo = bidType == BidType.video
+                ? parseBidExtPrebidVideo(bid.getExt())
+                : null;
+
         final Bid updatedBid = switch (bidType) {
-            case video -> updateBidWithVideoAttributes(bid);
-            case xNative -> bid.toBuilder().adm(updateBidAdmWithNativeAttributes(bid.getAdm())).build();
+            case video -> updateBidWithVideoAttributes(bid, extBidPrebidVideo);
+            case xNative -> updateBidAdmWithNativeAttributes(bid);
             default -> bid;
         };
 
-        return BidderBid.of(updatedBid, bidType, bidResponse.getCur());
-    }
-
-    private Bid updateBidWithVideoAttributes(Bid bid) {
-        final ObjectNode bidExt = bid.getExt();
-        final ExtBidPrebid extPrebid = bidExt != null ? parseBidExt(bidExt) : null;
-        final ExtBidPrebidVideo extVideo = extPrebid != null ? extPrebid.getVideo() : null;
-        final Bid updatedBid;
-        if (extVideo != null) {
-            final Bid.BidBuilder bidBuilder = bid.toBuilder();
-            bidBuilder.ext(resolveBidExt(extVideo.getDuration()));
-            if (CollectionUtils.isEmpty(bid.getCat())) {
-                bidBuilder.cat(Collections.singletonList(extVideo.getPrimaryCategory())).build();
-            }
-            updatedBid = bidBuilder.build();
-        } else {
-            updatedBid = bid;
-        }
-        return updatedBid;
-    }
-
-    private String updateBidAdmWithNativeAttributes(String adm) {
-        final NativeV11Wrapper nativeV11 = parseBidAdm(adm, NativeV11Wrapper.class);
-        final Response responseV11 = ObjectUtil.getIfNotNull(nativeV11, NativeV11Wrapper::getNativeResponse);
-        final boolean isV11 = responseV11 != null;
-        final Response response = isV11 ? responseV11 : parseBidAdm(adm, Response.class);
-        final List<EventTracker> trackers = ObjectUtil.getIfNotNull(response, Response::getEventtrackers);
-        final String updatedAdm = CollectionUtils.isNotEmpty(trackers) ? mapper.encodeToString(isV11
-                ? NativeV11Wrapper.of(mergeNativeImpTrackers(response, trackers))
-                : mergeNativeImpTrackers(response, trackers))
-                : null;
-
-        return updatedAdm != null ? updatedAdm : adm;
-    }
-
-    private <T> T parseBidAdm(String adm, Class<T> clazz) {
-        try {
-            return mapper.decodeValue(adm, clazz);
-        } catch (IllegalArgumentException | DecodeException e) {
-            return null;
-        }
-    }
-
-    private static Response mergeNativeImpTrackers(Response response, List<EventTracker> eventTrackers) {
-        final List<EventTracker> impressionAndImageTrackers = eventTrackers.stream()
-                .filter(tracker -> Objects.equals(tracker.getMethod(), EventType.IMPRESSION.getValue())
-                        || Objects.equals(tracker.getEvent(), EventTrackingMethod.IMAGE.getValue()))
-                .toList();
-        final List<String> impTrackers = Stream.concat(
-                        impressionAndImageTrackers.stream().map(EventTracker::getUrl),
-                        response.getImptrackers().stream())
-                .distinct()
-                .toList();
-
-        return response.toBuilder()
-                .imptrackers(impTrackers)
+        return BidderBid.builder()
+                .bid(updatedBid)
+                .type(bidType)
+                .bidCurrency(bidResponse.getCur())
+                .videoInfo(bidType == BidType.video ? videoInfo(extBidPrebidVideo) : null)
                 .build();
     }
 
@@ -343,13 +297,13 @@ public class IxBidder implements Bidder<BidRequest> {
     }
 
     private static Optional<BidType> getBidTypeFromMtype(Integer mType) {
-        final BidType bidType = mType != null ? switch (mType) {
+        final BidType bidType = switch (mType) {
             case 1 -> BidType.banner;
             case 2 -> BidType.video;
             case 3 -> BidType.audio;
             case 4 -> BidType.xNative;
-            default -> null;
-        } : null;
+            case null, default -> null;
+        };
 
         return Optional.ofNullable(bidType);
     }
@@ -379,26 +333,77 @@ public class IxBidder implements Bidder<BidRequest> {
         throw new PreBidException("Unmatched impression id " + impId);
     }
 
-    private ExtBidPrebid parseBidExt(ObjectNode bidExt) {
+    private ExtBidPrebidVideo parseBidExtPrebidVideo(ObjectNode bidExt) {
+        if (bidExt == null) {
+            return null;
+        }
+
         try {
-            return mapper.mapper().treeToValue(bidExt, ExtBidPrebid.class);
+            return mapper.mapper().treeToValue(bidExt.path("prebid").path("video"), ExtBidPrebidVideo.class);
         } catch (JsonProcessingException e) {
             return null;
         }
     }
 
-    private ObjectNode resolveBidExt(Integer duration) {
-        return mapper.mapper().valueToTree(ExtBidPrebid.builder()
-                .video(ExtBidPrebidVideo.of(duration, null))
-                .build());
+    private Bid updateBidWithVideoAttributes(Bid bid, ExtBidPrebidVideo extBidPrebidVideo) {
+        return CollectionUtils.isEmpty(bid.getCat()) && extBidPrebidVideo != null
+                ? bid.toBuilder()
+                .cat(Collections.singletonList(extBidPrebidVideo.getPrimaryCategory()))
+                .build()
+                : bid;
     }
 
-    private List<BidderBid> extractIxBids(BidRequest bidRequest,
-                                          IxBidResponse bidResponse,
-                                          List<BidderError> bidderErrors) {
-        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
-                ? Collections.emptyList()
-                : bidsFromResponse(bidResponse, bidRequest, bidderErrors);
+    private Bid updateBidAdmWithNativeAttributes(Bid bid) {
+        final String adm = bid.getAdm();
+        final NativeV11Wrapper nativeV11 = parseBidAdm(adm, NativeV11Wrapper.class);
+        final Response responseV11 = ObjectUtil.getIfNotNull(nativeV11, NativeV11Wrapper::getNativeResponse);
+        final boolean isV11 = responseV11 != null;
+        final Response response = isV11 ? responseV11 : parseBidAdm(adm, Response.class);
+        final List<EventTracker> trackers = ObjectUtil.getIfNotNull(response, Response::getEventtrackers);
+        final String updatedAdm = CollectionUtils.isNotEmpty(trackers)
+                ? mergeNativeImpTrackers(isV11, response, trackers)
+                : null;
+
+        return updatedAdm != null
+                ? bid.toBuilder().adm(updatedAdm).build()
+                : bid;
+    }
+
+    private <T> T parseBidAdm(String adm, Class<T> clazz) {
+        try {
+            return mapper.decodeValue(adm, clazz);
+        } catch (IllegalArgumentException | DecodeException e) {
+            return null;
+        }
+    }
+
+    private String mergeNativeImpTrackers(boolean isV11, Response response, List<EventTracker> trackers) {
+        return mapper.encodeToString(isV11
+                ? NativeV11Wrapper.of(mergeNativeImpTrackers(response, trackers))
+                : mergeNativeImpTrackers(response, trackers));
+    }
+
+    private static Response mergeNativeImpTrackers(Response response, List<EventTracker> eventTrackers) {
+        return response.toBuilder()
+                .imptrackers(Stream.concat(
+                                eventTrackers.stream()
+                                        .filter(IxBidder::isImpTracker)
+                                        .map(EventTracker::getUrl),
+                                response.getImptrackers().stream())
+                        .distinct()
+                        .toList())
+                .build();
+    }
+
+    private static boolean isImpTracker(EventTracker tracker) {
+        return Objects.equals(tracker.getMethod(), EventType.IMPRESSION.getValue())
+                || Objects.equals(tracker.getEvent(), EventTrackingMethod.IMAGE.getValue());
+    }
+
+    private static ExtBidPrebidVideo videoInfo(ExtBidPrebidVideo extBidPrebidVideo) {
+        return extBidPrebidVideo != null
+                ? ExtBidPrebidVideo.of(extBidPrebidVideo.getDuration(), null)
+                : null;
     }
 
     private List<FledgeAuctionConfig> extractFledge(IxBidResponse bidResponse) {

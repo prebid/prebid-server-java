@@ -2,12 +2,11 @@ package org.prebid.server.bidder.huaweiads;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.User;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.huaweiads.model.request.Device;
 import org.prebid.server.exception.PreBidException;
@@ -19,19 +18,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.verify;
 
+@ExtendWith(MockitoExtension.class)
 public class HuaweiDeviceBuilderTest extends VertxTest {
 
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
-    @Mock
+    @Mock(strictness = LENIENT)
     private ClientTimeFormatter clientTimeFormatter;
 
     private HuaweiDeviceBuilder target;
 
-    @Before
+    @BeforeEach
     public void before() {
         target = new HuaweiDeviceBuilder(jacksonMapper, clientTimeFormatter);
         given(clientTimeFormatter.now()).willReturn("clientTimeNow");

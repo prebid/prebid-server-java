@@ -250,7 +250,7 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
             case 2 -> BidType.video;
             case 3 -> BidType.audio;
             case 4 -> BidType.xNative;
-            default -> throw new PreBidException(
+            case null, default -> throw new PreBidException(
                     "Unsupported mtype %d for impression with ID: \"%s\"".formatted(bid.getMtype(), bid.getImpid()));
         };
     }

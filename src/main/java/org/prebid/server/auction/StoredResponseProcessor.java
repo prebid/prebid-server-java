@@ -12,6 +12,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionParticipation;
+import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.StoredResponseResult;
@@ -38,6 +39,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -95,6 +97,16 @@ public class StoredResponseProcessor {
                                 impToBidderToStoredBidResponseId)));
     }
 
+    Future<StoredResponseResult> getStoredResponseResult(String storedId, Timeout timeout) {
+        return applicationSettings.getStoredResponses(Collections.singleton(storedId), timeout)
+                .recover(exception -> Future.failedFuture(new InvalidRequestException(
+                        "Stored response fetching failed with reason: " + exception.getMessage())))
+                .map(storedResponseDataResult -> StoredResponseResult.of(
+                        Collections.emptyList(),
+                        convertToSeatBid(storedResponseDataResult),
+                        Collections.emptyMap()));
+    }
+
     private List<Imp> excludeStoredAuctionResponseImps(List<Imp> imps,
                                                        Map<String, String> auctionStoredResponseToImpId) {
 
@@ -121,7 +133,7 @@ public class StoredResponseProcessor {
 
         final BidderResponse bidderResponse = auctionParticipation.getBidderResponse();
         final BidderSeatBid initialSeatBid = bidderResponse.getSeatBid();
-        final BidderSeatBid adjustedSeatBid = updateSeatBid(initialSeatBid, imps.get(0).getId());
+        final BidderSeatBid adjustedSeatBid = updateSeatBid(initialSeatBid, imps.getFirst().getId());
 
         return auctionParticipation.with(bidderResponse.with(adjustedSeatBid));
     }
@@ -148,7 +160,8 @@ public class StoredResponseProcessor {
 
     List<AuctionParticipation> mergeWithBidderResponses(List<AuctionParticipation> auctionParticipations,
                                                         List<SeatBid> storedAuctionResponses,
-                                                        List<Imp> imps) {
+                                                        List<Imp> imps,
+                                                        Map<String, BidRejectionTracker> bidRejectionTrackers) {
         if (CollectionUtils.isEmpty(storedAuctionResponses)) {
             return auctionParticipations;
         }
@@ -165,7 +178,24 @@ public class StoredResponseProcessor {
         return responseBidders.stream()
                 .map(bidder -> updateBidderResponse(bidderToAuctionParticipation.get(bidder),
                         bidderToSeatBid.get(bidder), impIdToBidType))
+                .map(auctionParticipation -> restoreStoredBidsFromRejection(bidRejectionTrackers, auctionParticipation))
                 .toList();
+    }
+
+    private static AuctionParticipation restoreStoredBidsFromRejection(
+            Map<String, BidRejectionTracker> bidRejectionTrackers,
+            AuctionParticipation auctionParticipation) {
+
+        final BidRejectionTracker bidRejectionTracker = bidRejectionTrackers.get(auctionParticipation.getBidder());
+
+        if (bidRejectionTracker != null) {
+            Optional.ofNullable(auctionParticipation.getBidderResponse())
+                    .map(BidderResponse::getSeatBid)
+                    .map(BidderSeatBid::getBids)
+                    .ifPresent(bidRejectionTracker::restoreFromRejection);
+        }
+
+        return auctionParticipation;
     }
 
     private Map<String, ExtImpPrebid> getImpsExtPrebid(List<Imp> imps) {
@@ -236,6 +266,23 @@ public class StoredResponseProcessor {
             resolvedSeatBids.addAll(seatBids.stream()
                     .map(seatBid -> updateSeatBidBids(seatBid, impId))
                     .toList());
+        }
+        return mergeSameBidderSeatBid(resolvedSeatBids);
+    }
+
+    private List<SeatBid> convertToSeatBid(StoredResponseDataResult storedResponseDataResult) {
+        final List<SeatBid> resolvedSeatBids = new ArrayList<>();
+        final Map<String, String> idToStoredResponses = storedResponseDataResult.getIdToStoredResponses();
+        for (final Map.Entry<String, String> storedIdToImpId : idToStoredResponses.entrySet()) {
+            final String id = storedIdToImpId.getKey();
+            final String rowSeatBid = storedIdToImpId.getValue();
+            if (rowSeatBid == null) {
+                throw new InvalidRequestException(
+                        "Failed to fetch stored auction response for storedAuctionResponse id = %s.".formatted(id));
+            }
+            final List<SeatBid> seatBids = parseSeatBid(id, rowSeatBid);
+            validateStoredSeatBid(seatBids);
+            resolvedSeatBids.addAll(seatBids);
         }
         return mergeSameBidderSeatBid(resolvedSeatBids);
     }

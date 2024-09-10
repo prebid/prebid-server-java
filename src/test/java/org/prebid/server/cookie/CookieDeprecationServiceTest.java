@@ -1,6 +1,5 @@
 package org.prebid.server.cookie;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -8,12 +7,11 @@ import io.vertx.core.http.Cookie;
 import io.vertx.core.http.CookieSameSite;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.cookie.model.PartitionedCookie;
@@ -35,19 +33,18 @@ import java.util.function.UnaryOperator;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 
+@ExtendWith(MockitoExtension.class)
 public class CookieDeprecationServiceTest extends VertxTest {
 
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
-    @Mock
+    @Mock(strictness = LENIENT)
     private RoutingContext routingContext;
 
-    private CookieDeprecationService target;
+    private final CookieDeprecationService target = new CookieDeprecationService();
 
-    @Before
+    @BeforeEach
     public void before() {
-        target = new CookieDeprecationService(givenAccount(true, 200L));
         given(routingContext.cookieMap()).willReturn(Map.of());
     }
 
@@ -92,21 +89,6 @@ public class CookieDeprecationServiceTest extends VertxTest {
     }
 
     @Test
-    public void makeCookieShouldReturnNullWhenCookieDeprecationIsNotConfiguredInDefaultAccountAndAccountIsEmpty()
-            throws JsonProcessingException {
-
-        // given
-        final Account givenDefaultAccount = givenAccount(null, null);
-        target = new CookieDeprecationService(givenDefaultAccount);
-
-        // when
-        final PartitionedCookie actualCookie = target.makeCookie(Account.empty("accountId"), routingContext);
-
-        // then
-        assertThat(actualCookie).isNull();
-    }
-
-    @Test
     public void makeCookieShouldReturnNullWhenCookieDeprecationIsNotEnabledInAccount() {
         // given
         final Account givenAccount = givenAccount(false, 100L);
@@ -119,48 +101,12 @@ public class CookieDeprecationServiceTest extends VertxTest {
     }
 
     @Test
-    public void makeCookieShouldReturnNullWhenCookieDeprecationIsNotEnabledInDefaultAccountAndAccountIsEmpty() {
-
-        // given
-        final Account givenDefaultAccount = givenAccount(false, 100L);
-        target = new CookieDeprecationService(givenDefaultAccount);
-
-        // when
-        final PartitionedCookie actualCookie = target.makeCookie(Account.empty("accountId"), routingContext);
-
-        // then
-        assertThat(actualCookie).isNull();
-    }
-
-    @Test
     public void makeCookieShouldReturnCookieWithDefaultMaxAgeWhenCookieDeprecationEnabledAndTtlIsNotSetInAccount() {
         // given
         final Account givenAccount = givenAccount(true, null);
 
         // when
         final PartitionedCookie actualCookie = target.makeCookie(givenAccount, routingContext);
-
-        // then
-        final PartitionedCookie expectedCookie = PartitionedCookie.of(
-                Cookie.cookie("receive-cookie-deprecation", "1")
-                        .setPath("/")
-                        .setSameSite(CookieSameSite.NONE)
-                        .setSecure(true)
-                        .setHttpOnly(true)
-                        .setMaxAge(604800L));
-
-        assertThat(actualCookie).usingRecursiveComparison().isEqualTo(expectedCookie);
-    }
-
-    @Test
-    public void makeCookieShouldReturnCookieWithDefaultAgeWhenCookieEnabledAndTtlIsNotSetInDefaultAccAndAccIsEmpty() {
-
-        // given
-        final Account givenDefaultAccount = givenAccount(true, null);
-        target = new CookieDeprecationService(givenDefaultAccount);
-
-        // when
-        final PartitionedCookie actualCookie = target.makeCookie(Account.empty("accountId"), routingContext);
 
         // then
         final PartitionedCookie expectedCookie = PartitionedCookie.of(
@@ -190,23 +136,6 @@ public class CookieDeprecationServiceTest extends VertxTest {
                         .setSecure(true)
                         .setHttpOnly(true)
                         .setMaxAge(100L));
-
-        assertThat(actualCookie).usingRecursiveComparison().isEqualTo(expectedCookie);
-    }
-
-    @Test
-    public void makeCookieShouldReturnCookieWhenCookieDeprecationIsEnabledAndTtlIsSetInDefaultAccAndAccIsEmpty() {
-        // given & when
-        final PartitionedCookie actualCookie = target.makeCookie(Account.empty("accountId"), routingContext);
-
-        // then
-        final PartitionedCookie expectedCookie = PartitionedCookie.of(
-                Cookie.cookie("receive-cookie-deprecation", "1")
-                        .setPath("/")
-                        .setSameSite(CookieSameSite.NONE)
-                        .setSecure(true)
-                        .setHttpOnly(true)
-                        .setMaxAge(200L));
 
         assertThat(actualCookie).usingRecursiveComparison().isEqualTo(expectedCookie);
     }
@@ -268,14 +197,13 @@ public class CookieDeprecationServiceTest extends VertxTest {
     }
 
     @Test
-    public void updateBidRequestDeviceShouldNotChangeRequestWhenAccountAndDefaultAccountAreEmpty() {
+    public void updateBidRequestDeviceShouldNotChangeRequestWhenAccountIsEmpty() {
         // given
-        target = new CookieDeprecationService(Account.empty("accountId1"));
         final Map<String, String> headers = Map.of(
                 "header", "value",
                 "sec-cookie-deprecation", RandomStringUtils.random(100));
         final List<String> debugWarnings = new ArrayList<>();
-        final Account givenAccount = Account.empty("accountId2");
+        final Account givenAccount = Account.empty("accountId");
         final AuctionContext auctionContext = givenContext(headers, givenAccount, debugWarnings);
         final BidRequest bidRequest = BidRequest.builder().build();
 
@@ -307,26 +235,6 @@ public class CookieDeprecationServiceTest extends VertxTest {
     }
 
     @Test
-    public void updateBidRequestDeviceShouldNotChangeRequestWhenCookieDeprecationIsNotSetInDefaultAccAndAccIsEmpty() {
-        // given
-        target = new CookieDeprecationService(givenAccount(null, null));
-        final Map<String, String> headers = Map.of(
-                "header", "value",
-                "sec-cookie-deprecation", RandomStringUtils.random(100));
-        final List<String> debugWarnings = new ArrayList<>();
-        final Account givenAccount = Account.empty("accountId");
-        final AuctionContext auctionContext = givenContext(headers, givenAccount, debugWarnings);
-        final BidRequest bidRequest = BidRequest.builder().build();
-
-        // when
-        final BidRequest actualBidRequest = target.updateBidRequestDevice(bidRequest, auctionContext);
-
-        // then
-        assertThat(actualBidRequest).isEqualTo(bidRequest);
-        assertThat(debugWarnings).isEmpty();
-    }
-
-    @Test
     public void updateBidRequestDeviceShouldNotChangeRequestWhenCookieDeprecationIsDisabledInAccount() {
         // given
         final Map<String, String> headers = Map.of(
@@ -334,26 +242,6 @@ public class CookieDeprecationServiceTest extends VertxTest {
                 "sec-cookie-deprecation", RandomStringUtils.random(100));
         final List<String> debugWarnings = new ArrayList<>();
         final Account givenAccount = givenAccount(false, 100L);
-        final AuctionContext auctionContext = givenContext(headers, givenAccount, debugWarnings);
-        final BidRequest bidRequest = BidRequest.builder().build();
-
-        // when
-        final BidRequest actualBidRequest = target.updateBidRequestDevice(bidRequest, auctionContext);
-
-        // then
-        assertThat(actualBidRequest).isEqualTo(bidRequest);
-        assertThat(debugWarnings).isEmpty();
-    }
-
-    @Test
-    public void updateBidRequestDeviceShouldNotChangeRequestWhenCookieDeprecationIsDisabledInDefaultAccAndAccIsEmpty() {
-        // given
-        target = new CookieDeprecationService(givenAccount(false, 100L));
-        final Map<String, String> headers = Map.of(
-                "header", "value",
-                "sec-cookie-deprecation", RandomStringUtils.random(100));
-        final List<String> debugWarnings = new ArrayList<>();
-        final Account givenAccount = Account.empty("accountId");
         final AuctionContext auctionContext = givenContext(headers, givenAccount, debugWarnings);
         final BidRequest bidRequest = BidRequest.builder().build();
 
@@ -374,26 +262,6 @@ public class CookieDeprecationServiceTest extends VertxTest {
                 "sec-cookie-deprecation", cdep);
         final List<String> debugWarnings = new ArrayList<>();
         final Account givenAccount = givenAccount(true, 100L);
-        final AuctionContext auctionContext = givenContext(headers, givenAccount, debugWarnings);
-        final BidRequest bidRequest = givenBidRequest(builder -> builder.ext(null).ip("ip"));
-
-        // when
-        final BidRequest actualBidRequest = target.updateBidRequestDevice(bidRequest, auctionContext);
-
-        // then
-        assertThat(actualBidRequest).isEqualTo(givenBidRequest(cdep, builder -> builder.ip("ip")));
-        assertThat(debugWarnings).isEmpty();
-    }
-
-    @Test
-    public void updateBidRequestDeviceShouldAddCdepValueWhenDeviceExtIsAbsentAndAccIsEmptyAndDefaultAccIsPresent() {
-        // given
-        final String cdep = RandomStringUtils.random(100);
-        final Map<String, String> headers = Map.of(
-                "header", "value",
-                "sec-cookie-deprecation", cdep);
-        final List<String> debugWarnings = new ArrayList<>();
-        final Account givenAccount = Account.empty("accountId");
         final AuctionContext auctionContext = givenContext(headers, givenAccount, debugWarnings);
         final BidRequest bidRequest = givenBidRequest(builder -> builder.ext(null).ip("ip"));
 

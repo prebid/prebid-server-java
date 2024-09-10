@@ -3,15 +3,16 @@ package org.prebid.server.auction.privacy.enforcement;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
+import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.auction.privacy.enforcement.mask.UserFpdTcfMask;
 import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
@@ -66,6 +67,7 @@ public class TcfEnforcement {
         final Device device = auctionContext.getBidRequest().getDevice();
         final AccountGdprConfig accountGdprConfig = accountGdprConfig(auctionContext.getAccount());
         final MetricName requestType = auctionContext.getRequestTypeMetric();
+        final ActivityInfrastructure activityInfrastructure = auctionContext.getActivityInfrastructure();
 
         return tcfDefinerService.resultForBidderNames(
                         bidders,
@@ -73,7 +75,13 @@ public class TcfEnforcement {
                         auctionContext.getPrivacyContext().getTcfContext(),
                         accountGdprConfig)
                 .map(TcfResponse::getActions)
-                .map(enforcements -> updateMetrics(enforcements, aliases, requestType, bidderToUser, device))
+                .map(enforcements -> updateMetrics(
+                        activityInfrastructure,
+                        enforcements,
+                        aliases,
+                        requestType,
+                        bidderToUser,
+                        device))
                 .map(enforcements -> bidderToPrivacyResult(enforcements, bidders, bidderToUser, device));
     }
 
@@ -82,11 +90,14 @@ public class TcfEnforcement {
         return privacyConfig != null ? privacyConfig.getGdpr() : null;
     }
 
-    private Map<String, PrivacyEnforcementAction> updateMetrics(Map<String, PrivacyEnforcementAction> enforcements,
+    private Map<String, PrivacyEnforcementAction> updateMetrics(ActivityInfrastructure activityInfrastructure,
+                                                                Map<String, PrivacyEnforcementAction> enforcements,
                                                                 BidderAliases aliases,
                                                                 MetricName requestType,
                                                                 Map<String, User> bidderToUser,
                                                                 Device device) {
+
+        final boolean isLmtEnforcedAndEnabled = isLmtEnforcedAndEnabled(device);
 
         // Metrics should represent real picture of the bidding process, so if bidder request is blocked
         // by privacy then no reason to increment another metrics, like geo masked, etc.
@@ -103,22 +114,20 @@ public class TcfEnforcement {
             final boolean geoMasked = !requestBlocked && enforcement.isMaskGeo() && shouldMaskGeo(user, device);
             final boolean analyticsBlocked = !requestBlocked && enforcement.isBlockAnalyticsReport();
 
-            metrics.updateAuctionTcfMetrics(
+            metrics.updateAuctionTcfAndLmtMetrics(
+                    activityInfrastructure,
                     aliases.resolveBidder(bidder),
                     requestType,
                     ufpdRemoved,
                     uidsRemoved,
                     geoMasked,
                     analyticsBlocked,
-                    requestBlocked);
+                    requestBlocked,
+                    isLmtEnforcedAndEnabled);
 
             if (ufpdRemoved) {
                 logger.warn("The UFPD fields have been removed due to a consent check.");
             }
-        }
-
-        if (isLmtEnforcedAndEnabled(device)) {
-            metrics.updatePrivacyLmtMetric();
         }
 
         return enforcements;
@@ -182,6 +191,7 @@ public class TcfEnforcement {
         final PrivacyEnforcementAction privacyEnforcementAction = bidderToEnforcement.get(bidder);
         final boolean blockBidderRequest = privacyEnforcementAction.isBlockBidderRequest();
         final boolean blockAnalyticsReport = privacyEnforcementAction.isBlockAnalyticsReport();
+
         if (blockBidderRequest) {
             return BidderPrivacyResult.builder()
                     .requestBidder(bidder)
@@ -194,7 +204,7 @@ public class TcfEnforcement {
         final boolean maskUserIds = privacyEnforcementAction.isRemoveUserIds() || isLmtEnabled;
         final boolean maskGeo = privacyEnforcementAction.isMaskGeo() || isLmtEnabled;
         final Set<String> eidExceptions = privacyEnforcementAction.getEidExceptions();
-        final User maskedUser = userFpdTcfMask.maskUser(user, maskUserFpd, maskUserIds, maskGeo, eidExceptions);
+        final User maskedUser = userFpdTcfMask.maskUser(user, maskUserFpd, maskUserIds, eidExceptions);
 
         final boolean maskIp = privacyEnforcementAction.isMaskDeviceIp() || isLmtEnabled;
         final boolean maskDeviceInfo = privacyEnforcementAction.isMaskDeviceInfo() || isLmtEnabled;

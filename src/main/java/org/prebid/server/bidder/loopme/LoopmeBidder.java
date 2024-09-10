@@ -4,6 +4,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -22,10 +23,12 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class LoopmeBidder implements Bidder<BidRequest> {
 
     private final String endpointUrl;
+
     private final JacksonMapper mapper;
 
     public LoopmeBidder(String endpointUrl, JacksonMapper mapper) {
@@ -36,7 +39,14 @@ public class LoopmeBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
 
-        return Result.withValue(BidderUtil.defaultRequest(request, endpointUrl, mapper));
+        return Result.withValue(HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(endpointUrl)
+                .headers(HttpUtil.headers())
+                .impIds(BidderUtil.impIds(request))
+                .body(mapper.encodeToBytes(request))
+                .payload(request)
+                .build());
     }
 
     @Override
@@ -63,7 +73,7 @@ public class LoopmeBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
-                .toList();
+                .collect(Collectors.toList());
     }
 
     private static BidType getBidType(String impId, List<Imp> imps) {
@@ -73,6 +83,8 @@ public class LoopmeBidder implements Bidder<BidRequest> {
                     return BidType.banner;
                 } else if (imp.getVideo() != null) {
                     return BidType.video;
+                } else if (imp.getAudio() != null) {
+                    return BidType.audio;
                 } else if (imp.getXNative() != null) {
                     return BidType.xNative;
                 }

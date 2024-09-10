@@ -1,0 +1,25 @@
+adapters:
+  aso:
+    endpoint: https://srv.aso1.net/pbs/bidder?zid={{ZoneID}}
+    aliases:
+      bcmint:
+        enabled: false
+        endpoint: https://srv.datacygnal.io/pbs/bidder?zid={{ZoneID}}
+        meta-info:
+          maintainer-email: contact@bcm.ltd
+      bidagency:
+        enabled: false
+        endpoint: https://srv.bidgx.com/pbs/bidder?zid={{ZoneID}}
+        meta-info:
+          maintainer-email: aso@bidgency.com
+    meta-info:
+      maintainer-email: support@adsrv.org
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      vendor-id: 0

@@ -16,13 +16,12 @@ import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 import org.assertj.core.api.InstanceOfAssertFactories;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.analytics.model.AmpEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
@@ -35,8 +34,8 @@ import org.prebid.server.auction.requestfactory.AmpRequestFactory;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookie;
-import org.prebid.server.exception.BlacklistedAccountException;
-import org.prebid.server.exception.BlacklistedAppException;
+import org.prebid.server.exception.BlocklistedAccountException;
+import org.prebid.server.exception.BlocklistedAppException;
 import org.prebid.server.exception.InvalidAccountConfigException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
@@ -81,16 +80,15 @@ import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willReturn;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.anyBoolean;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
+@ExtendWith(MockitoExtension.class)
 public class AmpHandlerTest extends VertxTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private AmpRequestFactory ampRequestFactory;
@@ -110,18 +108,18 @@ public class AmpHandlerTest extends VertxTest {
     private AmpHandler ampHandler;
     @Mock
     private RoutingContext routingContext;
-    @Mock
+    @Mock(strictness = LENIENT)
     private HttpServerRequest httpRequest;
-    @Mock
+    @Mock(strictness = LENIENT)
     private HttpServerResponse httpResponse;
-    @Mock
+    @Mock(strictness = LENIENT)
     private UidsCookie uidsCookie;
     @Mock
     private PrebidVersionProvider prebidVersionProvider;
 
     private Timeout timeout;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);
@@ -281,10 +279,10 @@ public class AmpHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldRespondWithBadRequestIfRequestHasBlacklistedAccount() {
+    public void shouldRespondWithBadRequestIfRequestHasBlocklistedAccount() {
         // given
         given(ampRequestFactory.fromRequest(any(), anyLong()))
-                .willReturn(Future.failedFuture(new BlacklistedAccountException("Blacklisted account")));
+                .willReturn(Future.failedFuture(new BlocklistedAccountException("Blocklisted account")));
 
         // when
         ampHandler.handle(routingContext);
@@ -298,14 +296,14 @@ public class AmpHandlerTest extends VertxTest {
                         tuple("AMP-Access-Control-Allow-Source-Origin", "http://example.com"),
                         tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"),
                         tuple("x-prebid", "pbs-java/1.00"));
-        verify(httpResponse).end(eq("Blacklisted: Blacklisted account"));
+        verify(httpResponse).end(eq("Blocklisted: Blocklisted account"));
     }
 
     @Test
-    public void shouldRespondWithBadRequestIfRequestHasBlacklistedApp() {
+    public void shouldRespondWithBadRequestIfRequestHasBlocklistedApp() {
         // given
         given(ampRequestFactory.fromRequest(any(), anyLong()))
-                .willReturn(Future.failedFuture(new BlacklistedAppException("Blacklisted app")));
+                .willReturn(Future.failedFuture(new BlocklistedAppException("Blocklisted app")));
 
         // when
         ampHandler.handle(routingContext);
@@ -319,7 +317,7 @@ public class AmpHandlerTest extends VertxTest {
                         tuple("AMP-Access-Control-Allow-Source-Origin", "http://example.com"),
                         tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"),
                         tuple("x-prebid", "pbs-java/1.00"));
-        verify(httpResponse).end(eq("Blacklisted: Blacklisted app"));
+        verify(httpResponse).end(eq("Blocklisted: Blocklisted app"));
     }
 
     @Test
@@ -566,7 +564,7 @@ public class AmpHandlerTest extends VertxTest {
 
         givenHoldAuction(givenBidResponseWithExt(
                 ExtBidResponse.builder()
-                        .debug(ExtResponseDebug.of(null, auctionContext.getBidRequest(), null, null))
+                        .debug(ExtResponseDebug.of(null, auctionContext.getBidRequest(), null))
                         .prebid(ExtBidResponsePrebid.builder().auctiontimestamp(1000L).targeting(emptyMap()).build())
                         .build()));
 
@@ -728,7 +726,6 @@ public class AmpHandlerTest extends VertxTest {
     @Test
     public void shouldUpdateRequestTimeMetric() {
         // given
-
         // set up clock mock to check that request_time metric has been updated with expected value
         given(clock.millis()).willReturn(5000L).willReturn(5500L);
 

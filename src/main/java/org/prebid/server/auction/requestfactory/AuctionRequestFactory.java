@@ -7,6 +7,7 @@ import com.iab.openrtb.request.Regs;
 import io.vertx.core.Future;
 import io.vertx.ext.web.RoutingContext;
 import org.prebid.server.auction.DebugResolver;
+import org.prebid.server.auction.GeoLocationServiceWrapper;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.InterstitialProcessor;
 import org.prebid.server.auction.OrtbTypesResolver;
@@ -48,6 +49,7 @@ public class AuctionRequestFactory {
     private final DebugResolver debugResolver;
     private final JacksonMapper mapper;
     private final OrtbTypesResolver ortbTypesResolver;
+    private final GeoLocationServiceWrapper geoLocationServiceWrapper;
 
     private static final String ENDPOINT = Endpoint.openrtb2_auction.value();
 
@@ -63,7 +65,8 @@ public class AuctionRequestFactory {
                                  OrtbTypesResolver ortbTypesResolver,
                                  AuctionPrivacyContextFactory auctionPrivacyContextFactory,
                                  DebugResolver debugResolver,
-                                 JacksonMapper mapper) {
+                                 JacksonMapper mapper,
+                                 GeoLocationServiceWrapper geoLocationServiceWrapper) {
 
         this.maxRequestSize = maxRequestSize;
         this.ortb2RequestFactory = Objects.requireNonNull(ortb2RequestFactory);
@@ -78,12 +81,13 @@ public class AuctionRequestFactory {
         this.auctionPrivacyContextFactory = Objects.requireNonNull(auctionPrivacyContextFactory);
         this.debugResolver = Objects.requireNonNull(debugResolver);
         this.mapper = Objects.requireNonNull(mapper);
+        this.geoLocationServiceWrapper = Objects.requireNonNull(geoLocationServiceWrapper);
     }
 
     /**
-     * Creates {@link AuctionContext} based on {@link RoutingContext}.
+     * Creates {@link AuctionContext} and parses BidRequest based on {@link RoutingContext}.
      */
-    public Future<AuctionContext> fromRequest(RoutingContext routingContext, long startTime) {
+    public Future<AuctionContext> parseRequest(RoutingContext routingContext, long startTime) {
         final String body;
         try {
             body = extractAndValidateBody(routingContext);
@@ -96,15 +100,29 @@ public class AuctionRequestFactory {
 
         return ortb2RequestFactory.executeEntrypointHooks(routingContext, body, initialAuctionContext)
                 .compose(httpRequest -> parseBidRequest(httpRequest, initialAuctionContext.getPrebidErrors())
-
                         .map(bidRequest -> ortb2RequestFactory
                                 .enrichAuctionContext(initialAuctionContext, httpRequest, bidRequest, startTime)
                                 .with(requestTypeMetric(bidRequest))))
+                .recover(ortb2RequestFactory::restoreResultFromRejection);
+    }
 
-                .compose(auctionContext -> ortb2RequestFactory.fetchAccount(auctionContext)
-                        .map(auctionContext::with))
+    /**
+     * Enriches {@link AuctionContext}.
+     */
+    public Future<AuctionContext> enrichAuctionContext(AuctionContext initialContext) {
+        if (initialContext.isRequestRejected()) {
+            return Future.succeededFuture(initialContext);
+        }
+
+        return ortb2RequestFactory.fetchAccount(initialContext).map(initialContext::with)
 
                 .map(auctionContext -> auctionContext.with(debugResolver.debugContextFrom(auctionContext)))
+
+                .compose(auctionContext -> geoLocationServiceWrapper.lookup(auctionContext)
+                        .map(auctionContext::with))
+
+                .compose(auctionContext -> ortb2RequestFactory.enrichBidRequestWithGeolocationData(auctionContext)
+                        .map(auctionContext::with))
 
                 .compose(auctionContext -> gppService.contextFrom(auctionContext)
                         .map(auctionContext::with))
@@ -121,17 +139,13 @@ public class AuctionRequestFactory {
                 .compose(auctionContext -> auctionPrivacyContextFactory.contextFrom(auctionContext)
                         .map(auctionContext::with))
 
-                .map(auctionContext -> auctionContext.with(
-                        ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(auctionContext)))
+                .compose(auctionContext -> ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(auctionContext)
+                        .map(auctionContext::with))
 
                 .compose(auctionContext -> ortb2RequestFactory.executeProcessedAuctionRequestHooks(auctionContext)
                         .map(auctionContext::with))
 
-                .compose(ortb2RequestFactory::populateUserAdditionalInfo)
-
-                .map(ortb2RequestFactory::enrichWithPriceFloors)
-
-                .map(auctionContext -> ortb2RequestFactory.updateTimeout(auctionContext, startTime))
+                .map(ortb2RequestFactory::updateTimeout)
 
                 .recover(ortb2RequestFactory::restoreResultFromRejection);
     }
@@ -216,14 +230,12 @@ public class AuctionRequestFactory {
      */
     private Future<BidRequest> updateAndValidateBidRequest(AuctionContext auctionContext) {
         final Account account = auctionContext.getAccount();
+        final HttpRequestContext httpRequest = auctionContext.getHttpRequest();
         final List<String> debugWarnings = auctionContext.getDebugWarnings();
 
         return storedRequestProcessor.processAuctionRequest(account.getId(), auctionContext.getBidRequest())
                 .compose(auctionStoredResult -> updateBidRequest(auctionStoredResult, auctionContext))
-                .compose(bidRequest -> ortb2RequestFactory.validateRequest(
-                        bidRequest,
-                        auctionContext.getHttpRequest(),
-                        debugWarnings))
+                .compose(bidRequest -> ortb2RequestFactory.validateRequest(bidRequest, httpRequest, debugWarnings))
                 .map(interstitialProcessor::process);
     }
 

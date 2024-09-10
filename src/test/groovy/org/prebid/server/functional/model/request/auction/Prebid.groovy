@@ -37,6 +37,8 @@ class Prebid {
     List<AdServerTargeting> adServerTargeting
     BidderControls bidderControls
     PrebidModulesConfig modules
+    PrebidAnalytics analytics
+    StoredAuctionResponse storedAuctionResponse
 
     static class Channel {
 

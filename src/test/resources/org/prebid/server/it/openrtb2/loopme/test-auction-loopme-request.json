@@ -9,7 +9,9 @@
       },
       "ext": {
         "loopme": {
-          "accountId": "testAccountId"
+          "publisherId": "testPublisherId",
+          "bundleId": "testBundleId",
+          "placementId": "testPlacementId"
         }
       }
     }

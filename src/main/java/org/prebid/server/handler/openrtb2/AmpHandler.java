@@ -12,11 +12,9 @@ import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerResponse;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
@@ -30,8 +28,8 @@ import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.auction.requestfactory.AmpRequestFactory;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookie;
-import org.prebid.server.exception.BlacklistedAccountException;
-import org.prebid.server.exception.BlacklistedAppException;
+import org.prebid.server.exception.BlocklistedAccountException;
+import org.prebid.server.exception.BlocklistedAppException;
 import org.prebid.server.exception.InvalidAccountConfigException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
@@ -39,6 +37,8 @@ import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.HttpInteractionLogger;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.Endpoint;
@@ -56,6 +56,8 @@ import org.prebid.server.proto.response.ExtAmpVideoPrebid;
 import org.prebid.server.proto.response.ExtAmpVideoResponse;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.version.PrebidVersionProvider;
+import org.prebid.server.vertx.verticles.server.HttpEndpoint;
+import org.prebid.server.vertx.verticles.server.application.ApplicationResource;
 
 import java.time.Clock;
 import java.util.Collections;
@@ -67,7 +69,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-public class AmpHandler implements Handler<RoutingContext> {
+public class AmpHandler implements ApplicationResource {
 
     private static final Logger logger = LoggerFactory.getLogger(AmpHandler.class);
     private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
@@ -113,6 +115,11 @@ public class AmpHandler implements Handler<RoutingContext> {
         this.prebidVersionProvider = Objects.requireNonNull(prebidVersionProvider);
         this.mapper = Objects.requireNonNull(mapper);
         this.logSamplingRate = logSamplingRate;
+    }
+
+    @Override
+    public List<HttpEndpoint> endpoints() {
+        return Collections.singletonList(HttpEndpoint.of(HttpMethod.GET, Endpoint.openrtb2_amp.value()));
     }
 
     @Override
@@ -315,11 +322,12 @@ public class AmpHandler implements Handler<RoutingContext> {
 
                 status = HttpResponseStatus.UNAUTHORIZED;
                 body = message;
-            } else if (exception instanceof BlacklistedAppException
-                    || exception instanceof BlacklistedAccountException) {
-                metricRequestStatus = exception instanceof BlacklistedAccountException
-                        ? MetricName.blacklisted_account : MetricName.blacklisted_app;
-                final String message = "Blacklisted: " + exception.getMessage();
+            } else if (exception instanceof BlocklistedAppException
+                    || exception instanceof BlocklistedAccountException) {
+                metricRequestStatus = exception instanceof BlocklistedAccountException
+                        ? MetricName.blocklisted_account
+                        : MetricName.blocklisted_app;
+                final String message = "Blocklisted: " + exception.getMessage();
                 logger.debug(message);
 
                 errorMessages = Collections.singletonList(message);
@@ -361,7 +369,7 @@ public class AmpHandler implements Handler<RoutingContext> {
         String origin = null;
         final List<String> ampSourceOrigin = routingContext.queryParam("__amp_source_origin");
         if (CollectionUtils.isNotEmpty(ampSourceOrigin)) {
-            origin = ampSourceOrigin.get(0);
+            origin = ampSourceOrigin.getFirst();
         }
         if (origin == null) {
             // Just to be safe
@@ -370,8 +378,13 @@ public class AmpHandler implements Handler<RoutingContext> {
         return origin;
     }
 
-    private void respondWith(RoutingContext routingContext, HttpResponseStatus status, String body, long startTime,
-                             MetricName metricRequestStatus, AmpEvent event, TcfContext tcfContext) {
+    private void respondWith(RoutingContext routingContext,
+                             HttpResponseStatus status,
+                             String body,
+                             long startTime,
+                             MetricName metricRequestStatus,
+                             AmpEvent event,
+                             TcfContext tcfContext) {
 
         final boolean responseSent = HttpUtil.executeSafely(routingContext, Endpoint.openrtb2_amp,
                 response -> response
@@ -389,7 +402,7 @@ public class AmpHandler implements Handler<RoutingContext> {
     }
 
     private void handleResponseException(Throwable exception) {
-        logger.warn("Failed to send amp response: {0}", exception.getMessage());
+        logger.warn("Failed to send amp response: {}", exception.getMessage());
         metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, MetricName.networkerr);
     }
 

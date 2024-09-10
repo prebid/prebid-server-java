@@ -1,13 +1,12 @@
 package org.prebid.server.activity.infrastructure.privacy.usnat.reader;
 
 import com.iab.gpp.encoder.GppModel;
-import com.iab.gpp.encoder.section.UspNatV1;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import com.iab.gpp.encoder.section.UsNatV1;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Collections;
 import java.util.List;
@@ -16,22 +15,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verifyNoInteractions;
 
+@ExtendWith(MockitoExtension.class)
 public class USNationalGppReaderTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private GppModel gppModel;
 
     @Mock
-    private UspNatV1 uspNatV1;
+    private UsNatV1 usNatV1;
 
     private USNationalGppReader gppReader;
 
-    @Before
+    @BeforeEach
     public void setUp() {
-        given(gppModel.getUspNatV1Section()).willReturn(uspNatV1);
+        given(gppModel.getUsNatV1Section()).willReturn(usNatV1);
 
         gppReader = new USNationalGppReader(gppModel);
     }
@@ -39,7 +36,7 @@ public class USNationalGppReaderTest {
     @Test
     public void getVersionShouldReturnExpectedResult() {
         // given
-        given(uspNatV1.getVersion()).willReturn(1);
+        given(usNatV1.getVersion()).willReturn(1);
 
         // when and then
         assertThat(gppReader.getVersion()).isEqualTo(1);
@@ -48,7 +45,7 @@ public class USNationalGppReaderTest {
     @Test
     public void getGpcShouldReturnExpectedResult() {
         // given
-        given(uspNatV1.getGpc()).willReturn(true);
+        given(usNatV1.getGpc()).willReturn(true);
 
         // when and then
         assertThat(gppReader.getGpc()).isTrue();
@@ -58,13 +55,13 @@ public class USNationalGppReaderTest {
     public void getGpcSegmentTypeShouldReturnExpectedResult() {
         // when and then
         assertThat(gppReader.getGpcSegmentType()).isNull();
-        verifyNoInteractions(uspNatV1);
+        verifyNoInteractions(usNatV1);
     }
 
     @Test
     public void getGpcSegmentIncludedShouldReturnExpectedResult() {
         // given
-        given(uspNatV1.getGpcSegmentIncluded()).willReturn(true);
+        given(usNatV1.getGpcSegmentIncluded()).willReturn(true);
 
         // when and then
         assertThat(gppReader.getGpcSegmentIncluded()).isTrue();
@@ -73,7 +70,7 @@ public class USNationalGppReaderTest {
     @Test
     public void getSaleOptOutShouldReturnExpectedResult() {
         // given
-        given(uspNatV1.getSaleOptOut()).willReturn(1);
+        given(usNatV1.getSaleOptOut()).willReturn(1);
 
         // when and then
         assertThat(gppReader.getSaleOptOut()).isEqualTo(1);
@@ -82,7 +79,7 @@ public class USNationalGppReaderTest {
     @Test
     public void getSaleOptOutNoticeShouldReturnExpectedResult() {
         // given
-        given(uspNatV1.getSaleOptOutNotice()).willReturn(1);
+        given(usNatV1.getSaleOptOutNotice()).willReturn(1);
 
         // when and then
         assertThat(gppReader.getSaleOptOutNotice()).isEqualTo(1);
@@ -91,7 +88,7 @@ public class USNationalGppReaderTest {
     @Test
     public void getSharingNoticeShouldReturnExpectedResult() {
         // given
-        given(uspNatV1.getSharingNotice()).willReturn(1);
+        given(usNatV1.getSharingNotice()).willReturn(1);
 
         // when and then
         assertThat(gppReader.getSharingNotice()).isEqualTo(1);
@@ -100,7 +97,7 @@ public class USNationalGppReaderTest {
     @Test
     public void getSharingOptOutShouldReturnExpectedResult() {
         // given
-        given(uspNatV1.getSharingOptOut()).willReturn(1);
+        given(usNatV1.getSharingOptOut()).willReturn(1);
 
         // when and then
         assertThat(gppReader.getSharingOptOut()).isEqualTo(1);
@@ -109,7 +106,7 @@ public class USNationalGppReaderTest {
     @Test
     public void getSharingOptOutNoticeShouldReturnExpectedResult() {
         // given
-        given(uspNatV1.getSharingOptOutNotice()).willReturn(1);
+        given(usNatV1.getSharingOptOutNotice()).willReturn(1);
 
         // when and then
         assertThat(gppReader.getSharingOptOutNotice()).isEqualTo(1);
@@ -118,7 +115,7 @@ public class USNationalGppReaderTest {
     @Test
     public void getTargetedAdvertisingOptOutShouldReturnExpectedResult() {
         // given
-        given(uspNatV1.getTargetedAdvertisingOptOut()).willReturn(1);
+        given(usNatV1.getTargetedAdvertisingOptOut()).willReturn(1);
 
         // when and then
         assertThat(gppReader.getTargetedAdvertisingOptOut()).isEqualTo(1);
@@ -127,7 +124,7 @@ public class USNationalGppReaderTest {
     @Test
     public void getTargetedAdvertisingOptOutNoticeShouldReturnExpectedResult() {
         // given
-        given(uspNatV1.getTargetedAdvertisingOptOutNotice()).willReturn(1);
+        given(usNatV1.getTargetedAdvertisingOptOutNotice()).willReturn(1);
 
         // when and then
         assertThat(gppReader.getTargetedAdvertisingOptOutNotice()).isEqualTo(1);
@@ -136,7 +133,7 @@ public class USNationalGppReaderTest {
     @Test
     public void getSensitiveDataLimitUseNoticeShouldReturnExpectedResult() {
         // given
-        given(uspNatV1.getSensitiveDataLimitUseNotice()).willReturn(1);
+        given(usNatV1.getSensitiveDataLimitUseNotice()).willReturn(1);
 
         // when and then
         assertThat(gppReader.getSensitiveDataLimitUseNotice()).isEqualTo(1);
@@ -146,7 +143,7 @@ public class USNationalGppReaderTest {
     public void getSensitiveDataProcessingShouldReturnExpectedResult() {
         // given
         final List<Integer> data = Collections.emptyList();
-        given(uspNatV1.getSensitiveDataProcessing()).willReturn(data);
+        given(usNatV1.getSensitiveDataProcessing()).willReturn(data);
 
         // when and then
         assertThat(gppReader.getSensitiveDataProcessing()).isSameAs(data);
@@ -155,7 +152,7 @@ public class USNationalGppReaderTest {
     @Test
     public void getSensitiveDataProcessingOptOutNoticeShouldReturnExpectedResult() {
         // given
-        given(uspNatV1.getSensitiveDataProcessingOptOutNotice()).willReturn(1);
+        given(usNatV1.getSensitiveDataProcessingOptOutNotice()).willReturn(1);
 
         // when and then
         assertThat(gppReader.getSensitiveDataProcessingOptOutNotice()).isEqualTo(1);
@@ -165,7 +162,7 @@ public class USNationalGppReaderTest {
     public void getKnownChildSensitiveDataConsentsShouldReturnExpectedResult() {
         // given
         final List<Integer> data = Collections.emptyList();
-        given(uspNatV1.getKnownChildSensitiveDataConsents()).willReturn(data);
+        given(usNatV1.getKnownChildSensitiveDataConsents()).willReturn(data);
 
         // when and then
         assertThat(gppReader.getKnownChildSensitiveDataConsents()).isSameAs(data);
@@ -174,7 +171,7 @@ public class USNationalGppReaderTest {
     @Test
     public void getPersonalDataConsentsShouldReturnExpectedResult() {
         // given
-        given(uspNatV1.getPersonalDataConsents()).willReturn(1);
+        given(usNatV1.getPersonalDataConsents()).willReturn(1);
 
         // when and then
         assertThat(gppReader.getPersonalDataConsents()).isEqualTo(1);
@@ -183,7 +180,7 @@ public class USNationalGppReaderTest {
     @Test
     public void getMspaCoveredTransactionShouldReturnExpectedResult() {
         // given
-        given(uspNatV1.getMspaCoveredTransaction()).willReturn(1);
+        given(usNatV1.getMspaCoveredTransaction()).willReturn(1);
 
         // when and then
         assertThat(gppReader.getMspaCoveredTransaction()).isEqualTo(1);
@@ -192,7 +189,7 @@ public class USNationalGppReaderTest {
     @Test
     public void getMspaServiceProviderModeShouldReturnExpectedResult() {
         // given
-        given(uspNatV1.getMspaServiceProviderMode()).willReturn(1);
+        given(usNatV1.getMspaServiceProviderMode()).willReturn(1);
 
         // when and then
         assertThat(gppReader.getMspaServiceProviderMode()).isEqualTo(1);
@@ -201,7 +198,7 @@ public class USNationalGppReaderTest {
     @Test
     public void getMspaOptOutOptionModeShouldReturnExpectedResult() {
         // given
-        given(uspNatV1.getMspaOptOutOptionMode()).willReturn(1);
+        given(usNatV1.getMspaOptOutOptionMode()).willReturn(1);
 
         // when and then
         assertThat(gppReader.getMspaOptOutOptionMode()).isEqualTo(1);

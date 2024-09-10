@@ -1,7 +1,7 @@
 package org.prebid.server.auction.model;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 import java.util.Set;
@@ -14,7 +14,7 @@ public class BidRejectionTrackerTest {
 
     private BidRejectionTracker target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new BidRejectionTracker("bidder", singleton("1"), 0);
     }
@@ -22,7 +22,7 @@ public class BidRejectionTrackerTest {
     @Test
     public void succeedShouldRestoreBidderFromRejection() {
         // given
-        target.reject("1", BidRejectionReason.OTHER_ERROR);
+        target.reject("1", BidRejectionReason.ERROR_GENERAL);
 
         // when
         target.succeed("1");
@@ -34,30 +34,30 @@ public class BidRejectionTrackerTest {
     @Test
     public void succeedShouldIgnoreUninvolvedImpIds() {
         // given
-        target.reject("1", BidRejectionReason.OTHER_ERROR);
+        target.reject("1", BidRejectionReason.ERROR_GENERAL);
 
         // when
         target.succeed("2");
 
         // then
         assertThat(target.getRejectionReasons())
-                .isEqualTo(singletonMap("1", BidRejectionReason.OTHER_ERROR));
+                .isEqualTo(singletonMap("1", BidRejectionReason.ERROR_GENERAL));
     }
 
     @Test
     public void rejectShouldRecordRejectionFirstTimeIfImpIdIsInvolved() {
         // when
-        target.reject("1", BidRejectionReason.OTHER_ERROR);
+        target.reject("1", BidRejectionReason.ERROR_GENERAL);
 
         // then
         assertThat(target.getRejectionReasons())
-                .isEqualTo(singletonMap("1", BidRejectionReason.OTHER_ERROR));
+                .isEqualTo(singletonMap("1", BidRejectionReason.ERROR_GENERAL));
     }
 
     @Test
     public void rejectShouldNotRecordRejectionIfImpIdIsNotInvolved() {
         // when
-        target.reject("2", BidRejectionReason.OTHER_ERROR);
+        target.reject("2", BidRejectionReason.ERROR_GENERAL);
 
         // then
         assertThat(target.getRejectionReasons()).doesNotContainKey("2");
@@ -66,14 +66,14 @@ public class BidRejectionTrackerTest {
     @Test
     public void rejectShouldNotRecordRejectionIfImpIdIsAlreadyRejected() {
         // given
-        target.reject("1", BidRejectionReason.OTHER_ERROR);
+        target.reject("1", BidRejectionReason.ERROR_GENERAL);
 
         // when
-        target.reject("1", BidRejectionReason.FAILED_TO_REQUEST_BIDS);
+        target.reject("1", BidRejectionReason.ERROR_INVALID_BID_RESPONSE);
 
         // then
         assertThat(target.getRejectionReasons())
-                .isEqualTo(singletonMap("1", BidRejectionReason.OTHER_ERROR));
+                .isEqualTo(singletonMap("1", BidRejectionReason.ERROR_GENERAL));
     }
 
     @Test
@@ -83,14 +83,14 @@ public class BidRejectionTrackerTest {
         target.reject("1", BidRejectionReason.NO_BID);
 
         // when
-        target.rejectAll(BidRejectionReason.TIMED_OUT);
+        target.rejectAll(BidRejectionReason.ERROR_TIMED_OUT);
 
         // then
         assertThat(target.getRejectionReasons())
                 .isEqualTo(Map.of(
                         "1", BidRejectionReason.NO_BID,
-                        "2", BidRejectionReason.TIMED_OUT,
-                        "3", BidRejectionReason.TIMED_OUT));
+                        "2", BidRejectionReason.ERROR_TIMED_OUT,
+                        "3", BidRejectionReason.ERROR_TIMED_OUT));
     }
 
     @Test

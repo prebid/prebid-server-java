@@ -11,6 +11,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.adtarget.proto.AdtargetImpExt;
+import org.prebid.server.bidder.adtarget.proto.ExtImpAdtargetBidRequest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
@@ -67,16 +68,16 @@ public class AdtargetBidder implements Bidder<BidRequest> {
         final Map<Integer, List<Imp>> sourceToImps = new HashMap<>();
         for (Imp imp : imps) {
             final ExtImpAdtarget extImpAdtarget;
+            final Integer sourceId;
             try {
                 validateImpression(imp);
                 extImpAdtarget = parseImpAdtarget(imp);
+                sourceId = resolveSourceId(imp.getId(), extImpAdtarget.getSourceId());
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
                 continue;
             }
-            final Imp updatedImp = updateImp(imp, extImpAdtarget);
-
-            final Integer sourceId = extImpAdtarget.getSourceId();
+            final Imp updatedImp = updateImp(imp, sourceId, extImpAdtarget);
             sourceToImps.computeIfAbsent(sourceId, ignored -> new ArrayList<>()).add(updatedImp);
         }
         return Result.of(sourceToImps, errors);
@@ -98,18 +99,27 @@ public class AdtargetBidder implements Bidder<BidRequest> {
         }
 
         final ObjectNode impExt = imp.getExt();
-        if (impExt == null || impExt.size() == 0) {
+        if (impExt == null || impExt.isEmpty()) {
             throw new PreBidException("ignoring imp id=%s, extImpBidder is empty".formatted(impId));
         }
     }
 
-    private Imp updateImp(Imp imp, ExtImpAdtarget extImpAdtarget) {
-        final AdtargetImpExt adtargetImpExt = AdtargetImpExt.of(extImpAdtarget);
+    private Imp updateImp(Imp imp, Integer sourceId, ExtImpAdtarget extImpAdtarget) {
+        final AdtargetImpExt adtargetImpExt = AdtargetImpExt.of(
+                ExtImpAdtargetBidRequest.from(sourceId, extImpAdtarget));
         final BigDecimal bidFloor = extImpAdtarget.getBidFloor();
         return imp.toBuilder()
                 .bidfloor(BidderUtil.isValidPrice(bidFloor) ? bidFloor : imp.getBidfloor())
                 .ext(mapper.mapper().valueToTree(adtargetImpExt))
                 .build();
+    }
+
+    private static Integer resolveSourceId(String impId, String sourceId) {
+        try {
+            return sourceId == null ? 0 : Integer.parseInt(sourceId);
+        } catch (NumberFormatException e) {
+            throw new PreBidException("ignoring imp id=%s, aid parsing err: %s".formatted(impId, e.getMessage()));
+        }
     }
 
     @Override

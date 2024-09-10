@@ -129,7 +129,7 @@ public class BoldwinBidder implements Bidder<BidRequest> {
     }
 
     private static BidType getBidType(Bid bid) {
-        final Integer mType = bid.getMtype() != null ? bid.getMtype() : 999;
+        final int mType = bid.getMtype() != null ? bid.getMtype() : 999;
         return switch (mType) {
             case 1 -> BidType.banner;
             case 2 -> BidType.video;

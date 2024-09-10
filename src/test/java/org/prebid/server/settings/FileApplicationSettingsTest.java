@@ -3,11 +3,10 @@ package org.prebid.server.settings;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.FileSystem;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.settings.model.Account;
@@ -49,10 +48,8 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+@ExtendWith(MockitoExtension.class)
 public class FileApplicationSettingsTest extends VertxTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private FileSystem fileSystem;
@@ -177,6 +174,7 @@ public class FileApplicationSettingsTest extends VertxTest {
                                 .build())
                         .build())
                 .analytics(AccountAnalyticsConfig.of(
+                        false,
                         expectedEventsConfig,
                         singletonMap(
                                 "some-analytics",

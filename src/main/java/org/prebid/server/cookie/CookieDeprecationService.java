@@ -17,7 +17,6 @@ import org.prebid.server.settings.model.AccountPrivacySandboxConfig;
 import org.prebid.server.settings.model.AccountPrivacySandboxCookieDeprecationConfig;
 import org.prebid.server.util.HttpUtil;
 
-import java.util.Objects;
 import java.util.Optional;
 
 public class CookieDeprecationService {
@@ -26,20 +25,12 @@ public class CookieDeprecationService {
     private static final String DEVICE_EXT_COOKIE_DEPRECATION_FIELD_NAME = "cdep";
     private static final long DEFAULT_MAX_AGE = 604800L;
 
-    private final Account defaultAccount;
-
-    public CookieDeprecationService(Account defaultAccount) {
-        this.defaultAccount = Objects.requireNonNull(defaultAccount);
-    }
-
     public PartitionedCookie makeCookie(Account account, RoutingContext routingContext) {
-        final Account resolvedAccount = account.isEmpty() ? defaultAccount : account;
-
-        if (hasDeprecationCookieInRequest(routingContext) || isCookieDeprecationDisabled(resolvedAccount)) {
+        if (hasDeprecationCookieInRequest(routingContext) || isCookieDeprecationDisabled(account)) {
             return null;
         }
 
-        final Long maxAge = getCookieDeprecationConfig(resolvedAccount)
+        final Long maxAge = getCookieDeprecationConfig(account)
                 .map(AccountPrivacySandboxCookieDeprecationConfig::getTtlSec)
                 .orElse(DEFAULT_MAX_AGE);
 
@@ -61,13 +52,9 @@ public class CookieDeprecationService {
                 .get(HttpUtil.SEC_COOKIE_DEPRECATION);
 
         final Account account = auctionContext.getAccount();
-        final Account resolvedAccount = account.isEmpty() ? defaultAccount : account;
         final Device device = bidRequest.getDevice();
 
-        if (secCookieDeprecation == null
-                || containsCookieDeprecation(device)
-                || isCookieDeprecationDisabled(resolvedAccount)) {
-
+        if (secCookieDeprecation == null || containsCookieDeprecation(device) || isCookieDeprecationDisabled(account)) {
             return bidRequest;
         }
 

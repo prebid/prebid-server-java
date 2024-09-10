@@ -15,8 +15,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Video;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
@@ -35,6 +33,8 @@ import org.prebid.server.floors.model.PriceFloorSchema;
 import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
@@ -59,12 +59,12 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 public class BasicPriceFloorResolver implements PriceFloorResolver {
 
@@ -115,6 +115,7 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
                                     Imp imp,
                                     ImpMediaType mediaType,
                                     Format format,
+                                    String bidder,
                                     List<String> warnings) {
 
         if (isPriceFloorsDisabledForRequest(bidRequest)) {
@@ -141,7 +142,7 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
                 WILDCARD_CATCH_ALL,
                 ObjectUtils.defaultIfNull(schema.getDelimiter(), SCHEMA_DEFAULT_DELIMITER),
                 values.keySet());
-        final PrebidConfigParameters parameters = createParameters(schema, bidRequest, imp, mediaType, format);
+        final PrebidConfigParameters parameters = createParameters(schema, bidRequest, imp, mediaType, format, bidder);
 
         final String rule = matchingStrategy.match(source, parameters);
         final BigDecimal floorForRule = rule != null ? values.get(rule) : null;
@@ -184,26 +185,30 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
         final PriceFloorData data = ObjectUtil.getIfNotNull(floors, PriceFloorRules::getData);
         final List<PriceFloorModelGroup> modelGroups = ObjectUtil.getIfNotNull(data, PriceFloorData::getModelGroups);
 
-        return CollectionUtils.isNotEmpty(modelGroups) ? modelGroups.get(0) : null;
+        return CollectionUtils.isNotEmpty(modelGroups) ? modelGroups.getFirst() : null;
     }
 
     private static <V> Map<String, V> keysToLowerCase(Map<String, V> map) {
         return map.entrySet().stream()
-                .collect(Collectors.toMap(entry -> entry.getKey().toLowerCase(), Map.Entry::getValue));
+                .collect(
+                        HashMap::new,
+                        (hashMap, entry) -> hashMap.put(entry.getKey().toLowerCase(), entry.getValue()),
+                        HashMap::putAll);
     }
 
     private PrebidConfigParameters createParameters(PriceFloorSchema schema,
                                                     BidRequest bidRequest,
                                                     Imp imp,
                                                     ImpMediaType mediaType,
-                                                    Format format) {
+                                                    Format format,
+                                                    String bidder) {
 
         final List<ImpMediaType> resolvedMediaTypes = mediaType != null
                 ? Collections.singletonList(mediaType)
                 : mediaTypesFromImp(imp);
 
         final List<PrebidConfigParameter> conditionsMatchers = schema.getFields().stream()
-                .map(field -> createParameter(field, bidRequest, imp, resolvedMediaTypes, format))
+                .map(field -> createParameter(field, bidRequest, imp, resolvedMediaTypes, format, bidder))
                 .toList();
 
         return SimpleParameters.of(conditionsMatchers);
@@ -240,7 +245,8 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
                                                   BidRequest bidRequest,
                                                   Imp imp,
                                                   List<ImpMediaType> mediaTypes,
-                                                  Format format) {
+                                                  Format format,
+                                                  String bidder) {
 
         return switch (field) {
             case siteDomain -> siteDomainFromRequest(bidRequest);
@@ -254,6 +260,7 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
             case adUnitCode -> adUnitCodeFromImp(imp);
             case country -> countryFromRequest(bidRequest);
             case deviceType -> resolveDeviceTypeFromRequest(bidRequest);
+            case bidder -> SimpleDirectParameter.of(bidder);
         };
     }
 
@@ -313,7 +320,7 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
             return PrebidConfigParameter.wildcard();
         }
 
-        final ImpMediaType impMediaType = impMediaTypes.get(0);
+        final ImpMediaType impMediaType = impMediaTypes.getFirst();
         return impMediaType == ImpMediaType.video
                 ? SimpleDirectParameter.of(List.of(impMediaType.toString(), VIDEO_ALIAS))
                 : SimpleDirectParameter.of(impMediaType.toString());
@@ -331,7 +338,7 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
             return null;
         }
 
-        return switch (mediaTypes.get(0)) {
+        return switch (mediaTypes.getFirst()) {
             case banner -> resolveFormatFromBannerImp(imp);
             case video -> resolveFormatFromVideoImp(imp);
             default -> null;
@@ -346,7 +353,7 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
             case 0 -> formatOf(
                     ObjectUtil.getIfNotNull(banner, Banner::getW),
                     ObjectUtil.getIfNotNull(banner, Banner::getH));
-            case 1 -> formats.get(0);
+            case 1 -> formats.getFirst();
             default -> null;
         };
     }

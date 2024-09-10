@@ -5,6 +5,7 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.epsilon.EpsilonBidder;
+import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -17,8 +18,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.validation.annotation.Validated;
 
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 @Configuration
 @PropertySource(value = "classpath:/bidder-config/epsilon.yaml", factory = YamlPropertySourceFactory.class)
@@ -34,8 +35,9 @@ public class EpsilonConfiguration {
 
     @Bean
     BidderDeps epsilonBidderDeps(EpsilonConfigurationProperties epsilonConfigurationProperties,
-                                    @NotBlank @Value("${external-url}") String externalUrl,
-                                    JacksonMapper mapper) {
+                                 @NotBlank @Value("${external-url}") String externalUrl,
+                                 JacksonMapper mapper,
+                                 CurrencyConversionService currencyConversionService) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(epsilonConfigurationProperties)
@@ -44,7 +46,8 @@ public class EpsilonConfiguration {
                         new EpsilonBidder(
                                 config.getEndpoint(),
                                 epsilonConfigurationProperties.getGenerateBidId(),
-                                mapper))
+                                mapper,
+                                currencyConversionService))
                 .assemble();
     }
 

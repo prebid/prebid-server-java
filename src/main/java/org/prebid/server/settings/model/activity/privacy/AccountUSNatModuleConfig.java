@@ -1,5 +1,6 @@
 package org.prebid.server.settings.model.activity.privacy;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Value;
 import lombok.experimental.Accessors;
@@ -23,7 +24,8 @@ public class AccountUSNatModuleConfig implements AccountPrivacyModuleConfig {
     @Value(staticConstructor = "of")
     public static class Config {
 
-        @JsonProperty("skipSids")
+        @JsonProperty("skip_sids")
+        @JsonAlias({"skipSids", "skip-sids"})
         List<Integer> skipSids;
     }
 }

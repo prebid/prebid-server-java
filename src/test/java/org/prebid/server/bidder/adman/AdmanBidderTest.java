@@ -8,7 +8,7 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -51,7 +51,7 @@ public class AdmanBidderTest extends VertxTest {
 
         // then
         final BidRequest expectedRequest = bidRequest.toBuilder()
-                .imp(singletonList(bidRequest.getImp().get(0).toBuilder().tagid("tagidString").build()))
+                .imp(singletonList(bidRequest.getImp().getFirst().toBuilder().tagid("tagidString").build()))
                 .build();
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())

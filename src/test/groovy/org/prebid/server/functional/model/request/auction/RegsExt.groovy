@@ -8,7 +8,9 @@ import groovy.transform.ToString
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy)
 class RegsExt {
 
+    @Deprecated(since = "enabling support of ortb 2.6")
     Integer gdpr
+    @Deprecated(since = "enabling support of ortb 2.6")
     String usPrivacy
     String gpc
     Dsa dsa
