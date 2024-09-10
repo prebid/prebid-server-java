@@ -35,9 +35,8 @@ import java.util.stream.Stream;
 public class GreenbidsInferenceDataService {
 
     private final DatabaseReader dbReader;
-    private final ObjectMapper mapper;
 
-    // List<ThrottlingMessage> throttlingMessages;
+    private final ObjectMapper mapper;
 
     public GreenbidsInferenceDataService(DatabaseReader dbReader, ObjectMapper mapper) {
         this.dbReader = dbReader;
