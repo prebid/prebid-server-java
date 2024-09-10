@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Test;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingThresholds;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.model.data.GreenbidsInferenceDataService;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.FilterService;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.OnnxModelRunner;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.OnnxModelRunnerWithThresholds;
@@ -91,11 +92,14 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 "onnxModelRunner_",
                 "throttlingThresholds_",
                 Vertx.vertx());
+        final GreenbidsInferenceDataService greenbidsInferenceDataService = new GreenbidsInferenceDataService(
+                dbReader,
+                mapper);
         target = new GreenbidsRealTimeDataProcessedAuctionRequestHook(
                 mapper,
-                dbReader,
                 filterService,
-                onnxModelRunnerWithThresholds);
+                onnxModelRunnerWithThresholds,
+                greenbidsInferenceDataService);
     }
 
     @Test
