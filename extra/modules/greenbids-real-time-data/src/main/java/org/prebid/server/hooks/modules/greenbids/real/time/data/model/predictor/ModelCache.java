@@ -44,7 +44,7 @@ public class ModelCache {
         this.vertx = vertx;
     }
 
-    public Future<OnnxModelRunner> getModelRunner(String onnxModelPath, String pbuid) {
+    public Future<OnnxModelRunner> get(String onnxModelPath, String pbuid) {
         final String cacheKey = onnxModelCacheKeyPrefix + pbuid;
         final OnnxModelRunner cachedOnnxModelRunner = cache.getIfPresent(cacheKey);
 

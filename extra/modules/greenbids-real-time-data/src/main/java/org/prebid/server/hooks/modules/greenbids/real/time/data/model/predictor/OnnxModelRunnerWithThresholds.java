@@ -22,12 +22,12 @@ public class OnnxModelRunnerWithThresholds {
 
     public Future<OnnxModelRunner> retrieveOnnxModelRunner(Partner partner) {
         final String onnxModelPath = "models_pbuid=" + partner.getPbuid() + ".onnx";
-        return modelCache.getModelRunner(onnxModelPath, partner.getPbuid());
+        return modelCache.get(onnxModelPath, partner.getPbuid());
     }
 
     public Future<Double> retrieveThreshold(Partner partner) {
         final String thresholdJsonPath = "thresholds_pbuid=" + partner.getPbuid() + ".json";
-        return thresholdCache.getThrottlingThresholds(thresholdJsonPath, partner.getPbuid())
+        return thresholdCache.get(thresholdJsonPath, partner.getPbuid())
                 .map(partner::getThreshold);
     }
 }
