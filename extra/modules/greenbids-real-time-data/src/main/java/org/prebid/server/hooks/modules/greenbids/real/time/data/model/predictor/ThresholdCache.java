@@ -51,7 +51,7 @@ public class ThresholdCache {
         this.vertx = vertx;
     }
 
-    public Future<ThrottlingThresholds> getThrottlingThresholds(String thresholdJsonPath, String pbuid) {
+    public Future<ThrottlingThresholds> get(String thresholdJsonPath, String pbuid) {
         final String cacheKey = thresholdsCacheKeyPrefix + pbuid;
         final ThrottlingThresholds cachedThrottlingThresholds = cache.getIfPresent(cacheKey);
 
