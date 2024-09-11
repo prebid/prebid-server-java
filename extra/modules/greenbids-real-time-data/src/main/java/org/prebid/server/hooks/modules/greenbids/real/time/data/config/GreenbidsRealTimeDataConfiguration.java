@@ -12,8 +12,10 @@ import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingT
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.config.GreenbidsRealTimeDataProperties;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.data.GreenbidsInferenceDataService;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.FilterService;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.ModelCache;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.OnnxModelRunner;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.OnnxModelRunnerWithThresholds;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.ThresholdCache;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.GreenbidsRealTimeDataModule;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.GreenbidsRealTimeDataProcessedAuctionRequestHook;
 import org.prebid.server.json.ObjectMapperProvider;
@@ -33,8 +35,10 @@ import java.util.concurrent.TimeUnit;
 public class GreenbidsRealTimeDataConfiguration {
 
     @Bean
-    public GreenbidsInferenceDataService greenbidsInferenceDataService(GreenbidsRealTimeDataProperties properties) {
-        final ObjectMapper mapper = ObjectMapperProvider.mapper();
+    public GreenbidsInferenceDataService greenbidsInferenceDataService(
+            GreenbidsRealTimeDataProperties properties,
+            ObjectMapper mapper) {
+
         final File database = new File(properties.getGeoLiteCountryPath());
         DatabaseReader dbReader;
         try {
@@ -49,8 +53,9 @@ public class GreenbidsRealTimeDataConfiguration {
     GreenbidsRealTimeDataModule greenbidsRealTimeDataModule(
             FilterService filterService,
             OnnxModelRunnerWithThresholds onnxModelRunnerWithThresholds,
-            GreenbidsInferenceDataService greenbidsInferenceDataService) {
-        final ObjectMapper mapper = ObjectMapperProvider.mapper();
+            GreenbidsInferenceDataService greenbidsInferenceDataService,
+            ObjectMapper mapper) {
+
         return new GreenbidsRealTimeDataModule(List.of(
                 new GreenbidsRealTimeDataProcessedAuctionRequestHook(
                         mapper,
@@ -65,27 +70,51 @@ public class GreenbidsRealTimeDataConfiguration {
     }
 
     @Bean
-    public OnnxModelRunnerWithThresholds onnxModelRunnerWithThresholds(
-            GreenbidsRealTimeDataProperties properties, Vertx vertx) {
-
-        final Storage storage = StorageOptions.newBuilder()
+    public Storage storage(GreenbidsRealTimeDataProperties properties) {
+        return StorageOptions.newBuilder()
                 .setProjectId(properties.getGoogleCloudGreenbidsProject()).build().getService();
+    }
 
+    @Bean
+    public ModelCache modelCache(GreenbidsRealTimeDataProperties properties, Vertx vertx, Storage storage) {
         final Cache<String, OnnxModelRunner> modelCacheWithExpiration = Caffeine.newBuilder()
                 .expireAfterWrite(properties.getCacheExpirationMinutes(), TimeUnit.MINUTES)
                 .build();
+
+        return new ModelCache(
+                storage,
+                properties.getGcsBucketName(),
+                modelCacheWithExpiration,
+                properties.getOnnxModelCacheKeyPrefix(),
+                vertx
+        );
+    }
+
+    @Bean
+    public ThresholdCache thresholdCache(
+            GreenbidsRealTimeDataProperties properties,
+            Vertx vertx,
+            Storage storage,
+            ObjectMapper mapper) {
 
         final Cache<String, ThrottlingThresholds> thresholdsCacheWithExpiration = Caffeine.newBuilder()
                 .expireAfterWrite(properties.getCacheExpirationMinutes(), TimeUnit.MINUTES)
                 .build();
 
-        return new OnnxModelRunnerWithThresholds(
-                modelCacheWithExpiration,
-                thresholdsCacheWithExpiration,
+        return new ThresholdCache(
                 storage,
                 properties.getGcsBucketName(),
-                properties.getOnnxModelCacheKeyPrefix(),
+                mapper,
+                thresholdsCacheWithExpiration,
                 properties.getThresholdsCacheKeyPrefix(),
                 vertx);
+    }
+
+    @Bean
+    public OnnxModelRunnerWithThresholds onnxModelRunnerWithThresholds(
+            ModelCache modelCache,
+            ThresholdCache thresholdCache) {
+
+        return new OnnxModelRunnerWithThresholds(modelCache, thresholdCache);
     }
 }

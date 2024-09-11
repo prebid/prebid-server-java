@@ -24,8 +24,10 @@ import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingThresholds;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.data.GreenbidsInferenceDataService;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.FilterService;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.ModelCache;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.OnnxModelRunner;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.OnnxModelRunnerWithThresholds;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.ThresholdCache;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.result.AnalyticsResult;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.result.ExplorationResult;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.result.Ortb2ImpExtResult;
@@ -84,14 +86,22 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final File database = new File("src/test/resources/GeoLite2-Country.mmdb");
         final DatabaseReader dbReader = new DatabaseReader.Builder(database).build();
         final FilterService filterService = new FilterService();
-        final OnnxModelRunnerWithThresholds onnxModelRunnerWithThresholds = new OnnxModelRunnerWithThresholds(
-                modelCacheWithExpiration,
-                thresholdsCacheWithExpiration,
+        final ModelCache modelCache = new ModelCache(
                 storage,
                 "test_bucket",
+                modelCacheWithExpiration,
                 "onnxModelRunner_",
+                Vertx.vertx());
+        final ThresholdCache thresholdCache = new ThresholdCache(
+                storage,
+                "test_bucket",
+                mapper,
+                thresholdsCacheWithExpiration,
                 "throttlingThresholds_",
                 Vertx.vertx());
+        final OnnxModelRunnerWithThresholds onnxModelRunnerWithThresholds = new OnnxModelRunnerWithThresholds(
+                modelCache,
+                thresholdCache);
         final GreenbidsInferenceDataService greenbidsInferenceDataService = new GreenbidsInferenceDataService(
                 dbReader,
                 mapper);
