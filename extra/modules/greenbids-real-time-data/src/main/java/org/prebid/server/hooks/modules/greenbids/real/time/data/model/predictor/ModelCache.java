@@ -20,8 +20,6 @@ public class ModelCache {
 
     String gcsBucketName;
 
-    String modelPath;
-
     Cache<String, OnnxModelRunner> cache;
 
     Storage storage;
@@ -33,14 +31,12 @@ public class ModelCache {
     Vertx vertx;
 
     public ModelCache(
-            String modelPath,
             Storage storage,
             String gcsBucketName,
             Cache<String, OnnxModelRunner> cache,
             String onnxModelCacheKeyPrefix,
             Vertx vertx) {
         this.gcsBucketName = gcsBucketName;
-        this.modelPath = modelPath;
         this.cache = cache;
         this.storage = storage;
         this.onnxModelCacheKeyPrefix = onnxModelCacheKeyPrefix;
@@ -48,7 +44,7 @@ public class ModelCache {
         this.vertx = vertx;
     }
 
-    public Future<OnnxModelRunner> getModelRunner(String pbuid) {
+    public Future<OnnxModelRunner> getModelRunner(String onnxModelPath, String pbuid) {
         final String cacheKey = onnxModelCacheKeyPrefix + pbuid;
         final OnnxModelRunner cachedOnnxModelRunner = cache.getIfPresent(cacheKey);
 
@@ -58,7 +54,7 @@ public class ModelCache {
 
         if (isFetching.compareAndSet(false, true)) {
             try {
-                fetchAndCacheModelRunner(cacheKey);
+                fetchAndCacheModelRunner(onnxModelPath, cacheKey);
             } finally {
                 isFetching.set(false);
             }
@@ -67,17 +63,20 @@ public class ModelCache {
         return Future.failedFuture("ModelRunner fetching in progress");
     }
 
-    private void fetchAndCacheModelRunner(String cacheKey) {
-        vertx.executeBlocking(this::getBlob)
-                .map(this::loadModelRunner)
+    private void fetchAndCacheModelRunner(String onnxModelPath, String cacheKey) {
+        vertx.executeBlocking(promise -> {
+                    Blob blob = getBlob(onnxModelPath);
+                    promise.complete(blob);
+                })
+                .map(blob -> loadModelRunner((Blob) blob))
                 .onSuccess(onnxModelRunner -> cache.put(cacheKey, onnxModelRunner))
                 .onFailure(error -> logger.error("Failed to fetch ONNX model"));
     }
 
-    private Blob getBlob() {
+    private Blob getBlob(String onnxModelPath) {
         try {
             return Optional.ofNullable(storage.get(gcsBucketName))
-                    .map(bucket -> bucket.get(modelPath))
+                    .map(bucket -> bucket.get(onnxModelPath))
                     .orElseThrow(() -> new PreBidException("Bucket not found: " + gcsBucketName));
         } catch (StorageException e) {
             throw new PreBidException("Error accessing GCS artefact for model: ", e);

@@ -23,8 +23,6 @@ public class ThresholdCache {
 
     String gcsBucketName;
 
-    String thresholdPath;
-
     Cache<String, ThrottlingThresholds> cache;
 
     Storage storage;
@@ -38,7 +36,6 @@ public class ThresholdCache {
     Vertx vertx;
 
     public ThresholdCache(
-            String thresholdPath,
             Storage storage,
             String gcsBucketName,
             ObjectMapper mapper,
@@ -46,7 +43,6 @@ public class ThresholdCache {
             String thresholdsCacheKeyPrefix,
             Vertx vertx) {
         this.gcsBucketName = gcsBucketName;
-        this.thresholdPath = thresholdPath;
         this.cache = cache;
         this.storage = storage;
         this.mapper = mapper;
@@ -55,7 +51,7 @@ public class ThresholdCache {
         this.vertx = vertx;
     }
 
-    public Future<ThrottlingThresholds> getThrottlingThresholds(String pbuid) {
+    public Future<ThrottlingThresholds> getThrottlingThresholds(String thresholdJsonPath, String pbuid) {
         final String cacheKey = thresholdsCacheKeyPrefix + pbuid;
         final ThrottlingThresholds cachedThrottlingThresholds = cache.getIfPresent(cacheKey);
 
@@ -65,7 +61,7 @@ public class ThresholdCache {
 
         if (isFetching.compareAndSet(false, true)) {
             try {
-                fetchAndCacheThrottlingThresholds(cacheKey);
+                fetchAndCacheThrottlingThresholds(thresholdJsonPath, cacheKey);
             } finally {
                 isFetching.set(false);
             }
@@ -74,17 +70,20 @@ public class ThresholdCache {
         return Future.failedFuture("ThrottlingThresholds fetching in progress");
     }
 
-    private void fetchAndCacheThrottlingThresholds(String cacheKey) {
-        vertx.executeBlocking(this::getBlob)
-                .map(this::loadThrottlingThresholds)
+    private void fetchAndCacheThrottlingThresholds(String thresholdJsonPath, String cacheKey) {
+        vertx.executeBlocking(promise -> {
+                    Blob blob = getBlob(thresholdJsonPath);
+                    promise.complete(blob);
+                })
+                .map(blob -> loadThrottlingThresholds((Blob) blob))
                 .onSuccess(thresholds -> cache.put(cacheKey, thresholds))
-                .onFailure(error -> logger.error("Failed to fetch thresholds"));
+                .onFailure(error -> logger.error("Failed to fetch thresholds"));;
     }
 
-    private Blob getBlob() {
+    private Blob getBlob(String thresholdJsonPath) {
         try {
             return Optional.ofNullable(storage.get(gcsBucketName))
-                    .map(bucket -> bucket.get(thresholdPath))
+                    .map(bucket -> bucket.get(thresholdJsonPath))
                     .orElseThrow(() -> new PreBidException("Bucket not found: " + gcsBucketName));
         } catch (StorageException e) {
             throw new PreBidException("Error accessing GCS artefact for threshold: ", e);
