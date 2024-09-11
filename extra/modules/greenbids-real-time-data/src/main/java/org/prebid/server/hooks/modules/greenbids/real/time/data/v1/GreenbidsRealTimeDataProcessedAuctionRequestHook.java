@@ -81,7 +81,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
 
         return Future.join(
                         onnxModelRunnerWithThresholds.retrieveOnnxModelRunner(partner),
-                        onnxModelRunnerWithThresholds.retrieveThreshold(partner, mapper))
+                        onnxModelRunnerWithThresholds.retrieveThreshold(partner))
                 .compose(compositeFuture -> toInvocationResult(
                         bidRequest,
                         partner,
