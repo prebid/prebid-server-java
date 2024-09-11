@@ -10,6 +10,7 @@ import org.testcontainers.lifecycle.Startables
 import org.testcontainers.utility.DockerImageName
 
 import static org.prebid.server.functional.util.SystemProperties.MOCKSERVER_VERSION
+import static org.testcontainers.containers.localstack.LocalStackContainer.Service.S3
 
 class Dependencies {
 
@@ -40,11 +41,10 @@ class Dependencies {
 
     static void start() {
         if (IS_LAUNCH_CONTAINERS) {
-            Startables.deepStart([networkServiceContainer, mysqlContainer,
-                                  localStackContainer = new LocalStackContainer(DockerImageName.parse("localstack/localstack:s3-latest"))
-                                          .withNetwork(Dependencies.network)
-                                          .withServices(LocalStackContainer.Service.S3)])
-                    .join()
+            localStackContainer = new LocalStackContainer(DockerImageName.parse("localstack/localstack:s3-latest"))
+                    .withNetwork(network)
+                    .withServices(S3)
+            Startables.deepStart([networkServiceContainer, mysqlContainer, localStackContainer]).join()
         }
     }
 
