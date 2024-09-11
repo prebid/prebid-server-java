@@ -36,21 +36,22 @@ class Dependencies {
     static final NetworkServiceContainer networkServiceContainer = new NetworkServiceContainer(MOCKSERVER_VERSION)
             .withNetwork(network)
 
-    static final LocalStackContainer localStackContainer = new LocalStackContainer(DockerImageName.parse("localstack/localstack:s3-latest"))
-            .withNetwork(Dependencies.network)
-            .withServices(LocalStackContainer.Service.S3)
+    static LocalStackContainer localStackContainer
 
     static void start() {
         if (IS_LAUNCH_CONTAINERS) {
-            Startables.deepStart([networkServiceContainer, mysqlContainer, localStackContainer])
-                      .join()
+            Startables.deepStart([networkServiceContainer, mysqlContainer,
+                                  localStackContainer = new LocalStackContainer(DockerImageName.parse("localstack/localstack:s3-latest"))
+                                          .withNetwork(Dependencies.network)
+                                          .withServices(LocalStackContainer.Service.S3)])
+                    .join()
         }
     }
 
     static void stop() {
         if (IS_LAUNCH_CONTAINERS) {
             [networkServiceContainer, mysqlContainer, localStackContainer].parallelStream()
-                                                     .forEach({ it.stop() })
+                    .forEach({ it.stop() })
         }
     }
 
