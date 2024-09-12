@@ -6,6 +6,8 @@ import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 import org.prebid.server.functional.util.PBSUtils
 
+import static org.prebid.server.functional.model.request.auction.DsaPubRender.PUB_MIGHT_RENDER
+
 @JsonNaming(PropertyNamingStrategies.LowerCaseStrategy)
 @EqualsAndHashCode
 @ToString(includeNames = true, ignoreNulls = true)
@@ -18,7 +20,7 @@ class Dsa {
 
     static Dsa getDefaultDsa(DsaRequired dsaRequired = PBSUtils.getRandomEnum(DsaRequired)) {
         new Dsa(dsaRequired: dsaRequired,
-                pubRender: PBSUtils.getRandomEnum(DsaPubRender),
+                pubRender: PUB_MIGHT_RENDER,
                 dataToPub: PBSUtils.getRandomEnum(DsaDataToPub),
                 transparency: [DsaTransparency.defaultDsaTransparency])
     }

@@ -55,7 +55,7 @@ public class USCustomLogicModuleCreator implements PrivacyModuleCreator {
         this.metrics = Objects.requireNonNull(metrics);
 
         jsonLogicNodesCache = cacheTtl != null && cacheSize != null
-                ? SettingsCache.createCache(cacheTtl, cacheSize)
+                ? SettingsCache.createCache(cacheTtl, cacheSize, 0)
                 : null;
     }
 

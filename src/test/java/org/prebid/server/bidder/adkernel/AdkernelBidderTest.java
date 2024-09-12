@@ -15,7 +15,8 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
-import org.junit.Test;
+import lombok.SneakyThrows;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -135,7 +136,7 @@ public class AdkernelBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1).element(0).isNotNull()
                 .returns(HttpMethod.POST, HttpRequest::getMethod)
                 .returns("https://test.com?zone=3426", HttpRequest::getUri);
-        assertThat(result.getValue().get(0).getHeaders()).isNotNull()
+        assertThat(result.getValue().getFirst().getHeaders()).isNotNull()
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsExactly(
                         tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), "application/json;charset=utf-8"),
@@ -236,7 +237,7 @@ public class AdkernelBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors()).allMatch(error -> error.getType() == BidderError.Type.bad_server_response
                 && error.getMessage().startsWith("Failed to decode: Unrecognized token"));
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors().getFirst().getType()).isEqualTo(BidderError.Type.bad_server_response);
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -284,19 +285,14 @@ public class AdkernelBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldResolveBidTypeFromMfSuffixWhenPresent() throws JsonProcessingException {
+    public void makeBidsShouldResolveBidTypeToBannerWhenMTypeIsOne() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(
                         identity(),
                         impBuilder -> impBuilder.id("123").banner(Banner.builder().build())
                                 .video(Video.builder().build())),
-                mapper.writeValueAsString(
-                        givenBidResponse(
-                                bidBuilder -> bidBuilder.impid("123b__mf"),
-                                bidBuilder -> bidBuilder.impid("123v__mf"),
-                                bidBuilder -> bidBuilder.impid("123a__mf"),
-                                bidBuilder -> bidBuilder.impid("123n__mf"))));
+                givenBidResponse(bidBuilder -> bidBuilder.mtype(1).impid("123b__mf")));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -304,123 +300,19 @@ public class AdkernelBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactlyInAnyOrder(
-                        BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"),
-                        BidderBid.of(Bid.builder().impid("123").build(), video, "USD"),
-                        BidderBid.of(Bid.builder().impid("123").build(), audio, "USD"),
-                        BidderBid.of(Bid.builder().impid("123").build(), xNative, "USD"));
+                .extracting(BidderBid::getType)
+                .containsExactly(banner);
     }
 
     @Test
-    public void makeBidsShouldResolveVideoBidTypeFromImpWhenMfSuffixIsAbsentAndVideoPresentInRequestImp()
-            throws JsonProcessingException {
-
+    public void makeBidsShouldResolveBidTypeToVideoWhenMTypeIsTwo() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(
                         identity(),
-                        impBuilder -> impBuilder
-                                .id("123")
-                                .video(Video.builder().build())
-                                .banner(null)
-                                .audio(null)
-                                .xNative(null)),
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsExactly(
-                BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
-    }
-
-    @Test
-    public void makeBidsShouldResolveBannerBidTypeFromImpWhenMfSuffixIsAbsentAndBannerPresentInRequestImp()
-            throws JsonProcessingException {
-
-        // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                givenBidRequest(
-                        identity(),
-                        impBuilder -> impBuilder
-                                .id("123")
-                                .video(null)
-                                .banner(Banner.builder().build())
-                                .audio(null)
-                                .xNative(null)),
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsExactly(
-                BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
-    }
-
-    @Test
-    public void makeBidsShouldResolveAudioBidTypeFromImpWhenMfSuffixIsAbsentAndAudioPresentInRequestImp()
-            throws JsonProcessingException {
-
-        // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                givenBidRequest(
-                        identity(),
-                        impBuilder -> impBuilder
-                                .id("123")
-                                .video(null)
-                                .banner(null)
-                                .audio(Audio.builder().build())
-                                .xNative(null)),
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsExactly(
-                BidderBid.of(Bid.builder().impid("123").build(), audio, "USD"));
-    }
-
-    @Test
-    public void makeBidsShouldResolveNativeBidTypeFromImpWhenMfSuffixIsAbsentAndNativePresentInRequestImp()
-            throws JsonProcessingException {
-
-        // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                givenBidRequest(
-                        identity(),
-                        impBuilder -> impBuilder
-                                .id("123")
-                                .video(null)
-                                .banner(null)
-                                .audio(null)
-                                .xNative(Native.builder().build())),
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsExactly(
-                BidderBid.of(Bid.builder().impid("123").build(), xNative, "USD"));
-    }
-
-    @Test
-    public void makeBidsShouldReturnVideoBid() throws JsonProcessingException {
-        // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                givenBidRequest(
-                        identity(),
-                        impBuilder -> impBuilder.id("123")
+                        impBuilder -> impBuilder.id("123").banner(Banner.builder().build())
                                 .video(Video.builder().build())),
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                givenBidResponse(bidBuilder -> bidBuilder.mtype(2).impid("123b__mf")));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -428,20 +320,19 @@ public class AdkernelBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
+                .extracting(BidderBid::getType)
+                .containsExactly(video);
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBidIfRequestImpHasBanner() throws JsonProcessingException {
+    public void makeBidsShouldResolveBidTypeToAudioWhenMTypeIsThree() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(
                         identity(),
-                        builder -> builder.id("123")
-                                .video(Video.builder().build())
-                                .banner(Banner.builder().build())),
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                        impBuilder -> impBuilder.id("123").banner(Banner.builder().build())
+                                .video(Video.builder().build())),
+                givenBidResponse(bidBuilder -> bidBuilder.mtype(3).impid("123b__mf")));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -449,7 +340,66 @@ public class AdkernelBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+                .extracting(BidderBid::getType)
+                .containsExactly(audio);
+    }
+
+    @Test
+    public void makeBidsShouldResolveBidTypeToNativeWhenMTypeIsFour() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(
+                        identity(),
+                        impBuilder -> impBuilder.id("123").banner(Banner.builder().build())
+                                .video(Video.builder().build())),
+                givenBidResponse(bidBuilder -> bidBuilder.mtype(4).impid("123b__mf")));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getType)
+                .containsExactly(xNative);
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorIfMtypeIsMissing() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(
+                        identity(),
+                        impBuilder -> impBuilder.id("123").banner(Banner.builder().build())
+                                .video(Video.builder().build())),
+                givenBidResponse(bidBuilder -> bidBuilder.id("bidId").mtype(null).impid("123b__mf")));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badServerResponse("Missing MType for bid: bidId"));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorIfMtypeIsNotValid() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(
+                        identity(),
+                        impBuilder -> impBuilder.id("123").banner(Banner.builder().build())
+                                .video(Video.builder().build())),
+                givenBidResponse(bidBuilder -> bidBuilder.id("bidId").mtype(10).impid("123b__mf")));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badServerResponse("Unsupported MType 10"));
+        assertThat(result.getValue()).isEmpty();
     }
 
     @SafeVarargs
@@ -477,15 +427,16 @@ public class AdkernelBidderTest extends VertxTest {
     }
 
     @SafeVarargs
-    private static BidResponse givenBidResponse(UnaryOperator<Bid.BidBuilder>... bidCustomizers) {
-        return BidResponse.builder()
+    @SneakyThrows
+    private String givenBidResponse(UnaryOperator<Bid.BidBuilder>... bidCustomizers) {
+        return mapper.writeValueAsString(BidResponse.builder()
                 .cur("USD")
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(Arrays.stream(bidCustomizers)
                                 .map(bidCustomizer -> bidCustomizer.apply(Bid.builder()).build())
                                 .toList())
                         .build()))
-                .build();
+                .build());
     }
 
     private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {

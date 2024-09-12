@@ -45,7 +45,7 @@ class AuctionSpec extends BaseSpec {
     private static final boolean CORS_SUPPORT = false
     private static final UserSyncInfo.Type USER_SYNC_TYPE = REDIRECT
     private static final int DEFAULT_TIMEOUT = getRandomTimeout()
-    private static final Map<String, String> PBS_CONFIG = ["auction.max-timeout-ms"    : MAX_TIMEOUT as String,
+    private static final Map<String, String> PBS_CONFIG = ["auction.biddertmax.max"    : MAX_TIMEOUT as String,
                                                            "auction.default-timeout-ms": DEFAULT_TIMEOUT as String]
     private static final Map<String, String> GENERIC_CONFIG = [
             "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url"         : USER_SYNC_URL,
@@ -410,12 +410,10 @@ class AuctionSpec extends BaseSpec {
     def "PBS call to alias should populate bidder request buyeruid from family user.buyeruids when it's contained in base bidder"() {
         given: "Pbs config with alias"
         def cookieName = PBSUtils.randomString
-        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG + GENERIC_CONFIG
+        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG + GENERIC_CONFIG + GENERIC_ALIAS_CONFIG
                 + ["host-cookie.family"                          : GENERIC.value,
                    "host-cookie.cookie-name"                     : cookieName,
-                   "adapters.generic.usersync.cookie-family-name": GENERIC.value,
-                   "adapters.generic.aliases.alias.enabled"      : "true",
-                   "adapters.generic.aliases.alias.endpoint"     : "$networkServiceContainer.rootUri/auction".toString()])
+                   "adapters.generic.usersync.cookie-family-name": GENERIC.value])
 
         and: "Alias bid request"
         def buyeruid = PBSUtils.randomString

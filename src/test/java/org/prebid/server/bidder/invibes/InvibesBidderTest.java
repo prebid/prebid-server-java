@@ -11,7 +11,7 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import org.apache.commons.lang3.StringUtils;
 import org.assertj.core.api.Assertions;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.invibes.model.InvibesBidParams;
 import org.prebid.server.bidder.invibes.model.InvibesBidRequest;
@@ -82,7 +82,7 @@ public class InvibesBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().get(0).getUri()).isEqualTo("https://bid3.videostep.com/bid/");
+        assertThat(result.getValue().getFirst().getUri()).isEqualTo("https://bid3.videostep.com/bid/");
     }
 
     @Test
@@ -99,7 +99,7 @@ public class InvibesBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().get(0).getUri()).isEqualTo("https://bid.videostep.com/bid/");
+        assertThat(result.getValue().getFirst().getUri()).isEqualTo("https://bid.videostep.com/bid/");
     }
 
     @Test
@@ -116,7 +116,7 @@ public class InvibesBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().get(0).getUri()).isEqualTo("https://bid.videostep.com/bid/");
+        assertThat(result.getValue().getFirst().getUri()).isEqualTo("https://bid.videostep.com/bid/");
     }
 
     @Test
@@ -133,7 +133,7 @@ public class InvibesBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().get(0).getUri()).isEqualTo("https://bid.videostep.com/bid/");
+        assertThat(result.getValue().getFirst().getUri()).isEqualTo("https://bid.videostep.com/bid/");
     }
 
     @Test
@@ -150,7 +150,7 @@ public class InvibesBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().get(0).getUri()).isEqualTo("https://bid999.videostep.com/bid/");
+        assertThat(result.getValue().getFirst().getUri()).isEqualTo("https://bid999.videostep.com/bid/");
     }
 
     @Test
@@ -168,7 +168,7 @@ public class InvibesBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Error parsing invibesExt parameters");
+        assertThat(result.getErrors().getFirst().getMessage()).startsWith("Error parsing invibesExt parameters");
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -350,8 +350,8 @@ public class InvibesBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors().getFirst().getMessage()).startsWith("Failed to decode: Unrecognized token");
+        assertThat(result.getErrors().getFirst().getType()).isEqualTo(BidderError.Type.bad_server_response);
         assertThat(result.getValue()).isEmpty();
     }
 

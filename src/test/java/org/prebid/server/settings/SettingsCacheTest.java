@@ -1,7 +1,7 @@
 package org.prebid.server.settings;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.settings.model.StoredItem;
 
 import static java.util.Collections.singleton;
@@ -13,9 +13,9 @@ public class SettingsCacheTest {
 
     private SettingsCache settingsCache;
 
-    @Before
+    @BeforeEach
     public void setUp() {
-        settingsCache = new SettingsCache(10, 10);
+        settingsCache = new SettingsCache(10, 10, 0);
     }
 
     @Test

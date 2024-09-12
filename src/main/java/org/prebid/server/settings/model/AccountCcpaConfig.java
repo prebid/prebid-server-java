@@ -1,5 +1,6 @@
 package org.prebid.server.settings.model;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,9 +13,9 @@ import lombok.NoArgsConstructor;
 @Data
 public class AccountCcpaConfig {
 
-    @JsonProperty("enabled")
     Boolean enabled;
 
-    @JsonProperty("channel-enabled")
+    @JsonProperty("channel_enabled")
+    @JsonAlias("channel-enabled")
     EnabledForRequestType enabledForRequestType;
 }

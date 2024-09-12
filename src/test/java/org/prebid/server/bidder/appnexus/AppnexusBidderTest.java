@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.appnexus;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
@@ -12,7 +13,7 @@ import com.iab.openrtb.request.SupplyChain;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.appnexus.proto.AppnexusBidExt;
 import org.prebid.server.bidder.appnexus.proto.AppnexusBidExtAppnexus;
@@ -345,6 +346,24 @@ public class AppnexusBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldForwardImpExtGpid() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(givenImp(givenExt(identity()), "gpidValue"));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .extracting(ext -> ext.get("gpid").asText())
+                .containsExactly("gpidValue");
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
     public void makeHttpRequestsShouldUpdateImpExtWithStringKeywords() {
         // given
         final BidRequest bidRequest = givenBidRequest(
@@ -644,11 +663,11 @@ public class AppnexusBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getExt)
-                .satisfies(exts -> assertThat(exts.get(0)).isNotSameAs(exts.get(1)))
+                .satisfies(exts -> assertThat(exts.getFirst()).isNotSameAs(exts.get(1)))
                 .extracting(ext -> ext.getProperty("appnexus"))
                 .extracting(appnexus -> appnexus.get("adpod_id"))
                 .hasSize(2)
-                .satisfies(ids -> assertThat(ids.get(0)).isNotSameAs(ids.get(1)));
+                .satisfies(ids -> assertThat(ids.getFirst()).isNotSameAs(ids.get(1)));
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -872,6 +891,14 @@ public class AppnexusBidderTest extends VertxTest {
 
     private static Imp givenImp(ExtImpAppnexus extImpAppnexus) {
         return givenImp(imp -> imp.ext(mapper.valueToTree(ExtPrebid.of(null, extImpAppnexus))));
+    }
+
+    private static Imp givenImp(ExtImpAppnexus extImpAppnexus, String gpid) {
+        final ObjectNode ext = mapper.createObjectNode()
+                .put("gpid", gpid)
+                .set("bidder", mapper.valueToTree(extImpAppnexus));
+
+        return givenImp(imp -> imp.ext(ext));
     }
 
     private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer, ExtImpAppnexus extImpAppnexus) {

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.prebid.server.hooks.modules</groupId>
+        <artifactId>all-modules</artifactId>
+        <version>3.12.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>fiftyone-devicedetection</artifactId>
+
+    <name>fiftyone-devicedetection</name>
+    <description>51Degrees Device Detection module</description>
+
+    <properties>
+        <fiftyone-device-detection.version>4.4.94</fiftyone-device-detection.version>
+        <logback.version>1.2.13</logback.version>
+    </properties>
+
+    <dependencies>
+        <!-- https://mvnrepository.com/artifact/com.51degrees/device-detection.hash.engine.on-premise -->
+        <dependency>
+            <groupId>com.51degrees</groupId>
+            <artifactId>device-detection.hash.engine.on-premise</artifactId>
+            <version>${fiftyone-device-detection.version}</version>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/com.51degrees/device-detection -->
+        <dependency>
+            <groupId>com.51degrees</groupId>
+            <artifactId>device-detection</artifactId>
+            <version>${fiftyone-device-detection.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>${logback.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-core</artifactId>
+            <version>${logback.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>

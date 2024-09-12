@@ -1,11 +1,10 @@
 package org.prebid.server.bidder.huaweiads;
 
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -13,20 +12,19 @@ import java.time.ZoneId;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 
+@ExtendWith(MockitoExtension.class)
 public class ClientTimeFormatterTest {
 
     private static final long FEB_24_2022_04_00_05 = 1645668005650L;
 
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
-    @Mock
+    @Mock(strictness = LENIENT)
     private Clock clock;
 
     private ClientTimeFormatter target;
 
-    @Before
+    @BeforeEach
     public void before() {
         target = new ClientTimeFormatter(clock);
         given(clock.instant()).willReturn(Instant.ofEpochMilli(FEB_24_2022_04_00_05));

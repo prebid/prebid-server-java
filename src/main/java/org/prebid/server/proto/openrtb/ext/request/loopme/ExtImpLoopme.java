@@ -1,16 +1,18 @@
 package org.prebid.server.proto.openrtb.ext.request.loopme;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
 import lombok.Value;
 
-/**
- * Defines the contract for bidrequest.imp[i].ext.loopme
- */
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class ExtImpLoopme {
 
-    @JsonProperty("accountId")
-    String accountId;
+    @JsonProperty("publisherId")
+    String publisherId;
+
+    @JsonProperty("bundleId")
+    String bundleId;
+
+    @JsonProperty("placementId")
+    String placementId;
+
 }

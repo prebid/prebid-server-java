@@ -4,13 +4,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.bidder.model.Price;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.floors.model.PriceFloorData;
@@ -22,6 +19,8 @@ import org.prebid.server.floors.proto.FetchResult;
 import org.prebid.server.floors.proto.FetchStatus;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebidFloors;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -71,20 +70,18 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
     }
 
     @Override
-    public AuctionContext enrichWithPriceFloors(AuctionContext auctionContext) {
-        final Account account = auctionContext.getAccount();
-        final BidRequest bidRequest = auctionContext.getBidRequest();
-        final List<String> errors = auctionContext.getPrebidErrors();
-        final List<String> warnings = auctionContext.getDebugWarnings();
+    public BidRequest enrichWithPriceFloors(BidRequest bidRequest,
+                                            Account account,
+                                            String bidder,
+                                            List<String> errors,
+                                            List<String> warnings) {
 
         if (isPriceFloorsDisabled(account, bidRequest)) {
-            return auctionContext.with(disableFloorsForRequest(bidRequest));
+            return disableFloorsForRequest(bidRequest);
         }
 
         final PriceFloorRules floors = resolveFloors(account, bidRequest, errors);
-        final BidRequest updatedBidRequest = updateBidRequestWithFloors(bidRequest, floors, errors, warnings);
-
-        return auctionContext.with(updatedBidRequest);
+        return updateBidRequestWithFloors(bidRequest, bidder, floors, errors, warnings);
     }
 
     private static boolean isPriceFloorsDisabled(Account account, BidRequest bidRequest) {
@@ -242,6 +239,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
     }
 
     private BidRequest updateBidRequestWithFloors(BidRequest bidRequest,
+                                                  String bidder,
                                                   PriceFloorRules floors,
                                                   List<String> errors,
                                                   List<String> warnings) {
@@ -251,7 +249,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
 
         final List<Imp> imps = skipFloors
                 ? bidRequest.getImp()
-                : updateImpsWithFloors(floors, bidRequest, errors, warnings);
+                : updateImpsWithFloors(floors, bidRequest, bidder, errors, warnings);
         final ExtRequest extRequest = updateExtRequestWithFloors(bidRequest, floors, requestSkipRate, skipFloors);
 
         return bidRequest.toBuilder()
@@ -291,22 +289,24 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
 
     private List<Imp> updateImpsWithFloors(PriceFloorRules effectiveFloors,
                                            BidRequest bidRequest,
+                                           String bidder,
                                            List<String> errors,
                                            List<String> warnings) {
 
         final List<Imp> imps = bidRequest.getImp();
 
         final ExtRequestPrebid prebid = ObjectUtil.getIfNotNull(bidRequest.getExt(), ExtRequest::getPrebid);
-        final PriceFloorRules floors =
-                ObjectUtils.defaultIfNull(effectiveFloors,
-                        ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getFloors));
+        final PriceFloorRules floors = ObjectUtils.defaultIfNull(
+                effectiveFloors,
+                ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getFloors));
+
         final PriceFloorModelGroup modelGroup = extractFloorModelGroup(floors);
         if (modelGroup == null) {
             return imps;
         }
 
         return CollectionUtils.emptyIfNull(imps).stream()
-                .map(imp -> updateImpWithFloors(imp, floors, bidRequest, errors, warnings))
+                .map(imp -> updateImpWithFloors(imp, bidder, floors, bidRequest, errors, warnings))
                 .toList();
     }
 
@@ -314,10 +314,11 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         final PriceFloorData data = ObjectUtil.getIfNotNull(floors, PriceFloorRules::getData);
         final List<PriceFloorModelGroup> modelGroups = ObjectUtil.getIfNotNull(data, PriceFloorData::getModelGroups);
 
-        return CollectionUtils.isNotEmpty(modelGroups) ? modelGroups.get(0) : null;
+        return CollectionUtils.isNotEmpty(modelGroups) ? modelGroups.getFirst() : null;
     }
 
     private Imp updateImpWithFloors(Imp imp,
+                                    String bidder,
                                     PriceFloorRules floorRules,
                                     BidRequest bidRequest,
                                     List<String> errors,
@@ -325,7 +326,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
 
         final PriceFloorResult priceFloorResult;
         try {
-            priceFloorResult = floorResolver.resolve(bidRequest, floorRules, imp, warnings);
+            priceFloorResult = floorResolver.resolve(bidRequest, floorRules, imp, bidder, warnings);
         } catch (IllegalStateException e) {
             errors.add("Cannot resolve bid floor, error: " + e.getMessage());
             return imp;

@@ -4,8 +4,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
 @Validated
@@ -23,6 +23,8 @@ public class MetaInfo {
     private List<MediaType> doohMediaTypes;
 
     private List<String> supportedVendors;
+
+    private List<String> currencyAccepted;
 
     @NotNull
     private Integer vendorId;

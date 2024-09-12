@@ -2,13 +2,13 @@ package org.prebid.server.analytics.reporter.pubstack;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.analytics.model.AmpEvent;
 import org.prebid.server.analytics.model.AuctionEvent;
@@ -19,8 +19,8 @@ import org.prebid.server.analytics.reporter.pubstack.model.EventType;
 import org.prebid.server.analytics.reporter.pubstack.model.PubstackAnalyticsProperties;
 import org.prebid.server.analytics.reporter.pubstack.model.PubstackConfig;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.vertx.http.HttpClient;
-import org.prebid.server.vertx.http.model.HttpClientResponse;
+import org.prebid.server.vertx.httpclient.HttpClient;
+import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Collections;
@@ -34,18 +34,17 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
+@ExtendWith(MockitoExtension.class)
 public class PubstackAnalyticsReporterTest extends VertxTest {
 
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
-    @Mock
+    @Mock(strictness = LENIENT)
     private Vertx vertx;
 
     @Mock
@@ -61,7 +60,7 @@ public class PubstackAnalyticsReporterTest extends VertxTest {
 
     private PubstackAnalyticsProperties properties;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(vertx.setPeriodic(anyLong(), any())).willReturn(1L, 2L);
         properties = PubstackAnalyticsProperties.builder()
@@ -93,7 +92,7 @@ public class PubstackAnalyticsReporterTest extends VertxTest {
                 Future.succeededFuture(HttpClientResponse.of(200, null, mapper.writeValueAsString(pubstackConfig))));
 
         // when
-        pubstackAnalyticsReporter.initialize();
+        pubstackAnalyticsReporter.initialize(Promise.promise());
 
         // then
         verify(vertx).setPeriodic(anyLong(), any());
@@ -114,7 +113,7 @@ public class PubstackAnalyticsReporterTest extends VertxTest {
                 Future.succeededFuture(HttpClientResponse.of(200, null, mapper.writeValueAsString(pubstackConfig))));
 
         // when and then
-        assertThatThrownBy(() -> pubstackAnalyticsReporter.initialize())
+        assertThatThrownBy(() -> pubstackAnalyticsReporter.initialize(Promise.promise()))
                 .hasMessage("[pubstack] Failed to create event report url for endpoint: invalid")
                 .isInstanceOf(PreBidException.class);
         verify(auctionHandler).reportEvents();
@@ -133,8 +132,8 @@ public class PubstackAnalyticsReporterTest extends VertxTest {
                 Future.succeededFuture(HttpClientResponse.of(200, null, mapper.writeValueAsString(pubstackConfig))));
 
         // when
-        pubstackAnalyticsReporter.initialize();
-        pubstackAnalyticsReporter.initialize();
+        pubstackAnalyticsReporter.initialize(Promise.promise());
+        pubstackAnalyticsReporter.initialize(Promise.promise());
 
         // then
         verify(httpClient, times(2)).get(anyString(), anyLong());
@@ -152,7 +151,7 @@ public class PubstackAnalyticsReporterTest extends VertxTest {
                 Future.succeededFuture(HttpClientResponse.of(400, null, null)));
 
         // when
-        pubstackAnalyticsReporter.initialize();
+        pubstackAnalyticsReporter.initialize(Promise.promise());
 
         // then
         verify(vertx).setPeriodic(anyLong(), any());
@@ -168,7 +167,7 @@ public class PubstackAnalyticsReporterTest extends VertxTest {
                 Future.succeededFuture(HttpClientResponse.of(200, null, "{\"endpoint\" : {}}")));
 
         // when
-        pubstackAnalyticsReporter.initialize();
+        pubstackAnalyticsReporter.initialize(Promise.promise());
 
         // then
         verify(vertx).setPeriodic(anyLong(), any());

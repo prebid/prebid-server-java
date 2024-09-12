@@ -1,0 +1,26 @@
+adapters:
+  bigoad:
+    endpoint: https://api.imotech.tech/Ad/GetAdOut?sspid={{SspId}}
+    geoscope:
+      - USA
+      - RUS
+      - JPN
+      - BRA
+      - KOR
+      - IDN
+      - TUR
+      - SAU
+      - MEX
+    endpoint-compression: gzip
+    meta-info:
+      maintainer-email: bigoads-prebid@bigo.sg
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 0

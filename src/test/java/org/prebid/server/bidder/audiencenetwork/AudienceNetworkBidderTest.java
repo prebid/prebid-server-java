@@ -16,7 +16,7 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.audiencenetwork.proto.AudienceNetworkExt;
 import org.prebid.server.bidder.model.BidderBid;
@@ -117,7 +117,7 @@ public class AudienceNetworkBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize value of");
+        assertThat(result.getErrors().getFirst().getMessage()).startsWith("Cannot deserialize value of");
     }
 
     @Test
@@ -557,7 +557,8 @@ public class AudienceNetworkBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token 'invalid'");
+        assertThat(result.getErrors().getFirst().getMessage())
+                .startsWith("Failed to decode: Unrecognized token 'invalid'");
     }
 
     @Test

@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.prebid</groupId>
         <artifactId>prebid-server-aggregator</artifactId>
-        <version>2.12.0-SNAPSHOT</version>
+        <version>3.12.0-SNAPSHOT</version>
         <relativePath>../../extra/pom.xml</relativePath>
     </parent>
 
@@ -13,15 +13,6 @@
 
     <name>prebid-server-bundle</name>
     <description>Creates bundle (fat jar) with PBS-Core and other submodules listed as dependency</description>
-
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <java.version>17</java.version>
-        <maven.compiler.source>${java.version}</maven.compiler.source>
-        <maven.compiler.target>${java.version}</maven.compiler.target>
-        <spring.boot.version>2.5.6</spring.boot.version>
-    </properties>
 
     <dependencies>
         <dependency>
@@ -32,6 +23,11 @@
         <dependency>
             <groupId>org.prebid.server.hooks.modules</groupId>
             <artifactId>confiant-ad-quality</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.prebid.server.hooks.modules</groupId>
+            <artifactId>fiftyone-devicedetection</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

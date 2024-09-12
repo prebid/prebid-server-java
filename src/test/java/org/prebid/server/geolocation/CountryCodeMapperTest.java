@@ -1,7 +1,7 @@
 package org.prebid.server.geolocation;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
@@ -10,7 +10,7 @@ public class CountryCodeMapperTest {
 
     private CountryCodeMapper target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new CountryCodeMapper("GB, GBR\nUK, GBR", "402, UA");
     }

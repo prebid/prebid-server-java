@@ -152,7 +152,7 @@ public class BeachfrontBidder implements Bidder<Void> {
 
     private static boolean checkFormats(Banner banner) {
         final List<Format> formats = banner != null ? banner.getFormat() : null;
-        final Format firstFormat = CollectionUtils.isNotEmpty(formats) ? formats.get(0) : null;
+        final Format firstFormat = CollectionUtils.isNotEmpty(formats) ? formats.getFirst() : null;
         final boolean isHeightNonZero = firstFormat != null && !Objects.equals(firstFormat.getH(), 0);
         final boolean isWidthNonZero = firstFormat != null && !Objects.equals(firstFormat.getW(), 0);
         return isHeightNonZero && isWidthNonZero;
@@ -207,7 +207,7 @@ public class BeachfrontBidder implements Bidder<Void> {
         }
 
         final Site site = bidRequest.getSite();
-        final Integer firstImpSecure = bannerImps.get(0).getSecure();
+        final Integer firstImpSecure = bannerImps.getFirst().getSecure();
         if (site != null) {
             final String page = site.getPage();
 
@@ -503,7 +503,7 @@ public class BeachfrontBidder implements Bidder<Void> {
             return Collections.emptyList();
         }
 
-        final List<Bid> bids = bidResponse.getSeatbid().get(0).getBid();
+        final List<Bid> bids = bidResponse.getSeatbid().getFirst().getBid();
         final List<Bid> updatedBids = httpRequest.getUri().contains(NURL_VIDEO_ENDPOINT_SUFFIX)
                 ? updateNurlVideoBids(bids, videoRequest.getRequest().getImp())
                 : updateVideoBids(bids);
@@ -556,7 +556,7 @@ public class BeachfrontBidder implements Bidder<Void> {
         }
 
         final List<String> cat = bid.getCat();
-        final String primaryCategory = CollectionUtils.isNotEmpty(cat) ? cat.get(0) : null;
+        final String primaryCategory = CollectionUtils.isNotEmpty(cat) ? cat.getFirst() : null;
 
         final Bid resolvedBid = bid.toBuilder().ext(resolveBidExt(duration, primaryCategory)).build();
         return BidderBid.of(resolvedBid, bidderBid.getType(), bidderBid.getBidCurrency());

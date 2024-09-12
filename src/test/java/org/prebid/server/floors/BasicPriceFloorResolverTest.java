@@ -14,12 +14,11 @@ import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Video;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
@@ -51,30 +50,25 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 public class BasicPriceFloorResolverTest extends VertxTest {
 
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
-    @Mock
+    @Mock(strictness = LENIENT)
     private CurrencyConversionService currencyConversionService;
     @Mock
     private CountryCodeMapper countryCodeMapper;
     @Mock
     private Metrics metrics;
 
-    private BasicPriceFloorResolver priceFloorResolver;
+    private BasicPriceFloorResolver target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
-        priceFloorResolver = new BasicPriceFloorResolver(
-                currencyConversionService,
-                countryCodeMapper,
-                metrics,
-                jacksonMapper);
+        target = new BasicPriceFloorResolver(currencyConversionService, countryCodeMapper, metrics, jacksonMapper);
     }
 
     @Test
@@ -89,11 +83,11 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.siteDomain)))
                         .value("siteDomain", BigDecimal.TEN)
-                        .build()), givenImp(identity()), null)).isNull();
+                        .build()), givenImp(identity()), "bidder", null)).isNull();
     }
 
     @Test
@@ -102,7 +96,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest, null, Imp.builder().build(), null)).isNull();
+        assertThat(target.resolve(bidRequest, null, Imp.builder().build(), "bidder", null)).isNull();
     }
 
     @Test
@@ -111,8 +105,8 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest, givenRules(PriceFloorModelGroup.builder().build()),
-                Imp.builder().build(), null)).isNull();
+        assertThat(target.resolve(bidRequest, givenRules(PriceFloorModelGroup.builder().build()),
+                Imp.builder().build(), "bidder", null)).isNull();
     }
 
     @Test
@@ -121,11 +115,11 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", emptyList()))
                         .build()),
-                Imp.builder().build(), null)).isNull();
+                Imp.builder().build(), "bidder", null)).isNull();
     }
 
     @Test
@@ -134,11 +128,11 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", null))
                         .build()),
-                Imp.builder().build(), null)).isNull();
+                Imp.builder().build(), "bidder", null)).isNull();
     }
 
     @Test
@@ -147,12 +141,12 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.channel)))
                         .values(emptyMap())
                         .build()),
-                Imp.builder().build(), null)).isNull();
+                Imp.builder().build(), "bidder", null)).isNull();
     }
 
     @Test
@@ -161,11 +155,11 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.channel)))
                         .build()),
-                Imp.builder().build(), null)).isNull();
+                Imp.builder().build(), "bidder", null)).isNull();
     }
 
     @Test
@@ -174,12 +168,12 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.siteDomain)))
                         .value("siteDomain", BigDecimal.TEN)
                         .build()),
-                givenImp(identity()), null)).isNull();
+                givenImp(identity()), "bidder", null)).isNull();
     }
 
     @Test
@@ -190,11 +184,11 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.siteDomain)))
                         .value("siteDomain", BigDecimal.TEN)
-                        .build()), givenImp(identity()), null).getFloorValue())
+                        .build()), givenImp(identity()), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -206,11 +200,11 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.siteDomain)))
                         .value("appDomain", BigDecimal.TEN)
-                        .build()), givenImp(identity()), null).getFloorValue())
+                        .build()), givenImp(identity()), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -222,12 +216,12 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(
                         PriceFloorModelGroup.builder()
                                 .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.siteDomain)))
                                 .value("doohDomain", BigDecimal.TEN)
-                                .build()), givenImp(identity()), null).getFloorValue())
+                                .build()), givenImp(identity()), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -237,12 +231,12 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.pubDomain)))
                         .value("pubDomain", BigDecimal.TEN)
                         .build()),
-                givenImp(identity()), null)).isNull();
+                givenImp(identity()), "bidder", null)).isNull();
     }
 
     @Test
@@ -255,11 +249,11 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.pubDomain)))
                         .value("siteDomain", BigDecimal.TEN)
-                        .build()), givenImp(identity()), null).getFloorValue())
+                        .build()), givenImp(identity()), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -273,11 +267,11 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.pubDomain)))
                         .value("appDomain", BigDecimal.TEN)
-                        .build()), givenImp(identity()), null).getFloorValue())
+                        .build()), givenImp(identity()), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -291,11 +285,11 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.pubDomain)))
                         .value("doohDomain", BigDecimal.TEN)
-                        .build()), givenImp(identity()), null).getFloorValue())
+                        .build()), givenImp(identity()), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -305,12 +299,12 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.domain)))
                         .value("pubDomain", BigDecimal.TEN)
                         .build()),
-                givenImp(identity()), null)).isNull();
+                givenImp(identity()), "bidder", null)).isNull();
     }
 
     @Test
@@ -321,11 +315,11 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.domain)))
                         .value("siteDomain", BigDecimal.TEN)
-                        .build()), givenImp(identity()), null).getFloorValue())
+                        .build()), givenImp(identity()), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -337,11 +331,11 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.domain)))
                         .value("appDomain", BigDecimal.TEN)
-                        .build()), givenImp(identity()), null).getFloorValue())
+                        .build()), givenImp(identity()), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -353,11 +347,11 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.domain)))
                         .value("doohDomain", BigDecimal.TEN)
-                        .build()), givenImp(identity()), null).getFloorValue())
+                        .build()), givenImp(identity()), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -371,11 +365,11 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.domain)))
                         .value("siteDomain", BigDecimal.TEN)
-                        .build()), givenImp(identity()), null).getFloorValue())
+                        .build()), givenImp(identity()), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -389,11 +383,11 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.domain)))
                         .value("appDomain", BigDecimal.TEN)
-                        .build()), givenImp(identity()), null).getFloorValue())
+                        .build()), givenImp(identity()), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -407,11 +401,11 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.domain)))
                         .value("doohDomain", BigDecimal.TEN)
-                        .build()), givenImp(identity()), null).getFloorValue())
+                        .build()), givenImp(identity()), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -421,12 +415,12 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.bundle)))
                         .value("bundle", BigDecimal.TEN)
                         .build()),
-                givenImp(identity()), null)).isNull();
+                givenImp(identity()), "bidder", null)).isNull();
     }
 
     @Test
@@ -439,11 +433,11 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.bundle)))
                         .value("someBundle", BigDecimal.TEN)
-                        .build()), givenImp(identity()), null).getFloorValue())
+                        .build()), givenImp(identity()), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -453,12 +447,12 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.channel)))
                         .value("channel", BigDecimal.TEN)
                         .build()),
-                givenImp(identity()), null)).isNull();
+                givenImp(identity()), "bidder", null)).isNull();
     }
 
     @Test
@@ -474,11 +468,11 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.channel)))
                         .value("someChannelName", BigDecimal.TEN)
-                        .build()), givenImp(identity()), null).getFloorValue())
+                        .build()), givenImp(identity()), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -488,12 +482,12 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.mediaType)))
                         .value("video", BigDecimal.TEN)
                         .build()),
-                givenImp(identity()), null)).isNull();
+                givenImp(identity()), "bidder", null)).isNull();
     }
 
     @Test
@@ -502,7 +496,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.mediaType)))
                         .value("banner", BigDecimal.ONE)
@@ -510,7 +504,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                         .value("video", BigDecimal.ONE)
                         .build()),
                 givenImp(impBuilder -> impBuilder
-                        .video(Video.builder().build())), null).getFloorValue())
+                        .video(Video.builder().build())), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -520,12 +514,12 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.mediaType)))
                         .value("banner", BigDecimal.TEN)
                         .build()),
-                givenImp(identity()), null).getFloorValue())
+                givenImp(identity()), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -535,7 +529,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.mediaType)))
                         .value("video", BigDecimal.TEN)
@@ -543,6 +537,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 givenImp(impBuilder -> impBuilder
                         .banner(null)
                         .video(Video.builder().placement(1).build())),
+                "bidder",
                 null
         ).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
@@ -554,14 +549,14 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.mediaType)))
                         .value("video", BigDecimal.TEN)
                         .build()),
                 givenImp(impBuilder -> impBuilder
                         .banner(null)
-                        .video(Video.builder().placement(null).build())), null
+                        .video(Video.builder().placement(null).build())), "bidder", null
         ).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
@@ -572,14 +567,14 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.mediaType)))
                         .value("video-instream", BigDecimal.TEN)
                         .build()),
                 givenImp(impBuilder -> impBuilder
                         .banner(null)
-                        .video(Video.builder().placement(1).build())), null).getFloorValue())
+                        .video(Video.builder().placement(1).build())), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -589,14 +584,14 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.mediaType)))
                         .value("native", BigDecimal.TEN)
                         .build()),
                 givenImp(impBuilder -> impBuilder
                         .banner(null)
-                        .xNative(Native.builder().build())), null).getFloorValue())
+                        .xNative(Native.builder().build())), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -606,14 +601,14 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.mediaType)))
                         .value("native", BigDecimal.TEN)
                         .build()),
                 givenImp(impBuilder -> impBuilder
                         .banner(null)
-                        .xNative(Native.builder().build())), null).getFloorValue())
+                        .xNative(Native.builder().build())), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -623,12 +618,12 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.size)))
                         .value("250x300", BigDecimal.TEN)
                         .build()),
-                givenImp(identity()), null)).isNull();
+                givenImp(identity()), "bidder", null)).isNull();
     }
 
     @Test
@@ -637,7 +632,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.size)))
                         .value("100x150", BigDecimal.ONE)
@@ -648,7 +643,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                                 .w(100)
                                 .h(150)
                                 .format(singletonList(Format.builder().w(250).h(300).build()))
-                                .build())), null).getFloorValue())
+                                .build())), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -658,7 +653,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.size)))
                         .value("400x500", BigDecimal.ONE)
@@ -671,7 +666,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                                 .h(150)
                                 .format(asList(Format.builder().w(250).h(300).build(),
                                         Format.builder().w(400).h(500).build()))
-                                .build())), null).getFloorValue())
+                                .build())), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -681,7 +676,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.size)))
                         .value("250x300", BigDecimal.TEN)
@@ -690,7 +685,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                         .banner(Banner.builder()
                                 .w(250)
                                 .h(300)
-                                .build())), null).getFloorValue())
+                                .build())), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -700,7 +695,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.size)))
                         .value("250x300", BigDecimal.TEN)
@@ -711,7 +706,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                                 .w(250)
                                 .h(300)
                                 .placement(1)
-                                .build())), null).getFloorValue())
+                                .build())), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -721,12 +716,12 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.gptSlot)))
                         .value("someGptSlot", BigDecimal.TEN)
                         .build()),
-                givenImp(identity()), null)).isNull();
+                givenImp(identity()), "bidder", null)).isNull();
     }
 
     @Test
@@ -742,12 +737,12 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         impExt.set("data", dataNode);
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.gptSlot)))
                         .value("someGptSlot", BigDecimal.TEN)
                         .build()),
-                givenImp(impBuilder -> impBuilder.ext(impExt)), null).getFloorValue())
+                givenImp(impBuilder -> impBuilder.ext(impExt)), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -764,12 +759,12 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         impExt.set("data", dataNode);
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.gptSlot)))
                         .value("someGptSlot", BigDecimal.TEN)
                         .build()),
-                givenImp(impBuilder -> impBuilder.ext(impExt)), null))
+                givenImp(impBuilder -> impBuilder.ext(impExt)), "bidder", null))
                 .isNull();
     }
 
@@ -783,12 +778,12 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         impExt.set("data", dataNode);
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.gptSlot)))
                         .value("somePbAdSlot", BigDecimal.TEN)
                         .build()),
-                givenImp(impBuilder -> impBuilder.ext(impExt)), null).getFloorValue())
+                givenImp(impBuilder -> impBuilder.ext(impExt)), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -798,12 +793,12 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.adUnitCode)))
                         .value("somePbAdSlot", BigDecimal.TEN)
                         .build()),
-                givenImp(identity()), null)).isNull();
+                givenImp(identity()), "bidder", null)).isNull();
     }
 
     @Test
@@ -816,12 +811,12 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         impExt.set("data", dataNode);
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.adUnitCode)))
                         .value("somePbAdSlot", BigDecimal.TEN)
                         .build()),
-                givenImp(impBuilder -> impBuilder.ext(impExt)), null).getFloorValue())
+                givenImp(impBuilder -> impBuilder.ext(impExt)), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -837,12 +832,12 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         impExt.set("prebid", prebidNode);
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.adUnitCode)))
                         .value("someStoredRequestId", BigDecimal.TEN)
                         .build()),
-                givenImp(impBuilder -> impBuilder.ext(impExt)), null).getFloorValue())
+                givenImp(impBuilder -> impBuilder.ext(impExt)), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -854,12 +849,12 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         impExt.put("gpid", "someGpid");
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.adUnitCode)))
                         .value("someGpid", BigDecimal.TEN)
                         .build()),
-                givenImp(impBuilder -> impBuilder.ext(impExt)), null).getFloorValue())
+                givenImp(impBuilder -> impBuilder.ext(impExt)), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -869,12 +864,12 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.adUnitCode)))
                         .value("someTagId", BigDecimal.TEN)
                         .build()),
-                givenImp(impBuilder -> impBuilder.tagid("someTagId")), null).getFloorValue())
+                givenImp(impBuilder -> impBuilder.tagid("someTagId")), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -886,14 +881,14 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         impExt.put("gpid", "someGpid");
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.adUnitCode)))
                         .value("someGpid", BigDecimal.TEN)
                         .build()),
                 givenImp(impBuilder -> impBuilder
                         .tagid("someTagId")
-                        .ext(impExt)), null).getFloorValue())
+                        .ext(impExt)), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -907,14 +902,14 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         impExt.set("data", dataNode);
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.adUnitCode)))
                         .value("someTagId", BigDecimal.TEN)
                         .build()),
                 givenImp(impBuilder -> impBuilder
                         .tagid("someTagId")
-                        .ext(impExt)), null).getFloorValue())
+                        .ext(impExt)), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -924,12 +919,12 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.country)))
                         .value("USA", BigDecimal.TEN)
                         .build()),
-                givenImp(identity()), null)).isNull();
+                givenImp(identity()), "bidder", null)).isNull();
     }
 
     @Test
@@ -940,12 +935,12 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.country)))
                         .value("usa", BigDecimal.TEN)
                         .build()),
-                givenImp(identity()), null).getFloorValue())
+                givenImp(identity()), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -958,12 +953,12 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.country)))
                         .value("usa", BigDecimal.TEN)
                         .build()),
-                givenImp(identity()), null).getFloorValue())
+                givenImp(identity()), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -973,12 +968,12 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.deviceType)))
                         .value("desktop", BigDecimal.TEN)
                         .build()),
-                givenImp(identity()), null)).isNull();
+                givenImp(identity()), "bidder", null)).isNull();
     }
 
     @Test
@@ -989,12 +984,12 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.deviceType)))
                         .value("phone", BigDecimal.TEN)
                         .build()),
-                givenImp(identity()), null).getFloorValue())
+                givenImp(identity()), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -1006,12 +1001,12 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.deviceType)))
                         .value("phone", BigDecimal.TEN)
                         .build()),
-                givenImp(identity()), null).getFloorValue())
+                givenImp(identity()), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -1023,12 +1018,12 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.deviceType)))
                         .value("phone", BigDecimal.TEN)
                         .build()),
-                givenImp(identity()), null).getFloorValue())
+                givenImp(identity()), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -1040,12 +1035,12 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.deviceType)))
                         .value("phone", BigDecimal.TEN)
                         .build()),
-                givenImp(identity()), null).getFloorValue())
+                givenImp(identity()), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -1057,12 +1052,12 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.deviceType)))
                         .value("tablet", BigDecimal.TEN)
                         .build()),
-                givenImp(identity()), null).getFloorValue())
+                givenImp(identity()), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -1074,12 +1069,12 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 .build();
 
         // when and then
-        final BigDecimal floorValue = priceFloorResolver.resolve(bidRequest,
+        final BigDecimal floorValue = target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.deviceType)))
                         .value("tablet", BigDecimal.TEN)
                         .build()),
-                givenImp(identity()), null).getFloorValue();
+                givenImp(identity()), "bidder", null).getFloorValue();
         assertThat(floorValue)
                 .isEqualTo(BigDecimal.TEN);
     }
@@ -1092,12 +1087,12 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.deviceType)))
                         .value("tablet", BigDecimal.TEN)
                         .build()),
-                givenImp(identity()), null).getFloorValue())
+                givenImp(identity()), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -1109,12 +1104,12 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.deviceType)))
                         .value("tablet", BigDecimal.TEN)
                         .build()),
-                givenImp(identity()), null).getFloorValue())
+                givenImp(identity()), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -1126,13 +1121,47 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.deviceType)))
                         .value("desktop", BigDecimal.TEN)
                         .build()),
-                givenImp(identity()), null).getFloorValue())
+                givenImp(identity()), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
+    }
+
+    @Test
+    public void resolveShouldReturnPriceFloorForBidder() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder().build();
+
+        // when and then
+        assertThat(target.resolve(bidRequest,
+                givenRules(PriceFloorModelGroup.builder()
+                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.bidder)))
+                        .value("bidder", BigDecimal.TEN)
+                        .build()),
+                givenImp(identity()), "bidder", null).getFloorValue())
+                .isEqualTo(BigDecimal.TEN);
+    }
+
+    @Test
+    public void resolveShouldReturnNullWhenPriceFloorValueIsNull() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder().build();
+
+        // when
+        final PriceFloorResult result = target.resolve(bidRequest,
+                givenRules(PriceFloorModelGroup.builder()
+                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.bidder)))
+                        .value("bidder", null)
+                        .build()),
+                givenImp(identity()),
+                "bidder",
+                null);
+
+        // then
+        assertThat(result).isNull();
     }
 
     @Test
@@ -1143,7 +1172,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|",
                                 List.of(PriceFloorField.deviceType, PriceFloorField.mediaType, PriceFloorField.size)))
@@ -1155,7 +1184,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 givenImp(impBuilder -> impBuilder.banner(Banner.builder()
                         .w(300)
                         .h(250)
-                        .build())), null).getFloorValue())
+                        .build())), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -1167,7 +1196,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|",
                                 List.of(PriceFloorField.deviceType, PriceFloorField.mediaType, PriceFloorField.size)))
@@ -1178,7 +1207,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 givenImp(impBuilder -> impBuilder.banner(Banner.builder()
                         .w(300)
                         .h(250)
-                        .build())), null).getFloorValue())
+                        .build())), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -1190,7 +1219,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|",
                                 List.of(PriceFloorField.deviceType, PriceFloorField.mediaType, PriceFloorField.size)))
@@ -1200,7 +1229,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 givenImp(impBuilder -> impBuilder.banner(Banner.builder()
                         .w(300)
                         .h(250)
-                        .build())), null).getFloorValue())
+                        .build())), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -1212,7 +1241,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|",
                                 List.of(PriceFloorField.deviceType, PriceFloorField.mediaType, PriceFloorField.size)))
@@ -1221,7 +1250,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 givenImp(impBuilder -> impBuilder.banner(Banner.builder()
                         .w(300)
                         .h(250)
-                        .build())), null).getFloorValue())
+                        .build())), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -1233,7 +1262,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of(null,
                                 List.of(PriceFloorField.deviceType, PriceFloorField.mediaType, PriceFloorField.size)))
@@ -1242,7 +1271,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 givenImp(impBuilder -> impBuilder.banner(Banner.builder()
                         .w(300)
                         .h(250)
-                        .build())), null).getFloorValue())
+                        .build())), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -1254,7 +1283,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of(null,
                                 List.of(PriceFloorField.deviceType, PriceFloorField.mediaType, PriceFloorField.size)))
@@ -1264,7 +1293,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 givenImp(impBuilder -> impBuilder.banner(Banner.builder()
                         .w(300)
                         .h(250)
-                        .build())), null).getFloorValue())
+                        .build())), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -1278,7 +1307,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .currency("EUR")
                         .schema(PriceFloorSchema.of("|",
@@ -1288,7 +1317,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 givenImp(impBuilder -> impBuilder.banner(Banner.builder()
                         .w(300)
                         .h(250)
-                        .build())), null))
+                        .build())), "bidder", null))
                 .isEqualTo(PriceFloorResult.of("desktop|banner|300x250", BigDecimal.ONE, BigDecimal.ONE, "EUR"));
     }
 
@@ -1308,7 +1337,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .currency("EUR")
                         .schema(PriceFloorSchema.of("|",
@@ -1318,7 +1347,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 givenImp(impBuilder -> impBuilder.banner(Banner.builder()
                         .w(300)
                         .h(250)
-                        .build())), null))
+                        .build())), "bidder", null))
                 .isNull();
         verify(metrics).updatePriceFloorGeneralAlertsMetric(MetricName.err);
     }
@@ -1331,7 +1360,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|",
                                 List.of(PriceFloorField.deviceType, PriceFloorField.mediaType, PriceFloorField.size)))
@@ -1340,7 +1369,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 givenImp(impBuilder -> impBuilder.banner(Banner.builder()
                         .w(300)
                         .h(250)
-                        .build())), null).getFloorRule())
+                        .build())), "bidder", null).getFloorRule())
                 .isEqualTo("desktop|banner|300x250");
     }
 
@@ -1360,11 +1389,11 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.pubDomain)))
                         .value("appDomain", BigDecimal.TEN)
-                        .build()), givenImp(identity()), null).getFloorValue())
+                        .build()), givenImp(identity()), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -1390,12 +1419,12 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         givenImpExt.set("prebid", givenImpExtPrebid);
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.pubDomain)))
                         .value("appDomain", BigDecimal.ONE)
                         .build()),
-                givenImp(impBuilder -> impBuilder.ext(givenImpExt)), null).getFloorValue())
+                givenImp(impBuilder -> impBuilder.ext(givenImpExt)), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -1422,12 +1451,12 @@ public class BasicPriceFloorResolverTest extends VertxTest {
 
         // when
         final List<String> warnings = new ArrayList<>();
-        priceFloorResolver.resolve(bidRequest,
+        target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.pubDomain)))
                         .value("appDomain", BigDecimal.ONE)
                         .build()),
-                givenImp(impBuilder -> impBuilder.ext(givenImpExt)), warnings);
+                givenImp(impBuilder -> impBuilder.ext(givenImpExt)), "bidder", warnings);
 
         // then
         assertThat(warnings)
@@ -1457,12 +1486,12 @@ public class BasicPriceFloorResolverTest extends VertxTest {
 
         // when
         final List<String> warnings = new ArrayList<>();
-        priceFloorResolver.resolve(bidRequest,
+        target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.pubDomain)))
                         .value("appDomain", BigDecimal.ONE)
                         .build()),
-                givenImp(impBuilder -> impBuilder.ext(givenImpExt)), warnings);
+                givenImp(impBuilder -> impBuilder.ext(givenImpExt)), "bidder", warnings);
 
         // then
         assertThat(warnings).isEmpty();
@@ -1487,12 +1516,12 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.pubDomain)))
                         .currency("GUF")
                         .value("appDomain", BigDecimal.valueOf(5))
-                        .build()), givenImp(identity()), null))
+                        .build()), givenImp(identity()), "bidder", null))
                 .isEqualTo(PriceFloorResult.of("appdomain", BigDecimal.valueOf(5), BigDecimal.TEN, "GUF"));
     }
 
@@ -1512,11 +1541,11 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.pubDomain)))
                         .value("appDomain", BigDecimal.ZERO)
-                        .build()), givenImp(identity()), null).getFloorValue())
+                        .build()), givenImp(identity()), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.valueOf(9.0001D));
     }
 
@@ -1536,11 +1565,11 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        assertThat(target.resolve(bidRequest,
                 givenRules(PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.pubDomain)))
                         .value("appDomain", BigDecimal.ZERO)
-                        .build()), givenImp(identity()), null).getFloorValue())
+                        .build()), givenImp(identity()), "bidder", null).getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -1559,4 +1588,5 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                         .banner(Banner.builder().build()))
                 .build();
     }
+
 }

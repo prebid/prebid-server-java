@@ -14,7 +14,7 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -34,6 +34,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.openx.ExtImpOpenx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
 
 import java.math.BigDecimal;
@@ -188,7 +189,7 @@ public class OpenxBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors().get(0).getMessage())
+        assertThat(result.getErrors().getFirst().getMessage())
                 .startsWith("Cannot deserialize value of");
     }
 
@@ -207,18 +208,19 @@ public class OpenxBidderTest extends VertxTest {
                                                 ExtImpOpenx.builder()
                                                         .customParams(givenCustomParams("foo1", singletonList("bar1")))
                                                         .delDomain("se-demo-d.openx.net")
-                                                        .unit("unitId").build()))).build(),
+                                                        .unit("555555").build()))).build(),
                         Imp.builder()
                                 .id("impId2")
                                 .bidfloor(BigDecimal.valueOf(0.5))
                                 .banner(Banner.builder().build())
                                 .ext(mapper.valueToTree(
-                                        ExtPrebid.of(null,
-                                                ExtImpOpenx.builder()
-                                                        .customFloor(BigDecimal.valueOf(0.1))
-                                                        .customParams(givenCustomParams("foo2", "bar2"))
-                                                        .delDomain("se-demo-d.openx.net")
-                                                        .unit("unitId").build()))).build(),
+                                        Map.of(
+                                                "bidder", Map.of(
+                                                        "customFloor", "0.1",
+                                                        "customParams", givenCustomParams("foo2", "bar2"),
+                                                        "delDomain", "se-demo-d.openx.net",
+                                                        "unit", 123456
+                                                )))).build(),
                         Imp.builder()
                                 .id("impId3")
                                 .video(Video.builder().build())
@@ -230,7 +232,7 @@ public class OpenxBidderTest extends VertxTest {
                                                         .customFloor(BigDecimal.valueOf(0.1))
                                                         .customParams(givenCustomParams("foo3", "bar3"))
                                                         .delDomain("se-demo-d.openx.net")
-                                                        .unit("unitId").build()))).build(),
+                                                        .unit("555555").build()))).build(),
                         Imp.builder()
                                 .id("impId4")
                                 .video(Video.builder().build())
@@ -239,7 +241,7 @@ public class OpenxBidderTest extends VertxTest {
                                                 ExtImpOpenx.builder()
                                                         .customParams(givenCustomParams("foo4", "bar4"))
                                                         .platform("PLATFORM")
-                                                        .unit("unitId").build()))).build(),
+                                                        .unit("555555").build()))).build(),
 
                         Imp.builder().id("impId1").audio(Audio.builder().build()).build()))
                 .user(User.builder().ext(ExtUser.builder().consent("consent").build()).build())
@@ -264,7 +266,7 @@ public class OpenxBidderTest extends VertxTest {
                                         Imp.builder()
                                                 .id("impId1")
                                                 .banner(Banner.builder().build())
-                                                .tagid("unitId")
+                                                .tagid("555555")
                                                 .bidfloor(BigDecimal.valueOf(0.5))
                                                 .ext(mapper.valueToTree(
                                                         ExtImpOpenx.builder()
@@ -276,7 +278,7 @@ public class OpenxBidderTest extends VertxTest {
                                         Imp.builder()
                                                 .id("impId2")
                                                 .banner(Banner.builder().build())
-                                                .tagid("unitId")
+                                                .tagid("123456")
                                                 .bidfloor(BigDecimal.valueOf(0.5))
                                                 .ext(mapper.valueToTree(
                                                         ExtImpOpenx.builder()
@@ -301,7 +303,7 @@ public class OpenxBidderTest extends VertxTest {
                                                 .video(Video.builder()
                                                         .ext(mapper.valueToTree(OpenxVideoExt.of(1)))
                                                         .build())
-                                                .tagid("unitId")
+                                                .tagid("555555")
                                                 // check if each of video imps is a part of separate bidRequest
                                                 .bidfloor(BigDecimal.valueOf(0.1))
                                                 .ext(mapper.valueToTree(
@@ -326,7 +328,7 @@ public class OpenxBidderTest extends VertxTest {
                                         Imp.builder()
                                                 .id("impId4")
                                                 .video(Video.builder().build())
-                                                .tagid("unitId")
+                                                .tagid("555555")
                                                 .ext(mapper.valueToTree(
                                                         ExtImpOpenx.builder()
                                                                 .customParams(
@@ -380,7 +382,7 @@ public class OpenxBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
                 .isNotNull();
-        final ObjectNode ext = result.getValue().get(0).getPayload().getImp().get(0).getExt();
+        final ObjectNode ext = result.getValue().getFirst().getPayload().getImp().getFirst().getExt();
         assertThat(ext)
                 .isInstanceOf(JsonNode.class)
                 .usingRecursiveComparison()
@@ -418,7 +420,7 @@ public class OpenxBidderTest extends VertxTest {
                         Imp.builder()
                                 .id("impId2")
                                 .banner(Banner.builder().build())
-                                .tagid("unitId")
+                                .tagid("555555")
                                 .ext(mapper.valueToTree(Map.of("ae", 1, "bidder", Map.of())))
                                 .build()))
                 .build();
@@ -519,6 +521,42 @@ public class OpenxBidderTest extends VertxTest {
                         .impId("impId1")
                         .config(mapper.createObjectNode().put("somevalue", 1))
                         .build());
+    }
+
+    @Test
+    public void makeBidsShouldReturnVideoInfoWhenAvailable() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder()
+                .seatbid(singletonList(SeatBid.builder()
+                        .bid(singletonList(Bid.builder()
+                                .w(200)
+                                .h(150)
+                                .price(BigDecimal.ONE)
+                                .impid("impId1")
+                                .dealid("dealid")
+                                .adm("<div>This is an Ad</div>")
+                                .dur(30)
+                                .cat(singletonList("category1"))
+                                .build()))
+                        .build()))
+                .build()));
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .id("bidRequestId")
+                .imp(singletonList(Imp.builder()
+                        .id("impId1")
+                        .video(Video.builder().build())
+                        .build()))
+                .build();
+
+        // when
+        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getBids()).hasSize(1)
+                .extracting(BidderBid::getVideoInfo)
+                .containsExactly(ExtBidPrebidVideo.of(30, "category1"));
     }
 
     @Test

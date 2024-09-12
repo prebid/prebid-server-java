@@ -1,6 +1,6 @@
 adapters:
   yieldlab:
-    endpoint: https://ad.yieldlab.net/yp/
+    endpoint: https://ad.yieldlab.net/yp
     meta-info:
       maintainer-email: solutions@yieldlab.de
       app-media-types:

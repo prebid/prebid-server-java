@@ -2,6 +2,7 @@ package org.prebid.server.bidder.taboola;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -151,13 +152,24 @@ public class TaboolaBidder implements Bidder<BidRequest> {
         final List<String> impExtBCat = impExt.getBCat();
         final String impExtPageType = impExt.getPageType();
 
-        final Site site = Optional.ofNullable(request.getSite())
-                .map(Site::toBuilder)
-                .orElseGet(Site::builder)
+        final Publisher publisher = Publisher.builder().id(impExtPublisherId).build();
+
+        final Site site = request.getSite();
+        final Site modifiedSite = site == null
+                ? null
+                : site.toBuilder()
                 .id(impExtPublisherId)
                 .name(impExtPublisherId)
                 .domain(resolveDomain(impExt.getPublisherDomain(), request))
-                .publisher(Publisher.builder().id(impExtPublisherId).build())
+                .publisher(publisher)
+                .build();
+
+        final App app = request.getApp();
+        final App modifiedApp = app == null
+                ? null
+                : app.toBuilder()
+                .id(impExtPublisherId)
+                .publisher(publisher)
                 .build();
 
         final ExtRequest extRequest = StringUtils.isNotEmpty(impExtPageType)
@@ -166,7 +178,8 @@ public class TaboolaBidder implements Bidder<BidRequest> {
 
         return request.toBuilder()
                 .imp(imps)
-                .site(site)
+                .site(modifiedSite)
+                .app(modifiedApp)
                 .badv(CollectionUtils.isNotEmpty(impExtBAdv) ? impExtBAdv : request.getBadv())
                 .bcat(CollectionUtils.isNotEmpty(impExtBCat) ? impExtBCat : request.getBcat())
                 .ext(extRequest)
@@ -189,11 +202,11 @@ public class TaboolaBidder implements Bidder<BidRequest> {
 
     private HttpRequest<BidRequest> createHttpRequest(MediaType type, BidRequest outgoingRequest) {
         return BidderUtil.defaultRequest(outgoingRequest,
-                buildEndpointUrl(outgoingRequest.getSite().getId(), type),
+                buildEndpointUrl(outgoingRequest, type),
                 mapper);
     }
 
-    private String buildEndpointUrl(String publisherId, MediaType mediaType) {
+    private String buildEndpointUrl(BidRequest bidRequest, MediaType mediaType) {
         final String type = switch (mediaType) {
             case BANNER -> DISPLAY_ENDPOINT_PREFIX;
             case NATIVE -> NATIVE_ENDPOINT_PREFIX;
@@ -201,6 +214,10 @@ public class TaboolaBidder implements Bidder<BidRequest> {
             // should never happen
             default -> throw new AssertionError();
         };
+
+        final String publisherId = Optional.ofNullable(bidRequest.getSite()).map(Site::getId)
+                .or(() -> Optional.ofNullable(bidRequest.getApp()).map(App::getId))
+                .orElse(StringUtils.EMPTY);
 
         return endpointTemplate
                 .replace("{{GvlID}}", gvlId)

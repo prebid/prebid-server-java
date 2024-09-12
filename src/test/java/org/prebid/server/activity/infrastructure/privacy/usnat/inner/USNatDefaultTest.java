@@ -1,6 +1,6 @@
 package org.prebid.server.activity.infrastructure.privacy.usnat.inner;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.activity.infrastructure.rule.Rule;
 
 import static org.assertj.core.api.Assertions.assertThat;

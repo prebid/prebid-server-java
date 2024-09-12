@@ -1,5 +1,6 @@
 package org.prebid.server.proto.openrtb.ext.request.openx;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Builder;
@@ -22,6 +23,7 @@ public class ExtImpOpenx {
 
     String platform;
 
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     @JsonProperty("customFloor")
     BigDecimal customFloor;
 

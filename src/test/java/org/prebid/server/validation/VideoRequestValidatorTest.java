@@ -7,8 +7,8 @@ import com.iab.openrtb.request.video.BidRequestVideo;
 import com.iab.openrtb.request.video.Pod;
 import com.iab.openrtb.request.video.PodError;
 import com.iab.openrtb.request.video.Podconfig;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.auction.model.WithPodErrors;
 import org.prebid.server.exception.InvalidRequestException;
 
@@ -28,7 +28,7 @@ public class VideoRequestValidatorTest {
 
     private VideoRequestValidator videoRequestValidator;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         videoRequestValidator = new VideoRequestValidator();
     }
@@ -123,7 +123,7 @@ public class VideoRequestValidatorTest {
     }
 
     @Test
-    public void validateStoredBidRequestShouldThrowExceptionWhenAppHaveBlacklistedAccount() {
+    public void validateStoredBidRequestShouldThrowExceptionWhenAppHaveBlocklistedAccount() {
         // given
         final BidRequestVideo requestVideo = givenBidRequestVideo(
                 requestBuilder -> requestBuilder.site(null).app(App.builder().id("BAD").build()),

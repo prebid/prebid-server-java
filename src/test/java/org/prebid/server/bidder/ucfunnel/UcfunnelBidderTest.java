@@ -8,7 +8,7 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -106,7 +106,7 @@ public class UcfunnelBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().get(0).getUri()).isEqualTo("https://test.endpoint.com/partnerId/request");
+        assertThat(result.getValue().getFirst().getUri()).isEqualTo("https://test.endpoint.com/partnerId/request");
     }
 
     @Test
@@ -118,7 +118,7 @@ public class UcfunnelBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_input);
+        assertThat(result.getErrors().getFirst().getType()).isEqualTo(BidderError.Type.bad_input);
         assertThat(result.getValue()).isEmpty();
     }
 

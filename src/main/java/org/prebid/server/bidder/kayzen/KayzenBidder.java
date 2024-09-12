@@ -47,7 +47,7 @@ public class KayzenBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<Imp> originalImps = request.getImp();
-        final Imp firstImp = originalImps.get(FIRST_IMP_INDEX);
+        final Imp firstImp = originalImps.getFirst();
         final ExtImpKayzen extImpKayzen;
 
         try {
