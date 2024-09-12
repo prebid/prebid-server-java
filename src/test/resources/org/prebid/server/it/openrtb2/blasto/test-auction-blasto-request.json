@@ -8,10 +8,9 @@
         "h": 250
       },
       "ext": {
-        "bizzclick": {
-          "host": "host",
+        "blasto": {
           "accountId": "accountId",
-          "placementId": "placementId"
+          "sourceId": "sourceId"
         }
       }
     }
