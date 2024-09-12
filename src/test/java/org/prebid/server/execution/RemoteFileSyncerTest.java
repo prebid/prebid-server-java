@@ -456,6 +456,191 @@ public class RemoteFileSyncerTest extends VertxTest {
         verifyNoInteractions(remoteFileProcessor);
     }
 
+    @Test
+    public void syncShouldAttemptToUseExistingFileWhenDisabledAndFileIsPresent() {
+        // given
+        remoteFileSyncer = new RemoteFileSyncer(
+                remoteFileProcessor, SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY,
+                TIMEOUT, UPDATE_INTERVAL, httpClient, vertx, false);
+
+        given(fileSystem.exists(FILE_PATH))
+                .willReturn(Future.succeededFuture(true));
+
+        // when
+        remoteFileSyncer.sync();
+
+        // then
+        verify(fileSystem, times(1)).exists(FILE_PATH);
+        verify(remoteFileProcessor, times(1)).setDataPath(FILE_PATH);
+    }
+
+    @Test
+    public void syncShouldNotAttemptToUseMissingFileWhenDisabled() {
+        // given
+        remoteFileSyncer = new RemoteFileSyncer(
+                remoteFileProcessor, SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY,
+                TIMEOUT, UPDATE_INTERVAL, httpClient, vertx, false);
+
+        given(fileSystem.exists(FILE_PATH))
+                .willReturn(Future.succeededFuture(false));
+
+        // when
+        remoteFileSyncer.sync();
+
+        // then
+        verify(fileSystem, times(1)).exists(FILE_PATH);
+        verify(remoteFileProcessor, never()).setDataPath(FILE_PATH);
+    }
+
+    @Test
+    public void syncShouldNotAttemptFileDownloadWhenDisabledAndFileIsPresent() {
+        // given
+        remoteFileSyncer = new RemoteFileSyncer(
+                remoteFileProcessor, SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY,
+                TIMEOUT, UPDATE_INTERVAL, httpClient, vertx, false);
+
+        given(fileSystem.exists(anyString()))
+                .willReturn(Future.succeededFuture(true));
+
+        // when
+        remoteFileSyncer.sync();
+
+        // then
+        verify(fileSystem, times(1)).exists(FILE_PATH);
+        verify(httpClient, never()).request(any());
+        verify(fileSystem, never()).open(anyString(), any());
+        verifyNoMoreInteractions(httpClient);
+    }
+
+    @Test
+    public void syncShouldNotAttemptFileDownloadWhenDisabledAndFileIsNotPresent() {
+        // given
+        remoteFileSyncer = new RemoteFileSyncer(
+                remoteFileProcessor, SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY,
+                TIMEOUT, UPDATE_INTERVAL, httpClient, vertx, false);
+
+        given(fileSystem.exists(anyString()))
+                .willReturn(Future.succeededFuture(false));
+
+        // when
+        remoteFileSyncer.sync();
+
+        // then
+        verify(fileSystem, times(1)).exists(FILE_PATH);
+        verify(httpClient, never()).request(any());
+        verify(fileSystem, never()).open(anyString(), any());
+        verifyNoMoreInteractions(httpClient);
+    }
+
+    @Test
+    public void syncShouldNotAttemptToUpdateExistingFileWhenDisabled() {
+        // given
+        remoteFileSyncer = new RemoteFileSyncer(
+                remoteFileProcessor, SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY,
+                TIMEOUT, UPDATE_INTERVAL, httpClient, vertx, false);
+
+        given(fileSystem.exists(anyString()))
+                .willReturn(Future.succeededFuture(true));
+
+        // when
+        remoteFileSyncer.sync();
+
+        // then
+        verify(remoteFileProcessor, times(1)).setDataPath(FILE_PATH);
+        verify(vertx, never()).setPeriodic(anyLong(), any());
+        verifyNoMoreInteractions(vertx);
+        verifyNoMoreInteractions(httpClient);
+    }
+
+    @Test
+    public void syncShouldNotAttemptToUpdateMissingFileWhenDisabled() {
+        // given
+        remoteFileSyncer = new RemoteFileSyncer(
+                remoteFileProcessor, SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY,
+                TIMEOUT, UPDATE_INTERVAL, httpClient, vertx, false);
+
+        given(fileSystem.exists(anyString()))
+                .willReturn(Future.succeededFuture(false));
+
+        // when
+        remoteFileSyncer.sync();
+
+        // then
+        verify(remoteFileProcessor, never()).setDataPath(anyString());
+        verify(vertx, never()).setPeriodic(anyLong(), any());
+        verifyNoMoreInteractions(vertx);
+        verifyNoMoreInteractions(httpClient);
+    }
+
+    @Test
+    public void syncShouldNotSaveFileWhenServerRespondsWithNonOkStatusCode() {
+        // given
+        given(fileSystem.exists(anyString()))
+                .willReturn(Future.succeededFuture(false));
+        given(fileSystem.open(any(), any()))
+                .willReturn(Future.succeededFuture(asyncFile));
+        given(fileSystem.move(anyString(), anyString(), any(CopyOptions.class)))
+                .willReturn(Future.succeededFuture());
+
+        given(httpClient.request(any()))
+                .willReturn(Future.succeededFuture(httpClientRequest));
+        given(httpClientRequest.send())
+                .willReturn(Future.succeededFuture(httpClientResponse));
+        given(httpClientResponse.statusCode())
+                .willReturn(0);
+
+        // when
+        remoteFileSyncer.sync();
+
+        // then
+        verify(fileSystem, times(1)).exists(eq(FILE_PATH));
+        verify(fileSystem).open(eq(TMP_FILE_PATH), any());
+        verify(fileSystem).delete(eq(TMP_FILE_PATH));
+        verify(asyncFile).close();
+        verify(fileSystem, never()).move(eq(TMP_FILE_PATH), eq(FILE_PATH), any(CopyOptions.class));
+        verify(httpClient).request(any());
+        verify(httpClientResponse).statusCode();
+        verify(httpClientResponse, never()).pipeTo(any());
+        verify(remoteFileProcessor, never()).setDataPath(any());
+        verify(vertx, never()).setTimer(eq(UPDATE_INTERVAL), any());
+    }
+
+    @Test
+    public void syncShouldNotUpdateFileWhenServerRespondsWithNonOkStatusCode() {
+        // given
+        remoteFileSyncer = new RemoteFileSyncer(
+                remoteFileProcessor, SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY,
+                TIMEOUT, UPDATE_INTERVAL, httpClient, vertx, true);
+
+        givenTriggerUpdate();
+
+        given(fileSystem.open(any(), any()))
+                .willReturn(Future.succeededFuture(asyncFile));
+        given(fileSystem.move(anyString(), anyString(), any(CopyOptions.class)))
+                .willReturn(Future.succeededFuture());
+
+        given(httpClient.request(any()))
+                .willReturn(Future.succeededFuture(httpClientRequest));
+        given(httpClientRequest.send())
+                .willReturn(Future.succeededFuture(httpClientResponse));
+        given(httpClientResponse.statusCode())
+                .willReturn(0);
+
+        // when
+        remoteFileSyncer.sync();
+
+        // then
+        verify(fileSystem, times(1)).exists(eq(FILE_PATH));
+        verify(fileSystem, never()).open(any(), any());
+        verify(fileSystem, never()).delete(any());
+        verify(fileSystem, never()).move(any(), any(), any(), any());
+        verify(asyncFile, never()).close();
+        verify(httpClient, times(1)).request(any());
+        verify(httpClientResponse).statusCode();
+        verify(httpClientResponse, never()).pipeTo(any());
+        verify(vertx).setPeriodic(eq(UPDATE_INTERVAL), any());
+    }
+
     private void givenTriggerUpdate() {
         given(fileSystem.exists(anyString()))
                 .willReturn(Future.succeededFuture(true));
