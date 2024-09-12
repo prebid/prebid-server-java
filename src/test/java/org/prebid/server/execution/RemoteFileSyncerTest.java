@@ -30,7 +30,6 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -87,30 +86,30 @@ public class RemoteFileSyncerTest extends VertxTest {
     public void setUp() {
         when(vertx.fileSystem()).thenReturn(fileSystem);
         remoteFileSyncer = new RemoteFileSyncer(remoteFileProcessor, SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY,
-                TIMEOUT, 0, httpClient, vertx, true);
+                TIMEOUT, 0, httpClient, vertx);
     }
 
     @Test
     public void shouldThrowNullPointerExceptionWhenIllegalArgumentsWhenNullArguments() {
         assertThatNullPointerException().isThrownBy(
                 () -> new RemoteFileSyncer(remoteFileProcessor, SOURCE_URL, null, TMP_FILE_PATH, RETRY_POLICY, TIMEOUT,
-                        UPDATE_INTERVAL, httpClient, vertx, true));
+                        UPDATE_INTERVAL, httpClient, vertx));
         assertThatNullPointerException().isThrownBy(
                 () -> new RemoteFileSyncer(remoteFileProcessor, SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY,
-                        TIMEOUT, UPDATE_INTERVAL, null, vertx, true));
+                        TIMEOUT, UPDATE_INTERVAL, null, vertx));
         assertThatNullPointerException().isThrownBy(
                 () -> new RemoteFileSyncer(remoteFileProcessor, SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY,
-                        TIMEOUT, UPDATE_INTERVAL, httpClient, null, true));
+                        TIMEOUT, UPDATE_INTERVAL, httpClient, null));
     }
 
     @Test
     public void shouldThrowIllegalArgumentExceptionWhenIllegalArguments() {
         assertThatIllegalArgumentException().isThrownBy(
                 () -> new RemoteFileSyncer(remoteFileProcessor, null, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY,
-                        TIMEOUT, UPDATE_INTERVAL, httpClient, vertx, true));
+                        TIMEOUT, UPDATE_INTERVAL, httpClient, vertx));
         assertThatIllegalArgumentException().isThrownBy(
                 () -> new RemoteFileSyncer(remoteFileProcessor, "bad url", FILE_PATH, TMP_FILE_PATH, RETRY_POLICY,
-                        TIMEOUT, UPDATE_INTERVAL, httpClient, vertx, true));
+                        TIMEOUT, UPDATE_INTERVAL, httpClient, vertx));
     }
 
     @Test
@@ -121,7 +120,7 @@ public class RemoteFileSyncerTest extends VertxTest {
 
         // when
         new RemoteFileSyncer(remoteFileProcessor, SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY, TIMEOUT,
-                UPDATE_INTERVAL, httpClient, vertx, true);
+                UPDATE_INTERVAL, httpClient, vertx);
 
         // then
         verify(fileSystem).mkdirsBlocking(eq(DIR_PATH));
@@ -138,7 +137,7 @@ public class RemoteFileSyncerTest extends VertxTest {
 
         // when
         new RemoteFileSyncer(remoteFileProcessor, SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY, TIMEOUT,
-                UPDATE_INTERVAL, httpClient, vertx, true);
+                UPDATE_INTERVAL, httpClient, vertx);
 
         // then
         verify(fileSystem).mkdirsBlocking(eq(DIR_PATH));
@@ -153,7 +152,7 @@ public class RemoteFileSyncerTest extends VertxTest {
 
         // when and then
         assertThatThrownBy(() -> new RemoteFileSyncer(remoteFileProcessor, SOURCE_URL, FILE_PATH, TMP_FILE_PATH,
-                RETRY_POLICY, TIMEOUT, UPDATE_INTERVAL, httpClient, vertx, true))
+                RETRY_POLICY, TIMEOUT, UPDATE_INTERVAL, httpClient, vertx))
                 .isInstanceOf(PreBidException.class);
     }
 
@@ -176,7 +175,7 @@ public class RemoteFileSyncerTest extends VertxTest {
     public void syncForFilepathShouldNotUpdateWhenHeadRequestReturnInvalidHead() {
         // given
         remoteFileSyncer = new RemoteFileSyncer(remoteFileProcessor, SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY,
-                TIMEOUT, UPDATE_INTERVAL, httpClient, vertx, true);
+                TIMEOUT, UPDATE_INTERVAL, httpClient, vertx);
 
         givenTriggerUpdate();
 
@@ -205,7 +204,7 @@ public class RemoteFileSyncerTest extends VertxTest {
     public void syncForFilepathShouldNotUpdateWhenPropsIsFailed() {
         // given
         remoteFileSyncer = new RemoteFileSyncer(remoteFileProcessor, SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY,
-                TIMEOUT, UPDATE_INTERVAL, httpClient, vertx, true);
+                TIMEOUT, UPDATE_INTERVAL, httpClient, vertx);
 
         givenTriggerUpdate();
 
@@ -239,7 +238,7 @@ public class RemoteFileSyncerTest extends VertxTest {
     public void syncForFilepathShouldNotUpdateServiceWhenSizeEqualsContentLength() {
         // given
         remoteFileSyncer = new RemoteFileSyncer(remoteFileProcessor, SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY,
-                TIMEOUT, UPDATE_INTERVAL, httpClient, vertx, true);
+                TIMEOUT, UPDATE_INTERVAL, httpClient, vertx);
 
         givenTriggerUpdate();
 
@@ -276,7 +275,7 @@ public class RemoteFileSyncerTest extends VertxTest {
         // given
         remoteFileSyncer = new RemoteFileSyncer(
                 remoteFileProcessor, SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY,
-                TIMEOUT, UPDATE_INTERVAL, httpClient, vertx, true);
+                TIMEOUT, UPDATE_INTERVAL, httpClient, vertx);
 
         givenTriggerUpdate();
 
@@ -457,122 +456,6 @@ public class RemoteFileSyncerTest extends VertxTest {
     }
 
     @Test
-    public void syncShouldAttemptToUseExistingFileWhenDisabledAndFileIsPresent() {
-        // given
-        remoteFileSyncer = new RemoteFileSyncer(
-                remoteFileProcessor, SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY,
-                TIMEOUT, UPDATE_INTERVAL, httpClient, vertx, false);
-
-        given(fileSystem.exists(FILE_PATH))
-                .willReturn(Future.succeededFuture(true));
-
-        // when
-        remoteFileSyncer.sync();
-
-        // then
-        verify(fileSystem, times(1)).exists(FILE_PATH);
-        verify(remoteFileProcessor, times(1)).setDataPath(FILE_PATH);
-    }
-
-    @Test
-    public void syncShouldNotAttemptToUseMissingFileWhenDisabled() {
-        // given
-        remoteFileSyncer = new RemoteFileSyncer(
-                remoteFileProcessor, SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY,
-                TIMEOUT, UPDATE_INTERVAL, httpClient, vertx, false);
-
-        given(fileSystem.exists(FILE_PATH))
-                .willReturn(Future.succeededFuture(false));
-
-        // when
-        remoteFileSyncer.sync();
-
-        // then
-        verify(fileSystem, times(1)).exists(FILE_PATH);
-        verify(remoteFileProcessor, never()).setDataPath(FILE_PATH);
-    }
-
-    @Test
-    public void syncShouldNotAttemptFileDownloadWhenDisabledAndFileIsPresent() {
-        // given
-        remoteFileSyncer = new RemoteFileSyncer(
-                remoteFileProcessor, SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY,
-                TIMEOUT, UPDATE_INTERVAL, httpClient, vertx, false);
-
-        given(fileSystem.exists(anyString()))
-                .willReturn(Future.succeededFuture(true));
-
-        // when
-        remoteFileSyncer.sync();
-
-        // then
-        verify(fileSystem, times(1)).exists(FILE_PATH);
-        verify(httpClient, never()).request(any());
-        verify(fileSystem, never()).open(anyString(), any());
-        verifyNoMoreInteractions(httpClient);
-    }
-
-    @Test
-    public void syncShouldNotAttemptFileDownloadWhenDisabledAndFileIsNotPresent() {
-        // given
-        remoteFileSyncer = new RemoteFileSyncer(
-                remoteFileProcessor, SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY,
-                TIMEOUT, UPDATE_INTERVAL, httpClient, vertx, false);
-
-        given(fileSystem.exists(anyString()))
-                .willReturn(Future.succeededFuture(false));
-
-        // when
-        remoteFileSyncer.sync();
-
-        // then
-        verify(fileSystem, times(1)).exists(FILE_PATH);
-        verify(httpClient, never()).request(any());
-        verify(fileSystem, never()).open(anyString(), any());
-        verifyNoMoreInteractions(httpClient);
-    }
-
-    @Test
-    public void syncShouldNotAttemptToUpdateExistingFileWhenDisabled() {
-        // given
-        remoteFileSyncer = new RemoteFileSyncer(
-                remoteFileProcessor, SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY,
-                TIMEOUT, UPDATE_INTERVAL, httpClient, vertx, false);
-
-        given(fileSystem.exists(anyString()))
-                .willReturn(Future.succeededFuture(true));
-
-        // when
-        remoteFileSyncer.sync();
-
-        // then
-        verify(remoteFileProcessor, times(1)).setDataPath(FILE_PATH);
-        verify(vertx, never()).setPeriodic(anyLong(), any());
-        verifyNoMoreInteractions(vertx);
-        verifyNoMoreInteractions(httpClient);
-    }
-
-    @Test
-    public void syncShouldNotAttemptToUpdateMissingFileWhenDisabled() {
-        // given
-        remoteFileSyncer = new RemoteFileSyncer(
-                remoteFileProcessor, SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY,
-                TIMEOUT, UPDATE_INTERVAL, httpClient, vertx, false);
-
-        given(fileSystem.exists(anyString()))
-                .willReturn(Future.succeededFuture(false));
-
-        // when
-        remoteFileSyncer.sync();
-
-        // then
-        verify(remoteFileProcessor, never()).setDataPath(anyString());
-        verify(vertx, never()).setPeriodic(anyLong(), any());
-        verifyNoMoreInteractions(vertx);
-        verifyNoMoreInteractions(httpClient);
-    }
-
-    @Test
     public void syncShouldNotSaveFileWhenServerRespondsWithNonOkStatusCode() {
         // given
         given(fileSystem.exists(anyString()))
@@ -610,7 +493,7 @@ public class RemoteFileSyncerTest extends VertxTest {
         // given
         remoteFileSyncer = new RemoteFileSyncer(
                 remoteFileProcessor, SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY,
-                TIMEOUT, UPDATE_INTERVAL, httpClient, vertx, true);
+                TIMEOUT, UPDATE_INTERVAL, httpClient, vertx);
 
         givenTriggerUpdate();
 

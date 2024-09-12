@@ -15,7 +15,6 @@ import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.RequestOptions;
-import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.retry.RetryPolicy;
@@ -44,7 +43,6 @@ public class RemoteFileSyncer {
     private final FileSystem fileSystem;
     private final RequestOptions getFileRequestOptions;
     private final RequestOptions isUpdateRequiredRequestOptions;
-    private final boolean isSyncEnabled;
 
     public RemoteFileSyncer(RemoteFileProcessor processor,
                             String downloadUrl,
@@ -54,8 +52,7 @@ public class RemoteFileSyncer {
                             long timeout,
                             long updatePeriod,
                             HttpClient httpClient,
-                            Vertx vertx,
-                            Boolean isSyncEnabled) {
+                            Vertx vertx) {
 
         this.processor = Objects.requireNonNull(processor);
         this.downloadUrl = HttpUtil.validateUrl(downloadUrl);
@@ -66,7 +63,6 @@ public class RemoteFileSyncer {
         this.httpClient = Objects.requireNonNull(httpClient);
         this.vertx = Objects.requireNonNull(vertx);
         this.fileSystem = vertx.fileSystem();
-        this.isSyncEnabled = BooleanUtils.toBooleanDefaultIfNull(isSyncEnabled, true);
 
         createAndCheckWritePermissionsFor(fileSystem, saveFilePath);
         createAndCheckWritePermissionsFor(fileSystem, tmpFilePath);
@@ -98,19 +94,8 @@ public class RemoteFileSyncer {
 
     public void sync() {
         fileSystem.exists(saveFilePath)
-                .compose(this::processSync)
+                .compose(exists -> exists ? processSavedFile() : syncRemoteFile(retryPolicy))
                 .onComplete(ignored -> setUpDeferredUpdate());
-    }
-
-    private Future<Void> processSync(Boolean exists) {
-        if (exists) {
-            return processSavedFile();
-        } else if (isSyncEnabled) {
-            return syncRemoteFile(retryPolicy);
-        } else {
-            return Future.failedFuture(new PreBidException(
-                    String.format("File sync is disabled and there is no file at %s", saveFilePath)));
-        }
     }
 
     private Future<Void> processSavedFile() {
@@ -157,7 +142,7 @@ public class RemoteFileSyncer {
     }
 
     private void setUpDeferredUpdate() {
-        if (isSyncEnabled && updatePeriod > 0) {
+        if (updatePeriod > 0) {
             vertx.setPeriodic(updatePeriod, ignored -> updateIfNeeded());
         }
     }

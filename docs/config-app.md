@@ -56,7 +56,6 @@ This parameter exists to allow to change the location of the directory Vert.x wi
 Remote File Syncer can be related to particular entity like geolocation maxmind service etc.
 Removes and downloads file again if depending service cant process probably corrupted file in the first start.
 
-- `<SERVICE>.remote-file-syncer.enable-sync` - controls whether actual remote file sync will be attempted or only existing file will be used. True by default.
 - `<SERVICE>.remote-file-syncer.download-url` - url to database file to download.
 - `<SERVICE>.remote-file-syncer.save-filepath` - full path to the usable file, which will be consumed by internal service.
 - `<SERVICE>.remote-file-syncer.tmp-filepath` - full path to the temporary file.
