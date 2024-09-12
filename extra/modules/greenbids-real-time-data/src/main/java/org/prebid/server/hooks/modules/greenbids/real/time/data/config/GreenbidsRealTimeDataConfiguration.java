@@ -18,7 +18,6 @@ import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.ThresholdCache;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.GreenbidsRealTimeDataModule;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.GreenbidsRealTimeDataProcessedAuctionRequestHook;
-import org.prebid.server.json.ObjectMapperProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -40,7 +39,7 @@ public class GreenbidsRealTimeDataConfiguration {
             ObjectMapper mapper) {
 
         final File database = new File(properties.getGeoLiteCountryPath());
-        DatabaseReader dbReader;
+        final DatabaseReader dbReader;
         try {
             dbReader = new DatabaseReader.Builder(database).build();
         } catch (IOException e) {
