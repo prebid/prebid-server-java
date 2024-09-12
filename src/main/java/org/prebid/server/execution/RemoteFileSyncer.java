@@ -1,5 +1,6 @@
 package org.prebid.server.execution;
 
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
@@ -14,6 +15,7 @@ import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.RequestOptions;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.retry.RetryPolicy;
@@ -42,6 +44,7 @@ public class RemoteFileSyncer {
     private final FileSystem fileSystem;
     private final RequestOptions getFileRequestOptions;
     private final RequestOptions isUpdateRequiredRequestOptions;
+    private final boolean isSyncEnabled;
 
     public RemoteFileSyncer(RemoteFileProcessor processor,
                             String downloadUrl,
@@ -51,7 +54,8 @@ public class RemoteFileSyncer {
                             long timeout,
                             long updatePeriod,
                             HttpClient httpClient,
-                            Vertx vertx) {
+                            Vertx vertx,
+                            Boolean isSyncEnabled) {
 
         this.processor = Objects.requireNonNull(processor);
         this.downloadUrl = HttpUtil.validateUrl(downloadUrl);
@@ -62,6 +66,7 @@ public class RemoteFileSyncer {
         this.httpClient = Objects.requireNonNull(httpClient);
         this.vertx = Objects.requireNonNull(vertx);
         this.fileSystem = vertx.fileSystem();
+        this.isSyncEnabled = BooleanUtils.toBooleanDefaultIfNull(isSyncEnabled, true);
 
         createAndCheckWritePermissionsFor(fileSystem, saveFilePath);
         createAndCheckWritePermissionsFor(fileSystem, tmpFilePath);
@@ -93,8 +98,19 @@ public class RemoteFileSyncer {
 
     public void sync() {
         fileSystem.exists(saveFilePath)
-                .compose(exists -> exists ? processSavedFile() : syncRemoteFile(retryPolicy))
+                .compose(this::processSync)
                 .onComplete(ignored -> setUpDeferredUpdate());
+    }
+
+    private Future<Void> processSync(Boolean exists) {
+        if (exists) {
+            return processSavedFile();
+        } else if (isSyncEnabled) {
+            return syncRemoteFile(retryPolicy);
+        } else {
+            return Future.failedFuture(new PreBidException(
+                    String.format("File sync is disabled and there is no file at %s", saveFilePath)));
+        }
     }
 
     private Future<Void> processSavedFile() {
@@ -112,8 +128,7 @@ public class RemoteFileSyncer {
     private Future<Void> syncRemoteFile(RetryPolicy retryPolicy) {
         return fileSystem.open(tmpFilePath, new OpenOptions())
 
-                .compose(tmpFile -> httpClient.request(getFileRequestOptions)
-                        .compose(HttpClientRequest::send)
+                .compose(tmpFile -> sendHttpRequest(getFileRequestOptions)
                         .compose(response -> response.pipeTo(tmpFile))
                         .onComplete(result -> tmpFile.close()))
 
@@ -142,14 +157,13 @@ public class RemoteFileSyncer {
     }
 
     private void setUpDeferredUpdate() {
-        if (updatePeriod > 0) {
+        if (isSyncEnabled && updatePeriod > 0) {
             vertx.setPeriodic(updatePeriod, ignored -> updateIfNeeded());
         }
     }
 
     private void updateIfNeeded() {
-        httpClient.request(isUpdateRequiredRequestOptions)
-                .compose(HttpClientRequest::send)
+        sendHttpRequest(isUpdateRequiredRequestOptions)
                 .compose(response -> fileSystem.exists(saveFilePath)
                         .compose(exists -> exists
                                 ? isLengthChanged(response)
@@ -159,6 +173,24 @@ public class RemoteFileSyncer {
                         syncRemoteFile(retryPolicy);
                     }
                 });
+    }
+
+    private Future<HttpClientResponse> sendHttpRequest(RequestOptions requestOptions) {
+        return httpClient.request(requestOptions)
+                .compose(HttpClientRequest::send)
+                .compose(this::validateResponse);
+    }
+
+    private Future<HttpClientResponse> validateResponse(HttpClientResponse response) {
+        final int statusCode = response.statusCode();
+        if (statusCode != HttpResponseStatus.OK.code()) {
+            return Future.failedFuture(new PreBidException(
+                    String.format("Got unexpected response from server with status code %s and message %s",
+                            statusCode,
+                            response.statusMessage())));
+        } else {
+            return Future.succeededFuture(response);
+        }
     }
 
     private Future<Boolean> isLengthChanged(HttpClientResponse response) {

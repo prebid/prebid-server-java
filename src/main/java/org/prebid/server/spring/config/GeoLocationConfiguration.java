@@ -101,7 +101,8 @@ public class GeoLocationConfiguration {
                     properties.getTimeoutMs(),
                     properties.getUpdateIntervalMs(),
                     vertx.createHttpClient(httpClientOptions),
-                    vertx);
+                    vertx,
+                    properties.getSyncEnabled());
 
             remoteFileSyncer.sync();
             return maxMindGeoLocationService;

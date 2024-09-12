@@ -13,6 +13,8 @@ import jakarta.validation.constraints.NotNull;
 @NoArgsConstructor
 public class RemoteFileSyncerProperties {
 
+    private Boolean syncEnabled;
+
     @NotBlank
     private String downloadUrl;
 
