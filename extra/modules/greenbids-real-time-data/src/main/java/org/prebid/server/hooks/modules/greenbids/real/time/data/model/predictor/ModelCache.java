@@ -65,9 +65,9 @@ public class ModelCache {
 
     private void fetchAndCacheModelRunner(String onnxModelPath, String cacheKey) {
         vertx.executeBlocking(promise -> {
-                    Blob blob = getBlob(onnxModelPath);
-                    promise.complete(blob);
-                })
+            final Blob blob = getBlob(onnxModelPath);
+            promise.complete(blob);
+        })
                 .map(blob -> loadModelRunner((Blob) blob))
                 .onSuccess(onnxModelRunner -> cache.put(cacheKey, onnxModelRunner))
                 .onFailure(error -> logger.error("Failed to fetch ONNX model"));
