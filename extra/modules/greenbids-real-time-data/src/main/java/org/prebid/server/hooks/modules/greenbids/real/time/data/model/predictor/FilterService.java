@@ -11,8 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 public class FilterService {
@@ -79,7 +77,7 @@ public class FilterService {
             float[][] probabilities,
             List<ThrottlingMessage> throttlingMessages,
             Double threshold) {
-        Map<String, Map<String, Boolean>> result = new HashMap<>();
+        final Map<String, Map<String, Boolean>> result = new HashMap<>();
 
         for (int i = 0; i < probabilities.length; i++) {
             final ThrottlingMessage message = throttlingMessages.get(i);

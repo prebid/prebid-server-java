@@ -5,14 +5,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Data;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.maxmind.geoip2.DatabaseReader;
 import com.maxmind.geoip2.exception.GeoIp2Exception;
 import com.maxmind.geoip2.model.CountryResponse;
 import com.maxmind.geoip2.record.Country;
-import io.netty.util.internal.StringUtil;
 import lombok.Value;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
@@ -28,7 +26,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Value(staticConstructor = "of")
 @Service

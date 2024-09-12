@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
-import com.maxmind.geoip2.DatabaseReader;
 import io.vertx.core.Future;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.auction.model.AuctionContext;
@@ -122,7 +121,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
 
         final Map<String, Map<String, Boolean>> impsBiddersFilterMap;
         try {
-            List<ThrottlingMessage> throttlingMessages = greenbidsInferenceDataService
+            final List<ThrottlingMessage> throttlingMessages = greenbidsInferenceDataService
                     .extractThrottlingMessagesFromBidRequest(bidRequest);
 
             impsBiddersFilterMap = filterService.filterBidders(

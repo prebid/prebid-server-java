@@ -1,12 +1,7 @@
 package org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.benmanes.caffeine.cache.Cache;
-import com.google.cloud.storage.Storage;
 import io.vertx.core.Future;
-import io.vertx.core.Vertx;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.Partner;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingThresholds;
 
 public class OnnxModelRunnerWithThresholds {
 
