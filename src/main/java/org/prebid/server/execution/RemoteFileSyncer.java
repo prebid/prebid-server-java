@@ -70,12 +70,14 @@ public class RemoteFileSyncer {
         getFileRequestOptions = new RequestOptions()
                 .setMethod(HttpMethod.GET)
                 .setTimeout(timeout)
-                .setAbsoluteURI(downloadUrl);
+                .setAbsoluteURI(downloadUrl)
+                .setFollowRedirects(true);
 
         isUpdateRequiredRequestOptions = new RequestOptions()
                 .setMethod(HttpMethod.HEAD)
                 .setTimeout(timeout)
-                .setAbsoluteURI(downloadUrl);
+                .setAbsoluteURI(downloadUrl)
+                .setFollowRedirects(true);
     }
 
     private static void createAndCheckWritePermissionsFor(FileSystem fileSystem, String filePath) {
