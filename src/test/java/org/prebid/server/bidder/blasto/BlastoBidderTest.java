@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.bizzclick;
+package org.prebid.server.bidder.blasto;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.BidRequest;
@@ -19,7 +19,7 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.bizzclick.ExtImpBizzclick;
+import org.prebid.server.proto.openrtb.ext.request.blasto.ExtImpBlasto;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
@@ -34,19 +34,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.groups.Tuple.tuple;
 
-public class BizzclickBidderTest extends VertxTest {
+public class BlastoBidderTest extends VertxTest {
 
-    private static final String ENDPOINT = "https://{{Host}}/uri?source={{SourceId}}&account={{AccountID}}";
+    private static final String ENDPOINT = "https://test.com/uri?source={{SourceId}}&account={{AccountID}}";
     private static final String DEFAULT_HOST = "host";
     private static final String DEFAULT_ACCOUNT_ID = "accountId";
     private static final String DEFAULT_SOURCE_ID = "sourceId";
     private static final String DEFAULT_PLACEMENT_ID = "placementId";
 
-    private final BizzclickBidder target = new BizzclickBidder(ENDPOINT, jacksonMapper);
+    private final BlastoBidder target = new BlastoBidder(ENDPOINT, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new BizzclickBidder("incorrect_url", jacksonMapper));
+        assertThatIllegalArgumentException().isThrownBy(() -> new BlastoBidder("incorrect_url", jacksonMapper));
     }
 
     @Test
@@ -206,33 +206,7 @@ public class BizzclickBidderTest extends VertxTest {
         // then
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsExactly(
-                        String.format("https://%s/uri?source=%s&account=%s",
-                                DEFAULT_HOST,
-                                DEFAULT_SOURCE_ID,
-                                DEFAULT_ACCOUNT_ID));
-        assertThat(result.getErrors()).isEmpty();
-    }
-
-    @Test
-    public void makeHttpRequestsShouldCreateSingleRequestWithExpectedAlternativeUri() {
-        // given
-        final String expectedDefaultHost = "us-e-node1";
-        final BidRequest bidRequest = givenBidRequest(
-                givenImp(expectedDefaultHost, DEFAULT_ACCOUNT_ID, DEFAULT_PLACEMENT_ID, null)
-        );
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getUri)
-                .containsExactly(
-                        String.format("https://%s/uri?source=%s&account=%s",
-                                expectedDefaultHost,
-                                DEFAULT_PLACEMENT_ID,
-                                DEFAULT_ACCOUNT_ID));
+                .containsExactly("https://test.com/uri?source=sourceId&account=accountId");
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -448,7 +422,7 @@ public class BizzclickBidderTest extends VertxTest {
     }
 
     private Imp givenImp() {
-        final ExtPrebid<?, ?> ext = ExtPrebid.of(null, ExtImpBizzclick.of(
+        final ExtPrebid<?, ?> ext = ExtPrebid.of(null, ExtImpBlasto.of(
                 DEFAULT_HOST, DEFAULT_ACCOUNT_ID, DEFAULT_PLACEMENT_ID, DEFAULT_SOURCE_ID
         ));
         return givenImp(imp -> imp.ext(mapper.valueToTree(ext)));
@@ -456,7 +430,7 @@ public class BizzclickBidderTest extends VertxTest {
 
     private Imp givenImp(String host, String accountId, String placementId, String sourceId) {
         final ExtPrebid<?, ?> ext = ExtPrebid.of(
-                null, ExtImpBizzclick.of(host, accountId, placementId, sourceId)
+                null, ExtImpBlasto.of(host, accountId, placementId, sourceId)
         );
         return givenImp(imp -> imp.ext(mapper.valueToTree(ext)));
     }
