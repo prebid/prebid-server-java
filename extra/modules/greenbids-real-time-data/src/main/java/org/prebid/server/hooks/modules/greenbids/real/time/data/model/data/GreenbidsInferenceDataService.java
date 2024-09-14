@@ -31,9 +31,9 @@ import java.util.stream.Collectors;
 @Service
 public class GreenbidsInferenceDataService {
 
-    private final DatabaseReader dbReader;
+    DatabaseReader dbReader;
 
-    private final ObjectMapper mapper;
+    ObjectMapper mapper;
 
     public GreenbidsInferenceDataService(DatabaseReader dbReader, ObjectMapper mapper) {
         this.dbReader = dbReader;
