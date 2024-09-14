@@ -34,17 +34,19 @@ import java.util.concurrent.TimeUnit;
 public class GreenbidsRealTimeDataConfiguration {
 
     @Bean
-    public GreenbidsInferenceDataService greenbidsInferenceDataService(
-            GreenbidsRealTimeDataProperties properties,
-            ObjectMapper mapper) {
-
+    public DatabaseReader dbReader(GreenbidsRealTimeDataProperties properties) {
         final File database = new File(properties.getGeoLiteCountryPath());
-        final DatabaseReader dbReader;
         try {
-            dbReader = new DatabaseReader.Builder(database).build();
+            return new DatabaseReader.Builder(database).build();
         } catch (IOException e) {
             throw new PreBidException("Failed build DatabaseReader from DB", e);
         }
+    }
+
+    @Bean
+    public GreenbidsInferenceDataService greenbidsInferenceDataService(
+            DatabaseReader dbReader,
+            ObjectMapper mapper) {
         return new GreenbidsInferenceDataService(dbReader, mapper);
     }
 
