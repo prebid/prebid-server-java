@@ -88,6 +88,7 @@ Keep in mind following restrictions:
 - `analytics.allow-client-details` - when true, this boolean setting allows responses to transmit the server-side analytics tags to support client-side analytics adapters. Defaults to false.
 - `analytics.auction-events.<channel>` - defines which channels are supported by analytics for this account
 - `analytics.modules.<module-name>.*` - space for `module-name` analytics module specific configuration, may be of any shape
+- `analytics.modules.<analytic-adapter-name>.*` - a space for specific data for the analytics adapter, which may include an enabled property to control whether the adapter should be triggered, along with other adapter-specific properties. These will be merged under `ext.prebid.analytics.<analytic-adapter-name>` in the request.
 - `metrics.verbosity-level` - defines verbosity level of metrics for this account, overrides `metrics.accounts` application settings configuration. 
 - `cookie-sync.default-limit` - if the "limit" isn't specified in the `/cookie_sync` request, this is what to use
 - `cookie-sync.max-limit` - if the "limit" is specified in the `/cookie_sync` request, it can't be greater than this
