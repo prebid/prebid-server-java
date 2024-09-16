@@ -106,18 +106,20 @@ public class AppVideoHtmlCorrection implements Correction {
     }
 
     private boolean hasNativeAdm(String adm, String bidId, String bidder) {
+        final JsonNode admNode;
         try {
-            final JsonNode jsonNode = mapper.readTree(adm);
-            if (jsonNode.has("assets")) {
-                conditionalLogger.warn(NATIVE_ADM_MESSAGE.formatted(bidId, bidder), logSamplingRate);
-                return true;
-            } else {
-                conditionalLogger.warn(ADM_WITH_NO_ASSETS_MESSAGE.formatted(bidId, bidder), logSamplingRate);
-                return false;
-            }
+            admNode = mapper.readTree(adm);
         } catch (JsonProcessingException e) {
             return false;
         }
+
+        final boolean hasAssets = admNode.has("assets");
+        final String warningMessage = hasAssets
+                ? NATIVE_ADM_MESSAGE.formatted(bidId, bidder)
+                : ADM_WITH_NO_ASSETS_MESSAGE.formatted(bidId, bidder);
+
+        conditionalLogger.warn(warningMessage, logSamplingRate);
+        return hasAssets;
     }
 
     private static boolean isVideoWithVastXml(BidType type, String adm) {
