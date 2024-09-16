@@ -284,7 +284,7 @@ ipv6:
   private-networks: ::1/128, 2001:db8::/32, fc00::/7, fe80::/10, ff00::/8
 analytics:
   global:
-    adapters: logAnalytics, pubstack
+    adapters: logAnalytics, pubstack, greenbids
   pubstack:
     enabled: false
     endpoint: http://localhost:8090
