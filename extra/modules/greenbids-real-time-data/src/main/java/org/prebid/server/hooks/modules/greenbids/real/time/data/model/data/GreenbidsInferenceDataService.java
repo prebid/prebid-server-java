@@ -28,11 +28,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-@Value(staticConstructor = "of")
-@Service
 public class GreenbidsInferenceDataService {
 
-    @Autowired
     DatabaseReader dbReader;
 
     ObjectMapper mapper;
