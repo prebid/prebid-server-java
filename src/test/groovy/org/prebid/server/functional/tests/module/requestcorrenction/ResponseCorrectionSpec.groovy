@@ -477,6 +477,8 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         assert responseCorrection.size() == 2
         assert responseCorrection.any {
             it.contains("Bid $bidId of bidder generic has a JSON ADM, but without assets" as String)
+        }
+        assert responseCorrection.any {
             it.contains("Bid $bidId of bidder generic: changing media type to banner" as String)
         }
 
