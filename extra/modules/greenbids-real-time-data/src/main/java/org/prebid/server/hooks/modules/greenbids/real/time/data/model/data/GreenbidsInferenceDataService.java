@@ -15,6 +15,7 @@ import lombok.Value;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -31,6 +32,7 @@ import java.util.stream.Collectors;
 @Service
 public class GreenbidsInferenceDataService {
 
+    @Autowired
     DatabaseReader dbReader;
 
     ObjectMapper mapper;
