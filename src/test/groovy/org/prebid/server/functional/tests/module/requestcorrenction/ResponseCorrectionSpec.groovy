@@ -21,6 +21,7 @@ import java.time.Instant
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.request.auction.BidRequest.getDefaultBidRequest
+import static org.prebid.server.functional.model.request.auction.BidRequest.getDefaultVideoRequest
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.DOOH
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
@@ -36,7 +37,7 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
              "adapters.generic.modifying-vast-xml-allowed": "false"] +
                     responseCorrectionConfig)
 
-    def "PBs shouldn't modify response when in account correction module disabled"() {
+    def "PBS shouldn't modify response when in account correction module disabled"() {
         given: "Start up time"
         def start = Instant.now()
 
@@ -50,18 +51,21 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Save account with enabled response correction module"
-        accountDao.save(accountConfigWithResponseCorrectionModule(bidRequest, responseCorrectionEnabled, appVideoHtmlEnabled))
+        def accountWithResponseCorrectionModule = accountConfigWithResponseCorrectionModule(bidRequest, responseCorrectionEnabled, appVideoHtmlEnabled)
+        accountDao.save(accountWithResponseCorrectionModule)
 
         when: "PBS processes auction request"
         def response = pbsServiceWithResponseCorrectionModule.sendAuctionRequest(bidRequest)
 
-        then: "PBs shouldn't emit log"
+        then: "PBS shouldn't emit log"
         def logsByTime = pbsServiceWithResponseCorrectionModule.getLogsByTime(start)
         assert getLogsByText(logsByTime, bidResponse.seatbid[0].bid[0].id).size() == 0
 
         and: "Response should contain seatBid and video media type"
         assert response.seatbid.size() == 1
-        assert response.seatbid[0].bid[0].ext.prebid.type == VIDEO
+
+        and: "Response should contain single seatBid with proper media type"
+        assert response.seatbid.bid.ext.prebid.type.flatten() == [VIDEO]
 
         and: "Response shouldn't contain errors"
         assert !response.ext.errors
@@ -76,7 +80,7 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         false                     | false
     }
 
-    def "PBs shouldn't modify response when requested #distributionChannel and with adm obj"() {
+    def "PBS shouldn't modify response with adm obj when request includes #distributionChannel distribution channel"() {
         given: "Start up time"
         def start = Instant.now()
 
@@ -87,24 +91,26 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
 
         and: "Set bidder response with adm obj"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            seatbid[0].bid[0].adm = new Adm(assets: null)
+            seatbid[0].bid[0].adm = new Adm()
         }
         bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Save account with enabled response correction module"
-        accountDao.save(accountConfigWithResponseCorrectionModule(bidRequest))
+        def accountWithResponseCorrectionModule = accountConfigWithResponseCorrectionModule(bidRequest)
+        accountDao.save(accountWithResponseCorrectionModule)
 
         when: "PBS processes auction request"
         def response = pbsServiceWithResponseCorrectionModule.sendAuctionRequest(bidRequest)
 
-        then: "PBs shouldn't emit log"
+        then: "PBS shouldn't emit log"
         def logsByTime = pbsServiceWithResponseCorrectionModule.getLogsByTime(start)
-        def responseCorrection = getLogsByText(logsByTime, bidResponse.seatbid[0].bid[0].id)
-        assert responseCorrection.size() == 0
+        assert getLogsByText(logsByTime, bidResponse.seatbid[0].bid[0].id).size() == 0
 
         and: "Response should contain seatBid and video media type"
         assert response.seatbid.size() == 1
-        assert response.seatbid[0].bid[0].ext.prebid.type == VIDEO
+
+        and: "Response should contain single seatBid with proper media type"
+        assert response.seatbid.bid.ext.prebid.type.flatten() == [VIDEO]
 
         and: "Response shouldn't contain errors"
         assert !response.ext.errors
@@ -116,47 +122,7 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         distributionChannel << [SITE, DOOH]
     }
 
-    def "PBs shouldn't modify response for excluded bidder when bidder specified in config"() {
-        given: "Start up time"
-        def start = Instant.now()
-
-        and: "Default bid request with APP and Video imp"
-        def bidRequest = getDefaultBidRequest(APP).tap {
-            imp[0] = Imp.getDefaultImpression(VIDEO)
-        }
-
-        and: "Set bidder response"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            seatbid[0].bid[0].adm = new Adm(assets: null)
-        }
-        def bidId = bidResponse.seatbid[0].bid[0].id
-
-        bidder.setResponse(bidRequest.id, bidResponse)
-
-        and: "Save account with enabled response correction module"
-        accountDao.save(accountConfigWithResponseCorrectionModule(bidRequest).tap {
-            config.hooks.modules.pbResponseCorrection.appVideoHtml.excludedBidders = [GENERIC]
-        })
-
-        when: "PBS processes auction request"
-        def response = pbsServiceWithResponseCorrectionModule.sendAuctionRequest(bidRequest)
-
-        then: "PBs shouldn't emit log"
-        def logsByTime = pbsServiceWithResponseCorrectionModule.getLogsByTime(start)
-        assert getLogsByText(logsByTime, bidId).size() == 0
-
-        and: "Response should contain seatBid and video media type"
-        assert response.seatbid.size() == 1
-        assert response.seatbid[0].bid[0].ext.prebid.type == VIDEO
-
-        and: "Response shouldn't contain errors"
-        assert !response.ext.errors
-
-        and: "Response shouldn't contain warnings"
-        assert !response.ext.warnings
-    }
-
-    def "PBs shouldn't modify response and emit warning when requested video impression respond with adm without VAST keyword"() {
+    def "PBS shouldn't modify response for excluded bidder when bidder specified in config"() {
         given: "Start up time"
         def start = Instant.now()
 
@@ -167,23 +133,26 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
 
         and: "Set bidder response"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        def bidId = bidResponse.seatbid[0].bid[0].id
         bidder.setResponse(bidRequest.id, bidResponse)
 
-        and: "Save account with enabled response correction module"
-        accountDao.save(accountConfigWithResponseCorrectionModule(bidRequest))
+        and: "Save account with enabled response correction module and excluded bidders"
+        def accountWithResponseCorrectionModule = accountConfigWithResponseCorrectionModule(bidRequest).tap {
+            config.hooks.modules.pbResponseCorrection.appVideoHtml.excludedBidders = [GENERIC]
+        }
+        accountDao.save(accountWithResponseCorrectionModule)
 
         when: "PBS processes auction request"
         def response = pbsServiceWithResponseCorrectionModule.sendAuctionRequest(bidRequest)
 
-        then: "PBs should emit log"
+        then: "PBS shouldn't emit log"
         def logsByTime = pbsServiceWithResponseCorrectionModule.getLogsByTime(start)
-        def responseCorrection = getLogsByText(logsByTime, bidId)
-        assert responseCorrection[0].contains("Bid $bidId of bidder generic has an JSON ADM, that appears to be native" as String)
+        assert getLogsByText(logsByTime, bidResponse.seatbid[0].bid[0].id).size() == 0
 
         and: "Response should contain seatBid and video media type"
         assert response.seatbid.size() == 1
-        assert response.seatbid[0].bid[0].ext.prebid.type == VIDEO
+
+        and: "Response should contain single seatBid with proper media type"
+        assert response.seatbid.bid.ext.prebid.type.flatten() == [VIDEO]
 
         and: "Response shouldn't contain errors"
         assert !response.ext.errors
@@ -192,7 +161,46 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         assert !response.ext.warnings
     }
 
-    def "PBs shouldn't modify response and not emit warning when requested impression with #mediaType without adm"() {
+    def "PBS shouldn't modify response and emit warning when requested video impression respond with adm without VAST keyword"() {
+        given: "Start up time"
+        def start = Instant.now()
+
+        and: "Default bid request with APP and Video imp"
+        def bidRequest = getDefaultBidRequest(APP).tap {
+            imp[0] = Imp.getDefaultImpression(VIDEO)
+        }
+
+        and: "Set bidder response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        and: "Save account with enabled response correction module"
+        def accountWithResponseCorrectionModule = accountConfigWithResponseCorrectionModule(bidRequest)
+        accountDao.save(accountWithResponseCorrectionModule)
+
+        when: "PBS processes auction request"
+        def response = pbsServiceWithResponseCorrectionModule.sendAuctionRequest(bidRequest)
+
+        then: "PBS should emit log"
+        def logsByTime = pbsServiceWithResponseCorrectionModule.getLogsByTime(start)
+        def bidId = bidResponse.seatbid[0].bid[0].id
+        def responseCorrection = getLogsByText(logsByTime, bidId)
+        assert responseCorrection[0].contains("Bid $bidId of bidder generic has an JSON ADM, that appears to be native" as String)
+
+        and: "Response should contain seatBid and video media type"
+        assert response.seatbid.size() == 1
+
+        and: "Response should contain single seatBid with proper media type"
+        assert response.seatbid.bid.ext.prebid.type.flatten() == [VIDEO]
+
+        and: "Response shouldn't contain errors"
+        assert !response.ext.errors
+
+        and: "Response shouldn't contain warnings"
+        assert !response.ext.warnings
+    }
+
+    def "PBS shouldn't modify response without adm obj when request includes #mediaType media type"() {
         given: "Start up time"
         def start = Instant.now()
 
@@ -206,20 +214,24 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Save account with enabled response correction module"
-        accountDao.save(accountConfigWithResponseCorrectionModule(bidRequest))
+        def accountWithResponseCorrectionModule = accountConfigWithResponseCorrectionModule(bidRequest)
+        accountDao.save(accountWithResponseCorrectionModule)
 
         when: "PBS processes auction request"
         def response = pbsServiceWithResponseCorrectionModule.sendAuctionRequest(bidRequest)
 
-        then: "PBs shouldn't emit log"
+        then: "PBS shouldn't emit log"
         def logsByTime = pbsServiceWithResponseCorrectionModule.getLogsByTime(start)
-        def responseCorrection = getLogsByText(logsByTime, bidResponse.seatbid[0].bid[0].id)
-        assert responseCorrection.size() == 0
+        assert getLogsByText(logsByTime, bidResponse.seatbid[0].bid[0].id).size() == 0
 
-        and: "Response should contain seatBid type"
+        and: "Response should contain seatBid"
         assert response.seatbid.size() == 1
-        assert response.seatbid[0].bid[0].ext.prebid.type == mediaType
-        assert !response?.seatbid[0]?.bid[0]?.ext?.prebid?.meta?.mediaType
+
+        and: "Response should contain single seatBid with proper media type"
+        assert response.seatbid.bid.ext.prebid.type.flatten() == [mediaType]
+
+        and: "Response shouldn't contain media type for prebid meta"
+        assert !response?.seatbid?.bid?.ext?.prebid?.meta?.mediaType?.flatten()?.size()
 
         and: "Response shouldn't contain errors"
         assert !response.ext.errors
@@ -231,7 +243,7 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         mediaType << [BANNER, AUDIO]
     }
 
-    def "PBs shouldn't modify response and emit logs when requested impression with native and adm value is asset"() {
+    def "PBS shouldn't modify response and emit logs when requested impression with native and adm value is asset"() {
         given: "Start up time"
         def start = Instant.now()
 
@@ -242,24 +254,27 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
 
         and: "Set bidder response"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        def bidId = bidResponse.seatbid[0].bid[0].id
         bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Save account with enabled response correction module"
-        accountDao.save(accountConfigWithResponseCorrectionModule(bidRequest))
+        def accountWithResponseCorrectionModule = accountConfigWithResponseCorrectionModule(bidRequest)
+        accountDao.save(accountWithResponseCorrectionModule)
 
         when: "PBS processes auction request"
         def response = pbsServiceWithResponseCorrectionModule.sendAuctionRequest(bidRequest)
 
-        then: "PBs shouldn't emit log"
+        then: "PBS should emit log"
         def logsByTime = pbsServiceWithResponseCorrectionModule.getLogsByTime(start)
+        def bidId = bidResponse.seatbid[0].bid[0].id
         def responseCorrection = getLogsByText(logsByTime, bidId)
         assert responseCorrection[0].contains("Bid $bidId of bidder generic has an JSON ADM, that appears to be native" as String)
         assert responseCorrection.size() == 1
 
-        and: "Response should contain seatBid type"
+        and: "Response should contain seatBid"
         assert response.seatbid.size() == 1
-        assert response.seatbid[0].bid[0].ext.prebid.type == NATIVE
+
+        and: "Response should contain single seatBid with proper media type"
+        assert response.seatbid.bid.ext.prebid.type.flatten() == [NATIVE]
 
         and: "Response shouldn't contain errors"
         assert !response.ext.errors
@@ -268,14 +283,12 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         assert !response.ext.warnings
     }
 
-    def "PBs shouldn't modify response when requested video impression respond with empty adm"() {
+    def "PBS shouldn't modify response when requested video impression respond with empty adm"() {
         given: "Start up time"
         def start = Instant.now()
 
         and: "Default bid request with APP and Video imp"
-        def bidRequest = getDefaultBidRequest(APP).tap {
-            imp[0] = Imp.getDefaultImpression(VIDEO)
-        }
+        def bidRequest = getDefaultVideoRequest(APP)
 
         and: "Set bidder response"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
@@ -285,19 +298,21 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Save account with enabled response correction module"
-        accountDao.save(accountConfigWithResponseCorrectionModule(bidRequest))
+        def accountWithResponseCorrectionModule = accountConfigWithResponseCorrectionModule(bidRequest)
+        accountDao.save(accountWithResponseCorrectionModule)
 
         when: "PBS processes auction request"
         def response = pbsServiceWithResponseCorrectionModule.sendAuctionRequest(bidRequest)
 
-        then: "PBs shouldn't emit log"
+        then: "PBS shouldn't emit log"
         def logsByTime = pbsServiceWithResponseCorrectionModule.getLogsByTime(start)
-        def responseCorrection = getLogsByText(logsByTime, bidResponse.seatbid[0].bid[0].id)
-        assert responseCorrection.size() == 0
+        assert getLogsByText(logsByTime, bidResponse.seatbid[0].bid[0].id).size() == 0
 
-        and: "Response should contain seatBid and video media type"
+        and: "Response should contain seatBid"
         assert response.seatbid.size() == 1
-        assert response.seatbid[0].bid[0].ext.prebid.type == VIDEO
+
+        and: "Response should contain single seatBid with proper media type"
+        assert response.seatbid.bid.ext.prebid.type.flatten() == [VIDEO]
 
         and: "Response shouldn't contain errors"
         assert !response.ext.errors
@@ -306,14 +321,12 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         assert !response.ext.warnings
     }
 
-    def "PBs shouldn't modify response when requested video impression respond with adm VAST keyword"() {
+    def "PBS shouldn't modify response when requested video impression respond with adm VAST keyword"() {
         given: "Start up time"
         def start = Instant.now()
 
         and: "Default bid request with APP and Video imp"
-        def bidRequest = getDefaultBidRequest(APP).tap {
-            imp[0] = Imp.getDefaultImpression(VIDEO)
-        }
+        def bidRequest = getDefaultVideoRequest(APP)
 
         and: "Set bidder response"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
@@ -322,19 +335,21 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Save account with enabled response correction module"
-        accountDao.save(accountConfigWithResponseCorrectionModule(bidRequest))
+        def accountWithResponseCorrectionModule = accountConfigWithResponseCorrectionModule(bidRequest)
+        accountDao.save(accountWithResponseCorrectionModule)
 
         when: "PBS processes auction request"
         def response = pbsServiceWithResponseCorrectionModule.sendAuctionRequest(bidRequest)
 
-        then: "PBs shouldn't emit log"
+        then: "PBS shouldn't emit log"
         def logsByTime = pbsServiceWithResponseCorrectionModule.getLogsByTime(start)
-        def responseCorrection = getLogsByText(logsByTime, bidResponse.seatbid[0].bid[0].id)
-        assert responseCorrection.size() == 0
+        assert getLogsByText(logsByTime, bidResponse.seatbid[0].bid[0].id).size() == 0
 
-        and: "Response should contain seatBid and video media type"
+        and: "Response should contain seatBid"
         assert response.seatbid.size() == 1
-        assert response.seatbid[0].bid[0].ext.prebid.type == VIDEO
+
+        and: "Response should contain single seatBid with proper media type"
+        assert response.seatbid.bid.ext.prebid.type.flatten() == [VIDEO]
 
         and: "Response shouldn't contain errors"
         assert !response.ext.errors
@@ -343,7 +358,7 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         assert !response.ext.warnings
     }
 
-    def "PBs should modify response when requested #mediaType impression respond with adm VAST keyword"() {
+    def "PBS should modify response when requested #mediaType impression respond with adm VAST keyword"() {
         given: "Start up time"
         def start = Instant.now()
 
@@ -356,17 +371,18 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
             seatbid[0].bid[0].setAdm(PBSUtils.getRandomCase("<${PBSUtils.randomString}VAST${PBSUtils.randomString}"))
         }
-        def bidId = bidResponse.seatbid[0].bid[0].id
         bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Save account with enabled response correction module"
-        accountDao.save(accountConfigWithResponseCorrectionModule(bidRequest))
+        def accountWithResponseCorrectionModule = accountConfigWithResponseCorrectionModule(bidRequest)
+        accountDao.save(accountWithResponseCorrectionModule)
 
         when: "PBS processes auction request"
         def response = pbsServiceWithResponseCorrectionModule.sendAuctionRequest(bidRequest)
 
-        then: "PBs shouldn't emit log"
+        then: "PBS shouldn't emit log"
         def logsByTime = pbsServiceWithResponseCorrectionModule.getLogsByTime(start)
+        def bidId = bidResponse.seatbid[0].bid[0].id
         def responseCorrection = getLogsByText(logsByTime, bidId)
         assert responseCorrection.size() == 1
         assert responseCorrection.any {
@@ -375,8 +391,8 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
 
         and: "Response should contain seatBid and video media type"
         assert response.seatbid.size() == 1
-        assert response.seatbid[0].bid[0].ext.prebid.type == BANNER
-        assert response.seatbid[0].bid[0].ext.prebid.meta.mediaType == VIDEO.value
+        assert response.seatbid.bid.ext.prebid.type.flatten() == [BANNER]
+        assert response.seatbid.bid.ext.prebid.meta.mediaType.flatten() == [VIDEO.value]
 
         and: "Response shouldn't contain errors"
         assert !response.ext.errors
@@ -388,37 +404,41 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         mediaType << [BANNER, AUDIO, NATIVE]
     }
 
-    def "PBs shouldn't modify response meta.mediaType to video and emit logs when requested impression with video and adm obj with asset"() {
+    def "PBS shouldn't modify response meta.mediaType to video and emit logs when requested impression with video and adm obj with asset"() {
         given: "Start up time"
         def start = Instant.now()
 
         and: "Default bid request with APP and audio imp"
-        def bidRequest = getDefaultBidRequest(APP).tap {
-            imp[0] = Imp.getDefaultImpression(VIDEO)
-        }
+        def bidRequest = getDefaultVideoRequest(APP)
 
         and: "Set bidder response"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        def bidId = bidResponse.seatbid[0].bid[0].id
         bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Save account with enabled response correction module"
-        accountDao.save(accountConfigWithResponseCorrectionModule(bidRequest))
+        def accountWithResponseCorrectionModule = accountConfigWithResponseCorrectionModule(bidRequest)
+        accountDao.save(accountWithResponseCorrectionModule)
 
         when: "PBS processes auction request"
         def response = pbsServiceWithResponseCorrectionModule.sendAuctionRequest(bidRequest)
 
-        then: "PBs should emit log"
+        then: "PBS should emit log"
         def logsByTime = pbsServiceWithResponseCorrectionModule.getLogsByTime(start)
+        def bidId = bidResponse.seatbid[0].bid[0].id
         def responseCorrection = getLogsByText(logsByTime, bidId)
         assert responseCorrection.size() == 1
         assert responseCorrection.any {
             it.contains("Bid $bidId of bidder generic has an JSON ADM, that appears to be native" as String)
         }
 
-        and: "Response should contain seatBid type and mediaType"
+        and: "Response should contain seatBib"
         assert response.seatbid.size() == 1
-        assert response.seatbid[0].bid[0].ext.prebid.type == VIDEO
+
+        and: "Response should contain single seatBid with proper media type"
+        assert response.seatbid.bid.ext.prebid.type.flatten() == [VIDEO]
+
+        and: "Response shouldn't contain media type for prebid meta"
+        assert !response?.seatbid?.bid?.ext?.prebid?.meta?.mediaType?.flatten()?.size()
 
         and: "Response shouldn't contain errors"
         assert !response.ext.errors
@@ -427,47 +447,7 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         assert !response.ext.warnings
     }
 
-    def "PBs shouldn't modify response meta.mediaType to video and emit logs when requested impression with video and adm obj with asset"() {
-        given: "Start up time"
-        def start = Instant.now()
-
-        and: "Default bid request with APP and audio imp"
-        def bidRequest = getDefaultBidRequest(APP).tap {
-            imp[0] = Imp.getDefaultImpression(VIDEO)
-        }
-
-        and: "Set bidder response"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        def bidId = bidResponse.seatbid[0].bid[0].id
-        bidder.setResponse(bidRequest.id, bidResponse)
-
-        and: "Save account with enabled response correction module"
-        accountDao.save(accountConfigWithResponseCorrectionModule(bidRequest))
-
-        when: "PBS processes auction request"
-        def response = pbsServiceWithResponseCorrectionModule.sendAuctionRequest(bidRequest)
-
-        then: "PBs should emit log"
-        def logsByTime = pbsServiceWithResponseCorrectionModule.getLogsByTime(start)
-        def responseCorrection = getLogsByText(logsByTime, bidId)
-        assert responseCorrection.size() == 1
-        assert responseCorrection.any {
-            it.contains("Bid $bidId of bidder generic has an JSON ADM, that appears to be native" as String)
-        }
-
-        and: "Response should contain seatBid type and mediaType"
-        assert response.seatbid.size() == 1
-        assert response.seatbid[0].bid[0].ext.prebid.type == VIDEO
-        assert !response?.seatbid[0]?.bid[0]?.ext?.prebid?.meta?.mediaType
-
-        and: "Response shouldn't contain errors"
-        assert !response.ext.errors
-
-        and: "Response shouldn't contain warnings"
-        assert !response.ext.warnings
-    }
-
-    def "PBs should modify response meta.mediaType to video and type to banner and emit logs when requested impression with native and adm value is not asset"() {
+    def "PBS should modify meta.mediaType and type for original response and also emit logs when response contains native meta.mediaType and adm without asset"() {
         given: "Start up time"
         def start = Instant.now()
 
@@ -478,20 +458,21 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
 
         and: "Set bidder response"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            seatbid[0].bid[0].adm = new Adm(assets: null)
+            seatbid[0].bid[0].adm = new Adm()
             seatbid[0].bid[0].ext = new BidExt(prebid: new Prebid(meta: new Meta(mediaType: NATIVE)))
         }
-        def bidId = bidResponse.seatbid[0].bid[0].id
         bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Save account with enabled response correction module"
-        accountDao.save(accountConfigWithResponseCorrectionModule(bidRequest))
+        def accountWithResponseCorrectionModule = accountConfigWithResponseCorrectionModule(bidRequest)
+        accountDao.save(accountWithResponseCorrectionModule)
 
         when: "PBS processes auction request"
         def response = pbsServiceWithResponseCorrectionModule.sendAuctionRequest(bidRequest)
 
-        then: "PBs should emit log"
+        then: "PBS should emit log"
         def logsByTime = pbsServiceWithResponseCorrectionModule.getLogsByTime(start)
+        def bidId = bidResponse.seatbid[0].bid[0].id
         def responseCorrection = getLogsByText(logsByTime, bidId)
         assert responseCorrection.size() == 2
         assert responseCorrection.any {
@@ -499,10 +480,14 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
             it.contains("Bid $bidId of bidder generic: changing media type to banner" as String)
         }
 
-        and: "Response should contain seatBid type and mediaType"
+        and: "Response should contain seatBid"
         assert response.seatbid.size() == 1
-        assert response.seatbid[0].bid[0].ext.prebid.type == BANNER
-        assert response.seatbid[0].bid[0].ext.prebid.meta.mediaType == VIDEO.value
+
+        and: "Response should contain single seatBid with proper media type"
+        assert response.seatbid.bid.ext.prebid.type.flatten() == [BANNER]
+
+        and: "Response should media type for prebid meta"
+        assert response.seatbid.bid.ext.prebid.meta.mediaType.flatten() == [VIDEO.value]
 
         and: "Response shouldn't contain errors"
         assert !response.ext.errors
