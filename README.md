@@ -100,12 +100,30 @@ There are a couple of 'hello world' test requests described in sample/requests/R
 
 ## Running Docker image
 
-Starting from PBS Java v2.9, you can download prebuilt Docker images from [GitHub Packages](https://github.com/orgs/prebid/packages?repo_name=prebid-server-java) page,
-and use them instead of plain .jar files. This prebuilt images are delivered with or without extra modules.
+Starting from PBS Java v3.11.0, you can download prebuilt Docker images from [GitHub Packages](https://github.com/orgs/prebid/packages?repo_name=prebid-server-java) page,
+and use them instead of plain .jar files. These prebuilt images are delivered in 2 flavors:
+- https://github.com/prebid/prebid-server-java/pkgs/container/prebid-server-java is a bare PBS and doesn't contain modules.
+- https://github.com/prebid/prebid-server-java/pkgs/container/prebid-server-java-bundle is a "bundle" that contains PBS and all the modules.
 
-In order to run such image correctly, you should attach PBS config file. Easiest way is to mount config file into container,
+To run PBS from image correctly, you should provide the PBS config file. The easiest way is to mount the config file into the container,
 using [--mount or --volume (-v) Docker CLI arguments](https://docs.docker.com/engine/reference/commandline/run/).
-Keep in mind, that config file should be mounted into specific location: ```/app/prebid-server/``` or ```/app/prebid-server/conf/```.
+Keep in mind that the config file should be mounted into a specific location: ```/app/prebid-server/conf/``` or ```/app/prebid-server/```.
+
+PBS follows the regular Spring Boot config load hierarchy and type.
+For simple configuration, a single `application.yaml` mounted to `/app/prebid-server/conf/` will be enough.
+Please consult [Spring Externalized Configuration](https://docs.spring.io/spring-boot/reference/features/external-config.html) for all possible ways to configure PBS.
+
+You can also supply command-line parameters through `JAVA_OPTS` environment variable which will be appended to the `java` command before the `-jar ...` parameter.
+Please pay attention to line breaks and escape them if needed.
+
+Example execution using sample configuration:
+```shell
+docker run --rm -v ./sample:/app/prebid-server/sample:ro -p 8060:8060 -p 8080:8080 ghcr.io/prebid/prebid-server-java:latest --spring.config.additional-location=sample/configs/prebid-config.yaml
+```
+or
+```shell
+docker run --rm -v ./sample:/app/prebid-server/sample:ro -p 8060:8060 -p 8080:8080 -e JAVA_OPTS=-Dspring.config.additional-location=sample/configs/prebid-config.yaml ghcr.io/prebid/prebid-server-java:latest
+```
 
 # Documentation
 

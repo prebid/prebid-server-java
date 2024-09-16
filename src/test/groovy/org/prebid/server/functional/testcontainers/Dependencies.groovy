@@ -4,10 +4,13 @@ import org.prebid.server.functional.testcontainers.container.NetworkServiceConta
 import org.prebid.server.functional.util.SystemProperties
 import org.testcontainers.containers.MySQLContainer
 import org.testcontainers.containers.Network
+import org.testcontainers.containers.localstack.LocalStackContainer
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.lifecycle.Startables
+import org.testcontainers.utility.DockerImageName
 
 import static org.prebid.server.functional.util.SystemProperties.MOCKSERVER_VERSION
+import static org.testcontainers.containers.localstack.LocalStackContainer.Service.S3
 
 class Dependencies {
 
@@ -34,17 +37,21 @@ class Dependencies {
     static final NetworkServiceContainer networkServiceContainer = new NetworkServiceContainer(MOCKSERVER_VERSION)
             .withNetwork(network)
 
+    static LocalStackContainer localStackContainer
+
     static void start() {
         if (IS_LAUNCH_CONTAINERS) {
-            Startables.deepStart([networkServiceContainer, mysqlContainer])
-                      .join()
+            localStackContainer = new LocalStackContainer(DockerImageName.parse("localstack/localstack:s3-latest"))
+                    .withNetwork(network)
+                    .withServices(S3)
+            Startables.deepStart([networkServiceContainer, mysqlContainer, localStackContainer]).join()
         }
     }
 
     static void stop() {
         if (IS_LAUNCH_CONTAINERS) {
-            [networkServiceContainer, mysqlContainer].parallelStream()
-                                                     .forEach({ it.stop() })
+            [networkServiceContainer, mysqlContainer, localStackContainer].parallelStream()
+                    .forEach({ it.stop() })
         }
     }
 

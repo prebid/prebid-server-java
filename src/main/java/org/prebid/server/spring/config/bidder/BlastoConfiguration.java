@@ -1,7 +1,7 @@
 package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.bizzclick.BizzclickBidder;
+import org.prebid.server.bidder.blasto.BlastoBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -16,26 +16,26 @@ import org.springframework.context.annotation.PropertySource;
 import jakarta.validation.constraints.NotBlank;
 
 @Configuration
-@PropertySource(value = "classpath:/bidder-config/bizzclick.yaml", factory = YamlPropertySourceFactory.class)
-public class BizzclickConfiguration {
+@PropertySource(value = "classpath:/bidder-config/blasto.yaml", factory = YamlPropertySourceFactory.class)
+public class BlastoConfiguration {
 
-    private static final String BIDDER_NAME = "bizzclick";
+    private static final String BIDDER_NAME = "blasto";
 
-    @Bean("bizzclickConfigurationProperties")
-    @ConfigurationProperties("adapters.bizzclick")
+    @Bean("blastoConfigurationProperties")
+    @ConfigurationProperties("adapters.blasto")
     BidderConfigurationProperties configurationProperties() {
         return new BidderConfigurationProperties();
     }
 
     @Bean
-    BidderDeps bizzclickBidderDeps(BidderConfigurationProperties bizzclickConfigurationProperties,
-                                   @NotBlank @Value("${external-url}") String externalUrl,
-                                   JacksonMapper mapper) {
+    BidderDeps blastoBidderDeps(BidderConfigurationProperties blastoConfigurationProperties,
+                                @NotBlank @Value("${external-url}") String externalUrl,
+                                JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
-                .withConfig(bizzclickConfigurationProperties)
+                .withConfig(blastoConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new BizzclickBidder(config.getEndpoint(), mapper))
+                .bidderCreator(config -> new BlastoBidder(config.getEndpoint(), mapper))
                 .assemble();
     }
 }

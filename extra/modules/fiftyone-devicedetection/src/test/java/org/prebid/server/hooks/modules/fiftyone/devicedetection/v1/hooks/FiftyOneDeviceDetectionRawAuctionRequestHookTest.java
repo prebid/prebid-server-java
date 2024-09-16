@@ -402,7 +402,6 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHookTest {
     @Test
     public void callShouldReturnUpdateActionWhenNoWhitelistAndNoAuctionContext() {
         // given
-
         final AuctionInvocationContext context = AuctionInvocationContextImpl.of(
                 null,
                 null,
@@ -470,7 +469,6 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHookTest {
     @Test
     public void callShouldReturnUpdateActionWhenNoWhitelistAndNoAccount() {
         // given
-
         final AuctionContext auctionContext = AuctionContext.builder().build();
         final AuctionInvocationContext context = AuctionInvocationContextImpl.of(
                 null,
@@ -493,7 +491,6 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHookTest {
     @Test
     public void callShouldReturnNoUpdateActionWhenNoWhitelistAndNoAccountButDeviceIdIsSet() {
         // given
-
         final AuctionContext auctionContext = AuctionContext.builder().build();
         final AuctionInvocationContext context = AuctionInvocationContextImpl.of(
                 null,
@@ -568,7 +565,6 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHookTest {
     @Test
     public void callShouldReturnUpdateActionWhenNoWhitelistAndNoAccountID() {
         // given
-
         final AuctionContext auctionContext = AuctionContext.builder()
                 .account(Account.builder()
                         .build())
@@ -648,7 +644,6 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHookTest {
     @Test
     public void callShouldReturnUpdateActionWhenNoWhitelistAndEmptyAccountID() {
         // given
-
         final AuctionContext auctionContext = AuctionContext.builder()
                 .account(Account.builder()
                         .id("")
@@ -731,7 +726,6 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHookTest {
     @Test
     public void callShouldReturnUpdateActionWhenNoWhitelistAndAllowedAccountID() {
         // given
-
         final AuctionContext auctionContext = AuctionContext.builder()
                 .account(Account.builder()
                         .id("42")
@@ -814,7 +808,6 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHookTest {
     @Test
     public void callShouldReturnUpdateActionWhenNoWhitelistAndNotAllowedAccountID() {
         // given
-
         final AuctionContext auctionContext = AuctionContext.builder()
                 .account(Account.builder()
                         .id("29")

@@ -23,8 +23,8 @@ public class PrecisoTest extends IntegrationTest {
                          "openrtb2/preciso/test-preciso-bid-request.json")))
                  .willReturn(aResponse().withBody(jsonFrom(
                          "openrtb2/preciso/test-preciso-bid-response.json"))));
-        // when
 
+        // when
         final Response response = responseFor("openrtb2/preciso/test-auction-preciso-request.json",
                 Endpoint.openrtb2_auction);
 
