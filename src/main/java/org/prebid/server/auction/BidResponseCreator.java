@@ -1631,9 +1631,9 @@ public class BidResponseCreator {
 
         final String env = Optional.ofNullable(bidRequest.getExt())
                 .map(ExtRequest::getPrebid)
-                .filter(prebid -> prebid.getAmp() != null)
+                .map(ExtRequestPrebid::getAmp)
                 .map(ignored -> TARGETING_ENV_AMP_VALUE)
-                .orElseGet(() -> bidRequest.getApp() == null ? null : TARGETING_ENV_APP_VALUE);
+                .orElse(bidRequest.getApp() == null ? null : TARGETING_ENV_APP_VALUE);
 
         return TargetingKeywordsCreator.create(
                 parsePriceGranularity(priceGranularity),
