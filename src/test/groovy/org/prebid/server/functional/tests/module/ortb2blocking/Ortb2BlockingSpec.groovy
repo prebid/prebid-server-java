@@ -581,6 +581,44 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         PBSUtils.randomString | BCAT
     }
 
+    def "PBS should be able to override enforcement by media type for battr attribute"() {
+        given: "Default bidRequest"
+        def bannerImp = Imp.getDefaultImpression(BANNER)
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp = [bannerImp]
+        }
+
+        and: "Account in the DB with blocking configuration"
+        def blockingCondition = new Ortb2BlockingConditions(mediaType: [BANNER])
+        def ortb2Attribute = PBSUtils.randomNumber
+        def ortb2BlockingAttributeConfig = Ortb2BlockingAttributeConfig.getDefaultConfig([ortb2Attribute], BATTR).tap {
+            enforceBlocks = true
+            actionOverrides = new Ortb2BlockingActionOverride(enforceBlocks: [new Ortb2BlockingOverride(override: false, conditions: blockingCondition)])
+        }
+        def account = getAccountWithOrtb2BlockingConfig(bidRequest.accountId, [(BATTR): ortb2BlockingAttributeConfig])
+        accountDao.save(account)
+
+        and: "Default bidder response with ortb2 attributes"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            it.seatbid = [new SeatBid(bid: [getBidWithOrtb2Attribute(bannerImp, ortb2Attribute, BATTR)])]
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes the auction request"
+        def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
+
+        then: "PBS response should contain banner seatbid"
+        assert response.seatbid.bid.flatten().size() == 1
+        assert response.seatbid.first.bid.first.impid == bannerImp.id
+        assert getOrtb2Attributes(response.seatbid.first.bid.first, BATTR) == [ortb2Attribute]*.toString()
+
+        and: "PBS response shouldn't contain any module errors"
+        assert !response?.ext?.prebid?.modules?.errors
+
+        and: "PBS response shouldn't contain any module warning"
+        assert !response?.ext?.prebid?.modules?.warnings
+    }
+
     @PendingFeature
     def "PBS should be able to override enforcement by deal id"() {
         given: "Default bidRequest"
