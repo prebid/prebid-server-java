@@ -61,6 +61,7 @@ public class FilterService {
             OnnxTensor tensor,
             List<ThrottlingMessage> throttlingMessages,
             Double threshold) {
+
         try {
             final float[][] probabilities = extractProbabilitiesValues(tensor);
             return processProbabilities(probabilities, throttlingMessages, threshold);
@@ -77,6 +78,7 @@ public class FilterService {
             float[][] probabilities,
             List<ThrottlingMessage> throttlingMessages,
             Double threshold) {
+
         final Map<String, Map<String, Boolean>> result = new HashMap<>();
 
         for (int i = 0; i < probabilities.length; i++) {

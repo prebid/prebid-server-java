@@ -6,6 +6,7 @@ import org.prebid.server.hooks.modules.greenbids.real.time.data.core.Partner;
 public class OnnxModelRunnerWithThresholds {
 
     private final ModelCache modelCache;
+
     private final ThresholdCache thresholdCache;
 
     public OnnxModelRunnerWithThresholds(
