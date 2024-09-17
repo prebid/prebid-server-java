@@ -3,6 +3,8 @@ package org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor
 import io.vertx.core.Future;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.Partner;
 
+import java.util.Objects;
+
 public class OnnxModelRunnerWithThresholds {
 
     private final ModelCache modelCache;
@@ -12,8 +14,8 @@ public class OnnxModelRunnerWithThresholds {
     public OnnxModelRunnerWithThresholds(
             ModelCache modelCache,
             ThresholdCache thresholdCache) {
-        this.modelCache = modelCache;
-        this.thresholdCache = thresholdCache;
+        this.modelCache = Objects.requireNonNull(modelCache);
+        this.thresholdCache = Objects.requireNonNull(thresholdCache);
     }
 
     public Future<OnnxModelRunner> retrieveOnnxModelRunner(Partner partner) {
