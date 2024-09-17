@@ -98,7 +98,7 @@ class AnalyticsSpec extends BaseSpec {
         assert getLogsByText(logsByTime, bidRequest.id).size() == 0
     }
 
-    def "PBS should populate log analytics when log enabled in account and config"() {
+    def "PBS should populate log analytics when log enabled in account and global config"() {
         given: "Test start time"
         def startTime = Instant.now()
 
@@ -125,7 +125,7 @@ class AnalyticsSpec extends BaseSpec {
         assert !analyticsBidRequest?.ext?.prebid?.analytics?.logAnalytics?.additionalData
     }
 
-    def "PBS shouldn't populate log analytics when log disabled in account and enabled config"() {
+    def "PBS shouldn't populate log analytics when log disabled in account and enabled in global config"() {
         given: "Test start time"
         def startTime = Instant.now()
 
@@ -147,7 +147,7 @@ class AnalyticsSpec extends BaseSpec {
         assert getLogsByText(logsByTime, bidRequest.id).size() == 0
     }
 
-    def "PBS shouldn't populate log analytics when log disabled in config and without account"() {
+    def "PBS shouldn't populate log analytics when log disabled in global config and without account"() {
         given: "Test start time"
         def startTime = Instant.now()
 
