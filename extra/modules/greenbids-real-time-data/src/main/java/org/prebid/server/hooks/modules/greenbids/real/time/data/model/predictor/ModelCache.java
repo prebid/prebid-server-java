@@ -11,6 +11,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
 
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -36,12 +37,12 @@ public class ModelCache {
             Cache<String, OnnxModelRunner> cache,
             String onnxModelCacheKeyPrefix,
             Vertx vertx) {
-        this.gcsBucketName = gcsBucketName;
-        this.cache = cache;
-        this.storage = storage;
-        this.onnxModelCacheKeyPrefix = onnxModelCacheKeyPrefix;
+        this.gcsBucketName = Objects.requireNonNull(gcsBucketName);
+        this.cache = Objects.requireNonNull(cache);
+        this.storage = Objects.requireNonNull(storage);
+        this.onnxModelCacheKeyPrefix = Objects.requireNonNull(onnxModelCacheKeyPrefix);
         this.isFetching = new AtomicBoolean(false);
-        this.vertx = vertx;
+        this.vertx = Objects.requireNonNull(vertx);
     }
 
     public Future<OnnxModelRunner> get(String onnxModelPath, String pbuid) {

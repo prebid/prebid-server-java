@@ -22,6 +22,7 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -32,8 +33,8 @@ public class GreenbidsInferenceDataService {
     ObjectMapper mapper;
 
     public GreenbidsInferenceDataService(DatabaseReader dbReader, ObjectMapper mapper) {
-        this.dbReader = dbReader;
-        this.mapper = mapper;
+        this.dbReader = Objects.requireNonNull(dbReader);
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     public List<ThrottlingMessage> extractThrottlingMessagesFromBidRequest(BidRequest bidRequest) {

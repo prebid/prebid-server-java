@@ -14,6 +14,7 @@ import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -42,13 +43,13 @@ public class ThresholdCache {
             Cache<String, ThrottlingThresholds> cache,
             String thresholdsCacheKeyPrefix,
             Vertx vertx) {
-        this.gcsBucketName = gcsBucketName;
-        this.cache = cache;
-        this.storage = storage;
-        this.mapper = mapper;
-        this.thresholdsCacheKeyPrefix = thresholdsCacheKeyPrefix;
+        this.gcsBucketName = Objects.requireNonNull(gcsBucketName);
+        this.cache = Objects.requireNonNull(cache);
+        this.storage = Objects.requireNonNull(storage);
+        this.mapper = Objects.requireNonNull(mapper);
+        this.thresholdsCacheKeyPrefix = Objects.requireNonNull(thresholdsCacheKeyPrefix);
         this.isFetching = new AtomicBoolean(false);
-        this.vertx = vertx;
+        this.vertx = Objects.requireNonNull(vertx);
     }
 
     public Future<ThrottlingThresholds> get(String thresholdJsonPath, String pbuid) {
