@@ -61,7 +61,7 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         def logsByTime = pbsServiceWithResponseCorrectionModule.getLogsByTime(start)
         assert getLogsByText(logsByTime, bidResponse.seatbid[0].bid[0].id).size() == 0
 
-        and: "Response should contain seatBid and video media type"
+        and: "Response should contain seatBid"
         assert response.seatbid.size() == 1
 
         and: "Response should contain single seatBid with proper media type"
@@ -85,9 +85,7 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         def start = Instant.now()
 
         and: "Default bid request video imp"
-        def bidRequest = getDefaultBidRequest(distributionChannel).tap {
-            imp[0] = Imp.getDefaultImpression(VIDEO)
-        }
+        def bidRequest = getDefaultVideoRequest(distributionChannel)
 
         and: "Set bidder response with adm obj"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
@@ -106,7 +104,7 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         def logsByTime = pbsServiceWithResponseCorrectionModule.getLogsByTime(start)
         assert getLogsByText(logsByTime, bidResponse.seatbid[0].bid[0].id).size() == 0
 
-        and: "Response should contain seatBid and video media type"
+        and: "Response should contain seatBid"
         assert response.seatbid.size() == 1
 
         and: "Response should contain single seatBid with proper media type"
@@ -148,7 +146,7 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         def logsByTime = pbsServiceWithResponseCorrectionModule.getLogsByTime(start)
         assert getLogsByText(logsByTime, bidResponse.seatbid[0].bid[0].id).size() == 0
 
-        and: "Response should contain seatBid and video media type"
+        and: "Response should contain seatBid"
         assert response.seatbid.size() == 1
 
         and: "Response should contain single seatBid with proper media type"
@@ -166,9 +164,7 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         def start = Instant.now()
 
         and: "Default bid request with APP and Video imp"
-        def bidRequest = getDefaultBidRequest(APP).tap {
-            imp[0] = Imp.getDefaultImpression(VIDEO)
-        }
+        def bidRequest = getDefaultVideoRequest(APP)
 
         and: "Set bidder response"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
@@ -187,7 +183,7 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         def responseCorrection = getLogsByText(logsByTime, bidId)
         assert responseCorrection[0].contains("Bid $bidId of bidder generic has an JSON ADM, that appears to be native" as String)
 
-        and: "Response should contain seatBid and video media type"
+        and: "Response should contain seatBid"
         assert response.seatbid.size() == 1
 
         and: "Response should contain single seatBid with proper media type"
@@ -389,9 +385,13 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
             it.contains("Bid $bidId of bidder generic: changing media type to banner" as String)
         }
 
-        and: "Response should contain seatBid and video media type"
+        and: "Response should contain seatBid"
         assert response.seatbid.size() == 1
+
+        and: "Response should contain single seatBid with proper media type"
         assert response.seatbid.bid.ext.prebid.type.flatten() == [BANNER]
+
+        and: "Response should contain single seatBid with proper meta media type"
         assert response.seatbid.bid.ext.prebid.meta.mediaType.flatten() == [VIDEO.value]
 
         and: "Response shouldn't contain errors"
