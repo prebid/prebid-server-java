@@ -9,4 +9,5 @@ import groovy.transform.ToString
 class LogAnalytics {
 
     Boolean enabled
+    String additionalData
 }

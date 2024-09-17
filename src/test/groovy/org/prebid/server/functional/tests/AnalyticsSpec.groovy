@@ -6,12 +6,17 @@ import org.prebid.server.functional.model.config.AnalyticsModule
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.mock.services.pubstack.PubStackResponse
 import org.prebid.server.functional.model.request.auction.BidRequest
+import org.prebid.server.functional.model.request.auction.BidRequestExt
+import org.prebid.server.functional.model.request.auction.Prebid
+import org.prebid.server.functional.model.request.auction.PrebidAnalytics
+import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.Dependencies
 import org.prebid.server.functional.testcontainers.PbsConfig
 import org.prebid.server.functional.testcontainers.scaffolding.PubStackAnalytics
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Ignore
+import spock.lang.IgnoreRest
 import spock.lang.Shared
 
 import java.time.Instant
@@ -154,5 +159,43 @@ class AnalyticsSpec extends BaseSpec {
         def logsByTime = pbsService.getLogsByTime(startTime)
         def logsByText = getLogsByText(logsByTime, bidRequest.id)
         assert logsByText.size() == 0
+    }
+
+    def "PBS should populate log analytics with additional data when log enabled in account and specified data"() {
+        given: "Test start time"
+        def startTime = Instant.now()
+
+        and: "PBS config with enabled log analytics and level.root and analytics.global.adapters"
+        def pbsService = pbsServiceFactory.getService(
+                ENABLED_DEBUG_LOG_MODE + ["analytics.log.enabled"    : true as String,
+                                          "analytics.global.adapters": "logAnalytics"])
+
+        and: "Basic bid request"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.analytics = new PrebidAnalytics()
+        }
+
+        and: "Account in the DB"
+        def additionalData = PBSUtils.randomString
+        def logAnalyticsModule = new LogAnalytics(enabled: true, additionalData: additionalData)
+        def config = new AccountAnalyticsConfig(modules: new AnalyticsModule(logAnalytics: logAnalyticsModule))
+        def accountConfig = new AccountConfig(analytics: config)
+        def account = new Account(uuid: bidRequest.accountId, config: accountConfig)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        pbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS should call log analytics"
+        def logsByTime = pbsService.getLogsByTime(startTime)
+        def logsByText = getLogsByText(logsByTime, bidRequest.id)
+        assert logsByText.size() == 1
+
+        and: "Analytics adapter should contain additional info"
+        def analyticsBidRequest = decode(logsByText[0].split("resolvedrequest")[1]
+                .replace(";", "")
+                .replaceFirst(":", "")
+                .replaceFirst("\"", ""), BidRequest.class)
+        assert analyticsBidRequest.ext.prebid.analytics.logAnalytics.additionalData == additionalData
     }
 }
