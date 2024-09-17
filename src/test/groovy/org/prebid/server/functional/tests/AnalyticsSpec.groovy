@@ -95,8 +95,7 @@ class AnalyticsSpec extends BaseSpec {
 
         then: "PBS should call log analytics"
         def logsByTime = pbsServiceWithLogAnalytics.getLogsByTime(startTime)
-        def logsByText = getLogsByText(logsByTime, bidRequest.id)
-        assert logsByText.size() == 0
+        assert getLogsByText(logsByTime, bidRequest.id).size() == 0
     }
 
     def "PBS should populate log analytics when log enabled in account and config"() {
