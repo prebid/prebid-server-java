@@ -87,8 +87,7 @@ public class GreenbidsRealTimeDataConfiguration {
                 properties.getGcsBucketName(),
                 modelCacheWithExpiration,
                 properties.getOnnxModelCacheKeyPrefix(),
-                vertx
-        );
+                vertx);
     }
 
     @Bean
