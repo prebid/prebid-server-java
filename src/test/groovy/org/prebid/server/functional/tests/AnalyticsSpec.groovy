@@ -6,17 +6,13 @@ import org.prebid.server.functional.model.config.AnalyticsModule
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.mock.services.pubstack.PubStackResponse
 import org.prebid.server.functional.model.request.auction.BidRequest
-import org.prebid.server.functional.model.request.auction.BidRequestExt
-import org.prebid.server.functional.model.request.auction.Prebid
 import org.prebid.server.functional.model.request.auction.PrebidAnalytics
-import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.Dependencies
 import org.prebid.server.functional.testcontainers.PbsConfig
 import org.prebid.server.functional.testcontainers.scaffolding.PubStackAnalytics
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Ignore
-import spock.lang.IgnoreRest
 import spock.lang.Shared
 
 import java.time.Instant
