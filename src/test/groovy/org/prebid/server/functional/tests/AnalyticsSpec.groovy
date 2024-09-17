@@ -169,10 +169,7 @@ class AnalyticsSpec extends BaseSpec {
         assert logsByText.size() == 1
 
         and: "Analytics adapter should contain additional info"
-        def analyticsBidRequest = decode(logsByText[0].split("resolvedrequest")[1]
-                .replace(";", "")
-                .replaceFirst(":", "")
-                .replaceFirst("\"", ""), BidRequest.class)
+        def analyticsBidRequest = extractResolvedRequestFromLog(logsByText)
         assert analyticsBidRequest.ext.prebid.analytics.logAnalytics.additionalData == additionalData
     }
 
@@ -202,10 +199,7 @@ class AnalyticsSpec extends BaseSpec {
         assert logsByText.size() == 1
 
         and: "Analytics adapter should contain additional info"
-        def analyticsBidRequest = decode(logsByText[0].split("resolvedrequest")[1]
-                .replace(";", "")
-                .replaceFirst(":", "")
-                .replaceFirst("\"", ""), BidRequest.class)
+        def analyticsBidRequest = extractResolvedRequestFromLog(logsByText)
         assert analyticsBidRequest.ext.prebid.analytics.logAnalytics.additionalData == additionalData
     }
 
@@ -236,10 +230,14 @@ class AnalyticsSpec extends BaseSpec {
         assert logsByText.size() == 1
 
         and: "Analytics adapter should contain additional info"
-        def analyticsBidRequest = decode(logsByText[0].split("resolvedrequest")[1]
+        def analyticsBidRequest = extractResolvedRequestFromLog(logsByText)
+        assert analyticsBidRequest.ext.prebid.analytics.logAnalytics.additionalData == bidRequestAdditionalData
+    }
+
+    private static BidRequest extractResolvedRequestFromLog(List<String> logsByText) {
+        decode(logsByText[0].split("resolvedrequest")[1]
                 .replace(";", "")
                 .replaceFirst(":", "")
                 .replaceFirst("\"", ""), BidRequest.class)
-        assert analyticsBidRequest.ext.prebid.analytics.logAnalytics.additionalData == bidRequestAdditionalData
     }
 }
