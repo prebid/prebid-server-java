@@ -30,6 +30,7 @@ import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.ThresholdCache;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.result.AnalyticsResult;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.result.ExplorationResult;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.model.result.GreenbidsInvocationService;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.result.Ortb2ImpExtResult;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.model.analytics.ActivityImpl;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.model.analytics.AppliedToImpl;
@@ -105,11 +106,13 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final GreenbidsInferenceDataService greenbidsInferenceDataService = new GreenbidsInferenceDataService(
                 dbReader,
                 mapper);
+        final GreenbidsInvocationService greenbidsInvocationService = new GreenbidsInvocationService();
         target = new GreenbidsRealTimeDataProcessedAuctionRequestHook(
                 mapper,
                 filterService,
                 onnxModelRunnerWithThresholds,
-                greenbidsInferenceDataService);
+                greenbidsInferenceDataService,
+                greenbidsInvocationService);
     }
 
     @Test

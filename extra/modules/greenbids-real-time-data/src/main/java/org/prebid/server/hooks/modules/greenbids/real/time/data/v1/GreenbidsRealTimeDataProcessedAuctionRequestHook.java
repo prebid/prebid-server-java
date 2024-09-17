@@ -18,6 +18,7 @@ import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.OnnxModelRunnerWithThresholds;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.result.AnalyticsResult;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.result.GreenbidsInvocationResult;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.model.result.GreenbidsInvocationService;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.result.Ortb2ImpExtResult;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.model.InvocationResultImpl;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.model.analytics.ActivityImpl;
@@ -52,16 +53,19 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
     private final FilterService filterService;
     private final OnnxModelRunnerWithThresholds onnxModelRunnerWithThresholds;
     private final GreenbidsInferenceDataService greenbidsInferenceDataService;
+    private final GreenbidsInvocationService greenbidsInvocationService;
 
     public GreenbidsRealTimeDataProcessedAuctionRequestHook(
             ObjectMapper mapper,
             FilterService filterService,
             OnnxModelRunnerWithThresholds onnxModelRunnerWithThresholds,
-            GreenbidsInferenceDataService greenbidsInferenceDataService) {
+            GreenbidsInferenceDataService greenbidsInferenceDataService,
+            GreenbidsInvocationService greenbidsInvocationService) {
         this.mapper = Objects.requireNonNull(mapper);
         this.filterService = Objects.requireNonNull(filterService);
         this.onnxModelRunnerWithThresholds = Objects.requireNonNull(onnxModelRunnerWithThresholds);
         this.greenbidsInferenceDataService = Objects.requireNonNull(greenbidsInferenceDataService);
+        this.greenbidsInvocationService = Objects.requireNonNull(greenbidsInvocationService);
     }
 
     @Override
@@ -133,8 +137,8 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                     bidRequest, null, InvocationAction.no_action));
         }
 
-        final GreenbidsInvocationResult greenbidsInvocationResult = GreenbidsInvocationResult
-                .of(partner, bidRequest, impsBiddersFilterMap);
+        final GreenbidsInvocationResult greenbidsInvocationResult = greenbidsInvocationService
+                .createGreenbidsInvocationResult(partner, bidRequest, impsBiddersFilterMap);
 
         return Future.succeededFuture(toInvocationResult(
                 greenbidsInvocationResult.getUpdatedBidRequest(),
