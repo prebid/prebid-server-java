@@ -16,6 +16,7 @@ import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.OnnxModelRunner;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.OnnxModelRunnerWithThresholds;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.ThresholdCache;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.model.result.GreenbidsInvocationService;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.GreenbidsRealTimeDataModule;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.GreenbidsRealTimeDataProcessedAuctionRequestHook;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -55,14 +56,16 @@ public class GreenbidsRealTimeDataConfiguration {
             FilterService filterService,
             OnnxModelRunnerWithThresholds onnxModelRunnerWithThresholds,
             GreenbidsInferenceDataService greenbidsInferenceDataService,
-            ObjectMapper mapper) {
+            ObjectMapper mapper,
+            GreenbidsInvocationService greenbidsInvocationService) {
 
         return new GreenbidsRealTimeDataModule(List.of(
                 new GreenbidsRealTimeDataProcessedAuctionRequestHook(
                         mapper,
                         filterService,
                         onnxModelRunnerWithThresholds,
-                        greenbidsInferenceDataService)));
+                        greenbidsInferenceDataService,
+                        greenbidsInvocationService)));
     }
 
     @Bean
@@ -116,5 +119,10 @@ public class GreenbidsRealTimeDataConfiguration {
             ThresholdCache thresholdCache) {
 
         return new OnnxModelRunnerWithThresholds(modelCache, thresholdCache);
+    }
+
+    @Bean
+    public GreenbidsInvocationService greenbidsInvocationService() {
+        return new GreenbidsInvocationService();
     }
 }
