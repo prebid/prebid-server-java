@@ -1102,7 +1102,7 @@ class TargetingSpec extends BaseSpec {
         assert ampData.secondUnknownField == secondUnknownValue
     }
 
-    def "PBS amp should always send hb=amp when stored request does not contain app"() {
+    def "PBS amp should always send hb_env=amp when stored request does not contain app"() {
         given: "Default AmpRequest"
         def ampRequest = AmpRequest.defaultAmpRequest
 
