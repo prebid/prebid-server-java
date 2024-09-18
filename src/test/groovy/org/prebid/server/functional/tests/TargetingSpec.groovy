@@ -10,7 +10,6 @@ import org.prebid.server.functional.model.db.StoredResponse
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.AdServerTargeting
 import org.prebid.server.functional.model.request.auction.BidRequest
-import org.prebid.server.functional.model.request.auction.DistributionChannel
 import org.prebid.server.functional.model.request.auction.PrebidCache
 import org.prebid.server.functional.model.request.auction.PriceGranularity
 import org.prebid.server.functional.model.request.auction.Range
@@ -26,9 +25,6 @@ import java.nio.charset.StandardCharsets
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.request.auction.BidRequest.getDefaultBidRequest
-import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
-import static org.prebid.server.functional.model.request.auction.DistributionChannel.DOOH
-import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 import static org.prebid.server.functional.model.response.auction.ErrorType.TARGETING
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 
@@ -40,11 +36,10 @@ class TargetingSpec extends BaseSpec {
     private static final Integer TARGETING_PREFIX_LENGTH = 11
     private static final Integer MAX_TRUNCATE_ATTR_CHARS = 255
     private static final String HB_ENV_AMP = "amp"
-    private static final String HB_ENV_MOBILE_APP = "mobile-app"
 
     def "PBS should include targeting bidder specific keys when alwaysIncludeDeals is true and deal bid wins"() {
         given: "Bid request with alwaysIncludeDeals = true"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
+        def bidRequest = defaultBidRequest.tap {
             it.ext.prebid.targeting = new Targeting(includeBidderKeys: false, alwaysIncludeDeals: true)
         }
 
@@ -73,7 +68,7 @@ class TargetingSpec extends BaseSpec {
 
     def "PBS should not include targeting bidder specific keys when alwaysIncludeDeals flag is #condition"() {
         given: "Bid request with set alwaysIncludeDeals flag"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
+        def bidRequest = defaultBidRequest.tap {
             it.ext.prebid.targeting = new Targeting(includeBidderKeys: false, alwaysIncludeDeals: alwaysIncludeDeals)
         }
 
@@ -103,7 +98,7 @@ class TargetingSpec extends BaseSpec {
 
     def "PBS should not include bidder specific keys in bid response targeting when includeBidderKeys is #includeBidderKeys and cache.winningOnly is #winningOnly"() {
         given: "Bid request with set includeBidderKeys, winningOnly flags"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
+        def bidRequest = defaultBidRequest.tap {
             it.ext.prebid.targeting = new Targeting(includeBidderKeys: includeBidderKeys)
             it.ext.prebid.cache = new PrebidCache(winningOnly: winningOnly)
         }
@@ -130,7 +125,7 @@ class TargetingSpec extends BaseSpec {
 
     def "PBS should include bidder specific keys in bid response targeting when includeBidderKeys is #includeBidderKeys and cache.winningOnly is #winningOnly"() {
         given: "Bid request with set includeBidderKeys, winningOnly flags"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
+        def bidRequest = defaultBidRequest.tap {
             it.ext.prebid.targeting = new Targeting(includeBidderKeys: includeBidderKeys)
             it.ext.prebid.cache = new PrebidCache(winningOnly: winningOnly)
         }
@@ -159,7 +154,7 @@ class TargetingSpec extends BaseSpec {
 
     def "PBS auction shouldn't throw an exception and don't populate targeting when targeting includeBidderKeys and includeWinners and includeFormat flags are false"() {
         given: "Default bid request with includeBidderKeys=false and includeWinners=false and includeFormat=false"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
+        def bidRequest = defaultBidRequest.tap {
             it.ext.prebid.targeting = new Targeting().tap {
                 includeBidderKeys = false
                 includeWinners = false
