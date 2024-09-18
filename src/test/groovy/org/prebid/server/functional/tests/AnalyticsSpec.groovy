@@ -3,6 +3,7 @@ package org.prebid.server.functional.tests
 import org.prebid.server.functional.model.config.AccountAnalyticsConfig
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AnalyticsModule
+import org.prebid.server.functional.model.config.LogAnalytics
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.mock.services.pubstack.PubStackResponse
 import org.prebid.server.functional.model.request.auction.BidRequest
