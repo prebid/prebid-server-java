@@ -1,6 +1,7 @@
 package org.prebid.server.functional.tests.module.ortb2blocking
 
 import org.prebid.server.functional.model.bidder.BidderName
+import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.bidder.Openx
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountHooksConfiguration
@@ -26,7 +27,7 @@ import org.prebid.server.functional.util.PBSUtils
 import spock.lang.PendingFeature
 
 import static org.prebid.server.functional.model.ModuleName.ORTB2_BLOCKING
-
+import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.config.Endpoint.OPENRTB2_AUCTION
@@ -76,6 +77,37 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
 
         and: "PBS response shouldn't contain any module warning"
         assert !response?.ext?.prebid?.modules?.warnings
+
+        where:
+        ortb2Attributes       | attributeName
+        PBSUtils.randomString | BADV
+        PBSUtils.randomString | BAPP
+        PBSUtils.randomString | BCAT
+        PBSUtils.randomNumber | BATTR
+        PBSUtils.randomNumber | BTYPE
+    }
+
+    def "PBS should be able to send original array ortb2 attribute to bidder alias"() {
+        given: "Default bid request with alias"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.aliases = [(ALIAS.value): GENERIC]
+            imp[0].ext.prebid.bidder.generic = null
+            imp[0].ext.prebid.bidder.alias = new Generic()
+        }
+
+        and: "Account in the DB with blocking configuration"
+        def ortb2BlockingAttributeConfig = Ortb2BlockingAttributeConfig.getDefaultConfig([ortb2Attributes], attributeName).tap {
+            enforceBlocks = true
+        }
+        def account = getAccountWithOrtb2BlockingConfig(bidRequest.accountId, [(attributeName): ortb2BlockingAttributeConfig])
+        accountDao.save(account)
+
+        when: "PBS processes the auction request"
+        pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
+
+        then: "PBS request should contain proper ortb2 attributes from account config"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert getOrtb2Attributes(bidderRequest, attributeName) == [ortb2Attributes]*.toString()
 
         where:
         ortb2Attributes       | attributeName
