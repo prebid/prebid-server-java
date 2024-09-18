@@ -94,8 +94,8 @@ class AnalyticsSpec extends BaseSpec {
         when: "PBS processes auction request"
         pbsServiceWithoutLogAnalytics.sendAuctionRequest(bidRequest)
 
-        then: "PBS should call log analytics"
-        def logsByTime = pbsServiceWithLogAnalytics.getLogsByTime(startTime)
+        then: "PBS shouldn't call log analytics"
+        def logsByTime = pbsServiceWithoutLogAnalytics.getLogsByTime(startTime)
         assert getLogsByText(logsByTime, bidRequest.id).size() == 0
     }
 
