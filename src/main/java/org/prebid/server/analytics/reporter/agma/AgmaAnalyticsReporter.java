@@ -12,6 +12,7 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
@@ -34,6 +35,7 @@ import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.version.PrebidVersionProvider;
+import org.prebid.server.vertx.Initializable;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
@@ -43,39 +45,29 @@ import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZonedDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Predicate;
 import java.util.zip.GZIPOutputStream;
 
-public class AgmaAnalyticsReporter implements AnalyticsReporter {
+public class AgmaAnalyticsReporter implements AnalyticsReporter, Initializable {
 
     private static final Logger logger = LoggerFactory.getLogger(AgmaAnalyticsReporter.class);
 
     private final String url;
     private final boolean compressToGzip;
     private final long httpTimeoutMs;
-    private final long maxBufferSize;
-    private final long maxEventCount;
-    private final long bufferTimeoutMs;
+
+    private final EventBuffer<String> buffer;
+
     private final Map<String, String> accounts;
 
     private final Vertx vertx;
     private final JacksonMapper jacksonMapper;
     private final HttpClient httpClient;
     private final Clock clock;
-
-    private final ReentrantLock lockOnSend;
-    private final AtomicReference<Queue<String>> events;
     private final MultiMap headers;
-    private final AtomicLong byteSize;
-    private volatile long reportTimerId;
 
     public AgmaAnalyticsReporter(AgmaAnalyticsProperties agmaAnalyticsProperties,
                                  PrebidVersionProvider prebidVersionProvider,
@@ -90,20 +82,21 @@ public class AgmaAnalyticsReporter implements AnalyticsReporter {
         this.httpTimeoutMs = agmaAnalyticsProperties.getHttpTimeoutMs();
         this.compressToGzip = agmaAnalyticsProperties.isGzip();
 
-        this.maxBufferSize = agmaAnalyticsProperties.getBufferSize();
-        this.maxEventCount = agmaAnalyticsProperties.getMaxEventsCount();
-        this.bufferTimeoutMs = agmaAnalyticsProperties.getBufferTimeoutMs();
+        this.buffer = new EventBuffer<>(
+                agmaAnalyticsProperties.getMaxEventsCount(),
+                agmaAnalyticsProperties.getBufferSize());
 
         this.jacksonMapper = Objects.requireNonNull(jacksonMapper);
         this.httpClient = Objects.requireNonNull(httpClient);
         this.vertx = Objects.requireNonNull(vertx);
         this.clock = Objects.requireNonNull(clock);
-
-        this.lockOnSend = new ReentrantLock();
-        this.events = new AtomicReference<>(new ConcurrentLinkedQueue<>());
         this.headers = makeHeaders(Objects.requireNonNull(prebidVersionProvider));
-        this.byteSize = new AtomicLong();
-        this.reportTimerId = setBufferTimer();
+    }
+
+    @Override
+    public void initialize(Promise<Void> initializePromise) {
+        vertx.setPeriodic(1000L, ignored -> sendEvents(buffer.pollAll()));
+        initializePromise.complete();
     }
 
     @Override
@@ -149,9 +142,12 @@ public class AgmaAnalyticsReporter implements AnalyticsReporter {
                         Instant.ofEpochMilli(timeoutContext.getStartTime()), clock.getZone()))
                 .build();
 
-        buffer(agmaEvent);
-        sendEventsOnCondition(byteSize -> byteSize.get() > maxBufferSize, byteSize);
-        sendEventsOnCondition(eventsReference -> eventsReference.get().size() > maxEventCount, events);
+        final String eventString = jacksonMapper.encodeToString(agmaEvent);
+        buffer.put(eventString, eventString.length());
+        final List<String> toFlush = buffer.pollToFlush();
+        if (!toFlush.isEmpty()) {
+            sendEvents(toFlush);
+        }
 
         return Future.succeededFuture();
     }
@@ -205,37 +201,8 @@ public class AgmaAnalyticsReporter implements AnalyticsReporter {
         return publisherId;
     }
 
-    private <T> void buffer(T event) {
-        final String jsonEvent = jacksonMapper.encodeToString(event);
-        events.get().add(jsonEvent);
-        byteSize.getAndAdd(jsonEvent.getBytes().length);
-    }
-
-    private <T> boolean sendEventsOnCondition(Predicate<T> conditionToSend, T conditionValue) {
-        boolean requestWasSent = false;
-        if (conditionToSend.test(conditionValue)) {
-            lockOnSend.lock();
-            try {
-                if (conditionToSend.test(conditionValue)) {
-                    requestWasSent = true;
-                    sendEvents(events);
-                }
-            } catch (Exception exception) {
-                logger.error("[agmaAnalytics] Failed to send analytics report to endpoint {} with a reason {}",
-                        url, exception.getMessage());
-            } finally {
-                lockOnSend.unlock();
-            }
-        }
-        return requestWasSent;
-    }
-
-    private void sendEvents(AtomicReference<Queue<String>> events) {
-        final Queue<String> copyToSend = events.getAndSet(new ConcurrentLinkedQueue<>());
-
-        resetReportEventsConditions();
-
-        final String payload = preparePayload(copyToSend);
+    private void sendEvents(List<String> events) {
+        final String payload = preparePayload(events);
         final Future<HttpClientResponse> responseFuture = compressToGzip
                 ? httpClient.request(HttpMethod.POST, url, headers, gzip(payload), httpTimeoutMs)
                 : httpClient.request(HttpMethod.POST, url, headers, payload, httpTimeoutMs);
@@ -243,19 +210,13 @@ public class AgmaAnalyticsReporter implements AnalyticsReporter {
         responseFuture.onComplete(this::handleReportResponse);
     }
 
-    private void resetReportEventsConditions() {
-        byteSize.set(0);
-        vertx.cancelTimer(reportTimerId);
-        reportTimerId = setBufferTimer();
-    }
-
-    private static String preparePayload(Queue<String> events) {
+    private static String preparePayload(List<String> events) {
         return "[" + String.join(",", events) + "]";
     }
 
     private static byte[] gzip(String value) {
         try (ByteArrayOutputStream obj = new ByteArrayOutputStream();
-                GZIPOutputStream gzip = new GZIPOutputStream(obj)) {
+             GZIPOutputStream gzip = new GZIPOutputStream(obj)) {
 
             gzip.write(value.getBytes(StandardCharsets.UTF_8));
             gzip.finish();
@@ -276,17 +237,6 @@ public class AgmaAnalyticsReporter implements AnalyticsReporter {
             if (statusCode != HttpResponseStatus.OK.code()) {
                 logger.error("[agmaAnalytics] Wrong code received {} instead of 200", statusCode);
             }
-        }
-    }
-
-    private long setBufferTimer() {
-        return vertx.setTimer(bufferTimeoutMs, timerId -> sendOnTimer());
-    }
-
-    private void sendOnTimer() {
-        final boolean requestWasSent = sendEventsOnCondition(events -> !events.get().isEmpty(), events);
-        if (!requestWasSent) {
-            setBufferTimer();
         }
     }
 
