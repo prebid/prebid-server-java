@@ -1,13 +1,15 @@
 package org.prebid.server.functional.model.config
 
-import com.fasterxml.jackson.databind.PropertyNamingStrategies
-import com.fasterxml.jackson.databind.annotation.JsonNaming
+import com.fasterxml.jackson.annotation.JsonValue
 import groovy.transform.ToString
 
 @ToString(includeNames = true, ignoreNulls = true)
-@JsonNaming(PropertyNamingStrategies.KebabCaseStrategy)
-class Ortb2BlockingAttribute {
+enum Ortb2BlockingAttribute {
 
-    Boolean enforceBlocks
-    List<String> blockedAdomain
+    BADV, BAPP, BATTR, BCAT, BTYPE
+
+    @JsonValue
+    String getValue() {
+        name().toLowerCase()
+    }
 }
