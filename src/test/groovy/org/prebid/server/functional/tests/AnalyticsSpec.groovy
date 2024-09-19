@@ -70,7 +70,7 @@ class AnalyticsSpec extends BaseSpec {
         then: "PBS should call log analytics"
         def logsByTime = pbsServiceWithLogAnalytics.getLogsByTime(startTime)
         def logsByText = getLogsByText(logsByTime, bidRequest.id)
-        assert logsByText.size() == 1
+        PBSUtils.waitUntil { logsByText.size() == 1 }
 
         and: "Analytics adapter shouldn't contain additional info"
         def analyticsBidRequest = extractResolvedRequestFromLog(logsByText)
@@ -119,7 +119,7 @@ class AnalyticsSpec extends BaseSpec {
         then: "PBS should call log analytics"
         def logsByTime = pbsServiceWithLogAnalytics.getLogsByTime(startTime)
         def logsByText = getLogsByText(logsByTime, bidRequest.id)
-        assert logsByText.size() == 1
+        PBSUtils.waitUntil { logsByText.size() == 1 }
 
         and: "Analytics adapter shouldn't contain additional info"
         def analyticsBidRequest = extractResolvedRequestFromLog(logsByText)
@@ -192,7 +192,7 @@ class AnalyticsSpec extends BaseSpec {
         then: "PBS should call log analytics"
         def logsByTime = pbsServiceWithLogAnalytics.getLogsByTime(startTime)
         def logsByText = getLogsByText(logsByTime, bidRequest.id)
-        assert logsByText.size() == 1
+        PBSUtils.waitUntil { logsByText.size() == 1 }
 
         and: "Analytics adapter should contain additional info"
         def analyticsBidRequest = extractResolvedRequestFromLog(logsByText)
@@ -222,7 +222,7 @@ class AnalyticsSpec extends BaseSpec {
         then: "PBS should call log analytics"
         def logsByTime = pbsServiceWithLogAnalytics.getLogsByTime(startTime)
         def logsByText = getLogsByText(logsByTime, bidRequest.id)
-        assert logsByText.size() == 1
+        PBSUtils.waitUntil { logsByText.size() == 1 }
 
         and: "Analytics adapter should contain additional info"
         def analyticsBidRequest = extractResolvedRequestFromLog(logsByText)
@@ -253,7 +253,7 @@ class AnalyticsSpec extends BaseSpec {
         then: "PBS should call log analytics"
         def logsByTime = pbsServiceWithLogAnalytics.getLogsByTime(startTime)
         def logsByText = getLogsByText(logsByTime, bidRequest.id)
-        assert logsByText.size() == 1
+        PBSUtils.waitUntil { logsByText.size() == 1 }
 
         and: "Analytics adapter should contain additional info"
         def analyticsBidRequest = extractResolvedRequestFromLog(logsByText)
