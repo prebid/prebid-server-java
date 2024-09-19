@@ -40,6 +40,11 @@
             <artifactId>pb-richmedia-filter</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.prebid.server.hooks.modules</groupId>
+            <artifactId>pb-response-correction</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 
     <build>

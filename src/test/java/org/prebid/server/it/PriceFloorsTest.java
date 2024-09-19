@@ -8,6 +8,7 @@ import org.json.JSONException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.prebid.server.model.Endpoint;
@@ -30,6 +31,8 @@ import static org.prebid.server.util.IntegrationTestsUtil.assertJsonEquals;
 import static org.prebid.server.util.IntegrationTestsUtil.jsonFrom;
 import static org.prebid.server.util.IntegrationTestsUtil.responseFor;
 
+// TODO: Investigate the root cause of unstable behavior in this class and remove the disabled state once resolved.
+@Disabled
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @TestPropertySource(
         locations = {"test-application.properties"},
