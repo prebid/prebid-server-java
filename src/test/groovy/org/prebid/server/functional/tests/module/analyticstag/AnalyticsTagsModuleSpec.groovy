@@ -1,4 +1,4 @@
-package org.prebid.server.functional.tests.module
+package org.prebid.server.functional.tests.module.analyticstag
 
 import org.prebid.server.functional.model.config.AccountAnalyticsConfig
 import org.prebid.server.functional.model.config.AccountConfig
@@ -16,6 +16,7 @@ import org.prebid.server.functional.model.request.auction.StoredBidResponse
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ModuleActivityName
 import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.tests.module.ModuleBaseSpec
 import org.prebid.server.functional.util.PBSUtils
 
 import static org.prebid.server.functional.model.ModuleName.ORTB2_BLOCKING

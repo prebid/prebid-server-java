@@ -30,10 +30,12 @@ import static org.prebid.server.functional.testcontainers.Dependencies.getNetwor
 class TargetingSpec extends BaseSpec {
 
     private static final Integer TARGETING_PARAM_NAME_MAX_LENGTH = 20
+    private static final Integer TARGETING_KEYS_SIZE = 14
     private static final Integer MAX_AMP_TARGETING_TRUNCATION_LENGTH = 11
     private static final String DEFAULT_TARGETING_PREFIX = "hb"
     private static final Integer TARGETING_PREFIX_LENGTH = 11
     private static final Integer MAX_TRUNCATE_ATTR_CHARS = 255
+    private static final String HB_ENV_AMP = "amp"
 
     def "PBS should include targeting bidder specific keys when alwaysIncludeDeals is true and deal bid wins"() {
         given: "Bid request with alwaysIncludeDeals = true"
@@ -668,7 +670,7 @@ class TargetingSpec extends BaseSpec {
 
         then: "Amp response should contain default targeting prefix"
         def targeting = ampResponse.targeting
-        assert targeting.size() == 12
+        assert targeting.size() == TARGETING_KEYS_SIZE
         assert targeting.keySet().every { it -> it.startsWith(DEFAULT_TARGETING_PREFIX) }
     }
 
@@ -694,7 +696,7 @@ class TargetingSpec extends BaseSpec {
 
         then: "Amp response should contain targeting response with custom prefix"
         def targeting = ampResponse.targeting
-        assert targeting.size() == 12
+        assert targeting.size() == TARGETING_KEYS_SIZE
         assert targeting.keySet().every { it -> it.startsWith(DEFAULT_TARGETING_PREFIX) }
     }
 
@@ -1098,6 +1100,25 @@ class TargetingSpec extends BaseSpec {
         def ampData = bidderRequests.ext.prebid.amp.data
         assert ampData.unknownField == unknownValue
         assert ampData.secondUnknownField == secondUnknownValue
+    }
+
+    def "PBS amp should always send hb_env=amp when stored request does not contain app"() {
+        given: "Default AmpRequest"
+        def ampRequest = AmpRequest.defaultAmpRequest
+
+        and: "Default bid request"
+        def ampStoredRequest = BidRequest.defaultBidRequest
+
+        and: "Create and save stored request into DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        def ampResponse = defaultPbsService.sendAmpRequest(ampRequest)
+
+        then: "Amp response should contain amp hb_env"
+        def targeting = ampResponse.targeting
+        assert targeting["hb_env"] == HB_ENV_AMP
     }
 
     private static PrebidServerService getEnabledWinBidsPbsService() {
