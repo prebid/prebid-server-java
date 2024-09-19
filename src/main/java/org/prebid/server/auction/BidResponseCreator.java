@@ -122,6 +122,8 @@ public class BidResponseCreator {
     private static final Integer MAX_TARGETING_KEY_LENGTH = 11;
     private static final String DEFAULT_TARGETING_KEY_PREFIX = "hb";
     public static final String DEFAULT_DEBUG_KEY = "prebid";
+    private static final String TARGETING_ENV_APP_VALUE = "mobile-app";
+    private static final String TARGETING_ENV_AMP_VALUE = "amp";
 
     private final CoreCacheService coreCacheService;
     private final BidderCatalog bidderCatalog;
@@ -1325,13 +1327,11 @@ public class BidResponseCreator {
         final String cacheId = cacheInfo != null ? cacheInfo.getCacheId() : null;
         final String videoCacheId = cacheInfo != null ? cacheInfo.getVideoCacheId() : null;
 
-        final boolean isApp = bidRequest.getApp() != null;
-
         final Map<String, String> targetingKeywords;
         final String bidderCode = targetingInfo.getBidderCode();
         if (shouldIncludeTargetingInResponse(targeting, bidInfo.getTargetingInfo())) {
             final TargetingKeywordsCreator keywordsCreator = resolveKeywordsCreator(
-                    bidType, targeting, isApp, bidRequest, account, bidWarnings);
+                    bidType, targeting, bidRequest, account, bidWarnings);
 
             final boolean isWinningBid = targetingInfo.isWinningBid();
             final String categoryDuration = bidInfo.getCategory();
@@ -1552,16 +1552,15 @@ public class BidResponseCreator {
 
     private TargetingKeywordsCreator resolveKeywordsCreator(BidType bidType,
                                                             ExtRequestTargeting targeting,
-                                                            boolean isApp,
                                                             BidRequest bidRequest,
                                                             Account account,
                                                             Map<String, List<ExtBidderError>> bidWarnings) {
 
         final Map<BidType, TargetingKeywordsCreator> keywordsCreatorByBidType =
-                keywordsCreatorByBidType(targeting, isApp, bidRequest, account, bidWarnings);
+                keywordsCreatorByBidType(targeting, bidRequest, account, bidWarnings);
 
         return keywordsCreatorByBidType.getOrDefault(
-                bidType, keywordsCreator(targeting, isApp, bidRequest, account, bidWarnings));
+                bidType, keywordsCreator(targeting, bidRequest, account, bidWarnings));
     }
 
     /**
@@ -1569,7 +1568,6 @@ public class BidResponseCreator {
      * instance if it is present.
      */
     private TargetingKeywordsCreator keywordsCreator(ExtRequestTargeting targeting,
-                                                     boolean isApp,
                                                      BidRequest bidRequest,
                                                      Account account,
                                                      Map<String, List<ExtBidderError>> bidWarnings) {
@@ -1577,7 +1575,7 @@ public class BidResponseCreator {
         final JsonNode priceGranularityNode = targeting.getPricegranularity();
         return priceGranularityNode == null || priceGranularityNode.isNull()
                 ? null
-                : createKeywordsCreator(targeting, isApp, priceGranularityNode, bidRequest, account, bidWarnings);
+                : createKeywordsCreator(targeting, priceGranularityNode, bidRequest, account, bidWarnings);
     }
 
     /**
@@ -1586,7 +1584,6 @@ public class BidResponseCreator {
      */
     private Map<BidType, TargetingKeywordsCreator> keywordsCreatorByBidType(
             ExtRequestTargeting targeting,
-            boolean isApp,
             BidRequest bidRequest,
             Account account,
             Map<String, List<ExtBidderError>> bidWarnings) {
@@ -1602,21 +1599,21 @@ public class BidResponseCreator {
         final boolean isBannerNull = banner == null || banner.isNull();
         if (!isBannerNull) {
             result.put(
-                    BidType.banner, createKeywordsCreator(targeting, isApp, banner, bidRequest, account, bidWarnings));
+                    BidType.banner, createKeywordsCreator(targeting, banner, bidRequest, account, bidWarnings));
         }
 
         final ObjectNode video = mediaTypePriceGranularity.getVideo();
         final boolean isVideoNull = video == null || video.isNull();
         if (!isVideoNull) {
             result.put(
-                    BidType.video, createKeywordsCreator(targeting, isApp, video, bidRequest, account, bidWarnings));
+                    BidType.video, createKeywordsCreator(targeting, video, bidRequest, account, bidWarnings));
         }
 
         final ObjectNode xNative = mediaTypePriceGranularity.getXNative();
         final boolean isNativeNull = xNative == null || xNative.isNull();
         if (!isNativeNull) {
             result.put(
-                    BidType.xNative, createKeywordsCreator(targeting, isApp, xNative, bidRequest, account, bidWarnings)
+                    BidType.xNative, createKeywordsCreator(targeting, xNative, bidRequest, account, bidWarnings)
             );
         }
 
@@ -1624,7 +1621,6 @@ public class BidResponseCreator {
     }
 
     private TargetingKeywordsCreator createKeywordsCreator(ExtRequestTargeting targeting,
-                                                           boolean isApp,
                                                            JsonNode priceGranularity,
                                                            BidRequest bidRequest,
                                                            Account account,
@@ -1632,13 +1628,20 @@ public class BidResponseCreator {
         final int resolvedTruncateAttrChars = resolveTruncateAttrChars(targeting, account);
         final String resolveKeyPrefix = resolveAndValidateKeyPrefix(
                 bidRequest, account, resolvedTruncateAttrChars, bidWarnings);
+
+        final String env = Optional.ofNullable(bidRequest.getExt())
+                .map(ExtRequest::getPrebid)
+                .map(ExtRequestPrebid::getAmp)
+                .map(ignored -> TARGETING_ENV_AMP_VALUE)
+                .orElse(bidRequest.getApp() == null ? null : TARGETING_ENV_APP_VALUE);
+
         return TargetingKeywordsCreator.create(
                 parsePriceGranularity(priceGranularity),
                 BooleanUtils.toBoolean(targeting.getIncludewinners()),
                 BooleanUtils.toBoolean(targeting.getIncludebidderkeys()),
                 BooleanUtils.toBoolean(targeting.getAlwaysincludedeals()),
                 BooleanUtils.isTrue(targeting.getIncludeformat()),
-                isApp,
+                env,
                 resolvedTruncateAttrChars,
                 cacheHost,
                 cachePath,

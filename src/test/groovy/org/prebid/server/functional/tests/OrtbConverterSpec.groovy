@@ -561,6 +561,7 @@ class OrtbConverterSpec extends BaseSpec {
                 mincpmpersec = PBSUtils.randomDecimal
                 slotinpod = PBSUtils.randomNumber
                 plcmt = PBSUtils.getRandomEnum(VideoPlcmtSubtype)
+                podDeduplication = [PBSUtils.randomNumber]
             }
         }
 
@@ -584,6 +585,7 @@ class OrtbConverterSpec extends BaseSpec {
                 mincpmpersec = PBSUtils.randomDecimal
                 slotinpod = PBSUtils.randomNumber
                 plcmt = PBSUtils.getRandomEnum(VideoPlcmtSubtype)
+                podDeduplication = [PBSUtils.randomNumber, PBSUtils.randomNumber]
             }
         }
 

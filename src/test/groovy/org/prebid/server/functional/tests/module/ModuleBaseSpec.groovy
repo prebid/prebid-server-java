@@ -5,6 +5,7 @@ import org.prebid.server.functional.model.config.ExecutionPlan
 import org.prebid.server.functional.tests.BaseSpec
 
 import static org.prebid.server.functional.model.ModuleName.ORTB2_BLOCKING
+import static org.prebid.server.functional.model.ModuleName.PB_RESPONSE_CORRECTION
 import static org.prebid.server.functional.model.ModuleName.PB_RICHMEDIA_FILTER
 import static org.prebid.server.functional.model.config.Endpoint.OPENRTB2_AUCTION
 import static org.prebid.server.functional.model.config.Stage.ALL_PROCESSED_BID_RESPONSES
@@ -20,6 +21,12 @@ class ModuleBaseSpec extends BaseSpec {
         bidder.reset()
         prebidCache.reset()
         repository.removeAllDatabaseData()
+    }
+
+    protected static Map<String, String> getResponseCorrectionConfig(Endpoint endpoint = OPENRTB2_AUCTION) {
+        ["hooks.${PB_RESPONSE_CORRECTION.code}.enabled"        : true,
+         "hooks.host-execution-plan"                           : encode(ExecutionPlan.getSingleEndpointExecutionPlan(endpoint, PB_RESPONSE_CORRECTION, [ALL_PROCESSED_BID_RESPONSES]))]
+                .collectEntries { key, value -> [(key.toString()): value.toString()] }
     }
 
     protected static Map<String, String> getRichMediaFilterSettings(String scriptPattern,
