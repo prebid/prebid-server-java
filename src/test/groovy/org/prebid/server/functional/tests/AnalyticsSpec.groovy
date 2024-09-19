@@ -16,8 +16,6 @@ import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Ignore
 import spock.lang.Shared
 
-import java.time.Instant
-
 class AnalyticsSpec extends BaseSpec {
 
     private static final String SCOPE_ID = UUID.randomUUID()
@@ -52,10 +50,7 @@ class AnalyticsSpec extends BaseSpec {
     }
 
     def "PBS should populate log analytics when logging enabled in global config but not in account config"() {
-        given: "Test start time"
-        def startTime = Instant.now()
-
-        and: "Basic bid request"
+        given: "Basic bid request"
         def bidRequest = BidRequest.defaultBidRequest
 
         and: "Account in the DB"
@@ -68,20 +63,16 @@ class AnalyticsSpec extends BaseSpec {
         pbsServiceWithLogAnalytics.sendAuctionRequest(bidRequest)
 
         then: "PBS should call log analytics"
-        def logsByTime = pbsServiceWithLogAnalytics.getLogsByTime(startTime)
-        def logsByText = getLogsByText(logsByTime, bidRequest.id)
-        PBSUtils.waitUntil { logsByText.size() == 1 }
+        def logsByValue = pbsServiceWithLogAnalytics.getLogsByValue(bidRequest.id)
+        assert logsByValue
 
         and: "Analytics adapter shouldn't contain additional info"
-        def analyticsBidRequest = extractResolvedRequestFromLog(logsByText)
+        def analyticsBidRequest = extractResolvedRequestFromLog(logsByValue)
         assert !analyticsBidRequest?.ext?.prebid?.analytics?.logAnalytics?.additionalData
     }
 
     def "PBS shouldn't populate log analytics when log enabled in account and disabled in global config"() {
-        given: "Test start time"
-        def startTime = Instant.now()
-
-        and: "Basic bid request"
+        given: "Basic bid request"
         def bidRequest = BidRequest.defaultBidRequest
 
         and: "Account in the DB"
@@ -95,15 +86,12 @@ class AnalyticsSpec extends BaseSpec {
         pbsServiceWithoutLogAnalytics.sendAuctionRequest(bidRequest)
 
         then: "PBS shouldn't call log analytics"
-        def logsByTime = pbsServiceWithoutLogAnalytics.getLogsByTime(startTime)
-        assert getLogsByText(logsByTime, bidRequest.id).size() == 0
+        def logsByValue = pbsServiceWithLogAnalytics.getLogsByValue(bidRequest.id)
+        assert !logsByValue
     }
 
     def "PBS should populate log analytics when log enabled in account and global config"() {
-        given: "Test start time"
-        def startTime = Instant.now()
-
-        and: "Basic bid request"
+        given: "Basic bid request"
         def bidRequest = BidRequest.defaultBidRequest
 
         and: "Account in the DB"
@@ -117,20 +105,16 @@ class AnalyticsSpec extends BaseSpec {
         pbsServiceWithLogAnalytics.sendAuctionRequest(bidRequest)
 
         then: "PBS should call log analytics"
-        def logsByTime = pbsServiceWithLogAnalytics.getLogsByTime(startTime)
-        def logsByText = getLogsByText(logsByTime, bidRequest.id)
-        PBSUtils.waitUntil { logsByText.size() == 1 }
+        def logsByValue = pbsServiceWithLogAnalytics.getLogsByValue(bidRequest.id)
+        assert logsByValue
 
         and: "Analytics adapter shouldn't contain additional info"
-        def analyticsBidRequest = extractResolvedRequestFromLog(logsByText)
+        def analyticsBidRequest = extractResolvedRequestFromLog(logsByValue)
         assert !analyticsBidRequest?.ext?.prebid?.analytics?.logAnalytics?.additionalData
     }
 
     def "PBS shouldn't populate log analytics when log disabled in account and enabled in global config"() {
-        given: "Test start time"
-        def startTime = Instant.now()
-
-        and: "Basic bid request"
+        given: "Basic bid request"
         def bidRequest = BidRequest.defaultBidRequest
 
         and: "Account in the DB"
@@ -144,15 +128,12 @@ class AnalyticsSpec extends BaseSpec {
         pbsServiceWithLogAnalytics.sendAuctionRequest(bidRequest)
 
         then: "PBS shouldn't call log analytics"
-        def logsByTime = pbsServiceWithLogAnalytics.getLogsByTime(startTime)
-        assert getLogsByText(logsByTime, bidRequest.id).size() == 0
+        def logsByValue = pbsServiceWithLogAnalytics.getLogsByValue(bidRequest.id)
+        assert !logsByValue
     }
 
     def "PBS shouldn't populate log analytics when log disabled in global config and without account"() {
-        given: "Test start time"
-        def startTime = Instant.now()
-
-        and: "Basic bid request"
+        given: "Basic bid request"
         def bidRequest = BidRequest.defaultBidRequest
 
         and: "Account in the DB"
@@ -165,15 +146,12 @@ class AnalyticsSpec extends BaseSpec {
         pbsServiceWithoutLogAnalytics.sendAuctionRequest(bidRequest)
 
         then: "PBS shouldn't call log analytics"
-        def logsByTime = pbsServiceWithoutLogAnalytics.getLogsByTime(startTime)
-        assert getLogsByText(logsByTime, bidRequest.id).size() == 0
+        def logsByValue = pbsServiceWithLogAnalytics.getLogsByValue(bidRequest.id)
+        assert !logsByValue
     }
 
     def "PBS should populate log analytics with additional data when log enabled in account and data specified"() {
-        given: "Test start time"
-        def startTime = Instant.now()
-
-        and: "Basic bid request"
+        given: "Basic bid request"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.analytics = new PrebidAnalytics()
         }
@@ -190,20 +168,16 @@ class AnalyticsSpec extends BaseSpec {
         pbsServiceWithLogAnalytics.sendAuctionRequest(bidRequest)
 
         then: "PBS should call log analytics"
-        def logsByTime = pbsServiceWithLogAnalytics.getLogsByTime(startTime)
-        def logsByText = getLogsByText(logsByTime, bidRequest.id)
-        PBSUtils.waitUntil { logsByText.size() == 1 }
+        def logsByValue = pbsServiceWithLogAnalytics.getLogsByValue(bidRequest.id)
+        assert logsByValue
 
         and: "Analytics adapter should contain additional info"
-        def analyticsBidRequest = extractResolvedRequestFromLog(logsByText)
+        def analyticsBidRequest = extractResolvedRequestFromLog(logsByValue)
         assert analyticsBidRequest.ext.prebid.analytics.logAnalytics.additionalData == additionalData
     }
 
     def "PBS should populate log analytics with additional data from request when log enabled in account and data specified in request only"() {
-        given: "Test start time"
-        def startTime = Instant.now()
-
-        and: "Basic bid request"
+        given: "Basic bid request"
         def additionalData = PBSUtils.randomString
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.analytics = new PrebidAnalytics(logAnalytics: new LogAnalytics(additionalData: additionalData))
@@ -220,20 +194,16 @@ class AnalyticsSpec extends BaseSpec {
         pbsServiceWithLogAnalytics.sendAuctionRequest(bidRequest)
 
         then: "PBS should call log analytics"
-        def logsByTime = pbsServiceWithLogAnalytics.getLogsByTime(startTime)
-        def logsByText = getLogsByText(logsByTime, bidRequest.id)
-        PBSUtils.waitUntil { logsByText.size() == 1 }
+        def logsByValue = pbsServiceWithLogAnalytics.getLogsByValue(bidRequest.id)
+        assert logsByValue
 
         and: "Analytics adapter should contain additional info"
-        def analyticsBidRequest = extractResolvedRequestFromLog(logsByText)
+        def analyticsBidRequest = extractResolvedRequestFromLog(logsByValue)
         assert analyticsBidRequest.ext.prebid.analytics.logAnalytics.additionalData == additionalData
     }
 
     def "PBS should prioritize logAnalytics from request when data specified in account and request"() {
-        given: "Test start time"
-        def startTime = Instant.now()
-
-        and: "Basic bid request"
+        given: "Basic bid request"
         def bidRequestAdditionalData = PBSUtils.randomString
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.analytics = new PrebidAnalytics(logAnalytics: new LogAnalytics(additionalData: bidRequestAdditionalData))
@@ -251,17 +221,16 @@ class AnalyticsSpec extends BaseSpec {
         pbsServiceWithLogAnalytics.sendAuctionRequest(bidRequest)
 
         then: "PBS should call log analytics"
-        def logsByTime = pbsServiceWithLogAnalytics.getLogsByTime(startTime)
-        def logsByText = getLogsByText(logsByTime, bidRequest.id)
-        PBSUtils.waitUntil { logsByText.size() == 1 }
+        def logsByValue = pbsServiceWithLogAnalytics.getLogsByValue(bidRequest.id)
+        assert logsByValue
 
         and: "Analytics adapter should contain additional info"
-        def analyticsBidRequest = extractResolvedRequestFromLog(logsByText)
+        def analyticsBidRequest = extractResolvedRequestFromLog(logsByValue)
         assert analyticsBidRequest.ext.prebid.analytics.logAnalytics.additionalData == bidRequestAdditionalData
     }
 
-    private static BidRequest extractResolvedRequestFromLog(List<String> logsByText) {
-        decode(logsByText[0].split("resolvedrequest")[1]
+    private static BidRequest extractResolvedRequestFromLog(String logsByText) {
+        decode(logsByText.split("resolvedrequest")[1]
                 .replace(";", "")
                 .replaceFirst(":", "")
                 .replaceFirst("\"", ""), BidRequest.class)
