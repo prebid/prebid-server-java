@@ -42,6 +42,7 @@ public class BidderInvocationContextImpl implements BidderInvocationContext {
         return BidderInvocationContextImpl.builder()
                 .bidder(bidder)
                 .auctionContext(AuctionContext.builder()
+                        .bidRequest(BidRequest.builder().build())
                         .bidRejectionTrackers(Map.of(bidder, bidRejectionTracker))
                         .build())
                 .accountConfig(accountConfig)
