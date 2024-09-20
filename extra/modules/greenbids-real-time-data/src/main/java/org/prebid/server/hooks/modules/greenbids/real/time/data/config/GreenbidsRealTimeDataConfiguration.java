@@ -1,6 +1,5 @@
 package org.prebid.server.hooks.modules.greenbids.real.time.data.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.cloud.storage.Storage;
@@ -19,6 +18,7 @@ import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.result.GreenbidsInvocationService;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.GreenbidsRealTimeDataModule;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.GreenbidsRealTimeDataProcessedAuctionRequestHook;
+import org.prebid.server.json.ObjectMapperProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -45,10 +45,8 @@ public class GreenbidsRealTimeDataConfiguration {
     }
 
     @Bean
-    public GreenbidsInferenceDataService greenbidsInferenceDataService(
-            DatabaseReader dbReader,
-            ObjectMapper mapper) {
-        return new GreenbidsInferenceDataService(dbReader, mapper);
+    public GreenbidsInferenceDataService greenbidsInferenceDataService(DatabaseReader dbReader) {
+        return new GreenbidsInferenceDataService(dbReader, ObjectMapperProvider.mapper());
     }
 
     @Bean
@@ -56,12 +54,11 @@ public class GreenbidsRealTimeDataConfiguration {
             FilterService filterService,
             OnnxModelRunnerWithThresholds onnxModelRunnerWithThresholds,
             GreenbidsInferenceDataService greenbidsInferenceDataService,
-            ObjectMapper mapper,
             GreenbidsInvocationService greenbidsInvocationService) {
 
         return new GreenbidsRealTimeDataModule(List.of(
                 new GreenbidsRealTimeDataProcessedAuctionRequestHook(
-                        mapper,
+                        ObjectMapperProvider.mapper(),
                         filterService,
                         onnxModelRunnerWithThresholds,
                         greenbidsInferenceDataService,
@@ -97,8 +94,7 @@ public class GreenbidsRealTimeDataConfiguration {
     public ThresholdCache thresholdCache(
             GreenbidsRealTimeDataProperties properties,
             Vertx vertx,
-            Storage storage,
-            ObjectMapper mapper) {
+            Storage storage) {
 
         final Cache<String, ThrottlingThresholds> thresholdsCacheWithExpiration = Caffeine.newBuilder()
                 .expireAfterWrite(properties.getCacheExpirationMinutes(), TimeUnit.MINUTES)
@@ -107,7 +103,7 @@ public class GreenbidsRealTimeDataConfiguration {
         return new ThresholdCache(
                 storage,
                 properties.getGcsBucketName(),
-                mapper,
+                ObjectMapperProvider.mapper(),
                 thresholdsCacheWithExpiration,
                 properties.getThresholdsCacheKeyPrefix(),
                 vertx);
