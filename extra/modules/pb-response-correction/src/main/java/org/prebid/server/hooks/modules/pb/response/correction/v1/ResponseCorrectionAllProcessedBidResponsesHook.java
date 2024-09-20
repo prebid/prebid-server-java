@@ -8,10 +8,10 @@ import io.vertx.core.Future;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.hooks.execution.v1.bidder.AllProcessedBidResponsesPayloadImpl;
+import org.prebid.server.hooks.modules.pb.response.correction.core.ResponseCorrectionProvider;
 import org.prebid.server.hooks.modules.pb.response.correction.core.config.model.Config;
 import org.prebid.server.hooks.modules.pb.response.correction.core.correction.Correction;
 import org.prebid.server.hooks.modules.pb.response.correction.v1.model.InvocationResultImpl;
-import org.prebid.server.hooks.modules.pb.response.correction.core.CorrectionsProvider;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
@@ -26,11 +26,12 @@ public class ResponseCorrectionAllProcessedBidResponsesHook implements AllProces
 
     private static final String CODE = "pb-response-correction-all-processed-bid-responses-hook";
 
-    private final CorrectionsProvider correctionsProvider;
+    private final ResponseCorrectionProvider responseCorrectionProvider;
     private final ObjectMapper mapper;
 
-    public ResponseCorrectionAllProcessedBidResponsesHook(CorrectionsProvider correctionsProvider, ObjectMapper mapper) {
-        this.correctionsProvider = Objects.requireNonNull(correctionsProvider);
+    public ResponseCorrectionAllProcessedBidResponsesHook(ResponseCorrectionProvider responseCorrectionProvider,
+                                                          ObjectMapper mapper) {
+        this.responseCorrectionProvider = Objects.requireNonNull(responseCorrectionProvider);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -51,7 +52,7 @@ public class ResponseCorrectionAllProcessedBidResponsesHook implements AllProces
 
         final BidRequest bidRequest = context.auctionContext().getBidRequest();
 
-        final List<Correction> corrections = correctionsProvider.corrections(config, bidRequest);
+        final List<Correction> corrections = responseCorrectionProvider.corrections(config, bidRequest);
         if (corrections.isEmpty()) {
             return noAction();
         }

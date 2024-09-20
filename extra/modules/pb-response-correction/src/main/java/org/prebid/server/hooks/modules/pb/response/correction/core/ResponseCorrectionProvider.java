@@ -8,16 +8,16 @@ import org.prebid.server.hooks.modules.pb.response.correction.core.correction.Co
 import java.util.List;
 import java.util.Objects;
 
-public class CorrectionsProvider {
+public class ResponseCorrectionProvider {
 
-    private final List<CorrectionProducer> correctionsProducers;
+    private final List<CorrectionProducer> correctionProducers;
 
-    public CorrectionsProvider(List<CorrectionProducer> correctionsProducers) {
-        this.correctionsProducers = Objects.requireNonNull(correctionsProducers);
+    public ResponseCorrectionProvider(List<CorrectionProducer> correctionProducers) {
+        this.correctionProducers = Objects.requireNonNull(correctionProducers);
     }
 
     public List<Correction> corrections(Config config, BidRequest bidRequest) {
-        return correctionsProducers.stream()
+        return correctionProducers.stream()
                 .filter(correctionProducer -> correctionProducer.shouldProduce(config, bidRequest))
                 .map(CorrectionProducer::produce)
                 .toList();

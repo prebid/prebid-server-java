@@ -1,7 +1,7 @@
 package org.prebid.server.hooks.modules.pb.response.correction.v1;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.prebid.server.hooks.modules.pb.response.correction.core.CorrectionsProvider;
+import org.prebid.server.hooks.modules.pb.response.correction.core.ResponseCorrectionProvider;
 import org.prebid.server.hooks.v1.Hook;
 import org.prebid.server.hooks.v1.InvocationContext;
 import org.prebid.server.hooks.v1.Module;
@@ -15,9 +15,9 @@ public class ResponseCorrectionModule implements Module {
 
     private final Collection<? extends Hook<?, ? extends InvocationContext>> hooks;
 
-    public ResponseCorrectionModule(CorrectionsProvider correctionsProvider, ObjectMapper mapper) {
+    public ResponseCorrectionModule(ResponseCorrectionProvider responseCorrectionProvider, ObjectMapper mapper) {
         this.hooks = Collections.singleton(
-                new ResponseCorrectionAllProcessedBidResponsesHook(correctionsProvider, mapper));
+                new ResponseCorrectionAllProcessedBidResponsesHook(responseCorrectionProvider, mapper));
     }
 
     @Override
