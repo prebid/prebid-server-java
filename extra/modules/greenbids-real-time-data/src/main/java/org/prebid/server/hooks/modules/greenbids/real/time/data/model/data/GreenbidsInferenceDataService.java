@@ -20,6 +20,7 @@ import java.net.InetAddress;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
@@ -28,9 +29,9 @@ import java.util.stream.Collectors;
 
 public class GreenbidsInferenceDataService {
 
-    DatabaseReader dbReader;
+    private final DatabaseReader dbReader;
 
-    ObjectMapper mapper;
+    private final ObjectMapper mapper;
 
     public GreenbidsInferenceDataService(DatabaseReader dbReader, ObjectMapper mapper) {
         this.dbReader = Objects.requireNonNull(dbReader);
@@ -64,7 +65,7 @@ public class GreenbidsInferenceDataService {
         final List<Imp> imps = bidRequest.getImp();
 
         return imps.stream()
-                .flatMap(imp -> extractMessagesForImp(
+                .map(imp -> extractMessagesForImp(
                         imp,
                         bidRequest,
                         greenbidsUserAgent,
@@ -72,7 +73,8 @@ public class GreenbidsInferenceDataService {
                         hourBucket,
                         minuteQuadrant,
                         dbReader,
-                        mapper).stream())
+                        mapper))
+                .flatMap(Collection::stream)
                 .collect(Collectors.toList());
     }
 
@@ -169,13 +171,13 @@ public class GreenbidsInferenceDataService {
 
         return ThrottlingMessage.builder()
                 .browser(browser)
-                .bidder(Optional.ofNullable(bidderName).orElse(StringUtils.EMPTY))
-                .adUnitCode(Optional.ofNullable(impId).orElse(StringUtils.EMPTY))
-                .country(Optional.ofNullable(countryFromIp).orElse(StringUtils.EMPTY))
-                .hostname(Optional.ofNullable(hostname).orElse(StringUtils.EMPTY))
+                .bidder(StringUtils.defaultString(bidderName))
+                .adUnitCode(StringUtils.defaultString(impId))
+                .country(StringUtils.defaultString(countryFromIp))
+                .hostname(StringUtils.defaultString(hostname))
                 .device(device)
-                .hourBucket(Optional.ofNullable(hourBucket).map(String::valueOf).orElse(StringUtils.EMPTY))
-                .minuteQuadrant(Optional.ofNullable(minuteQuadrant).map(String::valueOf).orElse(StringUtils.EMPTY))
+                .hourBucket(StringUtils.defaultString(hourBucket.toString()))
+                .minuteQuadrant(StringUtils.defaultString(minuteQuadrant.toString()))
                 .build();
     }
 
