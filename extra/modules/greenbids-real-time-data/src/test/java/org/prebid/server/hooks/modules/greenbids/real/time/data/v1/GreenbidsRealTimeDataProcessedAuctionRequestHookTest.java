@@ -44,6 +44,7 @@ import org.prebid.server.hooks.v1.analytics.Tags;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.json.ObjectMapperProvider;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -96,7 +97,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final ThresholdCache thresholdCache = new ThresholdCache(
                 storage,
                 "test_bucket",
-                mapper,
+                ObjectMapperProvider.mapper(),
                 thresholdsCacheWithExpiration,
                 "throttlingThresholds_",
                 Vertx.vertx());
@@ -105,10 +106,10 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 thresholdCache);
         final GreenbidsInferenceDataService greenbidsInferenceDataService = new GreenbidsInferenceDataService(
                 dbReader,
-                mapper);
+                ObjectMapperProvider.mapper());
         final GreenbidsInvocationService greenbidsInvocationService = new GreenbidsInvocationService();
         target = new GreenbidsRealTimeDataProcessedAuctionRequestHook(
-                mapper,
+                ObjectMapperProvider.mapper(),
                 filterService,
                 onnxModelRunnerWithThresholds,
                 greenbidsInferenceDataService,
