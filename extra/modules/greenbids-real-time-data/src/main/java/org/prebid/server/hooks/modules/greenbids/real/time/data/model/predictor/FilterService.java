@@ -91,15 +91,4 @@ public class FilterService {
 
         return result;
     }
-
-    private Map.Entry<String, Map.Entry<String, Boolean>> createEntry(
-            ThrottlingMessage message,
-            float probability,
-            Double threshold) {
-
-        final String impId = message.getAdUnitCode();
-        final String bidder = message.getBidder();
-        final boolean isKeptInAuction = probability > threshold;
-        return Map.entry(impId, Map.entry(bidder, isKeptInAuction));
-    }
 }

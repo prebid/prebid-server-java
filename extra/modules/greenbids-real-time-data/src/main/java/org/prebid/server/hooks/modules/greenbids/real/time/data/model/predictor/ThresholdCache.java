@@ -72,11 +72,8 @@ public class ThresholdCache {
     }
 
     private void fetchAndCacheThrottlingThresholds(String thresholdJsonPath, String cacheKey) {
-        vertx.executeBlocking(promise -> {
-            final Blob blob = getBlob(thresholdJsonPath);
-            promise.complete(blob);
-        })
-                .map(blob -> loadThrottlingThresholds((Blob) blob))
+        vertx.executeBlocking(() -> getBlob(thresholdJsonPath))
+                .map(this::loadThrottlingThresholds)
                 .onSuccess(thresholds -> cache.put(cacheKey, thresholds))
                 .onFailure(error -> logger.error("Failed to fetch thresholds"));
     }
