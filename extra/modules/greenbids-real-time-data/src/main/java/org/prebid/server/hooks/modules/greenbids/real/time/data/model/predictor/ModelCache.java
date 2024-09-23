@@ -19,17 +19,17 @@ public class ModelCache {
 
     private static final Logger logger = LoggerFactory.getLogger(ModelCache.class);
 
-    String gcsBucketName;
+    private final String gcsBucketName;
 
-    Cache<String, OnnxModelRunner> cache;
+    private final Cache<String, OnnxModelRunner> cache;
 
-    Storage storage;
+    private final Storage storage;
 
-    String onnxModelCacheKeyPrefix;
+    private final String onnxModelCacheKeyPrefix;
 
-    AtomicBoolean isFetching;
+    private final AtomicBoolean isFetching;
 
-    Vertx vertx;
+    private final Vertx vertx;
 
     public ModelCache(
             Storage storage,
