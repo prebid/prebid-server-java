@@ -275,6 +275,7 @@ public class MultiFormatMediaTypeProcessorTest extends VertxTest {
                 emptyList(),
                 emptyList(),
                 0,
+                emptyList(),
                 false,
                 false,
                 CompressionType.NONE,

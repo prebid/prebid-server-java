@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.prebid</groupId>
         <artifactId>prebid-server-aggregator</artifactId>
-        <version>3.12.0-SNAPSHOT</version>
+        <version>3.13.0-SNAPSHOT</version>
         <relativePath>../../extra/pom.xml</relativePath>
     </parent>
 
@@ -21,6 +21,7 @@
         <module>confiant-ad-quality</module>
         <module>pb-richmedia-filter</module>
         <module>fiftyone-devicedetection</module>
+        <module>pb-response-correction</module>
     </modules>
 
     <dependencyManagement>

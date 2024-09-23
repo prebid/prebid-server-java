@@ -195,6 +195,7 @@ public class BidderDetailsHandlerTest extends VertxTest {
                 singletonList(MediaType.NATIVE),
                 null,
                 0,
+                null,
                 true,
                 false,
                 CompressionType.NONE,

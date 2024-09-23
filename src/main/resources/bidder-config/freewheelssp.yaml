@@ -2,7 +2,7 @@ adapters:
   freewheelssp:
     endpoint: https://ads.stickyadstv.com/openrtb/dsp
     ortb-version: "2.6"
-    modifyingVastXmlAllowed: true
+    modifying-vast-xml-allowed: true
     meta-info:
       maintainer-email: prebid-maintainer@freewheel.com
       app-media-types:

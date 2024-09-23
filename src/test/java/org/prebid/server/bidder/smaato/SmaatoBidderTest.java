@@ -921,7 +921,6 @@ public class SmaatoBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
-
         final String expectedAdm = "{\"assets\":[{\"id\":1,\"img\":{\"type\":3,"
                 + "\"url\":\"https://smaato.com/image.png\",\"w\":480,\"h\":320}}],"
                 + "\"link\":{\"url\":\"https://www.smaato.com\"}}";

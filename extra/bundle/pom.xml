@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.prebid</groupId>
         <artifactId>prebid-server-aggregator</artifactId>
-        <version>3.12.0-SNAPSHOT</version>
+        <version>3.13.0-SNAPSHOT</version>
         <relativePath>../../extra/pom.xml</relativePath>
     </parent>
 
@@ -38,6 +38,11 @@
         <dependency>
             <groupId>org.prebid.server.hooks.modules</groupId>
             <artifactId>pb-richmedia-filter</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.prebid.server.hooks.modules</groupId>
+            <artifactId>pb-response-correction</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>
