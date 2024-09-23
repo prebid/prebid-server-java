@@ -9,7 +9,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.hooks.modules.pb.response.correction.core.CorrectionsProvider;
+import org.prebid.server.hooks.modules.pb.response.correction.core.ResponseCorrectionProvider;
 import org.prebid.server.hooks.modules.pb.response.correction.core.config.model.Config;
 import org.prebid.server.hooks.modules.pb.response.correction.core.correction.Correction;
 import org.prebid.server.hooks.v1.InvocationAction;
@@ -34,7 +34,7 @@ public class ResponseCorrectionAllProcessedBidResponsesHookTest {
     private static final ObjectMapper MAPPER = ObjectMapperProvider.mapper();
 
     @Mock
-    private CorrectionsProvider correctionsProvider;
+    private ResponseCorrectionProvider responseCorrectionProvider;
 
     private ResponseCorrectionAllProcessedBidResponsesHook target;
 
@@ -50,7 +50,7 @@ public class ResponseCorrectionAllProcessedBidResponsesHookTest {
         given(invocationContext.auctionContext())
                 .willReturn(AuctionContext.builder().bidRequest(BidRequest.builder().build()).build());
 
-        target = new ResponseCorrectionAllProcessedBidResponsesHook(correctionsProvider, MAPPER);
+        target = new ResponseCorrectionAllProcessedBidResponsesHook(responseCorrectionProvider, MAPPER);
     }
 
     @Test
@@ -87,7 +87,7 @@ public class ResponseCorrectionAllProcessedBidResponsesHookTest {
     @Test
     public void callShouldReturnNoActionIfThereIsNoApplicableCorrections() {
         // given
-        given(correctionsProvider.corrections(any(), any())).willReturn(emptyList());
+        given(responseCorrectionProvider.corrections(any(), any())).willReturn(emptyList());
 
         // when
         final Future<InvocationResult<AllProcessedBidResponsesPayload>> result = target.call(payload, invocationContext);
@@ -103,7 +103,7 @@ public class ResponseCorrectionAllProcessedBidResponsesHookTest {
     public void callShouldReturnUpdate() {
         // given
         final Correction correction = mock(Correction.class);
-        given(correctionsProvider.corrections(any(), any())).willReturn(singletonList(correction));
+        given(responseCorrectionProvider.corrections(any(), any())).willReturn(singletonList(correction));
 
         // when
         final Future<InvocationResult<AllProcessedBidResponsesPayload>> result = target.call(payload, invocationContext);
