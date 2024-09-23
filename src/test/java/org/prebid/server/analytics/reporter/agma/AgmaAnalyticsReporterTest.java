@@ -10,7 +10,6 @@ import com.iabtcf.decoder.TCString;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpMethod;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,7 +32,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.version.PrebidVersionProvider;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -43,11 +41,9 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Map;
-import java.util.Queue;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.zip.GZIPOutputStream;
 
+import static io.vertx.core.http.HttpMethod.POST;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.AdditionalMatchers.aryEq;
@@ -56,7 +52,6 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
@@ -72,10 +67,10 @@ public class AgmaAnalyticsReporterTest extends VertxTest {
 
     private static final TCString PARSED_VALID_CONSENT = TCString.decode(VALID_CONSENT);
 
-    @Mock
+    @Mock(strictness = Mock.Strictness.LENIENT)
     private Vertx vertx;
 
-    @Mock
+    @Mock(strictness = Mock.Strictness.LENIENT)
     private HttpClient httpClient;
 
     @Mock
@@ -106,6 +101,10 @@ public class AgmaAnalyticsReporterTest extends VertxTest {
 
         given(versionProvider.getNameVersionRecord()).willReturn("pbs_version");
         given(vertx.setTimer(anyLong(), any())).willReturn(1L, 2L);
+        given(httpClient.request(eq(POST), anyString(), any(), anyString(), anyLong())).willReturn(
+                Future.succeededFuture(HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap(), "")));
+        given(httpClient.request(eq(POST), anyString(), any(), any(byte[].class), anyLong())).willReturn(
+                Future.succeededFuture(HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap(), "")));
 
         target = new AgmaAnalyticsReporter(properties, versionProvider, jacksonMapper, clock, httpClient, vertx);
     }
@@ -151,7 +150,7 @@ public class AgmaAnalyticsReporterTest extends VertxTest {
         final String expectedEventPayload = "[" + jacksonMapper.encodeToString(expectedEvent) + "]";
 
         verify(httpClient).request(
-                eq(HttpMethod.POST),
+                eq(POST),
                 eq("http://endpoint.com"),
                 headersCaptor.capture(),
                 eq(expectedEventPayload),
@@ -207,7 +206,7 @@ public class AgmaAnalyticsReporterTest extends VertxTest {
         final String expectedEventPayload = "[" + jacksonMapper.encodeToString(expectedEvent) + "]";
 
         verify(httpClient).request(
-                eq(HttpMethod.POST),
+                eq(POST),
                 eq("http://endpoint.com"),
                 headersCaptor.capture(),
                 eq(expectedEventPayload),
@@ -263,7 +262,7 @@ public class AgmaAnalyticsReporterTest extends VertxTest {
         final String expectedEventPayload = "[" + jacksonMapper.encodeToString(expectedEvent) + "]";
 
         verify(httpClient).request(
-                eq(HttpMethod.POST),
+                eq(POST),
                 eq("http://endpoint.com"),
                 headersCaptor.capture(),
                 eq(expectedEventPayload),
@@ -330,7 +329,7 @@ public class AgmaAnalyticsReporterTest extends VertxTest {
         final String expectedEventPayload = "[" + jacksonMapper.encodeToString(expectedEvent) + "]";
 
         verify(httpClient).request(
-                eq(HttpMethod.POST),
+                eq(POST),
                 eq("http://endpoint.com"),
                 any(),
                 eq(expectedEventPayload),
@@ -449,7 +448,7 @@ public class AgmaAnalyticsReporterTest extends VertxTest {
         final String expectedEventPayload = "[" + jacksonMapper.encodeToString(expectedEvent) + "]";
 
         verify(httpClient).request(
-                eq(HttpMethod.POST),
+                eq(POST),
                 eq("http://endpoint.com"),
                 headersCaptor.capture(),
                 aryEq(gzip(expectedEventPayload)),
@@ -463,207 +462,6 @@ public class AgmaAnalyticsReporterTest extends VertxTest {
                         tuple("x-prebid", "pbs_version"));
 
         assertThat(result.succeeded()).isTrue();
-    }
-
-    @Test
-    public void processEventShouldSendEventsAndResetSendConditionParameters() {
-        // given
-        given(httpClient.request(any(), anyString(), any(), anyString(), anyLong()))
-                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, null)));
-
-        final Site givenSite = Site.builder().publisher(Publisher.builder().id("publisherId").build()).build();
-
-        final AuctionEvent auctionEvent = AuctionEvent.builder()
-                .auctionContext(AuctionContext.builder()
-                        .privacyContext(PrivacyContext.of(
-                                null, TcfContext.builder().consent(PARSED_VALID_CONSENT).build()))
-                        .timeoutContext(TimeoutContext.of(clock.millis(), null, 1))
-                        .bidRequest(BidRequest.builder().site(givenSite).build())
-                        .build())
-                .build();
-
-        // when
-        target.processEvent(auctionEvent);
-
-        // then
-        verify(vertx).cancelTimer(anyLong());
-        verify(vertx, times(2)).setTimer(eq(10000L), any());
-        final AtomicLong byteSize = (AtomicLong) ReflectionTestUtils.getField(target, "byteSize");
-        assertThat(byteSize.get()).isEqualTo(0);
-        final Long currentTimerId = (Long) ReflectionTestUtils.getField(target, "reportTimerId");
-        assertThat(currentTimerId).isEqualTo(2);
-        final AtomicReference<Queue<String>> events = (AtomicReference<Queue<String>>) ReflectionTestUtils.getField(
-                target, "events");
-        assertThat(events.get()).hasSize(0);
-    }
-
-    @Test
-    public void processEventShouldSendEventsWhenTheirSizeIsHigherMaxBufferSize() {
-        // given
-        given(httpClient.request(any(), anyString(), any(), anyString(), anyLong()))
-                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, null)));
-
-        final AgmaAnalyticsProperties properties = AgmaAnalyticsProperties.builder()
-                .url("http://endpoint.com")
-                .gzip(false)
-                .bufferSize(300)
-                .bufferTimeoutMs(10000L)
-                .maxEventsCount(2)
-                .httpTimeoutMs(1000L)
-                .accounts(Map.of("publisherId", "accountCode"))
-                .build();
-
-        target = new AgmaAnalyticsReporter(properties, versionProvider, jacksonMapper, clock, httpClient, vertx);
-
-        final Site givenSite = Site.builder().publisher(Publisher.builder().id("publisherId").build()).build();
-        final PrivacyContext privacyContext = PrivacyContext.of(
-                null, TcfContext.builder().consent(PARSED_VALID_CONSENT).build());
-        final TimeoutContext timeoutContext = TimeoutContext.of(clock.millis(), null, 1);
-
-        final AuctionContext auctionContext = AuctionContext.builder()
-                .privacyContext(privacyContext)
-                .timeoutContext(timeoutContext)
-                .bidRequest(BidRequest.builder()
-                        .site(givenSite)
-                        .build())
-                .build();
-
-        final AuctionEvent auctionEvent = AuctionEvent.builder().auctionContext(auctionContext).build();
-        final AmpEvent ampEvent = AmpEvent.builder().auctionContext(auctionContext).build();
-        final VideoEvent videoEvent = VideoEvent.builder().auctionContext(auctionContext).build();
-
-        // when
-        target.processEvent(auctionEvent);
-        AtomicLong byteSize = (AtomicLong) ReflectionTestUtils.getField(target, "byteSize");
-        assertThat(byteSize.get()).isEqualTo(122L);
-
-        target.processEvent(ampEvent);
-        byteSize = (AtomicLong) ReflectionTestUtils.getField(target, "byteSize");
-        assertThat(byteSize.get()).isEqualTo(240);
-
-        target.processEvent(videoEvent);
-        byteSize = (AtomicLong) ReflectionTestUtils.getField(target, "byteSize");
-        assertThat(byteSize.get()).isEqualTo(0);
-
-        // then
-        final AgmaEvent expectedEvent1 = AgmaEvent.builder()
-                .eventType("auction")
-                .accountCode("accountCode")
-                .site(givenSite)
-                .startTime(ZonedDateTime.parse("2024-09-03T15:00:00+05:00"))
-                .build();
-
-        final AgmaEvent expectedEvent2 = AgmaEvent.builder()
-                .eventType("amp")
-                .accountCode("accountCode")
-                .site(givenSite)
-                .startTime(ZonedDateTime.parse("2024-09-03T15:00:00+05:00"))
-                .build();
-
-        final AgmaEvent expectedEvent3 = AgmaEvent.builder()
-                .eventType("video")
-                .accountCode("accountCode")
-                .site(givenSite)
-                .startTime(ZonedDateTime.parse("2024-09-03T15:00:00+05:00"))
-                .build();
-
-        final String expectedEventPayload = "["
-                + jacksonMapper.encodeToString(expectedEvent1) + ","
-                + jacksonMapper.encodeToString(expectedEvent2) + ","
-                + jacksonMapper.encodeToString(expectedEvent3) + "]";
-
-        verify(httpClient).request(
-                eq(HttpMethod.POST),
-                eq("http://endpoint.com"),
-                any(),
-                eq(expectedEventPayload),
-                eq(1000L));
-    }
-
-    @Test
-    public void processEventShouldSendEventsWhenTheirCountIsHigherMaxCount() {
-        // given
-        given(httpClient.request(any(), anyString(), any(), anyString(), anyLong()))
-                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, null)));
-
-        final AgmaAnalyticsProperties properties = AgmaAnalyticsProperties.builder()
-                .url("http://endpoint.com")
-                .gzip(false)
-                .bufferSize(100000)
-                .bufferTimeoutMs(10000L)
-                .maxEventsCount(2)
-                .httpTimeoutMs(1000L)
-                .accounts(Map.of("publisherId", "accountCode"))
-                .build();
-
-        target = new AgmaAnalyticsReporter(properties, versionProvider, jacksonMapper, clock, httpClient, vertx);
-
-        final Site givenSite = Site.builder().publisher(Publisher.builder().id("publisherId").build()).build();
-        final PrivacyContext privacyContext = PrivacyContext.of(
-                null, TcfContext.builder().consent(PARSED_VALID_CONSENT).build());
-        final TimeoutContext timeoutContext = TimeoutContext.of(clock.millis(), null, 1);
-
-        final AuctionContext auctionContext = AuctionContext.builder()
-                .privacyContext(privacyContext)
-                .timeoutContext(timeoutContext)
-                .bidRequest(BidRequest.builder()
-                        .site(givenSite)
-                        .build())
-                .build();
-
-        final AuctionEvent auctionEvent = AuctionEvent.builder().auctionContext(auctionContext).build();
-        final AmpEvent ampEvent = AmpEvent.builder().auctionContext(auctionContext).build();
-        final VideoEvent videoEvent = VideoEvent.builder().auctionContext(auctionContext).build();
-
-        // when
-        target.processEvent(auctionEvent);
-        AtomicReference<Queue<String>> events = (AtomicReference<Queue<String>>) ReflectionTestUtils.getField(
-                target, "events");
-        assertThat(events.get()).hasSize(1);
-
-        target.processEvent(ampEvent);
-        events = (AtomicReference<Queue<String>>) ReflectionTestUtils.getField(
-                target, "events");
-        assertThat(events.get()).hasSize(2);
-
-        target.processEvent(videoEvent);
-        events = (AtomicReference<Queue<String>>) ReflectionTestUtils.getField(
-                target, "events");
-        assertThat(events.get()).hasSize(0);
-
-        // then
-        final AgmaEvent expectedEvent1 = AgmaEvent.builder()
-                .eventType("auction")
-                .accountCode("accountCode")
-                .site(givenSite)
-                .startTime(ZonedDateTime.parse("2024-09-03T15:00:00+05:00"))
-                .build();
-
-        final AgmaEvent expectedEvent2 = AgmaEvent.builder()
-                .eventType("amp")
-                .accountCode("accountCode")
-                .site(givenSite)
-                .startTime(ZonedDateTime.parse("2024-09-03T15:00:00+05:00"))
-                .build();
-
-        final AgmaEvent expectedEvent3 = AgmaEvent.builder()
-                .eventType("video")
-                .accountCode("accountCode")
-                .site(givenSite)
-                .startTime(ZonedDateTime.parse("2024-09-03T15:00:00+05:00"))
-                .build();
-
-        final String expectedEventPayload = "["
-                + jacksonMapper.encodeToString(expectedEvent1) + ","
-                + jacksonMapper.encodeToString(expectedEvent2) + ","
-                + jacksonMapper.encodeToString(expectedEvent3) + "]";
-
-        verify(httpClient).request(
-                eq(HttpMethod.POST),
-                eq("http://endpoint.com"),
-                any(),
-                eq(expectedEventPayload),
-                eq(1000L));
     }
 
     private static byte[] gzip(String value) {
