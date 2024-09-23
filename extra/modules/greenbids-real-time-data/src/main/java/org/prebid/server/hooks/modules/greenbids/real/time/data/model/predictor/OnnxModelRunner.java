@@ -9,9 +9,9 @@ import java.util.Collections;
 
 public class OnnxModelRunner {
 
-    private OrtSession session;
+    private final OrtSession session;
 
-    private OrtEnvironment environment;
+    private final OrtEnvironment environment;
 
     public OnnxModelRunner(byte[] onnxModelBytes) throws OrtException {
         environment = OrtEnvironment.getEnvironment();
