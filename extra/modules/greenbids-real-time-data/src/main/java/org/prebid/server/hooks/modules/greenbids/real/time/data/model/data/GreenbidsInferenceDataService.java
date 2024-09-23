@@ -46,16 +46,12 @@ public class GreenbidsInferenceDataService {
 
         return extractThrottlingMessages(
                 bidRequest,
-                userAgent,
-                dbReader,
-                mapper);
+                userAgent);
     }
 
     private List<ThrottlingMessage> extractThrottlingMessages(
             BidRequest bidRequest,
-            GreenbidsUserAgent greenbidsUserAgent,
-            DatabaseReader dbReader,
-            ObjectMapper mapper) {
+            GreenbidsUserAgent greenbidsUserAgent) {
 
         final ZonedDateTime timestamp = ZonedDateTime.now(ZoneId.of("UTC"));
         final Integer hourBucket = timestamp.getHour();
@@ -71,9 +67,7 @@ public class GreenbidsInferenceDataService {
                         greenbidsUserAgent,
                         hostname,
                         hourBucket,
-                        minuteQuadrant,
-                        dbReader,
-                        mapper))
+                        minuteQuadrant))
                 .flatMap(Collection::stream)
                 .collect(Collectors.toList());
     }
@@ -84,17 +78,15 @@ public class GreenbidsInferenceDataService {
             GreenbidsUserAgent greenbidsUserAgent,
             String hostname,
             Integer hourBucket,
-            Integer minuteQuadrant,
-            DatabaseReader dbReader,
-            ObjectMapper mapper) {
+            Integer minuteQuadrant) {
 
         final String impId = imp.getId();
         final ObjectNode impExt = imp.getExt();
-        final JsonNode bidderNode = extImpPrebid(impExt.get("prebid"), mapper).getBidder();
+        final JsonNode bidderNode = extImpPrebid(impExt.get("prebid")).getBidder();
         final String ip = Optional.ofNullable(bidRequest.getDevice())
                 .map(Device::getIp)
                 .orElse(null);
-        final String countryFromIp = getCountry(ip, dbReader);
+        final String countryFromIp = getCountry(ip);
         return createThrottlingMessages(
                 bidderNode,
                 impId,
@@ -105,7 +97,7 @@ public class GreenbidsInferenceDataService {
                 minuteQuadrant);
     }
 
-    private String getCountry(String ip, DatabaseReader dbReader) {
+    private String getCountry(String ip) {
         if (ip == null) {
             return null;
         }
@@ -181,7 +173,7 @@ public class GreenbidsInferenceDataService {
                 .build();
     }
 
-    private ExtImpPrebid extImpPrebid(JsonNode extImpPrebid, ObjectMapper mapper) {
+    private ExtImpPrebid extImpPrebid(JsonNode extImpPrebid) {
         try {
             return mapper.treeToValue(extImpPrebid, ExtImpPrebid.class);
         } catch (JsonProcessingException e) {
