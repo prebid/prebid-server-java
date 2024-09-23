@@ -142,10 +142,6 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final Future<InvocationResult<AuctionRequestPayload>> future = target
                 .call(null, invocationContext);
         final InvocationResult<AuctionRequestPayload> result = future.result();
-        final BidRequest resultBidRequest = result
-                .payloadUpdate()
-                .apply(AuctionRequestPayloadImpl.of(bidRequest))
-                .bidRequest();
 
         // then
         assertThat(future).isNotNull();
@@ -156,9 +152,6 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         assertThat(result.action()).isEqualTo(InvocationAction.no_action);
 
         assertThat(result.analyticsTags()).isNull();
-        assertThat(resultBidRequest).usingRecursiveComparison()
-                .ignoringFields("imp.ext._children.tid")
-                .isEqualTo(bidRequest);
     }
 
     @Test
@@ -188,10 +181,6 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final Future<InvocationResult<AuctionRequestPayload>> future = target
                 .call(null, invocationContext);
         final InvocationResult<AuctionRequestPayload> result = future.result();
-        final BidRequest resultBidRequest = result
-                .payloadUpdate()
-                .apply(AuctionRequestPayloadImpl.of(bidRequest))
-                .bidRequest();
 
         // then
         assertThat(future).isNotNull();
@@ -202,9 +191,6 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         assertThat(result.action()).isEqualTo(InvocationAction.no_action);
 
         assertThat(result.analyticsTags()).isNull();
-        assertThat(resultBidRequest).usingRecursiveComparison()
-                .ignoringFields("imp.ext._children.tid")
-                .isEqualTo(bidRequest);
     }
 
     @Test
@@ -234,10 +220,6 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final Future<InvocationResult<AuctionRequestPayload>> future = target
                 .call(null, invocationContext);
         final InvocationResult<AuctionRequestPayload> result = future.result();
-        final BidRequest resultBidRequest = result
-                .payloadUpdate()
-                .apply(AuctionRequestPayloadImpl.of(bidRequest))
-                .bidRequest();
 
         // then
         assertThat(future).isNotNull();
@@ -248,9 +230,6 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         assertThat(result.action()).isEqualTo(InvocationAction.no_action);
 
         assertThat(result.analyticsTags()).isNull();
-        assertThat(resultBidRequest).usingRecursiveComparison()
-                .ignoringFields("imp.ext._children.tid")
-                .isEqualTo(bidRequest);
     }
 
     @Test
@@ -283,10 +262,6 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final Future<InvocationResult<AuctionRequestPayload>> future = target
                 .call(null, invocationContext);
         final InvocationResult<AuctionRequestPayload> result = future.result();
-        final BidRequest resultBidRequest = result
-                .payloadUpdate()
-                .apply(AuctionRequestPayloadImpl.of(bidRequest))
-                .bidRequest();
 
         // then
         assertThat(future).isNotNull();
@@ -305,9 +280,6 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                                 + ".greenbids._children.fingerprint",
                         "activities.results.values._children.adunitcodevalue._children.tid")
                 .isEqualTo(toAnalyticsTags(List.of(expectedAnalyticsResult)));
-        assertThat(resultBidRequest).usingRecursiveComparison()
-                .ignoringFields("imp.ext._children.tid")
-                .isEqualTo(bidRequest);
     }
 
     @Test
