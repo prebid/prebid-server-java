@@ -63,6 +63,7 @@ class AnalyticsSpec extends BaseSpec {
         pbsServiceWithLogAnalytics.sendAuctionRequest(bidRequest)
 
         then: "PBS should call log analytics"
+        PBSUtils.waitUntil({ pbsServiceWithLogAnalytics.isContainLogsByValue(bidRequest.id) })
         def logsByValue = pbsServiceWithLogAnalytics.getLogsByValue(bidRequest.id)
         assert logsByValue
 
@@ -105,6 +106,7 @@ class AnalyticsSpec extends BaseSpec {
         pbsServiceWithLogAnalytics.sendAuctionRequest(bidRequest)
 
         then: "PBS should call log analytics"
+        PBSUtils.waitUntil({ pbsServiceWithLogAnalytics.isContainLogsByValue(bidRequest.id) })
         def logsByValue = pbsServiceWithLogAnalytics.getLogsByValue(bidRequest.id)
         assert logsByValue
 
@@ -168,6 +170,7 @@ class AnalyticsSpec extends BaseSpec {
         pbsServiceWithLogAnalytics.sendAuctionRequest(bidRequest)
 
         then: "PBS should call log analytics"
+        PBSUtils.waitUntil({ pbsServiceWithLogAnalytics.isContainLogsByValue(bidRequest.id) })
         def logsByValue = pbsServiceWithLogAnalytics.getLogsByValue(bidRequest.id)
         assert logsByValue
 
@@ -194,6 +197,7 @@ class AnalyticsSpec extends BaseSpec {
         pbsServiceWithLogAnalytics.sendAuctionRequest(bidRequest)
 
         then: "PBS should call log analytics"
+        PBSUtils.waitUntil({ pbsServiceWithLogAnalytics.isContainLogsByValue(bidRequest.id) })
         def logsByValue = pbsServiceWithLogAnalytics.getLogsByValue(bidRequest.id)
         assert logsByValue
 
@@ -221,6 +225,7 @@ class AnalyticsSpec extends BaseSpec {
         pbsServiceWithLogAnalytics.sendAuctionRequest(bidRequest)
 
         then: "PBS should call log analytics"
+        PBSUtils.waitUntil({ pbsServiceWithLogAnalytics.isContainLogsByValue(bidRequest.id) })
         def logsByValue = pbsServiceWithLogAnalytics.getLogsByValue(bidRequest.id)
         assert logsByValue
 

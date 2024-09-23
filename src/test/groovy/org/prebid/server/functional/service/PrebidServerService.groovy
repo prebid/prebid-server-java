@@ -383,6 +383,14 @@ class PrebidServerService implements ObjectMapperWrapper {
         if (!value) {
             throw new IllegalArgumentException("Value is null or empty")
         }
+        getPbsLogsByValue(value)
+    }
+
+    Boolean isContainLogsByValue(String value) {
+        getPbsLogsByValue(value) != null
+    }
+
+    private String getPbsLogsByValue(String value) {
         pbsContainer.logs.split("\n").find { it.contains(value) }
     }
 
