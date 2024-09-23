@@ -57,6 +57,7 @@ public class AgmaAnalyticsReporter implements AnalyticsReporter, Initializable {
 
     private final String url;
     private final boolean compressToGzip;
+    private final long bufferTimeoutMs;
     private final long httpTimeoutMs;
 
     private final EventBuffer<String> buffer;
@@ -79,6 +80,7 @@ public class AgmaAnalyticsReporter implements AnalyticsReporter, Initializable {
         this.accounts = agmaAnalyticsProperties.getAccounts();
 
         this.url = HttpUtil.validateUrl(agmaAnalyticsProperties.getUrl());
+        this.bufferTimeoutMs = agmaAnalyticsProperties.getBufferTimeoutMs();
         this.httpTimeoutMs = agmaAnalyticsProperties.getHttpTimeoutMs();
         this.compressToGzip = agmaAnalyticsProperties.isGzip();
 
@@ -95,7 +97,7 @@ public class AgmaAnalyticsReporter implements AnalyticsReporter, Initializable {
 
     @Override
     public void initialize(Promise<Void> initializePromise) {
-        vertx.setPeriodic(1000L, ignored -> sendEvents(buffer.pollAll()));
+        vertx.setPeriodic(bufferTimeoutMs, ignored -> sendEvents(buffer.pollAll()));
         initializePromise.complete();
     }
 
