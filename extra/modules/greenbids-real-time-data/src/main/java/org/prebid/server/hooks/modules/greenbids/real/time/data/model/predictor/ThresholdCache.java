@@ -22,19 +22,19 @@ public class ThresholdCache {
 
     private static final Logger logger = LoggerFactory.getLogger(ThresholdCache.class);
 
-    String gcsBucketName;
+    private final String gcsBucketName;
 
-    Cache<String, ThrottlingThresholds> cache;
+    private final Cache<String, ThrottlingThresholds> cache;
 
-    Storage storage;
+    private final Storage storage;
 
-    ObjectMapper mapper;
+    private final ObjectMapper mapper;
 
-    String thresholdsCacheKeyPrefix;
+    private final String thresholdsCacheKeyPrefix;
 
-    AtomicBoolean isFetching;
+    private final AtomicBoolean isFetching;
 
-    Vertx vertx;
+    private final Vertx vertx;
 
     public ThresholdCache(
             Storage storage,
