@@ -155,13 +155,21 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                 ? Collections.singletonList(analyticsResult)
                 : Collections.emptyList();
 
-        return InvocationResultImpl
-                .<AuctionRequestPayload>builder()
-                .status(InvocationStatus.success)
-                .action(action)
-                .payloadUpdate(payload -> AuctionRequestPayloadImpl.of(bidRequest))
-                .analyticsTags(toAnalyticsTags(analyticsResults))
-                .build();
+        return switch (action) {
+            case InvocationAction.update -> InvocationResultImpl
+                    .<AuctionRequestPayload>builder()
+                    .status(InvocationStatus.success)
+                    .action(action)
+                    .payloadUpdate(payload -> AuctionRequestPayloadImpl.of(bidRequest))
+                    .analyticsTags(toAnalyticsTags(analyticsResults))
+                    .build();
+            default -> InvocationResultImpl
+                    .<AuctionRequestPayload>builder()
+                    .status(InvocationStatus.success)
+                    .action(action)
+                    .analyticsTags(toAnalyticsTags(analyticsResults))
+                    .build();
+        };
     }
 
     private Tags toAnalyticsTags(List<AnalyticsResult> analyticsResults) {
