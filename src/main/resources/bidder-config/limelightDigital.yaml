@@ -36,6 +36,8 @@ adapters:
       embimedia:
         enabled: false
         endpoint: http://ads-pbs.bidder-embi.media/openrtb/{{PublisherID}}?host={{Host}}
+      tgm:
+        enabled: false
     meta-info:
       maintainer-email: engineering@project-limelight.com
       app-media-types:
