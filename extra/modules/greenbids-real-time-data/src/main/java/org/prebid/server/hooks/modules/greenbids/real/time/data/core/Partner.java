@@ -5,6 +5,7 @@ import lombok.Value;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.IntStream;
 
 @Value(staticConstructor = "of")
 public class Partner {
@@ -21,9 +22,11 @@ public class Partner {
         final List<Double> truePositiveRates = throttlingThresholds.getTpr();
         final List<Double> thresholds = throttlingThresholds.getThresholds();
 
-        return truePositiveRates.stream()
-                .filter(truePositiveRate -> truePositiveRate >= targetTpr)
-                .map(truePositiveRate -> thresholds.get(truePositiveRates.indexOf(truePositiveRate)))
+        final int minSize = Math.min(truePositiveRates.size(), thresholds.size());
+
+        return IntStream.range(0, minSize)
+                .filter(i -> truePositiveRates.get(i) >= targetTpr)
+                .mapToObj(thresholds::get)
                 .max(Comparator.naturalOrder())
                 .orElse(0.0);
     }

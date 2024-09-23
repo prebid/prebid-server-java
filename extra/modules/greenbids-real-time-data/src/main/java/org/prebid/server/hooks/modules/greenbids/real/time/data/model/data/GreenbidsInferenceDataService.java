@@ -51,7 +51,7 @@ public class GreenbidsInferenceDataService {
                 mapper);
     }
 
-    private static List<ThrottlingMessage> extractThrottlingMessages(
+    private List<ThrottlingMessage> extractThrottlingMessages(
             BidRequest bidRequest,
             GreenbidsUserAgent greenbidsUserAgent,
             DatabaseReader dbReader,
@@ -78,7 +78,7 @@ public class GreenbidsInferenceDataService {
                 .collect(Collectors.toList());
     }
 
-    private static List<ThrottlingMessage> extractMessagesForImp(
+    private List<ThrottlingMessage> extractMessagesForImp(
             Imp imp,
             BidRequest bidRequest,
             GreenbidsUserAgent greenbidsUserAgent,
@@ -105,7 +105,7 @@ public class GreenbidsInferenceDataService {
                 minuteQuadrant);
     }
 
-    private static String getCountry(String ip, DatabaseReader dbReader) {
+    private String getCountry(String ip, DatabaseReader dbReader) {
         if (ip == null) {
             return null;
         }
@@ -120,7 +120,7 @@ public class GreenbidsInferenceDataService {
         }
     }
 
-    private static List<ThrottlingMessage> createThrottlingMessages(
+    private List<ThrottlingMessage> createThrottlingMessages(
             JsonNode bidderNode,
             String impId,
             GreenbidsUserAgent greenbidsUserAgent,
@@ -152,7 +152,7 @@ public class GreenbidsInferenceDataService {
         return throttlingImpMessages;
     }
 
-    private static ThrottlingMessage buildThrottlingMessage(
+    private ThrottlingMessage buildThrottlingMessage(
             String bidderName,
             String impId,
             GreenbidsUserAgent greenbidsUserAgent,
@@ -181,7 +181,7 @@ public class GreenbidsInferenceDataService {
                 .build();
     }
 
-    private static ExtImpPrebid extImpPrebid(JsonNode extImpPrebid, ObjectMapper mapper) {
+    private ExtImpPrebid extImpPrebid(JsonNode extImpPrebid, ObjectMapper mapper) {
         try {
             return mapper.treeToValue(extImpPrebid, ExtImpPrebid.class);
         } catch (JsonProcessingException e) {

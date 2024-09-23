@@ -9,14 +9,12 @@ import java.util.Collections;
 
 public class OnnxModelRunner {
 
+    private static final OrtEnvironment ENVIRONMENT = OrtEnvironment.getEnvironment();
+
     private final OrtSession session;
 
-    private final OrtEnvironment environment;
-
     public OnnxModelRunner(byte[] onnxModelBytes) throws OrtException {
-        environment = OrtEnvironment.getEnvironment();
-        final OrtSession.SessionOptions options = new OrtSession.SessionOptions();
-        session = environment.createSession(onnxModelBytes, options);
+        session = ENVIRONMENT.createSession(onnxModelBytes, new OrtSession.SessionOptions());
     }
 
     public OrtSession.Result runModel(String[][] throttlingInferenceRow) throws OrtException {
