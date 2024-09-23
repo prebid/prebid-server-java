@@ -1,8 +1,10 @@
 package org.prebid.server.hooks.modules.greenbids.real.time.data.model.result;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.Partner;
 import org.prebid.server.hooks.v1.InvocationAction;
 
@@ -24,10 +26,11 @@ public class GreenbidsInvocationService {
         final String greenbidsId = UUID.randomUUID().toString();
         final boolean isExploration = isExploration(partner, greenbidsId);
 
-        final List<Imp> impsWithFilteredBidders = updateImps(bidRequest, impsBiddersFilterMap);
         final BidRequest updatedBidRequest = isExploration
                 ? bidRequest
-                : bidRequest.toBuilder().imp(impsWithFilteredBidders).build();
+                : bidRequest.toBuilder()
+                .imp(updateImps(bidRequest, impsBiddersFilterMap))
+                .build();
         final InvocationAction invocationAction = isExploration
                 ? InvocationAction.no_action
                 : InvocationAction.update;
@@ -100,7 +103,11 @@ public class GreenbidsInvocationService {
             String greenbidsId,
             Boolean isExploration) {
 
-        final String tid = imp.getExt().get("tid").asText();
+        final String tid = Optional.ofNullable(imp)
+                .map(Imp::getExt)
+                .map(impExt -> impExt.get("tid"))
+                .map(JsonNode::asText)
+                .orElse(StringUtils.EMPTY);
         final Map<String, Boolean> impBiddersFilterMap = impsBiddersFilterMap.get(imp.getId());
         final ExplorationResult explorationResult = ExplorationResult.of(
                 greenbidsId, impBiddersFilterMap, isExploration);
