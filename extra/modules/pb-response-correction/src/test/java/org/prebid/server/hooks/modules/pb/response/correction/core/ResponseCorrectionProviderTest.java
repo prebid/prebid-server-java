@@ -17,16 +17,16 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 
 @ExtendWith(MockitoExtension.class)
-public class CorrectionsProviderTest {
+public class ResponseCorrectionProviderTest {
 
     @Mock
     private CorrectionProducer correctionProducer;
 
-    private CorrectionsProvider target;
+    private ResponseCorrectionProvider target;
 
     @BeforeEach
     public void setUp() {
-        target = new CorrectionsProvider(singletonList(correctionProducer));
+        target = new ResponseCorrectionProvider(singletonList(correctionProducer));
     }
 
     @Test

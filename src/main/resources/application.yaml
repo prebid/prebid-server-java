@@ -284,7 +284,7 @@ ipv6:
   private-networks: ::1/128, 2001:db8::/32, fc00::/7, fe80::/10, ff00::/8
 analytics:
   global:
-    adapters: logAnalytics, pubstack, greenbids
+    adapters: logAnalytics, pubstack, greenbids, agmaAnalytics
   pubstack:
     enabled: false
     endpoint: http://localhost:8090
@@ -300,5 +300,17 @@ analytics:
     analytics-server: http://localhost:8090
     exploratory-sampling-split: 0.9
     timeout-ms: 10000
+  agma:
+    enabled: false
+    accounts:
+      - code: code
+        publisher-id: pub
+    buffers:
+      size-bytes: 100000
+      timeout-ms: 5000
+      count: 4
+    endpoint:
+      url: http:/url.com
+      timeout-ms: 5000
 price-floors:
   enabled: false

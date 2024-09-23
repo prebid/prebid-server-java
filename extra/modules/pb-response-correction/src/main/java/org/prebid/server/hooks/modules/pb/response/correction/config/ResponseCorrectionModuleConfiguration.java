@@ -4,7 +4,7 @@ import org.prebid.server.hooks.modules.pb.response.correction.core.correction.Co
 import org.prebid.server.hooks.modules.pb.response.correction.core.correction.appvideohtml.AppVideoHtmlCorrection;
 import org.prebid.server.hooks.modules.pb.response.correction.core.correction.appvideohtml.AppVideoHtmlCorrectionProducer;
 import org.prebid.server.hooks.modules.pb.response.correction.v1.ResponseCorrectionModule;
-import org.prebid.server.hooks.modules.pb.response.correction.core.CorrectionsProvider;
+import org.prebid.server.hooks.modules.pb.response.correction.core.ResponseCorrectionProvider;
 import org.prebid.server.json.ObjectMapperProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -26,12 +26,12 @@ public class ResponseCorrectionModuleConfiguration {
     }
 
     @Bean
-    CorrectionsProvider correctionsProvider(List<CorrectionProducer> correctionsProducers) {
-        return new CorrectionsProvider(correctionsProducers);
+    ResponseCorrectionProvider responseCorrectionProvider(List<CorrectionProducer> correctionProducers) {
+        return new ResponseCorrectionProvider(correctionProducers);
     }
 
     @Bean
-    ResponseCorrectionModule responseCorrectionModule(CorrectionsProvider correctionsProvider) {
-        return new ResponseCorrectionModule(correctionsProvider, ObjectMapperProvider.mapper());
+    ResponseCorrectionModule responseCorrectionModule(ResponseCorrectionProvider responseCorrectionProvider) {
+        return new ResponseCorrectionModule(responseCorrectionProvider, ObjectMapperProvider.mapper());
     }
 }
