@@ -42,7 +42,8 @@ public class Ortb2BlockingBidderRequestHook implements BidderRequestHook {
         final BidRequest bidRequest = bidderRequestPayload.bidRequest();
 
         final ModuleContext moduleContext = moduleContext(invocationContext)
-                .with(bidder, bidderSupportedOrtbVersion(bidder, aliases(bidRequest)));
+                .with(bidder, bidderSupportedOrtbVersion(
+                        bidder, aliases(invocationContext.auctionContext().getBidRequest())));
 
         final ExecutionResult<BlockedAttributes> blockedAttributesResult = BlockedAttributesResolver
                 .create(
