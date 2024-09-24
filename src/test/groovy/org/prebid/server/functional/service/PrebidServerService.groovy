@@ -379,6 +379,21 @@ class PrebidServerService implements ObjectMapperWrapper {
         filteredLogs
     }
 
+    String getLogsByValue(String value) {
+        if (!value) {
+            throw new IllegalArgumentException("Value is null or empty")
+        }
+        getPbsLogsByValue(value)
+    }
+
+    Boolean isContainLogsByValue(String value) {
+        getPbsLogsByValue(value) != null
+    }
+
+    private String getPbsLogsByValue(String value) {
+        pbsContainer.logs.split("\n").find { it.contains(value) }
+    }
+
     <T> T getValueFromContainer(String path, Class<T> clazz) {
         pbsContainer.copyFileFromContainer(path, { inputStream ->
             return decode(inputStream, clazz)

@@ -32,6 +32,7 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import java.time.Clock;
 import java.util.List;
+import java.util.Set;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -45,7 +46,9 @@ public class AnalyticsConfiguration {
             TcfEnforcement tcfEnforcement,
             UserFpdActivityMask userFpdActivityMask,
             Metrics metrics,
-            @Value("${logging.sampling-rate:0.01}") double logSamplingRate) {
+            @Value("${logging.sampling-rate:0.01}") double logSamplingRate,
+            @Value("${analytics.global.adapters}") Set<String> globalEnabledAdapters,
+            JacksonMapper mapper) {
 
         return new AnalyticsReporterDelegator(
                 vertx,
@@ -53,7 +56,9 @@ public class AnalyticsConfiguration {
                 tcfEnforcement,
                 userFpdActivityMask,
                 metrics,
-                logSamplingRate);
+                logSamplingRate,
+                globalEnabledAdapters,
+                mapper);
     }
 
     @Bean
