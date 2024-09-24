@@ -15,4 +15,7 @@ public class ExtStoredAuctionResponse {
 
     @JsonProperty("seatbidarr")
     List<SeatBid> seatBids;
+
+    @JsonProperty("seatbidobj")
+    SeatBid seatBid;
 }

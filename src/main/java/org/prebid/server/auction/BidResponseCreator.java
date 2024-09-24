@@ -18,6 +18,7 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
@@ -191,10 +192,11 @@ public class BidResponseCreator {
                 .tmaxrequest(bidRequest.getTmax())
                 .build();
 
+        final List<String> cur = bidRequest.getCur();
         final BidResponse bidResponse = BidResponse.builder()
                 .id(bidRequest.getId())
-                .cur(Stream.ofNullable(bidRequest.getCur()).flatMap(Collection::stream).findFirst().orElse(null))
-                .seatbid(Optional.ofNullable(seatBids).orElse(Collections.emptyList()))
+                .cur(CollectionUtils.isNotEmpty(cur) ? cur.getFirst() : null)
+                .seatbid(ListUtils.emptyIfNull(seatBids))
                 .ext(extBidResponse)
                 .build();
 

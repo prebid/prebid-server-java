@@ -1347,7 +1347,7 @@ public class ImpValidatorTest extends VertxTest {
         // given
         final ObjectNode prebid = mapper.valueToTree(ExtImpPrebid.builder()
                 .storedBidResponse(singletonList(ExtStoredBidResponse.of("bidder", "id")))
-                .storedAuctionResponse(ExtStoredAuctionResponse.of("id", null))
+                .storedAuctionResponse(ExtStoredAuctionResponse.of("id", null, null))
                 .build());
 
         final List<Imp> givenImps = singletonList(validImpBuilder()
