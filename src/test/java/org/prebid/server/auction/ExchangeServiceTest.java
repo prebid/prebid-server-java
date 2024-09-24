@@ -3338,15 +3338,16 @@ public class ExchangeServiceTest extends VertxTest {
                 contextArgumentCaptor.getValue().getAuctionParticipations();
         assertThat(auctionParticipations).hasSize(1);
 
-        final BidderError expectedError = BidderError.badInput(
-                "a single currency (CUR1) has been chosen for the request. "
-                        + "ORTB 2.6 requires that all responses are in the same currency.");
         final BidderSeatBid firstSeatBid = auctionParticipations.getFirst().getBidderResponse().getSeatBid();
         assertThat(firstSeatBid.getBids())
                 .extracting(BidderBid::getBid)
                 .flatExtracting(Bid::getPrice)
                 .containsOnly(updatedPrice);
-        assertThat(firstSeatBid.getErrors()).containsOnly(expectedError);
+
+        final BidderError expectedError = BidderError.badInput(
+                "a single currency (CUR1) has been chosen for the request. "
+                        + "ORTB 2.6 requires that all responses are in the same currency.");
+        assertThat(firstSeatBid.getWarnings()).containsOnly(expectedError);
     }
 
     @Test
