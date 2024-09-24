@@ -4,13 +4,10 @@ import org.prebid.server.functional.model.Currency
 import org.prebid.server.functional.model.mock.services.currencyconversion.CurrencyConversionRatesResponse
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.response.auction.BidResponse
-import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.scaffolding.CurrencyConversion
-import spock.lang.IgnoreRest
 
 import java.math.RoundingMode
-import java.time.Instant
 
 import static org.prebid.server.functional.model.Currency.CAD
 import static org.prebid.server.functional.model.Currency.CHF
