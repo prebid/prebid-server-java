@@ -4,16 +4,20 @@ import org.prebid.server.functional.model.Currency
 import org.prebid.server.functional.model.mock.services.currencyconversion.CurrencyConversionRatesResponse
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.response.auction.BidResponse
+import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.scaffolding.CurrencyConversion
+import spock.lang.IgnoreRest
 
 import java.math.RoundingMode
+import java.time.Instant
 
 import static org.prebid.server.functional.model.Currency.CAD
 import static org.prebid.server.functional.model.Currency.CHF
 import static org.prebid.server.functional.model.Currency.EUR
 import static org.prebid.server.functional.model.Currency.JPY
 import static org.prebid.server.functional.model.Currency.USD
+import static org.prebid.server.functional.model.response.auction.ErrorType.GENERIC
 import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
 
 class CurrencySpec extends BaseSpec {
@@ -144,6 +148,49 @@ class CurrencySpec extends BaseSpec {
         JPY             || CAD
         EUR             || CHF
         CHF             || EUR
+    }
+
+    def "PBS should emit warning when request contain more that one currency"() {
+        given: "Default BidRequest with currencies"
+        def currencies = [EUR, USD]
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            cur = currencies
+        }
+
+        when: "PBS processes auction request"
+        def bidResponse = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "Auction response should contain default currency"
+        assert bidResponse.cur == currencies[0]
+
+        and: "Bidder request should contain default currency"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.cur == currencies
+
+        and: "Bid response should contain warnings"
+        assert bidResponse.ext.warnings[GENERIC]?.message == ["a single currency (${currencies[0]}) has been chosen for the request. " +
+                "ORTB 2.6 requires that all responses are in the same currency." as String]
+    }
+
+    def "PBS shouldn't emit warning when request contain one currency"() {
+        given: "Default BidRequest with currencies"
+        def currency = [USD]
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            cur = currency
+        }
+
+        when: "PBS processes auction request"
+        def bidResponse = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "Auction response should contain default currency"
+        assert bidResponse.cur == currency[0]
+
+        and: "Bidder request should contain default currency"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.cur == currency
+
+        and: "Bid response shouldn't contain warnings"
+        assert !bidResponse.ext.warnings
     }
 
     private static Map<String, String> getExternalCurrencyConverterConfig() {
