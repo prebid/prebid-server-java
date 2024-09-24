@@ -179,7 +179,8 @@ public class SkippedAuctionServiceTest {
     @Test
     public void skipAuctionShouldReturnEmptySeatBidsWhenSeatBidIsNull() {
         // given
-        final ExtStoredAuctionResponse givenStoredResponse = ExtStoredAuctionResponse.of("id", singletonList(null), null);
+        final ExtStoredAuctionResponse givenStoredResponse = ExtStoredAuctionResponse.of(
+                "id", singletonList(null), null);
         final AuctionContext givenAuctionContext = AuctionContext.builder()
                 .debugWarnings(new ArrayList<>())
                 .bidRequest(BidRequest.builder()
