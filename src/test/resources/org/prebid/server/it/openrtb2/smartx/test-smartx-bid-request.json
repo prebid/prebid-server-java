@@ -40,10 +40,8 @@
   "cur": [
     "USD"
   ],
-  "regs": {
-    "ext": {
-      "gdpr": 0
-    }
+  "regs" : {
+    "gdpr" : 0
   },
   "ext": {
     "prebid": {
