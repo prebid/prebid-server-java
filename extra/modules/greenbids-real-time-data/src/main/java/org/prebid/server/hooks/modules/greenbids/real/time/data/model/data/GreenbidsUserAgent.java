@@ -51,7 +51,7 @@ public class GreenbidsUserAgent {
                         || PC_OS_FAMILIES.contains(osFamily())
                         || ("Windows".equals(osFamily()) && "ME".equals(osMajor()))
                         || ("Mac OS X".equals(osFamily()) && !userAgent.contains("Silk"))
-                        || userAgent.contains("Linux") && userAgent.contains("X11"))
+                        || (userAgent.contains("Linux") && userAgent.contains("X11")))
                 .orElse(false);
     }
 

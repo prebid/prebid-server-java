@@ -1,6 +1,7 @@
 package org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor;
 
 import ai.onnxruntime.OnnxTensor;
+import ai.onnxruntime.OnnxValue;
 import ai.onnxruntime.OrtException;
 import ai.onnxruntime.OrtSession;
 import org.prebid.server.exception.PreBidException;
@@ -49,12 +50,40 @@ public class FilterService {
             List<ThrottlingMessage> throttlingMessages,
             Double threshold) {
 
+        validateThrottlingMessages(throttlingMessages);
+
         return StreamSupport.stream(results.spliterator(), false)
-                .filter(onnxItem -> Objects.equals(onnxItem.getKey(), "probabilities"))
+                .filter(onnxItem -> {
+                    validateOnnxTensor(onnxItem);
+                    return Objects.equals(onnxItem.getKey(), "probabilities");
+                })
                 .map(onnxItem -> (OnnxTensor) onnxItem.getValue())
-                .map(tensor -> extractAndProcessProbabilities(tensor, throttlingMessages, threshold))
+                .map(tensor -> {
+                    validateTensorSize(tensor, throttlingMessages.size());
+                    return extractAndProcessProbabilities(tensor, throttlingMessages, threshold);
+                })
                 .flatMap(map -> map.entrySet().stream())
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
+
+    private void validateThrottlingMessages(List<ThrottlingMessage> throttlingMessages) {
+        if (throttlingMessages == null || throttlingMessages.isEmpty()) {
+            throw new PreBidException("throttlingMessages cannot be null or empty");
+        }
+    }
+
+    private void validateOnnxTensor(Map.Entry<String, OnnxValue> onnxItem) {
+        if (!(onnxItem.getValue() instanceof OnnxTensor)) {
+            throw new PreBidException("Expected OnnxTensor for 'probabilities', but found: "
+                    + onnxItem.getValue().getClass().getName());
+        }
+    }
+
+    private void validateTensorSize(OnnxTensor tensor, int expectedSize) {
+        final long[] tensorShape = tensor.getInfo().getShape();
+        if (tensorShape.length == 0 || tensorShape[0] != expectedSize) {
+            throw new PreBidException("Mismatch between tensor size and throttlingMessages size");
+        }
     }
 
     private Map<String, Map<String, Boolean>> extractAndProcessProbabilities(
