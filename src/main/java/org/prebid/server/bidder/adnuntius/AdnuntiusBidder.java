@@ -19,6 +19,7 @@ import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
@@ -27,7 +28,9 @@ import org.prebid.server.bidder.adnuntius.model.request.AdnuntiusMetaData;
 import org.prebid.server.bidder.adnuntius.model.request.AdnuntiusRequest;
 import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusAd;
 import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusAdsUnit;
+import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusAdvertiser;
 import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusBid;
+import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusBidExt;
 import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusGrossBid;
 import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusNetBid;
 import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusResponse;
@@ -42,10 +45,12 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsa;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.adnuntius.ExtImpAdnuntius;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidDsa;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
 
@@ -356,10 +361,10 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
             final String bidType = extImpAdnuntius.getBidType();
             currency = ObjectUtil.getIfNotNull(ad.getBid(), AdnuntiusBid::getCurrency);
 
-            bids.add(createBid(ad, adsUnit.getHtml(), impId, bidType));
+            bids.add(createBid(ad, bidRequest, adsUnit.getHtml(), impId, bidType));
 
             for (AdnuntiusAd deal : ListUtils.emptyIfNull(adsUnit.getDeals())) {
-                bids.add(createBid(deal, deal.getHtml(), impId, bidType));
+                bids.add(createBid(deal, bidRequest, deal.getHtml(), impId, bidType));
             }
         }
 
@@ -374,8 +379,9 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
         return CollectionUtils.isNotEmpty(ads) && ads.getFirst() != null;
     }
 
-    private static Bid createBid(AdnuntiusAd ad, String adm, String impId, String bidType) {
+    private Bid createBid(AdnuntiusAd ad, BidRequest bidRequest, String adm, String impId, String bidType) {
         final String adId = ad.getAdId();
+        final AdnuntiusBidExt bidExt = prepareBidExt(ad, bidRequest);
 
         return Bid.builder()
                 .id(adId)
@@ -389,7 +395,30 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
                 .price(resolvePrice(ad, bidType))
                 .adm(adm)
                 .adomain(extractDomain(ad.getDestinationUrls()))
+                .ext(bidExt == null ? null : mapper.mapper().valueToTree(bidExt))
                 .build();
+    }
+
+    private static AdnuntiusBidExt prepareBidExt(AdnuntiusAd ad, BidRequest bidRequest) {
+        final ExtRegsDsa extRegsDsa = Optional.ofNullable(bidRequest.getRegs())
+                .map(Regs::getExt)
+                .map(ExtRegs::getDsa)
+                .orElse(null);
+
+        final AdnuntiusAdvertiser advertiser = ad.getAdvertiser();
+
+        if (advertiser != null && advertiser.getName() != null && extRegsDsa != null) {
+            final String legalName = ObjectUtils.firstNonNull(advertiser.getLegalName(), advertiser.getName());
+            final ExtBidDsa dsa = ExtBidDsa.builder()
+                    .adRender(0)
+                    .paid(legalName)
+                    .behalf(legalName)
+                    .build();
+
+            return AdnuntiusBidExt.of(dsa);
+        }
+
+        return null;
     }
 
     private static Integer parseMeasure(String measure) {
