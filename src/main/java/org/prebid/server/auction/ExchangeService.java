@@ -1388,8 +1388,9 @@ public class ExchangeService {
 
         final List<String> requestCurrencies = bidRequest.getCur();
         if (requestCurrencies.size() > 1) {
-            errors.add(BidderError.badInput("Cur parameter contains more than one currency. %s will be used"
-                    .formatted(requestCurrencies.getFirst())));
+            errors.add(BidderError.badInput(
+                    "a single currency (%s) has been chosen for the request. ".formatted(requestCurrencies.getFirst())
+                        + "ORTB 2.6 requires that all responses are in the same currency."));
         }
 
         final List<BidderBid> bids = seatBid.getBids();
