@@ -19,6 +19,7 @@ import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.prebid.server.analytics.reporter.greenbids.model.ExplorationResult;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingThresholds;
@@ -29,7 +30,6 @@ import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.OnnxModelRunnerWithThresholds;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.ThresholdCache;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.result.AnalyticsResult;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.model.result.ExplorationResult;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.result.GreenbidsInvocationService;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.result.Ortb2ImpExtResult;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.model.analytics.ActivityImpl;
