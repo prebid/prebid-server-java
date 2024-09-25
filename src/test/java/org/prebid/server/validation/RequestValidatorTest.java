@@ -13,11 +13,10 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Pmp;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
-import com.iab.openrtb.request.Uid;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -1136,60 +1135,6 @@ public class RequestValidatorTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly("request.user.eids[0] missing required field: \"source\"");
-    }
-
-    @Test
-    public void validateShouldReturnValidationMessageWhenEidHasNoUids() {
-        // given
-        final BidRequest bidRequest = validBidRequestBuilder()
-                .user(User.builder()
-                        .eids(singletonList(Eid.of("source", null, null)))
-                        .build())
-                .build();
-
-        // when
-        final ValidationResult result = target.validate(bidRequest, null);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.user.eids[0].uids must contain at least one element");
-    }
-
-    @Test
-    public void validateShouldReturnValidationMessageWhenEidUidsIsEmpty() {
-        // given
-        final BidRequest bidRequest = validBidRequestBuilder()
-                .user(User.builder()
-                        .eids(singletonList(Eid.of("source", emptyList(), null)))
-                        .build())
-                .build();
-
-        // when
-        final ValidationResult result = target.validate(bidRequest, null);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.user.eids[0].uids must contain at least one element");
-    }
-
-    @Test
-    public void validateShouldReturnValidationMessageWhenEidUidIdIsMissing() {
-        // given
-        final BidRequest bidRequest = validBidRequestBuilder()
-                .user(User.builder()
-                        .eids(singletonList(Eid.of(
-                                "source",
-                                singletonList(Uid.of(null, null, null)),
-                                null)))
-                        .build())
-                .build();
-
-        // when
-        final ValidationResult result = target.validate(bidRequest, null);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.user.eids[0].uids[0] missing required field: \"id\"");
     }
 
     @Test

@@ -4,10 +4,13 @@ import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Dooh;
+import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.Uid;
+import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.ext.web.RoutingContext;
@@ -32,7 +35,6 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
-import org.prebid.server.floors.PriceFloorProcessor;
 import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.hooks.execution.HookStageExecutor;
@@ -51,11 +53,11 @@ import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.model.UpdateResult;
 import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
+import org.prebid.server.proto.openrtb.ext.request.DsaTransparency;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisherPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsa;
-import org.prebid.server.proto.openrtb.ext.request.DsaTransparency;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
@@ -73,12 +75,14 @@ import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.TreeMap;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 public class Ortb2RequestFactory {
 
@@ -99,7 +103,6 @@ public class Ortb2RequestFactory {
     private final ApplicationSettings applicationSettings;
     private final IpAddressHelper ipAddressHelper;
     private final HookStageExecutor hookStageExecutor;
-    private final PriceFloorProcessor priceFloorProcessor;
     private final CountryCodeMapper countryCodeMapper;
     private final Metrics metrics;
 
@@ -115,7 +118,6 @@ public class Ortb2RequestFactory {
                                ApplicationSettings applicationSettings,
                                IpAddressHelper ipAddressHelper,
                                HookStageExecutor hookStageExecutor,
-                               PriceFloorProcessor priceFloorProcessor,
                                CountryCodeMapper countryCodeMapper,
                                Metrics metrics) {
 
@@ -135,7 +137,6 @@ public class Ortb2RequestFactory {
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.ipAddressHelper = Objects.requireNonNull(ipAddressHelper);
         this.hookStageExecutor = Objects.requireNonNull(hookStageExecutor);
-        this.priceFloorProcessor = Objects.requireNonNull(priceFloorProcessor);
         this.countryCodeMapper = Objects.requireNonNull(countryCodeMapper);
         this.metrics = Objects.requireNonNull(metrics);
     }
@@ -204,6 +205,40 @@ public class Ortb2RequestFactory {
         return validationResult.hasErrors()
                 ? Future.failedFuture(new InvalidRequestException(validationResult.getErrors()))
                 : Future.succeededFuture(bidRequest);
+    }
+
+    public BidRequest removeEmptyEids(BidRequest bidRequest, List<String> warnings) {
+        final User user = bidRequest.getUser();
+
+        if (user == null) {
+            return bidRequest;
+        }
+
+        final List<Eid> eids = Stream.ofNullable(user.getEids())
+                .flatMap(Collection::stream)
+                .map(eid -> Eid.of(eid.getSource(), removeEmptyUids(eid, warnings), eid.getExt()))
+                .filter(eid -> CollectionUtils.isNotEmpty(eid.getUids()))
+                .toList();
+
+        if (CollectionUtils.isEmpty(eids) && CollectionUtils.isNotEmpty(user.getEids())) {
+            warnings.add("removed empty EID array");
+        }
+
+        final User modifiedUser = user.toBuilder().eids(CollectionUtils.isEmpty(eids) ? null : eids).build();
+        return bidRequest.toBuilder().user(modifiedUser).build();
+    }
+
+    private List<Uid> removeEmptyUids(Eid eid, List<String> warnings) {
+        return CollectionUtils.emptyIfNull(eid.getUids()).stream()
+                .filter(uid -> {
+                    if (StringUtils.isBlank(uid.getId())) {
+                        warnings.add("removed EID %s due to empty ID".formatted(eid.getSource()));
+                        return false;
+                    }
+
+                    return true;
+                })
+                .toList();
     }
 
     public Future<BidRequest> enrichBidRequestWithGeolocationData(AuctionContext auctionContext) {

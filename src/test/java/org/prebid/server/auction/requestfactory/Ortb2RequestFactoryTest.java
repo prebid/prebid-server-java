@@ -5,10 +5,13 @@ import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Dooh;
+import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.Uid;
+import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
@@ -38,7 +41,6 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
-import org.prebid.server.floors.PriceFloorProcessor;
 import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.hooks.execution.HookStageExecutor;
@@ -120,8 +122,6 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     private IpAddressHelper ipAddressHelper;
     @Mock(strictness = LENIENT)
     private HookStageExecutor hookStageExecutor;
-    @Mock
-    private PriceFloorProcessor priceFloorProcessor;
     @Mock
     private CountryCodeMapper countryCodeMapper;
     @Mock
@@ -1639,6 +1639,63 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .isSameAs(regs);
     }
 
+    @Test
+    public void removeEmptyEidsShouldNotAddWarningWhenEidsAreEmpty() {
+        final User givenUser = User.builder().eids(emptyList()).build();
+        final BidRequest givenBidRequest = givenBidRequest(request -> request.user(givenUser));
+        final List<String> warnings = new ArrayList<>();
+
+        final BidRequest actualBidRequest = target.removeEmptyEids(givenBidRequest, warnings);
+
+        assertThat(actualBidRequest.getUser().getEids()).isNull();
+        assertThat(warnings).isEmpty();
+    }
+
+    @Test
+    public void removeEmptyEidsShouldRemoveEidsWhenNoValidEidsLeft() {
+        final User givenUser = User.builder()
+                .eids(List.of(
+                        Eid.of("source1", List.of(Uid.of("", null, null), Uid.of("", null, null)), null),
+                        Eid.of("source2", List.of(Uid.of("", null, null)), null),
+                        Eid.of("source3", emptyList(), null)))
+                .build();
+
+        final BidRequest givenBidRequest = givenBidRequest(request -> request.user(givenUser));
+        final List<String> warnings = new ArrayList<>();
+
+        final BidRequest actualBidRequest = target.removeEmptyEids(givenBidRequest, warnings);
+
+        assertThat(actualBidRequest.getUser().getEids()).isNull();
+        assertThat(warnings).containsExactlyInAnyOrder(
+                "removed EID source1 due to empty ID",
+                "removed EID source1 due to empty ID",
+                "removed EID source2 due to empty ID",
+                "removed empty EID array");
+    }
+
+    @Test
+    public void removeEmptyEidsShouldRemoveEmptyUidsOnly() {
+        final User givenUser = User.builder()
+                .eids(List.of(
+                        Eid.of("source1", List.of(Uid.of("id1", null, null), Uid.of("", null, null)), null),
+                        Eid.of("source2", List.of(Uid.of("id2", null, null)), null),
+                        Eid.of("source3", List.of(Uid.of("", null, null)), null)))
+                .build();
+
+        final BidRequest givenBidRequest = givenBidRequest(request -> request.user(givenUser));
+        final List<String> warnings = new ArrayList<>();
+
+        final BidRequest actualBidRequest = target.removeEmptyEids(givenBidRequest, warnings);
+
+        assertThat(actualBidRequest.getUser().getEids()).containsExactlyInAnyOrder(
+                Eid.of("source1", List.of(Uid.of("id1", null, null)), null),
+                Eid.of("source2", List.of(Uid.of("id2", null, null)), null));
+
+        assertThat(warnings).containsExactlyInAnyOrder(
+                "removed EID source1 due to empty ID",
+                "removed EID source3 due to empty ID");
+    }
+
     private void givenTarget(int timeoutAdjustmentFactor) {
         target = new Ortb2RequestFactory(
                 timeoutAdjustmentFactor,
@@ -1653,7 +1710,6 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 applicationSettings,
                 ipAddressHelper,
                 hookStageExecutor,
-                priceFloorProcessor,
                 countryCodeMapper,
                 metrics);
     }
