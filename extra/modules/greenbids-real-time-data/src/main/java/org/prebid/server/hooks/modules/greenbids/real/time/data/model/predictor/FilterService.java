@@ -6,6 +6,7 @@ import ai.onnxruntime.OrtException;
 import ai.onnxruntime.OrtSession;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.data.ThrottlingMessage;
+import org.springframework.util.CollectionUtils;
 
 import java.util.HashMap;
 import java.util.List;
@@ -67,7 +68,7 @@ public class FilterService {
     }
 
     private void validateThrottlingMessages(List<ThrottlingMessage> throttlingMessages) {
-        if (throttlingMessages == null || throttlingMessages.isEmpty()) {
+        if (throttlingMessages == null || CollectionUtils.isEmpty(throttlingMessages)) {
             throw new PreBidException("throttlingMessages cannot be null or empty");
         }
     }
