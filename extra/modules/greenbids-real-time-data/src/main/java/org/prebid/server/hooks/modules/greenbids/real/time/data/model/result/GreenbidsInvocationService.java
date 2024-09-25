@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.analytics.reporter.greenbids.model.ExplorationResult;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.Partner;
 import org.prebid.server.hooks.v1.InvocationAction;
 
