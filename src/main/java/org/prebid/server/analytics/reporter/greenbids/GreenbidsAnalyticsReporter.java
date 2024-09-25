@@ -229,25 +229,28 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                         .flatMap(activity -> activity.getResults().stream())
                         .findFirst())
                 .map(ExtModulesTraceAnalyticsResult::getValues)
-                .map(analyticsResult -> {
-                    try {
-                        final Map<String, Ortb2ImpExtResult> parsedAnalyticsResult = new HashMap<>();
-                        final Iterator<Map.Entry<String, JsonNode>> fields = analyticsResult.fields();
+                .map(this::parseAnalyticsResult)
+                .orElse(null);
+    }
 
-                        while (fields.hasNext()) {
-                            final Map.Entry<String, JsonNode> field = fields.next();
-                            final String impId = field.getKey();
-                            final JsonNode explorationResultNode = field.getValue();
-                            final Ortb2ImpExtResult ortb2ImpExtResult = jacksonMapper.mapper()
-                                    .treeToValue(explorationResultNode, Ortb2ImpExtResult.class);
-                            parsedAnalyticsResult.put(impId, ortb2ImpExtResult);
-                        }
+    private Map<String, Ortb2ImpExtResult> parseAnalyticsResult(ObjectNode analyticsResult) {
+        try {
+            final Map<String, Ortb2ImpExtResult> parsedAnalyticsResult = new HashMap<>();
+            final Iterator<Map.Entry<String, JsonNode>> fields = analyticsResult.fields();
 
-                        return parsedAnalyticsResult;
-                    } catch (JsonProcessingException e) {
-                        throw new PreBidException("Analytics result parsing error", e);
-                    }
-                }).orElse(null);
+            while (fields.hasNext()) {
+                final Map.Entry<String, JsonNode> field = fields.next();
+                final String impId = field.getKey();
+                final JsonNode explorationResultNode = field.getValue();
+                final Ortb2ImpExtResult ortb2ImpExtResult = jacksonMapper.mapper()
+                        .treeToValue(explorationResultNode, Ortb2ImpExtResult.class);
+                parsedAnalyticsResult.put(impId, ortb2ImpExtResult);
+            }
+
+            return parsedAnalyticsResult;
+        } catch (JsonProcessingException e) {
+            throw new PreBidException("Analytics result parsing error", e);
+        }
     }
 
     private Future<Void> processAnalyticServerResponse(HttpClientResponse response) {
