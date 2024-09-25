@@ -48,6 +48,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponsePrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtModules;
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTrace;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceAnalyticsActivity;
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceAnalyticsResult;
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceAnalyticsTags;
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceGroup;
@@ -209,28 +210,30 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 .map(ExtBidResponsePrebid::getModules)
                 .map(ExtModules::getTrace)
                 .map(ExtModulesTrace::getStages)
-                .flatMap(stages -> stages.stream()
-                        .filter(stage -> Stage.processed_auction_request.equals(stage.getStage()))
-                        .findFirst())
+                .stream()
+                .flatMap(Collection::stream)
+                .filter(stage -> Stage.processed_auction_request.equals(stage.getStage()))
                 .map(ExtModulesTraceStage::getOutcomes)
-                .flatMap(outcomes -> outcomes.stream()
-                        .filter(outcome -> "auction-request".equals(outcome.getEntity()))
-                        .findFirst())
+                .flatMap(Collection::stream)
+                .filter(outcome -> "auction-request".equals(outcome.getEntity()))
                 .map(ExtModulesTraceStageOutcome::getGroups)
-                .flatMap(groups -> groups.stream().findFirst())
+                .flatMap(Collection::stream)
                 .map(ExtModulesTraceGroup::getInvocationResults)
-                .flatMap(invocationResults -> invocationResults.stream()
-                        .filter(invocationResult -> "greenbids-real-time-data"
-                                .equals(invocationResult.getHookId().getModuleCode()))
-                        .findFirst())
+                .flatMap(Collection::stream)
+                .filter(invocationResult -> "greenbids-real-time-data".equals(
+                        invocationResult.getHookId().getModuleCode()))
                 .map(ExtModulesTraceInvocationResult::getAnalyticsTags)
                 .map(ExtModulesTraceAnalyticsTags::getActivities)
-                .flatMap(activities -> activities.stream()
-                        .flatMap(activity -> activity.getResults().stream())
-                        .findFirst())
+                .map(List::getFirst)
+                .map(ExtModulesTraceAnalyticsActivity::getResults)
+                .map(List::getFirst)
                 .map(ExtModulesTraceAnalyticsResult::getValues)
                 .map(this::parseAnalyticsResult)
-                .orElse(null);
+                .flatMap(map -> map.entrySet().stream())
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        Map.Entry::getValue,
+                        (existing, replacement) -> existing));
     }
 
     private Map<String, Ortb2ImpExtResult> parseAnalyticsResult(ObjectNode analyticsResult) {
