@@ -79,8 +79,10 @@ public class SilverPushBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldPassEidsFromDataToExtEids() {
         // given
-        final List<Eid> givenEids =
-                List.of(Eid.of("testSource", List.of(Uid.of("testUidId", 2, null)), null));
+        final List<Eid> givenEids = List.of(Eid.builder()
+                .source("testSource")
+                .uids(List.of(Uid.builder().id("testUidId").atype(2).build()))
+                .build());
         final ObjectNode givenDataNode = mapper.createObjectNode();
         givenDataNode.set("eids", mapper.valueToTree(givenEids));
         final BidRequest bidRequest = givenBidRequest(requestBuilder -> requestBuilder

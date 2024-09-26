@@ -248,7 +248,8 @@ public class AuctionRequestFactory {
                 .map(ortbVersionConversionManager::convertToAuctionSupportedVersion)
                 .map(bidRequest -> gppService.updateBidRequest(bidRequest, auctionContext))
                 .map(bidRequest -> paramsResolver.resolve(bidRequest, auctionContext, ENDPOINT, hasStoredBidRequest))
-                .map(bidRequest -> cookieDeprecationService.updateBidRequestDevice(bidRequest, auctionContext));
+                .map(bidRequest -> cookieDeprecationService.updateBidRequestDevice(bidRequest, auctionContext))
+                .map(bidRequest -> ortb2RequestFactory.removeEmptyEids(bidRequest, auctionContext.getDebugWarnings()));
     }
 
     private static MetricName requestTypeMetric(BidRequest bidRequest) {
