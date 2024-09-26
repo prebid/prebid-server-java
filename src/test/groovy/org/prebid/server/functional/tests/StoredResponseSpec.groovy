@@ -2,11 +2,14 @@ package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.model.db.StoredResponse
 import org.prebid.server.functional.model.request.auction.BidRequest
+import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.StoredAuctionResponse
 import org.prebid.server.functional.model.request.auction.StoredBidResponse
+import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.model.response.auction.SeatBid
+import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.PendingFeature
 
@@ -248,5 +251,129 @@ class StoredResponseSpec extends BaseSpec {
 
         and: "PBS not send request to bidder"
         assert bidder.getRequestCount(bidRequest.id) == 0
+    }
+
+    def "PBS should set seatBid in response from single imp.ext.prebid.storedBidResponse.seatbidobj when it is defined"() {
+        given: "Default basic BidRequest with stored response"
+        def bidRequest = BidRequest.defaultBidRequest
+        def storedAuctionResponse = SeatBid.getStoredResponse(bidRequest)
+        bidRequest.imp[0].ext.prebid.storedAuctionResponse = new StoredAuctionResponse(seatBidObject:  storedAuctionResponse)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain same stored auction response as requested"
+        assert convertToComparableSeatBid(response.seatbid) == [storedAuctionResponse]
+
+        and: "PBS not send request to bidder"
+        assert bidder.getRequestCount(bidRequest.id) == 0
+    }
+
+    def "PBS should throw error when imp.ext.prebid.storedBidResponse.seatbidobj is with empty seatbid"() {
+        given: "Default basic BidRequest with empty stored response"
+        def bidRequest = BidRequest.defaultBidRequest
+        bidRequest.imp[0].ext.prebid.storedAuctionResponse = new StoredAuctionResponse(seatBidObject:  new SeatBid())
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS throws an exception"
+        def exception = thrown(PrebidServerException)
+        assert exception.statusCode == 400
+        assert exception.responseBody == 'Invalid request format: Seat can\'t be empty in stored response seatBid'
+
+        and: "PBS not send request to bidder"
+        assert bidder.getRequestCount(bidRequest.id) == 0
+    }
+
+    def "PBS should throw error when imp.ext.prebid.storedBidResponse.seatbidobj is with empty bids"() {
+        given: "Default basic BidRequest with empty bids for stored response"
+        def bidRequest = BidRequest.defaultBidRequest
+        bidRequest.imp[0].ext.prebid.storedAuctionResponse = new StoredAuctionResponse(seatBidObject:  new SeatBid(bid: [], seat: GENERIC))
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS throws an exception"
+        def exception = thrown(PrebidServerException)
+        assert exception.statusCode == 400
+        assert exception.responseBody == 'Invalid request format: There must be at least one bid in stored response seatBid'
+
+        and: "PBS not send request to bidder"
+        assert bidder.getRequestCount(bidRequest.id) == 0
+    }
+
+    def "PBS should prefer seatbidobj over storedAuctionResponse.id from imp when both are present"() {
+        given: "Default basic BidRequest with stored response"
+        def bidRequest = BidRequest.defaultBidRequest
+        def storedAuctionResponse = SeatBid.getStoredResponse(bidRequest)
+        bidRequest.imp[0].ext.prebid.storedAuctionResponse = new StoredAuctionResponse().tap {
+            id = PBSUtils.randomString
+            seatBidObject = storedAuctionResponse
+        }
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain same stored auction response as requested"
+        assert convertToComparableSeatBid(response.seatbid) == [storedAuctionResponse]
+
+        and: "PBS not send request to bidder"
+        assert bidder.getRequestCount(bidRequest.id) == 0
+    }
+
+    def "PBS should set seatBids in response from multiple imp.ext.prebid.storedBidResponse.seatbidobj when it is defined"() {
+        given: "BidRequest with multiple imps"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp = [impWithSeatBidObject, impWithSeatBidObject]
+        }
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain same stored auction response bids as requested"
+        assert convertToComparableSeatBid(response.seatbid).bid.flatten().sort() ==
+                bidRequest.imp.ext.prebid.storedAuctionResponse.seatBidObject.bid.flatten().sort()
+
+        and: "PBS not send request to bidder"
+        assert bidder.getRequestCount(bidRequest.id) == 0
+    }
+
+    def "PBS should prefer seatbidarr from request over seatbidobj from imp when both are present"() {
+        given: "Default basic BidRequest with stored response"
+        def bidRequest = BidRequest.defaultBidRequest
+        def storedAuctionResponse = SeatBid.getStoredResponse(bidRequest)
+        bidRequest.tap{
+            imp[0].ext.prebid.storedAuctionResponse = new StoredAuctionResponse().tap {
+                seatBidObject = SeatBid.getStoredResponse(bidRequest)
+            }
+            ext.prebid.storedAuctionResponse = new StoredAuctionResponse(seatBids: [storedAuctionResponse])
+        }
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain same stored auction response as requested"
+        assert response.seatbid == [storedAuctionResponse]
+
+        and: "PBS not send request to bidder"
+        assert bidder.getRequestCount(bidRequest.id) == 0
+    }
+
+    private static final Imp getImpWithSeatBidObject() {
+        def imp = Imp.defaultImpression
+        def bids = Bid.getDefaultBids([imp])
+        def seatBid = new SeatBid(bid: bids, seat: GENERIC)
+        imp.tap {
+            ext.prebid.storedAuctionResponse = new StoredAuctionResponse(seatBidObject: seatBid)
+        }
+    }
+
+    private static final List<SeatBid> convertToComparableSeatBid(List<SeatBid> seatBid) {
+        seatBid*.tap {
+            it.bid*.ext = null
+            it.group = null
+        }
+        seatBid
     }
 }
