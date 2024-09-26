@@ -268,8 +268,7 @@ public class AdnuntiusBidderTest extends VertxTest {
                 request -> request.user(User.builder()
                         .id("userId")
                         .ext(ExtUser.builder()
-                                .eids(List.of(Eid.of(null,
-                                        List.of(Uid.of("eidsId", null, null)), null)))
+                                .eids(List.of(Eid.builder().uids(List.of(Uid.builder().id("eidsId").build())).build()))
                                 .build())
                         .build()),
                 givenImp(ExtImpAdnuntius.builder().network("network").build(), identity()),
@@ -294,8 +293,7 @@ public class AdnuntiusBidderTest extends VertxTest {
                 request -> request.user(User.builder()
                         .id(null)
                         .ext(ExtUser.builder()
-                                .eids(List.of(Eid.of(null,
-                                        List.of(Uid.of("eidsId", null, null)), null)))
+                                .eids(List.of(Eid.builder().uids(List.of(Uid.builder().id("eidsId").build())).build()))
                                 .build())
                         .build()),
                 givenImp(ExtImpAdnuntius.builder().network("network").build(), identity()),

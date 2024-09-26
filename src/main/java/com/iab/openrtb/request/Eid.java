@@ -1,6 +1,7 @@
 package com.iab.openrtb.request;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import lombok.Builder;
 import lombok.Value;
 
 import java.util.List;
@@ -12,7 +13,8 @@ import java.util.List;
  * exchange should ensure that business agreements allow for the sending
  * of this data.
  */
-@Value(staticConstructor = "of")
+@Value
+@Builder(toBuilder = true)
 public class Eid {
 
     /**

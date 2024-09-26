@@ -216,7 +216,7 @@ public class Ortb2RequestFactory {
 
         final List<Eid> eids = Stream.ofNullable(user.getEids())
                 .flatMap(Collection::stream)
-                .map(eid -> Eid.of(eid.getSource(), removeEmptyUids(eid, warnings), eid.getExt()))
+                .map(eid -> eid.toBuilder().uids(removeEmptyUids(eid, warnings)).build())
                 .filter(eid -> CollectionUtils.isNotEmpty(eid.getUids()))
                 .toList();
 

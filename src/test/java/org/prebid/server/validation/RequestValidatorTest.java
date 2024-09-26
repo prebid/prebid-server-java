@@ -1125,7 +1125,7 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .user(User.builder()
-                        .eids(singletonList(Eid.of(null, null, null)))
+                        .eids(singletonList(Eid.builder().build()))
                         .build())
                 .build();
 

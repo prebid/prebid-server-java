@@ -1655,9 +1655,11 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     public void removeEmptyEidsShouldRemoveEidsWhenNoValidEidsLeft() {
         final User givenUser = User.builder()
                 .eids(List.of(
-                        Eid.of("source1", List.of(Uid.of("", null, null), Uid.of("", null, null)), null),
-                        Eid.of("source2", List.of(Uid.of("", null, null)), null),
-                        Eid.of("source3", emptyList(), null)))
+                        Eid.builder().source("source1").uids(List.of(
+                                Uid.builder().id("").build(),
+                                Uid.builder().id("").build())).build(),
+                        Eid.builder().source("source2").uids(List.of(Uid.builder().id("").build())).build(),
+                        Eid.builder().source("source3").uids(emptyList()).build()))
                 .build();
 
         final BidRequest givenBidRequest = givenBidRequest(request -> request.user(givenUser));
@@ -1677,9 +1679,11 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     public void removeEmptyEidsShouldRemoveEmptyUidsOnly() {
         final User givenUser = User.builder()
                 .eids(List.of(
-                        Eid.of("source1", List.of(Uid.of("id1", null, null), Uid.of("", null, null)), null),
-                        Eid.of("source2", List.of(Uid.of("id2", null, null)), null),
-                        Eid.of("source3", List.of(Uid.of("", null, null)), null)))
+                        Eid.builder().source("source1").uids(List.of(
+                                Uid.builder().id("id1").build(),
+                                Uid.builder().id("").build())).build(),
+                        Eid.builder().source("source2").uids(List.of(Uid.builder().id("id2").build())).build(),
+                        Eid.builder().source("source3").uids(List.of(Uid.builder().id("").build())).build()))
                 .build();
 
         final BidRequest givenBidRequest = givenBidRequest(request -> request.user(givenUser));
@@ -1688,8 +1692,8 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         final BidRequest actualBidRequest = target.removeEmptyEids(givenBidRequest, warnings);
 
         assertThat(actualBidRequest.getUser().getEids()).containsExactlyInAnyOrder(
-                Eid.of("source1", List.of(Uid.of("id1", null, null)), null),
-                Eid.of("source2", List.of(Uid.of("id2", null, null)), null));
+                Eid.builder().source("source1").uids(List.of(Uid.builder().id("id1").build())).build(),
+                Eid.builder().source("source2").uids(List.of(Uid.builder().id("id2").build())).build());
 
         assertThat(warnings).containsExactlyInAnyOrder(
                 "removed EID source1 due to empty ID",
