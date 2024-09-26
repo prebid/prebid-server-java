@@ -157,10 +157,10 @@ class CurrencySpec extends BaseSpec {
         when: "PBS processes auction request"
         def bidResponse = pbsService.sendAuctionRequest(bidRequest)
 
-        then: "Auction response should contain default currency"
+        then: "Bid response should contain first requested currency"
         assert bidResponse.cur == currencies[0]
 
-        and: "Bidder request should contain default currency"
+        and: "Bidder request should contain requested currencies"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.cur == currencies
 
@@ -170,7 +170,7 @@ class CurrencySpec extends BaseSpec {
     }
 
     def "PBS shouldn't emit warning when request contain one currency"() {
-        given: "Default BidRequest with currencies"
+        given: "Default BidRequest with currency"
         def currency = [USD]
         def bidRequest = BidRequest.defaultBidRequest.tap {
             cur = currency
@@ -179,10 +179,10 @@ class CurrencySpec extends BaseSpec {
         when: "PBS processes auction request"
         def bidResponse = pbsService.sendAuctionRequest(bidRequest)
 
-        then: "Auction response should contain default currency"
+        then: "Bid response should contain first requested currency"
         assert bidResponse.cur == currency[0]
 
-        and: "Bidder request should contain default currency"
+        and: "Bidder request should contain requested currency"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.cur == currency
 
