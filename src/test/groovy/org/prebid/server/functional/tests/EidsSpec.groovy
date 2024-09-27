@@ -211,10 +211,10 @@ class EidsSpec extends BaseSpec {
                            new Uid(id: validUidId)])]))
         }
 
-        when: "PBS processes auction bidResponse"
+        when: "PBS processes auction"
         def bidResponse = defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Bidder bidResponse should contain eids"
+        then: "Bidder request should contain eids"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.user.eids.uids.id.flatten() == [validUidId]
 
@@ -236,10 +236,10 @@ class EidsSpec extends BaseSpec {
                            new Uid(id: invalidUidId)])]))
         }
 
-        when: "PBS processes auction bidResponse"
+        when: "PBS processes auction"
         def bidResponse = defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Bidder bidResponse shouldn't contain eids"
+        then: "Bidder request shouldn't contain eids"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert !bidderRequest.user.eids
 
@@ -262,10 +262,10 @@ class EidsSpec extends BaseSpec {
                     uids: [new Uid(id: validUidId)])]))
         }
 
-        when: "PBS processes auction bidResponse"
+        when: "PBS processes auction"
         def bidResponse = defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Bidder bidResponse should contain eids"
+        then: "Bidder request should contain eids"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.user.eids.uids.id.flatten() == [validUidId]
 
