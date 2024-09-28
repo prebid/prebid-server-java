@@ -14,11 +14,11 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -381,7 +381,7 @@ public class YandexBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue().get(0).getHeaders())
+        assertThat(result.getValue().getFirst().getHeaders())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(tuple("Accept-Language", "EN"),
                         tuple("User-Agent", "UA"),

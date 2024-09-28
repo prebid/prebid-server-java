@@ -1,0 +1,15 @@
+adapters:
+  bwx:
+    endpoint: http://rtb.boldwin.live?pid={{SourceId}}&host={{Host}}&pbs=1
+    meta-info:
+      maintainer-email: prebid@bold-win.com
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 0

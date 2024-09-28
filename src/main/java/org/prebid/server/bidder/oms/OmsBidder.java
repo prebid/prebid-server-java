@@ -3,7 +3,6 @@ package org.prebid.server.bidder.oms;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -34,35 +33,27 @@ public class OmsBidder implements Bidder<BidRequest> {
 
     @Override
     public final Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
-        return Result.withValue(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(endpointUrl)
-                        .headers(HttpUtil.headers())
-                        .body(mapper.encodeToBytes(bidRequest))
-                        .impIds(BidderUtil.impIds(bidRequest))
-                        .payload(bidRequest)
-                        .build());
+        return Result.withValue(BidderUtil.defaultRequest(bidRequest, endpointUrl, mapper));
     }
 
     @Override
     public final Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
+            return Result.withValues(extractBids(bidResponse));
         } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
+    private static List<BidderBid> extractBids(BidResponse bidResponse) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
-        return bidsFromResponse(bidRequest, bidResponse);
+        return bidsFromResponse(bidResponse);
     }
 
-    private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
+    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)

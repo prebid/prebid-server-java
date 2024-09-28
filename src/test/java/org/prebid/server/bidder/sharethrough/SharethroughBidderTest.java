@@ -18,12 +18,11 @@ import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
 import org.assertj.core.api.AssertionsForClassTypes;
 import org.jetbrains.annotations.NotNull;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -62,12 +61,10 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
+@ExtendWith(MockitoExtension.class)
 public class SharethroughBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private CurrencyConversionService currencyConversionService;
@@ -77,7 +74,7 @@ public class SharethroughBidderTest extends VertxTest {
 
     private SharethroughBidder target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new SharethroughBidder(ENDPOINT_URL,
                 currencyConversionService,
@@ -277,14 +274,14 @@ public class SharethroughBidderTest extends VertxTest {
         assertThat(httpRequests)
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getImp)
-                .extracting(impressions -> impressions.get(0))
+                .extracting(impressions -> impressions.getFirst())
                 .allSatisfy(impression -> assertThat(impression.getId()).isEqualTo("123"));
 
         // The multiformat bid request is split into a bid request per media type
         assertThat(httpRequests)
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getImp)
-                .extracting(impressions -> impressions.get(0))
+                .extracting(impressions -> impressions.getFirst())
                 // Ignore audio impressions because it is currently not supported
                 .satisfiesExactlyInAnyOrder(
                         impression -> {
@@ -325,7 +322,7 @@ public class SharethroughBidderTest extends VertxTest {
         // then
         final List<BidderError> errors = result.getErrors();
         assertThat(errors).hasSize(1);
-        assertThat(errors.get(0).getMessage())
+        assertThat(errors.getFirst().getMessage())
                 .isEqualTo("Invalid MediaType. Sharethrough only supports Banner, Video and Native.");
     }
 

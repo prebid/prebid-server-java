@@ -1,0 +1,17 @@
+adapters:
+  escalax:
+    endpoint: http://bidder_us.escalax.io/?partner={{.SourceId}}&token={{.AccountID}}&type=pbs
+    modifying-vast-xml-allowed: true
+    endpoint-compression: gzip
+    meta-info:
+      maintainer-email: connect@escalax.io
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 0

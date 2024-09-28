@@ -13,7 +13,7 @@ import com.iab.openrtb.response.Bid;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.eplanning.model.HbResponse;
 import org.prebid.server.bidder.eplanning.model.HbResponseAd;
@@ -81,7 +81,7 @@ public class EplanningBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage())
+        assertThat(result.getErrors().getFirst().getMessage())
                 .startsWith("Ignoring imp id=123, error while decoding extImpBidder, err: Cannot deserialize value");
         assertThat(result.getValue()).isEmpty();
     }
@@ -423,8 +423,8 @@ public class EplanningBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors().getFirst().getMessage()).startsWith("Failed to decode: Unrecognized token");
+        assertThat(result.getErrors().getFirst().getType()).isEqualTo(BidderError.Type.bad_server_response);
         assertThat(result.getValue()).isEmpty();
     }
 

@@ -3,6 +3,7 @@ package org.prebid.server.auction.mediatypeprocessor;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.model.BidderError;
@@ -14,6 +15,7 @@ import org.prebid.server.spring.config.bidder.model.MediaType;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -78,10 +80,11 @@ public class MultiFormatMediaTypeProcessor implements MediaTypeProcessor {
                                          Account account,
                                          String originalBidderName,
                                          String resolvedBidderName) {
+
         return Optional.ofNullable(bidRequest.getExt())
                 .map(ExtRequest::getPrebid)
                 .map(ExtRequestPrebid::getBiddercontrols)
-                .map(bidders -> bidders.get(originalBidderName))
+                .map(bidders -> getBidder(originalBidderName, bidders))
                 .map(bidder -> bidder.get(PREF_MTYPE_FIELD))
                 .filter(JsonNode::isTextual)
                 .map(JsonNode::textValue)
@@ -90,6 +93,17 @@ public class MultiFormatMediaTypeProcessor implements MediaTypeProcessor {
                         .map(AccountAuctionConfig::getPreferredMediaTypes)
                         .map(preferredMediaTypes -> preferredMediaTypes.get(resolvedBidderName)))
                 .orElse(null);
+    }
+
+    private static JsonNode getBidder(String bidderName, JsonNode biddersNode) {
+        final Iterator<String> fieldNames = biddersNode.fieldNames();
+        while (fieldNames.hasNext()) {
+            final String fieldName = fieldNames.next();
+            if (StringUtils.equalsIgnoreCase(bidderName, fieldName)) {
+                return biddersNode.get(fieldName);
+            }
+        }
+        return null;
     }
 
     private static Imp processImp(Imp imp, MediaType preferredMediaType, List<BidderError> errors) {

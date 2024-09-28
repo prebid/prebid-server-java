@@ -79,9 +79,9 @@ public class HuaweiDeviceBuilder {
         final String gaid = isGaidEmpty
                 ? deviceIfa.orElseThrow(() -> new PreBidException("getDeviceID: openRTBRequest.User.Ext is nil "
                 + "and device.Gaid is not specified."))
-                : userData.getGaid().get(0);
-        final String oaid = isOaidEmpty ? null : userData.getOaid().get(0);
-        final String imei = isImeiEmpty ? null : userData.getImei().get(0);
+                : userData.getGaid().getFirst();
+        final String oaid = isOaidEmpty ? null : userData.getOaid().getFirst();
+        final String imei = isImeiEmpty ? null : userData.getImei().getFirst();
         final String clientTime = Optional.ofNullable(userData)
                 .map(ExtUserDataDeviceIdHuaweiAds::getClientTime)
                 .map(this::formatClientTime)
@@ -104,7 +104,7 @@ public class HuaweiDeviceBuilder {
     }
 
     private String formatClientTime(List<String> clientTimes) {
-        return CollectionUtils.isEmpty(clientTimes) ? null : clientTimeFormatter.format(clientTimes.get(0));
+        return CollectionUtils.isEmpty(clientTimes) ? null : clientTimeFormatter.format(clientTimes.getFirst());
     }
 
 }

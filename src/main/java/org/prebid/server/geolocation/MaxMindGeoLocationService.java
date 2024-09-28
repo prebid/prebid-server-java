@@ -101,7 +101,7 @@ public class MaxMindGeoLocationService implements GeoLocationService, RemoteFile
 
     private static String resolveRegion(CityResponse cityResponse) {
         final List<Subdivision> subdivisions = cityResponse != null ? cityResponse.getSubdivisions() : null;
-        final Subdivision firstSubdivision = CollectionUtils.isEmpty(subdivisions) ? null : subdivisions.get(0);
+        final Subdivision firstSubdivision = CollectionUtils.isEmpty(subdivisions) ? null : subdivisions.getFirst();
         return firstSubdivision != null ? firstSubdivision.getIsoCode() : null;
     }
 

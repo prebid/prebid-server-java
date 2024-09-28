@@ -90,13 +90,13 @@ public class BidmyadzBidder implements Bidder<BidRequest> {
     }
 
     private BidderBid bidsFromResponse(BidResponse bidResponse) {
-        final List<Bid> bids = bidResponse.getSeatbid().get(0).getBid();
+        final List<Bid> bids = bidResponse.getSeatbid().getFirst().getBid();
 
         if (CollectionUtils.isEmpty(bids)) {
             throw new PreBidException("Empty SeatBid.Bids");
         }
 
-        final Bid bid = bids.get(0);
+        final Bid bid = bids.getFirst();
         return BidderBid.of(bid, getBidType(bid.getExt()), bidResponse.getCur());
     }
 

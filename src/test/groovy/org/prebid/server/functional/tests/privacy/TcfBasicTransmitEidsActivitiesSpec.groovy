@@ -27,8 +27,8 @@ import static org.prebid.server.functional.model.request.auction.TraceLevel.VERB
 
 class TcfBasicTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
-    private static final Map<String, String> PBS_CONFIG = SETTING_CONFIG + GENERIC_VENDOR_CONFIG + GENERIC_COOKIE_SYNC_CONFIG + ["gdpr.vendorlist.v2.http-endpoint-template": null,
-                                                                                                                                 "gdpr.vendorlist.v3.http-endpoint-template": null]
+    private static final Map<String, String> PBS_CONFIG = SETTING_CONFIG + GENERIC_VENDOR_CONFIG + GENERIC_CONFIG + ["gdpr.vendorlist.v2.http-endpoint-template": null,
+                                                                                                                     "gdpr.vendorlist.v3.http-endpoint-template": null]
 
     private final PrebidServerService activityPbsServiceExcludeGvl = pbsServiceFactory.getService(PBS_CONFIG)
 
@@ -42,7 +42,7 @@ class TcfBasicTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         }
 
         and: "Save account config with requireConsent into DB"
-        def purposes = TcfUtils.getPurposeConfigsForPersonalizedAds(enforcementRequirements, true)
+        def purposes = TcfUtils.getPurposeConfigsForPersonalizedAdsWithSnakeCase(enforcementRequirements, true)
         def accountGdprConfig = new AccountGdprConfig(purposes: purposes, basicEnforcementVendors: [GENERIC.value])
         def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, true)])
         def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig).tap {
@@ -104,7 +104,7 @@ class TcfBasicTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Save account config with requireConsent into DB"
         def purposes = TcfUtils.getPurposeConfigsForPersonalizedAds(enforcementRequirements, true)
-        def accountGdprConfig = new AccountGdprConfig(purposes: purposes, basicEnforcementVendors: [GENERIC.value])
+        def accountGdprConfig = new AccountGdprConfig(purposes: purposes, basicEnforcementVendorsSnakeCase: [GENERIC.value])
         def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, true)])
         def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig).tap {
             config.privacy.allowActivities = AllowActivities.getDefaultAllowActivities(TRANSMIT_EIDS, activity)

@@ -1,6 +1,6 @@
 package org.prebid.server.bidder;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.proto.response.UsersyncInfo;

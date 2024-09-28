@@ -11,6 +11,7 @@
           "crid": "2002",
           "adid": "2002",
           "adm": "<!-- admarkup -->",
+          "mtype": 1,
           "adomain": [
             "tag-example.com"
           ]

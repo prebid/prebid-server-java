@@ -33,10 +33,6 @@ public class TargetingKeywordsCreator {
      */
     private static final String ENV_KEY = "_env";
     /**
-     * Used as a value for ENV_KEY.
-     */
-    private static final String ENV_APP_VALUE = "mobile-app";
-    /**
      * Name of the Bidder. For example, "appnexus" or "rubicon".
      */
     private static final String BIDDER_KEY = "_bidder";
@@ -87,7 +83,7 @@ public class TargetingKeywordsCreator {
     private final boolean includeBidderKeys;
     private final boolean alwaysIncludeDeals;
     private final boolean includeFormat;
-    private final boolean isApp;
+    private final String env;
     private final int truncateAttrChars;
     private final String cacheHost;
     private final String cachePath;
@@ -99,7 +95,7 @@ public class TargetingKeywordsCreator {
                                      boolean includeBidderKeys,
                                      boolean alwaysIncludeDeals,
                                      boolean includeFormat,
-                                     boolean isApp,
+                                     String env,
                                      int truncateAttrChars,
                                      String cacheHost,
                                      String cachePath,
@@ -111,7 +107,7 @@ public class TargetingKeywordsCreator {
         this.includeBidderKeys = includeBidderKeys;
         this.alwaysIncludeDeals = alwaysIncludeDeals;
         this.includeFormat = includeFormat;
-        this.isApp = isApp;
+        this.env = env;
         this.truncateAttrChars = truncateAttrChars;
         this.cacheHost = cacheHost;
         this.cachePath = cachePath;
@@ -127,7 +123,7 @@ public class TargetingKeywordsCreator {
                                                   boolean includeBidderKeys,
                                                   boolean alwaysIncludeDeals,
                                                   boolean includeFormat,
-                                                  boolean isApp,
+                                                  String env,
                                                   int truncateAttrChars,
                                                   String cacheHost,
                                                   String cachePath,
@@ -139,7 +135,7 @@ public class TargetingKeywordsCreator {
                 includeBidderKeys,
                 alwaysIncludeDeals,
                 includeFormat,
-                isApp,
+                env,
                 truncateAttrChars,
                 cacheHost,
                 cachePath,
@@ -230,8 +226,8 @@ public class TargetingKeywordsCreator {
         if (StringUtils.isNotBlank(dealId)) {
             keywordMap.put(this.keyPrefix + DEAL_KEY, dealId);
         }
-        if (isApp) {
-            keywordMap.put(this.keyPrefix + ENV_KEY, ENV_APP_VALUE);
+        if (env != null) {
+            keywordMap.put(this.keyPrefix + ENV_KEY, env);
         }
         if (StringUtils.isNotBlank(categoryDuration)) {
             keywordMap.put(this.keyPrefix + CATEGORY_DURATION_KEY, categoryDuration);

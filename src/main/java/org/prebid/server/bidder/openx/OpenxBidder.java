@@ -5,10 +5,9 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
-import org.apache.commons.collections4.MapUtils;
-import org.prebid.server.bidder.openx.proto.OpenxBidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -18,6 +17,7 @@ import org.prebid.server.bidder.model.CompositeBidderResponse;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.openx.model.OpenxImpType;
+import org.prebid.server.bidder.openx.proto.OpenxBidResponse;
 import org.prebid.server.bidder.openx.proto.OpenxBidResponseExt;
 import org.prebid.server.bidder.openx.proto.OpenxRequestExt;
 import org.prebid.server.bidder.openx.proto.OpenxVideoExt;
@@ -29,6 +29,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.openx.ExtImpOpenx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
@@ -169,7 +170,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
         return CollectionUtils.isNotEmpty(processedImps)
                 ? bidRequest.toBuilder()
                 .imp(processedImps)
-                .ext(makeReqExt(imps.get(0)))
+                .ext(makeReqExt(imps.getFirst()))
                 .build()
                 : null;
     }
@@ -253,8 +254,24 @@ public class OpenxBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getBidType(bid, impIdToBidType), bidCurrency))
+                .map(bid -> toBidderBid(bid, impIdToBidType, bidCurrency))
                 .toList();
+    }
+
+    private static BidderBid toBidderBid(Bid bid, Map<String, BidType> impIdToBidType, String bidCurrency) {
+        final BidType bidType = getBidType(bid, impIdToBidType);
+        final ExtBidPrebidVideo videoInfo = bidType == BidType.video ? getVideoInfo(bid) : null;
+        return BidderBid.builder()
+                .bid(bid)
+                .type(bidType)
+                .bidCurrency(bidCurrency)
+                .videoInfo(videoInfo)
+                .build();
+    }
+
+    private static ExtBidPrebidVideo getVideoInfo(Bid bid) {
+        final String primaryCategory = CollectionUtils.isEmpty(bid.getCat()) ? null : bid.getCat().getFirst();
+        return ExtBidPrebidVideo.of(bid.getDur(), primaryCategory);
     }
 
     private static Map<String, BidType> impIdToBidType(BidRequest bidRequest) {

@@ -28,8 +28,8 @@ import static org.prebid.server.functional.model.request.auction.TraceLevel.VERB
 
 class TransmitEidsOrtbConverterActivitiesSpec extends PrivacyBaseSpec {
 
-    private static final Map<String, String> PBS_CONFIG = SETTING_CONFIG + GENERIC_VENDOR_CONFIG + GENERIC_COOKIE_SYNC_CONFIG + ["gdpr.vendorlist.v2.http-endpoint-template": null,
-                                                                                                                                 "gdpr.vendorlist.v3.http-endpoint-template": null]
+    private static final Map<String, String> PBS_CONFIG = SETTING_CONFIG + GENERIC_VENDOR_CONFIG + GENERIC_CONFIG + ["gdpr.vendorlist.v2.http-endpoint-template": null,
+                                                                                                                     "gdpr.vendorlist.v3.http-endpoint-template": null]
     private final PrebidServerService activityPbsServiceExcludeGvlWithElderOrtb = pbsServiceFactory.getService(PBS_CONFIG + ["adapters.generic.ortb-version": "2.5"])
 
     @Shared

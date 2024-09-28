@@ -9,7 +9,7 @@
         "h": 250
       },
       "tagid": "539439964",
-      "bidfloor": 0.1,
+      "bidfloor": 0.5,
       "ext": {
         "customParams": {
           "foo": "bar",
@@ -45,9 +45,7 @@
     "USD"
   ],
   "regs": {
-    "ext": {
-      "gdpr": 0
-    }
+    "gdpr": 0
   },
   "ext": {
     "delDomain": "se-demo-d.openx.net",

@@ -10,7 +10,7 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.adhese.model.AdheseOriginData;
 import org.prebid.server.bidder.model.BidderBid;
@@ -74,7 +74,7 @@ public class AdheseBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize value");
+        assertThat(result.getErrors().getFirst().getMessage()).startsWith("Cannot deserialize value");
         assertThat(result.getValue()).isEmpty();
     }
 

@@ -1,6 +1,6 @@
 package org.prebid.server.settings.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Value;
 
@@ -18,7 +18,10 @@ public class AccountAnalyticsConfig {
                 "app", true);
     }
 
-    @JsonProperty("auction-events")
+    @JsonAlias("allow-client-details")
+    boolean allowClientDetails;
+
+    @JsonAlias("auction-events")
     AccountAuctionEventConfig auctionEvents;
 
     Map<String, ObjectNode> modules;

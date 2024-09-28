@@ -12,17 +12,15 @@ import org.prebid.server.functional.util.PBSUtils
 
 import java.time.Instant
 
-import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ACCOUNT_DISALLOWED_COUNT
+import static org.prebid.server.functional.model.privacy.Metric.ACCOUNT_PROCESSED_RULES_COUNT
+import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ADAPTER_DISALLOWED_COUNT
+import static org.prebid.server.functional.model.privacy.Metric.PROCESSED_ACTIVITY_RULES_COUNT
+import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_REQUEST_DISALLOWED_COUNT
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_TID
 import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
 
 class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
-
-    private static final String ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT = "account.%s.activity.processedrules.count"
-    private static final String DISALLOWED_COUNT_FOR_ACCOUNT = "account.%s.activity.${TRANSMIT_TID.metricValue}.disallowed.count"
-    private static final String ACTIVITY_RULES_PROCESSED_COUNT = "requests.activity.processedrules.count"
-    private static final String DISALLOWED_COUNT_FOR_ACTIVITY_RULE = "requests.activity.${TRANSMIT_TID.metricValue}.disallowed.count"
-    private static final String DISALLOWED_COUNT_FOR_GENERIC_ADAPTER = "adapter.${GENERIC.value}.activity.${TRANSMIT_TID.metricValue}.disallowed.count"
 
     def "PBS auction should generate id for bidRequest.(source/imp[0].ext).tid when ext.prebid.createTids=null and transmit activity allowed"() {
         given: "Bid requests without TID fields and account id"
@@ -36,9 +34,6 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
             imp[0].ext.tid = null
             source = new Source(tid: null)
         }
-
-        and: "Activities set with generic bidder allowed"
-        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_TID, Activity.defaultActivity)
 
         and: "Flush metrics"
         flushMetrics(activityPbsService)
@@ -60,11 +55,17 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
-        assert metrics[ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT.formatted(accountId)] == 1
+        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(bidRequest, TRANSMIT_TID)] == 1
+        assert metrics[ACCOUNT_PROCESSED_RULES_COUNT.getValue(bidRequest, TRANSMIT_TID)] == 1
+
+        where: "Activities fields name in different case"
+        activities << [AllowActivities.getDefaultAllowActivities(TRANSMIT_TID, Activity.defaultActivity),
+                       new AllowActivities().tap { transmitTidKebabCase = Activity.defaultActivity },
+                       new AllowActivities().tap { transmitTidSnakeCase = Activity.defaultActivity },
+        ]
     }
 
-    def "PBS auction should generate id for bidRequest.(source/imp[0].ext).tid when ext.prebid.createTids=true and transmit activity #transmitActivityAllowStatus"() {
+    def "PBS auction should generate id for bidRequest.(source/imp[0].ext).tid when ext.prebid.createTids=true and transmit activity"() {
         given: "Bid requests without TID fields and account id"
         def accountId = PBSUtils.randomNumber as String
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -76,10 +77,6 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
             imp[0].ext.tid = null
             source = new Source(tid: null)
         }
-
-        and: "Activities set with bidder disallowed"
-        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, transmitActivityAllowStatus)])
-        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_TID, activity)
 
         and: "Save account config with allow activities into DB"
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
@@ -96,8 +93,11 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.source.tid
         }
 
-        where:
-        transmitActivityAllowStatus << [true, false]
+        where: "Activities fields name in different case"
+        activities << [AllowActivities.getDefaultAllowActivities(TRANSMIT_TID, Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)])),
+                       new AllowActivities().tap { transmitTidKebabCase = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)]) },
+                       new AllowActivities().tap { transmitTidSnakeCase = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)]) },
+        ]
     }
 
     def "PBS auction shouldn't generate id for bidRequest.(source/imp[0].ext).tid and don't change schain in request when ext.prebid.createTids=false and transmit activity allowed and schain specified in request"() {
@@ -224,9 +224,9 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
-        assert metrics[DISALLOWED_COUNT_FOR_ACCOUNT.formatted(accountId)] == 1
-        assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_TID)] == 1
+        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_TID)] == 1
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_TID)] == 1
     }
 
     def "PBS auction should remove bidRequest.(source/imp[0].ext).tid and don't change schain in request when ext.prebid.createTids=#createTid and defaultAction=false and schain specified in request"() {
@@ -300,11 +300,19 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
                 "contains conditional rule with empty array").size() == 1
 
         where:
-        conditions                       | isAllowed
-        new Condition(componentType: []) | true
-        new Condition(componentType: []) | false
-        new Condition(componentName: []) | true
-        new Condition(componentName: []) | false
+        conditions                                | isAllowed
+        new Condition(componentType: [])          | true
+        new Condition(componentType: [])          | false
+        new Condition(componentName: [])          | true
+        new Condition(componentName: [])          | false
+        new Condition(componentTypeKebabCase: []) | true
+        new Condition(componentTypeKebabCase: []) | false
+        new Condition(componentNameKebabCase: []) | true
+        new Condition(componentNameKebabCase: []) | false
+        new Condition(componentTypeSnakeCase: []) | true
+        new Condition(componentTypeSnakeCase: []) | false
+        new Condition(componentNameSnakeCase: []) | true
+        new Condition(componentNameSnakeCase: []) | false
     }
 
     def "PBS auction should generate bidRequest.(source/imp[0].ext).tid when first rule allow=true and bidRequest.(source/imp[0].ext).tid=null"() {
@@ -418,7 +426,7 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
+        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(ampStoredRequest, TRANSMIT_TID)] == 1
     }
 
     def "PBS amp should generate id for bidRequest.(source/imp[0].ext).tid when ext.prebid.createTids=true and transmit activity allowed"() {

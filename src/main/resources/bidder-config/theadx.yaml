@@ -1,0 +1,22 @@
+adapters:
+  theadx:
+    endpoint: https://ssp.theadx.com/request?pbs=1
+    meta-info:
+      maintainer-email: ssp@theadx.com
+      app-media-types:
+        - banner
+        - video
+        - audio
+        - native
+      site-media-types:
+        - banner
+        - video
+        - audio
+        - native
+      vendor-id: 556
+    usersync:
+      cookie-family-name: theadx
+      redirect:
+        url: https://ssp.theadx.com/cookie?redirect_url={{redirect_url}}&?pbs=1
+        support-cors: false
+        uid-macro: '$UID'

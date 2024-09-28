@@ -2,23 +2,24 @@ package org.prebid.server.currency;
 
 import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.currency.proto.CurrencyConversionRates;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestCurrency;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.spring.config.model.ExternalConversionProperties;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.Initializable;
-import org.prebid.server.vertx.http.HttpClient;
-import org.prebid.server.vertx.http.model.HttpClientResponse;
+import org.prebid.server.vertx.httpclient.HttpClient;
+import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -26,6 +27,7 @@ import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -66,19 +68,23 @@ public class CurrencyConversionService implements Initializable {
      * Must be called on Vertx event loop thread.
      */
     @Override
-    public void initialize() {
+    public void initialize(Promise<Void> initializePromise) {
         if (externalConversionProperties != null) {
             final Long refreshPeriod = externalConversionProperties.getRefreshPeriodMs();
             final Long defaultTimeout = externalConversionProperties.getDefaultTimeoutMs();
             final HttpClient httpClient = externalConversionProperties.getHttpClient();
 
             final Vertx vertx = externalConversionProperties.getVertx();
-            vertx.setPeriodic(refreshPeriod, ignored -> populatesLatestCurrencyRates(currencyServerUrl, defaultTimeout,
+            vertx.setPeriodic(refreshPeriod, ignored -> populatesLatestCurrencyRates(
+                    currencyServerUrl,
+                    defaultTimeout,
                     httpClient));
             populatesLatestCurrencyRates(currencyServerUrl, defaultTimeout, httpClient);
 
             externalConversionProperties.getMetrics().createCurrencyRatesGauge(this::isRatesStale);
         }
+
+        initializePromise.tryComplete();
     }
 
     /**
@@ -272,7 +278,13 @@ public class CurrencyConversionService implements Initializable {
             return conversionRate;
         }
 
-        return findIntermediateConversionRate(directCurrencyRates, reverseCurrencyRates);
+        final BigDecimal intermediateConversionRate = findIntermediateConversionRate(directCurrencyRates,
+                reverseCurrencyRates);
+        if (intermediateConversionRate != null) {
+            return intermediateConversionRate;
+        }
+
+        return findCrossConversionRate(currencyConversionRates, fromCurrency, toCurrency);
     }
 
     /**
@@ -286,7 +298,8 @@ public class CurrencyConversionService implements Initializable {
                 : null;
 
         return reverseConversionRate != null
-                ? BigDecimal.ONE.divide(reverseConversionRate, reverseConversionRate.precision(),
+                ? BigDecimal.ONE.divide(reverseConversionRate,
+                getRatePrecision(reverseConversionRate),
                 RoundingMode.HALF_EVEN)
                 : null;
     }
@@ -305,18 +318,41 @@ public class CurrencyConversionService implements Initializable {
 
             if (!sharedCurrencies.isEmpty()) {
                 // pick any found shared currency
-                final String sharedCurrency = sharedCurrencies.get(0);
+                final String sharedCurrency = sharedCurrencies.getFirst();
                 final BigDecimal directCurrencyRateIntermediate = directCurrencyRates.get(sharedCurrency);
                 final BigDecimal reverseCurrencyRateIntermediate = reverseCurrencyRates.get(sharedCurrency);
                 conversionRate = directCurrencyRateIntermediate.divide(reverseCurrencyRateIntermediate,
                         // chose largest precision among intermediate rates
-                        reverseCurrencyRateIntermediate.compareTo(directCurrencyRateIntermediate) > 0
-                                ? reverseCurrencyRateIntermediate.precision()
-                                : directCurrencyRateIntermediate.precision(),
+                        getRatePrecision(directCurrencyRateIntermediate, reverseCurrencyRateIntermediate),
                         RoundingMode.HALF_EVEN);
             }
         }
         return conversionRate;
+    }
+
+    private static BigDecimal findCrossConversionRate(Map<String, Map<String, BigDecimal>> currencyConversionRates,
+                                                      String fromCurrency,
+                                                      String toCurrency) {
+        for (Map<String, BigDecimal> rates : currencyConversionRates.values()) {
+            final BigDecimal fromRate = rates.get(fromCurrency);
+            final BigDecimal toRate = rates.get(toCurrency);
+            if (fromRate != null && toRate != null) {
+                return toRate.divide(fromRate,
+                        getRatePrecision(fromRate, toRate),
+                        RoundingMode.HALF_EVEN);
+            }
+        }
+
+        return null;
+    }
+
+    private static int getRatePrecision(BigDecimal... rates) {
+        final int precision = Arrays.stream(rates)
+                .map(BigDecimal::precision)
+                .max(Integer::compareTo)
+                .orElse(DEFAULT_PRICE_PRECISION);
+
+        return Math.max(precision, DEFAULT_PRICE_PRECISION);
     }
 
     private boolean isRatesStale() {

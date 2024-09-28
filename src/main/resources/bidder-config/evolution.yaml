@@ -19,3 +19,7 @@ adapters:
         url: https://sync.e-volution.ai/pbserver?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&redirect={{redirect_url}}
         support-cors: false
         uid-macro: '[UID]'
+      iframe:
+        url: https://sync.e-volution.ai/pbserver?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&redirect={{redirect_url}}
+        support-cors: false
+        uid-macro: '[UID]'

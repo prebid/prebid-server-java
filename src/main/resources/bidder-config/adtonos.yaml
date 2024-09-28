@@ -1,0 +1,22 @@
+adapters:
+  adtonos:
+    endpoint: https://exchange.adtonos.com/bid/{{PublisherId}}
+    geoscope:
+      - global
+    meta-info:
+      maintainer-email: support@adtonos.com
+      app-media-types:
+        - video
+        - audio
+      site-media-types:
+        - audio
+      dooh-media-types:
+        - audio
+      supported-vendors:
+      vendor-id: 682
+    usersync:
+      cookie-family-name: adtonos
+      redirect:
+        url: https://play.adtonos.com/redir?to={{redirect_url}}
+        support-cors: false
+        uid-macro: '@UUID@'

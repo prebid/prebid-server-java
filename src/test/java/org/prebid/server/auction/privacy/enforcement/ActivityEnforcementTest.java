@@ -3,12 +3,11 @@ package org.prebid.server.auction.privacy.enforcement;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.User;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderPrivacyResult;
@@ -22,10 +21,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.BDDMockito.given;
 
+@ExtendWith(MockitoExtension.class)
 public class ActivityEnforcementTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private UserFpdActivityMask userFpdActivityMask;
@@ -35,7 +32,7 @@ public class ActivityEnforcementTest {
     @Mock
     private ActivityInfrastructure activityInfrastructure;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new ActivityEnforcement(userFpdActivityMask);
     }
@@ -47,7 +44,7 @@ public class ActivityEnforcementTest {
         final Device maskedDevice = Device.builder().ip("maskedDevice").build();
 
         given(activityInfrastructure.isAllowed(any(), any())).willReturn(false);
-        given(userFpdActivityMask.maskUser(any(), anyBoolean(), anyBoolean(), anyBoolean()))
+        given(userFpdActivityMask.maskUser(any(), anyBoolean(), anyBoolean()))
                 .willReturn(maskedUser);
         given(userFpdActivityMask.maskDevice(any(), anyBoolean(), anyBoolean()))
                 .willReturn(maskedDevice);

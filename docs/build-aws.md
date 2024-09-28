@@ -1,3 +1,6 @@
+## Deploying through _Prebid Server Deployment on AWS_ Solution
+Prebid Server can be automatically deployed into an AWS account using the [Prebid Server Deployment on AWS](https://aws.amazon.com/solutions/implementations/prebid-server-deployment-on-aws/) Solution. Users retain full control over bidding decision logic and transaction data for real-time ad monetization, within their own AWS environment.  It also offers enterprise-grade scalability to handle a variety of requests and enhances data protection using the robust security capabilities of the AWS Cloud. It is [open-source](https://github.com/aws-solutions/prebid-server-deployment-on-aws) and  includes a comprehensive [Implementation Guide](https://docs.aws.amazon.com/pdfs/solutions/latest/prebid-server-deployment-on-aws/prebid-server-deployment-on-aws.pdf) and the accompanying [AWS CloudFormation template](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/new?templateURL=https://solutions-reference.s3.amazonaws.com/prebid-server-deployment-on-aws/latest/prebid-server-deployment-on-aws.template&redirectId=SolutionWeb) for a one-click launch. 
+
 ## Creating project ZIP package and deploying it to AWS Elastic Beanstalk
 
 Follow next steps to create zip which can be deployed to AWS Elastic Beanstalk.
@@ -44,7 +47,7 @@ where
 
 If you follow same naming convention, your `run.sh` script should be similar to:
 ```
-exec java -jar prebid-server.jar -Dlogging.config=prebid-logging.xml  --spring.config.additional-location=sample/prebid-config.yaml
+exec java -jar prebid-server.jar -Dlogging.config=prebid-logging.xml  --spring.config.additional-location=sample/configs/prebid-config.yaml
 ```
 
 Make run.sh executable using the next command:

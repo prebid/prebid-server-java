@@ -3,6 +3,7 @@ package org.prebid.server.spring.config;
 import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
 import lombok.Data;
+import org.prebid.server.auction.GeoLocationServiceWrapper;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.privacy.enforcement.ActivityEnforcement;
 import org.prebid.server.auction.privacy.enforcement.CcpaEnforcement;
@@ -13,7 +14,6 @@ import org.prebid.server.auction.privacy.enforcement.mask.UserFpdCcpaMask;
 import org.prebid.server.auction.privacy.enforcement.mask.UserFpdCoppaMask;
 import org.prebid.server.auction.privacy.enforcement.mask.UserFpdTcfMask;
 import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.HostVendorTcfDefinerService;
@@ -45,17 +45,16 @@ import org.prebid.server.settings.model.Purposes;
 import org.prebid.server.settings.model.SpecialFeature;
 import org.prebid.server.settings.model.SpecialFeatures;
 import org.prebid.server.spring.config.retry.RetryPolicyConfigurationProperties;
-import org.prebid.server.vertx.http.HttpClient;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.prebid.server.vertx.httpclient.HttpClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.validation.annotation.Validated;
 
-import javax.validation.constraints.Min;
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import java.time.Clock;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -162,7 +161,7 @@ public class PrivacyServiceConfiguration {
             GdprConfig gdprConfig,
             @Value("${gdpr.eea-countries}") String eeaCountriesAsString,
             Tcf2Service tcf2Service,
-            @Autowired(required = false) GeoLocationService geoLocationService,
+            GeoLocationServiceWrapper geoLocationServiceWrapper,
             BidderCatalog bidderCatalog,
             IpAddressHelper ipAddressHelper,
             Metrics metrics) {
@@ -173,7 +172,7 @@ public class PrivacyServiceConfiguration {
                 gdprConfig,
                 eeaCountries,
                 tcf2Service,
-                geoLocationService,
+                geoLocationServiceWrapper,
                 bidderCatalog,
                 ipAddressHelper,
                 metrics);
@@ -356,13 +355,13 @@ public class PrivacyServiceConfiguration {
     }
 
     @Bean
-    UserFpdCcpaMask userFpdCcpaMask(IpAddressHelper ipAddressHelper) {
-        return new UserFpdCcpaMask(ipAddressHelper);
+    UserFpdCcpaMask userFpdCcpaMask(UserFpdActivityMask userFpdActivityMask) {
+        return new UserFpdCcpaMask(userFpdActivityMask);
     }
 
     @Bean
-    UserFpdCoppaMask userFpdCoppaMask(IpAddressHelper ipAddressHelper) {
-        return new UserFpdCoppaMask(ipAddressHelper);
+    UserFpdCoppaMask userFpdCoppaMask(UserFpdActivityMask userFpdActivityMask) {
+        return new UserFpdCoppaMask(userFpdActivityMask);
     }
 
     @Bean

@@ -1,0 +1,27 @@
+adapters:
+  playdigo:
+    endpoint: https://server.playdigo.com/pserver
+    geoscope:
+      - USA
+    meta-info:
+      maintainer-email: yr@playdigo.com
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 1302
+    usersync:
+      cookie-family-name: playdigo
+      redirect:
+        url: https://cs.playdigo.com/pbserver?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redir={{redirect_url}}
+        support-cors: false
+        uid-macro: '[UID]'
+      iframe:
+        url: https://cs.playdigo.com/pbserverIframe?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&pbserverUrl={{redirect_url}}
+        support-cors: false
+        uid-macro: '[UID]'

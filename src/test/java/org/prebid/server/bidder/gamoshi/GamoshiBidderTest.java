@@ -13,7 +13,7 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -105,7 +105,7 @@ public class GamoshiBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize value");
+        assertThat(result.getErrors().getFirst().getMessage()).startsWith("Cannot deserialize value");
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -139,7 +139,7 @@ public class GamoshiBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
                 .containsOnly("https://test.endpoint.com/r/supply/bidr?bidder=prebid-server");
-        assertThat(result.getValue().get(0).getHeaders()).isNotNull()
+        assertThat(result.getValue().getFirst().getHeaders()).isNotNull()
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(tuple(HttpUtil.X_OPENRTB_VERSION_HEADER.toString(), "2.4"),
                         tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
@@ -159,7 +159,7 @@ public class GamoshiBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue().get(0).getHeaders()).isNotNull()
+        assertThat(result.getValue().getFirst().getHeaders()).isNotNull()
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .contains(tuple(HttpUtil.USER_AGENT_HEADER.toString(), "ua"),
                         tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), "ip"),
@@ -224,8 +224,8 @@ public class GamoshiBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors().getFirst().getMessage()).startsWith("Failed to decode: Unrecognized token");
+        assertThat(result.getErrors().getFirst().getType()).isEqualTo(BidderError.Type.bad_server_response);
         assertThat(result.getValue()).isEmpty();
     }
 

@@ -22,10 +22,10 @@ This parameter exists to allow to change the location of the directory Vert.x wi
 - `server.jks-password` - password for the keystore (if ssl is enabled).
 
 ## HTTP Server
-- `http.max-headers-size` - set the maximum length of all headers, deprecated(use server.max-headers-size instead).
-- `http.ssl` - enable SSL/TLS support, deprecated(use server.ssl instead).
-- `http.jks-path` - path to the java keystore (if ssl is enabled), deprecated(use server.jks-path instead).
-- `http.jks-password` - password for the keystore (if ssl is enabled), deprecated(use server.jks-password instead).
+- `server.max-headers-size` - set the maximum length of all headers, deprecated(use server.max-headers-size instead).
+- `server.ssl` - enable SSL/TLS support, deprecated(use server.ssl instead).
+- `server.jks-path` - path to the java keystore (if ssl is enabled), deprecated(use server.jks-path instead).
+- `server.jks-password` - password for the keystore (if ssl is enabled), deprecated(use server.jks-password instead).
 - `server.http.server-instances` - how many http server instances should be created.
   This parameter affects how many CPU cores will be utilized by the application. Rough assumption - one http server instance will keep 1 CPU core busy.
 - `server.http.enabled` - if set to `true` enables http server
@@ -61,6 +61,10 @@ Removes and downloads file again if depending service cant process probably corr
 - `<SERVICE>.remote-file-syncer.tmp-filepath` - full path to the temporary file.
 - `<SERVICE>.remote-file-syncer.retry-count` - how many times try to download.
 - `<SERVICE>.remote-file-syncer.retry-interval-ms` - how long to wait between failed retries.
+- `<SERVICE>.remote-file-syncer.retry.delay-millis` - initial time of how long to wait between failed retries.
+- `<SERVICE>.remote-file-syncer.retry.max-delay-millis` - maximum allowed value for `delay-millis`.
+- `<SERVICE>.remote-file-syncer.retry.factor` - factor for the `delay-millis` value, that will be applied after each failed retry to modify `delay-millis` value. 
+- `<SERVICE>.remote-file-syncer.retry.jitter` - jitter (multiplicative) for `delay-millis` parameter.
 - `<SERVICE>.remote-file-syncer.timeout-ms` - default operation timeout for obtaining database file.
 - `<SERVICE>.remote-file-syncer.update-interval-ms` - time interval between updates of the usable file.
 - `<SERVICE>.remote-file-syncer.http-client.connect-timeout-ms` - set the connect timeout.
@@ -75,9 +79,8 @@ Removes and downloads file again if depending service cant process probably corr
 - `default-request.file.path` - path to a JSON file containing the default request
 
 ## Auction (OpenRTB)
-- `auction.blacklisted-accounts` - comma separated list of blacklisted account IDs.
-- `auction.blacklisted-apps` - comma separated list of blacklisted applications IDs, requests from which should not be processed.
-- `auction.max-timeout-ms` - maximum operation timeout for OpenRTB Auction requests. Deprecated.
+- `auction.blocklisted-accounts` - comma separated list of blocklisted account IDs.
+- `auction.blocklisted-apps` - comma separated list of blocklisted applications IDs, requests from which should not be processed.
 - `auction.biddertmax.min` - minimum operation timeout for OpenRTB Auction requests.
 - `auction.biddertmax.max` - maximum operation timeout for OpenRTB Auction requests.
 - `auction.biddertmax.percent` - adjustment factor for `request.tmax` for bidders.
@@ -92,6 +95,7 @@ Removes and downloads file again if depending service cant process probably corr
 - `auction.validations.secure-markup` - enables secure markup validation. Possible values: `skip`, `enforce`, `warn`. Default is `skip`.
 - `auction.host-schain-node` - defines global schain node that will be appended to `request.source.ext.schain.nodes` passed to bidders
 - `auction.category-mapping-enabled` - if equals to `true` the category mapping feature will be active while auction.
+- `auction.strict-app-site-dooh` - if set to `true`, it will reject requests that contain more than one of app/site/dooh. Defaults to `false`.
 
 ## Event
 - `event.default-timeout-ms` - timeout for event notifications
@@ -104,7 +108,7 @@ Removes and downloads file again if depending service cant process probably corr
 
 ## Video
 - `auction.video.stored-required` - flag forces to merge with stored request
-- `auction.blacklisted-accounts` - comma separated list of blacklisted account IDs.
+- `auction.blocklisted-accounts` - comma separated list of blocklisted account IDs.
 - `video.stored-requests-timeout-ms` - timeout for stored requests fetching.
 - `auction.ad-server-currency` - default currency for video auction, if its value was not specified in request. Important note: PBS uses ISO-4217 codes for the representation of currencies.
 - `auction.video.escape-log-cache-regex` - regex to remove from cache debug log xml.
@@ -202,32 +206,12 @@ Also, each bidder could have its own bidder-specific options.
 - `admin-endpoints.tracelog.enabled` - if equals to `true` the endpoint will be available.
 - `admin-endpoints.tracelog.path` - the server context path where the endpoint will be accessible.
 - `admin-endpoints.tracelog.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
-- `admin-endpoints.tracelog.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials` 
-
-- `admin-endpoints.deals-status.enabled` - if equals to `true` the endpoint will be available.
-- `admin-endpoints.deals-status.path` - the server context path where the endpoint will be accessible.
-- `admin-endpoints.deals-status.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
-- `admin-endpoints.deals-status.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials` 
-
-- `admin-endpoints.lineitem-status.enabled` - if equals to `true` the endpoint will be available.
-- `admin-endpoints.lineitem-status.path` - the server context path where the endpoint will be accessible.
-- `admin-endpoints.lineitem-status.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
-- `admin-endpoints.lineitem-status.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials` 
-
-- `admin-endpoints.e2eadmin.enabled` - if equals to `true` the endpoint will be available.
-- `admin-endpoints.e2eadmin.path` - the server context path where the endpoint will be accessible.
-- `admin-endpoints.e2eadmin.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
-- `admin-endpoints.e2eadmin.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials` 
+- `admin-endpoints.tracelog.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials`
 
 - `admin-endpoints.collected-metrics.enabled` - if equals to `true` the endpoint will be available.
 - `admin-endpoints.collected-metrics.path` - the server context path where the endpoint will be accessible.
 - `admin-endpoints.collected-metrics.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
 - `admin-endpoints.collected-metrics.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials`
-
-- `admin-endpoints.force-deals-update.enabled` - if equals to `true` the endpoint will be available.
-- `admin-endpoints.force-deals-update.path` - the server context path where the endpoint will be accessible.
-- `admin-endpoints.force-deals-update.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
-- `admin-endpoints.force-deals-update.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials`
 
 - `admin-endpoints.credentials` - user and password for access to admin endpoints if `admin-endpoints.[NAME].protected` is true`.
 
@@ -236,6 +220,12 @@ Also, each bidder could have its own bidder-specific options.
 
 So far metrics cannot be submitted simultaneously to many backends. Currently we support `graphite` and `influxdb`. 
 Also, for debug purposes you can use `console` as metrics backend.
+
+For `logback` backend type available next options:
+- `metrics.logback.enabled` - if equals to `true` then logback reporter will be started.
+- `metrics.logback.name` - name of logger element in the logback configuration file.
+- `metrics.logback.interval` - interval in seconds between successive sending metrics.
+
 
 For `graphite` backend type available next options:
 - `metrics.graphite.enabled` - if equals to `true` then `graphite` will be used to submit metrics.
@@ -278,6 +268,9 @@ See [metrics documentation](metrics.md) for complete list of metrics submitted a
 - `cache.scheme` - set the external Cache Service protocol: `http`, `https`, etc.
 - `cache.host` - set the external Cache Service destination in format `host:port`.
 - `cache.path` - set the external Cache Service path, for example `/cache`.
+- `storage.pbc.enabled` - If set to true, this will allow storing modules’ data in third-party storage.
+- `storage.pbc.path` - set the external Cache Service path for module caching, for example `/pbc-storage`.
+- `pbc.api.key` - set the external Cache Service api key for secured calls.
 - `cache.query` - appends to the cache path as query string params (used for legacy Auction requests).
 - `cache.banner-ttl-seconds` - how long (in seconds) banner will be available via the external Cache Service.
 - `cache.video-ttl-seconds` - how long (in seconds) video creative will be available via the external Cache Service.
@@ -309,8 +302,10 @@ For database data source available next options:
 - `settings.database.user` - database user.
 - `settings.database.password` - database password.
 - `settings.database.pool-size` - set the initial/min/max pool size of database connections.
+- `settings.database.idle-connection-timeout` - Set the idle timeout, time unit is seconds. Zero means don't timeout. This determines if a connection will timeout and be closed and get back to the pool if no data is received nor sent within the timeout.
+- `settings.database.enable-prepared-statement-caching` - Enable caching of the prepared statements so that they can be reused. Defaults to `false`. Please be vary of the DB server limitations as cache instances is per-database-connection.
+- `settings.database.max-prepared-statement-cache-size` - Set the maximum size of the prepared statement cache. Defaults to `256`. Has any effect only when `settings.database.enable-prepared-statement-caching` is set to `true`. Please note that the cache size is multiplied by `settings.database.pool-size`.  
 - `settings.database.account-query` - the SQL query to fetch account.
-- `settings.database.provider-class` - type of connection pool to be used: `hikari` or `c3p0`.
 - `settings.database.stored-requests-query` - the SQL query to fetch stored requests.
 - `settings.database.amp-stored-requests-query` - the SQL query to fetch AMP stored requests.
 - `settings.database.stored-responses-query` - the SQL query to fetch stored responses.
@@ -353,6 +348,7 @@ See [application settings](application-settings.md) for full reference of availa
 For caching available next options:
 - `settings.in-memory-cache.ttl-seconds` - how long (in seconds) data will be available in LRU cache.
 - `settings.in-memory-cache.cache-size` - the size of LRU cache.
+- `settings.in-memory-cache.jitter-seconds` - jitter (in seconds) for `settings.in-memory-cache.ttl-seconds` parameter.
 - `settings.in-memory-cache.notification-endpoints-enabled` - if equals to `true` two additional endpoints will be
 available: [/storedrequests/openrtb2](endpoints/storedrequests/openrtb2.md) and [/storedrequests/amp](endpoints/storedrequests/amp.md).
 - `settings.in-memory-cache.account-invalidation-enabled` - if equals to `true` additional admin protected endpoints will be
@@ -361,14 +357,14 @@ available: `/cache/invalidate?account={accountId}` which remove account from the
 - `settings.in-memory-cache.http-update.amp-endpoint` - the url to fetch AMP stored request updates.
 - `settings.in-memory-cache.http-update.refresh-rate` - refresh period in ms for stored request updates.
 - `settings.in-memory-cache.http-update.timeout` - timeout for obtaining stored request updates.
-- `settings.in-memory-cache.jdbc-update.init-query` - initial query for fetching all stored requests at the startup.
-- `settings.in-memory-cache.jdbc-update.update-query` - a query for periodical update of stored requests, that should
-contain 'WHERE last_updated > ?' to fetch only the records that were updated since previous check.
-- `settings.in-memory-cache.jdbc-update.amp-init-query` - initial query for fetching all AMP stored requests at the startup.
-- `settings.in-memory-cache.jdbc-update.amp-update-query` - a query for periodical update of AMP stored requests, that should
-contain 'WHERE last_updated > ?' to fetch only the records that were updated since previous check.
-- `settings.in-memory-cache.jdbc-update.refresh-rate` - refresh period in ms for stored request updates.
-- `settings.in-memory-cache.jdbc-update.timeout` - timeout for obtaining stored request updates.
+- `settings.in-memory-cache.database-update.init-query` - initial query for fetching all stored requests at the startup.
+- `settings.in-memory-cache.database-update.update-query` - a query for periodical update of stored requests, that should
+contain 'WHERE last_updated > ?' for MySQL and 'WHERE last_updated > $1' for Postgresql to fetch only the records that were updated since previous check.
+- `settings.in-memory-cache.database-update.amp-init-query` - initial query for fetching all AMP stored requests at the startup.
+- `settings.in-memory-cache.database-update.amp-update-query` - a query for periodical update of AMP stored requests, that should
+contain 'WHERE last_updated > ?' for MySQL and 'WHERE last_updated > $1' for Postgresql to fetch only the records that were updated since previous check.
+- `settings.in-memory-cache.database-update.refresh-rate` - refresh period in ms for stored request updates.
+- `settings.in-memory-cache.database-update.timeout` - timeout for obtaining stored request updates.
 
 For targeting available next options:
 - `settings.targeting.truncate-attr-chars` - set the max length for names of targeting keywords (0 means no truncation).
@@ -433,6 +429,7 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 - `geolocation.maxmind.remote-file-syncer` - use RemoteFileSyncer component for downloading/updating MaxMind database file. See [RemoteFileSyncer](#remote-file-syncer) section for its configuration.
 
 ## Analytics
+- `analytics.global.adapters` - Names of analytics adapters that will work for each request, except those disabled at the account level.
 - `analytics.pubstack.enabled` - if equals to `true` the Pubstack analytics module will be enabled. Default value is `false`. 
 - `analytics.pubstack.endpoint` - url for reporting events and fetching configuration. 
 - `analytics.pubstack.scopeid` - defined the scope provided by the Pubstack Support Team.
@@ -441,41 +438,6 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 - `analytics.pubstack.buffers.size-bytes` - threshold in bytes for buffer to send events. 
 - `analytics.pubstack.buffers.count` - threshold in events count for buffer to send events
 - `analytics.pubstack.buffers.report-ttl-ms` - max period between two reports.
-
-## Programmatic Guaranteed Delivery
-- `deals.planner.plan-endpoint` - planner endpoint to get plans from.
-- `deals.planner.update-period` - cron expression to start job for requesting Line Item metadata updates from the Planner.
-- `deals.planner.plan-advance-period` - cron expression to start job for advancing Line Items to the next plan.
-- `deals.planner.retry-period-sec` - how long (in seconds) to wait before re-sending a request to the Planner that previously failed with 5xx HTTP error code.
-- `deals.planner.timeout-ms` - default operation timeout for requests to planner's endpoints.
-- `deals.planner.register-endpoint` - register endpoint to get plans from.
-- `deals.planner.register-period-sec` - time period (in seconds) to send register request to the Planner.
-- `deals.planner.username` - username for planner BasicAuth.
-- `deals.planner.password` - password for planner BasicAuth.
-- `deals.delivery-stats.delivery-period` - cron expression to start job for sending delivery progress to planner.
-- `deals.delivery-stats.cached-reports-number` - how many reports to cache while planner is unresponsive.
-- `deals.delivery-stats.timeout-ms` - default operation timeout for requests to delivery progress endpoints.
-- `deals.delivery-stats.username` - username for delivery progress BasicAuth.
-- `deals.delivery-stats.password` - password for delivery progress BasicAuth.
-- `deals.delivery-stats.line-items-per-report` - max number of line items in each report to split for batching. Default is 25.
-- `deals.delivery-stats.reports-interval-ms` - interval in ms between consecutive reports. Default is 0.
-- `deals.delivery-stats.batches-interval-ms` - interval in ms between consecutive batches. Default is 1000.
-- `deals.delivery-stats.request-compression-enabled` - enables request gzip compression when set to true.
-- `deals.delivery-progress.line-item-status-ttl-sec` - how long to store line item's metrics after it was expired.
-- `deals.delivery-progress.cached-plans-number` -  how many plans to store in metrics per line item.
-- `deals.delivery-progress.report-reset-period`- cron expression to start job for closing current delivery progress and starting new one.
-- `deals.delivery-progress-report.competitors-number`- number of line items top competitors to send in delivery progress report.
-- `deals.user-data.user-details-endpoint` - user Data Store endpoint to get user details from.
-- `deals.user-data.win-event-endpoint` - user Data Store endpoint to which win events should be sent.
-- `deals.user-data.timeout` - time to wait (in milliseconds) for User Data Service response.
-- `deals.user-data.user-ids` - list of Rules for determining user identifiers to send to User Data Store.
-- `deals.max-deals-per-bidder` - maximum number of deals to send to each bidder.
-- `deals.alert-proxy.enabled` - enable alert proxy service if `true`.
-- `deals.alert-proxy.url` - alert service endpoint to send alerts to.
-- `deals.alert-proxy.timeout-sec` - default operation timeout for requests to alert service endpoint.
-- `deals.alert-proxy.username` - username for alert proxy BasicAuth.
-- `deals.alert-proxy.password` - password for alert proxy BasicAuth.
-- `deals.alert-proxy.alert-types` - key value pair of alert type and sampling factor to send high priority alert.
 
 ## Debugging
 - `debug.override-token` - special string token for overriding Prebid Server account and/or adapter debug information presence in the auction response.

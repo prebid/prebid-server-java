@@ -13,7 +13,11 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -22,10 +26,13 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.yieldmo.proto.YieldmoImpExt;
+import org.prebid.server.currency.CurrencyConversionService;
+import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.yieldmo.ExtImpYieldmo;
 import org.prebid.server.util.HttpUtil;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -35,19 +42,33 @@ import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
+@ExtendWith(MockitoExtension.class)
 public class YieldmoBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
     private static final String PLACEMENT_VALUE = "placementId";
 
-    private final YieldmoBidder target = new YieldmoBidder(ENDPOINT_URL, jacksonMapper);
+    @Mock
+    private CurrencyConversionService currencyConversionService;
+
+    private YieldmoBidder target;
+
+    @BeforeEach
+    public void setUp() {
+        target = new YieldmoBidder(ENDPOINT_URL, currencyConversionService, jacksonMapper);
+    }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new YieldmoBidder("invalid_url", jacksonMapper));
+        assertThatIllegalArgumentException().isThrownBy(() -> new YieldmoBidder("invalid_url",
+                currencyConversionService, jacksonMapper));
     }
 
     @Test
@@ -61,7 +82,7 @@ public class YieldmoBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize value");
+        assertThat(result.getErrors().getFirst().getMessage()).startsWith("Cannot deserialize value");
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -158,6 +179,51 @@ public class YieldmoBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestConvertsCurrencyToUsdWhenAble() {
+        //given
+        final BidRequest bidRequest = givenBidRequest(impBuilder ->
+                impBuilder.bidfloor(BigDecimal.ONE).bidfloorcur("EUR"));
+
+        final BigDecimal convertedBidFloor = new BigDecimal("1.5");
+
+        when(currencyConversionService.convertCurrency(any(), any(), any(), any())).thenReturn(convertedBidFloor);
+
+        //when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        //then
+        verify(currencyConversionService).convertCurrency(eq(BigDecimal.ONE), any(), eq("EUR"), eq("USD"));
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp).doesNotContainNull()
+                .extracting(Imp::getBidfloor, Imp::getBidfloorcur)
+                .containsOnly(tuple(convertedBidFloor, "USD"));
+    }
+
+    @Test
+    public void makeHttpRequestShouldUseOriginalBidFloorsIfCurrencyCanNotBeConverted() {
+        //given
+        final BidRequest bidRequest = givenBidRequest(impBuilder ->
+                impBuilder.bidfloor(BigDecimal.ONE).bidfloorcur("EUR"));
+
+        final var convertedBidFloor = new BigDecimal("1.5");
+
+        when(currencyConversionService.convertCurrency(any(), any(), any(), any())).thenThrow(
+                new PreBidException("currency could not be converted"));
+
+        //when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        //then
+        verify(currencyConversionService).convertCurrency(eq(BigDecimal.ONE), any(), eq("EUR"), eq("USD"));
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp).doesNotContainNull()
+                .extracting(Imp::getBidfloor, Imp::getBidfloorcur)
+                .containsOnly(tuple(BigDecimal.ONE, "EUR"));
+    }
+
+    @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
@@ -167,8 +233,8 @@ public class YieldmoBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors().getFirst().getMessage()).startsWith("Failed to decode: Unrecognized token");
+        assertThat(result.getErrors().getFirst().getType()).isEqualTo(BidderError.Type.bad_server_response);
         assertThat(result.getValue()).isEmpty();
     }
 

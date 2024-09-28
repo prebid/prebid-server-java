@@ -12,7 +12,7 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -28,6 +28,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtStoredRequest;
 import org.prebid.server.proto.openrtb.ext.request.nextmillennium.ExtImpNextMillennium;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
@@ -275,11 +276,11 @@ public class NextMillenniumBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBidByDefault() throws JsonProcessingException {
+    public void makeBidsShouldReturnBannerBidWhenMTypeIsOne() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
         final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.mtype(1).impid("123"))));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
@@ -287,7 +288,76 @@ public class NextMillenniumBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), BidType.banner, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().mtype(1).impid("123").build(),
+                        BidType.banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnVideoBidWhenMTypeIsTwo() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.mtype(2).impid("123"))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(Bid.builder().mtype(2).impid("123").build(),
+                        BidType.video, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorWhenMTypeIsUnknown() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.mtype(999).impid("123"))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors())
+                .contains(BidderError.badServerResponse("Unable to fetch mediaType 999 in multi-format: 123"));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorWhenMTypeIsMissing() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.id("bidId").impid("123"))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).contains(BidderError.badServerResponse("Missing MType for bid: bidId"));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnBothValidAndInvalidBidderBidAtTheSameTime() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
+                mapper.writeValueAsString(givenBidResponse(
+                        bidBuilder -> bidBuilder.mtype(999).impid("123"),
+                        bidBuilder -> bidBuilder.mtype(1).impid("312"))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors())
+                .contains(BidderError.badServerResponse("Unable to fetch mediaType 999 in multi-format: 123"));
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(Bid.builder().mtype(1).impid("312").build(),
+                        BidType.banner, "USD"));
     }
 
     @Test
@@ -372,7 +442,7 @@ public class NextMillenniumBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getImp)
-                .extracting(imps -> imps.get(0))
+                .extracting(imps -> imps.getFirst())
                 .extracting(Imp::getExt)
                 .isNotEqualTo(givenImp.getExt())
                 .extracting(jsonNodes -> mapper.treeToValue(jsonNodes, ExtRequest.class))
@@ -417,7 +487,7 @@ public class NextMillenniumBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getImp)
-                .extracting(imps -> imps.get(0))
+                .extracting(imps -> imps.getFirst())
                 .element(0)
                 .usingRecursiveComparison()
                 .ignoringFields("ext")
@@ -476,12 +546,15 @@ public class NextMillenniumBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()).build();
     }
 
-    private static BidResponse givenBidResponse(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
+    @SafeVarargs
+    private static BidResponse givenBidResponse(UnaryOperator<Bid.BidBuilder>... bidCustomizers) {
         return BidResponse.builder()
-                .seatbid(singletonList(SeatBid.builder()
-                        .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
-                        .build()))
                 .cur("USD")
+                .seatbid(singletonList(SeatBid.builder()
+                        .bid(Arrays.stream(bidCustomizers)
+                                .map(bidCustomizer -> bidCustomizer.apply(Bid.builder()).build())
+                                .toList())
+                        .build()))
                 .build();
     }
 

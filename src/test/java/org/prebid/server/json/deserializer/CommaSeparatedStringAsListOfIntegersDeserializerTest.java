@@ -3,13 +3,11 @@ package org.prebid.server.json.deserializer;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.DeserializationContext;
-import com.mchange.util.AssertException;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
 import java.util.List;
@@ -21,10 +19,8 @@ import static org.mockito.ArgumentMatchers.matches;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doThrow;
 
+@ExtendWith(MockitoExtension.class)
 public class CommaSeparatedStringAsListOfIntegersDeserializerTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     private CommaSeparatedStringAsListOfIntegersDeserializer commaSeparatedStringAsListOfIntegersDeserializer;
 
@@ -34,7 +30,7 @@ public class CommaSeparatedStringAsListOfIntegersDeserializerTest {
     @Mock
     private DeserializationContext context;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         commaSeparatedStringAsListOfIntegersDeserializer = new CommaSeparatedStringAsListOfIntegersDeserializer();
     }
@@ -44,7 +40,7 @@ public class CommaSeparatedStringAsListOfIntegersDeserializerTest {
         // given
         given(parser.getCurrentToken()).willReturn(JsonToken.VALUE_FALSE);
         given(parser.getCurrentName()).willReturn("FIELD");
-        doThrow(AssertException.class)
+        doThrow(RuntimeException.class)
                 .when(context)
                 .reportWrongTokenException(
                         eq(JsonToken.class),
@@ -54,7 +50,7 @@ public class CommaSeparatedStringAsListOfIntegersDeserializerTest {
                                 Expected comma-separated string."""));
 
         // when and then
-        assertThatExceptionOfType(AssertException.class)
+        assertThatExceptionOfType(RuntimeException.class)
                 .isThrownBy(() -> commaSeparatedStringAsListOfIntegersDeserializer.deserialize(parser, context));
     }
 
@@ -64,7 +60,7 @@ public class CommaSeparatedStringAsListOfIntegersDeserializerTest {
         given(parser.getCurrentToken()).willReturn(JsonToken.VALUE_STRING);
         given(parser.getValueAsString()).willReturn(null);
         given(parser.getCurrentName()).willReturn("FIELD");
-        doThrow(AssertException.class)
+        doThrow(RuntimeException.class)
                 .when(context)
                 .reportWrongTokenException(
                         eq(JsonToken.class),
@@ -74,7 +70,7 @@ public class CommaSeparatedStringAsListOfIntegersDeserializerTest {
                                 Expected comma-separated string."""));
 
         // when and then
-        assertThatExceptionOfType(AssertException.class)
+        assertThatExceptionOfType(RuntimeException.class)
                 .isThrownBy(() -> commaSeparatedStringAsListOfIntegersDeserializer.deserialize(parser, context));
     }
 
@@ -84,7 +80,7 @@ public class CommaSeparatedStringAsListOfIntegersDeserializerTest {
         given(parser.getCurrentToken()).willReturn(JsonToken.VALUE_STRING);
         given(parser.getValueAsString()).willReturn("invalid");
         given(parser.getCurrentName()).willReturn("FIELD");
-        doThrow(AssertException.class)
+        doThrow(RuntimeException.class)
                 .when(context)
                 .reportPropertyInputMismatch(
                         eq(JsonToken.class),
@@ -94,7 +90,7 @@ public class CommaSeparatedStringAsListOfIntegersDeserializerTest {
                                 NumberFormatException"""));
 
         // when and then
-        assertThatExceptionOfType(AssertException.class)
+        assertThatExceptionOfType(RuntimeException.class)
                 .isThrownBy(() -> commaSeparatedStringAsListOfIntegersDeserializer.deserialize(parser, context));
     }
 

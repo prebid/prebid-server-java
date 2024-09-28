@@ -255,6 +255,12 @@ public class Video {
     List<Integer> companiontype;
 
     /**
+     * Indicates pod deduplication settings that will be applied to bid responses. Refer to <a href="https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/main/AdCOM%20v1.0%20FINAL.md#list--pod-deduplication-settings-">
+     * List: Pod Deduplication</a> in AdCOM 1.0.
+     */
+    List<Integer> poddedupe;
+
+    /**
      * An array of objects (Section 3.2.35)
      * indicating the floor prices for video creatives of various durations that the buyer may bid with.
      */

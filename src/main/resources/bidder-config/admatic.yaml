@@ -1,0 +1,15 @@
+adapters:
+  admatic:
+    endpoint: http://pbs.admatic.com.tr?host={{Host}}
+    meta-info:
+      maintainer-email: prebid@admatic.com.tr
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 1281

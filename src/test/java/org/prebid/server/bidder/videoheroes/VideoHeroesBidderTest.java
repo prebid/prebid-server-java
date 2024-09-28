@@ -11,7 +11,7 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -60,7 +60,7 @@ public class VideoHeroesBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1).element(0).isNotNull()
                 .returns(HttpMethod.POST, HttpRequest::getMethod)
                 .returns("https://test.endpoint.com/?partner=placementId", HttpRequest::getUri);
-        assertThat(result.getValue().get(0).getHeaders()).isNotNull()
+        assertThat(result.getValue().getFirst().getHeaders()).isNotNull()
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(
                         tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), "application/json;charset=utf-8"),

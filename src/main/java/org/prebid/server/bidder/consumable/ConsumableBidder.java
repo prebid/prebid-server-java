@@ -1,49 +1,52 @@
 package org.prebid.server.bidder.consumable;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.base.Strings;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
-import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
+import com.iab.openrtb.response.BidResponse;
+import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.consumable.model.ConsumableAdType;
-import org.prebid.server.bidder.consumable.model.ConsumableBidGdpr;
-import org.prebid.server.bidder.consumable.model.ConsumableBidRequest;
-import org.prebid.server.bidder.consumable.model.ConsumableBidResponse;
-import org.prebid.server.bidder.consumable.model.ConsumableDecision;
-import org.prebid.server.bidder.consumable.model.ConsumablePlacement;
-import org.prebid.server.bidder.consumable.model.ConsumablePricing;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
+import org.prebid.server.bidder.model.CompositeBidderResponse;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
-import org.prebid.server.proto.openrtb.ext.request.ExtUser;
+import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.consumable.ExtImpConsumable;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
-import java.math.BigDecimal;
-import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
-public class ConsumableBidder implements Bidder<ConsumableBidRequest> {
+public class ConsumableBidder implements Bidder<BidRequest> {
+
+    private static final String OPENRTB_VERSION = "2.5";
+    private static final TypeReference<ExtPrebid<?, ExtImpConsumable>> CONS_EXT_TYPE_REFERENCE = new TypeReference<>() {
+    };
+    public static final String SITE_URI_PATH = "/sb/rtb";
+    public static final String APP_URI_PATH = "/rtb/bid?s=";
+    private final JacksonMapper mapper;
 
     private final String endpointUrl;
-    private final JacksonMapper mapper;
 
     public ConsumableBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
@@ -51,177 +54,164 @@ public class ConsumableBidder implements Bidder<ConsumableBidRequest> {
     }
 
     @Override
-    public Result<List<HttpRequest<ConsumableBidRequest>>> makeHttpRequests(BidRequest request) {
-        final ConsumableBidRequest.ConsumableBidRequestBuilder requestBuilder = ConsumableBidRequest.builder()
-                .time(Instant.now().getEpochSecond())
-                .includePricingData(true)
-                .enableBotFiltering(true)
-                .parallel(true);
+    public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
+        final List<Imp> imps = new ArrayList<>();
+        final List<BidderError> errors = new ArrayList<>();
+        final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
+        String placementId = null;
+        for (Imp imp : bidRequest.getImp()) {
+            try {
+                final ExtImpConsumable impExt = parseImpExt(imp);
+                if (!isImpValid(bidRequest.getSite(), bidRequest.getApp(), impExt)) {
+                    continue;
+                }
+                if (Strings.isNullOrEmpty(placementId) && !Strings.isNullOrEmpty(impExt.getPlacementId())) {
+                    placementId = impExt.getPlacementId();
+                }
 
-        final Site site = request.getSite();
-        if (site != null) {
-            requestBuilder
-                    .referrer(site.getRef())
-                    .url(site.getPage());
-        }
+                imps.add(imp);
 
-        final Regs regs = request.getRegs();
-
-        final String gpp = regs != null ? regs.getGpp() : null;
-        if (gpp != null) {
-            requestBuilder.gpp(gpp);
-        }
-
-        final List<Integer> gppSid = regs != null ? regs.getGppSid() : null;
-        if (CollectionUtils.isNotEmpty(gppSid)) {
-            requestBuilder.gppSid(gppSid);
-        }
-
-        final ExtRegs extRegs = regs != null ? regs.getExt() : null;
-        final String usPrivacy = extRegs != null ? extRegs.getUsPrivacy() : null;
-        if (usPrivacy != null) {
-            requestBuilder.usPrivacy(usPrivacy);
-        }
-
-        final Integer gdpr = extRegs != null ? extRegs.getGdpr() : null;
-        final User user = request.getUser();
-        final ExtUser extUser = user != null ? user.getExt() : null;
-        final String gdprConsent = extUser != null ? extUser.getConsent() : null;
-        if (gdpr != null || gdprConsent != null) {
-            final ConsumableBidGdpr.ConsumableBidGdprBuilder bidGdprBuilder = ConsumableBidGdpr.builder();
-            if (gdpr != null) {
-                bidGdprBuilder.applies(gdpr != 0);
+            } catch (PreBidException e) {
+                errors.add(BidderError.badInput(e.getMessage()));
             }
-            if (gdprConsent != null) {
-                bidGdprBuilder.consent(gdprConsent).build();
-            }
-            requestBuilder.gdpr(bidGdprBuilder.build());
         }
-
-        try {
-            resolveRequestFields(requestBuilder, request.getImp());
-        } catch (PreBidException e) {
-            return Result.withError(BidderError.badInput(e.getMessage()));
+        if (imps.isEmpty()) {
+            return Result.withErrors(errors);
         }
-
-        final ConsumableBidRequest outgoingRequest = requestBuilder.build();
-
-        return Result.withValue(HttpRequest.<ConsumableBidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(endpointUrl)
-                .body(mapper.encodeToBytes(outgoingRequest))
-                .headers(resolveHeaders(request))
-                .payload(outgoingRequest)
-                .build());
-    }
-
-    private void resolveRequestFields(ConsumableBidRequest.ConsumableBidRequestBuilder requestBuilder,
-                                      List<Imp> imps) {
-        final List<ConsumablePlacement> placements = new ArrayList<>();
-        for (int i = 0; i < imps.size(); i++) {
-            final Imp currentImp = imps.get(i);
-            final ExtImpConsumable extImpConsumable = parseImpExt(currentImp);
-            if (i == 0) {
-                requestBuilder
-                        .networkId(extImpConsumable.getNetworkId())
-                        .siteId(extImpConsumable.getSiteId())
-                        .unitId(extImpConsumable.getUnitId())
-                        .unitName(extImpConsumable.getUnitName());
-            }
-            placements.add(ConsumablePlacement.builder()
-                    .divName(currentImp.getId())
-                    .networkId(extImpConsumable.getNetworkId())
-                    .siteId(extImpConsumable.getSiteId())
-                    .unitId(extImpConsumable.getUnitId())
-                    .unitName(extImpConsumable.getUnitName())
-                    .adTypes(ConsumableAdType.getSizeCodes(currentImp.getBanner().getFormat()))
-                    .build());
-        }
-        requestBuilder.placements(placements);
+        final BidRequest modRequest = modifyBidRequest(bidRequest, imps);
+        final String finalUrl = constructUri(placementId);
+        httpRequests.add(BidderUtil.defaultRequest(modRequest, resolveHeaders(), finalUrl, mapper));
+        return Result.of(httpRequests, errors);
     }
 
     private ExtImpConsumable parseImpExt(Imp imp) {
         try {
-            return mapper.mapper().convertValue(imp.getExt().get("bidder"), ExtImpConsumable.class);
+            return mapper.mapper().convertValue(imp.getExt(), CONS_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage(), e);
+            throw new PreBidException(e.getMessage());
         }
     }
 
-    private static MultiMap resolveHeaders(BidRequest request) {
-        final MultiMap headers = HttpUtil.headers();
+    private boolean isImpValid(Site site, App app, ExtImpConsumable impExt) {
+        return (app != null && !Strings.isNullOrEmpty(impExt.getPlacementId()))
+                || (site != null && impExt.getSiteId() != 0 && impExt.getNetworkId() != 0 && impExt.getUnitId() != 0);
 
-        final Device device = request.getDevice();
-        if (device != null) {
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
-            final String ip = device.getIp();
-            if (StringUtils.isNotBlank(ip)) {
-                headers.add(HttpUtil.X_FORWARDED_FOR_HEADER, ip);
-                headers.add("Forwarded", "for=" + ip);
-            }
-        }
+    }
 
-        final User user = request.getUser();
-        if (user != null && StringUtils.isNotBlank(user.getBuyeruid())) {
-            headers.add(HttpUtil.COOKIE_HEADER, "azk=" + user.getBuyeruid().trim());
-        }
+    private BidRequest modifyBidRequest(BidRequest bidRequest, List<Imp> imps) {
+        return bidRequest.toBuilder().imp(imps).build();
+    }
 
-        final Site site = request.getSite();
-        final String page = site != null ? site.getPage() : null;
-        if (StringUtils.isNotBlank(page)) {
-            headers.set(HttpUtil.REFERER_HEADER, page);
-            try {
-                headers.set(HttpUtil.ORIGIN_HEADER, HttpUtil.validateUrl(page));
-            } catch (IllegalArgumentException e) {
-                // do nothing, just skip adding this header
-            }
-        }
+    private String constructUri(String placementId) {
+        final String uri = Strings.isNullOrEmpty(placementId) ? SITE_URI_PATH : (APP_URI_PATH + placementId);
+        return this.endpointUrl + uri;
+    }
 
-        return headers;
+    private static MultiMap resolveHeaders() {
+        return HttpUtil.headers().add(HttpUtil.X_OPENRTB_VERSION_HEADER, OPENRTB_VERSION);
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(BidderCall<ConsumableBidRequest> httpCall, BidRequest bidRequest) {
-        final ConsumableBidResponse consumableResponse;
-        try {
-            consumableResponse = mapper.decodeValue(httpCall.getResponse().getBody(), ConsumableBidResponse.class);
-        } catch (DecodeException e) {
-            return Result.withError(BidderError.badServerResponse(e.getMessage()));
-        }
-        final List<BidderError> errors = new ArrayList<>();
-        final List<BidderBid> bidderBids = extractBids(bidRequest, consumableResponse.getDecisions());
-        return Result.of(bidderBids, errors);
+    @Deprecated(since = "Not used, since Bidder.makeBidderResponse(...) was overridden.")
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
+        return Result.withError(BidderError.generic("Invalid method call"));
     }
 
-    private static List<BidderBid> extractBids(BidRequest bidRequest,
-                                               Map<String, ConsumableDecision> impIdToDecisions) {
-        final List<BidderBid> bidderBids = new ArrayList<>();
-        for (Map.Entry<String, ConsumableDecision> entry : impIdToDecisions.entrySet()) {
-            final ConsumableDecision decision = entry.getValue();
+    @Override
+    public CompositeBidderResponse makeBidderResponse(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
+        try {
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            final List<BidderError> bidderErrors = new ArrayList<>();
+            return CompositeBidderResponse.builder().bids(extractConsumableBids(bidRequest, bidResponse, bidderErrors))
+                    .errors(bidderErrors).build();
+        } catch (DecodeException e) {
+            return CompositeBidderResponse.withError(BidderError.badServerResponse(e.getMessage()));
+        }
+    }
 
-            if (decision != null) {
-                final ConsumablePricing pricing = decision.getPricing();
-                if (pricing != null && pricing.getClearPrice() != null) {
-                    final String impId = entry.getKey();
+    private List<BidderBid> extractConsumableBids(BidRequest bidRequest, BidResponse bidResponse,
+                                                  List<BidderError> errors) {
+        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
+            return Collections.emptyList();
+        }
 
-                    final Bid bid = Bid.builder()
-                            .id(bidRequest.getId())
-                            .impid(impId)
-                            .price(BigDecimal.valueOf(pricing.getClearPrice()))
-                            .adm(CollectionUtils.isNotEmpty(decision.getContents())
-                                    ? decision.getContents().get(0).getBody() : "")
-                            .w(decision.getWidth())
-                            .h(decision.getHeight())
-                            .crid(String.valueOf(decision.getAdId()))
-                            .exp(30)
-                            .build();
-                    // Consumable units are always HTML, never VAST.
-                    // From Prebid's point of view, this means that Consumable units
-                    // are always "banners".
-                    bidderBids.add(BidderBid.of(bid, BidType.banner, null));
+        return bidResponse.getSeatbid().stream()
+                .filter(Objects::nonNull)
+                .map(SeatBid::getBid)
+                .filter(Objects::nonNull)
+                .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
+                .map(bid -> toBidderBid(bid, bidRequest, bidResponse, errors))
+                .filter(Objects::nonNull)
+                .toList();
+
+    }
+
+    private BidderBid toBidderBid(Bid bid, BidRequest bidRequest, BidResponse bidResponse, List<BidderError> errors) {
+        final BidType bidType;
+        try {
+            bidType = getBidType(bid, bidRequest.getImp());
+        } catch (PreBidException e) {
+            errors.add(BidderError.badServerResponse(e.getMessage()));
+            return null;
+        }
+
+        return BidderBid.builder()
+                .bid(bid)
+                .type(bidType)
+                .bidCurrency(bidResponse.getCur())
+                .videoInfo(makeVideoInfo(bid))
+                .build();
+    }
+
+    private static BidType getBidType(Bid bid, List<Imp> imps) {
+        return getBidTypeFromMtype(bid.getMtype())
+                .or(() -> getBidTypeFromExtPrebidType(bid.getExt()))
+                .orElseGet(() -> getBidTypeFromImp(imps, bid.getImpid()));
+    }
+
+    private static Optional<BidType> getBidTypeFromMtype(Integer mType) {
+        final BidType bidType = switch (mType) {
+            case 1 -> BidType.banner;
+            case 2 -> BidType.video;
+            case 3 -> BidType.audio;
+            case 4 -> BidType.xNative;
+            case null, default -> null;
+        };
+
+        return Optional.ofNullable(bidType);
+    }
+
+    private static Optional<BidType> getBidTypeFromExtPrebidType(ObjectNode bidExt) {
+        return Optional.ofNullable(bidExt)
+                .map(ext -> ext.get("prebid"))
+                .map(prebid -> prebid.get("type"))
+                .map(JsonNode::asText).map(BidType::fromString);
+    }
+
+    private static BidType getBidTypeFromImp(List<Imp> imps, String impId) {
+        for (Imp imp : imps) {
+            if (imp.getId().equals(impId)) {
+                if (imp.getBanner() != null) {
+                    return BidType.banner;
+                } else if (imp.getVideo() != null) {
+                    return BidType.video;
+                } else if (imp.getXNative() != null) {
+                    return BidType.xNative;
+                } else if (imp.getAudio() != null) {
+                    return BidType.audio;
                 }
             }
         }
-        return bidderBids;
+        throw new PreBidException("Unmatched impression id " + impId);
+    }
+
+    private static ExtBidPrebidVideo makeVideoInfo(Bid bid) {
+
+        final int duration = Optional.ofNullable(bid)
+                .map(Bid::getDur)
+                .orElse(0);
+
+        return ExtBidPrebidVideo.of(duration, null);
     }
 }

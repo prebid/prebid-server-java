@@ -6,14 +6,14 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeType;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;

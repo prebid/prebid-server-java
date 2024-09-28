@@ -1,7 +1,7 @@
 package org.prebid.server.spring.config;
 
 import io.vertx.core.Vertx;
-import io.vertx.ext.jdbc.JDBCClient;
+import io.vertx.sqlclient.Pool;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.health.ApplicationChecker;
@@ -24,10 +24,10 @@ public class HealthCheckerConfiguration {
     @Bean
     @ConditionalOnProperty(prefix = "health-check.database", name = "enabled", havingValue = "true")
     HealthChecker databaseChecker(Vertx vertx,
-                                  JDBCClient jdbcClient,
+                                  Pool pool,
                                   @Value("${health-check.database.refresh-period-ms}") long refreshPeriod) {
 
-        return new DatabaseHealthChecker(vertx, jdbcClient, refreshPeriod);
+        return new DatabaseHealthChecker(vertx, pool, refreshPeriod);
     }
 
     @Bean

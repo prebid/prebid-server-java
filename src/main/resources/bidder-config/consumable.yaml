@@ -2,11 +2,15 @@ adapters:
   consumable:
     endpoint: https://e.serverbid.com/api/v2
     meta-info:
-      maintainer-email: naffis@consumable.com
+      maintainer-email: prebid@consumable.com
       app-media-types:
         - banner
+        - audio
+        - video
       site-media-types:
         - banner
+        - audio
+        - video
       supported-vendors:
       vendor-id: 591
     usersync:

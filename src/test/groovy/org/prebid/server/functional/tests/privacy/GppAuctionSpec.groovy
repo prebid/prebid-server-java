@@ -2,13 +2,14 @@ package org.prebid.server.functional.tests.privacy
 
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Regs
+import org.prebid.server.functional.model.request.auction.RegsExt
 import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.CcpaConsent
 import org.prebid.server.functional.util.privacy.TcfConsent
 import org.prebid.server.functional.util.privacy.gpp.TcfEuV2Consent
-import org.prebid.server.functional.util.privacy.gpp.UspV1Consent
+import org.prebid.server.functional.util.privacy.gpp.UsV1Consent
 
 import static org.prebid.server.functional.model.request.GppSectionId.TCF_EU_V2
 import static org.prebid.server.functional.model.request.GppSectionId.USP_V1
@@ -173,7 +174,7 @@ class GppAuctionSpec extends PrivacyBaseSpec {
 
     def "PBS should copy regs.gpp to regs.usPrivacy when gppSid contains 6, gpp is USP_V1 and regs.us_privacy isn't specified"() {
         given: "Default bid request with gpp and gppSid, without us_privacy"
-        def gppConsent = new UspV1Consent.Builder().build()
+        def gppConsent = new UsV1Consent.Builder().build()
         def bidRequest = BidRequest.defaultBidRequest.tap {
             regs = new Regs(gpp: gppConsent, gppSid: [USP_V1.intValue], usPrivacy: null)
         }
@@ -190,7 +191,7 @@ class GppAuctionSpec extends PrivacyBaseSpec {
     def "PBS shouldn't copy regs.gpp to regs.usPrivacy when gppSid doesn't contain 6, gpp is USP_V1 and regs.us_privacy isn't specified"() {
         given: "Default bid request with gpp and gppSid, without us_privacy"
         def gppSidIds = [PBSUtils.getRandomNumberWithExclusion(USP_V1.intValue)]
-        def gpp = new UspV1Consent.Builder().build()
+        def gpp = new UsV1Consent.Builder().build()
         def bidRequest = BidRequest.defaultBidRequest.tap {
             regs = new Regs(gppSid: gppSidIds, gpp: gpp, usPrivacy: null)
         }
@@ -211,7 +212,7 @@ class GppAuctionSpec extends PrivacyBaseSpec {
     def "PBS should emit warning when gppSid contains 6, gpp is USP_V1 and regs.gpp and regs.usPrivacy are different"() {
         given: "Default bid request with gpp, gppSid and usPrivacy"
         def gppSidIds = [USP_V1.intValue]
-        def gpp = new UspV1Consent.Builder().build()
+        def gpp = new UsV1Consent.Builder().build()
         def ccpaConsent = new CcpaConsent(explicitNotice: ENFORCED, optOutSale: NOT_ENFORCED)
         def bidRequest = BidRequest.defaultBidRequest.tap {
             regs = new Regs(gppSid: gppSidIds, gpp: gpp, usPrivacy: ccpaConsent)
@@ -235,7 +236,7 @@ class GppAuctionSpec extends PrivacyBaseSpec {
     def "PBS should populate gpc when header sec-gpc has value 1"() {
         given: "Default bid request with gpc"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            regs.ext.gpc = null
+            regs.ext = new RegsExt(gpc: null)
         }
 
         when: "PBS processes auction request with headers"
@@ -252,7 +253,7 @@ class GppAuctionSpec extends PrivacyBaseSpec {
     def "PBS shouldn't populate gpc when header sec-gpc has #gpcInvalid value"() {
         given: "Default bid request with gpc"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            regs.ext.gpc = null
+            regs.ext = new RegsExt(gpc: null)
         }
 
         when: "PBS processes auction request with headers"
@@ -260,7 +261,7 @@ class GppAuctionSpec extends PrivacyBaseSpec {
 
         then: "Bidder request shouldn't contain gpc from header"
         def bidderRequests = bidder.getBidderRequest(bidRequest.id)
-        assert !bidderRequests.regs.ext
+        assert !bidderRequests?.regs?.ext?.gpc
 
         where:
         gpcInvalid << [PBSUtils.randomNumber as String, PBSUtils.randomNumber, PBSUtils.randomString, Boolean.TRUE]
@@ -270,7 +271,7 @@ class GppAuctionSpec extends PrivacyBaseSpec {
         given: "Default bid request with gpc"
         def randomGpc = PBSUtils.randomNumber as String
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            regs.ext.gpc = randomGpc
+            regs.ext = new RegsExt(gpc: randomGpc)
         }
 
         when: "PBS processes auction request with headers"

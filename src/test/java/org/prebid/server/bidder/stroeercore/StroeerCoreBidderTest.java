@@ -11,12 +11,11 @@ import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.http.HttpMethod;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -31,7 +30,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsa;
-import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsaTransparency;
+import org.prebid.server.proto.openrtb.ext.request.DsaTransparency;
 import org.prebid.server.proto.openrtb.ext.request.stroeercore.ExtImpStroeerCore;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -52,19 +51,17 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 public class StroeerCoreBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private CurrencyConversionService currencyConversionService;
 
     private StroeerCoreBidder target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new StroeerCoreBidder(ENDPOINT_URL, jacksonMapper, currencyConversionService);
     }
@@ -92,7 +89,7 @@ public class StroeerCoreBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue().get(0).getHeaders()).isNotNull()
+        assertThat(result.getValue().getFirst().getHeaders()).isNotNull()
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsExactly(
                         tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), "application/json;charset=utf-8"),
@@ -133,9 +130,9 @@ public class StroeerCoreBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnDSA() {
         // given
-        final List<ExtRegsDsaTransparency> transparencies = Arrays.asList(
-                ExtRegsDsaTransparency.of("platform-example.com", List.of(1, 2)),
-                ExtRegsDsaTransparency.of("ssp-example.com", List.of(1))
+        final List<DsaTransparency> transparencies = Arrays.asList(
+                DsaTransparency.of("platform-example.com", List.of(1, 2)),
+                DsaTransparency.of("ssp-example.com", List.of(1))
         );
 
         final ExtRegsDsa dsa = ExtRegsDsa.of(3, 1, 2, transparencies);

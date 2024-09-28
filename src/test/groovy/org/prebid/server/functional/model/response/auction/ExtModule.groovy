@@ -9,4 +9,6 @@ import groovy.transform.ToString
 class ExtModule {
 
     ModuleTrace trace
+    ModuleError errors
+    ModuleWarning warnings
 }

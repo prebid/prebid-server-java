@@ -1,0 +1,19 @@
+adapters:
+  melozen:
+    endpoint: https://prebid.melozen.com/rtb/v2/bid?publisher_id={{PublisherID}}
+    endpoint-compression: gzip
+    modifying-vast-xml-allowed: true
+    geoscope:
+      - global
+    meta-info:
+      maintainer-email: DSP@melodong.com
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 0

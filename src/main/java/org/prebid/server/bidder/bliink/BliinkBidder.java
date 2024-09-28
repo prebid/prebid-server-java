@@ -76,7 +76,7 @@ public class BliinkBidder implements Bidder<BidRequest> {
             return Collections.emptyList();
         }
 
-        return Optional.ofNullable(bidResponse.getSeatbid().get(0))
+        return Optional.ofNullable(bidResponse.getSeatbid().getFirst())
                 .map(SeatBid::getBid)
                 .orElseGet(Collections::emptyList)
                 .stream()

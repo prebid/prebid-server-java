@@ -3,6 +3,7 @@ package org.prebid.server.bidder.unruly;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -10,7 +11,7 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -74,8 +75,8 @@ public class UnrulyBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors().getFirst().getMessage()).startsWith("Failed to decode: Unrecognized token");
+        assertThat(result.getErrors().getFirst().getType()).isEqualTo(BidderError.Type.bad_server_response);
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -164,6 +165,88 @@ public class UnrulyBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldSetDurationFromBidDurField() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().video(Video.builder().build()).id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.dur(12).impid("123"))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getExt)
+                .extracting(bidExt -> bidExt.get("prebid"))
+                .extracting(bidExtPrebid -> bidExtPrebid.get("video"))
+                .extracting(bidExtPrebidVideo -> bidExtPrebidVideo.get("duration"))
+                .containsExactly(IntNode.valueOf(12));
+    }
+
+    @Test
+    public void makeBidsShouldSetDurationFromBidDurFieldAndTolerateExistingBidExt() throws JsonProcessingException {
+        // given
+        final ObjectNode givenBidExt = mapper.createObjectNode();
+        final ObjectNode givenBidExtPrebid = mapper.createObjectNode();
+        givenBidExtPrebid.set("property1", new TextNode("someValue"));
+        givenBidExt.set("prebid", givenBidExtPrebid);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().video(Video.builder().build()).id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder
+                                .ext(givenBidExt)
+                                .dur(12)
+                                .impid("123"))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        final ObjectNode expectedBidExt = mapper.createObjectNode();
+        final ObjectNode expectedBidExtPrebid = mapper.createObjectNode();
+        expectedBidExtPrebid.set("property1", new TextNode("someValue"));
+        final ObjectNode expectedBidExtPrebidVideo = mapper.createObjectNode();
+        expectedBidExtPrebidVideo.set("duration", IntNode.valueOf(12));
+        expectedBidExtPrebid.set("property1", new TextNode("someValue"));
+        expectedBidExtPrebid.set("video", expectedBidExtPrebidVideo);
+        expectedBidExt.set("prebid", expectedBidExtPrebid);
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getExt)
+                .containsExactly(expectedBidExt);
+    }
+
+    @Test
+    public void makeBidsShouldNotSetDurationFromBidDurFieldForBannerBids() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().banner(Banner.builder().build()).id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.dur(12).impid("123"))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getExt)
+                .containsOnlyNulls();
     }
 
     @Test
