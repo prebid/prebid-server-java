@@ -3725,13 +3725,17 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBidWithDchainFromRequest() throws JsonProcessingException {
+    public void makeBidsShouldReturnBidMetaFromRequest() throws JsonProcessingException {
         // given
         final ObjectNode requestNode = mapper.valueToTree(ExtBidPrebid.builder()
                 .meta(ExtBidPrebidMeta.builder()
                         .dchain(mapper.createObjectNode().set("dChain", TextNode.valueOf("dChain")))
+                        .mediaType("banner")
                         .build())
                 .build());
+
+        final ObjectNode expectedNode = requestNode.deepCopy();
+
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(identity()),
                 mapper.writeValueAsString(RubiconBidResponse.builder()
@@ -3748,7 +3752,7 @@ public class RubiconBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(BidderBid::getBid)
                 .extracting(Bid::getExt)
-                .containsExactly(requestNode);
+                .containsExactly(expectedNode);
     }
 
     @Test
