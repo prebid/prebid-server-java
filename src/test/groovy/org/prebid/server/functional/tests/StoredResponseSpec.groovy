@@ -374,6 +374,5 @@ class StoredResponseSpec extends BaseSpec {
             it.bid*.ext = null
             it.group = null
         }
-        seatBid
     }
 }
