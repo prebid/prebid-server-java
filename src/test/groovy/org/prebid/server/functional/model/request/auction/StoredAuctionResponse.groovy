@@ -10,4 +10,6 @@ class StoredAuctionResponse {
     String id
     @JsonProperty("seatbidarr")
     List<SeatBid> seatBids
+    @JsonProperty("seatbidobj")
+    SeatBid seatBidObject
 }
