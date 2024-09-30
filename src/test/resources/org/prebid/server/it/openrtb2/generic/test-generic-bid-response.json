@@ -7,7 +7,15 @@
           "id": "bid_id",
           "impid": "imp_id",
           "price": 3.33,
-          "crid": "creativeId"
+          "crid": "creativeId",
+          "ext": {
+            "prebid": {
+              "meta": {
+                "mediaType": "banner",
+                "adaptercode": "adaptercode"
+              }
+            }
+          }
         }
       ]
     }

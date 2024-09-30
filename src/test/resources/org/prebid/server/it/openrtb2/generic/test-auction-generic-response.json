@@ -11,7 +11,11 @@
           "ext": {
             "origbidcpm": 3.33,
             "prebid": {
-              "type": "banner"
+              "type": "banner",
+              "meta": {
+                "mediaType": "banner",
+                "adaptercode": "adaptercode"
+              }
             }
           }
         }
