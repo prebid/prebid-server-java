@@ -24,21 +24,23 @@ import org.prebid.server.functional.model.response.auction.SeatBid
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.tests.module.ModuleBaseSpec
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.PendingFeature
 
 import static org.prebid.server.functional.model.ModuleName.ORTB2_BLOCKING
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.config.Endpoint.OPENRTB2_AUCTION
+import static org.prebid.server.functional.model.config.Ortb2BlockingAttribute.AUDIO_BATTR
 import static org.prebid.server.functional.model.config.Ortb2BlockingAttribute.BADV
 import static org.prebid.server.functional.model.config.Ortb2BlockingAttribute.BAPP
-import static org.prebid.server.functional.model.config.Ortb2BlockingAttribute.BATTR
+import static org.prebid.server.functional.model.config.Ortb2BlockingAttribute.BANNER_BATTR
 import static org.prebid.server.functional.model.config.Ortb2BlockingAttribute.BCAT
 import static org.prebid.server.functional.model.config.Ortb2BlockingAttribute.BTYPE
+import static org.prebid.server.functional.model.config.Ortb2BlockingAttribute.VIDEO_BATTR
 import static org.prebid.server.functional.model.config.Stage.BIDDER_REQUEST
 import static org.prebid.server.functional.model.config.Stage.RAW_BIDDER_RESPONSE
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.RESPONSE_REJECTED_ADVERTISER_BLOCKED
+import static org.prebid.server.functional.model.response.auction.MediaType.AUDIO
 import static org.prebid.server.functional.model.response.auction.MediaType.BANNER
 import static org.prebid.server.functional.model.response.auction.MediaType.VIDEO
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
@@ -53,7 +55,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
 
     def "PBS should send original array ortb2 attribute to bidder when enforce blocking is disabled"() {
         given: "Default bidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = getBidRequestForOrtbAttribute(attributeName)
 
         and: "Account in the DB with blocking configuration"
         def account = getAccountWithOrtb2BlockingConfig(bidRequest.accountId, [ortb2Attributes], attributeName)
@@ -83,13 +85,15 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         PBSUtils.randomString | BADV
         PBSUtils.randomString | BAPP
         PBSUtils.randomString | BCAT
-        PBSUtils.randomNumber | BATTR
+        PBSUtils.randomNumber | BANNER_BATTR
+        PBSUtils.randomNumber | VIDEO_BATTR
+        PBSUtils.randomNumber | AUDIO_BATTR
         PBSUtils.randomNumber | BTYPE
     }
 
     def "PBS should be able to send original array ortb2 attribute to bidder alias"() {
         given: "Default bid request with alias"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
+        def bidRequest = getBidRequestForOrtbAttribute(attributeName).tap {
             ext.prebid.aliases = [(ALIAS.value): GENERIC]
             imp[0].ext.prebid.bidder.generic = null
             imp[0].ext.prebid.bidder.alias = new Generic()
@@ -114,13 +118,15 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         PBSUtils.randomString | BADV
         PBSUtils.randomString | BAPP
         PBSUtils.randomString | BCAT
-        PBSUtils.randomNumber | BATTR
+        PBSUtils.randomNumber | BANNER_BATTR
+        PBSUtils.randomNumber | VIDEO_BATTR
+        PBSUtils.randomNumber | AUDIO_BATTR
         PBSUtils.randomNumber | BTYPE
     }
 
     def "PBS shouldn't send original single ortb2 attribute to bidder when enforce blocking is disabled"() {
         given: "Default bidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = getBidRequestForOrtbAttribute(attributeName)
 
         and: "Account in the DB with blocking configuration"
         def account = getAccountWithOrtb2BlockingConfig(bidRequest.accountId, ortb2Attributes, attributeName)
@@ -151,13 +157,15 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         PBSUtils.randomString | BADV
         PBSUtils.randomString | BAPP
         PBSUtils.randomString | BCAT
-        PBSUtils.randomNumber | BATTR
+        PBSUtils.randomNumber | BANNER_BATTR
+        PBSUtils.randomNumber | VIDEO_BATTR
+        PBSUtils.randomNumber | AUDIO_BATTR
         PBSUtils.randomNumber | BTYPE
     }
 
     def "PBS shouldn't send original inappropriate ortb2 attribute to bidder when blocking is disabled"() {
         given: "Default bidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = getBidRequestForOrtbAttribute(attributeName)
 
         and: "Account in the DB with blocking configuration"
         def account = getAccountWithOrtb2BlockingConfig(bidRequest.accountId, [ortb2Attributes], attributeName)
@@ -182,13 +190,15 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         PBSUtils.randomNumber | BADV
         PBSUtils.randomNumber | BAPP
         PBSUtils.randomNumber | BCAT
-        PBSUtils.randomString | BATTR
+        PBSUtils.randomString | BANNER_BATTR
+        PBSUtils.randomString | VIDEO_BATTR
+        PBSUtils.randomString | AUDIO_BATTR
         PBSUtils.randomString | BTYPE
     }
 
     def "PBS shouldn't send original inappropriate ortb2 attribute to bidder when blocking is enabled"() {
         given: "Default bidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = getBidRequestForOrtbAttribute(attributeName)
 
         and: "Account in the DB with blocking configuration"
         def ortb2BlockingAttributeConfig = Ortb2BlockingAttributeConfig.getDefaultConfig([ortb2Attributes], attributeName).tap {
@@ -220,12 +230,14 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         PBSUtils.randomString | BADV
         PBSUtils.randomString | BAPP
         PBSUtils.randomString | BCAT
-        PBSUtils.randomNumber | BATTR
+        PBSUtils.randomNumber | BANNER_BATTR
+        PBSUtils.randomNumber | VIDEO_BATTR
+        PBSUtils.randomNumber | AUDIO_BATTR
     }
 
     def "PBS should send only not matched ortb2 attribute to bidder when blocking is enabled"() {
         given: "Default bidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = getBidRequestForOrtbAttribute(attributeName)
 
         and: "Account in the DB with blocking configuration"
         def ortb2BlockingAttributeConfig = Ortb2BlockingAttributeConfig.getDefaultConfig([disallowedOrtb2Attributes], attributeName).tap {
@@ -259,12 +271,14 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         PBSUtils.randomString  | PBSUtils.randomString     | BADV
         PBSUtils.randomString  | PBSUtils.randomString     | BAPP
         PBSUtils.randomString  | PBSUtils.randomString     | BCAT
-        PBSUtils.randomNumber  | PBSUtils.randomNumber     | BATTR
+        PBSUtils.randomNumber  | PBSUtils.randomNumber     | BANNER_BATTR
+        PBSUtils.randomNumber  | PBSUtils.randomNumber     | VIDEO_BATTR
+        PBSUtils.randomNumber  | PBSUtils.randomNumber     | AUDIO_BATTR
     }
 
     def "PBS should send original inappropriate ortb2 attribute to bidder when blocking is disabled"() {
         given: "Default bidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = getBidRequestForOrtbAttribute(attributeName)
 
         and: "Account in the DB with blocking configuration"
         def ortb2BlockingAttributeConfig = Ortb2BlockingAttributeConfig.getDefaultConfig([ortb2Attributes], attributeName).tap {
@@ -296,12 +310,14 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         PBSUtils.randomString | BADV
         PBSUtils.randomString | BAPP
         PBSUtils.randomString | BCAT
-        PBSUtils.randomNumber | BATTR
+        PBSUtils.randomNumber | BANNER_BATTR
+        PBSUtils.randomNumber | VIDEO_BATTR
+        PBSUtils.randomNumber | AUDIO_BATTR
     }
 
     def "PBS should discard unknown adomain bids when enforcement is enabled"() {
         given: "Default bidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = getBidRequestForOrtbAttribute(BADV)
 
         and: "Account in the DB with blocking configuration"
         def ortb2BlockingAttributeConfig = new Ortb2BlockingAttributeConfig(enforceBlocks: true, blockUnknownAdomain: true)
@@ -340,7 +356,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
 
     def "PBS should not discard unknown adomain bids when enforcement is disabled"() {
         given: "Default bidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = getBidRequestForOrtbAttribute(BADV)
 
         and: "Account in the DB with blocking configuration"
         def account = getAccountWithOrtb2BlockingConfig(bidRequest.accountId, [(BADV): ortb2BlockingAttributeConfig])
@@ -375,7 +391,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
 
     def "PBS should discard unknown adv cat bids when enforcement is enabled"() {
         given: "Default bidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = getBidRequestForOrtbAttribute(BCAT)
 
         and: "Account in the DB with blocking configuration"
         def ortb2BlockingAttributeConfig = new Ortb2BlockingAttributeConfig(enforceBlocks: true, blockUnknownAdvCat: true)
@@ -414,7 +430,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
 
     def "PBS should not discard unknown adv cat bids when enforcement is disabled"() {
         given: "Default bidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = getBidRequestForOrtbAttribute(BCAT)
 
         and: "Account in the DB with blocking configuration"
         def account = getAccountWithOrtb2BlockingConfig(bidRequest.accountId, [(BCAT): ortb2BlockingAttributeConfig])
@@ -449,7 +465,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
 
     def "PBS should not discard bids with deals when allowed ortb2 attribute for deals is matched"() {
         given: "Default bidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = getBidRequestForOrtbAttribute(attributeName)
 
         and: "Account in the DB with blocking configuration"
         def attributes = [(attributeName): Ortb2BlockingAttributeConfig.getDefaultConfig([ortb2Attributes], attributeName, [ortb2Attributes]).tap {
@@ -483,12 +499,14 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         PBSUtils.randomString | BADV
         PBSUtils.randomString | BAPP
         PBSUtils.randomString | BCAT
-        PBSUtils.randomNumber | BATTR
+        PBSUtils.randomNumber | BANNER_BATTR
+        PBSUtils.randomNumber | VIDEO_BATTR
+        PBSUtils.randomNumber | AUDIO_BATTR
     }
 
     def "PBS should discard bids with deals when allowed ortb2 attribute for deals is not matched"() {
         given: "Default bidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = getBidRequestForOrtbAttribute(attributeName)
 
         and: "Account in the DB with blocking configuration"
         def attributeConfig = Ortb2BlockingAttributeConfig.getDefaultConfig([allowedOrtb2Attributes, dielsOrtb2Attributes], attributeName, [allowedOrtb2Attributes]).tap {
@@ -521,12 +539,14 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         PBSUtils.randomString  | PBSUtils.randomString | BADV
         PBSUtils.randomString  | PBSUtils.randomString | BAPP
         PBSUtils.randomString  | PBSUtils.randomString | BCAT
-        PBSUtils.randomNumber  | PBSUtils.randomNumber | BATTR
+        PBSUtils.randomNumber  | PBSUtils.randomNumber | BANNER_BATTR
+        PBSUtils.randomNumber  | PBSUtils.randomNumber | VIDEO_BATTR
+        PBSUtils.randomNumber  | PBSUtils.randomNumber | AUDIO_BATTR
     }
 
     def "PBS should be able to override enforcement by bidder"() {
         given: "Default bidRequest"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
+        def bidRequest = getBidRequestForOrtbAttribute(attributeName).tap {
             imp[0].ext.prebid.bidder.openx = Openx.defaultOpenx
         }
 
@@ -565,14 +585,16 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         PBSUtils.randomString | BADV
         PBSUtils.randomString | BAPP
         PBSUtils.randomString | BCAT
-        PBSUtils.randomNumber | BATTR
+        PBSUtils.randomNumber | BANNER_BATTR
+        PBSUtils.randomNumber | VIDEO_BATTR
+        PBSUtils.randomNumber | AUDIO_BATTR
     }
 
     def "PBS should be able to override enforcement by media type"() {
         given: "Default bidRequest"
         def bannerImp = Imp.getDefaultImpression(BANNER)
         def videoImp = Imp.getDefaultImpression(VIDEO)
-        def bidRequest = BidRequest.defaultBidRequest.tap {
+        def bidRequest = getBidRequestForOrtbAttribute(attributeName).tap {
             imp = [bannerImp, videoImp]
         }
 
@@ -615,24 +637,21 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
 
     def "PBS should be able to override enforcement by media type for battr attribute"() {
         given: "Default bidRequest"
-        def bannerImp = Imp.getDefaultImpression(BANNER)
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp = [bannerImp]
-        }
+        def bidRequest = getBidRequestForOrtbAttribute(attributeName)
 
         and: "Account in the DB with blocking configuration"
-        def blockingCondition = new Ortb2BlockingConditions(mediaType: [BANNER])
+        def blockingCondition = new Ortb2BlockingConditions(mediaType: [mediaType])
         def ortb2Attribute = PBSUtils.randomNumber
-        def ortb2BlockingAttributeConfig = Ortb2BlockingAttributeConfig.getDefaultConfig([ortb2Attribute], BATTR).tap {
+        def ortb2BlockingAttributeConfig = Ortb2BlockingAttributeConfig.getDefaultConfig([ortb2Attribute], attributeName).tap {
             enforceBlocks = true
             actionOverrides = new Ortb2BlockingActionOverride(enforceBlocks: [new Ortb2BlockingOverride(override: false, conditions: blockingCondition)])
         }
-        def account = getAccountWithOrtb2BlockingConfig(bidRequest.accountId, [(BATTR): ortb2BlockingAttributeConfig])
+        def account = getAccountWithOrtb2BlockingConfig(bidRequest.accountId, [(attributeName): ortb2BlockingAttributeConfig])
         accountDao.save(account)
 
         and: "Default bidder response with ortb2 attributes"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            it.seatbid = [new SeatBid(bid: [getBidWithOrtb2Attribute(bannerImp, ortb2Attribute, BATTR)])]
+            it.seatbid = [new SeatBid(bid: [getBidWithOrtb2Attribute(bidRequest.imp.first, ortb2Attribute, attributeName)])]
         }
         bidder.setResponse(bidRequest.id, bidResponse)
 
@@ -641,19 +660,25 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
 
         then: "PBS response should contain banner seatbid"
         assert response.seatbid.bid.flatten().size() == 1
-        assert response.seatbid.first.bid.first.impid == bannerImp.id
-        assert getOrtb2Attributes(response.seatbid.first.bid.first, BATTR) == [ortb2Attribute]*.toString()
+        assert response.seatbid.first.bid.first.impid == bidRequest.imp.first.id
+        assert getOrtb2Attributes(response.seatbid.first.bid.first, attributeName) == [ortb2Attribute]*.toString()
 
         and: "PBS response shouldn't contain any module errors"
         assert !response?.ext?.prebid?.modules?.errors
 
         and: "PBS response shouldn't contain any module warning"
         assert !response?.ext?.prebid?.modules?.warnings
+
+        where:
+        attributeName | mediaType
+        BANNER_BATTR  | BANNER
+        VIDEO_BATTR   | VIDEO
+        AUDIO_BATTR   | AUDIO
     }
 
     def "PBS should be able to override enforcement by deal id"() {
         given: "Default bidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = getBidRequestForOrtbAttribute(attributeName)
 
         and: "Account in the DB with blocking configuration"
         def blockingCondition = new Ortb2BlockingOverride(override: [ortb2Attributes], conditions: new Ortb2BlockingConditions(dealIds: [dealId.toString()]))
@@ -689,16 +714,20 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         PBSUtils.randomNumber | PBSUtils.randomString | PBSUtils.randomString   | BADV
         PBSUtils.randomNumber | PBSUtils.randomString | PBSUtils.randomString   | BAPP
         PBSUtils.randomNumber | PBSUtils.randomString | PBSUtils.randomString   | BCAT
-        PBSUtils.randomNumber | PBSUtils.randomNumber | PBSUtils.randomNumber   | BATTR
+        PBSUtils.randomNumber | PBSUtils.randomNumber | PBSUtils.randomNumber   | BANNER_BATTR
+        PBSUtils.randomNumber | PBSUtils.randomNumber | PBSUtils.randomNumber   | VIDEO_BATTR
+        PBSUtils.randomNumber | PBSUtils.randomNumber | PBSUtils.randomNumber   | AUDIO_BATTR
         WILDCARD              | PBSUtils.randomString | PBSUtils.randomString   | BADV
         WILDCARD              | PBSUtils.randomString | PBSUtils.randomString   | BAPP
         WILDCARD              | PBSUtils.randomString | PBSUtils.randomString   | BCAT
-        WILDCARD              | PBSUtils.randomNumber | PBSUtils.randomNumber   | BATTR
+        WILDCARD              | PBSUtils.randomNumber | PBSUtils.randomNumber   | BANNER_BATTR
+        WILDCARD              | PBSUtils.randomNumber | PBSUtils.randomNumber   | VIDEO_BATTR
+        WILDCARD              | PBSUtils.randomNumber | PBSUtils.randomNumber   | AUDIO_BATTR
     }
 
     def "PBS should be able to override blocked ortb2 attribute by bidder"() {
         given: "Default bidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = getBidRequestForOrtbAttribute(attributeName)
 
         and: "Account in the DB with blocking configuration"
         def blockingCondition = new Ortb2BlockingConditions(bidders: [GENERIC])
@@ -734,12 +763,14 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         PBSUtils.randomString | PBSUtils.randomString | BADV
         PBSUtils.randomString | PBSUtils.randomString | BAPP
         PBSUtils.randomString | PBSUtils.randomString | BCAT
-        PBSUtils.randomNumber | PBSUtils.randomNumber | BATTR
+        PBSUtils.randomNumber | PBSUtils.randomNumber | BANNER_BATTR
+        PBSUtils.randomNumber | PBSUtils.randomNumber | VIDEO_BATTR
+        PBSUtils.randomNumber | PBSUtils.randomNumber | AUDIO_BATTR
     }
 
     def "PBS should be able to override blocked ortb2 attribute by media type"() {
         given: "Default bidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = getBidRequestForOrtbAttribute(attributeName)
 
         and: "Account in the DB with blocking configuration"
         def blockingCondition = new Ortb2BlockingConditions(mediaType: [BANNER])
@@ -775,12 +806,14 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         PBSUtils.randomString | PBSUtils.randomString | BADV
         PBSUtils.randomString | PBSUtils.randomString | BAPP
         PBSUtils.randomString | PBSUtils.randomString | BCAT
-        PBSUtils.randomNumber | PBSUtils.randomNumber | BATTR
+        PBSUtils.randomNumber | PBSUtils.randomNumber | BANNER_BATTR
+        PBSUtils.randomNumber | PBSUtils.randomNumber | BANNER_BATTR
+        PBSUtils.randomNumber | PBSUtils.randomNumber | BANNER_BATTR
     }
 
     def "PBS should be able to override block unknown adomain by bidder"() {
         given: "Default bidRequest"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
+        def bidRequest = getBidRequestForOrtbAttribute(BADV).tap {
             imp[0].ext.prebid.bidder.openx = Openx.defaultOpenx
         }
 
@@ -820,7 +853,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
 
     def "PBS should be able to override block unknown adomain by media type"() {
         given: "Default bidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = getBidRequestForOrtbAttribute(BADV)
 
         and: "Account in the DB with blocking configuration"
         def blockingCondition = new Ortb2BlockingConditions(mediaType: [BANNER])
@@ -856,7 +889,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
 
     def "PBS should be able to override block unknown adv-cat by bidder"() {
         given: "Default bidRequest"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
+        def bidRequest = getBidRequestForOrtbAttribute(BCAT).tap {
             imp[0].ext.prebid.bidder.openx = Openx.defaultOpenx
         }
 
@@ -896,7 +929,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
 
     def "PBS should be able to override block unknown adv-cat by media type"() {
         given: "Default bidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = getBidRequestForOrtbAttribute(BCAT)
 
         and: "Account in the DB with blocking configuration"
         def blockingCondition = new Ortb2BlockingConditions(mediaType: [BANNER])
@@ -930,7 +963,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
 
     def "PBS should be able to override allowed ortb2 attribute for deals by deal ids"() {
         given: "Default bidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = getBidRequestForOrtbAttribute(attributeName)
 
         and: "Account in the DB with blocking configuration"
         def dealId = PBSUtils.randomNumber
@@ -968,12 +1001,14 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         PBSUtils.randomString | PBSUtils.randomString  | BADV
         PBSUtils.randomString | PBSUtils.randomString  | BAPP
         PBSUtils.randomString | PBSUtils.randomString  | BCAT
-        PBSUtils.randomNumber | PBSUtils.randomNumber  | BATTR
+        PBSUtils.randomNumber | PBSUtils.randomNumber  | BANNER_BATTR
+        PBSUtils.randomNumber | PBSUtils.randomNumber  | VIDEO_BATTR
+        PBSUtils.randomNumber | PBSUtils.randomNumber  | AUDIO_BATTR
     }
 
     def "PBS should use first override when multiple match same condition"() {
         given: "Default bidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = getBidRequestForOrtbAttribute(attributeName)
 
         and: "Account in the DB with blocking configuration"
         def firstOrtb2BlockingOverride = new Ortb2BlockingOverride(override: [firstOverrideAttributes], conditions: blockingCondition)
@@ -1010,16 +1045,20 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         new Ortb2BlockingConditions(bidders: [GENERIC])  | PBSUtils.randomString | PBSUtils.randomString   | PBSUtils.randomString    | BADV
         new Ortb2BlockingConditions(bidders: [GENERIC])  | PBSUtils.randomString | PBSUtils.randomString   | PBSUtils.randomString    | BAPP
         new Ortb2BlockingConditions(bidders: [GENERIC])  | PBSUtils.randomString | PBSUtils.randomString   | PBSUtils.randomString    | BCAT
-        new Ortb2BlockingConditions(bidders: [GENERIC])  | PBSUtils.randomNumber | PBSUtils.randomNumber   | PBSUtils.randomNumber    | BATTR
+        new Ortb2BlockingConditions(bidders: [GENERIC])  | PBSUtils.randomNumber | PBSUtils.randomNumber   | PBSUtils.randomNumber    | BANNER_BATTR
+        new Ortb2BlockingConditions(bidders: [GENERIC])  | PBSUtils.randomNumber | PBSUtils.randomNumber   | PBSUtils.randomNumber    | VIDEO_BATTR
+        new Ortb2BlockingConditions(bidders: [GENERIC])  | PBSUtils.randomNumber | PBSUtils.randomNumber   | PBSUtils.randomNumber    | AUDIO_BATTR
         new Ortb2BlockingConditions(mediaType: [BANNER]) | PBSUtils.randomString | PBSUtils.randomString   | PBSUtils.randomString    | BADV
         new Ortb2BlockingConditions(mediaType: [BANNER]) | PBSUtils.randomString | PBSUtils.randomString   | PBSUtils.randomString    | BAPP
         new Ortb2BlockingConditions(mediaType: [BANNER]) | PBSUtils.randomString | PBSUtils.randomString   | PBSUtils.randomString    | BCAT
-        new Ortb2BlockingConditions(mediaType: [BANNER]) | PBSUtils.randomNumber | PBSUtils.randomNumber   | PBSUtils.randomNumber    | BATTR
+        new Ortb2BlockingConditions(mediaType: [BANNER]) | PBSUtils.randomNumber | PBSUtils.randomNumber   | PBSUtils.randomNumber    | BANNER_BATTR
+        new Ortb2BlockingConditions(mediaType: [BANNER]) | PBSUtils.randomNumber | PBSUtils.randomNumber   | PBSUtils.randomNumber    | VIDEO_BATTR
+        new Ortb2BlockingConditions(mediaType: [BANNER]) | PBSUtils.randomNumber | PBSUtils.randomNumber   | PBSUtils.randomNumber    | AUDIO_BATTR
     }
 
     def "PBS should prefer non wildcard override when multiple match same condition by bidder"() {
         given: "Default bidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = getBidRequestForOrtbAttribute(attributeName)
 
         and: "Account in the DB with blocking configuration"
         def firstOrtb2BlockingOverride = new Ortb2BlockingOverride(override: [firstOverrideAttributes], conditions: new Ortb2BlockingConditions(bidders: [BidderName.WILDCARD]))
@@ -1055,12 +1094,14 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         PBSUtils.randomString | PBSUtils.randomString   | PBSUtils.randomString    | BADV
         PBSUtils.randomString | PBSUtils.randomString   | PBSUtils.randomString    | BAPP
         PBSUtils.randomString | PBSUtils.randomString   | PBSUtils.randomString    | BCAT
-        PBSUtils.randomNumber | PBSUtils.randomNumber   | PBSUtils.randomNumber    | BATTR
+        PBSUtils.randomNumber | PBSUtils.randomNumber   | PBSUtils.randomNumber    | BANNER_BATTR
+        PBSUtils.randomNumber | PBSUtils.randomNumber   | PBSUtils.randomNumber    | VIDEO_BATTR
+        PBSUtils.randomNumber | PBSUtils.randomNumber   | PBSUtils.randomNumber    | AUDIO_BATTR
     }
 
     def "PBS should prefer non wildcard override when multiple match same condition by media type"() {
         given: "Default bidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = getBidRequestForOrtbAttribute(attributeName)
 
         and: "Account in the DB with blocking configuration"
         def firstOrtb2BlockingOverride = new Ortb2BlockingOverride(override: [firstOverrideAttributes], conditions: new Ortb2BlockingConditions(mediaType: [MediaType.WILDCARD]))
@@ -1096,12 +1137,14 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         PBSUtils.randomString | PBSUtils.randomString   | PBSUtils.randomString    | BADV
         PBSUtils.randomString | PBSUtils.randomString   | PBSUtils.randomString    | BAPP
         PBSUtils.randomString | PBSUtils.randomString   | PBSUtils.randomString    | BCAT
-        PBSUtils.randomNumber | PBSUtils.randomNumber   | PBSUtils.randomNumber    | BATTR
+        PBSUtils.randomNumber | PBSUtils.randomNumber   | PBSUtils.randomNumber    | BANNER_BATTR
+        PBSUtils.randomNumber | PBSUtils.randomNumber   | PBSUtils.randomNumber    | VIDEO_BATTR
+        PBSUtils.randomNumber | PBSUtils.randomNumber   | PBSUtils.randomNumber    | AUDIO_BATTR
     }
 
     def "PBS should merge allowed bundle for deals overrides together"() {
         given: "Default bidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = getBidRequestForOrtbAttribute(attributeName)
 
         and: "Account in the DB with blocking configuration"
         def dealId = PBSUtils.randomNumber
@@ -1138,11 +1181,16 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         ortb2Attributes                                | attributeName
         [PBSUtils.randomString, PBSUtils.randomString] | BADV
         [PBSUtils.randomString, PBSUtils.randomString] | BCAT
-        [PBSUtils.randomNumber, PBSUtils.randomNumber] | BATTR
+        [PBSUtils.randomNumber, PBSUtils.randomNumber] | BANNER_BATTR
+        [PBSUtils.randomNumber, PBSUtils.randomNumber] | VIDEO_BATTR
+        [PBSUtils.randomNumber, PBSUtils.randomNumber] | AUDIO_BATTR
     }
 
     def "PBS should not be override from config when ortb2 attribute present in incoming request"() {
-        given: "Account in the DB with blocking configuration"
+        given: "Default bidRequest"
+        def bidRequest = getBidRequestForOrtbAttribute(attributeName, bidRequestAttribute)
+
+        and: "Account in the DB with blocking configuration"
         def account = getAccountWithOrtb2BlockingConfig(bidRequest.accountId, [ortb2Attributes], attributeName)
         accountDao.save(account)
 
@@ -1166,17 +1214,19 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         assert !response?.ext?.prebid?.modules?.warnings
 
         where:
-        bidRequest                                                                         | ortb2Attributes       | attributeName
-        BidRequest.defaultBidRequest.tap { badv = [PBSUtils.randomString] }                | PBSUtils.randomString | BADV
-        BidRequest.defaultBidRequest.tap { bapp = [PBSUtils.randomString] }                | PBSUtils.randomString | BAPP
-        BidRequest.defaultBidRequest.tap { bcat = [PBSUtils.randomString] }                | PBSUtils.randomString | BCAT
-        BidRequest.defaultBidRequest.tap { imp[0].banner.battr = [PBSUtils.randomNumber] } | PBSUtils.randomNumber | BATTR
-        BidRequest.defaultBidRequest.tap { imp[0].banner.btype = [PBSUtils.randomNumber] } | PBSUtils.randomNumber | BTYPE
+        bidRequestAttribute     | ortb2Attributes       | attributeName
+        [PBSUtils.randomString] | PBSUtils.randomString | BADV
+        [PBSUtils.randomString] | PBSUtils.randomString | BAPP
+        [PBSUtils.randomString] | PBSUtils.randomString | BCAT
+        [PBSUtils.randomNumber] | PBSUtils.randomNumber | BANNER_BATTR
+        [PBSUtils.randomNumber] | PBSUtils.randomNumber | VIDEO_BATTR
+        [PBSUtils.randomNumber] | PBSUtils.randomNumber | AUDIO_BATTR
+        [PBSUtils.randomNumber] | PBSUtils.randomNumber | BTYPE
     }
 
     def "PBS should populate seatNonBid when returnAllBidStatus=true and requested bidder responded with rejected advertiser blocked status code"() {
         given: "Default bidRequest with returnAllBidStatus attribute"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
+        def bidRequest = getBidRequestForOrtbAttribute(BADV).tap {
             it.ext.prebid.returnAllBidStatus = true
         }
 
@@ -1217,6 +1267,41 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         new Account(uuid: accountId, config: accountConfig)
     }
 
+    private static BidRequest getBidRequestForOrtbAttribute(Ortb2BlockingAttribute attribute, List<Object> attributeValue = null) {
+        switch (attribute) {
+            case BADV:
+                return BidRequest.defaultBidRequest.tap {
+                    badv = attributeValue as List<String>
+                }
+            case BAPP:
+                return BidRequest.defaultBidRequest.tap {
+                    bapp = attributeValue as List<String>
+                }
+            case BANNER_BATTR:
+                return BidRequest.defaultBidRequest.tap {
+                    imp[0].banner.battr = attributeValue as List<Integer>
+                }
+            case VIDEO_BATTR:
+                return BidRequest.defaultVideoRequest.tap {
+                    imp[0].video.battr = attributeValue as List<Integer>
+                }
+            case AUDIO_BATTR:
+                return BidRequest.defaultAudioRequest.tap {
+                    imp[0].audio.battr = attributeValue as List<Integer>
+                }
+            case BCAT:
+                return BidRequest.defaultBidRequest.tap {
+                    bcat = attributeValue as List<String>
+                }
+            case BTYPE:
+                return BidRequest.defaultBidRequest.tap {
+                    imp[0].banner.btype = attributeValue as List<Integer>
+                }
+            default:
+                throw new IllegalArgumentException("Unknown ortb2 attribute: $attribute")
+        }
+    }
+
     private static Bid getBidWithOrtb2Attribute(Imp imp, Object ortb2Attributes, Ortb2BlockingAttribute attributeName) {
         Bid.getDefaultBid(imp).tap {
             switch (attributeName) {
@@ -1226,7 +1311,13 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
                 case BAPP:
                     bundle = (ortb2Attributes instanceof List) ? ortb2Attributes.first : ortb2Attributes
                     break
-                case BATTR:
+                case BANNER_BATTR:
+                    attr = (ortb2Attributes instanceof List) ? ortb2Attributes : [ortb2Attributes]
+                    break
+                case VIDEO_BATTR:
+                    attr = (ortb2Attributes instanceof List) ? ortb2Attributes : [ortb2Attributes]
+                    break
+                case AUDIO_BATTR:
                     attr = (ortb2Attributes instanceof List) ? ortb2Attributes : [ortb2Attributes]
                     break
                 case BCAT:
@@ -1246,8 +1337,12 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
                 return bidRequest.badv
             case BAPP:
                 return bidRequest.bapp
-            case BATTR:
+            case BANNER_BATTR:
                 return bidRequest.imp[0].banner.battr*.toString()
+            case VIDEO_BATTR:
+                return bidRequest.imp[0].video.battr*.toString()
+            case AUDIO_BATTR:
+                return bidRequest.imp[0].audio.battr*.toString()
             case BCAT:
                 return bidRequest.bcat
             case BTYPE:
@@ -1263,7 +1358,11 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
                 return bid.adomain
             case BAPP:
                 return [bid.bundle]
-            case BATTR:
+            case BANNER_BATTR:
+                return bid.attr*.toString()
+            case VIDEO_BATTR:
+                return bid.attr*.toString()
+            case AUDIO_BATTR:
                 return bid.attr*.toString()
             case BCAT:
                 return bid.cat
