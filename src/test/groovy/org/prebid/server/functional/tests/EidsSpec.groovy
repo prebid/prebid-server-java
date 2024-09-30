@@ -221,7 +221,7 @@ class EidsSpec extends BaseSpec {
         and: "Bid response should contain warning"
         assert bidResponse.ext.warnings[PREBID]?.code == [999]
         assert bidResponse.ext.warnings[PREBID]?.message ==
-                ["removed EID ${sourceId} due to empty ID" as String]          \
+                ["removed EID ${sourceId} due to empty ID" as String]
 
         where:
         invalidUidId << [EMPTY_STRING, null]
