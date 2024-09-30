@@ -38,6 +38,9 @@ adapters:
         endpoint: http://ads-pbs.bidder-embi.media/openrtb/{{PublisherID}}?host={{Host}}
       tgm:
         enabled: false
+      streamlyn:
+        enabled: false
+        endpoint: http://rtba.bidsxchange.com/openrtb/{{PublisherID}}?host={{Host}}
     meta-info:
       maintainer-email: engineering@project-limelight.com
       app-media-types:
