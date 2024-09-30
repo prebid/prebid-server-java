@@ -221,13 +221,13 @@ class EidsSpec extends BaseSpec {
         and: "Bid response should contain warning"
         assert bidResponse.ext.warnings[PREBID]?.code == [999]
         assert bidResponse.ext.warnings[PREBID]?.message ==
-                ["removed EID ${sourceId} due to empty ID" as String]         \
+                ["removed EID ${sourceId} due to empty ID" as String]          \
 
         where:
         invalidUidId << [EMPTY_STRING, null]
     }
 
-    def "PBS should populate warning for removed UIDs and entire eids when requested invalid uidIds"() {
+    def "PBS should populate warnings for removed UIDs and entire eids when requested invalid uidIds"() {
         given: "BidRequest with eids"
         def sourceId = PBSUtils.randomString
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -243,12 +243,12 @@ class EidsSpec extends BaseSpec {
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert !bidderRequest.user.eids
 
-        and: "Bid response should contain warning"
+        and: "Bid response should contain warnings"
         assert bidResponse.ext.warnings[PREBID]?.code == [999, 999, 999]
         assert bidResponse.ext.warnings[PREBID]?.message ==
                 ["removed EID ${sourceId} due to empty ID" as String,
                  "removed EID ${sourceId} due to empty ID" as String,
-                 "removed empty EID array" as String]         \
+                 "removed empty EID array" as String]
 
         where:
         invalidUidId << [EMPTY_STRING, null]
