@@ -63,8 +63,18 @@ public class Attribute<T> {
             .field("banner-type");
     }
 
-    public static AttributeBuilder<Integer> battrBuilder() {
+    public static AttributeBuilder<Integer> bannerBattrBuilder() {
         return Attribute.<Integer>builder()
             .field("banner-attr");
+    }
+
+    public static AttributeBuilder<Integer> videoBattrBuilder() {
+        return Attribute.<Integer>builder()
+            .field("video-attr");
+    }
+
+    public static AttributeBuilder<Integer> audioBattrBuilder() {
+        return Attribute.<Integer>builder()
+            .field("audio-attr");
     }
 }
