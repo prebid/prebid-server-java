@@ -332,7 +332,7 @@ public class BidsAdjusterTest extends VertxTest {
     }
 
     @Test
-    public void shouldUpdateBidPriceWithCurrencyConversionAndAddErrorAboutMultipleCurrency() {
+    public void shouldUpdateBidPriceWithCurrencyConversionAndAddWarningAboutMultipleCurrency() {
         // given
         final BigDecimal bidderPrice = BigDecimal.valueOf(2.0);
         final BidderResponse bidderResponse = BidderResponse.of(
@@ -369,10 +369,10 @@ public class BidsAdjusterTest extends VertxTest {
                 .flatExtracting(Bid::getPrice)
                 .containsOnly(updatedPrice);
 
-        final BidderError expectedError = BidderError.badInput(
+        final BidderError expectedWarning = BidderError.badInput(
                 "a single currency (CUR1) has been chosen for the request. "
                         + "ORTB 2.6 requires that all responses are in the same currency.");
-        assertThat(firstSeatBid.getWarnings()).containsOnly(expectedError);
+        assertThat(firstSeatBid.getWarnings()).containsOnly(expectedWarning);
     }
 
     @Test
