@@ -429,6 +429,7 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 - `geolocation.maxmind.remote-file-syncer` - use RemoteFileSyncer component for downloading/updating MaxMind database file. See [RemoteFileSyncer](#remote-file-syncer) section for its configuration.
 
 ## Analytics
+- `analytics.global.adapters` - Names of analytics adapters that will work for each request, except those disabled at the account level.
 - `analytics.pubstack.enabled` - if equals to `true` the Pubstack analytics module will be enabled. Default value is `false`. 
 - `analytics.pubstack.endpoint` - url for reporting events and fetching configuration. 
 - `analytics.pubstack.scopeid` - defined the scope provided by the Pubstack Support Team.

@@ -13,6 +13,7 @@ import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureC
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.BidResponseCreator;
 import org.prebid.server.auction.BidResponsePostProcessor;
+import org.prebid.server.auction.BidsAdjuster;
 import org.prebid.server.auction.DebugResolver;
 import org.prebid.server.auction.DsaEnforcer;
 import org.prebid.server.auction.ExchangeService;
@@ -835,17 +836,13 @@ public class ServiceConfiguration {
             TimeoutFactory timeoutFactory,
             BidRequestOrtbVersionConversionManager bidRequestOrtbVersionConversionManager,
             HttpBidderRequester httpBidderRequester,
-            ResponseBidValidator responseBidValidator,
-            CurrencyConversionService currencyConversionService,
             BidResponseCreator bidResponseCreator,
             BidResponsePostProcessor bidResponsePostProcessor,
             HookStageExecutor hookStageExecutor,
             HttpInteractionLogger httpInteractionLogger,
             PriceFloorAdjuster priceFloorAdjuster,
-            PriceFloorEnforcer priceFloorEnforcer,
             PriceFloorProcessor priceFloorProcessor,
-            DsaEnforcer dsaEnforcer,
-            BidAdjustmentFactorResolver bidAdjustmentFactorResolver,
+            BidsAdjuster bidsAdjuster,
             Metrics metrics,
             Clock clock,
             JacksonMapper mapper,
@@ -867,21 +864,34 @@ public class ServiceConfiguration {
                 timeoutFactory,
                 bidRequestOrtbVersionConversionManager,
                 httpBidderRequester,
-                responseBidValidator,
-                currencyConversionService,
                 bidResponseCreator,
                 bidResponsePostProcessor,
                 hookStageExecutor,
                 httpInteractionLogger,
                 priceFloorAdjuster,
-                priceFloorEnforcer,
                 priceFloorProcessor,
-                dsaEnforcer,
-                bidAdjustmentFactorResolver,
+                bidsAdjuster,
                 metrics,
                 clock,
                 mapper,
                 criteriaLogManager, enabledStrictAppSiteDoohValidation);
+    }
+
+    @Bean
+    BidsAdjuster bidsAdjuster(ResponseBidValidator responseBidValidator,
+                              CurrencyConversionService currencyConversionService,
+                              PriceFloorEnforcer priceFloorEnforcer,
+                              DsaEnforcer dsaEnforcer,
+                              BidAdjustmentFactorResolver bidAdjustmentFactorResolver,
+                              JacksonMapper mapper) {
+
+        return new BidsAdjuster(
+                responseBidValidator,
+                currencyConversionService,
+                bidAdjustmentFactorResolver,
+                priceFloorEnforcer,
+                dsaEnforcer,
+                mapper);
     }
 
     @Bean

@@ -146,7 +146,7 @@ public class ConnectAdBidderTest extends VertxTest {
                 impBuilder -> impBuilder
                         .id("123")
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpConnectAd.of(12, null, BigDecimal.ONE)))));
+                                ExtImpConnectAd.of("12", null, BigDecimal.ONE)))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
@@ -164,7 +164,7 @@ public class ConnectAdBidderTest extends VertxTest {
                 impBuilder -> impBuilder
                         .id("123")
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpConnectAd.of(12, 1, BigDecimal.ONE)))));
+                                ExtImpConnectAd.of("12", "1", BigDecimal.ONE)))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
@@ -202,7 +202,7 @@ public class ConnectAdBidderTest extends VertxTest {
                                 .w(14)
                                 .h(15).build())
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpConnectAd.of(12, 12, BigDecimal.ONE)))))
+                                ExtImpConnectAd.of("12", "12", BigDecimal.ONE)))))
                 .build();
     }
 

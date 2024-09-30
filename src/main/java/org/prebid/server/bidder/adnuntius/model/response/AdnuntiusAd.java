@@ -40,4 +40,6 @@ public class AdnuntiusAd {
 
     @JsonProperty("destinationUrls")
     Map<String, String> destinationUrls;
+
+    AdnuntiusAdvertiser advertiser;
 }

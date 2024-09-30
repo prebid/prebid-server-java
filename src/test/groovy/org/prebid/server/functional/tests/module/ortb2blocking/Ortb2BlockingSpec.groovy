@@ -651,16 +651,15 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         assert !response?.ext?.prebid?.modules?.warnings
     }
 
-    @PendingFeature
     def "PBS should be able to override enforcement by deal id"() {
         given: "Default bidRequest"
         def bidRequest = BidRequest.defaultBidRequest
 
         and: "Account in the DB with blocking configuration"
-        def blockingCondition = new Ortb2BlockingConditions(dealIds: [dealId.toString()])
-        def ortb2BlockingAttributeConfig = Ortb2BlockingAttributeConfig.getDefaultConfig([ortb2Attributes], attributeName).tap {
+        def blockingCondition = new Ortb2BlockingOverride(override: [ortb2Attributes], conditions: new Ortb2BlockingConditions(dealIds: [dealId.toString()]))
+        def ortb2BlockingAttributeConfig = Ortb2BlockingAttributeConfig.getDefaultConfig([ortb2Attributes], attributeName, [ortb2AttributesForDeals]).tap {
             enforceBlocks = true
-            actionOverrides = new Ortb2BlockingActionOverride(enforceBlocks: [new Ortb2BlockingOverride(override: false, conditions: blockingCondition)])
+            actionOverrides = Ortb2BlockingActionOverride.getDefaultOverride(attributeName, null, [blockingCondition])
         }
         def account = getAccountWithOrtb2BlockingConfig(bidRequest.accountId, [(attributeName): ortb2BlockingAttributeConfig])
         accountDao.save(account)
@@ -686,15 +685,15 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         assert !response?.ext?.prebid?.modules?.warnings
 
         where:
-        dealId                | ortb2Attributes       | attributeName
-        PBSUtils.randomNumber | PBSUtils.randomString | BADV
-        PBSUtils.randomNumber | PBSUtils.randomString | BAPP
-        PBSUtils.randomNumber | PBSUtils.randomString | BCAT
-        PBSUtils.randomNumber | PBSUtils.randomNumber | BATTR
-        WILDCARD              | PBSUtils.randomString | BADV
-        WILDCARD              | PBSUtils.randomString | BAPP
-        WILDCARD              | PBSUtils.randomString | BCAT
-        WILDCARD              | PBSUtils.randomNumber | BATTR
+        dealId                | ortb2Attributes       | ortb2AttributesForDeals | attributeName
+        PBSUtils.randomNumber | PBSUtils.randomString | PBSUtils.randomString   | BADV
+        PBSUtils.randomNumber | PBSUtils.randomString | PBSUtils.randomString   | BAPP
+        PBSUtils.randomNumber | PBSUtils.randomString | PBSUtils.randomString   | BCAT
+        PBSUtils.randomNumber | PBSUtils.randomNumber | PBSUtils.randomNumber   | BATTR
+        WILDCARD              | PBSUtils.randomString | PBSUtils.randomString   | BADV
+        WILDCARD              | PBSUtils.randomString | PBSUtils.randomString   | BAPP
+        WILDCARD              | PBSUtils.randomString | PBSUtils.randomString   | BCAT
+        WILDCARD              | PBSUtils.randomNumber | PBSUtils.randomNumber   | BATTR
     }
 
     def "PBS should be able to override blocked ortb2 attribute by bidder"() {

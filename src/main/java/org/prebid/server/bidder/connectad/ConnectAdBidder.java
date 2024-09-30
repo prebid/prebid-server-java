@@ -91,18 +91,18 @@ public class ConnectAdBidder implements Bidder<BidRequest> {
         } catch (IllegalArgumentException e) {
             throw new PreBidException("Impression id=%s, has invalid Ext".formatted(imp.getId()));
         }
-        final Integer siteId = extImpConnectAd.getSiteId();
-        if (siteId == null || siteId == 0) {
+        final String siteId = extImpConnectAd.getSiteId();
+        if (siteId == null) {
             throw new PreBidException("Impression id=%s, has no siteId present".formatted(imp.getId()));
         }
         return extImpConnectAd;
     }
 
-    private Imp updateImp(Imp imp, Integer secure, Integer siteId, BigDecimal bidFloor) {
+    private Imp updateImp(Imp imp, Integer secure, String siteId, BigDecimal bidFloor) {
         final boolean isValidBidFloor = BidderUtil.isValidPrice(bidFloor);
         return imp.toBuilder()
                 .banner(updateBanner(imp.getBanner()))
-                .tagid(siteId.toString())
+                .tagid(siteId)
                 .secure(secure)
                 .bidfloor(isValidBidFloor ? bidFloor : imp.getBidfloor())
                 .bidfloorcur(isValidBidFloor ? "USD" : imp.getBidfloorcur())
