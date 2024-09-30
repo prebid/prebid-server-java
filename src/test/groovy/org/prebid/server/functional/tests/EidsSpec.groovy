@@ -17,9 +17,12 @@ import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.bidder.BidderName.WILDCARD
+import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 
 class EidsSpec extends BaseSpec {
+
+    private static final String EMPTY_STRING = ""
 
     def "PBS shouldn't populate user.id from user.ext data"() {
         given: "Default basic BidRequest with generic bidder"
@@ -196,5 +199,77 @@ class EidsSpec extends BaseSpec {
 
         and: "Alias bidder should contain one eids"
         assert sortedEids[1].eids == [eid]
+    }
+
+    def "PBS should populate warning for one removed UID when invalid uidId"() {
+        given: "BidRequest with eids"
+        def sourceId = PBSUtils.randomString
+        def validUidId = PBSUtils.randomString
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            user = new User(ext: new UserExt(eids: [new Eid(source: sourceId,
+                    uids: [new Uid(id: invalidUidId),
+                           new Uid(id: validUidId)])]))
+        }
+
+        when: "PBS processes auction"
+        def bidResponse = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain eids"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.user.eids.uids.id.flatten() == [validUidId]
+
+        and: "Bid response should contain warning"
+        assert bidResponse.ext.warnings[PREBID]?.code == [999]
+        assert bidResponse.ext.warnings[PREBID]?.message ==
+                ["removed EID ${sourceId} due to empty ID" as String]
+
+        where:
+        invalidUidId << [EMPTY_STRING, null]
+    }
+
+    def "PBS should populate warnings for removed UIDs and entire eids when requested invalid uidIds"() {
+        given: "BidRequest with eids"
+        def sourceId = PBSUtils.randomString
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            user = new User(ext: new UserExt(eids: [new Eid(source: sourceId,
+                    uids: [new Uid(id: invalidUidId),
+                           new Uid(id: invalidUidId)])]))
+        }
+
+        when: "PBS processes auction"
+        def bidResponse = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request shouldn't contain eids"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert !bidderRequest.user.eids
+
+        and: "Bid response should contain warnings"
+        assert bidResponse.ext.warnings[PREBID]?.code == [999, 999, 999]
+        assert bidResponse.ext.warnings[PREBID]?.message ==
+                ["removed EID ${sourceId} due to empty ID" as String,
+                 "removed EID ${sourceId} due to empty ID" as String,
+                 "removed empty EID array" as String]
+
+        where:
+        invalidUidId << [EMPTY_STRING, null]
+    }
+
+    def "PBS shouldn't populate warning for UID when Uid id is valid"() {
+        given: "BidRequest with eids"
+        def validUidId = PBSUtils.randomString
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            user = new User(ext: new UserExt(eids: [new Eid(source: PBSUtils.randomString,
+                    uids: [new Uid(id: validUidId)])]))
+        }
+
+        when: "PBS processes auction"
+        def bidResponse = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain eids"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.user.eids.uids.id.flatten() == [validUidId]
+
+        and: "Bid response shouldn't contain warning"
+        assert !bidResponse.ext.warnings
     }
 }
