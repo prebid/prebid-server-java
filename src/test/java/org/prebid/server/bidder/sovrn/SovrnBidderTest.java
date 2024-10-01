@@ -260,6 +260,52 @@ public class SovrnBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldSetBidFloorFromExtOfStringIfImpBidFloorIsMissed() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
+                .banner(Banner.builder().format(singletonList(Format.builder().w(200).h(300).build()))
+                        .w(200)
+                        .h(300)
+                        .build())
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of("tagid",
+                        "legacyTagId", mapper.valueToTree("10.2"), "sovrn_auc")))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getBody)
+                .extracting(SovrnBidderTest::mappedToBidRequest)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBidfloor)
+                .containsExactly(BigDecimal.valueOf(10.2));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotSetBidFloorFromErroneousExtOfStringIfImpBidFloorIsMissed() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
+                .banner(Banner.builder().format(singletonList(Format.builder().w(200).h(300).build()))
+                        .w(200)
+                        .h(300)
+                        .build())
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of("tagid",
+                        "legacyTagId", mapper.valueToTree("error"), "sovrn_auc")))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getBody)
+                .extracting(SovrnBidderTest::mappedToBidRequest)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBidfloor)
+                .containsOnlyNulls();
+    }
+
+    @Test
     public void makeHttpRequestsShouldNotSetBidFloorFromExtIfImpBidFloorIsValid() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
@@ -545,7 +591,7 @@ public class SovrnBidderTest extends VertxTest {
                                 .protocols(singletonList(1))
                                 .build())
                         .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of("tagid",
-                                "legacyTagId", BigDecimal.TEN, "sovrn_auc")))))
+                                "legacyTagId", mapper.valueToTree(10), "sovrn_auc")))))
                 .build();
     }
 
