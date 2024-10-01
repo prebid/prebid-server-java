@@ -105,6 +105,8 @@ public class VideoRequestFactoryTest extends VertxTest {
         given(ortb2RequestFactory.updateTimeout(any())).willAnswer(invocation -> invocation.getArgument(0));
         given(ortb2RequestFactory.activityInfrastructureFrom(any()))
                 .willReturn(Future.succeededFuture());
+        given(ortb2RequestFactory.removeEmptyEids(any(), any()))
+                .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
 
         given(ortbVersionConversionManager.convertToAuctionSupportedVersion(any()))
                 .willAnswer(invocation -> invocation.getArgument(0));

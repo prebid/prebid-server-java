@@ -131,7 +131,7 @@ public class BidRequestOrtb26To25ConverterTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(request -> request.user(
                 User.builder()
                         .consent("consent")
-                        .eids(singletonList(Eid.of("source", emptyList(), null)))
+                        .eids(singletonList(Eid.builder().source("source").uids(emptyList()).build()))
                         .ext(mapper.convertValue(Map.of("someField", "someValue"), ExtUser.class))
                         .build()));
 
@@ -148,7 +148,7 @@ public class BidRequestOrtb26To25ConverterTest extends VertxTest {
 
                     final ExtUser expectedUserExt = ExtUser.builder()
                             .consent("consent")
-                            .eids(singletonList(Eid.of("source", emptyList(), null)))
+                            .eids(singletonList(Eid.builder().source("source").uids(emptyList()).build()))
                             .build();
                     expectedUserExt.addProperty("someField", TextNode.valueOf("someValue"));
                     assertThat(user)

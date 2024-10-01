@@ -180,7 +180,7 @@ class OrtbConverterSpec extends BaseSpec {
         }
     }
 
-    def "PBS should move eids to o user.ext.eids when adapter doesn't support ortb 2.6"() {
+    def "PBS should move eids to user.ext.eids when adapter doesn't support ortb 2.6"() {
         given: "Default bid request with user.eids"
         def defaultEids = [Eid.defaultEid]
         def bidRequest = BidRequest.defaultBidRequest.tap {

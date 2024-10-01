@@ -154,6 +154,8 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(ortb2RequestFactory.restoreResultFromRejection(any()))
                 .willAnswer(invocation -> Future.failedFuture((Throwable) invocation.getArgument(0)));
         given(ortb2RequestFactory.updateTimeout(any())).willAnswer(invocation -> invocation.getArgument(0));
+        given(ortb2RequestFactory.removeEmptyEids(any(), any()))
+                .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
 
         given(fpdResolver.resolveApp(any(), any()))
                 .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));

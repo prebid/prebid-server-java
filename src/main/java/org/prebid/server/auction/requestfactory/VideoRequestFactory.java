@@ -108,19 +108,18 @@ public class VideoRequestFactory {
                 Endpoint.openrtb2_video, MetricName.video);
 
         return ortb2RequestFactory.executeEntrypointHooks(routingContext, body, initialAuctionContext)
-                .compose(httpRequest ->
-                        createBidRequest(httpRequest)
+                .compose(httpRequest -> createBidRequest(httpRequest)
+                        .map(bidRequest -> removeEmptyEids(bidRequest, initialAuctionContext.getDebugWarnings()))
+                        .compose(bidRequest -> validateRequest(
+                                bidRequest,
+                                httpRequest,
+                                initialAuctionContext.getDebugWarnings()))
 
-                                .compose(bidRequest -> validateRequest(
-                                        bidRequest,
-                                        httpRequest,
-                                        initialAuctionContext.getDebugWarnings()))
+                        .map(bidRequestWithErrors -> populatePodErrors(
+                                bidRequestWithErrors.getPodErrors(), podErrors, bidRequestWithErrors))
 
-                                .map(bidRequestWithErrors -> populatePodErrors(
-                                        bidRequestWithErrors.getPodErrors(), podErrors, bidRequestWithErrors))
-
-                                .map(bidRequestWithErrors -> ortb2RequestFactory.enrichAuctionContext(
-                                        initialAuctionContext, httpRequest, bidRequestWithErrors.getData(), startTime)))
+                        .map(bidRequestWithErrors -> ortb2RequestFactory.enrichAuctionContext(
+                                initialAuctionContext, httpRequest, bidRequestWithErrors.getData(), startTime)))
 
                 .compose(auctionContext -> ortb2RequestFactory.fetchAccountWithoutStoredRequestLookup(auctionContext)
                         .map(auctionContext::with))
@@ -152,6 +151,14 @@ public class VideoRequestFactory {
                 .map(this::updateContextWithDebugLog)
 
                 .map(auctionContext -> WithPodErrors.of(auctionContext, podErrors));
+    }
+
+    private WithPodErrors<BidRequest> removeEmptyEids(WithPodErrors<BidRequest> requestWithPodErrors,
+                                                      List<String> debugWarnings) {
+
+        return WithPodErrors.of(
+                ortb2RequestFactory.removeEmptyEids(requestWithPodErrors.getData(), debugWarnings),
+                requestWithPodErrors.getPodErrors());
     }
 
     private String extractAndValidateBody(RoutingContext routingContext) {

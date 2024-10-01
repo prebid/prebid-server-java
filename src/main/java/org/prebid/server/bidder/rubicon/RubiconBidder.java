@@ -1230,7 +1230,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .map(RubiconBidder::cleanExtUserEidUidStype)
                 .toList();
-        return Eid.of(extUserEid.getSource(), extUserEidUids, extUserEid.getExt());
+        return extUserEid.toBuilder().uids(extUserEidUids).build();
     }
 
     private static Uid cleanExtUserEidUidStype(Uid extUserEidUid) {
@@ -1242,10 +1242,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final ObjectNode extUserEidUidExtCopy = extUserEidUidExt.deepCopy();
         extUserEidUidExtCopy.remove(STYPE_FIELD);
 
-        return Uid.of(
-                extUserEidUid.getId(),
-                extUserEidUid.getAtype(),
-                extUserEidUidExtCopy);
+        return extUserEidUid.toBuilder().ext(extUserEidUidExtCopy).build();
     }
 
     private RubiconUserExtRp rubiconUserExtRp(User user, ExtImpRubicon rubiconImpExt) {
