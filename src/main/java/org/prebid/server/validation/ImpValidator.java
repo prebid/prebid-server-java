@@ -457,8 +457,9 @@ public class ImpValidator {
                         + " is not supported at the imp level");
             }
 
-            if (extStoredAuctionResponse.getId() == null) {
-                throw new ValidationException("request.imp[%d].ext.prebid.storedauctionresponse.id should be defined",
+            if (extStoredAuctionResponse.getId() == null && extStoredAuctionResponse.getSeatBid() == null) {
+                throw new ValidationException(
+                        "request.imp[%d].ext.prebid.storedauctionresponse.{id or seatbidobj} should be defined",
                         impIndex);
             }
         }
