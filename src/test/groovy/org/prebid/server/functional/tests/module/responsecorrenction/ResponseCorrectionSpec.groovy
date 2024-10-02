@@ -1,4 +1,4 @@
-package org.prebid.server.functional.tests.module.requestcorrenction
+package org.prebid.server.functional.tests.module.responsecorrenction
 
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountHooksConfiguration
