@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import com.iab.openrtb.request.Banner;
@@ -18,6 +17,9 @@ import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.analytics.reporter.greenbids.model.ExplorationResult;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
@@ -55,21 +57,23 @@ import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.function.UnaryOperator;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
 
     private GreenbidsRealTimeDataProcessedAuctionRequestHook target;
 
     private JacksonMapper jacksonMapper;
 
+    @Mock
     private Cache<String, OnnxModelRunner> modelCacheWithExpiration;
 
+    @Mock
     private Cache<String, ThrottlingThresholds> thresholdsCacheWithExpiration;
 
     private TestBidRequestProvider testBidRequestProvider;
@@ -79,12 +83,6 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final ObjectMapper mapper = new ObjectMapper();
         jacksonMapper = new JacksonMapper(mapper);
         testBidRequestProvider = new TestBidRequestProvider(jacksonMapper);
-        modelCacheWithExpiration = Caffeine.newBuilder()
-                .expireAfterWrite(15, TimeUnit.MINUTES)
-                .build();
-        thresholdsCacheWithExpiration = Caffeine.newBuilder()
-                .expireAfterWrite(15, TimeUnit.MINUTES)
-                .build();
         final Storage storage = StorageOptions.newBuilder()
                 .setProjectId("test_project").build().getService();
         final File database = new File("src/test/resources/GeoLite2-Country.mmdb");
@@ -119,7 +117,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
     }
 
     @Test
-    public void shouldExitEarlyWhenPartnerNotActivatedInBidRequest() throws IOException, OrtException {
+    public void shouldExitEarlyWhenPartnerNotActivatedInBidRequest() {
         // given
         final Banner banner = givenBanner();
 
@@ -136,11 +134,6 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final AuctionInvocationContext invocationContext = givenAuctionInvocationContext(auctionContext);
         when(invocationContext.auctionContext()).thenReturn(auctionContext);
 
-        modelCacheWithExpiration.cleanUp();
-        thresholdsCacheWithExpiration.cleanUp();
-        modelCacheWithExpiration.put("onnxModelRunner_test-pbuid", givenOnnxModelRunner());
-        thresholdsCacheWithExpiration.put("throttlingThresholds_test-pbuid", givenThrottlingThresholds());
-
         // when
         final Future<InvocationResult<AuctionRequestPayload>> future = target
                 .call(null, invocationContext);
@@ -149,11 +142,9 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         // then
         assertThat(future).isNotNull();
         assertThat(future.succeeded()).isTrue();
-
         assertThat(result).isNotNull();
         assertThat(result.status()).isEqualTo(InvocationStatus.success);
         assertThat(result.action()).isEqualTo(InvocationAction.no_action);
-
         assertThat(result.analyticsTags()).isNull();
     }
 
@@ -176,10 +167,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final AuctionContext auctionContext = givenAuctionContext(bidRequest, context -> context);
         final AuctionInvocationContext invocationContext = givenAuctionInvocationContext(auctionContext);
         when(invocationContext.auctionContext()).thenReturn(auctionContext);
-
-        modelCacheWithExpiration.cleanUp();
-        thresholdsCacheWithExpiration.cleanUp();
-        modelCacheWithExpiration.put("onnxModelRunner_test-pbuid", givenOnnxModelRunner());
+        when(modelCacheWithExpiration.getIfPresent("onnxModelRunner_test-pbuid")).thenReturn(givenOnnxModelRunner());
 
         // when
         final Future<InvocationResult<AuctionRequestPayload>> future = target
@@ -189,11 +177,9 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         // then
         assertThat(future).isNotNull();
         assertThat(future.succeeded()).isTrue();
-
         assertThat(result).isNotNull();
         assertThat(result.status()).isEqualTo(InvocationStatus.success);
         assertThat(result.action()).isEqualTo(InvocationAction.no_action);
-
         assertThat(result.analyticsTags()).isNull();
     }
 
@@ -229,11 +215,9 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         // then
         assertThat(future).isNotNull();
         assertThat(future.succeeded()).isTrue();
-
         assertThat(result).isNotNull();
         assertThat(result.status()).isEqualTo(InvocationStatus.success);
         assertThat(result.action()).isEqualTo(InvocationAction.no_action);
-
         assertThat(result.analyticsTags()).isNull();
     }
 
@@ -256,11 +240,10 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final AuctionContext auctionContext = givenAuctionContext(bidRequest, context -> context);
         final AuctionInvocationContext invocationContext = givenAuctionInvocationContext(auctionContext);
         when(invocationContext.auctionContext()).thenReturn(auctionContext);
-
-        modelCacheWithExpiration.cleanUp();
-        thresholdsCacheWithExpiration.cleanUp();
-        modelCacheWithExpiration.put("onnxModelRunner_test-pbuid", givenOnnxModelRunner());
-        thresholdsCacheWithExpiration.put("throttlingThresholds_test-pbuid", givenThrottlingThresholds());
+        when(modelCacheWithExpiration.getIfPresent("onnxModelRunner_test-pbuid"))
+                .thenReturn(givenOnnxModelRunner());
+        when(thresholdsCacheWithExpiration.getIfPresent("throttlingThresholds_test-pbuid"))
+                .thenReturn(givenThrottlingThresholds());
 
         final AnalyticsResult expectedAnalyticsResult = expectedAnalyticsResult(true, true);
 
@@ -272,11 +255,9 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         // then
         assertThat(future).isNotNull();
         assertThat(future.succeeded()).isTrue();
-
         assertThat(result).isNotNull();
         assertThat(result.status()).isEqualTo(InvocationStatus.success);
         assertThat(result.action()).isEqualTo(InvocationAction.no_action);
-
         assertThat(result.analyticsTags()).isNotNull();
         assertThat(result.analyticsTags()).usingRecursiveComparison()
                 .ignoringFields(
@@ -306,11 +287,10 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final AuctionContext auctionContext = givenAuctionContext(bidRequest, context -> context);
         final AuctionInvocationContext invocationContext = givenAuctionInvocationContext(auctionContext);
         when(invocationContext.auctionContext()).thenReturn(auctionContext);
-
-        modelCacheWithExpiration.cleanUp();
-        thresholdsCacheWithExpiration.cleanUp();
-        modelCacheWithExpiration.put("onnxModelRunner_test-pbuid", givenOnnxModelRunner());
-        thresholdsCacheWithExpiration.put("throttlingThresholds_test-pbuid", givenThrottlingThresholds());
+        when(modelCacheWithExpiration.getIfPresent("onnxModelRunner_test-pbuid"))
+                .thenReturn(givenOnnxModelRunner());
+        when(thresholdsCacheWithExpiration.getIfPresent("throttlingThresholds_test-pbuid"))
+                .thenReturn(givenThrottlingThresholds());
 
         final BidRequest expectedBidRequest = expectedUpdatedBidRequest(
                 request -> request, jacksonMapper, explorationRate);
@@ -328,11 +308,9 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         // then
         assertThat(future).isNotNull();
         assertThat(future.succeeded()).isTrue();
-
         assertThat(result).isNotNull();
         assertThat(result.status()).isEqualTo(InvocationStatus.success);
         assertThat(result.action()).isEqualTo(InvocationAction.update);
-
         assertThat(result.analyticsTags()).isNotNull();
         assertThat(result.analyticsTags()).usingRecursiveComparison()
                 .ignoringFields(
@@ -367,11 +345,10 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final AuctionContext auctionContext = givenAuctionContext(bidRequest, context -> context);
         final AuctionInvocationContext invocationContext = givenAuctionInvocationContext(auctionContext);
         when(invocationContext.auctionContext()).thenReturn(auctionContext);
-
-        modelCacheWithExpiration.cleanUp();
-        thresholdsCacheWithExpiration.cleanUp();
-        modelCacheWithExpiration.put("onnxModelRunner_test-pbuid", givenOnnxModelRunner());
-        thresholdsCacheWithExpiration.put("throttlingThresholds_test-pbuid", givenThrottlingThresholds());
+        when(modelCacheWithExpiration.getIfPresent("onnxModelRunner_test-pbuid"))
+                .thenReturn(givenOnnxModelRunner());
+        when(thresholdsCacheWithExpiration.getIfPresent("throttlingThresholds_test-pbuid"))
+                .thenReturn(givenThrottlingThresholds());
 
         final BidRequest expectedBidRequest = expectedUpdatedBidRequest(
                 request -> request, jacksonMapper, explorationRate);
@@ -389,11 +366,9 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         // then
         assertThat(future).isNotNull();
         assertThat(future.succeeded()).isTrue();
-
         assertThat(result).isNotNull();
         assertThat(result.status()).isEqualTo(InvocationStatus.success);
         assertThat(result.action()).isEqualTo(InvocationAction.update);
-
         assertThat(result.analyticsTags()).isNotNull();
         assertThat(result.analyticsTags()).usingRecursiveComparison()
                 .ignoringFields(
