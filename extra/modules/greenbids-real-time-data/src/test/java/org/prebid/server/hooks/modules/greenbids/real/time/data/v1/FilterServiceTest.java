@@ -7,8 +7,9 @@ import ai.onnxruntime.OrtSession;
 import ai.onnxruntime.TensorInfo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.data.ThrottlingMessage;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.FilterService;
@@ -28,6 +29,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 public class FilterServiceTest {
 
     @Mock
@@ -46,7 +48,6 @@ public class FilterServiceTest {
 
     @BeforeEach
     public void setUp() {
-        MockitoAnnotations.openMocks(this);
         target = new FilterService();
     }
 
@@ -56,11 +57,6 @@ public class FilterServiceTest {
         final List<ThrottlingMessage> throttlingMessages = createThrottlingMessages();
         final Double threshold = 0.5;
         final OnnxModelRunner onnxModelRunner = givenOnnxModelRunner();
-
-        when(results.spliterator()).thenReturn(Arrays.asList(createOnnxItem()).spliterator());
-        when(onnxTensor.getInfo()).thenReturn(tensorInfo);
-        when(tensorInfo.getShape()).thenReturn(new long[]{throttlingMessages.size()});
-        when(onnxTensor.getValue()).thenReturn(new float[][]{{0.2f, 0.8f}});
 
         // when
         final Map<String, Map<String, Boolean>> impsBiddersFilterMap = target.filterBidders(
