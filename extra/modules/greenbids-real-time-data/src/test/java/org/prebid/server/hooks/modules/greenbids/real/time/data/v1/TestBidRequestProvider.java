@@ -1,13 +1,16 @@
 package org.prebid.server.hooks.modules.greenbids.real.time.data.v1;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
@@ -63,5 +66,24 @@ public class TestBidRequestProvider {
         extNode.set("tid", null);
 
         return extNode;
+    }
+
+    public Device givenDevice(UnaryOperator<Device.DeviceBuilder> deviceCustomizer) {
+        final String userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36"
+                + " (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36";
+        return deviceCustomizer.apply(Device.builder().ua(userAgent).ip("151.101.194.216")).build();
+    }
+
+    public Banner givenBanner() {
+        final Format format = Format.builder()
+                .w(320)
+                .h(50)
+                .build();
+
+        return Banner.builder()
+                .format(Collections.singletonList(format))
+                .w(240)
+                .h(400)
+                .build();
     }
 }
