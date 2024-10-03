@@ -19,8 +19,6 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.prebid.server.hooks.modules.greenbids.real.time.data.v1.GreenbidsRealTimeDataProcessedAuctionRequestHookTest.givenBanner;
-import static org.prebid.server.hooks.modules.greenbids.real.time.data.v1.GreenbidsRealTimeDataProcessedAuctionRequestHookTest.givenDevice;
 
 public class GreenbidsInvocationServiceTest {
 
@@ -42,13 +40,13 @@ public class GreenbidsInvocationServiceTest {
     @Test
     public void shouldReturnUpdateBidRequestWhenNotExploration() {
         // given
-        final Banner banner = givenBanner();
+        final Banner banner = testBidRequestProvider.givenBanner();
         final Imp imp = Imp.builder()
                 .id("adunitcodevalue")
                 .ext(testBidRequestProvider.givenImpExt())
                 .banner(banner)
                 .build();
-        final Device device = givenDevice(deviceBuilder -> deviceBuilder);
+        final Device device = testBidRequestProvider.givenDevice(deviceBuilder -> deviceBuilder);
         final BidRequest bidRequest = testBidRequestProvider
                 .givenBidRequest(request -> request, List.of(imp), device, null);
         final Map<String, Map<String, Boolean>> impsBiddersFilterMap = givenImpsBiddersFilterMap();
@@ -71,13 +69,13 @@ public class GreenbidsInvocationServiceTest {
     @Test
     public void shouldReturnNoActionWhenExploration() {
         // given
-        final Banner banner = givenBanner();
+        final Banner banner = testBidRequestProvider.givenBanner();
         final Imp imp = Imp.builder()
                 .id("adunitcodevalue")
                 .ext(testBidRequestProvider.givenImpExt())
                 .banner(banner)
                 .build();
-        final Device device = givenDevice(deviceBuilder -> deviceBuilder);
+        final Device device = testBidRequestProvider.givenDevice(deviceBuilder -> deviceBuilder);
         final BidRequest bidRequest = testBidRequestProvider
                 .givenBidRequest(request -> request, List.of(imp), device, null);
         final Map<String, Map<String, Boolean>> impsBiddersFilterMap = givenImpsBiddersFilterMap();

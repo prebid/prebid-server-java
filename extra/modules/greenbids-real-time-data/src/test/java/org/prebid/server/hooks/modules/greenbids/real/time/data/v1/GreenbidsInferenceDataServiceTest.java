@@ -18,7 +18,6 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.data.GreenbidsInferenceDataService;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.data.ThrottlingMessage;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -30,9 +29,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.prebid.server.hooks.modules.greenbids.real.time.data.v1.GreenbidsRealTimeDataProcessedAuctionRequestHookTest.givenBanner;
-import static org.prebid.server.hooks.modules.greenbids.real.time.data.v1.GreenbidsRealTimeDataProcessedAuctionRequestHookTest.givenDevice;
-import static org.prebid.server.hooks.modules.greenbids.real.time.data.v1.GreenbidsRealTimeDataProcessedAuctionRequestHookTest.givenExtRequest;
 
 @ExtendWith(MockitoExtension.class)
 public class GreenbidsInferenceDataServiceTest {
@@ -60,13 +56,13 @@ public class GreenbidsInferenceDataServiceTest {
     @Test
     public void shouldReturnValidThrottlingMessages() throws IOException, GeoIp2Exception {
         // given
-        final Banner banner = givenBanner();
+        final Banner banner = testBidRequestProvider.givenBanner();
         final Imp imp = Imp.builder()
                 .id("adunitcodevalue")
                 .ext(testBidRequestProvider.givenImpExt())
                 .banner(banner)
                 .build();
-        final Device device = givenDevice(deviceBuilder -> deviceBuilder);
+        final Device device = testBidRequestProvider.givenDevice(deviceBuilder -> deviceBuilder);
         final BidRequest bidRequest = testBidRequestProvider
                 .givenBidRequest(request -> request, List.of(imp), device, null);
 
@@ -88,7 +84,7 @@ public class GreenbidsInferenceDataServiceTest {
     @Test
     public void shouldHandleMissingIp() {
         // given
-        final Banner banner = givenBanner();
+        final Banner banner = testBidRequestProvider.givenBanner();
         final Imp imp = Imp.builder()
                 .id("adunitcodevalue")
                 .ext(testBidRequestProvider.givenImpExt())
@@ -110,17 +106,15 @@ public class GreenbidsInferenceDataServiceTest {
     @Test
     public void shouldThrowPreBidExceptionOnGeoIpFailure() throws IOException, GeoIp2Exception {
         // given
-        final Banner banner = givenBanner();
+        final Banner banner = testBidRequestProvider.givenBanner();
         final Imp imp = Imp.builder()
                 .id("adunitcodevalue")
                 .ext(testBidRequestProvider.givenImpExt())
                 .banner(banner)
                 .build();
-        final Double explorationRate = 0.0001;
-        final Device device = givenDevice(deviceBuilder -> deviceBuilder);
-        final ExtRequest extRequest = givenExtRequest(explorationRate);
-        final BidRequest bidRequest = testBidRequestProvider.givenBidRequest(
-                request -> request, List.of(imp), device, extRequest);
+        final Device device = testBidRequestProvider.givenDevice(deviceBuilder -> deviceBuilder);
+        final BidRequest bidRequest = testBidRequestProvider
+                .givenBidRequest(request -> request, List.of(imp), device, null);
 
         when(dbReader.country(any(InetAddress.class))).thenThrow(new GeoIp2Exception("GeoIP failure"));
 
