@@ -44,7 +44,7 @@ import java.util.Optional;
 
 public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements ProcessedAuctionRequestHook {
 
-    private static final String CODE = "greenbids-real-time-data-processed-auction-request-hook";
+    private static final String CODE = "greenbids-real-time-data-processed-auction-request";
     private static final String ACTIVITY = "greenbids-filter";
     private static final String SUCCESS_STATUS = "success";
     private static final String BID_REQUEST_ANALYTICS_EXTENSION_NAME = "greenbids-rtd";
@@ -151,7 +151,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
             AnalyticsResult analyticsResult,
             InvocationAction action) {
 
-        final List<AnalyticsResult> analyticsResults = (analyticsResult != null)
+        final List<AnalyticsResult> analyticsResults = analyticsResult != null
                 ? Collections.singletonList(analyticsResult)
                 : Collections.emptyList();
 
