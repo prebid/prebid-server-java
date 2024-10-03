@@ -65,17 +65,17 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
 
-    private GreenbidsRealTimeDataProcessedAuctionRequestHook target;
-
-    private JacksonMapper jacksonMapper;
-
     @Mock
     private Cache<String, OnnxModelRunner> modelCacheWithExpiration;
 
     @Mock
     private Cache<String, ThrottlingThresholds> thresholdsCacheWithExpiration;
 
+    private JacksonMapper jacksonMapper;
+
     private TestBidRequestProvider testBidRequestProvider;
+
+    private GreenbidsRealTimeDataProcessedAuctionRequestHook target;
 
     @BeforeEach
     public void setUp() throws IOException {
