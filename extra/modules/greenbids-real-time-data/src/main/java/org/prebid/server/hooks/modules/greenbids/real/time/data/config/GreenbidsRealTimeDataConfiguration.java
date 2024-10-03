@@ -35,7 +35,7 @@ import java.util.concurrent.TimeUnit;
 public class GreenbidsRealTimeDataConfiguration {
 
     @Bean
-    public DatabaseReader dbReader(GreenbidsRealTimeDataProperties properties) {
+    DatabaseReader dbReader(GreenbidsRealTimeDataProperties properties) {
         final File database = new File(properties.getGeoLiteCountryPath());
         try {
             return new DatabaseReader.Builder(database).build();
@@ -45,7 +45,7 @@ public class GreenbidsRealTimeDataConfiguration {
     }
 
     @Bean
-    public GreenbidsInferenceDataService greenbidsInferenceDataService(DatabaseReader dbReader) {
+    GreenbidsInferenceDataService greenbidsInferenceDataService(DatabaseReader dbReader) {
         return new GreenbidsInferenceDataService(dbReader, ObjectMapperProvider.mapper());
     }
 
@@ -66,18 +66,18 @@ public class GreenbidsRealTimeDataConfiguration {
     }
 
     @Bean
-    public FilterService filterService() {
+    FilterService filterService() {
         return new FilterService();
     }
 
     @Bean
-    public Storage storage(GreenbidsRealTimeDataProperties properties) {
+    Storage storage(GreenbidsRealTimeDataProperties properties) {
         return StorageOptions.newBuilder()
                 .setProjectId(properties.getGoogleCloudGreenbidsProject()).build().getService();
     }
 
     @Bean
-    public ModelCache modelCache(GreenbidsRealTimeDataProperties properties, Vertx vertx, Storage storage) {
+    ModelCache modelCache(GreenbidsRealTimeDataProperties properties, Vertx vertx, Storage storage) {
         final Cache<String, OnnxModelRunner> modelCacheWithExpiration = Caffeine.newBuilder()
                 .expireAfterWrite(properties.getCacheExpirationMinutes(), TimeUnit.MINUTES)
                 .build();
@@ -91,7 +91,7 @@ public class GreenbidsRealTimeDataConfiguration {
     }
 
     @Bean
-    public ThresholdCache thresholdCache(
+    ThresholdCache thresholdCache(
             GreenbidsRealTimeDataProperties properties,
             Vertx vertx,
             Storage storage) {
@@ -110,7 +110,7 @@ public class GreenbidsRealTimeDataConfiguration {
     }
 
     @Bean
-    public OnnxModelRunnerWithThresholds onnxModelRunnerWithThresholds(
+    OnnxModelRunnerWithThresholds onnxModelRunnerWithThresholds(
             ModelCache modelCache,
             ThresholdCache thresholdCache) {
 
@@ -118,7 +118,7 @@ public class GreenbidsRealTimeDataConfiguration {
     }
 
     @Bean
-    public GreenbidsInvocationService greenbidsInvocationService() {
+    GreenbidsInvocationService greenbidsInvocationService() {
         return new GreenbidsInvocationService();
     }
 }
