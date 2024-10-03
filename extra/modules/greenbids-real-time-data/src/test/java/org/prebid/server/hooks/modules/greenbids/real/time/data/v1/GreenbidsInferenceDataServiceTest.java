@@ -11,8 +11,9 @@ import com.maxmind.geoip2.model.CountryResponse;
 import com.maxmind.geoip2.record.Country;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.data.GreenbidsInferenceDataService;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.data.ThrottlingMessage;
@@ -33,6 +34,7 @@ import static org.prebid.server.hooks.modules.greenbids.real.time.data.v1.Greenb
 import static org.prebid.server.hooks.modules.greenbids.real.time.data.v1.GreenbidsRealTimeDataProcessedAuctionRequestHookTest.givenDevice;
 import static org.prebid.server.hooks.modules.greenbids.real.time.data.v1.GreenbidsRealTimeDataProcessedAuctionRequestHookTest.givenExtRequest;
 
+@ExtendWith(MockitoExtension.class)
 public class GreenbidsInferenceDataServiceTest {
 
     @Mock
@@ -49,7 +51,6 @@ public class GreenbidsInferenceDataServiceTest {
 
     @BeforeEach
     public void setUp() {
-        MockitoAnnotations.openMocks(this);
         final ObjectMapper mapper = new ObjectMapper();
         jacksonMapper = new JacksonMapper(mapper);
         testBidRequestProvider = new TestBidRequestProvider(jacksonMapper);
