@@ -421,11 +421,12 @@ public class AnalyticsReporterDelegator {
         if (modules != null && modules.containsKey(adapterName)) {
             final ObjectNode moduleConfig = modules.get(adapterName);
             if (moduleConfigContainsAdapterSpecificData(moduleConfig)) {
-                final JsonNode analyticsNode = Optional.ofNullable(context.getBidRequest())
+                final ExtRequestPrebid extRequestPrebid = Optional.ofNullable(context.getBidRequest())
                         .map(BidRequest::getExt)
                         .map(ExtRequest::getPrebid)
-                        .map(ExtRequestPrebid::getAnalytics)
                         .orElse(null);
+
+                final JsonNode analyticsNode = extRequestPrebid != null ? extRequestPrebid.getAnalytics() : null;
 
                 if (analyticsNode != null && analyticsNode.isObject()) {
                     final ObjectNode adapterNode = Optional.ofNullable((ObjectNode) analyticsNode.get(adapterName))
@@ -439,7 +440,7 @@ public class AnalyticsReporterDelegator {
                     });
 
                     ((ObjectNode) analyticsNode).set(adapterName, adapterNode);
-                    final ExtRequestPrebid updatedPrebid = ExtRequestPrebid.builder()
+                    final ExtRequestPrebid updatedPrebid = extRequestPrebid.toBuilder()
                             .analytics(analyticsNode)
                             .build();
                     final ExtRequest updatedExtRequest = ExtRequest.of(updatedPrebid);
