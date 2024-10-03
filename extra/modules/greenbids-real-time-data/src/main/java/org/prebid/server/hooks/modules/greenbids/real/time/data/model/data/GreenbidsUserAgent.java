@@ -41,7 +41,11 @@ public class GreenbidsUserAgent {
 
     public String getBrowser() {
         return Optional.ofNullable(userAgent)
-                .map(userAgent -> "%s %s".formatted(userAgent.family, userAgent.major).trim())
+                .filter(userAgent -> !"Other".equals(userAgent.family) && StringUtils.isNoneBlank(userAgent.family))
+                .map(userAgent -> {
+                    final String major = Optional.ofNullable(userAgent.major).orElse(StringUtils.EMPTY);
+                    return "%s %s".formatted(userAgent.family, major).trim();
+                })
                 .orElse(StringUtils.EMPTY);
     }
 
