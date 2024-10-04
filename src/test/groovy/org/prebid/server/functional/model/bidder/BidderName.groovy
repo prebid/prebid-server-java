@@ -21,6 +21,7 @@ enum BidderName {
     ACUITYADS("acuityads"),
     AAX("aax"),
     ADKERNEL("adkernel"),
+    IX("ix"),
     GRID("grid"),
     MEDIANET("medianet")
 

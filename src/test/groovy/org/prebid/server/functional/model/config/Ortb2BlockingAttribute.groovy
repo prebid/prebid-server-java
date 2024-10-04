@@ -6,10 +6,18 @@ import groovy.transform.ToString
 @ToString(includeNames = true, ignoreNulls = true)
 enum Ortb2BlockingAttribute {
 
-    BADV, BAPP, BATTR, BCAT, BTYPE
+    BADV('badv'),
+    BAPP('bapp'),
+    BANNER_BATTR('battr'),
+    VIDEO_BATTR('battr'),
+    AUDIO_BATTR('battr'),
+    BCAT('bcat'),
+    BTYPE('btype')
 
     @JsonValue
-    String getValue() {
-        name().toLowerCase()
+    final String value
+
+    Ortb2BlockingAttribute(String value) {
+        this.value = value
     }
 }

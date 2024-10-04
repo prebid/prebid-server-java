@@ -47,7 +47,8 @@ class Bid implements ObjectMapperWrapper {
     Integer heightRatio
     Integer exp
     Integer dur
-    Integer mtype
+    @JsonProperty("mtype")
+    BidMediaType mediaType
     Integer slotinpod
     BidExt ext
 
