@@ -2,7 +2,6 @@ package org.prebid.server.functional.tests.module.ortb2blocking
 
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.bidder.Generic
-import org.prebid.server.functional.model.bidder.Openx
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountHooksConfiguration
 import org.prebid.server.functional.model.config.ExecutionPlan
@@ -14,9 +13,11 @@ import org.prebid.server.functional.model.config.Ortb2BlockingConfig
 import org.prebid.server.functional.model.config.Ortb2BlockingOverride
 import org.prebid.server.functional.model.config.PbsModulesConfig
 import org.prebid.server.functional.model.db.Account
+import org.prebid.server.functional.model.request.auction.Ix
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.response.auction.Bid
+import org.prebid.server.functional.model.response.auction.BidMediaType
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.model.response.auction.MediaType
@@ -28,7 +29,7 @@ import org.prebid.server.functional.util.PBSUtils
 import static org.prebid.server.functional.model.ModuleName.ORTB2_BLOCKING
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
-import static org.prebid.server.functional.model.bidder.BidderName.OPENX
+import static org.prebid.server.functional.model.bidder.BidderName.IX
 import static org.prebid.server.functional.model.config.Endpoint.OPENRTB2_AUCTION
 import static org.prebid.server.functional.model.config.Ortb2BlockingAttribute.AUDIO_BATTR
 import static org.prebid.server.functional.model.config.Ortb2BlockingAttribute.BADV
@@ -47,11 +48,12 @@ import static org.prebid.server.functional.testcontainers.Dependencies.getNetwor
 
 class Ortb2BlockingSpec extends ModuleBaseSpec {
 
-    private static final Map OPENX_CONFIG = ["adapters.openx.enabled" : "true",
-                                             "adapters.openx.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
+    private static final Map IX_CONFIG = ["adapters.ix.enabled" : "true",
+                                          "adapters.ix.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
     private static final String WILDCARD = '*'
 
-    private final PrebidServerService pbsServiceWithEnabledOrtb2Blocking = pbsServiceFactory.getService(ortb2BlockingSettings + OPENX_CONFIG)
+    private final PrebidServerService pbsServiceWithEnabledOrtb2Blocking = pbsServiceFactory.getService(ortb2BlockingSettings + IX_CONFIG)
+
 
     def "PBS should send original array ortb2 attribute to bidder when enforce blocking is disabled"() {
         given: "Default bidRequest"
@@ -547,11 +549,11 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
     def "PBS should be able to override enforcement by bidder"() {
         given: "Default bidRequest"
         def bidRequest = getBidRequestForOrtbAttribute(attributeName).tap {
-            imp[0].ext.prebid.bidder.openx = Openx.defaultOpenx
+            imp[0].ext.prebid.bidder.ix = Ix.default
         }
 
         and: "Account in the DB with blocking configuration"
-        def blockingCondition = new Ortb2BlockingConditions(bidders: [OPENX])
+        def blockingCondition = new Ortb2BlockingConditions(bidders: [IX])
         def ortb2BlockingAttributeConfig = Ortb2BlockingAttributeConfig.getDefaultConfig([ortb2Attributes], attributeName).tap {
             enforceBlocks = true
             actionOverrides = new Ortb2BlockingActionOverride(enforceBlocks: [new Ortb2BlockingOverride(override: false, conditions: blockingCondition)])
@@ -562,16 +564,16 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         and: "Default bidder response with ortb2 attributes"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
             it.seatbid = [new SeatBid(bid: [getBidWithOrtb2Attribute(bidRequest.imp.first, ortb2Attributes, attributeName)], seat: GENERIC),
-                          new SeatBid(bid: [getBidWithOrtb2Attribute(bidRequest.imp.first, ortb2Attributes, attributeName)], seat: OPENX)]
+                          new SeatBid(bid: [getBidWithOrtb2Attribute(bidRequest.imp.first, ortb2Attributes, attributeName)], seat: IX)]
         }
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes the auction request"
         def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
 
-        then: "PBS response should contain only openx seatbid"
+        then: "PBS response should contain only ix seatbid"
         assert response.seatbid.size() == 1
-        assert response.seatbid.first.seat == OPENX
+        assert response.seatbid.first.seat == IX
         assert getOrtb2Attributes(response.seatbid.first.bid.first, attributeName) == [ortb2Attributes]*.toString()
 
         and: "PBS response shouldn't contain any module errors"
@@ -650,8 +652,12 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         accountDao.save(account)
 
         and: "Default bidder response with ortb2 attributes"
+        def bid = getBidWithOrtb2Attribute(bidRequest.imp.first, ortb2Attribute, attributeName).tap {
+            it.mediaType = bidMediaType
+        }
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            it.seatbid = [new SeatBid(bid: [getBidWithOrtb2Attribute(bidRequest.imp.first, ortb2Attribute, attributeName)])]
+            it.seatbid = [new SeatBid(bid: [bid])]
+
         }
         bidder.setResponse(bidRequest.id, bidResponse)
 
@@ -670,10 +676,59 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         assert !response?.ext?.prebid?.modules?.warnings
 
         where:
-        attributeName | mediaType
-        BANNER_BATTR  | BANNER
-        VIDEO_BATTR   | VIDEO
-        AUDIO_BATTR   | AUDIO
+        attributeName | mediaType | bidMediaType
+        BANNER_BATTR  | BANNER    | null
+        VIDEO_BATTR   | VIDEO     | null
+        AUDIO_BATTR   | AUDIO     | null
+        BANNER_BATTR  | BANNER    | BidMediaType.BANNER
+        VIDEO_BATTR   | VIDEO     | BidMediaType.VIDEO
+        AUDIO_BATTR   | AUDIO     | BidMediaType.AUDIO
+    }
+
+    def "PBS shouldn't be able to override enforcement by incorrect media type for battr attribute"() {
+        given: "Default bidRequest"
+        def bidRequest = getBidRequestForOrtbAttribute(attributeName)
+
+        and: "Account in the DB with blocking configuration"
+        def blockingCondition = new Ortb2BlockingConditions(mediaType: [mediaType])
+        def ortb2Attribute = PBSUtils.randomNumber
+        def ortb2BlockingAttributeConfig = Ortb2BlockingAttributeConfig.getDefaultConfig([ortb2Attribute], attributeName).tap {
+            enforceBlocks = true
+            actionOverrides = new Ortb2BlockingActionOverride(enforceBlocks: [new Ortb2BlockingOverride(override: false, conditions: blockingCondition)])
+        }
+        def account = getAccountWithOrtb2BlockingConfig(bidRequest.accountId, [(attributeName): ortb2BlockingAttributeConfig])
+        accountDao.save(account)
+
+        and: "Default bidder response with ortb2 attributes"
+        def bid = getBidWithOrtb2Attribute(bidRequest.imp.first, ortb2Attribute, attributeName).tap {
+            it.mediaType = bidMediaType
+        }
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            it.seatbid = [new SeatBid(bid: [bid])]
+
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes the auction request"
+        def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
+
+        then: "PBS response shouldn't contain any seatbid"
+        assert !response.seatbid.bid.flatten().size()
+
+        and: "PBS response shouldn't contain any module errors"
+        assert !response?.ext?.prebid?.modules?.errors
+
+        and: "PBS response shouldn't contain any module warning"
+        assert !response?.ext?.prebid?.modules?.warnings
+
+        where:
+        attributeName | mediaType | bidMediaType
+        BANNER_BATTR  | AUDIO     | null
+        VIDEO_BATTR   | BANNER    | null
+        AUDIO_BATTR   | VIDEO     | null
+        BANNER_BATTR  | BANNER    | BidMediaType.AUDIO
+        VIDEO_BATTR   | VIDEO     | BidMediaType.BANNER
+        AUDIO_BATTR   | AUDIO     | BidMediaType.VIDEO
     }
 
     def "PBS should be able to override enforcement by deal id"() {
@@ -814,11 +869,11 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
     def "PBS should be able to override block unknown adomain by bidder"() {
         given: "Default bidRequest"
         def bidRequest = getBidRequestForOrtbAttribute(BADV).tap {
-            imp[0].ext.prebid.bidder.openx = Openx.defaultOpenx
+            imp[0].ext.prebid.bidder.ix = Ix.default
         }
 
         and: "Account in the DB with blocking configuration"
-        def blockingCondition = new Ortb2BlockingConditions(bidders: [OPENX])
+        def blockingCondition = new Ortb2BlockingConditions(bidders: [IX])
 
         and: "Account in the DB with blocking configuration"
         def ortb2BlockingAttributeConfig = new Ortb2BlockingAttributeConfig(enforceBlocks: true, blockUnknownAdomain: true).tap {
@@ -833,16 +888,16 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         }
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
             it.seatbid = [new SeatBid(bid: [bidWithOutAdomain], seat: GENERIC),
-                          new SeatBid(bid: [bidWithOutAdomain], seat: OPENX)]
+                          new SeatBid(bid: [bidWithOutAdomain], seat: IX)]
         }
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes the auction request"
         def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
 
-        then: "PBS response should contain only openx seatbid"
+        then: "PBS response should contain only ix seatbid"
         assert response.seatbid.bid.flatten().size() == 1
-        assert response.seatbid.first.seat == OPENX
+        assert response.seatbid.first.seat == IX
 
         and: "PBS response shouldn't contain any module errors"
         assert !response?.ext?.prebid?.modules?.errors
@@ -890,11 +945,11 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
     def "PBS should be able to override block unknown adv-cat by bidder"() {
         given: "Default bidRequest"
         def bidRequest = getBidRequestForOrtbAttribute(BCAT).tap {
-            imp[0].ext.prebid.bidder.openx = Openx.defaultOpenx
+            imp[0].ext.prebid.bidder.ix = Ix.default
         }
 
         and: "Account in the DB with blocking configuration"
-        def blockingCondition = new Ortb2BlockingConditions(bidders: [OPENX])
+        def blockingCondition = new Ortb2BlockingConditions(bidders: [IX])
 
         and: "Account in the DB with blocking configuration"
         def ortb2BlockingAttributeConfig = new Ortb2BlockingAttributeConfig(enforceBlocks: true, blockUnknownAdvCat: true).tap {
@@ -909,16 +964,16 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         }
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
             it.seatbid = [new SeatBid(bid: [bidWithOutCat], seat: GENERIC),
-                          new SeatBid(bid: [bidWithOutCat], seat: OPENX)]
+                          new SeatBid(bid: [bidWithOutCat], seat: IX)]
         }
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes the auction request"
         def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
 
-        then: "PBS response should contain only openx seatbid"
+        then: "PBS response should contain only ix seatbid"
         assert response.seatbid.bid.flatten().size() == 1
-        assert response.seatbid.first.seat == OPENX
+        assert response.seatbid.first.seat == IX
 
         and: "PBS response shouldn't contain any module errors"
         assert !response?.ext?.prebid?.modules?.errors
@@ -1038,7 +1093,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
 
         and: "PBS response should contain proper warning"
         assert response?.ext?.prebid?.modules?.warnings?.ortb2Blocking["ortb2-blocking-bidder-request"] ==
-                ["More than one conditions matches request. Bidder: generic, request media types: [banner]"]
+                ["More than one conditions matches request. Bidder: generic, request media types: [${bidRequest.imp[0].mediaType[0].value}]"]
 
         where:
         blockingCondition                                | ortb2Attributes       | firstOverrideAttributes | secondOverrideAttributes | attributeName
@@ -1052,8 +1107,8 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         new Ortb2BlockingConditions(mediaType: [BANNER]) | PBSUtils.randomString | PBSUtils.randomString   | PBSUtils.randomString    | BAPP
         new Ortb2BlockingConditions(mediaType: [BANNER]) | PBSUtils.randomString | PBSUtils.randomString   | PBSUtils.randomString    | BCAT
         new Ortb2BlockingConditions(mediaType: [BANNER]) | PBSUtils.randomNumber | PBSUtils.randomNumber   | PBSUtils.randomNumber    | BANNER_BATTR
-        new Ortb2BlockingConditions(mediaType: [BANNER]) | PBSUtils.randomNumber | PBSUtils.randomNumber   | PBSUtils.randomNumber    | VIDEO_BATTR
-        new Ortb2BlockingConditions(mediaType: [BANNER]) | PBSUtils.randomNumber | PBSUtils.randomNumber   | PBSUtils.randomNumber    | AUDIO_BATTR
+        new Ortb2BlockingConditions(mediaType: [VIDEO])  | PBSUtils.randomNumber | PBSUtils.randomNumber   | PBSUtils.randomNumber    | VIDEO_BATTR
+        new Ortb2BlockingConditions(mediaType: [AUDIO])  | PBSUtils.randomNumber | PBSUtils.randomNumber   | PBSUtils.randomNumber    | AUDIO_BATTR
     }
 
     def "PBS should prefer non wildcard override when multiple match same condition by bidder"() {
@@ -1105,7 +1160,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
 
         and: "Account in the DB with blocking configuration"
         def firstOrtb2BlockingOverride = new Ortb2BlockingOverride(override: [firstOverrideAttributes], conditions: new Ortb2BlockingConditions(mediaType: [MediaType.WILDCARD]))
-        def secondOrtb2BlockingOverride = new Ortb2BlockingOverride(override: [secondOverrideAttributes], conditions: new Ortb2BlockingConditions(mediaType: [BANNER]))
+        def secondOrtb2BlockingOverride = new Ortb2BlockingOverride(override: [secondOverrideAttributes], conditions: new Ortb2BlockingConditions(mediaType: [bidRequest.imp[0].mediaType[0]]))
         def ortb2BlockingAttributeConfig = Ortb2BlockingAttributeConfig.getDefaultConfig([ortb2Attributes], attributeName).tap {
             enforceBlocks = true
             actionOverrides = Ortb2BlockingActionOverride.getDefaultOverride(attributeName, [firstOrtb2BlockingOverride, secondOrtb2BlockingOverride], null)

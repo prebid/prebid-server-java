@@ -90,7 +90,8 @@ class Imp {
                 (bidder.genericCamelCase): BidderName.GENERIC_CAMEL_CASE,
                 (bidder.rubicon)         : BidderName.RUBICON,
                 (bidder.appNexus)        : BidderName.APPNEXUS,
-                (bidder.openx)           : BidderName.OPENX
+                (bidder.openx)           : BidderName.OPENX,
+                (bidder.ix)              : BidderName.IX
         ].findAll { it.key }
 
         if (bidderNames.size() != 1) {
@@ -98,5 +99,15 @@ class Imp {
         }
 
         bidderNames.values().first()
+    }
+
+    @JsonIgnore
+    List<MediaType> getMediaType() {
+        return [
+                (banner ? BANNER : null),
+                (video ? VIDEO : null),
+                (nativeObj ? NATIVE : null),
+                (audio ? AUDIO : null)
+        ].findAll { it }
     }
 }

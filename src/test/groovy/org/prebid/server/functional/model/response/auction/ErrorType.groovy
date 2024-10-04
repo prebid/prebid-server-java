@@ -13,6 +13,7 @@ enum ErrorType {
     CACHE("cache"),
     ALIAS("alias"),
     TARGETING("targeting"),
+    IX("ix"),
     OPENX("openx")
 
     @JsonValue

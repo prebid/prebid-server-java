@@ -19,6 +19,7 @@ class Bidder {
     @JsonProperty("appnexus")
     AppNexus appNexus
     Openx openx
+    Ix ix
 
     static Bidder getDefaultBidder() {
         new Bidder().tap {
