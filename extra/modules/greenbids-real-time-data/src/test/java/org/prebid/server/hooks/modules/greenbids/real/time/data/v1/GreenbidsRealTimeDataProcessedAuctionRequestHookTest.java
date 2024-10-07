@@ -58,6 +58,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.UnaryOperator;
 
+import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -126,7 +127,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 .banner(banner)
                 .build();
 
-        final Device device = testBidRequestProvider.givenDevice(deviceBuilder -> deviceBuilder);
+        final Device device = testBidRequestProvider.givenDevice(identity());
         final BidRequest bidRequest = testBidRequestProvider
                 .givenBidRequest(request -> request, List.of(imp), device, null);
         final AuctionContext auctionContext = givenAuctionContext(bidRequest, context -> context);
@@ -159,7 +160,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 .build();
 
         final Double explorationRate = 0.0001;
-        final Device device = testBidRequestProvider.givenDevice(deviceBuilder -> deviceBuilder);
+        final Device device = testBidRequestProvider.givenDevice(identity());
         final ExtRequest extRequest = givenExtRequest(explorationRate);
         final BidRequest bidRequest = testBidRequestProvider
                 .givenBidRequest(request -> request, List.of(imp), device, extRequest);
@@ -194,7 +195,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 .build();
 
         final Double explorationRate = 0.0001;
-        final Device device = testBidRequestProvider.givenDevice(deviceBuilder -> deviceBuilder);
+        final Device device = testBidRequestProvider.givenDevice(identity());
         final ExtRequest extRequest = givenExtRequest(explorationRate);
         final BidRequest bidRequest = testBidRequestProvider
                 .givenBidRequest(request -> request, List.of(imp), device, extRequest);
@@ -232,7 +233,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 .build();
 
         final Double explorationRate = 1.0;
-        final Device device = testBidRequestProvider.givenDevice(deviceBuilder -> deviceBuilder);
+        final Device device = testBidRequestProvider.givenDevice(identity());
         final ExtRequest extRequest = givenExtRequest(explorationRate);
         final BidRequest bidRequest = testBidRequestProvider
                 .givenBidRequest(request -> request, List.of(imp), device, extRequest);
@@ -337,7 +338,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 .build();
 
         final Double explorationRate = 0.0001;
-        final Device device = testBidRequestProvider.givenDevice(deviceBuilder -> deviceBuilder);
+        final Device device = testBidRequestProvider.givenDevice(identity());
         final ExtRequest extRequest = givenExtRequest(explorationRate);
         final BidRequest bidRequest = testBidRequestProvider
                 .givenBidRequest(request -> request, List.of(imp), device, extRequest);
