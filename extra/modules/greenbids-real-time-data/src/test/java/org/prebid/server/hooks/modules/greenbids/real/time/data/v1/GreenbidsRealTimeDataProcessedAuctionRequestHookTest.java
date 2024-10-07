@@ -116,7 +116,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
     }
 
     @Test
-    public void shouldExitEarlyWhenPartnerNotActivatedInBidRequest() {
+    public void callShouldExitEarlyWhenPartnerNotActivatedInBidRequest() {
         // given
         final Banner banner = testBidRequestProvider.givenBanner();
 
@@ -148,7 +148,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
     }
 
     @Test
-    public void shouldExitEarlyWhenThresholdIsNotAvailable() throws OrtException, IOException {
+    public void callShouldExitEarlyWhenThresholdIsNotAvailable() throws OrtException, IOException {
         // given
         final Banner banner = testBidRequestProvider.givenBanner();
 
@@ -183,7 +183,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
     }
 
     @Test
-    public void shouldExitEarlyWhenModelIsNotAvailable() throws IOException {
+    public void callShouldExitEarlyWhenModelIsNotAvailable() throws IOException {
         // given
         final Banner banner = testBidRequestProvider.givenBanner();
 
@@ -221,7 +221,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
     }
 
     @Test
-    public void shouldNotFilterBiddersAndReturnAnalyticsTagWhenExploration() throws OrtException, IOException {
+    public void callShouldNotFilterBiddersAndReturnAnalyticsTagWhenExploration() throws OrtException, IOException {
         // given
         final Banner banner = testBidRequestProvider.givenBanner();
 
@@ -269,7 +269,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
     }
 
     @Test
-    public void shouldFilterBiddersBasedOnModelWhenAnyFeatureNotAvailable() throws OrtException, IOException {
+    public void callShouldFilterBiddersBasedOnModelWhenAnyFeatureNotAvailable() throws OrtException, IOException {
         // given
         final Banner banner = testBidRequestProvider.givenBanner();
 
@@ -326,7 +326,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
     }
 
     @Test
-    public void shouldFilterBiddersBasedOnModelResults() throws OrtException, IOException {
+    public void callShouldFilterBiddersBasedOnModelResults() throws OrtException, IOException {
         // given
         final Banner banner = testBidRequestProvider.givenBanner();
 

@@ -9,7 +9,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class GreenbidsUserAgentTest {
 
     @Test
-    public void getDeviceShouldReturnPCForWindowsNT() {
+    public void getDeviceShouldReturnPCWhenWindowsNTInUserAgent() {
         // given
         final String userAgentString = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)";
 
@@ -21,7 +21,7 @@ public class GreenbidsUserAgentTest {
     }
 
     @Test
-    public void getDeviceShouldReturnDeviceIPhoneWhenIOS() {
+    public void getDeviceShouldReturnDeviceIPhoneWhenIOSInUserAgent() {
         // given
         final String userAgentString = "Mozilla/5.0 (iPhone; CPU iPhone OS 14_2 like Mac OS X)";
 

@@ -54,7 +54,8 @@ public class GreenbidsInferenceDataServiceTest {
     }
 
     @Test
-    public void shouldReturnValidThrottlingMessages() throws IOException, GeoIp2Exception {
+    public void extractThrottlingMessagesFromBidRequestShouldReturnValidThrottlingMessages()
+            throws IOException, GeoIp2Exception {
         // given
         final Banner banner = testBidRequestProvider.givenBanner();
         final Imp imp = Imp.builder()
@@ -82,7 +83,7 @@ public class GreenbidsInferenceDataServiceTest {
     }
 
     @Test
-    public void shouldHandleMissingIp() {
+    public void extractThrottlingMessagesFromBidRequestShouldHandleMissingIp() {
         // given
         final Banner banner = testBidRequestProvider.givenBanner();
         final Imp imp = Imp.builder()
@@ -104,7 +105,8 @@ public class GreenbidsInferenceDataServiceTest {
     }
 
     @Test
-    public void shouldThrowPreBidExceptionOnGeoIpFailure() throws IOException, GeoIp2Exception {
+    public void extractThrottlingMessagesFromBidRequestShouldThrowPreBidExceptionWhenGeoIpFails()
+            throws IOException, GeoIp2Exception {
         // given
         final Banner banner = testBidRequestProvider.givenBanner();
         final Imp imp = Imp.builder()
