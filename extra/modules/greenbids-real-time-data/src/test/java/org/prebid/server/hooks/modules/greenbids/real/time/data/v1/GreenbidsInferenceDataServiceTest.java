@@ -24,6 +24,7 @@ import java.net.InetAddress;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
+import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -63,7 +64,7 @@ public class GreenbidsInferenceDataServiceTest {
                 .ext(testBidRequestProvider.givenImpExt())
                 .banner(banner)
                 .build();
-        final Device device = testBidRequestProvider.givenDevice(deviceBuilder -> deviceBuilder);
+        final Device device = testBidRequestProvider.givenDevice(identity());
         final BidRequest bidRequest = testBidRequestProvider
                 .givenBidRequest(request -> request, List.of(imp), device, null);
 
@@ -91,7 +92,7 @@ public class GreenbidsInferenceDataServiceTest {
                 .ext(testBidRequestProvider.givenImpExt())
                 .banner(banner)
                 .build();
-        final Device device = givenDeviceWithoutIp(deviceBuilder -> deviceBuilder);
+        final Device device = givenDeviceWithoutIp(identity());
         final BidRequest bidRequest = testBidRequestProvider
                 .givenBidRequest(request -> request, List.of(imp), device, null);
 
@@ -114,7 +115,7 @@ public class GreenbidsInferenceDataServiceTest {
                 .ext(testBidRequestProvider.givenImpExt())
                 .banner(banner)
                 .build();
-        final Device device = testBidRequestProvider.givenDevice(deviceBuilder -> deviceBuilder);
+        final Device device = testBidRequestProvider.givenDevice(identity());
         final BidRequest bidRequest = testBidRequestProvider
                 .givenBidRequest(request -> request, List.of(imp), device, null);
 
