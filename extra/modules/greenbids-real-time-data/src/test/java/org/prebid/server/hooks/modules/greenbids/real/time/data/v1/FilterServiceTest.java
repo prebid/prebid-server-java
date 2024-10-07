@@ -5,7 +5,6 @@ import ai.onnxruntime.OnnxValue;
 import ai.onnxruntime.OrtException;
 import ai.onnxruntime.OrtSession;
 import ai.onnxruntime.TensorInfo;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -44,15 +43,11 @@ public class FilterServiceTest {
     @Mock
     private TensorInfo tensorInfo;
 
-    private FilterService target;
-
-    @BeforeEach
-    public void setUp() {
-        target = new FilterService();
-    }
+    private final FilterService target = new FilterService();
 
     @Test
-    public void shouldReturnFilteredBiddersWhenValidThrottlingMessagesProvided() throws OrtException, IOException {
+    public void filterBiddersShouldReturnFilteredBiddersWhenValidThrottlingMessagesProvided()
+            throws OrtException, IOException {
         // given
         final List<ThrottlingMessage> throttlingMessages = createThrottlingMessages();
         final Double threshold = 0.5;
@@ -68,7 +63,7 @@ public class FilterServiceTest {
     }
 
     @Test
-    public void shouldThrowPreBidExceptionWhenOrtExceptionOccurs() throws OrtException {
+    public void filterBiddersShouldThrowPreBidExceptionWhenOrtExceptionOccurs() throws OrtException {
         // given
         final List<ThrottlingMessage> throttlingMessages = createThrottlingMessages();
         final Double threshold = 0.5;
@@ -83,7 +78,7 @@ public class FilterServiceTest {
     }
 
     @Test
-    public void shouldThrowPreBidExceptionWhenThrottlingMessagesIsEmpty() {
+    public void filterBiddersShouldThrowPreBidExceptionWhenThrottlingMessagesIsEmpty() {
         // given
         final List<ThrottlingMessage> throttlingMessages = Collections.emptyList();
         final Double threshold = 0.5;
@@ -95,7 +90,7 @@ public class FilterServiceTest {
     }
 
     @Test
-    public void shouldThrowPreBidExceptionWhenTensorSizeMismatchOccurs() throws OrtException {
+    public void filterBiddersShouldThrowPreBidExceptionWhenTensorSizeMismatchOccurs() throws OrtException {
         // given
         final List<ThrottlingMessage> throttlingMessages = createThrottlingMessages();
         final Double threshold = 0.5;

@@ -7,7 +7,8 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.MockitoAnnotations;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.Partner;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.result.GreenbidsInvocationResult;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.result.GreenbidsInvocationService;
@@ -18,8 +19,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 
+@ExtendWith(MockitoExtension.class)
 public class GreenbidsInvocationServiceTest {
 
     private JacksonMapper jacksonMapper;
@@ -30,7 +33,6 @@ public class GreenbidsInvocationServiceTest {
 
     @BeforeEach
     public void setUp() {
-        MockitoAnnotations.openMocks(this);
         final ObjectMapper mapper = new ObjectMapper();
         jacksonMapper = new JacksonMapper(mapper);
         testBidRequestProvider = new TestBidRequestProvider(jacksonMapper);
@@ -38,7 +40,7 @@ public class GreenbidsInvocationServiceTest {
     }
 
     @Test
-    public void shouldReturnUpdateBidRequestWhenNotExploration() {
+    public void createGreenbidsInvocationResultShouldReturnUpdateBidRequestWhenNotExploration() {
         // given
         final Banner banner = testBidRequestProvider.givenBanner();
         final Imp imp = Imp.builder()
@@ -46,7 +48,7 @@ public class GreenbidsInvocationServiceTest {
                 .ext(testBidRequestProvider.givenImpExt())
                 .banner(banner)
                 .build();
-        final Device device = testBidRequestProvider.givenDevice(deviceBuilder -> deviceBuilder);
+        final Device device = testBidRequestProvider.givenDevice(identity());
         final BidRequest bidRequest = testBidRequestProvider
                 .givenBidRequest(request -> request, List.of(imp), device, null);
         final Map<String, Map<String, Boolean>> impsBiddersFilterMap = givenImpsBiddersFilterMap();
@@ -67,7 +69,7 @@ public class GreenbidsInvocationServiceTest {
     }
 
     @Test
-    public void shouldReturnNoActionWhenExploration() {
+    public void createGreenbidsInvocationResultShouldReturnNoActionWhenExploration() {
         // given
         final Banner banner = testBidRequestProvider.givenBanner();
         final Imp imp = Imp.builder()
@@ -75,7 +77,7 @@ public class GreenbidsInvocationServiceTest {
                 .ext(testBidRequestProvider.givenImpExt())
                 .banner(banner)
                 .build();
-        final Device device = testBidRequestProvider.givenDevice(deviceBuilder -> deviceBuilder);
+        final Device device = testBidRequestProvider.givenDevice(identity());
         final BidRequest bidRequest = testBidRequestProvider
                 .givenBidRequest(request -> request, List.of(imp), device, null);
         final Map<String, Map<String, Boolean>> impsBiddersFilterMap = givenImpsBiddersFilterMap();
