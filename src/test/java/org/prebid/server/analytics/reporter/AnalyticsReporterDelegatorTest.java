@@ -427,6 +427,31 @@ public class AnalyticsReporterDelegatorTest extends VertxTest {
     }
 
     @Test
+    public void shouldCallAnalyticsAdapterIfAdapterNodePresentButEnabledPropertyNotPresent() {
+        // given
+        final ObjectNode moduleConfig = mapper.createObjectNode();
+        moduleConfig.put("property1", "value1");
+        moduleConfig.put("property2", "value2");
+
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .account(Account.builder()
+                        .analytics(AccountAnalyticsConfig.of(
+                                true, null, Map.of("logAnalytics", moduleConfig)))
+                        .build())
+                .bidRequest(BidRequest.builder()
+                        .ext(ExtRequest.of(ExtRequestPrebid.builder().analytics(mapper.createObjectNode()).build()))
+                        .build())
+                .build();
+
+        // when
+        target.processEvent(AuctionEvent.builder().auctionContext(auctionContext).build());
+
+        // then
+        verify(vertx, times(2)).runOnContext(any());
+        verify(firstReporter).processEvent(any());
+    }
+
+    @Test
     public void shouldUpdateAuctionEventWithPropertiesFromAdapterSpecificAccountConfig() {
         // given
         final ObjectNode moduleConfig = mapper.createObjectNode();

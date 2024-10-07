@@ -239,8 +239,12 @@ public class AnalyticsReporterDelegator {
 
         if (modules != null && modules.containsKey(adapter)) {
             final ObjectNode moduleConfig = modules.get(adapter);
-            return moduleConfig == null || !moduleConfig.has("enabled")
-                    || !moduleConfig.get("enabled").asBoolean();
+
+            if (moduleConfig == null || !moduleConfig.has("enabled")) {
+                return false;
+            }
+
+            return !moduleConfig.get("enabled").asBoolean();
         }
 
         return !globalEnabledAdapters.contains(adapter);
