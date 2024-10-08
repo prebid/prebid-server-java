@@ -201,7 +201,6 @@ public class ModelCacheTest {
         when(storage.get(GCS_BUCKET_NAME)).thenThrow(new StorageException(500, "Storage Error"));
 
         // Mock vertx.executeBlocking to simulate the behavior of exception being thrown in getBlob
-
         when(vertx.executeBlocking(any(Callable.class))).thenAnswer(invocation -> {
             Callable<?> callable = invocation.getArgument(0);
             try {
