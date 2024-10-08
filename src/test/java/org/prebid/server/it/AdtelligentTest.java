@@ -19,9 +19,9 @@ public class AdtelligentTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromAdtelligent() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/adtelligent-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/adtelligent/test-adtelligent-bid-request-1.json")))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/adtelligent/test-adtelligent-bid-request.json")))
                 .willReturn(aResponse().withBody(
-                        jsonFrom("openrtb2/adtelligent/test-adtelligent-bid-response-1.json"))));
+                        jsonFrom("openrtb2/adtelligent/test-adtelligent-bid-response.json"))));
 
         // when
         final Response response = responseFor("openrtb2/adtelligent/test-auction-adtelligent-request.json",
