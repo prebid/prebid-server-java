@@ -17,6 +17,8 @@ public class PriceFloorRulesValidator {
     private static final int MODEL_WEIGHT_MIN_VALUE = 1;
     private static final int SKIP_RATE_MIN = 0;
     private static final int SKIP_RATE_MAX = 100;
+    private static final int USE_FETCH_DATA_RATE_MIN = 0;
+    private static final int USE_FETCH_DATA_RATE_MAX = 100;
 
     private PriceFloorRulesValidator() {
     }
@@ -46,6 +48,14 @@ public class PriceFloorRulesValidator {
         if (dataSkipRate != null && (dataSkipRate < SKIP_RATE_MIN || dataSkipRate > SKIP_RATE_MAX)) {
             throw new PreBidException(
                     "Price floor data skipRate must be in range(0-100), but was " + dataSkipRate);
+        }
+
+        final Integer useFetchDataRate = priceFloorData.getUseFetchDataRate();
+        if (useFetchDataRate != null
+                && (useFetchDataRate < USE_FETCH_DATA_RATE_MIN || useFetchDataRate > USE_FETCH_DATA_RATE_MAX)) {
+
+            throw new PreBidException(
+                    "Price floor data useFetchDataRate must be in range(0-100), but was " + useFetchDataRate);
         }
 
         if (CollectionUtils.isEmpty(priceFloorData.getModelGroups())) {

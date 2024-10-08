@@ -118,9 +118,12 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
     }
 
     @Test
-    public void shouldUseFloorsFromProviderIfUseDynamicDataIsNotPresent() {
+    public void shouldUseFloorsFromProviderIfUseDynamicDataAndUseFetchDataRateAreAbsent() {
         // given
-        final PriceFloorData providerFloorsData = givenFloorData(floors -> floors.floorProvider("provider.com"));
+        final PriceFloorData providerFloorsData = givenFloorData(floors -> floors
+                .floorProvider("provider.com")
+                .useFetchDataRate(null));
+
         given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloorsData, FetchStatus.success));
 
         // when
@@ -142,9 +145,65 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
     }
 
     @Test
-    public void shouldUseFloorsFromProviderIfUseDynamicDataIsTrue() {
+    public void shouldUseFloorsFromProviderIfUseDynamicDataIsAbsentAndUseFetchDataRateIs100() {
         // given
-        final PriceFloorData providerFloorsData = givenFloorData(floors -> floors.floorProvider("provider.com"));
+        final PriceFloorData providerFloorsData = givenFloorData(floors -> floors
+                .floorProvider("provider.com")
+                .useFetchDataRate(100));
+
+        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloorsData, FetchStatus.success));
+
+        // when
+        final BidRequest result = target.enrichWithPriceFloors(
+                givenBidRequest(identity(), null),
+                givenAccount(floorsConfig -> floorsConfig.useDynamicData(null)),
+                "bidder",
+                new ArrayList<>(),
+                new ArrayList<>());
+
+        // then
+        assertThat(extractFloors(result)).isEqualTo(givenFloors(floors -> floors
+                .enabled(true)
+                .skipped(false)
+                .floorProvider("provider.com")
+                .data(providerFloorsData)
+                .fetchStatus(FetchStatus.success)
+                .location(PriceFloorLocation.fetch)));
+    }
+
+    @Test
+    public void shouldNotUseFloorsFromProviderIfUseDynamicDataIsAbsentAndUseFetchDataRateIs0() {
+        // given
+        final PriceFloorData providerFloorsData = givenFloorData(floors -> floors
+                .floorProvider("provider.com")
+                .useFetchDataRate(0));
+
+        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloorsData, FetchStatus.success));
+
+        // when
+        final BidRequest result = target.enrichWithPriceFloors(
+                givenBidRequest(identity(), null),
+                givenAccount(floorsConfig -> floorsConfig.useDynamicData(null)),
+                "bidder",
+                new ArrayList<>(),
+                new ArrayList<>());
+
+        // then
+        final PriceFloorRules actualRules = extractFloors(result);
+        assertThat(actualRules)
+                .extracting(PriceFloorRules::getFetchStatus)
+                .isEqualTo(FetchStatus.success);
+        assertThat(actualRules)
+                .extracting(PriceFloorRules::getLocation)
+                .isEqualTo(PriceFloorLocation.noData);
+    }
+
+    @Test
+    public void shouldUseFloorsFromProviderIfUseDynamicDataIsTrueAndUseFetchDataRateIsAbsent() {
+        // given
+        final PriceFloorData providerFloorsData = givenFloorData(floors -> floors
+                .floorProvider("provider.com")
+                .useFetchDataRate(null));
         given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloorsData, FetchStatus.success));
 
         // when
@@ -167,9 +226,37 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
     }
 
     @Test
-    public void shouldNotUseFloorsFromProviderIfUseDynamicDataIsFalse() {
+    public void shouldNotUseFloorsFromProviderIfUseDynamicDataIsFalseAndUseFetchDataRateIsAbsent() {
         // given
-        final PriceFloorData providerFloorsData = givenFloorData(floors -> floors.floorProvider("provider.com"));
+        final PriceFloorData providerFloorsData = givenFloorData(floors -> floors
+                .floorProvider("provider.com")
+                .useFetchDataRate(null));
+        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloorsData, FetchStatus.success));
+
+        // when
+        final BidRequest result = target.enrichWithPriceFloors(
+                givenBidRequest(identity(), null),
+                givenAccount(floorsConfig -> floorsConfig.useDynamicData(false)),
+                "bidder",
+                new ArrayList<>(),
+                new ArrayList<>());
+
+        // then
+        final PriceFloorRules actualRules = extractFloors(result);
+        assertThat(actualRules)
+                .extracting(PriceFloorRules::getFetchStatus)
+                .isEqualTo(FetchStatus.success);
+        assertThat(actualRules)
+                .extracting(PriceFloorRules::getLocation)
+                .isEqualTo(PriceFloorLocation.noData);
+    }
+
+    @Test
+    public void shouldNotUseFloorsFromProviderIfUseDynamicDataIsFalseAndUseFetchDataRateIs100() {
+        // given
+        final PriceFloorData providerFloorsData = givenFloorData(floors -> floors
+                .floorProvider("provider.com")
+                .useFetchDataRate(100));
         given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloorsData, FetchStatus.success));
 
         // when
