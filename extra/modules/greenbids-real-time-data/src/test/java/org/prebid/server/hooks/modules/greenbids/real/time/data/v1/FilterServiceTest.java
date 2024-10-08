@@ -43,6 +43,9 @@ public class FilterServiceTest {
     @Mock
     private TensorInfo tensorInfo;
 
+    @Mock
+    private OnnxValue onnxValue;
+
     private final FilterService target = new FilterService();
 
     @Test
@@ -60,6 +63,21 @@ public class FilterServiceTest {
         // then
         assertThat(impsBiddersFilterMap).isNotNull();
         assertThat(impsBiddersFilterMap.get("adUnit1").get("bidder1")).isTrue();
+    }
+
+    @Test
+    public void validateOnnxTensorShouldThrowPreBidExceptionWhenOnnxValueIsNotTensor() throws OrtException {
+        // given
+        final List<ThrottlingMessage> throttlingMessages = createThrottlingMessages();
+        final Double threshold = 0.5;
+
+        when(onnxModelRunnerMock.runModel(any(String[][].class))).thenReturn(results);
+        when(results.spliterator()).thenReturn(Arrays.asList(createInvalidOnnxItem()).spliterator());
+
+        // when & then
+        assertThatThrownBy(() -> target.filterBidders(onnxModelRunnerMock, throttlingMessages, threshold))
+                .isInstanceOf(PreBidException.class)
+                .hasMessageContaining("Expected OnnxTensor for 'probabilities', but found");
     }
 
     @Test
@@ -128,5 +146,9 @@ public class FilterServiceTest {
 
     private Map.Entry<String, OnnxValue> createOnnxItem() {
         return new AbstractMap.SimpleEntry<>("probabilities", onnxTensor);
+    }
+
+    private Map.Entry<String, OnnxValue> createInvalidOnnxItem() {
+        return new AbstractMap.SimpleEntry<>("probabilities", onnxValue);
     }
 }
