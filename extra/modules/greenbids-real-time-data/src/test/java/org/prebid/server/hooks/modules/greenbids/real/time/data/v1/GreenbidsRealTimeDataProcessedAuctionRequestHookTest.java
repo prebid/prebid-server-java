@@ -62,6 +62,11 @@ import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.prebid.server.hooks.modules.greenbids.real.time.data.v1.TestBidRequestProvider.givenBanner;
+import static org.prebid.server.hooks.modules.greenbids.real.time.data.v1.TestBidRequestProvider.givenBidRequest;
+import static org.prebid.server.hooks.modules.greenbids.real.time.data.v1.TestBidRequestProvider.givenDevice;
+import static org.prebid.server.hooks.modules.greenbids.real.time.data.v1.TestBidRequestProvider.givenImpExt;
+import static org.prebid.server.hooks.modules.greenbids.real.time.data.v1.TestBidRequestProvider.givenSite;
 
 @ExtendWith(MockitoExtension.class)
 public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
@@ -74,15 +79,12 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
 
     private JacksonMapper jacksonMapper;
 
-    private TestBidRequestProvider testBidRequestProvider;
-
     private GreenbidsRealTimeDataProcessedAuctionRequestHook target;
 
     @BeforeEach
     public void setUp() throws IOException {
-        final ObjectMapper mapper = new ObjectMapper();
+        final ObjectMapper mapper = ObjectMapperProvider.mapper();
         jacksonMapper = new JacksonMapper(mapper);
-        testBidRequestProvider = new TestBidRequestProvider(jacksonMapper);
         final Storage storage = StorageOptions.newBuilder()
                 .setProjectId("test_project").build().getService();
         final File database = new File("src/test/resources/GeoLite2-Country.mmdb");
@@ -119,17 +121,16 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
     @Test
     public void callShouldExitEarlyWhenPartnerNotActivatedInBidRequest() {
         // given
-        final Banner banner = testBidRequestProvider.givenBanner();
+        final Banner banner = givenBanner();
 
         final Imp imp = Imp.builder()
                 .id("adunitcodevalue")
-                .ext(testBidRequestProvider.givenImpExt())
+                .ext(givenImpExt(jacksonMapper))
                 .banner(banner)
                 .build();
 
-        final Device device = testBidRequestProvider.givenDevice(identity());
-        final BidRequest bidRequest = testBidRequestProvider
-                .givenBidRequest(request -> request, List.of(imp), device, null);
+        final Device device = givenDevice(identity());
+        final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device, null);
         final AuctionContext auctionContext = givenAuctionContext(bidRequest, context -> context);
         final AuctionInvocationContext invocationContext = givenAuctionInvocationContext(auctionContext);
         when(invocationContext.auctionContext()).thenReturn(auctionContext);
@@ -151,19 +152,18 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
     @Test
     public void callShouldExitEarlyWhenThresholdIsNotAvailable() throws OrtException, IOException {
         // given
-        final Banner banner = testBidRequestProvider.givenBanner();
+        final Banner banner = givenBanner();
 
         final Imp imp = Imp.builder()
                 .id("adunitcodevalue")
-                .ext(testBidRequestProvider.givenImpExt())
+                .ext(givenImpExt(jacksonMapper))
                 .banner(banner)
                 .build();
 
         final Double explorationRate = 0.0001;
-        final Device device = testBidRequestProvider.givenDevice(identity());
+        final Device device = givenDevice(identity());
         final ExtRequest extRequest = givenExtRequest(explorationRate);
-        final BidRequest bidRequest = testBidRequestProvider
-                .givenBidRequest(request -> request, List.of(imp), device, extRequest);
+        final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device, extRequest);
         final AuctionContext auctionContext = givenAuctionContext(bidRequest, context -> context);
         final AuctionInvocationContext invocationContext = givenAuctionInvocationContext(auctionContext);
         when(invocationContext.auctionContext()).thenReturn(auctionContext);
@@ -186,19 +186,18 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
     @Test
     public void callShouldExitEarlyWhenModelIsNotAvailable() throws IOException {
         // given
-        final Banner banner = testBidRequestProvider.givenBanner();
+        final Banner banner = givenBanner();
 
         final Imp imp = Imp.builder()
                 .id("adunitcodevalue")
-                .ext(testBidRequestProvider.givenImpExt())
+                .ext(givenImpExt(jacksonMapper))
                 .banner(banner)
                 .build();
 
         final Double explorationRate = 0.0001;
-        final Device device = testBidRequestProvider.givenDevice(identity());
+        final Device device = givenDevice(identity());
         final ExtRequest extRequest = givenExtRequest(explorationRate);
-        final BidRequest bidRequest = testBidRequestProvider
-                .givenBidRequest(request -> request, List.of(imp), device, extRequest);
+        final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device, extRequest);
         final AuctionContext auctionContext = givenAuctionContext(bidRequest, context -> context);
         final AuctionInvocationContext invocationContext = givenAuctionInvocationContext(auctionContext);
         when(invocationContext.auctionContext()).thenReturn(auctionContext);
@@ -224,19 +223,18 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
     @Test
     public void callShouldNotFilterBiddersAndReturnAnalyticsTagWhenExploration() throws OrtException, IOException {
         // given
-        final Banner banner = testBidRequestProvider.givenBanner();
+        final Banner banner = givenBanner();
 
         final Imp imp = Imp.builder()
                 .id("adunitcodevalue")
-                .ext(testBidRequestProvider.givenImpExt())
+                .ext(givenImpExt(jacksonMapper))
                 .banner(banner)
                 .build();
 
         final Double explorationRate = 1.0;
-        final Device device = testBidRequestProvider.givenDevice(identity());
+        final Device device = givenDevice(identity());
         final ExtRequest extRequest = givenExtRequest(explorationRate);
-        final BidRequest bidRequest = testBidRequestProvider
-                .givenBidRequest(request -> request, List.of(imp), device, extRequest);
+        final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device, extRequest);
         final AuctionContext auctionContext = givenAuctionContext(bidRequest, context -> context);
         final AuctionInvocationContext invocationContext = givenAuctionInvocationContext(auctionContext);
         when(invocationContext.auctionContext()).thenReturn(auctionContext);
@@ -272,18 +270,17 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
     @Test
     public void callShouldFilterBiddersBasedOnModelWhenAnyFeatureNotAvailable() throws OrtException, IOException {
         // given
-        final Banner banner = testBidRequestProvider.givenBanner();
+        final Banner banner = givenBanner();
 
         final Imp imp = Imp.builder()
                 .id("adunitcodevalue")
-                .ext(testBidRequestProvider.givenImpExt())
+                .ext(givenImpExt(jacksonMapper))
                 .banner(banner)
                 .build();
 
         final Double explorationRate = 0.0001;
         final ExtRequest extRequest = givenExtRequest(explorationRate);
-        final BidRequest bidRequest = testBidRequestProvider
-                .givenBidRequest(request -> request, List.of(imp), null, extRequest);
+        final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), null, extRequest);
         final AuctionContext auctionContext = givenAuctionContext(bidRequest, context -> context);
         final AuctionInvocationContext invocationContext = givenAuctionInvocationContext(auctionContext);
         when(invocationContext.auctionContext()).thenReturn(auctionContext);
@@ -329,19 +326,18 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
     @Test
     public void callShouldFilterBiddersBasedOnModelResults() throws OrtException, IOException {
         // given
-        final Banner banner = testBidRequestProvider.givenBanner();
+        final Banner banner = givenBanner();
 
         final Imp imp = Imp.builder()
                 .id("adunitcodevalue")
-                .ext(testBidRequestProvider.givenImpExt())
+                .ext(givenImpExt(jacksonMapper))
                 .banner(banner)
                 .build();
 
         final Double explorationRate = 0.0001;
-        final Device device = testBidRequestProvider.givenDevice(identity());
+        final Device device = givenDevice(identity());
         final ExtRequest extRequest = givenExtRequest(explorationRate);
-        final BidRequest bidRequest = testBidRequestProvider
-                .givenBidRequest(request -> request, List.of(imp), device, extRequest);
+        final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device, extRequest);
         final AuctionContext auctionContext = givenAuctionContext(bidRequest, context -> context);
         final AuctionInvocationContext invocationContext = givenAuctionInvocationContext(auctionContext);
         when(invocationContext.auctionContext()).thenReturn(auctionContext);
@@ -434,7 +430,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
             JacksonMapper jacksonMapper,
             Double explorationRate) {
 
-        final Banner banner = testBidRequestProvider.givenBanner();
+        final Banner banner = givenBanner();
 
         final ObjectNode bidderNode = jacksonMapper.mapper().createObjectNode();
         final ObjectNode prebidNode = jacksonMapper.mapper().createObjectNode();
@@ -453,8 +449,8 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         return bidRequestCustomizer.apply(BidRequest.builder()
                 .id("request")
                 .imp(List.of(imp))
-                .site(testBidRequestProvider.givenSite(site -> site))
-                .device(testBidRequestProvider.givenDevice(device -> device))
+                .site(givenSite(site -> site))
+                .device(givenDevice(device -> device))
                 .ext(givenExtRequest(explorationRate))).build();
     }
 
@@ -467,7 +463,8 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
     }
 
     private Ortb2ImpExtResult expectedOrtb2ImpExtResult(Boolean isExploration, Boolean isKeptInAuction) {
-        return Ortb2ImpExtResult.of(expectedExplorationResult(isExploration, isKeptInAuction), null);
+        return Ortb2ImpExtResult.of(
+                expectedExplorationResult(isExploration, isKeptInAuction), "67eaab5f-27a6-4689-93f7-bd8f024576e3");
     }
 
     private ExplorationResult expectedExplorationResult(Boolean isExploration, Boolean isKeptInAuction) {
@@ -475,7 +472,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 "appnexus", isKeptInAuction,
                 "pubmatic", isKeptInAuction,
                 "rubicon", isKeptInAuction);
-        return ExplorationResult.of(null, keptInAuction, isExploration);
+        return ExplorationResult.of("60a7c66c-c542-48c6-a319-ea7b9f97947f", keptInAuction, isExploration);
     }
 
     private Tags toAnalyticsTags(List<AnalyticsResult> analyticsResults) {

@@ -16,13 +16,7 @@ import java.util.function.UnaryOperator;
 
 public class TestBidRequestProvider {
 
-    private final JacksonMapper jacksonMapper;
-
-    public TestBidRequestProvider(JacksonMapper jacksonMapper) {
-        this.jacksonMapper = jacksonMapper;
-    }
-
-    public BidRequest givenBidRequest(
+    public static BidRequest givenBidRequest(
             UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
             List<Imp> imps,
             Device device,
@@ -36,11 +30,11 @@ public class TestBidRequestProvider {
                 .ext(extRequest)).build();
     }
 
-    public Site givenSite(UnaryOperator<Site.SiteBuilder> siteCustomizer) {
+    public static Site givenSite(UnaryOperator<Site.SiteBuilder> siteCustomizer) {
         return siteCustomizer.apply(Site.builder().domain("www.leparisien.fr")).build();
     }
 
-    public ObjectNode givenImpExt() {
+    public static ObjectNode givenImpExt(JacksonMapper jacksonMapper) {
         final ObjectNode bidderNode = jacksonMapper.mapper().createObjectNode();
 
         final ObjectNode rubiconNode = jacksonMapper.mapper().createObjectNode();
@@ -68,13 +62,13 @@ public class TestBidRequestProvider {
         return extNode;
     }
 
-    public Device givenDevice(UnaryOperator<Device.DeviceBuilder> deviceCustomizer) {
+    public static Device givenDevice(UnaryOperator<Device.DeviceBuilder> deviceCustomizer) {
         final String userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36"
                 + " (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36";
         return deviceCustomizer.apply(Device.builder().ua(userAgent).ip("151.101.194.216")).build();
     }
 
-    public Banner givenBanner() {
+    public static Banner givenBanner() {
         final Format format = Format.builder()
                 .w(320)
                 .h(50)
