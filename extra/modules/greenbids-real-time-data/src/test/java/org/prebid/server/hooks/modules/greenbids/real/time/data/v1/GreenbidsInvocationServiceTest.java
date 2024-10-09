@@ -1,5 +1,6 @@
 package org.prebid.server.hooks.modules.greenbids.real.time.data.v1;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -9,6 +10,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.prebid.server.analytics.reporter.greenbids.model.Ortb2ImpExtResult;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.Partner;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.result.GreenbidsInvocationResult;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.result.GreenbidsInvocationService;
@@ -60,13 +62,22 @@ public class GreenbidsInvocationServiceTest {
                 partner, bidRequest, impsBiddersFilterMap);
 
         // then
+        JsonNode updatedBidRequestExtPrebidBidders = result.getUpdatedBidRequest().getImp().getFirst().getExt()
+                .get("prebid").get("bidder");
+        Ortb2ImpExtResult ortb2ImpExtResult = result.getAnalyticsResult().getValues().get("adunitcodevalue");
+        Map<String, Boolean> keptInAuction = ortb2ImpExtResult.getGreenbids().getKeptInAuction();
+
         assertThat(result.getInvocationAction()).isEqualTo(InvocationAction.update);
-        assertThat(result.getUpdatedBidRequest().getImp().getFirst().getExt()
-                .get("prebid").get("bidder").has("rubicon")).isTrue();
-        assertThat(result.getUpdatedBidRequest().getImp().getFirst().getExt()
-                .get("prebid").get("bidder").has("appnexus")).isFalse();
-        assertThat(result.getAnalyticsResult().getValues().get("adunitcodevalue")
-                .getGreenbids().getIsExploration()).isFalse();
+        assertThat(updatedBidRequestExtPrebidBidders.has("rubicon")).isTrue();
+        assertThat(updatedBidRequestExtPrebidBidders.has("appnexus")).isFalse();
+        assertThat(updatedBidRequestExtPrebidBidders.has("pubmatic")).isFalse();
+        assertThat(ortb2ImpExtResult).isNotNull();
+        assertThat(ortb2ImpExtResult.getGreenbids().getIsExploration()).isFalse();
+        assertThat(ortb2ImpExtResult.getGreenbids().getFingerprint()).isNotNull();
+        assertThat(keptInAuction.get("rubicon")).isTrue();
+        assertThat(keptInAuction.get("appnexus")).isFalse();
+        assertThat(keptInAuction.get("pubmatic")).isFalse();
+
     }
 
     @Test
@@ -88,9 +99,21 @@ public class GreenbidsInvocationServiceTest {
                 partner, bidRequest, impsBiddersFilterMap);
 
         // then
+        JsonNode updatedBidRequestExtPrebidBidders = result.getUpdatedBidRequest().getImp().getFirst().getExt()
+                .get("prebid").get("bidder");
+        Ortb2ImpExtResult ortb2ImpExtResult = result.getAnalyticsResult().getValues().get("adunitcodevalue");
+        Map<String, Boolean> keptInAuction = ortb2ImpExtResult.getGreenbids().getKeptInAuction();
+
         assertThat(result.getInvocationAction()).isEqualTo(InvocationAction.no_action);
-        assertThat(result.getUpdatedBidRequest().getImp().getFirst().getExt()
-                .get("prebid").get("bidder").has("rubicon")).isTrue();
+        assertThat(updatedBidRequestExtPrebidBidders.has("rubicon")).isTrue();
+        assertThat(updatedBidRequestExtPrebidBidders.has("appnexus")).isTrue();
+        assertThat(updatedBidRequestExtPrebidBidders.has("pubmatic")).isTrue();
+        assertThat(ortb2ImpExtResult).isNotNull();
+        assertThat(ortb2ImpExtResult.getGreenbids().getIsExploration()).isTrue();
+        assertThat(ortb2ImpExtResult.getGreenbids().getFingerprint()).isNotNull();
+        assertThat(keptInAuction.get("rubicon")).isTrue();
+        assertThat(keptInAuction.get("appnexus")).isTrue();
+        assertThat(keptInAuction.get("pubmatic")).isTrue();
     }
 
     private Map<String, Map<String, Boolean>> givenImpsBiddersFilterMap() {

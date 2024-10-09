@@ -9,6 +9,7 @@ import com.maxmind.geoip2.DatabaseReader;
 import com.maxmind.geoip2.exception.GeoIp2Exception;
 import com.maxmind.geoip2.model.CountryResponse;
 import com.maxmind.geoip2.record.Country;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,6 +23,8 @@ import org.prebid.server.json.ObjectMapperProvider;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
@@ -71,6 +74,10 @@ public class GreenbidsInferenceDataServiceTest {
 
         final CountryResponse countryResponse = mock(CountryResponse.class);
 
+        final ZonedDateTime timestamp = ZonedDateTime.now(ZoneId.of("UTC"));
+        final Integer expectedHourBucket = timestamp.getHour();
+        final Integer expectedMinuteQuadrant = (timestamp.getMinute() / 15) + 1;
+
         when(dbReader.country(any(InetAddress.class))).thenReturn(countryResponse);
         when(countryResponse.getCountry()).thenReturn(country);
         when(country.getName()).thenReturn("US");
@@ -81,7 +88,17 @@ public class GreenbidsInferenceDataServiceTest {
         // then
         assertThat(throttlingMessages).isNotEmpty();
         assertThat(throttlingMessages.getFirst().getBidder()).isEqualTo("rubicon");
-        assertThat(throttlingMessages.getFirst().getCountry()).isEqualTo("US");
+        assertThat(throttlingMessages.get(1).getBidder()).isEqualTo("appnexus");
+        assertThat(throttlingMessages.getLast().getBidder()).isEqualTo("pubmatic");
+
+        throttlingMessages.forEach(message -> {
+            assertThat(message.getAdUnitCode()).isEqualTo("adunitcodevalue");
+            assertThat(message.getCountry()).isEqualTo("US");
+            assertThat(message.getHostname()).isEqualTo("www.leparisien.fr");
+            assertThat(message.getDevice()).isEqualTo("PC");
+            assertThat(message.getHourBucket()).isEqualTo(String.valueOf(expectedHourBucket));
+            assertThat(message.getMinuteQuadrant()).isEqualTo(String.valueOf(expectedMinuteQuadrant));
+        });
     }
 
     @Test
@@ -96,13 +113,28 @@ public class GreenbidsInferenceDataServiceTest {
         final Device device = givenDeviceWithoutIp(identity());
         final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device, null);
 
+        final ZonedDateTime timestamp = ZonedDateTime.now(ZoneId.of("UTC"));
+        final Integer expectedHourBucket = timestamp.getHour();
+        final Integer expectedMinuteQuadrant = (timestamp.getMinute() / 15) + 1;
+
         // when
         final List<ThrottlingMessage> throttlingMessages = target.extractThrottlingMessagesFromBidRequest(bidRequest);
 
         // then
         assertThat(throttlingMessages).isNotEmpty();
-        assertThat(throttlingMessages.getFirst().getCountry()).isEqualTo("");
 
+        assertThat(throttlingMessages.getFirst().getBidder()).isEqualTo("rubicon");
+        assertThat(throttlingMessages.get(1).getBidder()).isEqualTo("appnexus");
+        assertThat(throttlingMessages.getLast().getBidder()).isEqualTo("pubmatic");
+
+        throttlingMessages.forEach(message -> {
+            assertThat(message.getAdUnitCode()).isEqualTo("adunitcodevalue");
+            assertThat(message.getCountry()).isEqualTo(StringUtils.EMPTY);
+            assertThat(message.getHostname()).isEqualTo("www.leparisien.fr");
+            assertThat(message.getDevice()).isEqualTo("PC");
+            assertThat(message.getHourBucket()).isEqualTo(String.valueOf(expectedHourBucket));
+            assertThat(message.getMinuteQuadrant()).isEqualTo(String.valueOf(expectedMinuteQuadrant));
+        });
     }
 
     @Test
