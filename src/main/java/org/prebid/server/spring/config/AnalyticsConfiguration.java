@@ -111,8 +111,15 @@ public class AnalyticsConfiguration {
             public AgmaAnalyticsProperties toComponentProperties() {
                 final Map<String, String> accountsByPublisherId = accounts.stream()
                         .collect(Collectors.toMap(
-                                AgmaAnalyticsAccountProperties::getPublisherId,
-                                AgmaAnalyticsAccountProperties::getCode));
+                                account -> {
+                                    final String publisherId = account.getPublisherId();
+                                    final String siteAppId = account.getSiteAppId();
+                                    return (siteAppId != null && !siteAppId.isEmpty())
+                                            ? publisherId + "_" + siteAppId
+                                            : publisherId;
+                                },
+                                AgmaAnalyticsAccountProperties::getCode
+                        ));
 
                 return AgmaAnalyticsProperties.builder()
                         .url(endpoint.getUrl())
