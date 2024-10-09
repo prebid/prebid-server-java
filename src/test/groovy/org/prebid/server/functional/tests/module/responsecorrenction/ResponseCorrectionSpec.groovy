@@ -1,18 +1,10 @@
 package org.prebid.server.functional.tests.module.responsecorrenction
 
-import org.prebid.server.functional.model.config.AccountConfig
-import org.prebid.server.functional.model.config.AccountHooksConfiguration
-import org.prebid.server.functional.model.config.AppVideoHtml
-import org.prebid.server.functional.model.config.PbResponseCorrection
-import org.prebid.server.functional.model.config.PbsModulesConfig
+import org.prebid.server.functional.model.config.*
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Imp
-import org.prebid.server.functional.model.response.auction.Adm
-import org.prebid.server.functional.model.response.auction.BidExt
-import org.prebid.server.functional.model.response.auction.BidResponse
-import org.prebid.server.functional.model.response.auction.Meta
-import org.prebid.server.functional.model.response.auction.Prebid
+import org.prebid.server.functional.model.response.auction.*
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.tests.module.ModuleBaseSpec
 import org.prebid.server.functional.util.PBSUtils
@@ -22,13 +14,8 @@ import java.time.Instant
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.request.auction.BidRequest.getDefaultBidRequest
 import static org.prebid.server.functional.model.request.auction.BidRequest.getDefaultVideoRequest
-import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
-import static org.prebid.server.functional.model.request.auction.DistributionChannel.DOOH
-import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
-import static org.prebid.server.functional.model.response.auction.MediaType.AUDIO
-import static org.prebid.server.functional.model.response.auction.MediaType.BANNER
-import static org.prebid.server.functional.model.response.auction.MediaType.NATIVE
-import static org.prebid.server.functional.model.response.auction.MediaType.VIDEO
+import static org.prebid.server.functional.model.request.auction.DistributionChannel.*
+import static org.prebid.server.functional.model.response.auction.MediaType.*
 
 class ResponseCorrectionSpec extends ModuleBaseSpec {
 
@@ -326,7 +313,7 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
 
         and: "Set bidder response"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            seatbid[0].bid[0].setAdm(PBSUtils.getRandomCase("<${PBSUtils.randomString}VAST${PBSUtils.randomString}"))
+            seatbid[0].bid[0].setAdm(PBSUtils.getRandomCase("<${" " * PBSUtils.getRandomNumber(20)}VAST${PBSUtils.randomString}>"))
         }
         bidder.setResponse(bidRequest.id, bidResponse)
 
