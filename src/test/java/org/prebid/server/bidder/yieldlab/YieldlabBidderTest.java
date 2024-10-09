@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
@@ -25,9 +26,9 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.yieldlab.model.YieldlabDigitalServicesActResponse;
 import org.prebid.server.bidder.yieldlab.model.YieldlabResponse;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.DsaTransparency;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsa;
-import org.prebid.server.proto.openrtb.ext.request.DsaTransparency;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.yieldlab.ExtImpYieldlab;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -100,12 +101,15 @@ public class YieldlabBidderTest extends VertxTest {
         targeting.put("key2", "value2");
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .banner(Banner.builder().w(1).h(1).build())
+                        .banner(Banner.builder()
+                                .format(List.of(
+                                        Format.builder().w(1).h(1).build(),
+                                        Format.builder().w(2).h(2).build()))
+                                .build())
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
                                 ExtImpYieldlab.builder()
                                         .adslotId("1")
                                         .supplyId("2")
-                                        .adSize("adSize")
                                         .targeting(targeting)
                                         .extId("extId")
                                         .build())))
@@ -127,8 +131,8 @@ public class YieldlabBidderTest extends VertxTest {
                 .extracting(HttpRequest::getUri)
                 .allSatisfy(uri -> {
                     assertThat(uri).startsWith("https://test.endpoint.com/1?content=json&pvid=true&ts=");
-                    assertThat(uri).endsWith("&t=key1%3Dvalue1%26key2%3Dvalue2&ids=buyeruid&yl_rtb_ifa&"
-                            + "yl_rtb_devicetype=1&gdpr=1&consent=consent");
+                    assertThat(uri).endsWith("&t=key1%3Dvalue1%26key2%3Dvalue2&sizes=1%3A1%7C1%2C1%3A2%7C2&"
+                            + "ids=buyeruid&yl_rtb_ifa&yl_rtb_devicetype=1&gdpr=1&consent=consent");
                     final String ts = uri.substring(54, uri.indexOf("&t="));
                     assertThat(Long.parseLong(ts)).isEqualTo(expectedTime);
                 });
@@ -157,7 +161,6 @@ public class YieldlabBidderTest extends VertxTest {
                         ExtImpYieldlab.builder()
                                 .adslotId("1")
                                 .supplyId("2")
-                                .adSize("adSize")
                                 .targeting(targeting)
                                 .extId("extId")
                                 .build())))
@@ -168,7 +171,6 @@ public class YieldlabBidderTest extends VertxTest {
                         ExtImpYieldlab.builder()
                                 .adslotId("2")
                                 .supplyId("2")
-                                .adSize("adSize")
                                 .targeting(targeting)
                                 .extId("extId")
                                 .build())))
@@ -220,7 +222,6 @@ public class YieldlabBidderTest extends VertxTest {
                         .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYieldlab.builder()
                                 .adslotId("1")
                                 .supplyId("2")
-                                .adSize("adSize")
                                 .targeting(singletonMap("key", "value"))
                                 .extId("extId")
                                 .build())))
@@ -272,7 +273,6 @@ public class YieldlabBidderTest extends VertxTest {
                         .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYieldlab.builder()
                                 .adslotId("12345")
                                 .supplyId("123456789")
-                                .adSize("728x90")
                                 .extId("abc")
                                 .build())))
                         .video(Video.builder().build())
@@ -452,7 +452,6 @@ public class YieldlabBidderTest extends VertxTest {
                     .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYieldlab.builder()
                         .adslotId("1")
                         .supplyId("2")
-                        .adSize("adSize")
                         .targeting(singletonMap("key", "value"))
                         .extId("extId")
                         .build())))
