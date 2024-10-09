@@ -63,6 +63,8 @@ public class FilterServiceTest {
         // then
         assertThat(impsBiddersFilterMap).isNotNull();
         assertThat(impsBiddersFilterMap.get("adUnit1").get("bidder1")).isTrue();
+        assertThat(impsBiddersFilterMap.get("adUnit2").get("bidder2")).isFalse();
+        assertThat(impsBiddersFilterMap.get("adUnit3").get("bidder3")).isFalse();
     }
 
     @Test
@@ -131,7 +133,7 @@ public class FilterServiceTest {
     }
 
     private List<ThrottlingMessage> createThrottlingMessages() {
-        final ThrottlingMessage throttlingMessage = ThrottlingMessage.builder()
+        final ThrottlingMessage throttlingMessage1 = ThrottlingMessage.builder()
                 .browser("Chrome")
                 .bidder("bidder1")
                 .adUnitCode("adUnit1")
@@ -141,7 +143,30 @@ public class FilterServiceTest {
                 .hourBucket("10")
                 .minuteQuadrant("1")
                 .build();
-        return Collections.singletonList(throttlingMessage);
+
+        final ThrottlingMessage throttlingMessage2 = ThrottlingMessage.builder()
+                .browser("Firefox")
+                .bidder("bidder2")
+                .adUnitCode("adUnit2")
+                .country("FR")
+                .hostname("www.leparisien.fr")
+                .device("Mobile")
+                .hourBucket("11")
+                .minuteQuadrant("2")
+                .build();
+
+        final ThrottlingMessage throttlingMessage3 = ThrottlingMessage.builder()
+                .browser("Safari")
+                .bidder("bidder3")
+                .adUnitCode("adUnit3")
+                .country("FR")
+                .hostname("www.lesechos.fr")
+                .device("Tablet")
+                .hourBucket("12")
+                .minuteQuadrant("3")
+                .build();
+
+        return Arrays.asList(throttlingMessage1, throttlingMessage2, throttlingMessage3);
     }
 
     private Map.Entry<String, OnnxValue> createOnnxItem() {
