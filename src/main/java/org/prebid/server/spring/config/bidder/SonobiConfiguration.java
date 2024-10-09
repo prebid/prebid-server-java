@@ -2,6 +2,7 @@ package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.sonobi.SonobiBidder;
+import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -29,13 +30,14 @@ public class SonobiConfiguration {
 
     @Bean
     BidderDeps sonobiBidderDeps(BidderConfigurationProperties sonobiConfigurationProperties,
+                                CurrencyConversionService currencyConversionService,
                                 @NotBlank @Value("${external-url}") String externalUrl,
                                 JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(sonobiConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new SonobiBidder(config.getEndpoint(), mapper))
+                .bidderCreator(config -> new SonobiBidder(currencyConversionService, config.getEndpoint(), mapper))
                 .assemble();
     }
 }

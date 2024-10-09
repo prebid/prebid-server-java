@@ -6,13 +6,19 @@ adapters:
       app-media-types:
         - banner
         - video
+        - native
       site-media-types:
         - banner
         - video
+        - native
       supported-vendors:
       vendor-id: 104
     usersync:
       cookie-family-name: sonobi
+      iframe:
+        url: https://sync.go.sonobi.com/uc.html?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&loc={{redirect_url}}
+        support-cors: false
+        uid-macro: '[UID]'
       redirect:
         url: https://sync.go.sonobi.com/us.gif?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&loc={{redirect_url}}
         support-cors: false

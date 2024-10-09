@@ -15,7 +15,8 @@
             "prebid": {
               "type": "banner"
             },
-            "origbidcpm": 1.25
+            "origbidcpm": 1.25,
+            "origbidcur": "USD"
           }
         }
       ],
