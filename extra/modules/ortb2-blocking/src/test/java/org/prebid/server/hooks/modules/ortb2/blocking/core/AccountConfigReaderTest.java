@@ -30,6 +30,7 @@ import org.prebid.server.hooks.modules.ortb2.blocking.core.model.BlockedAttribut
 import org.prebid.server.hooks.modules.ortb2.blocking.core.model.ResponseBlockingConfig;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.model.Result;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.spring.config.bidder.model.MediaType;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -734,7 +735,7 @@ public class AccountConfigReaderTest {
     }
 
     @Test
-    public void blockedAttributesForShouldReturnResultWithAllAttributes() {
+    public void blockedAttributesForShouldReturnResultWithAllAttributesForBanner() {
         // given
         final ObjectNode accountConfig = toObjectNode(ModuleConfig.of(Attributes.builder()
                 .badv(Attribute.badvBuilder()
@@ -766,7 +767,7 @@ public class AccountConfigReaderTest {
                                         Conditions.of(singletonList("bidder1"), null),
                                         singletonList(3)))))
                         .build())
-                .battr(Attribute.battrBuilder()
+                .battr(Attribute.bannerBattrBuilder()
                         .blocked(asList(1, 2))
                         .actionOverrides(AttributeActionOverrides.blocked(singletonList(
                                 ArrayOverride.of(
@@ -783,7 +784,115 @@ public class AccountConfigReaderTest {
                         .bcat(singletonList("cat3"))
                         .bapp(singletonList("app3"))
                         .btype(singletonMap("impId1", singletonList(3)))
-                        .battr(singletonMap("impId1", singletonList(3)))
+                        .battr(singletonMap(MediaType.BANNER, singletonMap("impId1", singletonList(3))))
+                        .build()));
+    }
+
+    @Test
+    public void blockedAttributesForShouldReturnResultWithAllAttributesForVideo() {
+        // given
+        final ObjectNode accountConfig = toObjectNode(ModuleConfig.of(Attributes.builder()
+                .badv(Attribute.badvBuilder()
+                        .blocked(asList("domain1.com", "domain2.com"))
+                        .actionOverrides(AttributeActionOverrides.blocked(
+                                singletonList(
+                                        ArrayOverride.of(
+                                                Conditions.of(singletonList("bidder1"), null),
+                                                singletonList("domain3.com")))))
+                        .build())
+                .bcat(Attribute.bcatBuilder()
+                        .blocked(asList("cat1", "cat2"))
+                        .actionOverrides(AttributeActionOverrides.blocked(singletonList(
+                                ArrayOverride.of(
+                                        Conditions.of(singletonList("bidder1"), null),
+                                        singletonList("cat3")))))
+                        .build())
+                .bapp(Attribute.bappBuilder()
+                        .blocked(asList("app1", "app2"))
+                        .actionOverrides(AttributeActionOverrides.blocked(singletonList(
+                                ArrayOverride.of(
+                                        Conditions.of(singletonList("bidder1"), null),
+                                        singletonList("app3")))))
+                        .build())
+                .btype(Attribute.btypeBuilder()
+                        .blocked(asList(1, 2))
+                        .actionOverrides(AttributeActionOverrides.blocked(singletonList(
+                                ArrayOverride.of(
+                                        Conditions.of(singletonList("bidder1"), null),
+                                        singletonList(3)))))
+                        .build())
+                .battr(Attribute.videoBattrBuilder()
+                        .blocked(asList(1, 2))
+                        .actionOverrides(AttributeActionOverrides.blocked(singletonList(
+                                ArrayOverride.of(
+                                        Conditions.of(singletonList("bidder1"), null),
+                                        singletonList(3)))))
+                        .build())
+                .build()));
+        final AccountConfigReader reader = AccountConfigReader.create(accountConfig, "bidder1", ORTB_VERSION, true);
+
+        // when and then
+        assertThat(reader.blockedAttributesFor(request(imp -> imp.id("impId1")))).isEqualTo(
+                Result.withValue(BlockedAttributes.builder()
+                        .badv(singletonList("domain3.com"))
+                        .bcat(singletonList("cat3"))
+                        .bapp(singletonList("app3"))
+                        .btype(singletonMap("impId1", singletonList(3)))
+                        .battr(singletonMap(MediaType.VIDEO, singletonMap("impId1", singletonList(3))))
+                        .build()));
+    }
+
+    @Test
+    public void blockedAttributesForShouldReturnResultWithAllAttributesForAudio() {
+        // given
+        final ObjectNode accountConfig = toObjectNode(ModuleConfig.of(Attributes.builder()
+                .badv(Attribute.badvBuilder()
+                        .blocked(asList("domain1.com", "domain2.com"))
+                        .actionOverrides(AttributeActionOverrides.blocked(
+                                singletonList(
+                                        ArrayOverride.of(
+                                                Conditions.of(singletonList("bidder1"), null),
+                                                singletonList("domain3.com")))))
+                        .build())
+                .bcat(Attribute.bcatBuilder()
+                        .blocked(asList("cat1", "cat2"))
+                        .actionOverrides(AttributeActionOverrides.blocked(singletonList(
+                                ArrayOverride.of(
+                                        Conditions.of(singletonList("bidder1"), null),
+                                        singletonList("cat3")))))
+                        .build())
+                .bapp(Attribute.bappBuilder()
+                        .blocked(asList("app1", "app2"))
+                        .actionOverrides(AttributeActionOverrides.blocked(singletonList(
+                                ArrayOverride.of(
+                                        Conditions.of(singletonList("bidder1"), null),
+                                        singletonList("app3")))))
+                        .build())
+                .btype(Attribute.btypeBuilder()
+                        .blocked(asList(1, 2))
+                        .actionOverrides(AttributeActionOverrides.blocked(singletonList(
+                                ArrayOverride.of(
+                                        Conditions.of(singletonList("bidder1"), null),
+                                        singletonList(3)))))
+                        .build())
+                .battr(Attribute.audioBattrBuilder()
+                        .blocked(asList(1, 2))
+                        .actionOverrides(AttributeActionOverrides.blocked(singletonList(
+                                ArrayOverride.of(
+                                        Conditions.of(singletonList("bidder1"), null),
+                                        singletonList(3)))))
+                        .build())
+                .build()));
+        final AccountConfigReader reader = AccountConfigReader.create(accountConfig, "bidder1", ORTB_VERSION, true);
+
+        // when and then
+        assertThat(reader.blockedAttributesFor(request(imp -> imp.id("impId1")))).isEqualTo(
+                Result.withValue(BlockedAttributes.builder()
+                        .badv(singletonList("domain3.com"))
+                        .bcat(singletonList("cat3"))
+                        .bapp(singletonList("app3"))
+                        .btype(singletonMap("impId1", singletonList(3)))
+                        .battr(singletonMap(MediaType.AUDIO, singletonMap("impId1", singletonList(3))))
                         .build()));
     }
 
@@ -1143,7 +1252,7 @@ public class AccountConfigReaderTest {
     }
 
     @Test
-    public void responseBlockingConfigForShouldReturnAllAttributes() {
+    public void responseBlockingConfigForShouldReturnAllAttributesForBanner() {
         // given
         final ObjectNode accountConfig = toObjectNode(ModuleConfig.of(Attributes.builder()
                 .badv(Attribute.badvBuilder()
@@ -1188,7 +1297,7 @@ public class AccountConfigReaderTest {
                                         DealsConditions.of(singletonList("dealid1")),
                                         singletonList("app3")))))
                         .build())
-                .battr(Attribute.battrBuilder()
+                .battr(Attribute.bannerBattrBuilder()
                         .enforceBlocks(true)
                         .allowedForDeals(asList(1, 2))
                         .actionOverrides(AttributeActionOverrides.response(
@@ -1211,7 +1320,166 @@ public class AccountConfigReaderTest {
                     .bcat(BidAttributeBlockingConfig.of(false, false, Set.of("cat1", "cat2", "cat3")))
                     .cattax(BidAttributeBlockingConfig.of(false, true, emptySet()))
                     .bapp(BidAttributeBlockingConfig.of(false, false, Set.of("app1", "app2", "app3")))
-                    .battr(BidAttributeBlockingConfig.of(false, false, Set.of(1, 2, 3)))
+                    .battr(Map.of(
+                            MediaType.BANNER, BidAttributeBlockingConfig.of(false, false, Set.of(1, 2, 3)),
+                            MediaType.VIDEO, BidAttributeBlockingConfig.of(false, false, emptySet()),
+                            MediaType.AUDIO, BidAttributeBlockingConfig.of(false, false, emptySet())))
+                    .build());
+            assertThat(result.getMessages()).isNull();
+        });
+    }
+
+    @Test
+    public void responseBlockingConfigForShouldReturnAllAttributesForVideo() {
+        // given
+        final ObjectNode accountConfig = toObjectNode(ModuleConfig.of(Attributes.builder()
+                .badv(Attribute.badvBuilder()
+                        .enforceBlocks(true)
+                        .blockUnknown(true)
+                        .allowedForDeals(asList("domain1.com", "domain2.com"))
+                        .actionOverrides(AttributeActionOverrides.response(
+                                singletonList(BooleanOverride.of(
+                                        Conditions.of(singletonList("bidder1"), null),
+                                        false)),
+                                singletonList(BooleanOverride.of(
+                                        Conditions.of(singletonList("bidder1"), null),
+                                        false)),
+                                singletonList(AllowedForDealsOverride.of(
+                                        DealsConditions.of(singletonList("dealid1")),
+                                        singletonList("domain3.com")))))
+                        .build())
+                .bcat(Attribute.bcatBuilder()
+                        .enforceBlocks(true)
+                        .blockUnknown(true)
+                        .allowedForDeals(asList("cat1", "cat2"))
+                        .actionOverrides(AttributeActionOverrides.response(
+                                singletonList(BooleanOverride.of(
+                                        Conditions.of(singletonList("bidder1"), null),
+                                        false)),
+                                singletonList(BooleanOverride.of(
+                                        Conditions.of(singletonList("bidder1"), null),
+                                        false)),
+                                singletonList(AllowedForDealsOverride.of(
+                                        DealsConditions.of(singletonList("dealid1")),
+                                        singletonList("cat3")))))
+                        .build())
+                .bapp(Attribute.bappBuilder()
+                        .enforceBlocks(true)
+                        .allowedForDeals(asList("app1", "app2"))
+                        .actionOverrides(AttributeActionOverrides.response(
+                                singletonList(BooleanOverride.of(
+                                        Conditions.of(singletonList("bidder1"), null),
+                                        false)),
+                                null,
+                                singletonList(AllowedForDealsOverride.of(
+                                        DealsConditions.of(singletonList("dealid1")),
+                                        singletonList("app3")))))
+                        .build())
+                .battr(Attribute.videoBattrBuilder()
+                        .enforceBlocks(true)
+                        .allowedForDeals(asList(1, 2))
+                        .actionOverrides(AttributeActionOverrides.response(
+                                singletonList(BooleanOverride.of(
+                                        Conditions.of(singletonList("bidder1"), null),
+                                        false)),
+                                null,
+                                singletonList(AllowedForDealsOverride.of(
+                                        DealsConditions.of(singletonList("dealid1")),
+                                        singletonList(3)))))
+                        .build())
+                .build()));
+        final AccountConfigReader reader = AccountConfigReader.create(accountConfig, "bidder1", ORTB_VERSION, true);
+
+        // when and then
+        assertThat(reader.responseBlockingConfigFor(bid())).satisfies(result -> {
+            assertThat(result.getValue()).isEqualTo(ResponseBlockingConfig.builder()
+                    .badv(BidAttributeBlockingConfig.of(
+                            false, false, Set.of("domain1.com", "domain2.com", "domain3.com")))
+                    .bcat(BidAttributeBlockingConfig.of(false, false, Set.of("cat1", "cat2", "cat3")))
+                    .cattax(BidAttributeBlockingConfig.of(false, true, emptySet()))
+                    .bapp(BidAttributeBlockingConfig.of(false, false, Set.of("app1", "app2", "app3")))
+                    .battr(Map.of(
+                            MediaType.BANNER, BidAttributeBlockingConfig.of(false, false, emptySet()),
+                            MediaType.VIDEO, BidAttributeBlockingConfig.of(false, false, Set.of(1, 2, 3)),
+                            MediaType.AUDIO, BidAttributeBlockingConfig.of(false, false, emptySet())))
+                    .build());
+            assertThat(result.getMessages()).isNull();
+        });
+    }
+
+    @Test
+    public void responseBlockingConfigForShouldReturnAllAttributesForAudio() {
+        // given
+        final ObjectNode accountConfig = toObjectNode(ModuleConfig.of(Attributes.builder()
+                .badv(Attribute.badvBuilder()
+                        .enforceBlocks(true)
+                        .blockUnknown(true)
+                        .allowedForDeals(asList("domain1.com", "domain2.com"))
+                        .actionOverrides(AttributeActionOverrides.response(
+                                singletonList(BooleanOverride.of(
+                                        Conditions.of(singletonList("bidder1"), null),
+                                        false)),
+                                singletonList(BooleanOverride.of(
+                                        Conditions.of(singletonList("bidder1"), null),
+                                        false)),
+                                singletonList(AllowedForDealsOverride.of(
+                                        DealsConditions.of(singletonList("dealid1")),
+                                        singletonList("domain3.com")))))
+                        .build())
+                .bcat(Attribute.bcatBuilder()
+                        .enforceBlocks(true)
+                        .blockUnknown(true)
+                        .allowedForDeals(asList("cat1", "cat2"))
+                        .actionOverrides(AttributeActionOverrides.response(
+                                singletonList(BooleanOverride.of(
+                                        Conditions.of(singletonList("bidder1"), null),
+                                        false)),
+                                singletonList(BooleanOverride.of(
+                                        Conditions.of(singletonList("bidder1"), null),
+                                        false)),
+                                singletonList(AllowedForDealsOverride.of(
+                                        DealsConditions.of(singletonList("dealid1")),
+                                        singletonList("cat3")))))
+                        .build())
+                .bapp(Attribute.bappBuilder()
+                        .enforceBlocks(true)
+                        .allowedForDeals(asList("app1", "app2"))
+                        .actionOverrides(AttributeActionOverrides.response(
+                                singletonList(BooleanOverride.of(
+                                        Conditions.of(singletonList("bidder1"), null),
+                                        false)),
+                                null,
+                                singletonList(AllowedForDealsOverride.of(
+                                        DealsConditions.of(singletonList("dealid1")),
+                                        singletonList("app3")))))
+                        .build())
+                .battr(Attribute.audioBattrBuilder()
+                        .enforceBlocks(true)
+                        .allowedForDeals(asList(1, 2))
+                        .actionOverrides(AttributeActionOverrides.response(
+                                singletonList(BooleanOverride.of(
+                                        Conditions.of(singletonList("bidder1"), null),
+                                        false)),
+                                null,
+                                singletonList(AllowedForDealsOverride.of(
+                                        DealsConditions.of(singletonList("dealid1")),
+                                        singletonList(3)))))
+                        .build())
+                .build()));
+        final AccountConfigReader reader = AccountConfigReader.create(accountConfig, "bidder1", ORTB_VERSION, true);
+
+        // when and then
+        assertThat(reader.responseBlockingConfigFor(bid())).satisfies(result -> {
+            assertThat(result.getValue()).isEqualTo(ResponseBlockingConfig.builder()
+                    .badv(BidAttributeBlockingConfig.of(
+                            false, false, Set.of("domain1.com", "domain2.com", "domain3.com")))
+                    .bcat(BidAttributeBlockingConfig.of(false, false, Set.of("cat1", "cat2", "cat3")))
+                    .cattax(BidAttributeBlockingConfig.of(false, true, emptySet()))
+                    .bapp(BidAttributeBlockingConfig.of(false, false, Set.of("app1", "app2", "app3")))
+                    .battr(Map.of(
+                            MediaType.BANNER, BidAttributeBlockingConfig.of(false, false, emptySet()),
+                            MediaType.VIDEO, BidAttributeBlockingConfig.of(false, false, emptySet()),
+                            MediaType.AUDIO, BidAttributeBlockingConfig.of(false, false, Set.of(1, 2, 3))))
                     .build());
             assertThat(result.getMessages()).isNull();
         });
@@ -1240,10 +1508,15 @@ public class AccountConfigReaderTest {
         final AccountConfigReader reader = AccountConfigReader.create(accountConfig, "bidder1", ORTB_VERSION, true);
 
         // when and then
+        final Map<MediaType, BidAttributeBlockingConfig<Integer>> expectedBattr = new HashMap<>();
+        expectedBattr.put(MediaType.BANNER, null);
+        expectedBattr.put(MediaType.VIDEO, null);
+        expectedBattr.put(MediaType.AUDIO, null);
         assertThat(reader.responseBlockingConfigFor(bid())).satisfies(result -> {
             assertThat(result.getValue()).isEqualTo(ResponseBlockingConfig.builder()
                     .bcat(BidAttributeBlockingConfig.of(true, false, Set.of("cat1", "cat2", "cat3")))
                     .cattax(BidAttributeBlockingConfig.of(true, true, emptySet()))
+                    .battr(expectedBattr)
                     .build());
             assertThat(result.getMessages()).isNull();
         });

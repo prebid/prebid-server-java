@@ -18,6 +18,7 @@ import org.prebid.server.hooks.modules.ortb2.blocking.core.model.BlockedAttribut
 import org.prebid.server.hooks.modules.ortb2.blocking.core.model.ResponseBlockingConfig;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.model.Result;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.util.MergeUtils;
+import org.prebid.server.spring.config.bidder.model.MediaType;
 import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.util.StreamUtil;
 
@@ -51,7 +52,11 @@ public class AccountConfigReader {
     private static final String ALLOWED_APP_FOR_DEALS_FIELD = "allowed-app-for-deals";
     private static final String BLOCKED_BANNER_TYPE_FIELD = "blocked-banner-type";
     private static final String BLOCKED_BANNER_ATTR_FIELD = "blocked-banner-attr";
+    private static final String BLOCKED_VIDEO_ATTR_FIELD = "blocked-video-attr";
+    private static final String BLOCKED_AUDIO_ATTR_FIELD = "blocked-audio-attr";
     private static final String ALLOWED_BANNER_ATTR_FOR_DEALS = "allowed-banner-attr-for-deals";
+    private static final String ALLOWED_VIDEO_ATTR_FOR_DEALS = "allowed-video-attr-for-deals";
+    private static final String ALLOWED_AUDIO_ATTR_FOR_DEALS = "allowed-audio-attr-for-deals";
     private static final String ACTION_OVERRIDES_FIELD = "action-overrides";
     private static final String OVERRIDE_FIELD = "override";
     private static final String CONDITIONS_FIELD = "conditions";
@@ -100,8 +105,14 @@ public class AccountConfigReader {
                 blockedAttribute(BAPP_FIELD, String.class, BLOCKED_APP_FIELD, requestMediaTypes);
         final Result<Map<String, List<Integer>>> btype =
                 blockedAttributesForImps(BTYPE_FIELD, Integer.class, BLOCKED_BANNER_TYPE_FIELD, bidRequest);
-        final Result<Map<String, List<Integer>>> battr =
+        final Result<Map<String, List<Integer>>> bannerBattr =
                 blockedAttributesForImps(BATTR_FIELD, Integer.class, BLOCKED_BANNER_ATTR_FIELD, bidRequest);
+        final Result<Map<String, List<Integer>>> videoBattr =
+                blockedAttributesForImps(BATTR_FIELD, Integer.class, BLOCKED_VIDEO_ATTR_FIELD, bidRequest);
+        final Result<Map<String, List<Integer>>> audioBattr =
+                blockedAttributesForImps(BATTR_FIELD, Integer.class, BLOCKED_AUDIO_ATTR_FIELD, bidRequest);
+        final Result<Map<MediaType, Map<String, List<Integer>>>> battr =
+                mergeBlockedAttributes(bannerBattr, videoBattr, audioBattr);
 
         return Result.of(
                 toBlockedAttributes(badv, bcat, cattaxComplement, bapp, btype, battr),
@@ -133,22 +144,39 @@ public class AccountConfigReader {
                 ALLOWED_APP_FOR_DEALS_FIELD,
                 bidMediaTypes,
                 dealid);
-        final Result<BidAttributeBlockingConfig<Integer>> battr = blockingConfigForAttribute(
+        final Result<BidAttributeBlockingConfig<Integer>> bannerBattr = blockingConfigForAttribute(
                 BATTR_FIELD,
                 Integer.class,
                 ALLOWED_BANNER_ATTR_FOR_DEALS,
                 bidMediaTypes,
                 dealid);
+        final Result<BidAttributeBlockingConfig<Integer>> videoBattr = blockingConfigForAttribute(
+                BATTR_FIELD,
+                Integer.class,
+                ALLOWED_VIDEO_ATTR_FOR_DEALS,
+                bidMediaTypes,
+                dealid);
+        final Result<BidAttributeBlockingConfig<Integer>> audioBattr = blockingConfigForAttribute(
+                BATTR_FIELD,
+                Integer.class,
+                ALLOWED_AUDIO_ATTR_FOR_DEALS,
+                bidMediaTypes,
+                dealid);
+        final Map<MediaType, BidAttributeBlockingConfig<Integer>> battr = new HashMap<>();
+        battr.put(MediaType.BANNER, bannerBattr.getValue());
+        battr.put(MediaType.VIDEO, videoBattr.getValue());
+        battr.put(MediaType.AUDIO, audioBattr.getValue());
 
         final ResponseBlockingConfig response = ResponseBlockingConfig.builder()
                 .badv(badv.getValue())
                 .bcat(bcat.getValue())
                 .cattax(cattax.getValue())
                 .bapp(bapp.getValue())
-                .battr(battr.getValue())
+                .battr(battr)
                 .build();
 
-        final List<String> warnings = MergeUtils.mergeMessages(badv, bcat, cattax, bapp, battr);
+        final List<String> warnings = MergeUtils.mergeMessages(
+                badv, bcat, cattax, bapp, bannerBattr, videoBattr, audioBattr);
 
         return Result.of(response, warnings);
     }
@@ -216,6 +244,28 @@ public class AccountConfigReader {
         return Result.of(
                 !attributeValues.isEmpty() ? attributeValues : null,
                 MergeUtils.mergeMessages(results));
+    }
+
+    private static Result<Map<MediaType, Map<String, List<Integer>>>> mergeBlockedAttributes(
+            Result<Map<String, List<Integer>>> bannerBattr,
+            Result<Map<String, List<Integer>>> videoBattr,
+            Result<Map<String, List<Integer>>> audioBattr) {
+
+        final Map<MediaType, Map<String, List<Integer>>> battr = new HashMap<>();
+
+        if (bannerBattr.hasValue()) {
+            battr.put(MediaType.BANNER, bannerBattr.getValue());
+        }
+        if (videoBattr.hasValue()) {
+            battr.put(MediaType.VIDEO, videoBattr.getValue());
+        }
+        if (audioBattr.hasValue()) {
+            battr.put(MediaType.AUDIO, audioBattr.getValue());
+        }
+
+        return Result.of(
+                !battr.isEmpty() ? battr : null,
+                MergeUtils.mergeMessages(bannerBattr, videoBattr, audioBattr));
     }
 
     private <T> Result<BidAttributeBlockingConfig<T>> blockingConfigForAttribute(String attribute,
@@ -360,8 +410,8 @@ public class AccountConfigReader {
                                       Set<String> actualMediaTypes) {
 
         final JsonNode value = ObjectUtils.firstNonNull(
-                specificBidderResults.size() > 0 ? specificBidderResults.get(0) : null,
-                catchAllBidderResults.size() > 0 ? catchAllBidderResults.get(0) : null);
+                !specificBidderResults.isEmpty() ? specificBidderResults.getFirst() : null,
+                !catchAllBidderResults.isEmpty() ? catchAllBidderResults.getFirst() : null);
         final List<String> warnings = debugEnabled && specificBidderResults.size() + catchAllBidderResults.size() > 1
                 ? Collections.singletonList(
                 "More than one conditions matches request. Bidder: %s, request media types: %s"
@@ -376,7 +426,7 @@ public class AccountConfigReader {
                                                          Result<Integer> cattaxComplement,
                                                          Result<List<String>> bapp,
                                                          Result<Map<String, List<Integer>>> btype,
-                                                         Result<Map<String, List<Integer>>> battr) {
+                                                         Result<Map<MediaType, Map<String, List<Integer>>>> battr) {
 
         return badv.hasValue()
                 || bcat.hasValue()

@@ -21,6 +21,7 @@ import org.prebid.server.hooks.modules.ortb2.blocking.core.model.BlockedAttribut
 import org.prebid.server.hooks.modules.ortb2.blocking.core.model.BlockedBids;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.model.ExecutionResult;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.spring.config.bidder.model.MediaType;
 
 import java.util.HashMap;
 import java.util.List;
@@ -227,7 +228,7 @@ public class BidsBlockerTest {
     public void shouldReturnEmptyResultWhenBidWithAttrAndNoBlockedBannerAttrForImp() {
         // given
         final ObjectNode accountConfig = toObjectNode(ModuleConfig.of(Attributes.builder()
-                .battr(Attribute.battrBuilder()
+                .battr(Attribute.bannerBattrBuilder()
                         .enforceBlocks(true)
                         .build())
                 .build()));
@@ -237,7 +238,53 @@ public class BidsBlockerTest {
                 .impid("impId2")
                 .attr(singletonList(1))));
         final BlockedAttributes blockedAttributes = BlockedAttributes.builder()
-                .battr(singletonMap("impId1", asList(1, 2)))
+                .battr(singletonMap(MediaType.BANNER, singletonMap("impId1", asList(1, 2))))
+                .build();
+        final BidsBlocker blocker = BidsBlocker.create(bids, "bidder1", ORTB_VERSION, accountConfig, blockedAttributes, bidRejectionTracker, true);
+
+        // when and then
+        assertThat(blocker.block()).satisfies(BidsBlockerTest::isEmpty);
+        verifyNoInteractions(bidRejectionTracker);
+    }
+
+    @Test
+    public void shouldReturnEmptyResultWhenBidWithAttrAndNoBlockedVideoAttrForImp() {
+        // given
+        final ObjectNode accountConfig = toObjectNode(ModuleConfig.of(Attributes.builder()
+                .battr(Attribute.videoBattrBuilder()
+                        .enforceBlocks(true)
+                        .build())
+                .build()));
+
+        // when
+        final List<BidderBid> bids = singletonList(bid(bid -> bid
+                .impid("impId2")
+                .attr(singletonList(1))));
+        final BlockedAttributes blockedAttributes = BlockedAttributes.builder()
+                .battr(singletonMap(MediaType.VIDEO, singletonMap("impId1", asList(1, 2))))
+                .build();
+        final BidsBlocker blocker = BidsBlocker.create(bids, "bidder1", ORTB_VERSION, accountConfig, blockedAttributes, bidRejectionTracker, true);
+
+        // when and then
+        assertThat(blocker.block()).satisfies(BidsBlockerTest::isEmpty);
+        verifyNoInteractions(bidRejectionTracker);
+    }
+
+    @Test
+    public void shouldReturnEmptyResultWhenBidWithAttrAndNoBlockedAudioAttrForImp() {
+        // given
+        final ObjectNode accountConfig = toObjectNode(ModuleConfig.of(Attributes.builder()
+                .battr(Attribute.audioBattrBuilder()
+                        .enforceBlocks(true)
+                        .build())
+                .build()));
+
+        // when
+        final List<BidderBid> bids = singletonList(bid(bid -> bid
+                .impid("impId2")
+                .attr(singletonList(1))));
+        final BlockedAttributes blockedAttributes = BlockedAttributes.builder()
+                .battr(singletonMap(MediaType.AUDIO, singletonMap("impId1", asList(1, 2))))
                 .build();
         final BidsBlocker blocker = BidsBlocker.create(bids, "bidder1", ORTB_VERSION, accountConfig, blockedAttributes, bidRejectionTracker, true);
 
@@ -341,7 +388,7 @@ public class BidsBlockerTest {
                 .bapp(Attribute.bappBuilder()
                         .enforceBlocks(true)
                         .build())
-                .battr(Attribute.battrBuilder()
+                .battr(Attribute.bannerBattrBuilder()
                         .enforceBlocks(true)
                         .build())
                 .build()));
@@ -366,7 +413,7 @@ public class BidsBlockerTest {
                 .badv(asList("domain1.com", "domain2.com", "domain3.com"))
                 .bcat(asList("cat1", "cat2", "cat3"))
                 .bapp(asList("app1", "app2", "app3"))
-                .battr(singletonMap("impId2", asList(1, 2, 3)))
+                .battr(singletonMap(MediaType.BANNER, singletonMap("impId2", asList(1, 2, 3))))
                 .build();
         final BidsBlocker blocker = BidsBlocker.create(bids, "bidder1", ORTB_VERSION, accountConfig, blockedAttributes, bidRejectionTracker, true);
 
@@ -413,7 +460,7 @@ public class BidsBlockerTest {
                         .enforceBlocks(true)
                         .allowedForDeals(singletonList("app2"))
                         .build())
-                .battr(Attribute.battrBuilder()
+                .battr(Attribute.bannerBattrBuilder()
                         .enforceBlocks(true)
                         .allowedForDeals(singletonList(2))
                         .build())
@@ -441,7 +488,7 @@ public class BidsBlockerTest {
                 .badv(asList("domain1.com", "domain2.com"))
                 .bcat(asList("cat1", "cat2"))
                 .bapp(asList("app1", "app2"))
-                .battr(singletonMap("impId1", asList(1, 2)))
+                .battr(singletonMap(MediaType.BANNER, singletonMap("impId1", asList(1, 2))))
                 .build();
         final BidsBlocker blocker = BidsBlocker.create(bids, "bidder1", ORTB_VERSION, accountConfig, blockedAttributes, bidRejectionTracker, true);
 

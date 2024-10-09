@@ -18,6 +18,8 @@ import org.prebid.server.hooks.modules.ortb2.blocking.core.model.ExecutionResult
 import org.prebid.server.hooks.modules.ortb2.blocking.core.model.ResponseBlockingConfig;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.model.Result;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.util.MergeUtils;
+import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.spring.config.bidder.model.MediaType;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -91,7 +93,6 @@ public class BidsBlocker {
 
         try {
             final List<Result<BlockingResult>> blockedBidResults = bids.stream()
-                    .sequential()
                     .map(bid -> isBlocked(bid, accountConfigReader))
                     .toList();
 
@@ -170,11 +171,30 @@ public class BidsBlocker {
     }
 
     private AttributeCheckResult<Integer> checkBattr(BidderBid bidderBid, ResponseBlockingConfig blockingConfig) {
-
+        final MediaType mediaType = mapBidTypeToMediaType(bidderBid.getType());
         return checkAttribute(
                 bidderBid.getBid().getAttr(),
-                blockingConfig.getBattr(),
-                blockedAttributeValues(BlockedAttributes::getBattr, bidderBid.getBid().getImpid()));
+                blockingConfig.getBattr().get(mediaType),
+                blockedAttributeValues(
+                        blockedAttributes -> extractBattrForMediaType(blockedAttributes, mediaType),
+                        bidderBid.getBid().getImpid()));
+    }
+
+    private static MediaType mapBidTypeToMediaType(BidType bidType) {
+        return switch (bidType) {
+            case banner -> MediaType.BANNER;
+            case video -> MediaType.VIDEO;
+            case audio -> MediaType.AUDIO;
+            case xNative -> MediaType.NATIVE;
+            case null -> null;
+        };
+    }
+
+    private static Map<String, List<Integer>> extractBattrForMediaType(BlockedAttributes blockedAttributes,
+                                                                       MediaType mediaType) {
+
+        final Map<MediaType, Map<String, List<Integer>>> battr = blockedAttributes.getBattr();
+        return battr != null ? battr.get(mediaType) : null;
     }
 
     private <T> AttributeCheckResult<T> checkAttribute(List<T> attribute,
