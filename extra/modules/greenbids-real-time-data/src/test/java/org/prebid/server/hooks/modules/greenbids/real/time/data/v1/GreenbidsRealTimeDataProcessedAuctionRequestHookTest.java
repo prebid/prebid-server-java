@@ -28,6 +28,7 @@ import org.prebid.server.hooks.modules.greenbids.real.time.data.model.data.Green
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.FilterService;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.ModelCache;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.OnnxModelRunner;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.OnnxModelRunnerFactory;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.OnnxModelRunnerWithThresholds;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.ThresholdCache;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.result.AnalyticsResult;
@@ -90,12 +91,14 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final File database = new File("src/test/resources/GeoLite2-Country.mmdb");
         final DatabaseReader dbReader = new DatabaseReader.Builder(database).build();
         final FilterService filterService = new FilterService();
+        final OnnxModelRunnerFactory onnxModelRunnerFactory = new OnnxModelRunnerFactory();
         final ModelCache modelCache = new ModelCache(
                 storage,
                 "test_bucket",
                 modelCacheWithExpiration,
                 "onnxModelRunner_",
-                Vertx.vertx());
+                Vertx.vertx(),
+                onnxModelRunnerFactory);
         final ThresholdCache thresholdCache = new ThresholdCache(
                 storage,
                 "test_bucket",
