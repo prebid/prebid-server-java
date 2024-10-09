@@ -18,16 +18,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.ModelCache;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.OnnxModelRunner;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.OnnxModelRunnerFactory;
 
 import java.lang.reflect.Field;
-import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
@@ -46,7 +44,6 @@ public class ModelCacheTest {
     @Mock
     private Storage storage;
 
-    @Mock
     private Vertx vertx;
 
     @Mock
@@ -59,17 +56,16 @@ public class ModelCacheTest {
     private OnnxModelRunner onnxModelRunner;
 
     @Mock
+    private OnnxModelRunnerFactory onnxModelRunnerFactory;
+
+    @Mock
     private ModelCache target;
 
     @BeforeEach
     public void setUp() {
-        //cache = Mockito.mock(Cache.class);
-        //storage = Mockito.mock(Storage.class);
-        //vertx = Mockito.mock(Vertx.class);
-        //blob = Mockito.mock(Blob.class);
-        //onnxModelRunner = Mockito.mock(OnnxModelRunner.class);
-
-        target = new ModelCache(storage, GCS_BUCKET_NAME, cache, MODEL_CACHE_KEY_PREFIX, vertx);
+        vertx = Vertx.vertx();
+        target = new ModelCache(
+                storage, GCS_BUCKET_NAME, cache, MODEL_CACHE_KEY_PREFIX, vertx, onnxModelRunnerFactory);
     }
 
     @Test
@@ -92,29 +88,12 @@ public class ModelCacheTest {
         // given
         String cacheKey = MODEL_CACHE_KEY_PREFIX + PBUUID;
 
-        //ModelCache targetWithFetching = new ModelCache(
-        //        storage, GCS_BUCKET_NAME, cache, MODEL_CACHE_KEY_PREFIX, vertx);
-        // isFetching.set(true);
-
         // Create a spy of the ModelCache class
-        ModelCache spyModelCache = spy(new ModelCache(storage, GCS_BUCKET_NAME, cache, MODEL_CACHE_KEY_PREFIX, vertx));
+        ModelCache spyModelCache = spy(new ModelCache(
+                storage, GCS_BUCKET_NAME, cache, MODEL_CACHE_KEY_PREFIX, vertx, onnxModelRunnerFactory));
 
         // Mock the cache to simulate that the model is not present
         when(cache.getIfPresent(eq(cacheKey))).thenReturn(null);
-
-        // Mock the vertx executeBlocking to simulate fetching process
-        /*
-        when(vertx.executeBlocking(any(Callable.class))).thenAnswer(invocation -> {
-            Callable<?> callable = invocation.getArgument(0);
-            try {
-                // Simulate the callable being executed successfully
-                Object result = callable.call();
-                return Future.succeededFuture(result);
-            } catch (Exception e) {
-                return Future.failedFuture(e);
-            }
-        });
-         */
 
         // Spy the isFetching AtomicBoolean behavior
         AtomicBoolean mockFetchingState = mock(AtomicBoolean.class);
@@ -122,17 +101,6 @@ public class ModelCacheTest {
         // Mock fetching state for 2 calls
         when(mockFetchingState.compareAndSet(false, true)).thenReturn(false);
         when(mockFetchingState.compareAndSet(false, true)).thenReturn(false);
-
-        // Use reflection to set the private field 'isFetching' in the spy
-
-        /*
-        ModelCache modelCacheWithMockedFetching = new ModelCache(
-                storage, GCS_BUCKET_NAME, cache, MODEL_CACHE_KEY_PREFIX, vertx) {
-            protected AtomicBoolean getIsFetching() {
-                return mockFetchingState;
-            }
-        };
-         */
 
         // Use reflection to set the private field 'isFetching' in the spy accessible
         Field isFetchingField = ModelCache.class.getDeclaredField("isFetching");
@@ -151,42 +119,37 @@ public class ModelCacheTest {
         assertThat(firstCall.failed()).isTrue();
         assertThat(firstCall.cause().getMessage()).isEqualTo(
                 "ModelRunner fetching in progress. Skip current request");
-        //verify(vertx).executeBlocking(any(Callable.class));
     }
 
     @Test
-    public void getShouldFetchModelWhenNotInCache() {
+    public void getShouldFetchModelWhenNotInCache() throws OrtException {
         // given
         final String cacheKey = MODEL_CACHE_KEY_PREFIX + PBUUID;
-        // final String onnxModelPath = "models_pbuid=" + PBUUID + ".onnx";
+        final byte[] bytes = new byte[]{1, 2, 3};
 
         when(cache.getIfPresent(eq(cacheKey))).thenReturn(null);
         when(storage.get(GCS_BUCKET_NAME)).thenReturn(bucket);
         when(bucket.get(ONNX_MODEL_PATH)).thenReturn(blob);
-        // when(vertx.executeBlocking(any(Callable.class)))
-        //        .thenReturn(Future.succeededFuture(blob));
-
-        when(vertx.executeBlocking(any(Callable.class))).thenAnswer(invocation -> {
-            Callable<?> callable = invocation.getArgument(0);
-            try {
-                Object result = callable.call();
-                return Future.succeededFuture(result);
-            } catch (Exception e) {
-                return Future.failedFuture(e);
-            }
-        });
+        lenient().when(blob.getContent()).thenReturn(bytes);
+        lenient().when(onnxModelRunnerFactory.create(bytes)).thenReturn(onnxModelRunner);
 
         // when
         Future<OnnxModelRunner> future = target.get(ONNX_MODEL_PATH, PBUUID);
-        System.out.println(
-                "future.cause().getMessage(): " + future.cause().getMessage() + "\n" +
-                        "future.succeeded(): " + future.succeeded()
-        );
 
         // then
-        assertThat(future.failed()).isTrue();
-        assertThat(future.cause().getMessage()).isEqualTo("ModelRunner is fetched. Skip current request");
-        verify(vertx).executeBlocking(any(Callable.class));
+        future.onComplete(ar -> {
+
+            System.out.println(
+                    "future.onComplete: \n" +
+                            "   ar: " + ar + "\n" +
+                            "   ar.result(): " + ar.result() + "\n" +
+                            "   cache: " + cache
+            );
+
+            assertThat(ar.succeeded()).isTrue();
+            assertThat(ar.result()).isEqualTo(onnxModelRunner);
+            verify(cache).put(eq(cacheKey), eq(onnxModelRunner));
+        });
     }
 
     @Test
@@ -200,69 +163,40 @@ public class ModelCacheTest {
         // Simulate an error when accessing the storage bucket
         when(storage.get(GCS_BUCKET_NAME)).thenThrow(new StorageException(500, "Storage Error"));
 
-        // Mock vertx.executeBlocking to simulate the behavior of exception being thrown in getBlob
-        when(vertx.executeBlocking(any(Callable.class))).thenAnswer(invocation -> {
-            Callable<?> callable = invocation.getArgument(0);
-            try {
-                // The callable should throw an exception when called
-                Object result = callable.call();
-                return Future.succeededFuture(result);
-            } catch (Exception e) {
-                // Return a failed future when an exception occurs
-                return Future.failedFuture(e);
-            }
-        });
-
         // when
         Future<OnnxModelRunner> future = target.get(ONNX_MODEL_PATH, PBUUID);
-        /*
-        Exception exception = assertThrows(PreBidException.class, () -> {
-            // Call the method and expect the PreBidException to be thrown
-            Future<OnnxModelRunner> future = target.get(ONNX_MODEL_PATH, PBUUID);
-            // Force the future to resolve, triggering the exception
-            future.result();
-        });
-        //Future<OnnxModelRunner> future = target.get(ONNX_MODEL_PATH, PBUUID);
-         */
 
         // then
         future.onComplete(ar -> {
 
             System.out.println(
                     "future.onComplete: \n" +
+                            "   ar: " + ar + "\n" +
                             "   ar.failed(): " + ar.failed() + "\n" +
                             "   ar.cause(): " + ar.cause() + "\n" +
-                            "   ar.cause().getMessage(): " + ar.cause().getMessage()
+                            "   ar.cause().getMessage(): " + ar.cause().getMessage() + "\n" +
+                            "   ar.result(): " + ar.result()
             );
 
             assertThat(ar.cause()).isInstanceOf(PreBidException.class);
             assertThat(ar.cause().getMessage()).contains("Error accessing GCS artefact for model");
         });
-
-        //assertThat(exception.getMessage()).contains("Error accessing GCS artefact for model");
     }
 
-    /*
     @Test
-    public void getShouldThrowExceptionIfOnnxModelFails() {
+    public void getShouldThrowExceptionWhenOnnxModelFails() throws OrtException {
         // given
         final String cacheKey = MODEL_CACHE_KEY_PREFIX + PBUUID;
-        when(cache.getIfPresent(eq(cacheKey))).thenReturn(null);
-        when(storage.get(GCS_BUCKET_NAME)).thenReturn(bucket);
-        when(bucket.get(ONNX_MODEL_PATH)).thenReturn(blob);
-        when(blob.getContent()).thenThrow(new PreBidException("Failed to convert blob to ONNX model"));
+        final byte[] bytes = new byte[]{1, 2, 3};
 
-        when(vertx.executeBlocking(any(Callable.class))).thenAnswer(invocation -> {
-            Callable<?> callable = invocation.getArgument(0);
-            try {
-                // The callable should throw an exception when called
-                Object result = callable.call();
-                return Future.succeededFuture(result);
-            } catch (Exception e) {
-                // Return a failed future when an exception occurs
-                return Future.failedFuture(e);
-            }
-        });
+        // Mock that the model is not in cache
+        when(cache.getIfPresent(eq(cacheKey))).thenReturn(null);
+
+        // Simulate an error when accessing the storage bucket
+        when(storage.get(GCS_BUCKET_NAME)).thenReturn(bucket);;
+        when(bucket.get(ONNX_MODEL_PATH)).thenReturn(blob);
+        lenient().when(blob.getContent()).thenReturn(bytes);
+        lenient().when(onnxModelRunnerFactory.create(bytes)).thenThrow(new OrtException("Failed to convert blob to ONNX model"));
 
         // when
         Future<OnnxModelRunner> future = target.get(ONNX_MODEL_PATH, PBUUID);
@@ -272,14 +206,54 @@ public class ModelCacheTest {
 
             System.out.println(
                     "future.onComplete: \n" +
+                            "   ar: " + ar + "\n" +
                             "   ar.failed(): " + ar.failed() + "\n" +
                             "   ar.cause(): " + ar.cause() + "\n" +
-                            "   ar.cause().getMessage(): " + ar.cause().getMessage()
+                            "   ar.cause().getMessage(): " + ar.cause().getMessage() + "\n" +
+                            "   ar.result(): " + ar.result()
             );
 
+
+            assertThat(ar.failed()).isTrue();
             assertThat(ar.cause()).isInstanceOf(PreBidException.class);
             assertThat(ar.cause().getMessage()).contains("Failed to convert blob to ONNX model");
         });
     }
-     */
+
+    @Test
+    public void getShouldThrowExceptionWhenBucketNotFound() {
+        // given
+        final String cacheKey = MODEL_CACHE_KEY_PREFIX + PBUUID;
+        final byte[] bytes = new byte[]{1, 2, 3};
+
+        // Mock that the model is not in cache
+        when(cache.getIfPresent(eq(cacheKey))).thenReturn(null);
+
+        // Simulate an error when accessing the storage bucket
+        when(storage.get(GCS_BUCKET_NAME)).thenReturn(bucket);;
+        when(bucket.get(ONNX_MODEL_PATH)).thenReturn(blob);
+        lenient().when(blob.getContent()).thenThrow(new PreBidException("Bucket not found"));
+
+        // when
+        Future<OnnxModelRunner> future = target.get(ONNX_MODEL_PATH, PBUUID);
+
+        // then
+        future.onComplete(ar -> {
+
+            System.out.println(
+                    "future.onComplete: \n" +
+                            "   ar: " + ar + "\n" +
+                            "   ar.failed(): " + ar.failed() + "\n" +
+                            "   ar.cause(): " + ar.cause() + "\n" +
+                            "   ar.cause().getMessage(): " + ar.cause().getMessage() + "\n" +
+                            "   ar.result(): " + ar.result()
+            );
+
+
+            assertThat(ar.failed()).isTrue();
+            assertThat(ar.cause()).isInstanceOf(PreBidException.class);
+            assertThat(ar.cause().getMessage()).contains("Bucket not found");
+        });
+    }
+
 }

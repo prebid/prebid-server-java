@@ -13,6 +13,7 @@ import org.prebid.server.hooks.modules.greenbids.real.time.data.model.data.Green
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.FilterService;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.ModelCache;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.OnnxModelRunner;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.OnnxModelRunnerFactory;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.OnnxModelRunnerWithThresholds;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.ThresholdCache;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.result.GreenbidsInvocationService;
@@ -77,7 +78,17 @@ public class GreenbidsRealTimeDataConfiguration {
     }
 
     @Bean
-    ModelCache modelCache(GreenbidsRealTimeDataProperties properties, Vertx vertx, Storage storage) {
+    OnnxModelRunnerFactory onnxModelRunnerFactory() {
+        return new OnnxModelRunnerFactory();
+    }
+
+    @Bean
+    ModelCache modelCache(
+            GreenbidsRealTimeDataProperties properties,
+            Vertx vertx,
+            Storage storage,
+            OnnxModelRunnerFactory onnxModelRunnerFactory) {
+
         final Cache<String, OnnxModelRunner> modelCacheWithExpiration = Caffeine.newBuilder()
                 .expireAfterWrite(properties.getCacheExpirationMinutes(), TimeUnit.MINUTES)
                 .build();
@@ -87,7 +98,8 @@ public class GreenbidsRealTimeDataConfiguration {
                 properties.getGcsBucketName(),
                 modelCacheWithExpiration,
                 properties.getOnnxModelCacheKeyPrefix(),
-                vertx);
+                vertx,
+                onnxModelRunnerFactory);
     }
 
     @Bean

@@ -12,6 +12,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
 
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -32,18 +33,22 @@ public class ModelCache {
 
     private final Vertx vertx;
 
+    private final OnnxModelRunnerFactory onnxModelRunnerFactory;
+
     public ModelCache(
             Storage storage,
             String gcsBucketName,
             Cache<String, OnnxModelRunner> cache,
             String onnxModelCacheKeyPrefix,
-            Vertx vertx) {
+            Vertx vertx,
+            OnnxModelRunnerFactory onnxModelRunnerFactory) {
         this.gcsBucketName = Objects.requireNonNull(gcsBucketName);
         this.cache = Objects.requireNonNull(cache);
         this.storage = Objects.requireNonNull(storage);
         this.onnxModelCacheKeyPrefix = Objects.requireNonNull(onnxModelCacheKeyPrefix);
         this.isFetching = new AtomicBoolean(false);
         this.vertx = Objects.requireNonNull(vertx);
+        this.onnxModelRunnerFactory = Objects.requireNonNull(onnxModelRunnerFactory);
     }
 
     public Future<OnnxModelRunner> get(String onnxModelPath, String pbuid) {
@@ -61,8 +66,7 @@ public class ModelCache {
 
         if (isFetching.compareAndSet(false, true)) {
             try {
-                fetchAndCacheModelRunner(onnxModelPath, cacheKey);
-                return Future.failedFuture("ModelRunner is fetched. Skip current request");
+                return fetchAndCacheModelRunner(onnxModelPath, cacheKey);
             } finally {
                 isFetching.set(false);
             }
@@ -71,14 +75,14 @@ public class ModelCache {
         return Future.failedFuture("ModelRunner fetching in progress. Skip current request");
     }
 
-    private void fetchAndCacheModelRunner(String onnxModelPath, String cacheKey) {
+    private Future<OnnxModelRunner>  fetchAndCacheModelRunner(String onnxModelPath, String cacheKey) {
         System.out.println(
                 "fetchAndCacheModelRunner: \n" +
                         "   onnxModelPath: " + onnxModelPath + "\n" +
                         "   cacheKey: " + cacheKey
         );
 
-        vertx.executeBlocking(() -> getBlob(onnxModelPath))
+        return vertx.executeBlocking(() -> getBlob(onnxModelPath))
                 .map(this::loadModelRunner)
                 .onSuccess(onnxModelRunner -> cache.put(cacheKey, onnxModelRunner))
                 .onFailure(error -> logger.error("Failed to fetch ONNX model"));
@@ -108,8 +112,16 @@ public class ModelCache {
     private OnnxModelRunner loadModelRunner(Blob blob) {
         try {
             final byte[] onnxModelBytes = blob.getContent();
-            return new OnnxModelRunner(onnxModelBytes);
+
+            System.out.println(
+                    "loadModelRunner: \n" +
+                            "   blob: " + blob + "\n" +
+                            "   onnxModelBytes: " + Arrays.toString(onnxModelBytes) + "\n"
+            );
+
+            return onnxModelRunnerFactory.create(onnxModelBytes);
         } catch (OrtException e) {
+            System.out.println("OrtException trigger PreBidException");
             throw new PreBidException("Failed to convert blob to ONNX model", e);
         }
     }
