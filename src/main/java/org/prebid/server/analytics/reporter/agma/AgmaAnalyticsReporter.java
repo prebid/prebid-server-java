@@ -97,7 +97,12 @@ public class AgmaAnalyticsReporter implements AnalyticsReporter, Initializable {
 
     @Override
     public void initialize(Promise<Void> initializePromise) {
-        vertx.setPeriodic(bufferTimeoutMs, ignored -> sendEvents(buffer.pollAll()));
+        vertx.setPeriodic(bufferTimeoutMs, ignored -> {
+            final List<String> toFlush = buffer.pollAll();
+            if (!toFlush.isEmpty()) {
+                sendEvents(toFlush);
+            }
+        });
         initializePromise.complete();
     }
 
