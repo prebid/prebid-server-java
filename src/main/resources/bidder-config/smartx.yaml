@@ -1,6 +1,7 @@
 adapters:
   smartx:
     endpoint: https://bid.smartclip.net/bid/1005
+    ortb-version: "2.6"
     meta-info:
       maintainer-email: bidding@smartclip.tv
       app-media-types:

@@ -394,7 +394,7 @@ public class TcfEnforcementTest {
     private static User givenUserWithPrivacyData() {
         return User.builder()
                 .id("originalUser")
-                .eids(singletonList(Eid.of(null, null, null)))
+                .eids(singletonList(Eid.builder().build()))
                 .geo(Geo.builder().build())
                 .build();
     }

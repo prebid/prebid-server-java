@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests
 
+import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredImp
@@ -8,34 +9,45 @@ import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.Banner
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Device
+import org.prebid.server.functional.model.request.auction.AnyUnsupportedBidder
 import org.prebid.server.functional.model.request.auction.Geo
 import org.prebid.server.functional.model.request.auction.Imp
+import org.prebid.server.functional.model.request.auction.ImpExt
+import org.prebid.server.functional.model.request.auction.ImpExtContext
+import org.prebid.server.functional.model.request.auction.ImpExtContextData
 import org.prebid.server.functional.model.request.auction.Native
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
-import org.prebid.server.functional.model.request.auction.RegsExt
 import org.prebid.server.functional.model.request.auction.Site
 import org.prebid.server.functional.model.request.vtrack.VtrackRequest
 import org.prebid.server.functional.model.request.vtrack.xml.Vast
 import org.prebid.server.functional.model.response.auction.Adm
 import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
-import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.CcpaConsent
 
+import static org.prebid.server.functional.model.Currency.CHF
+import static org.prebid.server.functional.model.Currency.EUR
+import static org.prebid.server.functional.model.Currency.JPY
+import static org.prebid.server.functional.model.Currency.USD
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
-import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.CompressionType.GZIP
 import static org.prebid.server.functional.model.bidder.CompressionType.NONE
 import static org.prebid.server.functional.model.request.auction.Asset.titleAsset
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.DOOH
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
+import static org.prebid.server.functional.model.request.auction.SecurityLevel.NON_SECURE
+import static org.prebid.server.functional.model.request.auction.SecurityLevel.SECURE
+import static org.prebid.server.functional.model.response.auction.BidRejectionReason.REQUEST_BLOCKED_UNACCEPTABLE_CURRENCY
+import static org.prebid.server.functional.model.response.auction.ErrorType.ALIAS
+import static org.prebid.server.functional.model.response.auction.ErrorType.GENERIC
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 import static org.prebid.server.functional.model.response.auction.MediaType.AUDIO
 import static org.prebid.server.functional.model.response.auction.MediaType.BANNER
 import static org.prebid.server.functional.model.response.auction.MediaType.NATIVE
 import static org.prebid.server.functional.model.response.auction.MediaType.VIDEO
+import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 import static org.prebid.server.functional.util.HttpUtil.CONTENT_ENCODING_HEADER
 import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.ENFORCED
 
@@ -52,7 +64,7 @@ class BidderParamsSpec extends BaseSpec {
         def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should contain httpcalls"
-        assert response.ext?.debug?.httpcalls[GENERIC.value]
+        assert response.ext?.debug?.httpcalls[BidderName.GENERIC.value]
 
         and: "Response should not contain error"
         assert !response.ext?.errors
@@ -78,7 +90,7 @@ class BidderParamsSpec extends BaseSpec {
         def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should contain error"
-        assert response.ext?.errors[ErrorType.GENERIC]*.code == [2]
+        assert response.ext?.errors[GENERIC]*.code == [2]
 
         where:
         adapterDefault | generic | adapterConfig
@@ -153,7 +165,7 @@ class BidderParamsSpec extends BaseSpec {
         and: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
         def validCcpa = new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)
-        bidRequest.regs.ext = new RegsExt(usPrivacy: validCcpa)
+        bidRequest.regs.usPrivacy = validCcpa
         def lat = PBSUtils.getRandomDecimal(0, 90)
         def lon = PBSUtils.getRandomDecimal(0, 90)
         bidRequest.device = new Device(geo: new Geo(lat: lat, lon: lon))
@@ -180,7 +192,7 @@ class BidderParamsSpec extends BaseSpec {
         and: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
         def validCcpa = new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)
-        bidRequest.regs.ext = new RegsExt(usPrivacy: validCcpa)
+        bidRequest.regs.usPrivacy = validCcpa
         def lat = PBSUtils.getRandomDecimal(0, 90) as float
         def lon = PBSUtils.getRandomDecimal(0, 90) as float
         bidRequest.device = new Device(geo: new Geo(lat: lat, lon: lon))
@@ -206,7 +218,7 @@ class BidderParamsSpec extends BaseSpec {
         bidRequest.imp.first().ext.prebid.bidder.generic = new Generic(firstParam: firstParam)
 
         and: "Set bidderParam to bidRequest"
-        bidRequest.ext.prebid.bidderParams = [(GENERIC): [firstParam: PBSUtils.randomNumber]]
+        bidRequest.ext.prebid.bidderParams = [(BidderName.GENERIC): [firstParam: PBSUtils.randomNumber]]
 
         when: "PBS processes auction request"
         defaultPbsService.sendAuctionRequest(bidRequest)
@@ -241,7 +253,7 @@ class BidderParamsSpec extends BaseSpec {
 
         and: "Set bidderParam to bidRequest"
         def secondParam = PBSUtils.randomNumber
-        bidRequest.ext.prebid.bidderParams = [(GENERIC): [secondParam: secondParam]]
+        bidRequest.ext.prebid.bidderParams = [(BidderName.GENERIC): [secondParam: secondParam]]
 
         when: "PBS processes auction request"
         defaultPbsService.sendAuctionRequest(bidRequest)
@@ -283,8 +295,8 @@ class BidderParamsSpec extends BaseSpec {
         def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should contain error"
-        assert response.ext?.errors[ErrorType.GENERIC]*.code == [999]
-        assert response.ext?.errors[ErrorType.GENERIC]*.message == ["host name must not be empty"]
+        assert response.ext?.errors[GENERIC]*.code == [999]
+        assert response.ext?.errors[GENERIC]*.message == ["host name must not be empty"]
     }
 
     def "PBS should reject bidder when bidder params from request doesn't satisfy json-schema for auction request"() {
@@ -389,8 +401,8 @@ class BidderParamsSpec extends BaseSpec {
         assert response.seatbid.isEmpty()
 
         and: "Response should contain error"
-        assert response.ext?.warnings[ErrorType.GENERIC]*.code == [2]
-        assert response.ext?.warnings[ErrorType.GENERIC]*.message == ["Bidder does not support any media types."]
+        assert response.ext?.warnings[GENERIC]*.code == [2]
+        assert response.ext?.warnings[GENERIC]*.message == ["Bidder does not support any media types."]
 
         where:
         configMediaType    | bidRequest
@@ -506,8 +518,8 @@ class BidderParamsSpec extends BaseSpec {
         assert bidderRequest.imp[0].nativeObj
 
         and: "Response should contain error"
-        assert response.ext?.warnings[ErrorType.GENERIC]*.code == [2]
-        assert response.ext?.warnings[ErrorType.GENERIC]*.message ==
+        assert response.ext?.warnings[GENERIC]*.code == [2]
+        assert response.ext?.warnings[GENERIC]*.message ==
                 ["Imp ${bidRequest.imp[0].id} does not have a supported media type and has been removed from the " +
                          "request for this bidder." as String]
 
@@ -525,7 +537,7 @@ class BidderParamsSpec extends BaseSpec {
         def bidResponse = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain proper warning"
-        assert bidResponse.ext?.warnings[ErrorType.GENERIC]?.message.contains("Bid request contains 0 impressions after filtering.")
+        assert bidResponse.ext?.warnings[GENERIC]?.message.contains("Bid request contains 0 impressions after filtering.")
 
         and: "Bid response shouldn't contain any seatbid"
         assert !bidResponse.seatbid
@@ -559,8 +571,8 @@ class BidderParamsSpec extends BaseSpec {
         def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain proper warning"
-        assert response.ext?.warnings[ErrorType.GENERIC]?.message ==
-                ["Imp ${bidRequest.imp[1].id} does not have a supported media type and has been removed from the request for this bidder." ]
+        assert response.ext?.warnings[GENERIC]?.message ==
+                ["Imp ${bidRequest.imp[1].id} does not have a supported media type and has been removed from the request for this bidder."]
 
         and: "Bid response should contain seatbid"
         assert response.seatbid
@@ -594,8 +606,8 @@ class BidderParamsSpec extends BaseSpec {
         assert bidder.getRequestCount(bidRequest.id) == 0
 
         and: "Response should contain errors"
-        assert response.ext?.warnings[ErrorType.GENERIC]*.code == [2, 2]
-        assert response.ext?.warnings[ErrorType.GENERIC]*.message ==
+        assert response.ext?.warnings[GENERIC]*.code == [2, 2]
+        assert response.ext?.warnings[GENERIC]*.message ==
                 ["Imp ${bidRequest.imp[0].id} does not have a supported media type and has been removed from " +
                          "the request for this bidder.",
                  "Bid request contains 0 impressions after filtering."]
@@ -640,7 +652,7 @@ class BidderParamsSpec extends BaseSpec {
         def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain header Content-Encoding = gzip"
-        assert response.ext?.debug?.httpcalls?.get(GENERIC.value)?.requestHeaders?.first()
+        assert response.ext?.debug?.httpcalls?.get(BidderName.GENERIC.value)?.requestHeaders?.first()
                 ?.get(CONTENT_ENCODING_HEADER)?.first() == compressionType
     }
 
@@ -656,7 +668,7 @@ class BidderParamsSpec extends BaseSpec {
         def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should not contain header Content-Encoding"
-        assert !response.ext?.debug?.httpcalls?.get(GENERIC.value)?.requestHeaders?.first()
+        assert !response.ext?.debug?.httpcalls?.get(BidderName.GENERIC.value)?.requestHeaders?.first()
                 ?.get(CONTENT_ENCODING_HEADER)
     }
 
@@ -697,9 +709,9 @@ class BidderParamsSpec extends BaseSpec {
 
         where:
         secureStoredRequest | secureBidderRequest
-        null                | 1
-        1                   | 1
-        0                   | 0
+        null                | SECURE
+        SECURE              | SECURE
+        NON_SECURE          | NON_SECURE
     }
 
     def "PBS auction should populate imp[0].secure depend which value in imp request"() {
@@ -717,8 +729,315 @@ class BidderParamsSpec extends BaseSpec {
 
         where:
         secureRequest | secureBidderRequest
-        null          | 1
-        1             | 1
-        0             | 0
+        null          | SECURE
+        SECURE        | SECURE
+        NON_SECURE    | NON_SECURE
+    }
+
+    def "PBS shouldn't emit warning and proceed auction when imp.ext.anyUnsupportedBidder and imp.ext.prebid.bidder.generic in the request"() {
+        given: "Default bid request"
+        def unsupportedBidder = new AnyUnsupportedBidder(anyUnsupportedField: PBSUtils.randomString)
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.anyUnsupportedBidder = unsupportedBidder
+            imp[0].ext.prebid.bidder.generic = new Generic()
+        }
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain imp.ext.anyUnsupportedBidder"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.imp[0].ext.anyUnsupportedBidder == unsupportedBidder
+
+        and: "Response shouldn't contain warning"
+        assert !response?.ext?.warnings
+    }
+
+    def "PBS should emit warning and proceed auction when imp.ext.anyUnsupportedBidder and imp.ext.generic in the request"() {
+        given: "Default bid request"
+        def unsupportedBidder = new AnyUnsupportedBidder(anyUnsupportedField: PBSUtils.randomString)
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.generic = new Generic()
+            imp[0].ext.anyUnsupportedBidder = unsupportedBidder
+            imp[0].ext.prebid.bidder = null
+        }
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain imp.ext.anyUnsupportedBidder"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.imp[0].ext.anyUnsupportedBidder == unsupportedBidder
+
+        and: "PBS should emit an warning"
+        assert response?.ext?.warnings[PREBID]*.code == [999]
+        assert response?.ext?.warnings[PREBID]*.message ==
+                ["WARNING: request.imp[0].ext.prebid.bidder.anyUnsupportedBidder was dropped with a reason: " +
+                         "request.imp[0].ext.prebid.bidder contains unknown bidder: anyUnsupportedBidder"]
+    }
+
+    def "PBS shouldn't emit warning and proceed auction when all imp.ext fields known for PBS"() {
+        given: "Default bid request with populated imp.ext"
+        def impExt = ImpExt.getDefaultImpExt().tap {
+            prebid.bidder.generic = null
+            generic = new Generic()
+            ae = PBSUtils.randomNumber
+            all = PBSUtils.randomNumber
+            context = new ImpExtContext(data: new ImpExtContextData())
+            data = new ImpExtContextData(pbAdSlot: PBSUtils.randomString)
+            general = PBSUtils.randomString
+            gpid = PBSUtils.randomString
+            skadn = PBSUtils.randomString
+            tid = PBSUtils.randomString
+        }
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext = impExt
+        }
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain same field as requested"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        verifyAll(bidderRequest.imp[0].ext) {
+            bidder == impExt.generic
+            ae == impExt.ae
+            all == impExt.all
+            context == impExt.context
+            data == impExt.data
+            general == impExt.general
+            gpid == impExt.gpid
+            skadn == impExt.skadn
+            tid == impExt.tid
+        }
+    }
+
+    def "PBS should send request to bidder when adapters.bidder.meta-info.currency-accepted not specified"() {
+        given: "PBS with adapter configuration"
+        def pbsService = pbsServiceFactory.getService("adapters.generic.meta-info.currency-accepted": "")
+
+        and: "Default bid request with generic bidder"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            cur = [USD]
+            ext.prebid.returnAllBidStatus = true
+        }
+
+        when: "PBS processes auction request"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain http calls"
+        assert response.ext?.debug?.httpcalls[BidderName.GENERIC.value]
+
+        and: "Response should contain seatBid"
+        assert response.seatbid.bid.flatten().size() == 1
+
+        and: "Bidder request should be valid"
+        assert bidder.getBidderRequest(bidRequest.id)
+
+        and: "Response shouldn't contain error"
+        assert !response.ext?.errors
+
+        and: "Response shouldn't contain warning"
+        assert !response.ext?.warnings
+
+        and: "PBS response shouldn't contain seatNonBid"
+        assert !response.ext.seatnonbid
+    }
+
+    def "PBS should send request to bidder when adapters.bidder.aliases.bidder.meta-info.currency-accepted not specified"() {
+        given: "PBS with adapter configuration"
+        def pbsService = pbsServiceFactory.getService(
+                "adapters.generic.aliases.alias.enabled" : "true",
+                "adapters.generic.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString(),
+                "adapters.generic.aliases.alias.meta-info.currency-accepted": "")
+
+        and: "Default bid request with alias bidder"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            cur = [USD]
+            ext.prebid.returnAllBidStatus = true
+            imp[0].ext.prebid.bidder.alias = new Generic()
+            imp[0].ext.prebid.bidder.generic = null
+        }
+
+        when: "PBS processes auction request"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain http calls"
+        assert response.ext?.debug?.httpcalls[BidderName.ALIAS.value]
+
+        and: "Response should contain seatBid"
+        assert response.seatbid.bid.flatten().size() == 1
+
+        and: "Bidder request should be valid"
+        assert bidder.getBidderRequest(bidRequest.id)
+
+        and: "Response shouldn't contain error"
+        assert !response.ext?.errors
+
+        and: "Response shouldn't contain warning"
+        assert !response.ext?.warnings
+
+        and: "PBS response shouldn't contain seatNonBid"
+        assert !response.ext.seatnonbid
+    }
+
+    def "PBS should send request to bidder when adapters.bidder.meta-info.currency-accepted intersect with requested currency"() {
+        given: "PBS with adapter configuration"
+        def pbsService = pbsServiceFactory.getService("adapters.generic.meta-info.currency-accepted": "${USD},${EUR}".toString())
+
+        and: "Default basic generic BidRequest"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            cur = [USD]
+            ext.prebid.returnAllBidStatus = true
+        }
+
+        when: "PBS processes auction request"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain http calls"
+        assert response.ext?.debug?.httpcalls[BidderName.GENERIC.value]
+
+        and: "Response should contain seatBid"
+        assert response.seatbid.bid.flatten().size() == 1
+
+        and: "Bidder request should be valid"
+        assert bidder.getBidderRequest(bidRequest.id)
+
+        and: "Response shouldn't contain error"
+        assert !response.ext?.errors
+
+        and: "Response shouldn't contain warning"
+        assert !response.ext?.warnings
+
+        and: "PBS response shouldn't contain seatNonBid and contain errors"
+        assert !response.ext.seatnonbid
+    }
+
+    def "PBS shouldn't send request to bidder and emit warning when adapters.bidder.meta-info.currency-accepted not intersect with requested currency"() {
+        given: "PBS with adapter configuration"
+        def pbsService = pbsServiceFactory.getService("adapters.generic.meta-info.currency-accepted": "${JPY},${CHF}".toString())
+
+        and: "Default basic generic BidRequest"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            cur = [USD]
+            ext.prebid.returnAllBidStatus = true
+        }
+
+        when: "PBS processes auction request"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response shouldn't contain http calls"
+        assert !response.ext?.debug?.httpcalls
+
+        and: "Response shouldn't contain seatBid"
+        assert !response.seatbid
+
+        and: "Pbs shouldn't make bidder request"
+        assert !bidder.getBidderRequests(bidRequest.id)
+
+        and: "Response shouldn't contain error"
+        assert !response.ext?.errors
+
+        and: "Response should seatNon bid with code 205"
+        assert response.ext.seatnonbid.size() == 1
+
+        and: "PBS should emit an warnings"
+        assert response.ext?.warnings[GENERIC]*.code == [999]
+        assert response.ext?.warnings[GENERIC]*.message ==
+                ["No match between the configured currencies and bidRequest.cur"]
+
+        def seatNonBid = response.ext.seatnonbid[0]
+        assert seatNonBid.seat == BidderName.GENERIC.value
+        assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
+        assert seatNonBid.nonBid[0].statusCode == REQUEST_BLOCKED_UNACCEPTABLE_CURRENCY
+    }
+
+    def "PBS should send request to bidder when adapters.bidder.aliases.bidder.meta-info.currency-accepted intersect with requested currency"() {
+        given: "PBS with adapter configuration"
+        def pbsService = pbsServiceFactory.getService(
+                "adapters.generic.aliases.alias.enabled" : "true",
+                "adapters.generic.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString(),
+                "adapters.generic.aliases.alias.meta-info.currency-accepted": "${USD},${EUR}".toString())
+
+        and: "Default basic BidRequest with alias bidder"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            cur = [USD]
+            ext.prebid.returnAllBidStatus = true
+            imp[0].ext.prebid.bidder.alias = new Generic()
+            imp[0].ext.prebid.bidder.generic = null
+        }
+
+        and: "Default bid response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain http calls"
+        assert response.ext?.debug?.httpcalls[ALIAS.value]
+
+        and: "Response should contain seatBid"
+        assert response.seatbid.bid.flatten().size() == 1
+
+        and: "Bidder request should be valid"
+        assert bidder.getBidderRequest(bidRequest.id)
+
+        and: "Response shouldn't contain error"
+        assert !response.ext?.errors
+
+        and: "Response shouldn't contain warning"
+        assert !response.ext?.warnings
+
+        and: "PBS response shouldn't contain seatNonBid and contain errors"
+        assert !response.ext.seatnonbid
+    }
+
+    def "PBS shouldn't send request to bidder and emit warning when adapters.bidder.aliases.bidder.meta-info.currency-accepted not intersect with requested currency"() {
+        given: "PBS with adapter configuration"
+        def pbsService = pbsServiceFactory.getService(
+                "adapters.generic.aliases.alias.enabled" : "true",
+                "adapters.generic.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString(),
+                "adapters.generic.aliases.alias.meta-info.currency-accepted": "${JPY},${CHF}".toString())
+
+        and: "Default basic BidRequest with alias bidder"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            cur = [USD]
+            ext.prebid.returnAllBidStatus = true
+            imp[0].ext.prebid.bidder.alias = new Generic()
+            imp[0].ext.prebid.bidder.generic = null
+        }
+
+        and: "Default bid response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response shouldn't contain http calls"
+        assert !response.ext?.debug?.httpcalls
+
+        and: "Response shouldn't contain seatBid"
+        assert !response.seatbid
+
+        and: "Pbs shouldn't make bidder request"
+        assert !bidder.getBidderRequests(bidRequest.id)
+
+        and: "Response shouldn't contain error"
+        assert !response.ext?.errors
+
+        and: "PBS should emit an warnings"
+        assert response.ext?.warnings[ALIAS]*.code == [999]
+        assert response.ext?.warnings[ALIAS]*.message ==
+                ["No match between the configured currencies and bidRequest.cur"]
+
+        and: "Response should seatNon bid with code 205"
+        assert response.ext.seatnonbid.size() == 1
+
+        def seatNonBid = response.ext.seatnonbid[0]
+        assert seatNonBid.seat == BidderName.ALIAS.value
+        assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
+        assert seatNonBid.nonBid[0].statusCode == REQUEST_BLOCKED_UNACCEPTABLE_CURRENCY
     }
 }

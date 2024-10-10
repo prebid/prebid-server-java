@@ -11,6 +11,7 @@ class AccountAnalyticsConfig {
 
     Map<String, Boolean> auctionEvents
     Boolean allowClientDetails
+    AnalyticsModule modules
 
     @JsonProperty("auction_events")
     Map<String, Boolean> auctionEventsSnakeCase

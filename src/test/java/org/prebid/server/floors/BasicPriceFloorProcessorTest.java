@@ -493,7 +493,6 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
     @Test
     public void shouldUpdateImpsIfBidFloorResolved() {
         // given
-
         final PriceFloorRules requestFloors = givenFloors(floors -> floors
                 .data(givenFloorData(floorData -> floorData
                         .modelGroups(singletonList(givenModelGroup(identity()))))));
@@ -511,7 +510,6 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                 .willReturn(PriceFloorResult.of("rule", BigDecimal.ONE, BigDecimal.TEN, "USD"));
 
         // when
-
         final BidRequest result = target.enrichWithPriceFloors(
                 givenBidRequest(request -> request.imp(imps), requestFloors),
                 givenAccount(identity()),

@@ -71,11 +71,7 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
 
     @Test
     public void codeShouldHaveValidConfigsWhenInitialized() {
-        // given
-
-        // when
-
-        // then
+        // when and then
         assertThat(target.code()).isEqualTo("confiant-ad-quality-bid-responses-scan-hook");
     }
 

@@ -33,6 +33,7 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.auction.model.SecBrowsingTopic;
 import org.prebid.server.auction.model.debug.DebugContext;
+import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.exception.BlocklistedAppException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
@@ -92,6 +93,8 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     private static final String ENDPOINT = Endpoint.openrtb2_amp.value();
 
     @Mock(strictness = LENIENT)
+    private BidderCatalog bidderCatalog;
+    @Mock(strictness = LENIENT)
     private ImplicitParametersExtractor paramsExtractor;
     @Mock(strictness = LENIENT)
     private TimeoutResolver timeoutResolver;
@@ -118,6 +121,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 "https://external.url/",
                 0,
                 "datacenter-region",
+                bidderCatalog,
                 paramsExtractor,
                 timeoutResolver,
                 ipAddressHelper,
@@ -135,6 +139,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .headers(CaseInsensitiveMultiMap.empty())
                 .build());
 
+        given(bidderCatalog.isValidName(anyString())).willReturn(true);
         given(idGenerator.generateId()).willReturn(null);
         given(topicsResolver.resolve(any(), anyBoolean(), anyList())).willReturn(emptyList());
         given(timeoutResolver.limitToMax(any())).willReturn(2000L);
@@ -1044,7 +1049,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     }
 
     @Test
-    public void shouldMoveBidderParametersToImpExtPrebidBidderAndMergeWithExisting() {
+    public void shouldNotMoveBidderParametersToImpExtPrebidBidderWhenAlreadyPresent() {
         // given
         final List<Imp> imps = singletonList(
                 Imp.builder()
@@ -1080,6 +1085,8 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .id("someImpId")
                 .secure(1)
                 .ext(mapper.createObjectNode()
+                        .<ObjectNode>set("bidder1", mapper.createObjectNode().put("param1", "value1"))
+                        .<ObjectNode>set("bidder2", mapper.createObjectNode().put("param2", "value2"))
                         .<ObjectNode>set("context", mapper.createObjectNode().put("data", "datavalue"))
                         .<ObjectNode>set("all", mapper.createObjectNode().put("all-data", "all-value"))
                         .<ObjectNode>set("general", mapper.createObjectNode()
@@ -1094,12 +1101,67 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                                 .put("tid-data", "tid-value"))
                         .set("prebid", mapper.createObjectNode()
                                 .<ObjectNode>set("bidder", mapper.createObjectNode()
-                                        .<ObjectNode>set(
-                                                "bidder1", mapper.createObjectNode().put("param1", "value1"))
-                                        .<ObjectNode>set(
-                                                "bidder2", mapper.createObjectNode()
-                                                        .put("param2", "value2")
-                                                        .put("param22", "value22")))
+                                        .set("bidder2", mapper.createObjectNode().put("param22", "value22")))
+                                .set("storedresult", mapper.createObjectNode().put("id", "storedreq1"))))
+                .build();
+
+        assertThat(result.getImp()).isEqualTo(singletonList(expectedImp));
+    }
+
+    @Test
+    public void shouldMoveBidderParametersToImpExtPrebidBidderWhenNotPresent() {
+        // given
+        given(bidderCatalog.isValidName(eq("notBidder"))).willReturn(false);
+
+        final List<Imp> imps = singletonList(
+                Imp.builder()
+                        .id("someImpId")
+                        .ext(mapper.createObjectNode()
+                                .<ObjectNode>set("notBidder", mapper.createObjectNode().put("param1", "value1"))
+                                .<ObjectNode>set("bidder", mapper.createObjectNode().put("param2", "value2"))
+                                .<ObjectNode>set("context", mapper.createObjectNode().put("data", "datavalue"))
+                                .<ObjectNode>set("all", mapper.createObjectNode().put("all-data", "all-value"))
+                                .<ObjectNode>set("general", mapper.createObjectNode()
+                                        .put("general-data", "general-value"))
+                                .<ObjectNode>set("skadn", mapper.createObjectNode()
+                                        .put("skadn-data", "skadn-value"))
+                                .<ObjectNode>set("data", mapper.createObjectNode()
+                                        .put("data-data", "data-value"))
+                                .<ObjectNode>set("gpid", mapper.createObjectNode()
+                                        .put("gpid-data", "gpid-value"))
+                                .<ObjectNode>set("tid", mapper.createObjectNode()
+                                        .put("tid-data", "tid-value"))
+                                .set("prebid", mapper.createObjectNode()
+                                        .set("storedresult", mapper.createObjectNode().put("id", "storedreq1"))))
+                        .build());
+
+        final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
+
+        // when
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
+
+        // then
+        final Imp expectedImp = Imp.builder()
+                .id("someImpId")
+                .secure(1)
+                .ext(mapper.createObjectNode()
+                        .<ObjectNode>set("notBidder", mapper.createObjectNode().put("param1", "value1"))
+                        .<ObjectNode>set("context", mapper.createObjectNode().put("data", "datavalue"))
+                        .<ObjectNode>set("all", mapper.createObjectNode().put("all-data", "all-value"))
+                        .<ObjectNode>set("general", mapper.createObjectNode()
+                                .put("general-data", "general-value"))
+                        .<ObjectNode>set("skadn", mapper.createObjectNode()
+                                .put("skadn-data", "skadn-value"))
+                        .<ObjectNode>set("data", mapper.createObjectNode()
+                                .put("data-data", "data-value"))
+                        .<ObjectNode>set("gpid", mapper.createObjectNode()
+                                .put("gpid-data", "gpid-value"))
+                        .<ObjectNode>set("tid", mapper.createObjectNode()
+                                .put("tid-data", "tid-value"))
+                        .set("prebid", mapper.createObjectNode()
+                                .<ObjectNode>set("bidder", mapper.createObjectNode()
+                                        .<ObjectNode>set("notBidder", mapper.createObjectNode().put("param1", "value1"))
+                                        .<ObjectNode>set("bidder", mapper.createObjectNode().put("param2", "value2")))
                                 .set("storedresult", mapper.createObjectNode().put("id", "storedreq1"))))
                 .build();
 
@@ -2343,13 +2405,6 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .containsOnly(ExtRequestPrebidChannel.of("app"));
     }
 
-    private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer) {
-        return bidRequestCustomizer.apply(BidRequest.builder()
-                        .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
-                        .ext(ExtRequest.of(ExtRequestPrebid.builder().build())))
-                .build();
-    }
-
     @Test
     public void shouldNotSetRequestPrebidChannelWhenMissingInRequestAndNotSiteOrAppOrAmp() {
         // given
@@ -2775,6 +2830,13 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                                         .put("segclass", "segClass"))
                                 .build(),
                         Data.builder().build());
+    }
+
+    private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer) {
+        return bidRequestCustomizer.apply(BidRequest.builder()
+                        .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
+                        .ext(ExtRequest.of(ExtRequestPrebid.builder().build())))
+                .build();
     }
 
     private static AuctionContext givenAuctionContext(HttpRequestContext httpRequestContext) {

@@ -10,8 +10,8 @@
       "tagid": "2eb6bd58-865c-47ce-af7f-a918108c3fd2",
       "ext": {
         "connectad": {
-          "networkId": 12,
-          "siteId": 15,
+          "networkId": "12",
+          "siteId": "15",
           "bidfloor": 14.7
         }
       }

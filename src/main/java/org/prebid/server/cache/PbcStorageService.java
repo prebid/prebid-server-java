@@ -11,9 +11,9 @@ public interface PbcStorageService {
                             StorageDataType type,
                             Integer ttlseconds,
                             String application,
-                            String moduleCode);
+                            String appCode);
 
-    Future<ModuleCacheResponse> retrieveModuleEntry(String key, String moduleCode, String application);
+    Future<ModuleCacheResponse> retrieveEntry(String key, String appCode, String application);
 
     static NoOpPbcStorageService noOp() {
         return new NoOpPbcStorageService();
@@ -27,13 +27,13 @@ public interface PbcStorageService {
                                        StorageDataType type,
                                        Integer ttlseconds,
                                        String application,
-                                       String moduleCode) {
+                                       String appCode) {
 
             return Future.succeededFuture();
         }
 
         @Override
-        public Future<ModuleCacheResponse> retrieveModuleEntry(String key, String moduleCode, String application) {
+        public Future<ModuleCacheResponse> retrieveEntry(String key, String appCode, String application) {
             return Future.succeededFuture(ModuleCacheResponse.empty());
         }
     }

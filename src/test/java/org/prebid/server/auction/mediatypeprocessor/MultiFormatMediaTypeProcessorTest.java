@@ -146,6 +146,40 @@ public class MultiFormatMediaTypeProcessorTest extends VertxTest {
     }
 
     @Test
+    public void processShouldUseRequestLevelPreferredMediaTypeFirstCaseInsensitive() {
+        // given
+        given(bidderAliases.resolveBidder(BIDDER)).willReturn("resolvedBidderName");
+        given(bidderCatalog.bidderInfoByName("resolvedBidderName")).willReturn(givenBidderInfo(false));
+
+        final ObjectNode bidderControls = mapper.createObjectNode();
+        bidderControls.putObject(BIDDER.toUpperCase()).put("prefmtype", "video");
+
+        final BidRequest bidRequest = givenBidRequest(
+                request -> request.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .biddercontrols(bidderControls)
+                        .build())),
+                givenImp(BANNER, VIDEO, AUDIO, NATIVE));
+
+        final Account account = givenAccount(Map.of("resolvedBidderName", AUDIO));
+
+        // when
+        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, bidderAliases, account);
+
+        // then
+        assertThat(result.isRejected()).isFalse();
+        assertThat(result.getBidRequest())
+                .extracting(BidRequest::getImp)
+                .asInstanceOf(InstanceOfAssertFactories.list(Imp.class))
+                .containsExactly(givenImp(VIDEO));
+        assertThat(result.getBidRequest())
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getBiddercontrols)
+                .isNull();
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
     public void processShouldSkipImpsWithSingleMediaType() {
         // given
         given(bidderCatalog.bidderInfoByName(BIDDER)).willReturn(givenBidderInfo(false));
@@ -241,6 +275,7 @@ public class MultiFormatMediaTypeProcessorTest extends VertxTest {
                 emptyList(),
                 emptyList(),
                 0,
+                emptyList(),
                 false,
                 false,
                 CompressionType.NONE,

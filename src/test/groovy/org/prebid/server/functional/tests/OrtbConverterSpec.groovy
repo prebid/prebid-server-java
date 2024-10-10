@@ -17,6 +17,7 @@ import org.prebid.server.functional.model.request.auction.RefSettings
 import org.prebid.server.functional.model.request.auction.RefType
 import org.prebid.server.functional.model.request.auction.Refresh
 import org.prebid.server.functional.model.request.auction.Regs
+import org.prebid.server.functional.model.request.auction.RegsExt
 import org.prebid.server.functional.model.request.auction.Source
 import org.prebid.server.functional.model.request.auction.SourceType
 import org.prebid.server.functional.model.request.auction.User
@@ -46,10 +47,7 @@ class OrtbConverterSpec extends BaseSpec {
         def usPrivacyRandomString = PBSUtils.randomString
         def gdpr = 0
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            regs = Regs.defaultRegs.tap {
-                it.usPrivacy = usPrivacyRandomString
-                it.gdpr = gdpr
-            }
+            regs = new Regs(usPrivacy: usPrivacyRandomString, gdpr: gdpr)
         }
 
         when: "Requesting PBS auction with ortb 2.6"
@@ -182,7 +180,7 @@ class OrtbConverterSpec extends BaseSpec {
         }
     }
 
-    def "PBS should move eids to o user.ext.eids when adapter doesn't support ortb 2.6"() {
+    def "PBS should move eids to user.ext.eids when adapter doesn't support ortb 2.6"() {
         given: "Default bid request with user.eids"
         def defaultEids = [Eid.defaultEid]
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -563,6 +561,7 @@ class OrtbConverterSpec extends BaseSpec {
                 mincpmpersec = PBSUtils.randomDecimal
                 slotinpod = PBSUtils.randomNumber
                 plcmt = PBSUtils.getRandomEnum(VideoPlcmtSubtype)
+                podDeduplication = [PBSUtils.randomNumber]
             }
         }
 
@@ -586,6 +585,7 @@ class OrtbConverterSpec extends BaseSpec {
                 mincpmpersec = PBSUtils.randomDecimal
                 slotinpod = PBSUtils.randomNumber
                 plcmt = PBSUtils.getRandomEnum(VideoPlcmtSubtype)
+                podDeduplication = [PBSUtils.randomNumber, PBSUtils.randomNumber]
             }
         }
 
@@ -1140,7 +1140,7 @@ class OrtbConverterSpec extends BaseSpec {
         def randomGpc = PBSUtils.randomNumber as String
         def bidRequest = BidRequest.defaultBidRequest.tap {
             regs = Regs.defaultRegs.tap {
-                ext.gpc = randomGpc
+                ext = new RegsExt(gpc: randomGpc)
             }
         }
 
@@ -1156,7 +1156,7 @@ class OrtbConverterSpec extends BaseSpec {
         def randomGpc = PBSUtils.randomNumber as String
         def bidRequest = BidRequest.defaultBidRequest.tap {
             regs = Regs.defaultRegs.tap {
-                ext.gpc = randomGpc
+                ext = new RegsExt(gpc: randomGpc)
             }
         }
 

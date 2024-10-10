@@ -33,12 +33,12 @@ public class DaemonVerticle extends AbstractVerticle {
 
     @Override
     public void start(Promise<Void> startPromise) {
-        startPromise.handle(all(initializables, initializable -> initializable::initialize));
+        all(initializables, initializable -> initializable::initialize).onComplete(startPromise);
     }
 
     @Override
     public void stop(Promise<Void> stopPromise) {
-        stopPromise.handle(all(closeables, closeable -> closeable::close));
+        all(closeables, closeable -> closeable::close).onComplete(stopPromise);
     }
 
     private static <E> Future<Void> all(Collection<E> entries,

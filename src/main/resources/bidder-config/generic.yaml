@@ -41,21 +41,6 @@ adapters:
             - video
           supported-vendors:
           vendor-id: 0
-      loopme:
-        enabled: false
-        endpoint: http://prebid-eu.loopmertb.com
-        meta-info:
-          maintainer-email: support@loopme.com
-          app-media-types:
-            - banner
-            - video
-            - native
-          site-media-types:
-            - banner
-            - video
-            - native
-          supported-vendors:
-          vendor-id: 109
       zeta_global_ssp:
         enabled: false
         endpoint: https://ssp.disqus.com/bid/prebid-server?sid=GET_SID_FROM_ZETA
@@ -129,15 +114,15 @@ adapters:
             - video
             - native
           site-media-types:
-           - banner
-           - video
-           - native
+            - banner
+            - video
+            - native
           supported-vendors:
           vendor-id: 263
         usersync:
           cookie-family-name: nativo
           redirect:
-            url: http://jadserve.postrelease.com/suid/101787?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&ntv_gpp_consent={{gpp}}&ntv_r={{redirect_url}}
+            url: https://jadserve.postrelease.com/suid/101787?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&ntv_gpp_consent={{gpp}}&ntv_r={{redirect_url}}
             support-cors: false
             uid-macro: 'NTV_USER_ID'
     meta-info:

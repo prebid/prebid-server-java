@@ -410,6 +410,7 @@ public class AmpRequestFactory {
                 .map(this::fillExplicitParameters)
                 .map(bidRequest -> overrideParameters(bidRequest, httpRequest, auctionContext.getPrebidErrors()))
                 .map(bidRequest -> paramsResolver.resolve(bidRequest, auctionContext, ENDPOINT, true))
+                .map(bidRequest -> ortb2RequestFactory.removeEmptyEids(bidRequest, auctionContext.getDebugWarnings()))
                 .compose(resolvedBidRequest -> ortb2RequestFactory.validateRequest(
                         resolvedBidRequest,
                         auctionContext.getHttpRequest(),

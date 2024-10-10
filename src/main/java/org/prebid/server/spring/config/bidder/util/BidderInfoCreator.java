@@ -28,6 +28,7 @@ public class BidderInfoCreator {
                 metaInfo.getDoohMediaTypes(),
                 metaInfo.getSupportedVendors(),
                 metaInfo.getVendorId(),
+                metaInfo.getCurrencyAccepted(),
                 configurationProperties.getPbsEnforcesCcpa(),
                 configurationProperties.getModifyingVastXmlAllowed(),
                 configurationProperties.getEndpointCompression(),

@@ -35,7 +35,7 @@ class Imp {
     BigDecimal bidFloor
     Currency bidFloorCur
     Integer clickBrowser
-    Integer secure
+    SecurityLevel secure
     List<String> iframeBuster
     Integer rwdd
     Integer ssai

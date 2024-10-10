@@ -72,9 +72,9 @@ public class UserFpdTcfMaskTest extends VertxTest {
                 .kwarray(emptyList())
                 .data(emptyList())
                 .eids(asList(
-                        Eid.of("1", null, null),
-                        Eid.of("2", null, null),
-                        Eid.of("3", null, null)))
+                        Eid.builder().source("1").build(),
+                        Eid.builder().source("2").build(),
+                        Eid.builder().source("3").build()))
                 .geo(Geo.builder().lon(-85.34321F).lat(189.342323F).build())
                 .ext(ExtUser.builder().data(mapper.createObjectNode()).build())
                 .build();
@@ -92,7 +92,7 @@ public class UserFpdTcfMaskTest extends VertxTest {
                         .keywords("keywords")
                         .kwarray(emptyList())
                         .data(emptyList())
-                        .eids(singletonList(Eid.of("2", null, null)))
+                        .eids(singletonList(Eid.builder().source("2").build()))
                         .geo(Geo.builder().lon(-85.34321F).lat(189.342323F).build())
                         .ext(ExtUser.builder().data(mapper.createObjectNode()).build())
                         .build());

@@ -15,8 +15,8 @@
       "ext": {
         "tid": "${json-unit.any-string}",
         "bidder": {
-          "networkId": 12,
-          "siteId": 15,
+          "networkId": "12",
+          "siteId": "15",
           "bidfloor": 14.7
         }
       }

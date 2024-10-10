@@ -82,6 +82,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAdservertargetingRule;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAmp;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredRequest;
@@ -1223,7 +1224,6 @@ public class BidResponseCreatorTest extends VertxTest {
         final BidResponse bidResponse = target.create(auctionContext, CACHE_INFO, MULTI_BIDS).result();
 
         // then
-
         assertThat(bidResponse.getSeatbid()).hasSize(1)
                 .flatExtracting(SeatBid::getBid)
                 .extracting(Bid::getAdm)
@@ -1283,7 +1283,6 @@ public class BidResponseCreatorTest extends VertxTest {
         final BidResponse bidResponse = target.create(auctionContext, CACHE_INFO, MULTI_BIDS).result();
 
         // then
-
         assertThat(bidResponse.getSeatbid()).hasSize(1)
                 .flatExtracting(SeatBid::getBid)
                 .extracting(Bid::getAdm)
@@ -1553,7 +1552,7 @@ public class BidResponseCreatorTest extends VertxTest {
 
         final AuctionContext auctionContext = givenAuctionContext(
                 givenBidRequest(
-                        identity(),
+                        request -> request.app(App.builder().build()),
                         extBuilder -> extBuilder.targeting(givenTargeting()),
                         givenImp()),
                 contextBuilder -> contextBuilder.auctionParticipations(toAuctionParticipant(bidderResponses)));
@@ -1571,7 +1570,45 @@ public class BidResponseCreatorTest extends VertxTest {
                         tuple("hb_pb", "5.00"),
                         tuple("hb_pb_bidder1", "5.00"),
                         tuple("hb_bidder", "bidder1"),
-                        tuple("hb_bidder_bidder1", "bidder1"));
+                        tuple("hb_bidder_bidder1", "bidder1"),
+                        tuple("hb_env", "mobile-app"),
+                        tuple("hb_env_bidder1", "mobile-app"));
+
+        verify(coreCacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
+    }
+
+    @Test
+    public void shouldPopulateTargetingKeywordsForAmpRequest() {
+        // given
+        final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(5.67)).impid(IMP_ID).build();
+        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
+                givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
+
+        final AuctionContext auctionContext = givenAuctionContext(
+                givenBidRequest(
+                        request -> request.app(App.builder().build()),
+                        extBuilder -> extBuilder
+                                .targeting(givenTargeting())
+                                .amp(ExtRequestPrebidAmp.of(Map.of("key", "value"))),
+                        givenImp()),
+                contextBuilder -> contextBuilder.auctionParticipations(toAuctionParticipant(bidderResponses)));
+
+        // when
+        final BidResponse bidResponse = target.create(auctionContext, CACHE_INFO, MULTI_BIDS).result();
+
+        // then
+        assertThat(bidResponse.getSeatbid())
+                .flatExtracting(SeatBid::getBid).hasSize(1)
+                .extracting(extractedBid -> toExtBidPrebid(extractedBid.getExt()).getTargeting())
+                .flatExtracting(Map::entrySet)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsOnly(
+                        tuple("hb_pb", "5.00"),
+                        tuple("hb_pb_bidder1", "5.00"),
+                        tuple("hb_bidder", "bidder1"),
+                        tuple("hb_bidder_bidder1", "bidder1"),
+                        tuple("hb_env", "amp"),
+                        tuple("hb_env_bidder1", "amp"));
 
         verify(coreCacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }

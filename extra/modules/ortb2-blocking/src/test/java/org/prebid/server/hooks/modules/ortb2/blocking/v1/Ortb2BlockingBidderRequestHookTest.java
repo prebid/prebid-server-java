@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderInfo;
@@ -35,11 +36,14 @@ import org.prebid.server.hooks.v1.PayloadUpdate;
 import org.prebid.server.hooks.v1.bidder.BidderRequestPayload;
 import org.prebid.server.spring.config.bidder.model.Ortb;
 
+import java.util.Map;
+
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 
 @ExtendWith(MockitoExtension.class)
@@ -49,8 +53,11 @@ public class Ortb2BlockingBidderRequestHookTest {
             .setPropertyNamingStrategy(PropertyNamingStrategies.KEBAB_CASE)
             .setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
-    @Mock
+    @Mock(strictness = Mock.Strictness.LENIENT)
     private BidderCatalog bidderCatalog;
+
+    @Mock(strictness = Mock.Strictness.LENIENT)
+    private BidRejectionTracker bidRejectionTracker;
 
     private Ortb2BlockingBidderRequestHook hook;
 
@@ -64,10 +71,21 @@ public class Ortb2BlockingBidderRequestHookTest {
 
     @Test
     public void shouldReturnResultWithNoActionWhenNoBlockingAttributes() {
+        // given
+        given(bidderCatalog.bidderInfoByName(anyString()))
+                .willReturn(bidderInfo(OrtbVersion.ORTB_2_6));
+        given(bidderCatalog.bidderInfoByName(eq("bidder1Base")))
+                .willReturn(bidderInfo(OrtbVersion.ORTB_2_5));
+
         // when
         final Future<InvocationResult<BidderRequestPayload>> result = hook.call(
                 BidderRequestPayloadImpl.of(emptyRequest()),
-                BidderInvocationContextImpl.of("bidder1", null, true));
+                BidderInvocationContextImpl.of(
+                        "bidder1",
+                        Map.of("bidder1", "bidder1Base"),
+                        bidRejectionTracker,
+                        null,
+                        true));
 
         // then
         assertThat(result.succeeded()).isTrue();
@@ -87,7 +105,7 @@ public class Ortb2BlockingBidderRequestHookTest {
         // when
         final Future<InvocationResult<BidderRequestPayload>> result = hook.call(
                 BidderRequestPayloadImpl.of(emptyRequest()),
-                BidderInvocationContextImpl.of("bidder1", accountConfig, true));
+                BidderInvocationContextImpl.of("bidder1", bidRejectionTracker, accountConfig, true));
 
         // then
         assertThat(result.succeeded()).isTrue();
@@ -108,7 +126,7 @@ public class Ortb2BlockingBidderRequestHookTest {
         // when
         final Future<InvocationResult<BidderRequestPayload>> result = hook.call(
                 BidderRequestPayloadImpl.of(emptyRequest()),
-                BidderInvocationContextImpl.of("bidder1", accountConfig, false));
+                BidderInvocationContextImpl.of("bidder1", bidRejectionTracker, accountConfig, false));
 
         // then
         assertThat(result.succeeded()).isTrue();
@@ -134,7 +152,7 @@ public class Ortb2BlockingBidderRequestHookTest {
         // when
         final Future<InvocationResult<BidderRequestPayload>> result = hook.call(
                 BidderRequestPayloadImpl.of(emptyRequest()),
-                BidderInvocationContextImpl.of("bidder1", accountConfig, true));
+                BidderInvocationContextImpl.of("bidder1", bidRejectionTracker, accountConfig, true));
 
         // then
         assertThat(result.succeeded()).isTrue();
@@ -186,7 +204,7 @@ public class Ortb2BlockingBidderRequestHookTest {
         // when
         final Future<InvocationResult<BidderRequestPayload>> result = hook.call(
                 BidderRequestPayloadImpl.of(emptyRequest()),
-                BidderInvocationContextImpl.of("bidder1", accountConfig, true));
+                BidderInvocationContextImpl.of("bidder1", bidRejectionTracker, accountConfig, true));
 
         // then
         assertThat(result.succeeded()).isTrue();
@@ -223,7 +241,7 @@ public class Ortb2BlockingBidderRequestHookTest {
         // when
         final Future<InvocationResult<BidderRequestPayload>> result = hook.call(
                 BidderRequestPayloadImpl.of(emptyRequest()),
-                BidderInvocationContextImpl.of("bidder1", accountConfig, false));
+                BidderInvocationContextImpl.of("bidder1", bidRejectionTracker, accountConfig, false));
 
         // then
         assertThat(result.succeeded()).isTrue();
@@ -254,6 +272,7 @@ public class Ortb2BlockingBidderRequestHookTest {
                 null,
                 null,
                 0,
+                null,
                 false,
                 false,
                 null,

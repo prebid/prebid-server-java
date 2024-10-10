@@ -336,7 +336,6 @@ public class CachingApplicationSettingsTest {
                 .willReturn(Future.failedFuture(new TimeoutException("timeout")));
 
         // when
-
         target.getCategories("adServer", "publisher", timeout);
         target.getCategories("adServer", "publisher", timeout);
         final Future<Map<String, String>> lastFuture =

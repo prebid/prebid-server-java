@@ -8,11 +8,7 @@ public class ConfiantAdQualityModuleTest {
 
     @Test
     public void shouldHaveValidInitialConfigs() {
-        // given
-
-        // when
-
-        // then
+        // when and then
         assertThat(ConfiantAdQualityModule.CODE).isEqualTo("confiant-ad-quality");
     }
 }

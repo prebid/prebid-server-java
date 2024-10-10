@@ -19,6 +19,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
+import org.prebid.server.VertxTest;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
@@ -36,10 +37,14 @@ import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
+import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAnalyticsConfig;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 
@@ -58,7 +63,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
-public class AnalyticsReporterDelegatorTest {
+public class AnalyticsReporterDelegatorTest extends VertxTest {
 
     private static final String EVENT = StringUtils.EMPTY;
     private static final Integer FIRST_REPORTER_ID = 1;
@@ -100,7 +105,14 @@ public class AnalyticsReporterDelegatorTest {
                 .willReturn(Future.succeededFuture(enforcementActionMap));
 
         target = new AnalyticsReporterDelegator(
-                vertx, List.of(firstReporter, secondReporter), tcfEnforcement, userFpdActivityMask, metrics, 0.01);
+                vertx,
+                List.of(firstReporter, secondReporter),
+                tcfEnforcement,
+                userFpdActivityMask,
+                metrics,
+                0.01,
+                Set.of("logAnalytics", "adapter"),
+                jacksonMapper);
     }
 
     @Test
@@ -387,6 +399,154 @@ public class AnalyticsReporterDelegatorTest {
                 });
     }
 
+    @Test
+    public void shouldNotCallAnalyticsAdapterIfDisabledByAccount() {
+        // given
+        final ObjectNode moduleConfig = mapper.createObjectNode();
+        moduleConfig.put("enabled", false);
+        moduleConfig.put("property1", "value1");
+        moduleConfig.put("property2", "value2");
+
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .account(Account.builder()
+                        .analytics(AccountAnalyticsConfig.of(
+                                true, null, Map.of("logAnalytics", moduleConfig)))
+                        .build())
+                .bidRequest(BidRequest.builder()
+                        .ext(ExtRequest.of(ExtRequestPrebid.builder().analytics(mapper.createObjectNode()).build()))
+                        .build())
+                .build();
+
+        // when
+        target.processEvent(AuctionEvent.builder().auctionContext(auctionContext).build());
+
+        // then
+        verify(vertx).runOnContext(any());
+        final ArgumentCaptor<AuctionEvent> auctionEventCaptor = ArgumentCaptor.forClass(AuctionEvent.class);
+        verify(firstReporter, never()).processEvent(auctionEventCaptor.capture());
+    }
+
+    @Test
+    public void shouldCallAnalyticsAdapterIfAdapterNodePresentButEnabledPropertyNotPresent() {
+        // given
+        final ObjectNode moduleConfig = mapper.createObjectNode();
+        moduleConfig.put("property1", "value1");
+        moduleConfig.put("property2", "value2");
+
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .account(Account.builder()
+                        .analytics(AccountAnalyticsConfig.of(
+                                true, null, Map.of("logAnalytics", moduleConfig)))
+                        .build())
+                .bidRequest(BidRequest.builder()
+                        .ext(ExtRequest.of(ExtRequestPrebid.builder().analytics(mapper.createObjectNode()).build()))
+                        .build())
+                .build();
+
+        // when
+        target.processEvent(AuctionEvent.builder().auctionContext(auctionContext).build());
+
+        // then
+        verify(vertx, times(2)).runOnContext(any());
+        verify(firstReporter).processEvent(any());
+    }
+
+    @Test
+    public void shouldUpdateAuctionEventWithPropertiesFromAdapterSpecificAccountConfig() {
+        // given
+        final ObjectNode moduleConfig = mapper.createObjectNode();
+        moduleConfig.put("enabled", true);
+        moduleConfig.put("property1", "value1");
+        moduleConfig.put("property2", "value2");
+
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .account(Account.builder()
+                        .analytics(AccountAnalyticsConfig.of(
+                                true, null, Map.of("logAnalytics", moduleConfig)))
+                        .build())
+                .bidRequest(BidRequest.builder()
+                        .ext(ExtRequest.of(ExtRequestPrebid.builder().analytics(mapper.createObjectNode()).build()))
+                        .build())
+                .build();
+
+        // when
+        target.processEvent(AuctionEvent.builder().auctionContext(auctionContext).build());
+
+        // then
+        verify(vertx, times(2)).runOnContext(any());
+
+        final ObjectNode expectedAnalyticsNode = mapper.createObjectNode();
+        final ObjectNode expectedLogAnalyticsNode = mapper.createObjectNode();
+        expectedLogAnalyticsNode.put("property1", "value1");
+        expectedLogAnalyticsNode.put("property2", "value2");
+        expectedAnalyticsNode.set("logAnalytics", expectedLogAnalyticsNode);
+
+        final ArgumentCaptor<AuctionEvent> auctionEventCaptor = ArgumentCaptor.forClass(AuctionEvent.class);
+        verify(firstReporter).processEvent(auctionEventCaptor.capture());
+        assertThat(auctionEventCaptor.getValue())
+                .extracting(AuctionEvent::getAuctionContext)
+                .extracting(AuctionContext::getBidRequest)
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getAnalytics)
+                .isEqualTo(expectedAnalyticsNode);
+    }
+
+    @Test
+    public void shouldUpdateAuctionEventWithPropertiesFromAdapterSpecificAccountConfigWithPrecedenceForRequest() {
+        // given
+        final ObjectNode moduleConfig = mapper.createObjectNode();
+        moduleConfig.put("enabled", true);
+        moduleConfig.put("property1", "value1");
+        moduleConfig.put("property2", "value2");
+
+        final ObjectNode analyticsNode = mapper.createObjectNode();
+        final ObjectNode logAnalyticsNode = mapper.createObjectNode();
+        logAnalyticsNode.put("property1", "requestValue1");
+        logAnalyticsNode.put("property3", "requestValue3");
+        analyticsNode.set("logAnalytics", logAnalyticsNode);
+
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .account(Account.builder()
+                        .analytics(AccountAnalyticsConfig.of(
+                                true, null, Map.of("logAnalytics", moduleConfig)))
+                        .build())
+                .bidRequest(BidRequest.builder()
+                        .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                                .channel(ExtRequestPrebidChannel.of("channel"))
+                                .analytics(analyticsNode)
+                                .build()))
+                        .build())
+                .build();
+
+        // when
+        target.processEvent(AuctionEvent.builder().auctionContext(auctionContext).build());
+
+        // then
+        verify(vertx, times(2)).runOnContext(any());
+
+        final ObjectNode expectedAnalyticsNode = mapper.createObjectNode();
+        final ObjectNode expectedLogAnalyticsNode = mapper.createObjectNode();
+        expectedLogAnalyticsNode.put("property1", "requestValue1");
+        expectedLogAnalyticsNode.put("property2", "value2");
+        expectedLogAnalyticsNode.put("property3", "requestValue3");
+        expectedAnalyticsNode.set("logAnalytics", expectedLogAnalyticsNode);
+
+        final ExtRequestPrebid expectedExtRequestPrebid = ExtRequestPrebid.builder()
+                .analytics(expectedAnalyticsNode)
+                .channel(ExtRequestPrebidChannel.of("channel"))
+                .build();
+
+        final ArgumentCaptor<AuctionEvent> auctionEventCaptor = ArgumentCaptor.forClass(AuctionEvent.class);
+        verify(firstReporter).processEvent(auctionEventCaptor.capture());
+        assertThat(auctionEventCaptor.getValue())
+                .extracting(AuctionEvent::getAuctionContext)
+                .extracting(AuctionContext::getBidRequest)
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .isEqualTo(expectedExtRequestPrebid);
+    }
+
     @SuppressWarnings("unchecked")
     private static Answer<Object> withNullAndInvokeHandler() {
         return invocation -> {
@@ -412,6 +572,7 @@ public class AnalyticsReporterDelegatorTest {
 
         return AuctionEvent.builder()
                 .auctionContext(AuctionContext.builder()
+                        .account(Account.builder().build())
                         .bidRequest(bidRequestCustomizer.apply(BidRequest.builder()).build())
                         .build())
                 .build();

@@ -179,7 +179,7 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
                         "Bid with id '%s' was rejected by floor enforcement: price %s is below the floor %s"
                                 .formatted(bid.getId(), price, floor), impId));
 
-                rejectionTracker.reject(impId, BidRejectionReason.REJECTED_DUE_TO_PRICE_FLOOR);
+                rejectionTracker.reject(impId, BidRejectionReason.RESPONSE_REJECTED_BELOW_FLOOR);
                 updatedBidderBids.remove(bidderBid);
             }
         }

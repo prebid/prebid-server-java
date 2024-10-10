@@ -25,6 +25,7 @@ import org.prebid.server.bidder.adnuntius.model.request.AdnuntiusMetaData;
 import org.prebid.server.bidder.adnuntius.model.request.AdnuntiusRequest;
 import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusAd;
 import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusAdsUnit;
+import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusAdvertiser;
 import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusBid;
 import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusGrossBid;
 import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusNetBid;
@@ -38,6 +39,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsa;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.adnuntius.ExtImpAdnuntius;
@@ -266,8 +268,7 @@ public class AdnuntiusBidderTest extends VertxTest {
                 request -> request.user(User.builder()
                         .id("userId")
                         .ext(ExtUser.builder()
-                                .eids(List.of(Eid.of(null,
-                                        List.of(Uid.of("eidsId", null, null)), null)))
+                                .eids(List.of(Eid.builder().uids(List.of(Uid.builder().id("eidsId").build())).build()))
                                 .build())
                         .build()),
                 givenImp(ExtImpAdnuntius.builder().network("network").build(), identity()),
@@ -292,8 +293,7 @@ public class AdnuntiusBidderTest extends VertxTest {
                 request -> request.user(User.builder()
                         .id(null)
                         .ext(ExtUser.builder()
-                                .eids(List.of(Eid.of(null,
-                                        List.of(Uid.of("eidsId", null, null)), null)))
+                                .eids(List.of(Eid.builder().uids(List.of(Uid.builder().id("eidsId").build())).build()))
                                 .build())
                         .build()),
                 givenImp(ExtImpAdnuntius.builder().network("network").build(), identity()),
@@ -750,6 +750,7 @@ public class AdnuntiusBidderTest extends VertxTest {
                         .creativeId("creativeId")
                         .lineItemId("lineItemId")
                         .dealId("dealId")
+                        .advertiser(AdnuntiusAdvertiser.of(null, "name"))
                         .destinationUrls(Map.of(
                                 "key1", "https://www.domain1.com/uri",
                                 "key2", "http://www.domain2.dt/uri")))),
@@ -760,6 +761,7 @@ public class AdnuntiusBidderTest extends VertxTest {
                         .lineItemId("lineItemId")
                         .dealId("dealId")
                         .html("dealHtml")
+                        .advertiser(AdnuntiusAdvertiser.of("legalName", "name"))
                         .destinationUrls(Map.of(
                                 "key1", "https://www.domain1.com/uri",
                                 "key2", "http://www.domain2.dt/uri"))))));
@@ -785,10 +787,65 @@ public class AdnuntiusBidderTest extends VertxTest {
                 assertThat(bid).extracting(Bid::getPrice).isEqualTo(BigDecimal.valueOf(1000));
                 assertThat(bid).extracting(Bid::getAdomain).asList()
                         .containsExactlyInAnyOrder("domain1.com", "domain2.dt");
+                assertThat(bid).extracting(Bid::getExt).isNull();
             });
             assertThat(bidderBid).extracting(BidderBid::getType).isEqualTo(BidType.banner);
             assertThat(bidderBid).extracting(BidderBid::getBidCurrency).isEqualTo("USD");
         });
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnTwoBidWithDsaFromDealsAndAdsWhenAdsAndDealsIsSpecifiedAndDsaReturned()
+            throws JsonProcessingException {
+
+        // given
+        final BidderCall<AdnuntiusRequest> httpCall = givenHttpCall(givenAdsUnitWithDealsAndAds(
+                "auId",
+                List.of(givenAd(ad -> ad
+                        .bid(AdnuntiusBid.of(BigDecimal.ONE, "USD"))
+                        .adId("adId")
+                        .creativeId("creativeId")
+                        .lineItemId("lineItemId")
+                        .dealId("dealId")
+                        .advertiser(AdnuntiusAdvertiser.of(null, "name"))
+                        .destinationUrls(Map.of(
+                                "key1", "https://www.domain1.com/uri",
+                                "key2", "http://www.domain2.dt/uri")))),
+                List.of(givenAd(ad -> ad
+                        .bid(AdnuntiusBid.of(BigDecimal.ONE, "USD"))
+                        .adId("adId")
+                        .creativeId("creativeId")
+                        .lineItemId("lineItemId")
+                        .dealId("dealId")
+                        .html("dealHtml")
+                        .advertiser(AdnuntiusAdvertiser.of("legalName", "name"))
+                        .destinationUrls(Map.of(
+                                "key1", "https://www.domain1.com/uri",
+                                "key2", "http://www.domain2.dt/uri"))))));
+
+        final ExtRegsDsa dsa = ExtRegsDsa.of(1, 0, 2, null);
+        final BidRequest bidRequest = givenBidRequest(
+                request -> request.regs(Regs.builder().ext(ExtRegs.of(null, null, null, dsa)).build()),
+                givenImp(ExtImpAdnuntius.builder().auId("auId").build(), identity()));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(2)
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getExt)
+                .containsExactly(
+                        mapper.createObjectNode().set("dsa", mapper.createObjectNode()
+                                .put("paid", "name")
+                                .put("behalf", "name")
+                                .put("adrender", 0)),
+                        mapper.createObjectNode().set("dsa", mapper.createObjectNode()
+                                .put("paid", "legalName")
+                                .put("behalf", "legalName")
+                                .put("adrender", 0)));
+
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -947,7 +1004,7 @@ public class AdnuntiusBidderTest extends VertxTest {
     }
 
     private static String buildExpectedUrl(Integer gdpr, String consent, Boolean noCookies) {
-        final StringBuilder expectedUri = new StringBuilder("https://test.domain.dm/uri?format=json&tzo=-300");
+        final StringBuilder expectedUri = new StringBuilder("https://test.domain.dm/uri?format=prebid&tzo=-300");
         if (gdpr != null) {
             expectedUri.append("&gdpr=").append(HttpUtil.encodeUrl(gdpr.toString()));
         }

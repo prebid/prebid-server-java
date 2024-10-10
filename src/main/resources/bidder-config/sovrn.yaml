@@ -1,7 +1,8 @@
 adapters:
   sovrn:
     endpoint: http://ap.lijit.com/rtb/bid?src=prebid_server
-    modifyingVastXmlAllowed: true
+    endpoint-compression: gzip
+    modifying-vast-xml-allowed: true
     meta-info:
       maintainer-email: sovrnoss@sovrn.com
       app-media-types:

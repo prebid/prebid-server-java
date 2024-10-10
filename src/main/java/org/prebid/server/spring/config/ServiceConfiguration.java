@@ -13,11 +13,13 @@ import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureC
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.BidResponseCreator;
 import org.prebid.server.auction.BidResponsePostProcessor;
+import org.prebid.server.auction.BidsAdjuster;
 import org.prebid.server.auction.DebugResolver;
 import org.prebid.server.auction.DsaEnforcer;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.FpdResolver;
 import org.prebid.server.auction.GeoLocationServiceWrapper;
+import org.prebid.server.auction.ImpAdjuster;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.InterstitialProcessor;
 import org.prebid.server.auction.IpAddressHelper;
@@ -97,9 +99,7 @@ import org.prebid.server.json.JsonMerger;
 import org.prebid.server.log.CriteriaLogManager;
 import org.prebid.server.log.CriteriaManager;
 import org.prebid.server.log.HttpInteractionLogger;
-import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerControlKnob;
-import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.privacy.HostVendorTcfDefinerService;
@@ -113,6 +113,7 @@ import org.prebid.server.spring.config.model.HttpClientProperties;
 import org.prebid.server.util.VersionInfo;
 import org.prebid.server.util.system.CpuLoadAverageStats;
 import org.prebid.server.validation.BidderParamValidator;
+import org.prebid.server.validation.ImpValidator;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.ResponseBidValidator;
 import org.prebid.server.validation.VideoRequestValidator;
@@ -148,8 +149,6 @@ import java.util.stream.Stream;
 
 @Configuration
 public class ServiceConfiguration {
-
-    private static final Logger logger = LoggerFactory.getLogger(ServiceConfiguration.class);
 
     @Value("${logging.sampling-rate:0.01}")
     private double logSamplingRate;
@@ -250,6 +249,11 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    ImpAdjuster impAdjuster(ImpValidator impValidator, JacksonMapper jacksonMapper, JsonMerger jsonMerger) {
+        return new ImpAdjuster(jacksonMapper, jsonMerger, impValidator);
+    }
+
+    @Bean
     OrtbTypesResolver ortbTypesResolver(JacksonMapper jacksonMapper, JsonMerger jsonMerger) {
         return new OrtbTypesResolver(logSamplingRate, jacksonMapper, jsonMerger);
     }
@@ -293,6 +297,7 @@ public class ServiceConfiguration {
             @Value("${external-url}") String externalUrl,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
             @Value("${datacenter-region}") String datacenterRegion,
+            BidderCatalog bidderCatalog,
             ImplicitParametersExtractor implicitParametersExtractor,
             TimeoutResolver timeoutResolver,
             IpAddressHelper ipAddressHelper,
@@ -309,6 +314,7 @@ public class ServiceConfiguration {
                 externalUrl,
                 hostVendorId,
                 datacenterRegion,
+                bidderCatalog,
                 implicitParametersExtractor,
                 timeoutResolver,
                 ipAddressHelper,
@@ -379,7 +385,6 @@ public class ServiceConfiguration {
             IpAddressHelper ipAddressHelper,
             HookStageExecutor hookStageExecutor,
             CountryCodeMapper countryCodeMapper,
-            PriceFloorProcessor priceFloorProcessor,
             Metrics metrics) {
 
         final List<String> blocklistedAccounts = splitToList(blocklistedAccountsString);
@@ -397,7 +402,6 @@ public class ServiceConfiguration {
                 applicationSettings,
                 ipAddressHelper,
                 hookStageExecutor,
-                priceFloorProcessor,
                 countryCodeMapper,
                 metrics);
     }
@@ -821,6 +825,7 @@ public class ServiceConfiguration {
             StoredResponseProcessor storedResponseProcessor,
             PrivacyEnforcementService privacyEnforcementService,
             FpdResolver fpdResolver,
+            ImpAdjuster impAdjuster,
             SupplyChainResolver supplyChainResolver,
             DebugResolver debugResolver,
             CompositeMediaTypeProcessor mediaTypeProcessor,
@@ -829,17 +834,13 @@ public class ServiceConfiguration {
             TimeoutFactory timeoutFactory,
             BidRequestOrtbVersionConversionManager bidRequestOrtbVersionConversionManager,
             HttpBidderRequester httpBidderRequester,
-            ResponseBidValidator responseBidValidator,
-            CurrencyConversionService currencyConversionService,
             BidResponseCreator bidResponseCreator,
             BidResponsePostProcessor bidResponsePostProcessor,
             HookStageExecutor hookStageExecutor,
             HttpInteractionLogger httpInteractionLogger,
             PriceFloorAdjuster priceFloorAdjuster,
-            PriceFloorEnforcer priceFloorEnforcer,
             PriceFloorProcessor priceFloorProcessor,
-            DsaEnforcer dsaEnforcer,
-            BidAdjustmentFactorResolver bidAdjustmentFactorResolver,
+            BidsAdjuster bidsAdjuster,
             Metrics metrics,
             Clock clock,
             JacksonMapper mapper,
@@ -852,6 +853,7 @@ public class ServiceConfiguration {
                 storedResponseProcessor,
                 privacyEnforcementService,
                 fpdResolver,
+                impAdjuster,
                 supplyChainResolver,
                 debugResolver,
                 mediaTypeProcessor,
@@ -860,21 +862,34 @@ public class ServiceConfiguration {
                 timeoutFactory,
                 bidRequestOrtbVersionConversionManager,
                 httpBidderRequester,
-                responseBidValidator,
-                currencyConversionService,
                 bidResponseCreator,
                 bidResponsePostProcessor,
                 hookStageExecutor,
                 httpInteractionLogger,
                 priceFloorAdjuster,
-                priceFloorEnforcer,
                 priceFloorProcessor,
-                dsaEnforcer,
-                bidAdjustmentFactorResolver,
+                bidsAdjuster,
                 metrics,
                 clock,
                 mapper,
                 criteriaLogManager, enabledStrictAppSiteDoohValidation);
+    }
+
+    @Bean
+    BidsAdjuster bidsAdjuster(ResponseBidValidator responseBidValidator,
+                              CurrencyConversionService currencyConversionService,
+                              PriceFloorEnforcer priceFloorEnforcer,
+                              DsaEnforcer dsaEnforcer,
+                              BidAdjustmentFactorResolver bidAdjustmentFactorResolver,
+                              JacksonMapper mapper) {
+
+        return new BidsAdjuster(
+                responseBidValidator,
+                currencyConversionService,
+                bidAdjustmentFactorResolver,
+                priceFloorEnforcer,
+                dsaEnforcer,
+                mapper);
     }
 
     @Bean
@@ -992,9 +1007,17 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    ImpValidator impValidator(BidderParamValidator bidderParamValidator,
+                              BidderCatalog bidderCatalog,
+                              JacksonMapper mapper) {
+
+        return new ImpValidator(bidderParamValidator, bidderCatalog, mapper);
+    }
+
+    @Bean
     RequestValidator requestValidator(
             BidderCatalog bidderCatalog,
-            BidderParamValidator bidderParamValidator,
+            ImpValidator impValidator,
             Metrics metrics,
             JacksonMapper mapper,
             @Value("${logging.sampling-rate:0.01}") double logSamplingRate,
@@ -1002,7 +1025,7 @@ public class ServiceConfiguration {
 
         return new RequestValidator(
                 bidderCatalog,
-                bidderParamValidator,
+                impValidator,
                 metrics,
                 mapper,
                 logSamplingRate,

@@ -1,7 +1,7 @@
 adapters:
   trafficgate:
     endpoint: http://{{subdomain}}.bc-plugin.com/?c=o&m=rtb
-    modifyingVastXmlAllowed: true
+    modifying-vast-xml-allowed: true
     meta-info:
       maintainer-email: "support@bidscube.com"
       app-media-types:

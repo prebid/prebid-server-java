@@ -171,6 +171,7 @@ public class BidderMediaTypeProcessorTest extends VertxTest {
                 doohMediaType,
                 emptyList(),
                 0,
+                null,
                 false,
                 false,
                 CompressionType.NONE,

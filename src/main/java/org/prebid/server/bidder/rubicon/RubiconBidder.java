@@ -110,6 +110,7 @@ import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ListUtil;
 import org.prebid.server.util.ObjectUtil;
+import org.prebid.server.version.PrebidVersionProvider;
 
 import java.math.BigDecimal;
 import java.net.URISyntaxException;
@@ -154,6 +155,9 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final String DFP_ADUNIT_CODE_FIELD = "dfp_ad_unit_code";
     private static final String STYPE_FIELD = "stype";
     private static final String PREBID_EXT = "prebid";
+    private static final String PBS_LOGIN = "pbs_login";
+    private static final String PBS_VERSION = "pbs_version";
+    private static final String PBS_URL = "pbs_url";
 
     private static final String PPUID_STYPE = "ppuid";
     private static final String SHA256EMAIL_STYPE = "sha256email";
@@ -180,33 +184,38 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private final String bidderName;
     private final String endpointUrl;
+    private final String externalUrl;
+    private final String xapiUsername;
     private final Set<String> supportedVendors;
     private final boolean generateBidId;
-    private final boolean useVideoSizeLogic;
     private final CurrencyConversionService currencyConversionService;
     private final PriceFloorResolver floorResolver;
+    private final PrebidVersionProvider versionProvider;
     private final JacksonMapper mapper;
 
     private final MultiMap headers;
 
     public RubiconBidder(String bidderName,
                          String endpoint,
+                         String externalUrl,
                          String xapiUsername,
                          String xapiPassword,
                          List<String> supportedVendors,
                          boolean generateBidId,
-                         boolean useVideoSizeLogic,
                          CurrencyConversionService currencyConversionService,
                          PriceFloorResolver floorResolver,
+                         PrebidVersionProvider versionProvider,
                          JacksonMapper mapper) {
 
         this.bidderName = Objects.requireNonNull(bidderName);
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpoint));
+        this.externalUrl = HttpUtil.validateUrl(Objects.requireNonNull(externalUrl));
+        this.xapiUsername = Objects.requireNonNull(xapiUsername);
         this.supportedVendors = Set.copyOf(Objects.requireNonNull(supportedVendors));
         this.generateBidId = generateBidId;
-        this.useVideoSizeLogic = useVideoSizeLogic;
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
         this.floorResolver = Objects.requireNonNull(floorResolver);
+        this.versionProvider = Objects.requireNonNull(versionProvider);
         this.mapper = Objects.requireNonNull(mapper);
 
         headers = headers(Objects.requireNonNull(xapiUsername), Objects.requireNonNull(xapiPassword));
@@ -606,7 +615,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private static BigDecimal resolveBidFloorPrice(Imp imp) {
         final BigDecimal bidFloor = imp.getBidfloor();
-        return BidderUtil.isValidPrice(bidFloor) ? bidFloor : null;
+        return bidFloor != null && bidFloor.compareTo(BigDecimal.ZERO) >= 0 ? bidFloor : null;
     }
 
     private static String resolveBidFloorCurrency(Imp imp, BidRequest bidRequest, List<BidderError> errors) {
@@ -704,7 +713,11 @@ public class RubiconBidder implements Bidder<BidRequest> {
         mergeFirstPartyDataFromApp(app, result);
         mergeFirstPartyDataFromImp(imp, rubiconImpExt, result);
 
-        return !result.isEmpty() ? result : null;
+        result.put(PBS_LOGIN, xapiUsername);
+        result.put(PBS_VERSION, versionProvider.getNameVersionRecord());
+        result.put(PBS_URL, externalUrl);
+
+        return result;
     }
 
     private RubiconImpExtPrebid makeRubiconExtPrebid(PriceFloorResult priceFloorResult,
@@ -1011,9 +1024,8 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private Integer resolveSizeId(RubiconVideoParams rubiconVideoParams, Imp imp, String referer) {
         final Integer sizeId = rubiconVideoParams != null ? rubiconVideoParams.getSizeId() : null;
-        final Video video = imp.getVideo();
         final Integer resolvedSizeId = BidderUtil.isNullOrZero(sizeId)
-                ? useVideoSizeLogic ? resolveVideoSizeId(video.getPlacement(), imp.getInstl()) : null
+                ? null
                 : sizeId;
         validateVideoSizeId(resolvedSizeId, referer, imp.getId());
 
@@ -1028,23 +1040,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
                             .formatted(referer, impId),
                     0.01d);
         }
-    }
-
-    private static Integer resolveVideoSizeId(Integer placement, Integer instl) {
-        if (placement != null) {
-            if (placement == 1) {
-                return 201;
-            }
-            if (placement == 3) {
-                return 203;
-            }
-        }
-
-        if (instl != null && instl == 1) {
-            return 202;
-        }
-
-        return null;
     }
 
     private Banner makeBanner(Imp imp) {
@@ -1235,7 +1230,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .map(RubiconBidder::cleanExtUserEidUidStype)
                 .toList();
-        return Eid.of(extUserEid.getSource(), extUserEidUids, extUserEid.getExt());
+        return extUserEid.toBuilder().uids(extUserEidUids).build();
     }
 
     private static Uid cleanExtUserEidUidStype(Uid extUserEidUid) {
@@ -1247,10 +1242,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final ObjectNode extUserEidUidExtCopy = extUserEidUidExt.deepCopy();
         extUserEidUidExtCopy.remove(STYPE_FIELD);
 
-        return Uid.of(
-                extUserEidUid.getId(),
-                extUserEidUid.getAtype(),
-                extUserEidUidExtCopy);
+        return extUserEidUid.toBuilder().ext(extUserEidUidExtCopy).build();
     }
 
     private RubiconUserExtRp rubiconUserExtRp(User user, ExtImpRubicon rubiconImpExt) {

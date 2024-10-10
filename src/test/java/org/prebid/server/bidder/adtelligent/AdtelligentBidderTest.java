@@ -15,6 +15,7 @@ import io.vertx.core.http.HttpMethod;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.adtelligent.proto.AdtelligentImpExt;
+import org.prebid.server.bidder.adtelligent.proto.ExtImpAdtelligentBidRequest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
@@ -51,7 +52,7 @@ public class AdtelligentBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().build())
                         .ext(mapper.valueToTree(
-                                ExtPrebid.of(null, ExtImpAdtelligent.of(15, 1, 2, BigDecimal.valueOf(3))))).build()))
+                                ExtPrebid.of(null, ExtImpAdtelligent.of("15", 1, 2, BigDecimal.valueOf(3))))).build()))
                 .user(User.builder()
                         .ext(ExtUser.builder().consent("consent").build())
                         .build())
@@ -77,7 +78,7 @@ public class AdtelligentBidderTest extends VertxTest {
                                         .banner(Banner.builder().build())
                                         .bidfloor(BigDecimal.valueOf(3))
                                         .ext(mapper.valueToTree(AdtelligentImpExt.of(
-                                                ExtImpAdtelligent.of(15, 1, 2, BigDecimal.valueOf(3)))))
+                                                ExtImpAdtelligentBidRequest.of(15, 1, 2, BigDecimal.valueOf(3)))))
                                         .build()))
                         .user(User.builder()
                                 .ext(ExtUser.builder().consent("consent").build())
@@ -93,7 +94,7 @@ public class AdtelligentBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .id("impId")
                         .ext(mapper.valueToTree(
-                                ExtPrebid.of(null, ExtImpAdtelligent.of(15, 1, 2, BigDecimal.valueOf(3))))).build()))
+                                ExtPrebid.of(null, ExtImpAdtelligent.of("15", 1, 2, BigDecimal.valueOf(3))))).build()))
                 .build();
 
         // when
@@ -136,7 +137,7 @@ public class AdtelligentBidderTest extends VertxTest {
                                 .id("impId2")
                                 .banner(Banner.builder().build())
                                 .ext(mapper.valueToTree(
-                                        ExtPrebid.of(null, ExtImpAdtelligent.of(15, 1, 2, BigDecimal.valueOf(3)))))
+                                        ExtPrebid.of(null, ExtImpAdtelligent.of("15", 1, 2, BigDecimal.valueOf(3)))))
                                 .build()))
                 .build();
 
@@ -160,7 +161,7 @@ public class AdtelligentBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().build())
                         .bidfloor(BigDecimal.valueOf(16))
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdtelligent.of(15, 1, 2, null))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdtelligent.of("15", 1, 2, null))))
                         .build()))
                 .build();
 
@@ -182,12 +183,12 @@ public class AdtelligentBidderTest extends VertxTest {
                 .imp(asList(Imp.builder()
                                 .banner(Banner.builder().build())
                                 .ext(mapper.valueToTree(
-                                        ExtPrebid.of(null, ExtImpAdtelligent.of(15, 1, 2, BigDecimal.valueOf(3)))))
+                                        ExtPrebid.of(null, ExtImpAdtelligent.of("15", 1, 2, BigDecimal.valueOf(3)))))
                                 .build(),
                         Imp.builder()
                                 .banner(Banner.builder().build())
                                 .ext(mapper.valueToTree(
-                                        ExtPrebid.of(null, ExtImpAdtelligent.of(16, 1, 2, BigDecimal.valueOf(3)))))
+                                        ExtPrebid.of(null, ExtImpAdtelligent.of("16", 1, 2, BigDecimal.valueOf(3)))))
                                 .build()))
                 .build();
 
@@ -206,12 +207,12 @@ public class AdtelligentBidderTest extends VertxTest {
                 .imp(asList(Imp.builder()
                                 .banner(Banner.builder().build())
                                 .ext(mapper.valueToTree(
-                                        ExtPrebid.of(null, ExtImpAdtelligent.of(15, 1, 2, BigDecimal.valueOf(3)))))
+                                        ExtPrebid.of(null, ExtImpAdtelligent.of("15", 1, 2, BigDecimal.valueOf(3)))))
                                 .build(),
                         Imp.builder()
                                 .banner(Banner.builder().build())
                                 .ext(mapper.valueToTree(
-                                        ExtPrebid.of(null, ExtImpAdtelligent.of(15, 1, 2, BigDecimal.valueOf(3)))))
+                                        ExtPrebid.of(null, ExtImpAdtelligent.of("15", 1, 2, BigDecimal.valueOf(3)))))
                                 .build()))
                 .build();
 
