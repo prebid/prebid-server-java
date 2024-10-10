@@ -30,7 +30,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.IntStream;
 
 public class TradPlusBidder implements Bidder<BidRequest> {
 
@@ -52,34 +51,35 @@ public class TradPlusBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         final Map<ExtImpTradPlus, List<Imp>> extToImps = new HashMap<>();
-        for (Imp imp : bidRequest.getImp()) {
-            try {
-                final ExtImpTradPlus extImpTradPlus = parseAndValidateImpExt(imp.getExt());
-                extToImps.computeIfAbsent(extImpTradPlus, ext -> new ArrayList<>()).add(imp);
-            } catch (PreBidException e) {
-                return Result.withError(BidderError.badInput(e.getMessage()));
-            }
+        try {
+            final ExtImpTradPlus extImpTradPlus = parseImpExt(bidRequest.getImp().getFirst().getExt());
+            validateImpExt(extImpTradPlus);
+            extToImps.computeIfAbsent(extImpTradPlus, ext -> new ArrayList<>()).add(bidRequest.getImp().getFirst());
+        } catch (PreBidException e) {
+            return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
         final List<HttpRequest<BidRequest>> httpRequests = extToImps.entrySet().stream()
                 .map(entry -> makeHttpRequest(entry.getKey(), entry.getValue(), bidRequest))
                 .toList();
 
-        return Result.of(httpRequests, Collections.emptyList());
+        return Result.withValues(httpRequests);
     }
 
-    private ExtImpTradPlus parseAndValidateImpExt(ObjectNode extNode) {
+    private ExtImpTradPlus parseImpExt(ObjectNode extNode) {
         final ExtImpTradPlus extImpTradPlus;
         try {
             extImpTradPlus = mapper.mapper().convertValue(extNode, EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage());
         }
+        return extImpTradPlus;
+    }
+
+    private void validateImpExt(ExtImpTradPlus extImpTradPlus) {
         if (StringUtils.isBlank(extImpTradPlus.getAccountId())) {
             throw new PreBidException("Invalid/Missing AccountID");
         }
-
-        return extImpTradPlus;
     }
 
     private HttpRequest<BidRequest> makeHttpRequest(ExtImpTradPlus extImpTradPlus, List<Imp> imps,
@@ -94,11 +94,8 @@ public class TradPlusBidder implements Bidder<BidRequest> {
     }
 
     private static List<Imp> removeFirstImpExt(List<Imp> imps) {
-        return IntStream.range(0, imps.size())
-                .mapToObj(impIndex -> impIndex == 0
-                        ? imps.get(impIndex).toBuilder().ext(null).build()
-                        : imps.get(impIndex))
-                .toList();
+        imps.set(0, imps.getFirst().toBuilder().ext(null).build());
+        return imps;
     }
 
     @Override
@@ -106,7 +103,7 @@ public class TradPlusBidder implements Bidder<BidRequest> {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(bidResponse, httpCall.getRequest().getPayload()), Collections.emptyList());
-        } catch (DecodeException e) {
+        } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
@@ -139,7 +136,8 @@ public class TradPlusBidder implements Bidder<BidRequest> {
                 return BidType.banner;
             }
         }
-        return BidType.banner;
+        throw new PreBidException("Invalid bid imp ID #%s does not match any imp IDs from the original bid request"
+                .formatted(impId));
     }
 
 }

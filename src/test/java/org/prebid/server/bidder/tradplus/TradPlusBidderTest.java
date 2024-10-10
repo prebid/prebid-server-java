@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.tradplus;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
@@ -43,7 +44,7 @@ public class TradPlusBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldCreateCorrectURL() {
         // given
-        final BidRequest bidRequest = givenBidRequest(ExtImpTradPlus.of("accountId", "zoneId"));
+        final BidRequest bidRequest = givenBidRequest(ExtImpTradPlus.of("testAccountId", "testZoneId"));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -51,7 +52,7 @@ public class TradPlusBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().getFirst().getUri()).isEqualTo("http://zoneId/openrtb2?sid=accountId");
+        assertThat(result.getValue().getFirst().getUri()).isEqualTo("http://testZoneId/openrtb2?sid=testAccountId");
     }
 
     @Test
@@ -69,9 +70,23 @@ public class TradPlusBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorWhenSourceIdIsNull() {
+    public void makeHttpRequestsShouldReturnErrorWhenAccountIdIsNull() {
         // given
-        final BidRequest bidRequest = givenBidRequest(ExtImpTradPlus.of(null, "zoneId"));
+        final BidRequest bidRequest = givenBidRequest(ExtImpTradPlus.of(null, "testZoneId"));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly(BidderError.badInput("Invalid/Missing AccountID"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorWhenAccountIdIsBlank() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(ExtImpTradPlus.of(" ", "testZoneId"));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -126,7 +141,26 @@ public class TradPlusBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBidByDeault() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorWhenBidImpIdIsNotPresent() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> bidderCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
+                        .build(),
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("wrongBlock"))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(bidderCall, null);
+
+        // then
+        assertThat(result.getErrors()).containsExactly(
+                BidderError.badServerResponse(
+                        "Invalid bid imp ID #wrongBlock does not match any imp IDs from the original bid request"));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnBannerBidByDefault() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
