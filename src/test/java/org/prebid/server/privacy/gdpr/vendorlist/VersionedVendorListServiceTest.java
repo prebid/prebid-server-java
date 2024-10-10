@@ -11,7 +11,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static org.mockito.Mockito.verify;
-import static org.prebid.server.assertion.FutureAssertion.assertThat;
 
 @ExtendWith(MockitoExtension.class)
 public class VersionedVendorListServiceTest {
@@ -46,9 +45,9 @@ public class VersionedVendorListServiceTest {
     }
 
     @Test
-    public void versionedVendorListServiceShouldTreatTcfPolicyFourAsVendorListSpecificationThree() {
+    public void versionedVendorListServiceShouldTreatTcfPolicyGreaterOrEqualFourAsVendorListSpecificationThree() {
         // given
-        final int tcfPolicyVersion = ThreadLocalRandom.current().nextInt(4, 6);
+        final int tcfPolicyVersion = ThreadLocalRandom.current().nextInt(4, 100);
         final TCString consent = TCStringEncoder.newBuilder()
                 .version(2)
                 .tcfPolicyVersion(tcfPolicyVersion)
@@ -60,21 +59,5 @@ public class VersionedVendorListServiceTest {
 
         // then
         verify(vendorListServiceV3).forVersion(12);
-    }
-
-    @Test
-    public void versionedVendorListServiceShouldTreatTcfPolicyGreaterThanFourAsInvalidVersion() {
-        // given
-        final int tcfPolicyVersion = ThreadLocalRandom.current().nextInt(6, 63);
-        final TCString consent = TCStringEncoder.newBuilder()
-                .version(2)
-                .tcfPolicyVersion(tcfPolicyVersion)
-                .vendorListVersion(12)
-                .toTCString();
-
-        // when and then
-        assertThat(versionedVendorListService.forConsent(consent))
-                .isFailed()
-                .hasMessage("Invalid tcf policy version: " + tcfPolicyVersion);
     }
 }

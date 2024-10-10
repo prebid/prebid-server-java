@@ -66,6 +66,7 @@ public class TcfDefinerService {
     private final BidderCatalog bidderCatalog;
     private final IpAddressHelper ipAddressHelper;
     private final Metrics metrics;
+    private final double samplingRate;
 
     public TcfDefinerService(GdprConfig gdprConfig,
                              Set<String> eeaCountries,
@@ -73,7 +74,8 @@ public class TcfDefinerService {
                              GeoLocationServiceWrapper geoLocationServiceWrapper,
                              BidderCatalog bidderCatalog,
                              IpAddressHelper ipAddressHelper,
-                             Metrics metrics) {
+                             Metrics metrics,
+                             double samplingRate) {
 
         this.gdprEnabled = gdprConfig != null && BooleanUtils.isNotFalse(gdprConfig.getEnabled());
         this.gdprDefaultValue = gdprConfig != null ? gdprConfig.getDefaultValue() : null;
@@ -85,6 +87,7 @@ public class TcfDefinerService {
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.ipAddressHelper = Objects.requireNonNull(ipAddressHelper);
         this.metrics = Objects.requireNonNull(metrics);
+        this.samplingRate = samplingRate;
     }
 
     /**
@@ -360,11 +363,14 @@ public class TcfDefinerService {
         }
 
         final int tcfPolicyVersion = tcString.getTcfPolicyVersion();
-        // disable support for tcf policy version > 5
+        // support for tcf policy version > 5
         if (tcfPolicyVersion > 5) {
-            warnings.add("Parsing consent string: %s failed. TCF policy version %d is not supported".formatted(
-                    consentString, tcfPolicyVersion));
-            return TCStringParsingResult.of(TCStringEmpty.create(), warnings);
+            metrics.updateAlertsMetrics(MetricName.general);
+
+            final String message = "Unknown tcfPolicyVersion %s, defaulting to gvlSpecificationVersion=3"
+                    .formatted(tcfPolicyVersion);
+            UNDEFINED_CORRUPT_CONSENT_LOGGER.warn(message, samplingRate);
+            warnings.add(message);
         }
 
         return TCStringParsingResult.of(tcString, warnings);

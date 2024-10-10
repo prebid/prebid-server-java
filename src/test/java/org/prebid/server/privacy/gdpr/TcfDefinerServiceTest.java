@@ -85,7 +85,8 @@ public class TcfDefinerServiceTest {
                 geoLocationServiceWrapper,
                 bidderCatalog,
                 ipAddressHelper,
-                metrics);
+                metrics,
+                0.01);
     }
 
     @Test
@@ -99,7 +100,8 @@ public class TcfDefinerServiceTest {
                 geoLocationServiceWrapper,
                 bidderCatalog,
                 ipAddressHelper,
-                metrics);
+                metrics,
+                0.01);
 
         // when
         final Future<TcfContext> result = target.resolveTcfContext(
@@ -177,7 +179,8 @@ public class TcfDefinerServiceTest {
                 geoLocationServiceWrapper,
                 bidderCatalog,
                 ipAddressHelper,
-                metrics);
+                metrics,
+                0.01);
 
         final AccountGdprConfig accountGdprConfig = AccountGdprConfig.builder()
                 .enabledForRequestType(EnabledForRequestType.of(true, true, true, true, true))
@@ -209,7 +212,8 @@ public class TcfDefinerServiceTest {
                 geoLocationServiceWrapper,
                 bidderCatalog,
                 ipAddressHelper,
-                metrics);
+                metrics,
+                0.01);
 
         final String vendorConsent = "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA";
 
@@ -227,7 +231,7 @@ public class TcfDefinerServiceTest {
     }
 
     @Test
-    public void resolveTcfContextShouldTreatTcfConsentWithTcfPolicyVersionGreaterThanFourAsCorrupted() {
+    public void resolveTcfContextShouldEmitWarningOnTcfConsentWithTcfPolicyVersionGreaterThanFive() {
         // given
         final GdprConfig gdprConfig = GdprConfig.builder()
                 .enabled(true)
@@ -241,7 +245,8 @@ public class TcfDefinerServiceTest {
                 geoLocationServiceWrapper,
                 bidderCatalog,
                 ipAddressHelper,
-                metrics);
+                metrics,
+                0.01);
 
         final String vendorConsent = TCStringEncoder.newBuilder()
                 .version(2)
@@ -260,11 +265,13 @@ public class TcfDefinerServiceTest {
                 null);
 
         // then
-        final String expectedWarning = "Parsing consent string: %s failed. TCF policy version 6 is not supported"
-                .formatted(vendorConsent);
+        final String expectedWarning = "Unknown tcfPolicyVersion 6, defaulting to gvlSpecificationVersion=3";
         assertThat(result).isSucceeded();
-        assertThat(result.result().getConsent()).isInstanceOf(TCStringEmpty.class);
+        assertThat(result.result().getConsent())
+                .extracting(TCString::getVersion, TCString::getTcfPolicyVersion)
+                .containsExactly(2, 6);
         assertThat(result.result().getWarnings()).containsExactly(expectedWarning);
+        verify(metrics).updateAlertsMetrics(eq(MetricName.general));
     }
 
     @Test
@@ -282,7 +289,8 @@ public class TcfDefinerServiceTest {
                 geoLocationServiceWrapper,
                 bidderCatalog,
                 ipAddressHelper,
-                metrics);
+                metrics,
+                0.01);
 
         final String vendorConsent = "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA";
 
@@ -323,7 +331,8 @@ public class TcfDefinerServiceTest {
                 geoLocationServiceWrapper,
                 bidderCatalog,
                 ipAddressHelper,
-                metrics);
+                metrics,
+                0.01);
 
         final String vendorConsent = "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA";
 
@@ -442,7 +451,8 @@ public class TcfDefinerServiceTest {
                 geoLocationServiceWrapper,
                 bidderCatalog,
                 ipAddressHelper,
-                metrics);
+                metrics,
+                0.01);
 
         given(geoLocationServiceWrapper.doLookup(anyString(), any(), any())).willReturn(Future.failedFuture("Bad ip"));
 
