@@ -104,8 +104,8 @@ public class CoreCacheService {
         this.mapper = Objects.requireNonNull(mapper);
 
         cacheHeaders = isApiKeySecured
-                ? CacheServiceUtil.CACHE_HEADERS.add(HttpUtil.X_PBC_API_KEY_HEADER, Objects.requireNonNull(apiKey))
-                : CacheServiceUtil.CACHE_HEADERS;
+                ? HttpUtil.headers().add(HttpUtil.X_PBC_API_KEY_HEADER, Objects.requireNonNull(apiKey))
+                : HttpUtil.headers();
         debugHeaders = HttpUtil.toDebugHeaders(cacheHeaders);
     }
 
