@@ -839,7 +839,6 @@ public class CoreCacheServiceTest extends VertxTest {
                 .isEqualTo("ApiKey");
     }
 
-
     private AuctionContext givenAuctionContext(UnaryOperator<Account.AccountBuilder> accountCustomizer,
                                                UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer) {
 
