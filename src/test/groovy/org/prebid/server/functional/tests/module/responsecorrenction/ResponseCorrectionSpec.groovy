@@ -360,7 +360,7 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
                 "${PBSUtils.randomString}<${' ' * PBSUtils.getRandomNumber(0, 20)}VAST ${PBSUtils.randomString}>",
                 "<${' ' * PBSUtils.getRandomNumber(0, 20)}VAST${' ' * PBSUtils.getRandomNumber(1, 20)}",
                 "<${' ' * PBSUtils.getRandomNumber(0, 20)}VAST${' ' * PBSUtils.getRandomNumber(1, 20)}>",
-                "<${' ' * PBSUtils.getRandomNumber(0, 20)}}VAST${' ' * PBSUtils.getRandomNumber(1, 20)}${PBSUtils.randomString}>"
+                "<${' ' * PBSUtils.getRandomNumber(0, 20)}VAST${' ' * PBSUtils.getRandomNumber(1, 20)}${PBSUtils.randomString}>"
         ]
     }
 
