@@ -77,7 +77,7 @@ public class AppVideoHtmlCorrectionTest {
         final List<BidderResponse> givenResponses = List.of(
                 BidderResponse.of("bidderA", null, 100),
                 BidderResponse.of("bidderB", BidderSeatBid.of(
-                        List.of(givenBid("<anythingvAstanything", BidType.video))), 100));
+                        List.of(givenBid("< \tVAST anything>", BidType.video))), 100));
 
         // when
         final List<BidderResponse> actual = target.apply(givenConfig, givenResponses);

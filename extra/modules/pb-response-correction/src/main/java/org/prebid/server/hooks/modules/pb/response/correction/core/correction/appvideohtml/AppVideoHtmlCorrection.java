@@ -21,6 +21,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidMeta;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
@@ -29,7 +30,7 @@ public class AppVideoHtmlCorrection implements Correction {
     private static final ConditionalLogger conditionalLogger = new ConditionalLogger(
             LoggerFactory.getLogger(AppVideoHtmlCorrection.class));
 
-    private static final Pattern VAST_XML_PATTERN = Pattern.compile("<\\w*VAST\\w+", Pattern.CASE_INSENSITIVE);
+    private static final Pattern VAST_XML_PATTERN = Pattern.compile("<\\s*VAST.+>", Pattern.CASE_INSENSITIVE);
     private static final TypeReference<ExtPrebid<ExtBidPrebid, ObjectNode>> EXT_BID_PREBID_TYPE_REFERENCE =
             new TypeReference<>() {
             };
@@ -42,7 +43,7 @@ public class AppVideoHtmlCorrection implements Correction {
     private final double logSamplingRate;
 
     public AppVideoHtmlCorrection(ObjectMapper mapper, double logSamplingRate) {
-        this.mapper = mapper;
+        this.mapper = Objects.requireNonNull(mapper);
         this.logSamplingRate = logSamplingRate;
     }
 
