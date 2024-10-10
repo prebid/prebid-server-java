@@ -5,8 +5,8 @@ import org.prebid.server.functional.model.ChannelType
 import org.prebid.server.functional.model.config.AccountGdprConfig
 import org.prebid.server.functional.model.config.PurposeConfig
 import org.prebid.server.functional.model.config.PurposeEnforcement
+import org.prebid.server.functional.model.mock.services.vendorlist.GvlSpecificationVersion
 import org.prebid.server.functional.model.request.auction.DistributionChannel
-import org.prebid.server.functional.model.request.auction.RegsExt
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
@@ -25,6 +25,7 @@ import static org.prebid.server.functional.model.config.Purpose.P1
 import static org.prebid.server.functional.model.config.Purpose.P2
 import static org.prebid.server.functional.model.config.Purpose.P4
 import static org.prebid.server.functional.model.config.PurposeEnforcement.NO
+import static org.prebid.server.functional.model.mock.services.vendorlist.GvlSpecificationVersion.V3
 import static org.prebid.server.functional.model.pricefloors.Country.BULGARIA
 import static org.prebid.server.functional.model.pricefloors.Country.CAN
 import static org.prebid.server.functional.model.pricefloors.Country.USA
@@ -314,7 +315,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         tcfPolicyVersion << [TCF_POLICY_V2, TCF_POLICY_V4, TCF_POLICY_V5]
     }
 
-    def "PBS auction should reject request with proper warning when incoming consent.tcfPolicyVersion have invalid parameter"() {
+    def "PBS auction should reject request with proper warning and metrics when incoming consent.tcfPolicyVersion have invalid parameter"() {
         given: "Tcf consent string"
         def invalidTcfPolicyVersion = PBSUtils.getRandomNumber(5, 63)
         def tcfConsent = new TcfConsent.Builder()
@@ -333,7 +334,11 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         then: "Bid response should contain warning"
         assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
         assert response.ext?.warnings[ErrorType.PREBID]*.message ==
-                ["Parsing consent string: ${tcfConsent} failed. TCF policy version ${invalidTcfPolicyVersion} is not supported" as String]
+                ["Unknown tcfPolicyVersion ${invalidTcfPolicyVersion}, defaulting to gvlSpecificationVersion=3" as String]
+
+        and: "Alerts.general metrics should be populated"
+        def metrics = privacyPbsService.sendCollectedMetricsRequest()
+        assert metrics["alerts.general"] == 1
     }
 
     def "PBS auction should emit the same error without a second GVL list request if a retry is too soon for the exponential-backoff"() {
@@ -760,5 +765,33 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         assert !metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)]
         assert !metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)]
         assert !metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)]
+    }
+
+    def "PBS auction should set 3 for tcfPolicyVersion when tcfPolicyVersion is #tcfPolicyVersion"() {
+        given: "Tcf consent setup"
+        def tcfConsent = new TcfConsent.Builder()
+                .setPurposesLITransparency(BASIC_ADS)
+                .setTcfPolicyVersion(tcfPolicyVersion.value)
+                .setVendorListVersion(tcfPolicyVersion.vendorListVersion)
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .build()
+
+        and: "Bid request"
+        def bidRequest = getGdprBidRequest(tcfConsent)
+
+        and: "Set vendor list response"
+        vendorListResponse.setResponse(tcfPolicyVersion)
+
+        when: "PBS processes auction request"
+        privacyPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Used vendor list have proper specification version of GVL"
+        def properVendorListPath = VENDOR_LIST_PATH.replace("{VendorVersion}", tcfPolicyVersion.vendorListVersion.toString())
+        PBSUtils.waitUntil { privacyPbsService.isFileExist(properVendorListPath) }
+        def vendorList = privacyPbsService.getValueFromContainer(properVendorListPath, VendorListConsent.class)
+        assert vendorList.gvlSpecificationVersion == V3
+
+        where:
+        tcfPolicyVersion << [TCF_POLICY_V4, TCF_POLICY_V5]
     }
 }
