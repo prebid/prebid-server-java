@@ -1,0 +1,10 @@
+{
+  "request_id": "request_id",
+  "timeout": 2000,
+  "referer": "http://www.example.com",
+  "referer_canonical": "www.example.com",
+  "consent_string": "",
+  "consent_required": false,
+  "placement": "placement",
+  "test": "test"
+}
