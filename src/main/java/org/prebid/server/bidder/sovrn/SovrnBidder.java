@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.sovrn;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -104,24 +103,10 @@ public class SovrnBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static BigDecimal resolveBidFloor(BigDecimal impBidFloor, JsonNode extBidFloor) {
-        final BigDecimal fromExt = parseBidFloor(extBidFloor);
-        return !BidderUtil.isValidPrice(impBidFloor) && BidderUtil.isValidPrice(fromExt) ? fromExt : impBidFloor;
-    }
-
-    private static BigDecimal parseBidFloor(JsonNode extBidFloor) {
-        if (extBidFloor != null) {
-            if (extBidFloor.isNumber()) {
-                return extBidFloor.decimalValue();
-            } else if (extBidFloor.isTextual()) {
-                try {
-                    return new BigDecimal(extBidFloor.textValue());
-                } catch (NumberFormatException e) {
-                    return BigDecimal.ZERO;
-                }
-            }
-        }
-        return BigDecimal.ZERO;
+    private static BigDecimal resolveBidFloor(BigDecimal impBidFloor, BigDecimal extBidFloor) {
+        return !BidderUtil.isValidPrice(impBidFloor) && BidderUtil.isValidPrice(extBidFloor)
+                ? extBidFloor
+                : impBidFloor;
     }
 
     private String resolveTagId(ExtImpSovrn sovrnExt) {
