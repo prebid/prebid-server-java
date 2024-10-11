@@ -5,7 +5,6 @@ import org.prebid.server.functional.model.ChannelType
 import org.prebid.server.functional.model.config.AccountGdprConfig
 import org.prebid.server.functional.model.config.PurposeConfig
 import org.prebid.server.functional.model.config.PurposeEnforcement
-import org.prebid.server.functional.model.mock.services.vendorlist.GvlSpecificationVersion
 import org.prebid.server.functional.model.request.auction.DistributionChannel
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.service.PrebidServerService
@@ -316,10 +315,11 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
     }
 
     def "PBS auction should reject request with proper warning and metrics when incoming consent.tcfPolicyVersion have invalid parameter"() {
-        given: "Tcf consent string"
-        def invalidTcfPolicyVersion = PBSUtils.getRandomNumber(5, 63)
+        given: "Tcf consent string with invalid tcf policy version"
         def tcfConsent = new TcfConsent.Builder()
+                .setPurposesLITransparency(BASIC_ADS)
                 .setTcfPolicyVersion(invalidTcfPolicyVersion)
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
 
         and: "Bid request"
@@ -339,6 +339,17 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         and: "Alerts.general metrics should be populated"
         def metrics = privacyPbsService.sendCollectedMetricsRequest()
         assert metrics["alerts.general"] == 1
+
+        and: "Bid response should contain seatBid"
+        assert response.seatbid.size() == 1
+
+        and: "Bidder should be called"
+        assert bidder.getBidderRequest(bidRequest.id)
+
+        where:
+        invalidTcfPolicyVersion << [MIN_INVALID_TCF_POLICY_VERSION,
+                                    PBSUtils.getRandomNumber(MIN_INVALID_TCF_POLICY_VERSION, MAX_INVALID_TCF_POLICY_VERSION),
+                                    MAX_INVALID_TCF_POLICY_VERSION]
     }
 
     def "PBS auction should emit the same error without a second GVL list request if a retry is too soon for the exponential-backoff"() {
@@ -781,6 +792,9 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
 
         and: "Set vendor list response"
         vendorListResponse.setResponse(tcfPolicyVersion)
+
+        and: "Flush metrics"
+        flushMetrics(privacyPbsService)
 
         when: "PBS processes auction request"
         privacyPbsService.sendAuctionRequest(bidRequest)
