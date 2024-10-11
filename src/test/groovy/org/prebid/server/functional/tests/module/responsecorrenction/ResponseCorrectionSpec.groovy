@@ -1,6 +1,5 @@
 package org.prebid.server.functional.tests.module.responsecorrenction
 
-
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountHooksConfiguration
 import org.prebid.server.functional.model.config.AppVideoHtml
@@ -37,6 +36,7 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
             ["adapter-defaults.modifying-vast-xml-allowed": "false",
              "adapters.generic.modifying-vast-xml-allowed": "false"] +
                     responseCorrectionConfig)
+    private final int OPTIMAL_MAX_LENGTH = 20
 
     def "PBS shouldn't modify response when in account correction module disabled"() {
         given: "Start up time"
@@ -356,11 +356,12 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
 
         where:
         admValue << [
-                "${PBSUtils.randomString}<${' ' * PBSUtils.getRandomNumber(0, 20)}VAST ${PBSUtils.randomString}",
-                "${PBSUtils.randomString}<${' ' * PBSUtils.getRandomNumber(0, 20)}VAST ${PBSUtils.randomString}>",
-                "<${' ' * PBSUtils.getRandomNumber(0, 20)}VAST${' ' * PBSUtils.getRandomNumber(1, 20)}",
-                "<${' ' * PBSUtils.getRandomNumber(0, 20)}VAST${' ' * PBSUtils.getRandomNumber(1, 20)}>",
-                "<${' ' * PBSUtils.getRandomNumber(0, 20)}VAST${' ' * PBSUtils.getRandomNumber(1, 20)}${PBSUtils.randomString}>"
+                "${PBSUtils.randomString}<${' ' * PBSUtils.getRandomNumber(0, OPTIMAL_MAX_LENGTH)}VAST ${PBSUtils.randomString}",
+                "${PBSUtils.randomString}<${' ' * PBSUtils.getRandomNumber(0, OPTIMAL_MAX_LENGTH)}VAST ${PBSUtils.randomString}>",
+                "${PBSUtils.randomString}${' ' * PBSUtils.getRandomNumber(0, OPTIMAL_MAX_LENGTH)}<${' ' * PBSUtils.getRandomNumber(0, OPTIMAL_MAX_LENGTH)}VAST ${PBSUtils.randomString}>",
+                "<${' ' * PBSUtils.getRandomNumber(0, OPTIMAL_MAX_LENGTH)}VAST${' ' * PBSUtils.getRandomNumber(1, OPTIMAL_MAX_LENGTH)}",
+                "<${' ' * PBSUtils.getRandomNumber(0, OPTIMAL_MAX_LENGTH)}VAST${' ' * PBSUtils.getRandomNumber(1, OPTIMAL_MAX_LENGTH)}>",
+                "<${' ' * PBSUtils.getRandomNumber(0, OPTIMAL_MAX_LENGTH)}VAST${' ' * PBSUtils.getRandomNumber(1, OPTIMAL_MAX_LENGTH)}${PBSUtils.randomString}>"
         ]
     }
 
@@ -410,10 +411,10 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
 
         where:
         admValue << [
-                "<${' ' * PBSUtils.getRandomNumber(0, 20)}VAST${PBSUtils.randomString}",
-                "<${' ' * PBSUtils.getRandomNumber(0, 20)}VAST",
-                "<${' ' * PBSUtils.getRandomNumber(0, 20)}VAST>",
-                "<${PBSUtils.randomString}VAST${' ' * PBSUtils.getRandomNumber(1, 20)}"
+                "<${' ' * PBSUtils.getRandomNumber(0, OPTIMAL_MAX_LENGTH)}VAST${PBSUtils.randomString}",
+                "<${' ' * PBSUtils.getRandomNumber(0, OPTIMAL_MAX_LENGTH)}VAST",
+                "<${' ' * PBSUtils.getRandomNumber(0, OPTIMAL_MAX_LENGTH)}VAST>",
+                "<${PBSUtils.randomString}VAST${' ' * PBSUtils.getRandomNumber(1, OPTIMAL_MAX_LENGTH)}"
         ]
     }
 
@@ -465,15 +466,15 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
 
         where:
         mediaType | admValue
-        BANNER    | "${PBSUtils.randomString}<${' ' * PBSUtils.getRandomNumber(0, 20)}VAST${PBSUtils.randomString}"
-        BANNER    | "<${' ' * PBSUtils.getRandomNumber(0, 20)}VAST${' ' * PBSUtils.getRandomNumber(1, 20)}"
-        BANNER    | "<${' ' * PBSUtils.getRandomNumber(0, 20)}}VAST${' ' * PBSUtils.getRandomNumber(1, 20)}${PBSUtils.randomString}"
-        AUDIO     | "${PBSUtils.randomString}<${' ' * PBSUtils.getRandomNumber(0, 20)}VAST${PBSUtils.randomString}"
-        AUDIO     | "<${' ' * PBSUtils.getRandomNumber(0, 20)}VAST${' ' * PBSUtils.getRandomNumber(1, 20)}"
-        AUDIO     | "<${' ' * PBSUtils.getRandomNumber(0, 20)}}VAST${' ' * PBSUtils.getRandomNumber(1, 20)}${PBSUtils.randomString}"
-        NATIVE    | "${PBSUtils.randomString}<${' ' * PBSUtils.getRandomNumber(0, 20)}VAST${PBSUtils.randomString}"
-        NATIVE    | "<${' ' * PBSUtils.getRandomNumber(0, 20)}VAST${' ' * PBSUtils.getRandomNumber(1, 20)}"
-        NATIVE    | "<${' ' * PBSUtils.getRandomNumber(0, 20)}}VAST${' ' * PBSUtils.getRandomNumber(1, 20)}${PBSUtils.randomString}"
+        BANNER    | "${PBSUtils.randomString}<${' ' * PBSUtils.getRandomNumber(0, OPTIMAL_MAX_LENGTH)}VAST${PBSUtils.randomString}"
+        BANNER    | "<${' ' * PBSUtils.getRandomNumber(0, OPTIMAL_MAX_LENGTH)}VAST${' ' * PBSUtils.getRandomNumber(1, OPTIMAL_MAX_LENGTH)}"
+        BANNER    | "<${' ' * PBSUtils.getRandomNumber(0, OPTIMAL_MAX_LENGTH)}}VAST${' ' * PBSUtils.getRandomNumber(1, OPTIMAL_MAX_LENGTH)}${PBSUtils.randomString}"
+        AUDIO     | "${PBSUtils.randomString}<${' ' * PBSUtils.getRandomNumber(0, OPTIMAL_MAX_LENGTH)}VAST${PBSUtils.randomString}"
+        AUDIO     | "<${' ' * PBSUtils.getRandomNumber(0, OPTIMAL_MAX_LENGTH)}VAST${' ' * PBSUtils.getRandomNumber(1, OPTIMAL_MAX_LENGTH)}"
+        AUDIO     | "<${' ' * PBSUtils.getRandomNumber(0, OPTIMAL_MAX_LENGTH)}}VAST${' ' * PBSUtils.getRandomNumber(1, OPTIMAL_MAX_LENGTH)}${PBSUtils.randomString}"
+        NATIVE    | "${PBSUtils.randomString}<${' ' * PBSUtils.getRandomNumber(0, OPTIMAL_MAX_LENGTH)}VAST${PBSUtils.randomString}"
+        NATIVE    | "<${' ' * PBSUtils.getRandomNumber(0, OPTIMAL_MAX_LENGTH)}VAST${' ' * PBSUtils.getRandomNumber(1, OPTIMAL_MAX_LENGTH)}"
+        NATIVE    | "<${' ' * PBSUtils.getRandomNumber(0, OPTIMAL_MAX_LENGTH)}}VAST${' ' * PBSUtils.getRandomNumber(1, OPTIMAL_MAX_LENGTH)}${PBSUtils.randomString}"
     }
 
     def "PBS shouldn't modify response meta.mediaType to video and emit logs when requested impression with video and adm obj with asset"() {
