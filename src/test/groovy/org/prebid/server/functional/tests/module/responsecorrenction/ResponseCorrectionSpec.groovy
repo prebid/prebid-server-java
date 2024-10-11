@@ -36,7 +36,8 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
             ["adapter-defaults.modifying-vast-xml-allowed": "false",
              "adapters.generic.modifying-vast-xml-allowed": "false"] +
                     responseCorrectionConfig)
-    private final int OPTIMAL_MAX_LENGTH = 20
+
+    private final static int OPTIMAL_MAX_LENGTH = 20
 
     def "PBS shouldn't modify response when in account correction module disabled"() {
         given: "Start up time"
