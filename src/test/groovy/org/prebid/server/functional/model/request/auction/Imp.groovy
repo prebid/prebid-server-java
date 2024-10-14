@@ -102,7 +102,7 @@ class Imp {
     }
 
     @JsonIgnore
-    List<MediaType> getMediaType() {
+    List<MediaType> getMediaTypes() {
         return [
                 (banner ? BANNER : null),
                 (video ? VIDEO : null),

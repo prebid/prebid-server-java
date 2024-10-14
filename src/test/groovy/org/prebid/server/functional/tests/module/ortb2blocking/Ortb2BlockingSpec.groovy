@@ -54,9 +54,8 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
 
     private final PrebidServerService pbsServiceWithEnabledOrtb2Blocking = pbsServiceFactory.getService(ortb2BlockingSettings + IX_CONFIG)
 
-
     def "PBS should send original array ortb2 attribute to bidder when enforce blocking is disabled"() {
-        given: "Default bidRequest"
+        given: "Default bid request with proper ortb attribute"
         def bidRequest = getBidRequestForOrtbAttribute(attributeName)
 
         and: "Account in the DB with blocking configuration"
@@ -127,7 +126,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
     }
 
     def "PBS shouldn't send original single ortb2 attribute to bidder when enforce blocking is disabled"() {
-        given: "Default bidRequest"
+        given: "Default bid request with proper ortb attribute"
         def bidRequest = getBidRequestForOrtbAttribute(attributeName)
 
         and: "Account in the DB with blocking configuration"
@@ -166,7 +165,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
     }
 
     def "PBS shouldn't send original inappropriate ortb2 attribute to bidder when blocking is disabled"() {
-        given: "Default bidRequest"
+        given: "Default bid request with proper ortb attribute"
         def bidRequest = getBidRequestForOrtbAttribute(attributeName)
 
         and: "Account in the DB with blocking configuration"
@@ -199,7 +198,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
     }
 
     def "PBS shouldn't send original inappropriate ortb2 attribute to bidder when blocking is enabled"() {
-        given: "Default bidRequest"
+        given: "Default bid request with proper ortb attribute"
         def bidRequest = getBidRequestForOrtbAttribute(attributeName)
 
         and: "Account in the DB with blocking configuration"
@@ -238,7 +237,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
     }
 
     def "PBS should send only not matched ortb2 attribute to bidder when blocking is enabled"() {
-        given: "Default bidRequest"
+        given: "Default bid request with proper ortb attribute"
         def bidRequest = getBidRequestForOrtbAttribute(attributeName)
 
         and: "Account in the DB with blocking configuration"
@@ -279,7 +278,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
     }
 
     def "PBS should send original inappropriate ortb2 attribute to bidder when blocking is disabled"() {
-        given: "Default bidRequest"
+        given: "Default bid request with proper ortb attribute"
         def bidRequest = getBidRequestForOrtbAttribute(attributeName)
 
         and: "Account in the DB with blocking configuration"
@@ -318,7 +317,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
     }
 
     def "PBS should discard unknown adomain bids when enforcement is enabled"() {
-        given: "Default bidRequest"
+        given: "Default bid request with proper ortb attribute"
         def bidRequest = getBidRequestForOrtbAttribute(BADV)
 
         and: "Account in the DB with blocking configuration"
@@ -357,7 +356,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
     }
 
     def "PBS should not discard unknown adomain bids when enforcement is disabled"() {
-        given: "Default bidRequest"
+        given: "Default bid request with proper ortb attribute"
         def bidRequest = getBidRequestForOrtbAttribute(BADV)
 
         and: "Account in the DB with blocking configuration"
@@ -392,7 +391,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
     }
 
     def "PBS should discard unknown adv cat bids when enforcement is enabled"() {
-        given: "Default bidRequest"
+        given: "Default bid request with proper ortb attribute"
         def bidRequest = getBidRequestForOrtbAttribute(BCAT)
 
         and: "Account in the DB with blocking configuration"
@@ -431,7 +430,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
     }
 
     def "PBS should not discard unknown adv cat bids when enforcement is disabled"() {
-        given: "Default bidRequest"
+        given: "Default bid request with proper ortb attribute"
         def bidRequest = getBidRequestForOrtbAttribute(BCAT)
 
         and: "Account in the DB with blocking configuration"
@@ -466,7 +465,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
     }
 
     def "PBS should not discard bids with deals when allowed ortb2 attribute for deals is matched"() {
-        given: "Default bidRequest"
+        given: "Default bid request with proper ortb attribute"
         def bidRequest = getBidRequestForOrtbAttribute(attributeName)
 
         and: "Account in the DB with blocking configuration"
@@ -507,7 +506,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
     }
 
     def "PBS should discard bids with deals when allowed ortb2 attribute for deals is not matched"() {
-        given: "Default bidRequest"
+        given: "Default bid request with proper ortb attribute"
         def bidRequest = getBidRequestForOrtbAttribute(attributeName)
 
         and: "Account in the DB with blocking configuration"
@@ -547,7 +546,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
     }
 
     def "PBS should be able to override enforcement by bidder"() {
-        given: "Default bidRequest"
+        given: "Default bid request with proper ortb attribute"
         def bidRequest = getBidRequestForOrtbAttribute(attributeName).tap {
             imp[0].ext.prebid.bidder.ix = Ix.default
         }
@@ -571,7 +570,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         when: "PBS processes the auction request"
         def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
 
-        then: "PBS response should contain only ix seatbid"
+        then: "PBS response should contain only openx seatbid"
         assert response.seatbid.size() == 1
         assert response.seatbid.first.seat == IX
         assert getOrtb2Attributes(response.seatbid.first.bid.first, attributeName) == [ortb2Attributes]*.toString()
@@ -593,7 +592,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
     }
 
     def "PBS should be able to override enforcement by media type"() {
-        given: "Default bidRequest"
+        given: "Bid request with multy type imp"
         def bannerImp = Imp.getDefaultImpression(BANNER)
         def videoImp = Imp.getDefaultImpression(VIDEO)
         def bidRequest = getBidRequestForOrtbAttribute(attributeName).tap {
@@ -638,7 +637,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
     }
 
     def "PBS should be able to override enforcement by media type for battr attribute"() {
-        given: "Default bidRequest"
+        given: "Default bid request with proper ortb attribute"
         def bidRequest = getBidRequestForOrtbAttribute(attributeName)
 
         and: "Account in the DB with blocking configuration"
@@ -686,8 +685,12 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
     }
 
     def "PBS shouldn't be able to override enforcement by incorrect media type for battr attribute"() {
-        given: "Default bidRequest"
-        def bidRequest = getBidRequestForOrtbAttribute(attributeName)
+        given: "Default bid request with proper ortb attribute"
+        def bidRequest = getBidRequestForOrtbAttribute(attributeName, [PBSUtils.randomNumber]).tap {
+            // default resolve for bids always prefer type from request, ix from response and only then from request if null
+            imp[0].ext.prebid.bidder.generic = null
+            imp[0].ext.prebid.bidder.ix = Ix.default
+        }
 
         and: "Account in the DB with blocking configuration"
         def blockingCondition = new Ortb2BlockingConditions(mediaType: [mediaType])
@@ -705,7 +708,6 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         }
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
             it.seatbid = [new SeatBid(bid: [bid])]
-
         }
         bidder.setResponse(bidRequest.id, bidResponse)
 
@@ -721,18 +723,22 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         and: "PBS response shouldn't contain any module warning"
         assert !response?.ext?.prebid?.modules?.warnings
 
+        and: "PBS request should contain original ortb2 attribute"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert getOrtb2Attributes(bidderRequest, attributeName) == getOrtb2Attributes(bidRequest, attributeName)
+
         where:
         attributeName | mediaType | bidMediaType
         BANNER_BATTR  | AUDIO     | null
         VIDEO_BATTR   | BANNER    | null
         AUDIO_BATTR   | VIDEO     | null
-        BANNER_BATTR  | BANNER    | BidMediaType.AUDIO
+        BANNER_BATTR  | BANNER     | BidMediaType.AUDIO
         VIDEO_BATTR   | VIDEO     | BidMediaType.BANNER
         AUDIO_BATTR   | AUDIO     | BidMediaType.VIDEO
     }
 
     def "PBS should be able to override enforcement by deal id"() {
-        given: "Default bidRequest"
+        given: "Default bid request with proper ortb attribute"
         def bidRequest = getBidRequestForOrtbAttribute(attributeName)
 
         and: "Account in the DB with blocking configuration"
@@ -781,7 +787,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
     }
 
     def "PBS should be able to override blocked ortb2 attribute by bidder"() {
-        given: "Default bidRequest"
+        given: "Default bid request with proper ortb attribute"
         def bidRequest = getBidRequestForOrtbAttribute(attributeName)
 
         and: "Account in the DB with blocking configuration"
@@ -824,7 +830,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
     }
 
     def "PBS should be able to override blocked ortb2 attribute by media type"() {
-        given: "Default bidRequest"
+        given: "Default bid request with proper ortb attribute"
         def bidRequest = getBidRequestForOrtbAttribute(attributeName)
 
         and: "Account in the DB with blocking configuration"
@@ -867,7 +873,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
     }
 
     def "PBS should be able to override block unknown adomain by bidder"() {
-        given: "Default bidRequest"
+        given: "Default bid request with proper ortb attribute"
         def bidRequest = getBidRequestForOrtbAttribute(BADV).tap {
             imp[0].ext.prebid.bidder.ix = Ix.default
         }
@@ -907,7 +913,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
     }
 
     def "PBS should be able to override block unknown adomain by media type"() {
-        given: "Default bidRequest"
+        given: "Default bid request with proper ortb attribute"
         def bidRequest = getBidRequestForOrtbAttribute(BADV)
 
         and: "Account in the DB with blocking configuration"
@@ -943,7 +949,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
     }
 
     def "PBS should be able to override block unknown adv-cat by bidder"() {
-        given: "Default bidRequest"
+        given: "Default bid request with proper ortb attribute"
         def bidRequest = getBidRequestForOrtbAttribute(BCAT).tap {
             imp[0].ext.prebid.bidder.ix = Ix.default
         }
@@ -983,7 +989,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
     }
 
     def "PBS should be able to override block unknown adv-cat by media type"() {
-        given: "Default bidRequest"
+        given: "Default bid request with proper ortb attribute"
         def bidRequest = getBidRequestForOrtbAttribute(BCAT)
 
         and: "Account in the DB with blocking configuration"
@@ -1017,7 +1023,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
     }
 
     def "PBS should be able to override allowed ortb2 attribute for deals by deal ids"() {
-        given: "Default bidRequest"
+        given: "Default bid request with proper ortb attribute"
         def bidRequest = getBidRequestForOrtbAttribute(attributeName)
 
         and: "Account in the DB with blocking configuration"
@@ -1062,7 +1068,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
     }
 
     def "PBS should use first override when multiple match same condition"() {
-        given: "Default bidRequest"
+        given: "Default bid request with proper ortb attribute"
         def bidRequest = getBidRequestForOrtbAttribute(attributeName)
 
         and: "Account in the DB with blocking configuration"
@@ -1093,7 +1099,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
 
         and: "PBS response should contain proper warning"
         assert response?.ext?.prebid?.modules?.warnings?.ortb2Blocking["ortb2-blocking-bidder-request"] ==
-                ["More than one conditions matches request. Bidder: generic, request media types: [${bidRequest.imp[0].mediaType[0].value}]"]
+                ["More than one conditions matches request. Bidder: generic, request media types: [${bidRequest.imp[0].mediaTypes[0].value}]"]
 
         where:
         blockingCondition                                | ortb2Attributes       | firstOverrideAttributes | secondOverrideAttributes | attributeName
@@ -1112,7 +1118,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
     }
 
     def "PBS should prefer non wildcard override when multiple match same condition by bidder"() {
-        given: "Default bidRequest"
+        given: "Default bid request with proper ortb attribute"
         def bidRequest = getBidRequestForOrtbAttribute(attributeName)
 
         and: "Account in the DB with blocking configuration"
@@ -1155,12 +1161,12 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
     }
 
     def "PBS should prefer non wildcard override when multiple match same condition by media type"() {
-        given: "Default bidRequest"
+        given: "Default bid request with proper ortb attribute"
         def bidRequest = getBidRequestForOrtbAttribute(attributeName)
 
         and: "Account in the DB with blocking configuration"
         def firstOrtb2BlockingOverride = new Ortb2BlockingOverride(override: [firstOverrideAttributes], conditions: new Ortb2BlockingConditions(mediaType: [MediaType.WILDCARD]))
-        def secondOrtb2BlockingOverride = new Ortb2BlockingOverride(override: [secondOverrideAttributes], conditions: new Ortb2BlockingConditions(mediaType: [bidRequest.imp[0].mediaType[0]]))
+        def secondOrtb2BlockingOverride = new Ortb2BlockingOverride(override: [secondOverrideAttributes], conditions: new Ortb2BlockingConditions(mediaType: [bidRequest.imp[0].mediaTypes[0]]))
         def ortb2BlockingAttributeConfig = Ortb2BlockingAttributeConfig.getDefaultConfig([ortb2Attributes], attributeName).tap {
             enforceBlocks = true
             actionOverrides = Ortb2BlockingActionOverride.getDefaultOverride(attributeName, [firstOrtb2BlockingOverride, secondOrtb2BlockingOverride], null)
@@ -1198,7 +1204,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
     }
 
     def "PBS should merge allowed bundle for deals overrides together"() {
-        given: "Default bidRequest"
+        given: "Default bid request with proper ortb attribute"
         def bidRequest = getBidRequestForOrtbAttribute(attributeName)
 
         and: "Account in the DB with blocking configuration"
@@ -1242,7 +1248,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
     }
 
     def "PBS should not be override from config when ortb2 attribute present in incoming request"() {
-        given: "Default bidRequest"
+        given: "Default bid request with proper ortb attribute"
         def bidRequest = getBidRequestForOrtbAttribute(attributeName, bidRequestAttribute)
 
         and: "Account in the DB with blocking configuration"
