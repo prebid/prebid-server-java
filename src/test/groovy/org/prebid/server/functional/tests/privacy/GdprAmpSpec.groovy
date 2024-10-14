@@ -361,7 +361,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         tcfPolicyVersion << [TCF_POLICY_V2, TCF_POLICY_V4, TCF_POLICY_V5]
     }
 
-    def "PBS amp with invalid consent.tcfPolicyVersion parameter should reject request and include proper warning and metrics"() {
+    def "PBS amp shouldn't reject request with proper warning and metrics when incoming consent.tcfPolicyVersion have invalid parameter"() {
         given: "Tcf consent string with invalid tcf policy version"
         def tcfConsent = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
@@ -673,9 +673,6 @@ class GdprAmpSpec extends PrivacyBaseSpec {
 
         and: "Set vendor list response"
         vendorListResponse.setResponse(tcfPolicyVersion)
-
-        and: "Flush metrics"
-        flushMetrics(privacyPbsService)
 
         when: "PBS processes amp request"
         privacyPbsService.sendAmpRequest(ampRequest)

@@ -314,7 +314,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         tcfPolicyVersion << [TCF_POLICY_V2, TCF_POLICY_V4, TCF_POLICY_V5]
     }
 
-    def "PBS auction should reject request with proper warning and metrics when incoming consent.tcfPolicyVersion have invalid parameter"() {
+    def "PBS auction shouldn't reject request with proper warning and metrics when incoming consent.tcfPolicyVersion have invalid parameter"() {
         given: "Tcf consent string with invalid tcf policy version"
         def tcfConsent = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
@@ -792,9 +792,6 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
 
         and: "Set vendor list response"
         vendorListResponse.setResponse(tcfPolicyVersion)
-
-        and: "Flush metrics"
-        flushMetrics(privacyPbsService)
 
         when: "PBS processes auction request"
         privacyPbsService.sendAuctionRequest(bidRequest)
