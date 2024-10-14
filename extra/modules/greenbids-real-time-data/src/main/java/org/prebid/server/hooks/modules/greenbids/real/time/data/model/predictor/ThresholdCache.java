@@ -1,6 +1,5 @@
 package org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.google.cloud.storage.Blob;
@@ -15,7 +14,6 @@ import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -78,11 +76,6 @@ public class ThresholdCache {
     }
 
     private Future<ThrottlingThresholds> fetchAndCacheThrottlingThresholds(String thresholdJsonPath, String cacheKey) {
-        System.out.println(
-                "fetchAndCacheThrottlingThresholds: \n" +
-                        "   thresholdJsonPath: " + thresholdJsonPath
-        );
-
         return vertx.executeBlocking(() -> getBlob(thresholdJsonPath))
                 .map(this::loadThrottlingThresholds)
                 .onSuccess(thresholds -> cache.put(cacheKey, thresholds))
@@ -91,11 +84,6 @@ public class ThresholdCache {
 
     private Blob getBlob(String thresholdJsonPath) {
         try {
-            System.out.println(
-                    "getBlob: \n" +
-                            "   thresholdJsonPath: " + thresholdJsonPath + "\n"
-            );
-
             return Optional.ofNullable(storage.get(gcsBucketName))
                     .map(bucket -> bucket.get(thresholdJsonPath))
                     .orElseThrow(() -> new PreBidException("Bucket not found: " + gcsBucketName));
@@ -105,22 +93,9 @@ public class ThresholdCache {
     }
 
     private ThrottlingThresholds loadThrottlingThresholds(Blob blob) {
-        final JsonNode thresholdsJsonNode;
         try {
             final byte[] jsonBytes = blob.getContent();
-            // thresholdsJsonNode = mapper.readTree(jsonBytes);
-            // ThrottlingThresholds tempThrottlingThresholds = mapper.treeToValue(thresholdsJsonNode, ThrottlingThresholds.class);
-            ThrottlingThresholds tempThrottlingThresholds = throttlingThresholdsFactory.create(jsonBytes, mapper);
-
-            System.out.println(
-                    "loadThrottlingThresholds: \n" +
-                            "   blob: " + blob + "\n" +
-                            "   jsonBytes: " + Arrays.toString(jsonBytes) + "\n" +
-                            //"   thresholdsJsonNode: " + thresholdsJsonNode + "\n" +
-                            "   tempThrottlingThresholds: " + tempThrottlingThresholds + "\n"
-            );
-
-            return tempThrottlingThresholds;
+            return throttlingThresholdsFactory.create(jsonBytes, mapper);
         } catch (IOException e) {
             throw new PreBidException("Failed to load throttling thresholds json", e);
         }

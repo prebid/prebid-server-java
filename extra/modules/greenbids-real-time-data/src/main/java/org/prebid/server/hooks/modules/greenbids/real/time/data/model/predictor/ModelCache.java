@@ -3,7 +3,6 @@ package org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor
 import ai.onnxruntime.OrtException;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.google.cloud.storage.Blob;
-import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
 import io.vertx.core.Future;
@@ -12,7 +11,6 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
 
-import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -59,11 +57,6 @@ public class ModelCache {
             return Future.succeededFuture(cachedOnnxModelRunner);
         }
 
-        System.out.println(
-                "get: " + "\n" +
-                        "   isFetching: " + isFetching
-        );
-
         if (isFetching.compareAndSet(false, true)) {
             try {
                 return fetchAndCacheModelRunner(onnxModelPath, cacheKey);
@@ -75,13 +68,7 @@ public class ModelCache {
         return Future.failedFuture("ModelRunner fetching in progress. Skip current request");
     }
 
-    private Future<OnnxModelRunner>  fetchAndCacheModelRunner(String onnxModelPath, String cacheKey) {
-        System.out.println(
-                "fetchAndCacheModelRunner: \n" +
-                        "   onnxModelPath: " + onnxModelPath + "\n" +
-                        "   cacheKey: " + cacheKey
-        );
-
+    private Future<OnnxModelRunner> fetchAndCacheModelRunner(String onnxModelPath, String cacheKey) {
         return vertx.executeBlocking(() -> getBlob(onnxModelPath))
                 .map(this::loadModelRunner)
                 .onSuccess(onnxModelRunner -> cache.put(cacheKey, onnxModelRunner))
@@ -94,7 +81,6 @@ public class ModelCache {
                     .map(bucket -> bucket.get(onnxModelPath))
                     .orElseThrow(() -> new PreBidException("Bucket not found: " + gcsBucketName));
         } catch (StorageException e) {
-            System.out.println("StorageException trigger PreBidException");
             throw new PreBidException("Error accessing GCS artefact for model: ", e);
         }
     }
@@ -102,16 +88,8 @@ public class ModelCache {
     private OnnxModelRunner loadModelRunner(Blob blob) {
         try {
             final byte[] onnxModelBytes = blob.getContent();
-
-            System.out.println(
-                    "loadModelRunner: \n" +
-                            "   blob: " + blob + "\n" +
-                            "   onnxModelBytes: " + Arrays.toString(onnxModelBytes) + "\n"
-            );
-
             return onnxModelRunnerFactory.create(onnxModelBytes);
         } catch (OrtException e) {
-            System.out.println("OrtException trigger PreBidException");
             throw new PreBidException("Failed to convert blob to ONNX model", e);
         }
     }

@@ -62,10 +62,10 @@ public class GreenbidsInvocationServiceTest {
                 partner, bidRequest, impsBiddersFilterMap);
 
         // then
-        JsonNode updatedBidRequestExtPrebidBidders = result.getUpdatedBidRequest().getImp().getFirst().getExt()
+        final JsonNode updatedBidRequestExtPrebidBidders = result.getUpdatedBidRequest().getImp().getFirst().getExt()
                 .get("prebid").get("bidder");
-        Ortb2ImpExtResult ortb2ImpExtResult = result.getAnalyticsResult().getValues().get("adunitcodevalue");
-        Map<String, Boolean> keptInAuction = ortb2ImpExtResult.getGreenbids().getKeptInAuction();
+        final Ortb2ImpExtResult ortb2ImpExtResult = result.getAnalyticsResult().getValues().get("adunitcodevalue");
+        final Map<String, Boolean> keptInAuction = ortb2ImpExtResult.getGreenbids().getKeptInAuction();
 
         assertThat(result.getInvocationAction()).isEqualTo(InvocationAction.update);
         assertThat(updatedBidRequestExtPrebidBidders.has("rubicon")).isTrue();
@@ -99,10 +99,10 @@ public class GreenbidsInvocationServiceTest {
                 partner, bidRequest, impsBiddersFilterMap);
 
         // then
-        JsonNode updatedBidRequestExtPrebidBidders = result.getUpdatedBidRequest().getImp().getFirst().getExt()
+        final JsonNode updatedBidRequestExtPrebidBidders = result.getUpdatedBidRequest().getImp().getFirst().getExt()
                 .get("prebid").get("bidder");
-        Ortb2ImpExtResult ortb2ImpExtResult = result.getAnalyticsResult().getValues().get("adunitcodevalue");
-        Map<String, Boolean> keptInAuction = ortb2ImpExtResult.getGreenbids().getKeptInAuction();
+        final Ortb2ImpExtResult ortb2ImpExtResult = result.getAnalyticsResult().getValues().get("adunitcodevalue");
+        final Map<String, Boolean> keptInAuction = ortb2ImpExtResult.getGreenbids().getKeptInAuction();
 
         assertThat(result.getInvocationAction()).isEqualTo(InvocationAction.no_action);
         assertThat(updatedBidRequestExtPrebidBidders.has("rubicon")).isTrue();

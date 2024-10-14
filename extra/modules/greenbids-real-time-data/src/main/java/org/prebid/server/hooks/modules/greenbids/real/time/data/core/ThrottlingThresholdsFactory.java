@@ -6,8 +6,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 
 public class ThrottlingThresholdsFactory {
+
     public ThrottlingThresholds create(byte[] bytes, ObjectMapper mapper) throws IOException {
-        JsonNode thresholdsJsonNode = mapper.readTree(bytes);
+        final JsonNode thresholdsJsonNode = mapper.readTree(bytes);
         return mapper.treeToValue(thresholdsJsonNode, ThrottlingThresholds.class);
     }
 }
