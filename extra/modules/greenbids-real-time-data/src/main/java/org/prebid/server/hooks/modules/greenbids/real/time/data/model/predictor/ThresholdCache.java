@@ -10,10 +10,12 @@ import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingThresholds;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingThresholdsFactory;
 import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -36,13 +38,16 @@ public class ThresholdCache {
 
     private final Vertx vertx;
 
+    private final ThrottlingThresholdsFactory throttlingThresholdsFactory;
+
     public ThresholdCache(
             Storage storage,
             String gcsBucketName,
             ObjectMapper mapper,
             Cache<String, ThrottlingThresholds> cache,
             String thresholdsCacheKeyPrefix,
-            Vertx vertx) {
+            Vertx vertx,
+            ThrottlingThresholdsFactory throttlingThresholdsFactory) {
         this.gcsBucketName = Objects.requireNonNull(gcsBucketName);
         this.cache = Objects.requireNonNull(cache);
         this.storage = Objects.requireNonNull(storage);
@@ -50,6 +55,7 @@ public class ThresholdCache {
         this.thresholdsCacheKeyPrefix = Objects.requireNonNull(thresholdsCacheKeyPrefix);
         this.isFetching = new AtomicBoolean(false);
         this.vertx = Objects.requireNonNull(vertx);
+        this.throttlingThresholdsFactory = Objects.requireNonNull(throttlingThresholdsFactory);
     }
 
     public Future<ThrottlingThresholds> get(String thresholdJsonPath, String pbuid) {
@@ -62,17 +68,22 @@ public class ThresholdCache {
 
         if (isFetching.compareAndSet(false, true)) {
             try {
-                fetchAndCacheThrottlingThresholds(thresholdJsonPath, cacheKey);
+                return fetchAndCacheThrottlingThresholds(thresholdJsonPath, cacheKey);
             } finally {
                 isFetching.set(false);
             }
         }
 
-        return Future.failedFuture("ThrottlingThresholds fetching in progress");
+        return Future.failedFuture("ThrottlingThresholds fetching in progress. Skip current request");
     }
 
-    private void fetchAndCacheThrottlingThresholds(String thresholdJsonPath, String cacheKey) {
-        vertx.executeBlocking(() -> getBlob(thresholdJsonPath))
+    private Future<ThrottlingThresholds> fetchAndCacheThrottlingThresholds(String thresholdJsonPath, String cacheKey) {
+        System.out.println(
+                "fetchAndCacheThrottlingThresholds: \n" +
+                        "   thresholdJsonPath: " + thresholdJsonPath
+        );
+
+        return vertx.executeBlocking(() -> getBlob(thresholdJsonPath))
                 .map(this::loadThrottlingThresholds)
                 .onSuccess(thresholds -> cache.put(cacheKey, thresholds))
                 .onFailure(error -> logger.error("Failed to fetch thresholds"));
@@ -80,6 +91,11 @@ public class ThresholdCache {
 
     private Blob getBlob(String thresholdJsonPath) {
         try {
+            System.out.println(
+                    "getBlob: \n" +
+                            "   thresholdJsonPath: " + thresholdJsonPath + "\n"
+            );
+
             return Optional.ofNullable(storage.get(gcsBucketName))
                     .map(bucket -> bucket.get(thresholdJsonPath))
                     .orElseThrow(() -> new PreBidException("Bucket not found: " + gcsBucketName));
@@ -92,8 +108,19 @@ public class ThresholdCache {
         final JsonNode thresholdsJsonNode;
         try {
             final byte[] jsonBytes = blob.getContent();
-            thresholdsJsonNode = mapper.readTree(jsonBytes);
-            return mapper.treeToValue(thresholdsJsonNode, ThrottlingThresholds.class);
+            // thresholdsJsonNode = mapper.readTree(jsonBytes);
+            // ThrottlingThresholds tempThrottlingThresholds = mapper.treeToValue(thresholdsJsonNode, ThrottlingThresholds.class);
+            ThrottlingThresholds tempThrottlingThresholds = throttlingThresholdsFactory.create(jsonBytes, mapper);
+
+            System.out.println(
+                    "loadThrottlingThresholds: \n" +
+                            "   blob: " + blob + "\n" +
+                            "   jsonBytes: " + Arrays.toString(jsonBytes) + "\n" +
+                            //"   thresholdsJsonNode: " + thresholdsJsonNode + "\n" +
+                            "   tempThrottlingThresholds: " + tempThrottlingThresholds + "\n"
+            );
+
+            return tempThrottlingThresholds;
         } catch (IOException e) {
             throw new PreBidException("Failed to load throttling thresholds json", e);
         }

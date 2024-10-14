@@ -8,6 +8,7 @@ import com.maxmind.geoip2.DatabaseReader;
 import io.vertx.core.Vertx;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingThresholds;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingThresholdsFactory;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.config.GreenbidsRealTimeDataProperties;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.data.GreenbidsInferenceDataService;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.FilterService;
@@ -83,6 +84,11 @@ public class GreenbidsRealTimeDataConfiguration {
     }
 
     @Bean
+    ThrottlingThresholdsFactory throttlingThresholdsFactory() {
+        return new ThrottlingThresholdsFactory();
+    }
+
+    @Bean
     ModelCache modelCache(
             GreenbidsRealTimeDataProperties properties,
             Vertx vertx,
@@ -106,7 +112,8 @@ public class GreenbidsRealTimeDataConfiguration {
     ThresholdCache thresholdCache(
             GreenbidsRealTimeDataProperties properties,
             Vertx vertx,
-            Storage storage) {
+            Storage storage,
+            ThrottlingThresholdsFactory throttlingThresholdsFactory) {
 
         final Cache<String, ThrottlingThresholds> thresholdsCacheWithExpiration = Caffeine.newBuilder()
                 .expireAfterWrite(properties.getCacheExpirationMinutes(), TimeUnit.MINUTES)
@@ -118,7 +125,8 @@ public class GreenbidsRealTimeDataConfiguration {
                 ObjectMapperProvider.mapper(),
                 thresholdsCacheWithExpiration,
                 properties.getThresholdsCacheKeyPrefix(),
-                vertx);
+                vertx,
+                throttlingThresholdsFactory);
     }
 
     @Bean

@@ -90,16 +90,6 @@ public class ModelCache {
 
     private Blob getBlob(String onnxModelPath) {
         try {
-            Bucket tempBucket = storage.get(gcsBucketName);
-            Blob tempBlob = tempBucket.get(onnxModelPath);
-
-            System.out.println(
-                    "getBlob: \n" +
-                            "   onnxModelPath: " + onnxModelPath + "\n" +
-                            "   bucket: " + tempBucket + "\n" +
-                            "   blob: " + tempBlob
-            );
-
             return Optional.ofNullable(storage.get(gcsBucketName))
                     .map(bucket -> bucket.get(onnxModelPath))
                     .orElseThrow(() -> new PreBidException("Bucket not found: " + gcsBucketName));

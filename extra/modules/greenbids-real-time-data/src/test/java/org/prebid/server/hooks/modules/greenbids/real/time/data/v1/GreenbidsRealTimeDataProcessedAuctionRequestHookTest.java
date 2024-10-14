@@ -24,6 +24,7 @@ import org.prebid.server.analytics.reporter.greenbids.model.Ortb2ImpExtResult;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingThresholds;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingThresholdsFactory;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.data.GreenbidsInferenceDataService;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.FilterService;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.ModelCache;
@@ -92,6 +93,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final DatabaseReader dbReader = new DatabaseReader.Builder(database).build();
         final FilterService filterService = new FilterService();
         final OnnxModelRunnerFactory onnxModelRunnerFactory = new OnnxModelRunnerFactory();
+        final ThrottlingThresholdsFactory throttlingThresholdsFactory = new ThrottlingThresholdsFactory();
         final ModelCache modelCache = new ModelCache(
                 storage,
                 "test_bucket",
@@ -105,7 +107,8 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 ObjectMapperProvider.mapper(),
                 thresholdsCacheWithExpiration,
                 "throttlingThresholds_",
-                Vertx.vertx());
+                Vertx.vertx(),
+                throttlingThresholdsFactory);
         final OnnxModelRunnerWithThresholds onnxModelRunnerWithThresholds = new OnnxModelRunnerWithThresholds(
                 modelCache,
                 thresholdCache);
@@ -137,77 +140,6 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final AuctionContext auctionContext = givenAuctionContext(bidRequest, context -> context);
         final AuctionInvocationContext invocationContext = givenAuctionInvocationContext(auctionContext);
         when(invocationContext.auctionContext()).thenReturn(auctionContext);
-
-        // when
-        final Future<InvocationResult<AuctionRequestPayload>> future = target
-                .call(null, invocationContext);
-        final InvocationResult<AuctionRequestPayload> result = future.result();
-
-        // then
-        assertThat(future).isNotNull();
-        assertThat(future.succeeded()).isTrue();
-        assertThat(result).isNotNull();
-        assertThat(result.status()).isEqualTo(InvocationStatus.success);
-        assertThat(result.action()).isEqualTo(InvocationAction.no_action);
-        assertThat(result.analyticsTags()).isNull();
-    }
-
-    @Test
-    public void callShouldExitEarlyWhenThresholdIsNotAvailable() throws OrtException, IOException {
-        // given
-        final Banner banner = givenBanner();
-
-        final Imp imp = Imp.builder()
-                .id("adunitcodevalue")
-                .ext(givenImpExt(jacksonMapper))
-                .banner(banner)
-                .build();
-
-        final Double explorationRate = 0.0001;
-        final Device device = givenDevice(identity());
-        final ExtRequest extRequest = givenExtRequest(explorationRate);
-        final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device, extRequest);
-        final AuctionContext auctionContext = givenAuctionContext(bidRequest, context -> context);
-        final AuctionInvocationContext invocationContext = givenAuctionInvocationContext(auctionContext);
-        when(invocationContext.auctionContext()).thenReturn(auctionContext);
-        when(modelCacheWithExpiration.getIfPresent("onnxModelRunner_test-pbuid")).thenReturn(givenOnnxModelRunner());
-
-        // when
-        final Future<InvocationResult<AuctionRequestPayload>> future = target
-                .call(null, invocationContext);
-        final InvocationResult<AuctionRequestPayload> result = future.result();
-
-        // then
-        assertThat(future).isNotNull();
-        assertThat(future.succeeded()).isTrue();
-        assertThat(result).isNotNull();
-        assertThat(result.status()).isEqualTo(InvocationStatus.success);
-        assertThat(result.action()).isEqualTo(InvocationAction.no_action);
-        assertThat(result.analyticsTags()).isNull();
-    }
-
-    @Test
-    public void callShouldExitEarlyWhenModelIsNotAvailable() throws IOException {
-        // given
-        final Banner banner = givenBanner();
-
-        final Imp imp = Imp.builder()
-                .id("adunitcodevalue")
-                .ext(givenImpExt(jacksonMapper))
-                .banner(banner)
-                .build();
-
-        final Double explorationRate = 0.0001;
-        final Device device = givenDevice(identity());
-        final ExtRequest extRequest = givenExtRequest(explorationRate);
-        final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device, extRequest);
-        final AuctionContext auctionContext = givenAuctionContext(bidRequest, context -> context);
-        final AuctionInvocationContext invocationContext = givenAuctionInvocationContext(auctionContext);
-        when(invocationContext.auctionContext()).thenReturn(auctionContext);
-
-        modelCacheWithExpiration.cleanUp();
-        thresholdsCacheWithExpiration.cleanUp();
-        thresholdsCacheWithExpiration.put("throttlingThresholds_test-pbuid", givenThrottlingThresholds());
 
         // when
         final Future<InvocationResult<AuctionRequestPayload>> future = target

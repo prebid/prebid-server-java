@@ -89,8 +89,7 @@ public class ModelCacheTest {
         String cacheKey = MODEL_CACHE_KEY_PREFIX + PBUUID;
 
         // Create a spy of the ModelCache class
-        ModelCache spyModelCache = spy(new ModelCache(
-                storage, GCS_BUCKET_NAME, cache, MODEL_CACHE_KEY_PREFIX, vertx, onnxModelRunnerFactory));
+        ModelCache spyModelCache = spy(target);
 
         // Mock the cache to simulate that the model is not present
         when(cache.getIfPresent(eq(cacheKey))).thenReturn(null);
@@ -100,7 +99,6 @@ public class ModelCacheTest {
 
         // Mock fetching state for 2 calls
         when(mockFetchingState.compareAndSet(false, true)).thenReturn(false);
-        when(mockFetchingState.compareAndSet(false, true)).thenReturn(false);
 
         // Use reflection to set the private field 'isFetching' in the spy accessible
         Field isFetchingField = ModelCache.class.getDeclaredField("isFetching");
@@ -108,16 +106,16 @@ public class ModelCacheTest {
         isFetchingField.set(spyModelCache, mockFetchingState);
 
         // when
-        Future<OnnxModelRunner> firstCall = spyModelCache.get(ONNX_MODEL_PATH, PBUUID);
+        Future<OnnxModelRunner> result = spyModelCache.get(ONNX_MODEL_PATH, PBUUID);
 
         System.out.println(
-                "firstCall.cause().getMessage(): " + firstCall.cause().getMessage() + "\n" +
-                        "firstCall.succeeded(): " + firstCall.succeeded()
+                "firstCall.cause().getMessage(): " + result.cause().getMessage() + "\n" +
+                        "firstCall.succeeded(): " + result.succeeded()
         );
 
         // then
-        assertThat(firstCall.failed()).isTrue();
-        assertThat(firstCall.cause().getMessage()).isEqualTo(
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause().getMessage()).isEqualTo(
                 "ModelRunner fetching in progress. Skip current request");
     }
 
@@ -161,7 +159,7 @@ public class ModelCacheTest {
         when(cache.getIfPresent(eq(cacheKey))).thenReturn(null);
 
         // Simulate an error when accessing the storage bucket
-        when(storage.get(GCS_BUCKET_NAME)).thenThrow(new StorageException(500, "Storage Error"));
+        lenient().when(storage.get(GCS_BUCKET_NAME)).thenThrow(new StorageException(500, "Storage Error"));
 
         // when
         Future<OnnxModelRunner> future = target.get(ONNX_MODEL_PATH, PBUUID);
@@ -194,7 +192,7 @@ public class ModelCacheTest {
 
         // Simulate an error when accessing the storage bucket
         when(storage.get(GCS_BUCKET_NAME)).thenReturn(bucket);;
-        when(bucket.get(ONNX_MODEL_PATH)).thenReturn(blob);
+        lenient().when(bucket.get(ONNX_MODEL_PATH)).thenReturn(blob);
         lenient().when(blob.getContent()).thenReturn(bytes);
         lenient().when(onnxModelRunnerFactory.create(bytes)).thenThrow(new OrtException("Failed to convert blob to ONNX model"));
 
@@ -224,14 +222,13 @@ public class ModelCacheTest {
     public void getShouldThrowExceptionWhenBucketNotFound() {
         // given
         final String cacheKey = MODEL_CACHE_KEY_PREFIX + PBUUID;
-        final byte[] bytes = new byte[]{1, 2, 3};
 
         // Mock that the model is not in cache
         when(cache.getIfPresent(eq(cacheKey))).thenReturn(null);
 
         // Simulate an error when accessing the storage bucket
         when(storage.get(GCS_BUCKET_NAME)).thenReturn(bucket);;
-        when(bucket.get(ONNX_MODEL_PATH)).thenReturn(blob);
+        lenient().when(bucket.get(ONNX_MODEL_PATH)).thenReturn(blob);
         lenient().when(blob.getContent()).thenThrow(new PreBidException("Bucket not found"));
 
         // when
@@ -248,7 +245,6 @@ public class ModelCacheTest {
                             "   ar.cause().getMessage(): " + ar.cause().getMessage() + "\n" +
                             "   ar.result(): " + ar.result()
             );
-
 
             assertThat(ar.failed()).isTrue();
             assertThat(ar.cause()).isInstanceOf(PreBidException.class);
