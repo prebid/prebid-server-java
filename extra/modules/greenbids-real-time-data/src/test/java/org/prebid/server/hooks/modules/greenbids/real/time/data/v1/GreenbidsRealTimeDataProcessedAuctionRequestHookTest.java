@@ -4,6 +4,7 @@ import ai.onnxruntime.OrtException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
@@ -197,8 +198,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                         "activities.results"
                                 + ".values._children"
                                 + ".adunitcodevalue._children"
-                                + ".greenbids._children.fingerprint",
-                        "activities.results.values._children.adunitcodevalue._children.tid")
+                                + ".greenbids._children.fingerprint")
                 .isEqualTo(toAnalyticsTags(List.of(expectedAnalyticsResult)));
     }
 
@@ -249,8 +249,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                         "activities.results"
                                 + ".values._children"
                                 + ".adunitcodevalue._children"
-                                + ".greenbids._children.fingerprint",
-                        "activities.results.values._children.adunitcodevalue._children.tid")
+                                + ".greenbids._children.fingerprint")
                 .isEqualTo(toAnalyticsTags(List.of(expectedAnalyticsResult)));
         assertThat(resultBidRequest).usingRecursiveComparison()
                 .ignoringFields("imp.ext._children.tid", "device")
@@ -306,8 +305,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                         "activities.results"
                                 + ".values._children"
                                 + ".adunitcodevalue._children"
-                                + ".greenbids._children.fingerprint",
-                        "activities.results.values._children.adunitcodevalue._children.tid")
+                                + ".greenbids._children.fingerprint")
                 .isEqualTo(toAnalyticsTags(List.of(expectedAnalyticsResult)));
         assertThat(resultBidRequest).usingRecursiveComparison()
                 .ignoringFields("imp.ext._children.tid")
@@ -373,7 +371,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
 
         final ObjectNode extNode = jacksonMapper.mapper().createObjectNode();
         extNode.set("prebid", prebidNode);
-        extNode.set("tid", null);
+        extNode.set("tid", TextNode.valueOf("67eaab5f-27a6-4689-93f7-bd8f024576e3"));
 
         final Imp imp = Imp.builder()
                 .id("adunitcodevalue")
