@@ -1,4 +1,4 @@
-package org.prebid.server.hooks.modules.greenbids.real.time.data.v1;
+package org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Cache;
@@ -16,7 +16,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingThresholds;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingThresholdsFactory;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.ThresholdCache;
 import org.prebid.server.json.ObjectMapperProvider;
 
 import java.io.IOException;

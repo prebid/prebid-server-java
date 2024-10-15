@@ -1,4 +1,4 @@
-package org.prebid.server.hooks.modules.greenbids.real.time.data.v1;
+package org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor;
 
 import ai.onnxruntime.OrtException;
 import com.github.benmanes.caffeine.cache.Cache;
@@ -14,9 +14,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.ModelCache;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.OnnxModelRunner;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.OnnxModelRunnerFactory;
 
 import java.lang.reflect.Field;
 import java.util.concurrent.atomic.AtomicBoolean;

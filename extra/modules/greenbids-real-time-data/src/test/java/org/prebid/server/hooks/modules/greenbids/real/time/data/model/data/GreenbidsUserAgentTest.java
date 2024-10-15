@@ -1,8 +1,7 @@
-package org.prebid.server.hooks.modules.greenbids.real.time.data.v1;
+package org.prebid.server.hooks.modules.greenbids.real.time.data.model.data;
 
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Test;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.model.data.GreenbidsUserAgent;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
