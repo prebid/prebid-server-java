@@ -1,6 +1,5 @@
 package org.prebid.server.functional.model.request.auction
 
-
 import groovy.transform.EqualsAndHashCode
 import org.prebid.server.functional.util.PBSUtils
 
