@@ -121,21 +121,7 @@ public class ThresholdCacheTest {
     public void getShouldFetchThresholdsWhenNotInCache() throws IOException {
         // given
         final String cacheKey = THRESHOLD_CACHE_KEY_PREFIX + PBUUID;
-        final String jsonContent = """
-               {
-                  "thresholds": [
-                    0.4,
-                    0.224,
-                    0.018,
-                    0.018
-                  ],
-                  "tpr": [
-                    0.8,
-                    0.95,
-                    0.99,
-                    0.9999
-                  ]
-               }""";
+        final String jsonContent = "test_json_content";
         final byte[] bytes = jsonContent.getBytes(StandardCharsets.UTF_8);
 
         when(cache.getIfPresent(eq(cacheKey))).thenReturn(null);
@@ -176,21 +162,7 @@ public class ThresholdCacheTest {
     public void getShouldThrowExceptionWhenLoadingJsonFails() throws IOException {
         // given
         final String cacheKey = THRESHOLD_CACHE_KEY_PREFIX + PBUUID;
-        final String jsonContent = """
-               {
-                  "thresholds": [
-                    0.4,
-                    0.224,
-                    0.018,
-                    0.018
-                  ],
-                  "tpr": [
-                    0.8,
-                    0.95,
-                    0.99,
-                    0.9999
-                  ]
-               }""";
+        final String jsonContent = "test_json_content";
         final byte[] bytes = jsonContent.getBytes(StandardCharsets.UTF_8);
         when(cache.getIfPresent(eq(cacheKey))).thenReturn(null);
         when(storage.get(GCS_BUCKET_NAME)).thenReturn(bucket);
