@@ -1,6 +1,5 @@
 package org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.Bucket;
@@ -16,7 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingThresholds;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingThresholdsFactory;
-import org.prebid.server.json.ObjectMapperProvider;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -59,18 +58,15 @@ public class ThresholdCacheTest {
 
     private Vertx vertx;
 
-    private ObjectMapper mapper;
-
     private ThresholdCache target;
 
     @BeforeEach
     public void setUp() {
-        mapper = ObjectMapperProvider.mapper();
         vertx = Vertx.vertx();
         target = new ThresholdCache(
                 storage,
                 GCS_BUCKET_NAME,
-                mapper,
+                TestBidRequestProvider.mapper,
                 cache,
                 THRESHOLD_CACHE_KEY_PREFIX,
                 vertx,
@@ -127,7 +123,8 @@ public class ThresholdCacheTest {
         when(storage.get(GCS_BUCKET_NAME)).thenReturn(bucket);
         when(bucket.get(THRESHOLDS_PATH)).thenReturn(blob);
         when(blob.getContent()).thenReturn(bytes);
-        when(throttlingThresholdsFactory.create(bytes, mapper)).thenReturn(throttlingThresholds);
+        when(throttlingThresholdsFactory.create(bytes, TestBidRequestProvider.mapper))
+                .thenReturn(throttlingThresholds);
 
         // when
         final Future<ThrottlingThresholds> future = target.get(THRESHOLDS_PATH, PBUUID);
@@ -167,7 +164,7 @@ public class ThresholdCacheTest {
         when(storage.get(GCS_BUCKET_NAME)).thenReturn(bucket);
         when(bucket.get(THRESHOLDS_PATH)).thenReturn(blob);
         when(blob.getContent()).thenReturn(bytes);
-        when(throttlingThresholdsFactory.create(bytes, mapper)).thenThrow(
+        when(throttlingThresholdsFactory.create(bytes, TestBidRequestProvider.mapper)).thenThrow(
                 new IOException("Failed to load throttling thresholds json"));
 
         // when

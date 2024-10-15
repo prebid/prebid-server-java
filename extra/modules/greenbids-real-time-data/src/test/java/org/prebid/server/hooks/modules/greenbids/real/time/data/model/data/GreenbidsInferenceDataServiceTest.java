@@ -1,6 +1,5 @@
 package org.prebid.server.hooks.modules.greenbids.real.time.data.model.data;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -16,8 +15,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.json.ObjectMapperProvider;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -46,15 +44,11 @@ public class GreenbidsInferenceDataServiceTest {
     @Mock
     private Country country;
 
-    private JacksonMapper jacksonMapper;
-
     private GreenbidsInferenceDataService target;
 
     @BeforeEach
     public void setUp() {
-        final ObjectMapper mapper = ObjectMapperProvider.mapper();
-        jacksonMapper = new JacksonMapper(mapper);
-        target = new GreenbidsInferenceDataService(dbReader, jacksonMapper.mapper());
+        target = new GreenbidsInferenceDataService(dbReader, TestBidRequestProvider.mapper);
     }
 
     @Test
@@ -64,7 +58,7 @@ public class GreenbidsInferenceDataServiceTest {
         final Banner banner = givenBanner();
         final Imp imp = Imp.builder()
                 .id("adunitcodevalue")
-                .ext(givenImpExt(jacksonMapper))
+                .ext(givenImpExt())
                 .banner(banner)
                 .build();
         final Device device = givenDevice(identity());
@@ -105,7 +99,7 @@ public class GreenbidsInferenceDataServiceTest {
         final Banner banner = givenBanner();
         final Imp imp = Imp.builder()
                 .id("adunitcodevalue")
-                .ext(givenImpExt(jacksonMapper))
+                .ext(givenImpExt())
                 .banner(banner)
                 .build();
         final Device device = givenDeviceWithoutIp(identity());
@@ -142,7 +136,7 @@ public class GreenbidsInferenceDataServiceTest {
         final Banner banner = givenBanner();
         final Imp imp = Imp.builder()
                 .id("adunitcodevalue")
-                .ext(givenImpExt(jacksonMapper))
+                .ext(givenImpExt())
                 .banner(banner)
                 .build();
         final Device device = givenDevice(identity());

@@ -1,7 +1,6 @@
 package org.prebid.server.hooks.modules.greenbids.real.time.data.model.result;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -12,11 +11,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.analytics.reporter.greenbids.model.Ortb2ImpExtResult;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.Partner;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.model.result.GreenbidsInvocationResult;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.model.result.GreenbidsInvocationService;
 import org.prebid.server.hooks.v1.InvocationAction;
-import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.json.ObjectMapperProvider;
 
 import java.util.HashMap;
 import java.util.List;
@@ -32,14 +27,10 @@ import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.Test
 @ExtendWith(MockitoExtension.class)
 public class GreenbidsInvocationServiceTest {
 
-    private JacksonMapper jacksonMapper;
-
     private GreenbidsInvocationService target;
 
     @BeforeEach
     public void setUp() {
-        final ObjectMapper mapper = ObjectMapperProvider.mapper();
-        jacksonMapper = new JacksonMapper(mapper);
         target = new GreenbidsInvocationService();
     }
 
@@ -49,7 +40,7 @@ public class GreenbidsInvocationServiceTest {
         final Banner banner = givenBanner();
         final Imp imp = Imp.builder()
                 .id("adunitcodevalue")
-                .ext(givenImpExt(jacksonMapper))
+                .ext(givenImpExt())
                 .banner(banner)
                 .build();
         final Device device = givenDevice(identity());
@@ -86,7 +77,7 @@ public class GreenbidsInvocationServiceTest {
         final Banner banner = givenBanner();
         final Imp imp = Imp.builder()
                 .id("adunitcodevalue")
-                .ext(givenImpExt(jacksonMapper))
+                .ext(givenImpExt())
                 .banner(banner)
                 .build();
         final Device device = givenDevice(identity());
