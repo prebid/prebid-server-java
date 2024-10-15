@@ -2,7 +2,6 @@ package org.prebid.server.hooks.modules.greenbids.real.time.data.v1;
 
 import ai.onnxruntime.OrtException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.github.benmanes.caffeine.cache.Cache;
@@ -35,6 +34,7 @@ import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.ThresholdCache;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.result.AnalyticsResult;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.result.GreenbidsInvocationService;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.model.analytics.ActivityImpl;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.model.analytics.AppliedToImpl;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.model.analytics.ResultImpl;
@@ -46,8 +46,6 @@ import org.prebid.server.hooks.v1.analytics.Result;
 import org.prebid.server.hooks.v1.analytics.Tags;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
-import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.json.ObjectMapperProvider;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -80,14 +78,10 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
     @Mock
     private Cache<String, ThrottlingThresholds> thresholdsCacheWithExpiration;
 
-    private JacksonMapper jacksonMapper;
-
     private GreenbidsRealTimeDataProcessedAuctionRequestHook target;
 
     @BeforeEach
     public void setUp() throws IOException {
-        final ObjectMapper mapper = ObjectMapperProvider.mapper();
-        jacksonMapper = new JacksonMapper(mapper);
         final Storage storage = StorageOptions.newBuilder()
                 .setProjectId("test_project").build().getService();
         final File database = new File("src/test/resources/GeoLite2-Country.mmdb");
@@ -105,7 +99,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final ThresholdCache thresholdCache = new ThresholdCache(
                 storage,
                 "test_bucket",
-                ObjectMapperProvider.mapper(),
+                TestBidRequestProvider.mapper,
                 thresholdsCacheWithExpiration,
                 "throttlingThresholds_",
                 Vertx.vertx(),
@@ -115,10 +109,10 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 thresholdCache);
         final GreenbidsInferenceDataService greenbidsInferenceDataService = new GreenbidsInferenceDataService(
                 dbReader,
-                ObjectMapperProvider.mapper());
+                TestBidRequestProvider.mapper);
         final GreenbidsInvocationService greenbidsInvocationService = new GreenbidsInvocationService();
         target = new GreenbidsRealTimeDataProcessedAuctionRequestHook(
-                ObjectMapperProvider.mapper(),
+                TestBidRequestProvider.mapper,
                 filterService,
                 onnxModelRunnerWithThresholds,
                 greenbidsInferenceDataService,
@@ -132,7 +126,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
 
         final Imp imp = Imp.builder()
                 .id("adunitcodevalue")
-                .ext(givenImpExt(jacksonMapper))
+                .ext(givenImpExt())
                 .banner(banner)
                 .build();
 
@@ -163,7 +157,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
 
         final Imp imp = Imp.builder()
                 .id("adunitcodevalue")
-                .ext(givenImpExt(jacksonMapper))
+                .ext(givenImpExt())
                 .banner(banner)
                 .build();
 
@@ -209,7 +203,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
 
         final Imp imp = Imp.builder()
                 .id("adunitcodevalue")
-                .ext(givenImpExt(jacksonMapper))
+                .ext(givenImpExt())
                 .banner(banner)
                 .build();
 
@@ -225,7 +219,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 .thenReturn(givenThrottlingThresholds());
 
         final BidRequest expectedBidRequest = expectedUpdatedBidRequest(
-                request -> request, jacksonMapper, explorationRate);
+                request -> request, explorationRate);
         final AnalyticsResult expectedAnalyticsResult = expectedAnalyticsResult(false, false);
 
         // when
@@ -264,7 +258,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
 
         final Imp imp = Imp.builder()
                 .id("adunitcodevalue")
-                .ext(givenImpExt(jacksonMapper))
+                .ext(givenImpExt())
                 .banner(banner)
                 .build();
 
@@ -281,7 +275,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 .thenReturn(givenThrottlingThresholds());
 
         final BidRequest expectedBidRequest = expectedUpdatedBidRequest(
-                request -> request, jacksonMapper, explorationRate);
+                request -> request, explorationRate);
         final AnalyticsResult expectedAnalyticsResult = expectedAnalyticsResult(false, false);
 
         // when
@@ -313,12 +307,12 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
     }
 
     static ExtRequest givenExtRequest(Double explorationRate) {
-        final ObjectNode greenbidsNode = new ObjectMapper().createObjectNode();
+        final ObjectNode greenbidsNode = TestBidRequestProvider.mapper.createObjectNode();
         greenbidsNode.put("pbuid", "test-pbuid");
         greenbidsNode.put("targetTpr", 0.60);
         greenbidsNode.put("explorationRate", explorationRate);
 
-        final ObjectNode analyticsNode = new ObjectMapper().createObjectNode();
+        final ObjectNode analyticsNode = TestBidRequestProvider.mapper.createObjectNode();
         analyticsNode.set("greenbids-rtd", greenbidsNode);
 
         return ExtRequest.of(ExtRequestPrebid
@@ -351,25 +345,24 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
     }
 
     private ThrottlingThresholds givenThrottlingThresholds() throws IOException {
-        final JsonNode thresholdsJsonNode = jacksonMapper.mapper().readTree(
+        final JsonNode thresholdsJsonNode = TestBidRequestProvider.mapper.readTree(
                 Files.newInputStream(Paths.get(
                         "src/test/resources/thresholds_pbuid=test-pbuid.json")));
-        return jacksonMapper.mapper()
+        return TestBidRequestProvider.mapper
                 .treeToValue(thresholdsJsonNode, ThrottlingThresholds.class);
     }
 
     private BidRequest expectedUpdatedBidRequest(
             UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
-            JacksonMapper jacksonMapper,
             Double explorationRate) {
 
         final Banner banner = givenBanner();
 
-        final ObjectNode bidderNode = jacksonMapper.mapper().createObjectNode();
-        final ObjectNode prebidNode = jacksonMapper.mapper().createObjectNode();
+        final ObjectNode bidderNode = TestBidRequestProvider.mapper.createObjectNode();
+        final ObjectNode prebidNode = TestBidRequestProvider.mapper.createObjectNode();
         prebidNode.set("bidder", bidderNode);
 
-        final ObjectNode extNode = jacksonMapper.mapper().createObjectNode();
+        final ObjectNode extNode = TestBidRequestProvider.mapper.createObjectNode();
         extNode.set("prebid", prebidNode);
         extNode.set("tid", TextNode.valueOf("67eaab5f-27a6-4689-93f7-bd8f024576e3"));
 
@@ -432,6 +425,6 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
     }
 
     private ObjectNode toObjectNode(Map<String, Ortb2ImpExtResult> values) {
-        return values != null ? jacksonMapper.mapper().valueToTree(values) : null;
+        return values != null ? TestBidRequestProvider.mapper.valueToTree(values) : null;
     }
 }

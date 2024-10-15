@@ -1,5 +1,6 @@
 package org.prebid.server.hooks.modules.greenbids.real.time.data.util;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.Banner;
@@ -9,6 +10,7 @@ import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.json.ObjectMapperProvider;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 
 import java.util.Collections;
@@ -16,6 +18,9 @@ import java.util.List;
 import java.util.function.UnaryOperator;
 
 public class TestBidRequestProvider {
+
+    public static final ObjectMapper mapper = ObjectMapperProvider.mapper();
+    public static final JacksonMapper jacksonMapper = new JacksonMapper(mapper);
 
     private TestBidRequestProvider() { }
 
@@ -37,7 +42,7 @@ public class TestBidRequestProvider {
         return siteCustomizer.apply(Site.builder().domain("www.leparisien.fr")).build();
     }
 
-    public static ObjectNode givenImpExt(JacksonMapper jacksonMapper) {
+    public static ObjectNode givenImpExt() {
         final ObjectNode bidderNode = jacksonMapper.mapper().createObjectNode();
 
         final ObjectNode rubiconNode = jacksonMapper.mapper().createObjectNode();
