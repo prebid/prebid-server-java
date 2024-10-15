@@ -49,6 +49,7 @@ import java.net.URISyntaxException;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -56,6 +57,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class YieldlabBidder implements Bidder<Void> {
 
@@ -166,6 +168,12 @@ public class YieldlabBidder implements Bidder<Void> {
                 .addParameter("ts", timestamp)
                 .addParameter("t", getTargetingValues(extImpYieldlab));
 
+        final String formats = makeFormats(request, extImpYieldlab);
+
+        if (formats != null) {
+            uriBuilder.addParameter("sizes", formats);
+        }
+
         final User user = request.getUser();
         if (user != null && StringUtils.isNotBlank(user.getBuyeruid())) {
             uriBuilder.addParameter("ids", String.join("ylid:", user.getBuyeruid()));
@@ -207,6 +215,24 @@ public class YieldlabBidder implements Bidder<Void> {
         extractDsaRequestParamsFromBidRequest(request).forEach(uriBuilder::addParameter);
 
         return uriBuilder.toString();
+    }
+
+    private String makeFormats(BidRequest request, ExtImpYieldlab extImp) {
+        final List<String> formats = new ArrayList<>();
+        for (Imp imp: request.getImp()) {
+            if (isBanner(imp)) {
+                Stream.ofNullable(imp.getBanner().getFormat())
+                        .flatMap(Collection::stream)
+                        .map(format -> "%s:%d|%d".formatted(extImp.getAdslotId(), format.getW(), format.getH()))
+                        .forEach(formats::add);
+            }
+        }
+
+        return formats.isEmpty() ? null : String.join(",", formats);
+    }
+
+    private boolean isBanner(Imp imp) {
+        return imp.getBanner() != null && imp.getXNative() == null && imp.getVideo() == null && imp.getAudio() == null;
     }
 
     /**
