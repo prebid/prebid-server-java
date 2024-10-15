@@ -23,6 +23,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -40,25 +41,25 @@ public class ModelCacheTest {
     @Mock
     private Cache<String, OnnxModelRunner> cache;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private Storage storage;
 
-    private Vertx vertx;
-
-    @Mock
+    @Mock(strictness = LENIENT)
     private Bucket bucket;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private Blob blob;
 
     @Mock
     private OnnxModelRunner onnxModelRunner;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private OnnxModelRunnerFactory onnxModelRunnerFactory;
 
     @Mock
     private ModelCache target;
+
+    private Vertx vertx;
 
     @BeforeEach
     public void setUp() {
@@ -114,8 +115,8 @@ public class ModelCacheTest {
         when(cache.getIfPresent(eq(cacheKey))).thenReturn(null);
         when(storage.get(GCS_BUCKET_NAME)).thenReturn(bucket);
         when(bucket.get(ONNX_MODEL_PATH)).thenReturn(blob);
-        lenient().when(blob.getContent()).thenReturn(bytes);
-        lenient().when(onnxModelRunnerFactory.create(bytes)).thenReturn(onnxModelRunner);
+        when(blob.getContent()).thenReturn(bytes);
+        when(onnxModelRunnerFactory.create(bytes)).thenReturn(onnxModelRunner);
 
         // when
         final Future<OnnxModelRunner> future = target.get(ONNX_MODEL_PATH, PBUUID);
@@ -134,7 +135,7 @@ public class ModelCacheTest {
         final String cacheKey = MODEL_CACHE_KEY_PREFIX + PBUUID;
 
         when(cache.getIfPresent(eq(cacheKey))).thenReturn(null);
-        lenient().when(storage.get(GCS_BUCKET_NAME)).thenThrow(new StorageException(500, "Storage Error"));
+        when(storage.get(GCS_BUCKET_NAME)).thenThrow(new StorageException(500, "Storage Error"));
 
         // when
         final Future<OnnxModelRunner> future = target.get(ONNX_MODEL_PATH, PBUUID);
@@ -154,9 +155,9 @@ public class ModelCacheTest {
 
         when(cache.getIfPresent(eq(cacheKey))).thenReturn(null);
         when(storage.get(GCS_BUCKET_NAME)).thenReturn(bucket);
-        lenient().when(bucket.get(ONNX_MODEL_PATH)).thenReturn(blob);
-        lenient().when(blob.getContent()).thenReturn(bytes);
-        lenient().when(onnxModelRunnerFactory.create(bytes)).thenThrow(
+        when(bucket.get(ONNX_MODEL_PATH)).thenReturn(blob);
+        when(blob.getContent()).thenReturn(bytes);
+        when(onnxModelRunnerFactory.create(bytes)).thenThrow(
                 new OrtException("Failed to convert blob to ONNX model"));
 
         // when
@@ -177,8 +178,8 @@ public class ModelCacheTest {
 
         when(cache.getIfPresent(eq(cacheKey))).thenReturn(null);
         when(storage.get(GCS_BUCKET_NAME)).thenReturn(bucket);
-        lenient().when(bucket.get(ONNX_MODEL_PATH)).thenReturn(blob);
-        lenient().when(blob.getContent()).thenThrow(new PreBidException("Bucket not found"));
+        when(bucket.get(ONNX_MODEL_PATH)).thenReturn(blob);
+        when(blob.getContent()).thenThrow(new PreBidException("Bucket not found"));
 
         // when
         final Future<OnnxModelRunner> future = target.get(ONNX_MODEL_PATH, PBUUID);

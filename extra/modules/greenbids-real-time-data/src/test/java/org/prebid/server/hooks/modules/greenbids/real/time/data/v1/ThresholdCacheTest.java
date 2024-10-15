@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -43,19 +44,19 @@ public class ThresholdCacheTest {
     @Mock
     private Cache<String, ThrottlingThresholds> cache;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private Storage storage;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private Bucket bucket;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private Blob blob;
 
     @Mock
     private ThrottlingThresholds throttlingThresholds;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ThrottlingThresholdsFactory throttlingThresholdsFactory;
 
     private Vertx vertx;
@@ -127,8 +128,8 @@ public class ThresholdCacheTest {
         when(cache.getIfPresent(eq(cacheKey))).thenReturn(null);
         when(storage.get(GCS_BUCKET_NAME)).thenReturn(bucket);
         when(bucket.get(THRESHOLDS_PATH)).thenReturn(blob);
-        lenient().when(blob.getContent()).thenReturn(bytes);
-        lenient().when(throttlingThresholdsFactory.create(bytes, mapper)).thenReturn(throttlingThresholds);
+        when(blob.getContent()).thenReturn(bytes);
+        when(throttlingThresholdsFactory.create(bytes, mapper)).thenReturn(throttlingThresholds);
 
         // when
         final Future<ThrottlingThresholds> future = target.get(THRESHOLDS_PATH, PBUUID);
@@ -166,9 +167,9 @@ public class ThresholdCacheTest {
         final byte[] bytes = jsonContent.getBytes(StandardCharsets.UTF_8);
         when(cache.getIfPresent(eq(cacheKey))).thenReturn(null);
         when(storage.get(GCS_BUCKET_NAME)).thenReturn(bucket);
-        lenient().when(bucket.get(THRESHOLDS_PATH)).thenReturn(blob);
-        lenient().when(blob.getContent()).thenReturn(bytes);
-        lenient().when(throttlingThresholdsFactory.create(bytes, mapper)).thenThrow(
+        when(bucket.get(THRESHOLDS_PATH)).thenReturn(blob);
+        when(blob.getContent()).thenReturn(bytes);
+        when(throttlingThresholdsFactory.create(bytes, mapper)).thenThrow(
                 new IOException("Failed to load throttling thresholds json"));
 
         // when
@@ -188,7 +189,7 @@ public class ThresholdCacheTest {
         when(cache.getIfPresent(eq(cacheKey))).thenReturn(null);
         when(storage.get(GCS_BUCKET_NAME)).thenReturn(bucket);
         when(bucket.get(THRESHOLDS_PATH)).thenReturn(blob);
-        lenient().when(blob.getContent()).thenThrow(new PreBidException("Bucket not found"));
+        when(blob.getContent()).thenThrow(new PreBidException("Bucket not found"));
 
         // when
         final Future<ThrottlingThresholds> future = target.get(THRESHOLDS_PATH, PBUUID);
