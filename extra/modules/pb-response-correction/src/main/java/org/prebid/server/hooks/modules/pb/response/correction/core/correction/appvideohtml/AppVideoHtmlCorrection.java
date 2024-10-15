@@ -30,7 +30,7 @@ public class AppVideoHtmlCorrection implements Correction {
     private static final ConditionalLogger conditionalLogger = new ConditionalLogger(
             LoggerFactory.getLogger(AppVideoHtmlCorrection.class));
 
-    private static final Pattern VAST_XML_PATTERN = Pattern.compile("<\\s*VAST.+>", Pattern.CASE_INSENSITIVE);
+    private static final Pattern VAST_XML_PATTERN = Pattern.compile(".*<\\s*VAST\\s+.*", Pattern.CASE_INSENSITIVE);
     private static final TypeReference<ExtPrebid<ExtBidPrebid, ObjectNode>> EXT_BID_PREBID_TYPE_REFERENCE =
             new TypeReference<>() {
             };
