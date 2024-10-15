@@ -65,11 +65,11 @@ import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.prebid.server.hooks.modules.greenbids.real.time.data.v1.TestBidRequestProvider.givenBanner;
-import static org.prebid.server.hooks.modules.greenbids.real.time.data.v1.TestBidRequestProvider.givenBidRequest;
-import static org.prebid.server.hooks.modules.greenbids.real.time.data.v1.TestBidRequestProvider.givenDevice;
-import static org.prebid.server.hooks.modules.greenbids.real.time.data.v1.TestBidRequestProvider.givenImpExt;
-import static org.prebid.server.hooks.modules.greenbids.real.time.data.v1.TestBidRequestProvider.givenSite;
+import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider.givenBanner;
+import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider.givenBidRequest;
+import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider.givenDevice;
+import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider.givenImpExt;
+import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider.givenSite;
 
 @ExtendWith(MockitoExtension.class)
 public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {

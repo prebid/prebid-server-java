@@ -1,11 +1,10 @@
-package org.prebid.server.hooks.modules.greenbids.real.time.data.v1;
+package org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor;
 
 import ai.onnxruntime.OnnxTensor;
 import ai.onnxruntime.OrtException;
 import ai.onnxruntime.OrtSession;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.OnnxModelRunner;
 
 import java.io.IOException;
 import java.nio.file.Files;

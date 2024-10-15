@@ -1,4 +1,4 @@
-package org.prebid.server.hooks.modules.greenbids.real.time.data.v1;
+package org.prebid.server.hooks.modules.greenbids.real.time.data.model.result;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -24,10 +24,10 @@ import java.util.Map;
 
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.prebid.server.hooks.modules.greenbids.real.time.data.v1.TestBidRequestProvider.givenBanner;
-import static org.prebid.server.hooks.modules.greenbids.real.time.data.v1.TestBidRequestProvider.givenBidRequest;
-import static org.prebid.server.hooks.modules.greenbids.real.time.data.v1.TestBidRequestProvider.givenDevice;
-import static org.prebid.server.hooks.modules.greenbids.real.time.data.v1.TestBidRequestProvider.givenImpExt;
+import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider.givenBanner;
+import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider.givenBidRequest;
+import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider.givenDevice;
+import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider.givenImpExt;
 
 @ExtendWith(MockitoExtension.class)
 public class GreenbidsInvocationServiceTest {
