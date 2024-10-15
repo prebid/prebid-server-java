@@ -1,6 +1,7 @@
 package org.prebid.server.hooks.modules.greenbids.real.time.data.v1;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -15,6 +16,8 @@ import java.util.List;
 import java.util.function.UnaryOperator;
 
 public class TestBidRequestProvider {
+
+    private TestBidRequestProvider() { }
 
     public static BidRequest givenBidRequest(
             UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
@@ -57,7 +60,7 @@ public class TestBidRequestProvider {
 
         final ObjectNode extNode = jacksonMapper.mapper().createObjectNode();
         extNode.set("prebid", prebidNode);
-        extNode.set("tid", null);
+        extNode.set("tid", TextNode.valueOf("67eaab5f-27a6-4689-93f7-bd8f024576e3"));
 
         return extNode;
     }

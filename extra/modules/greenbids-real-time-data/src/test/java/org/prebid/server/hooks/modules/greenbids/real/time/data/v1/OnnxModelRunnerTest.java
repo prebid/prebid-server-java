@@ -15,7 +15,7 @@ import java.util.Objects;
 import java.util.stream.StreamSupport;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class OnnxModelRunnerTest {
 
@@ -62,9 +62,8 @@ public class OnnxModelRunnerTest {
                 "Chrome 59", "adunitcodevalue", "US", "www.leparisien.fr", "PC", "10", "1"}};
 
         // when & then
-        assertThrows(OrtException.class, () -> {
-            target.runModel(throttlingInferenceRowWithMissingColumn);
-        });
+        assertThatThrownBy(() -> target.runModel(throttlingInferenceRowWithMissingColumn))
+                .isInstanceOf(OrtException.class);
     }
 
     private OnnxModelRunner givenOnnxModelRunner() throws OrtException, IOException {
