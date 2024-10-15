@@ -314,6 +314,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         accountDao.save(account)
 
         and: "Default bidder response with ortb2 attributes"
+        def disallowedOrtb2Attributes = PBSUtils.randomNumber
         def removeBid = getBidWithOrtb2Attribute(bidRequest.imp.first, disallowedOrtb2Attributes, attributeName).tap {
             it.mediaType = enforceType
         }
@@ -340,10 +341,10 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         assert !response?.ext?.prebid?.modules?.warnings
 
         where:
-        disallowedOrtb2Attributes | attributeName | enforceType         | presentType
-        PBSUtils.randomNumber     | BANNER_BATTR  | BidMediaType.BANNER | BidMediaType.AUDIO
-        PBSUtils.randomNumber     | VIDEO_BATTR   | BidMediaType.VIDEO  | BidMediaType.BANNER
-        PBSUtils.randomNumber     | AUDIO_BATTR   | BidMediaType.AUDIO  | BidMediaType.VIDEO
+        attributeName | enforceType         | presentType
+        BANNER_BATTR  | BidMediaType.BANNER | BidMediaType.AUDIO
+        VIDEO_BATTR   | BidMediaType.VIDEO  | BidMediaType.BANNER
+        AUDIO_BATTR   | BidMediaType.AUDIO  | BidMediaType.VIDEO
     }
 
     def "PBS should send original inappropriate ortb2 attribute to bidder when blocking is disabled"() {
