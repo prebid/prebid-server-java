@@ -2,7 +2,6 @@ package org.prebid.server.privacy.gdpr.vendorlist;
 
 import com.iabtcf.decoder.TCString;
 import io.vertx.core.Future;
-import org.prebid.server.exception.PreBidException;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.Vendor;
 
 import java.util.Map;
@@ -21,10 +20,6 @@ public class VersionedVendorListService {
     public Future<Map<Integer, Vendor>> forConsent(TCString consent) {
         final int tcfPolicyVersion = consent.getTcfPolicyVersion();
         final int vendorListVersion = consent.getVendorListVersion();
-        if (tcfPolicyVersion > 5) {
-            return Future.failedFuture(new PreBidException(
-                    "Invalid tcf policy version: %d".formatted(tcfPolicyVersion)));
-        }
 
         return tcfPolicyVersion < 4
                 ? vendorListServiceV2.forVersion(vendorListVersion)

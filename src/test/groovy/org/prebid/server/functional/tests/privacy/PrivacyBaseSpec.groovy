@@ -103,6 +103,8 @@ abstract class PrivacyBaseSpec extends BaseSpec {
     protected static final String VALID_VALUE_FOR_GPC_HEADER = "1"
     protected static final GppConsent SIMPLE_GPC_DISALLOW_LOGIC = new UsNatV1Consent.Builder().setGpc(true).build()
     protected static final VendorList vendorListResponse = new VendorList(networkServiceContainer)
+    protected static final Integer MAX_INVALID_TCF_POLICY_VERSION = 63
+    protected static final Integer MIN_INVALID_TCF_POLICY_VERSION = 6
 
     @Shared
     protected final PrebidServerService privacyPbsService = pbsServiceFactory.getService(GDPR_VENDOR_LIST_CONFIG +

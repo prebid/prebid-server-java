@@ -8,7 +8,11 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -16,9 +20,11 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.sonobi.ExtImpSonobi;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
@@ -27,18 +33,31 @@ import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.tuple;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
+@ExtendWith(MockitoExtension.class)
 public class SonobiBidderTest extends VertxTest {
 
     public static final String ENDPOINT_URL = "https://test.endpoint.com";
 
-    private final SonobiBidder target = new SonobiBidder(ENDPOINT_URL, jacksonMapper);
+    @Mock
+    private CurrencyConversionService currencyConversionService;
+
+    private SonobiBidder target;
+
+    @BeforeEach
+    public void before() {
+        target = new SonobiBidder(currencyConversionService, ENDPOINT_URL, jacksonMapper);
+    }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new SonobiBidder("invalid_url", jacksonMapper));
+        assertThatIllegalArgumentException().isThrownBy(() ->
+                new SonobiBidder(currencyConversionService, "invalid_url", jacksonMapper));
     }
 
     @Test
@@ -60,7 +79,7 @@ public class SonobiBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnExpectedBidRequest() {
+    public void makeHttpRequestsShouldReturnImpWithSetTagId() {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
 
@@ -68,14 +87,90 @@ public class SonobiBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        final BidRequest expectedRequest = bidRequest.toBuilder()
-                .imp(singletonList(bidRequest.getImp().getFirst().toBuilder()
-                        .tagid("tagidString").build()))
-                .build();
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .containsOnly(expectedRequest);
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getTagid)
+                .containsOnly("tagidString");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotConvertBidfloorWhenBidfloorHasUSDCurrency() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.bidfloor(BigDecimal.TEN).bidfloorcur("USD"));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBidfloor, Imp::getBidfloorcur)
+                .containsOnly(tuple(BigDecimal.TEN, "USD"));
+
+        verifyNoInteractions(currencyConversionService);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotConvertBidfloorWhenBidfloorHasInvalidPrice() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.bidfloor(BigDecimal.ZERO).bidfloorcur("GBR"));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBidfloor, Imp::getBidfloorcur)
+                .containsOnly(tuple(BigDecimal.ZERO, "GBR"));
+
+        verifyNoInteractions(currencyConversionService);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotConvertBidfloorWhenBidfloorHasEmptyCurrency() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.bidfloor(BigDecimal.TEN).bidfloorcur(null));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBidfloor, Imp::getBidfloorcur)
+                .containsOnly(tuple(BigDecimal.TEN, null));
+
+        verifyNoInteractions(currencyConversionService);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldConvertBidfloorToUSDWhenBidfloorHasAnotherCurrency() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.bidfloor(BigDecimal.TEN).bidfloorcur("EUR"));
+
+        given(currencyConversionService.convertCurrency(BigDecimal.TEN, bidRequest, "EUR", "USD"))
+                .willReturn(BigDecimal.ONE);
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBidfloor, Imp::getBidfloorcur)
+                .containsOnly(tuple(BigDecimal.ONE, "USD"));
+
     }
 
     @Test
@@ -204,7 +299,7 @@ public class SonobiBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getValue()).containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+        assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
                 .extracting(BidderError::getMessage)
                 .containsExactly("Failed to find impression for ID: 456");
@@ -214,7 +309,10 @@ public class SonobiBidderTest extends VertxTest {
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> requestCustomizer) {
 
-        return requestCustomizer.apply(BidRequest.builder().imp(singletonList(givenImp(impCustomizer)))).build();
+        return requestCustomizer.apply(BidRequest.builder()
+                .cur(singletonList("USD"))
+                .imp(singletonList(givenImp(impCustomizer))))
+                .build();
     }
 
     private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {

@@ -1,6 +1,7 @@
 adapters:
   yieldmo:
     endpoint: https://ads.yieldmo.com/exchange/prebid-server
+    ortb-version: "2.6"
     meta-info:
       maintainer-email: prebid@yieldmo.com
       app-media-types:

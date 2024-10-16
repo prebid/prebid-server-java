@@ -1,0 +1,13 @@
+adapters:
+  bidmatic:
+    endpoint: http://adapter.bidmatic.io/pbs/ortb
+    meta-info:
+      maintainer-email: advertising@bidmatic.io
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 1134
