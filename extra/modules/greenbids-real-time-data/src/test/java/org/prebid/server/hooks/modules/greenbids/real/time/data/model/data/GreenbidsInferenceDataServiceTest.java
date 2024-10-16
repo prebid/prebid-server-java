@@ -48,7 +48,7 @@ public class GreenbidsInferenceDataServiceTest {
 
     @BeforeEach
     public void setUp() {
-        target = new GreenbidsInferenceDataService(dbReader, TestBidRequestProvider.mapper);
+        target = new GreenbidsInferenceDataService(dbReader, TestBidRequestProvider.MAPPER);
     }
 
     @Test

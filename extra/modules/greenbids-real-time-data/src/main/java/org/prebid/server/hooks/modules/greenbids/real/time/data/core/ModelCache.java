@@ -1,4 +1,4 @@
-package org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor;
+package org.prebid.server.hooks.modules.greenbids.real.time.data.core;
 
 import ai.onnxruntime.OrtException;
 import com.github.benmanes.caffeine.cache.Cache;

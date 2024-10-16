@@ -1,4 +1,4 @@
-package org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor;
+package org.prebid.server.hooks.modules.greenbids.real.time.data.core;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Cache;
@@ -8,8 +8,7 @@ import com.google.cloud.storage.StorageException;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingThresholds;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingThresholdsFactory;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.model.filter.ThrottlingThresholds;
 import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
 

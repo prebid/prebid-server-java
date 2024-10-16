@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.analytics.reporter.greenbids.model.Ortb2ImpExtResult;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.core.Partner;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.model.data.Partner;
 import org.prebid.server.hooks.v1.InvocationAction;
 
 import java.util.HashMap;

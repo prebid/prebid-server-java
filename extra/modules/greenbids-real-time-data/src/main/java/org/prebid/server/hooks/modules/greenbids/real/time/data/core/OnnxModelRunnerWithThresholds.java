@@ -1,7 +1,7 @@
-package org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor;
+package org.prebid.server.hooks.modules.greenbids.real.time.data.core;
 
 import io.vertx.core.Future;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.core.Partner;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.model.data.Partner;
 
 import java.util.Objects;
 

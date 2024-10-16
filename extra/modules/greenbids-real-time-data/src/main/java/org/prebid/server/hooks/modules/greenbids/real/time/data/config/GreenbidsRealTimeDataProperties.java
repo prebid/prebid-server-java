@@ -1,7 +1,6 @@
-package org.prebid.server.hooks.modules.greenbids.real.time.data.model.config;
+package org.prebid.server.hooks.modules.greenbids.real.time.data.config;
 
 import lombok.Data;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.GreenbidsRealTimeDataModule;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "hooks.modules." + GreenbidsRealTimeDataModule.CODE)
