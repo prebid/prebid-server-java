@@ -1,4 +1,4 @@
-package org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor;
+package org.prebid.server.hooks.modules.greenbids.real.time.data.core;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.google.cloud.storage.Blob;
@@ -13,8 +13,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingThresholds;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingThresholdsFactory;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.model.filter.ThrottlingThresholds;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider;
 
 import java.io.IOException;
@@ -66,7 +65,7 @@ public class ThresholdCacheTest {
         target = new ThresholdCache(
                 storage,
                 GCS_BUCKET_NAME,
-                TestBidRequestProvider.mapper,
+                TestBidRequestProvider.MAPPER,
                 cache,
                 THRESHOLD_CACHE_KEY_PREFIX,
                 vertx,
@@ -123,7 +122,7 @@ public class ThresholdCacheTest {
         when(storage.get(GCS_BUCKET_NAME)).thenReturn(bucket);
         when(bucket.get(THRESHOLDS_PATH)).thenReturn(blob);
         when(blob.getContent()).thenReturn(bytes);
-        when(throttlingThresholdsFactory.create(bytes, TestBidRequestProvider.mapper))
+        when(throttlingThresholdsFactory.create(bytes, TestBidRequestProvider.MAPPER))
                 .thenReturn(throttlingThresholds);
 
         // when
@@ -164,7 +163,7 @@ public class ThresholdCacheTest {
         when(storage.get(GCS_BUCKET_NAME)).thenReturn(bucket);
         when(bucket.get(THRESHOLDS_PATH)).thenReturn(blob);
         when(blob.getContent()).thenReturn(bytes);
-        when(throttlingThresholdsFactory.create(bytes, TestBidRequestProvider.mapper)).thenThrow(
+        when(throttlingThresholdsFactory.create(bytes, TestBidRequestProvider.MAPPER)).thenThrow(
                 new IOException("Failed to load throttling thresholds json"));
 
         // when

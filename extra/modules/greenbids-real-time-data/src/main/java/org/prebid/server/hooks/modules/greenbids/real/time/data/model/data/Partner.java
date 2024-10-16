@@ -1,7 +1,8 @@
-package org.prebid.server.hooks.modules.greenbids.real.time.data.core;
+package org.prebid.server.hooks.modules.greenbids.real.time.data.model.data;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Value;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.model.filter.ThrottlingThresholds;
 
 import java.util.Comparator;
 import java.util.List;

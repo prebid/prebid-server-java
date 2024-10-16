@@ -1,4 +1,4 @@
-package org.prebid.server.hooks.modules.greenbids.real.time.data.core;
+package org.prebid.server.hooks.modules.greenbids.real.time.data.model.filter;
 
 import lombok.Value;
 

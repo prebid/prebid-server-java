@@ -9,7 +9,6 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
-import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.ObjectMapperProvider;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 
@@ -19,7 +18,7 @@ import java.util.function.UnaryOperator;
 
 public class TestBidRequestProvider {
 
-    public static final ObjectMapper mapper = ObjectMapperProvider.mapper();
+    public static final ObjectMapper MAPPER = ObjectMapperProvider.mapper();
 
     private TestBidRequestProvider() { }
 
@@ -42,27 +41,27 @@ public class TestBidRequestProvider {
     }
 
     public static ObjectNode givenImpExt() {
-        final ObjectNode bidderNode = mapper.createObjectNode();
+        final ObjectNode bidderNode = MAPPER.createObjectNode();
 
-        final ObjectNode rubiconNode = mapper.createObjectNode();
+        final ObjectNode rubiconNode = MAPPER.createObjectNode();
         rubiconNode.put("accountId", 1001);
         rubiconNode.put("siteId", 267318);
         rubiconNode.put("zoneId", 1861698);
         bidderNode.set("rubicon", rubiconNode);
 
-        final ObjectNode appnexusNode = mapper.createObjectNode();
+        final ObjectNode appnexusNode = MAPPER.createObjectNode();
         appnexusNode.put("placementId", 123456);
         bidderNode.set("appnexus", appnexusNode);
 
-        final ObjectNode pubmaticNode = mapper.createObjectNode();
+        final ObjectNode pubmaticNode = MAPPER.createObjectNode();
         pubmaticNode.put("publisherId", "156209");
         pubmaticNode.put("adSlot", "slot1@300x250");
         bidderNode.set("pubmatic", pubmaticNode);
 
-        final ObjectNode prebidNode = mapper.createObjectNode();
+        final ObjectNode prebidNode = MAPPER.createObjectNode();
         prebidNode.set("bidder", bidderNode);
 
-        final ObjectNode extNode = mapper.createObjectNode();
+        final ObjectNode extNode = MAPPER.createObjectNode();
         extNode.set("prebid", prebidNode);
         extNode.set("tid", TextNode.valueOf("67eaab5f-27a6-4689-93f7-bd8f024576e3"));
 

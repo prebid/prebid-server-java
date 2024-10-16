@@ -2,6 +2,7 @@ package org.prebid.server.hooks.modules.greenbids.real.time.data.core;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.model.filter.ThrottlingThresholds;
 
 import java.io.IOException;
 

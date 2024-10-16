@@ -23,15 +23,15 @@ import org.prebid.server.analytics.reporter.greenbids.model.ExplorationResult;
 import org.prebid.server.analytics.reporter.greenbids.model.Ortb2ImpExtResult;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingThresholds;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.model.filter.ThrottlingThresholds;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingThresholdsFactory;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.data.GreenbidsInferenceDataService;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.FilterService;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.ModelCache;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.OnnxModelRunner;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.OnnxModelRunnerFactory;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.OnnxModelRunnerWithThresholds;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.model.predictor.ThresholdCache;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.model.filter.FilterService;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ModelCache;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.core.OnnxModelRunner;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.core.OnnxModelRunnerFactory;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.core.OnnxModelRunnerWithThresholds;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThresholdCache;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.result.AnalyticsResult;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.result.GreenbidsInvocationService;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider;
@@ -99,7 +99,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final ThresholdCache thresholdCache = new ThresholdCache(
                 storage,
                 "test_bucket",
-                TestBidRequestProvider.mapper,
+                TestBidRequestProvider.MAPPER,
                 thresholdsCacheWithExpiration,
                 "throttlingThresholds_",
                 Vertx.vertx(),
@@ -109,10 +109,10 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 thresholdCache);
         final GreenbidsInferenceDataService greenbidsInferenceDataService = new GreenbidsInferenceDataService(
                 dbReader,
-                TestBidRequestProvider.mapper);
+                TestBidRequestProvider.MAPPER);
         final GreenbidsInvocationService greenbidsInvocationService = new GreenbidsInvocationService();
         target = new GreenbidsRealTimeDataProcessedAuctionRequestHook(
-                TestBidRequestProvider.mapper,
+                TestBidRequestProvider.MAPPER,
                 filterService,
                 onnxModelRunnerWithThresholds,
                 greenbidsInferenceDataService,
@@ -307,12 +307,12 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
     }
 
     static ExtRequest givenExtRequest(Double explorationRate) {
-        final ObjectNode greenbidsNode = TestBidRequestProvider.mapper.createObjectNode();
+        final ObjectNode greenbidsNode = TestBidRequestProvider.MAPPER.createObjectNode();
         greenbidsNode.put("pbuid", "test-pbuid");
         greenbidsNode.put("targetTpr", 0.60);
         greenbidsNode.put("explorationRate", explorationRate);
 
-        final ObjectNode analyticsNode = TestBidRequestProvider.mapper.createObjectNode();
+        final ObjectNode analyticsNode = TestBidRequestProvider.MAPPER.createObjectNode();
         analyticsNode.set("greenbids-rtd", greenbidsNode);
 
         return ExtRequest.of(ExtRequestPrebid
@@ -345,10 +345,10 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
     }
 
     private ThrottlingThresholds givenThrottlingThresholds() throws IOException {
-        final JsonNode thresholdsJsonNode = TestBidRequestProvider.mapper.readTree(
+        final JsonNode thresholdsJsonNode = TestBidRequestProvider.MAPPER.readTree(
                 Files.newInputStream(Paths.get(
                         "src/test/resources/thresholds_pbuid=test-pbuid.json")));
-        return TestBidRequestProvider.mapper
+        return TestBidRequestProvider.MAPPER
                 .treeToValue(thresholdsJsonNode, ThrottlingThresholds.class);
     }
 
@@ -358,11 +358,11 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
 
         final Banner banner = givenBanner();
 
-        final ObjectNode bidderNode = TestBidRequestProvider.mapper.createObjectNode();
-        final ObjectNode prebidNode = TestBidRequestProvider.mapper.createObjectNode();
+        final ObjectNode bidderNode = TestBidRequestProvider.MAPPER.createObjectNode();
+        final ObjectNode prebidNode = TestBidRequestProvider.MAPPER.createObjectNode();
         prebidNode.set("bidder", bidderNode);
 
-        final ObjectNode extNode = TestBidRequestProvider.mapper.createObjectNode();
+        final ObjectNode extNode = TestBidRequestProvider.MAPPER.createObjectNode();
         extNode.set("prebid", prebidNode);
         extNode.set("tid", TextNode.valueOf("67eaab5f-27a6-4689-93f7-bd8f024576e3"));
 
@@ -425,6 +425,6 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
     }
 
     private ObjectNode toObjectNode(Map<String, Ortb2ImpExtResult> values) {
-        return values != null ? TestBidRequestProvider.mapper.valueToTree(values) : null;
+        return values != null ? TestBidRequestProvider.MAPPER.valueToTree(values) : null;
     }
 }
