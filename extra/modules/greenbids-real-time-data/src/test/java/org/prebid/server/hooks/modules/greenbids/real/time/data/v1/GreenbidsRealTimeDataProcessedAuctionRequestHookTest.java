@@ -66,6 +66,7 @@ import static org.mockito.Mockito.when;
 import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider.givenBanner;
 import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider.givenBidRequest;
 import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider.givenDevice;
+import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider.givenDeviceWithoutUserAgent;
 import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider.givenImpExt;
 import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider.givenSite;
 
@@ -181,6 +182,13 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final InvocationResult<AuctionRequestPayload> result = future.result();
 
         // then
+        final ActivityImpl activity = (ActivityImpl) result.analyticsTags().activities().getFirst();
+        final ResultImpl resultImpl = (ResultImpl) activity.results().getFirst();
+        final String fingerprint = resultImpl.values()
+                .get("adunitcodevalue")
+                .get("greenbids")
+                .get("fingerprint").asText();
+
         assertThat(future).isNotNull();
         assertThat(future.succeeded()).isTrue();
         assertThat(result).isNotNull();
@@ -194,6 +202,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                                 + ".adunitcodevalue._children"
                                 + ".greenbids._children.fingerprint")
                 .isEqualTo(toAnalyticsTags(List.of(expectedAnalyticsResult)));
+        assertThat(fingerprint).isNotNull();
     }
 
     @Test
@@ -208,8 +217,9 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 .build();
 
         final Double explorationRate = 0.0001;
+        final Device device = givenDeviceWithoutUserAgent(identity());
         final ExtRequest extRequest = givenExtRequest(explorationRate);
-        final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), null, extRequest);
+        final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device, extRequest);
         final AuctionContext auctionContext = givenAuctionContext(bidRequest, context -> context);
         final AuctionInvocationContext invocationContext = givenAuctionInvocationContext(auctionContext);
         when(invocationContext.auctionContext()).thenReturn(auctionContext);
@@ -218,8 +228,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         when(thresholdsCacheWithExpiration.getIfPresent("throttlingThresholds_test-pbuid"))
                 .thenReturn(givenThrottlingThresholds());
 
-        final BidRequest expectedBidRequest = expectedUpdatedBidRequest(
-                request -> request, explorationRate);
+        final BidRequest expectedBidRequest = expectedUpdatedBidRequest(request -> request, explorationRate, device);
         final AnalyticsResult expectedAnalyticsResult = expectedAnalyticsResult(false, false);
 
         // when
@@ -232,6 +241,13 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 .bidRequest();
 
         // then
+        final ActivityImpl activity = (ActivityImpl) result.analyticsTags().activities().getFirst();
+        final ResultImpl resultImpl = (ResultImpl) activity.results().getFirst();
+        final String fingerprint = resultImpl.values()
+                .get("adunitcodevalue")
+                .get("greenbids")
+                .get("fingerprint").asText();
+
         assertThat(future).isNotNull();
         assertThat(future.succeeded()).isTrue();
         assertThat(result).isNotNull();
@@ -245,10 +261,8 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                                 + ".adunitcodevalue._children"
                                 + ".greenbids._children.fingerprint")
                 .isEqualTo(toAnalyticsTags(List.of(expectedAnalyticsResult)));
-        assertThat(resultBidRequest).usingRecursiveComparison()
-                .ignoringFields("imp.ext._children.tid", "device")
-                .isEqualTo(expectedBidRequest);
-        assertThat(resultBidRequest.getDevice()).isNull();
+        assertThat(fingerprint).isNotNull();
+        assertThat(resultBidRequest).usingRecursiveComparison().isEqualTo(expectedBidRequest);
     }
 
     @Test
@@ -275,7 +289,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 .thenReturn(givenThrottlingThresholds());
 
         final BidRequest expectedBidRequest = expectedUpdatedBidRequest(
-                request -> request, explorationRate);
+                request -> request, explorationRate, device);
         final AnalyticsResult expectedAnalyticsResult = expectedAnalyticsResult(false, false);
 
         // when
@@ -288,6 +302,13 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 .bidRequest();
 
         // then
+        final ActivityImpl activityImpl = (ActivityImpl) result.analyticsTags().activities().getFirst();
+        final ResultImpl resultImpl = (ResultImpl) activityImpl.results().getFirst();
+        final String fingerprint = resultImpl.values()
+                .get("adunitcodevalue")
+                .get("greenbids")
+                .get("fingerprint").asText();
+
         assertThat(future).isNotNull();
         assertThat(future.succeeded()).isTrue();
         assertThat(result).isNotNull();
@@ -301,8 +322,8 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                                 + ".adunitcodevalue._children"
                                 + ".greenbids._children.fingerprint")
                 .isEqualTo(toAnalyticsTags(List.of(expectedAnalyticsResult)));
+        assertThat(fingerprint).isNotNull();
         assertThat(resultBidRequest).usingRecursiveComparison()
-                .ignoringFields("imp.ext._children.tid")
                 .isEqualTo(expectedBidRequest);
     }
 
@@ -354,7 +375,8 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
 
     private BidRequest expectedUpdatedBidRequest(
             UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
-            Double explorationRate) {
+            Double explorationRate,
+            Device device) {
 
         final Banner banner = givenBanner();
 
@@ -376,7 +398,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 .id("request")
                 .imp(List.of(imp))
                 .site(givenSite(site -> site))
-                .device(givenDevice(device -> device))
+                .device(device)
                 .ext(givenExtRequest(explorationRate))).build();
     }
 

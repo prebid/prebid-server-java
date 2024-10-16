@@ -74,6 +74,10 @@ public class TestBidRequestProvider {
         return deviceCustomizer.apply(Device.builder().ua(userAgent).ip("151.101.194.216")).build();
     }
 
+    public static Device givenDeviceWithoutUserAgent(UnaryOperator<Device.DeviceBuilder> deviceCustomizer) {
+        return deviceCustomizer.apply(Device.builder().ip("151.101.194.216")).build();
+    }
+
     public static Banner givenBanner() {
         final Format format = Format.builder()
                 .w(320)
