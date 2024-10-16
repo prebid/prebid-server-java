@@ -1,11 +1,10 @@
-package org.prebid.server.hooks.modules.greenbids.real.time.data.model.filter;
+package org.prebid.server.hooks.modules.greenbids.real.time.data.core;
 
 import ai.onnxruntime.OnnxTensor;
 import ai.onnxruntime.OnnxValue;
 import ai.onnxruntime.OrtException;
 import ai.onnxruntime.OrtSession;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.core.OnnxModelRunner;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.data.ThrottlingMessage;
 import org.springframework.util.CollectionUtils;
 

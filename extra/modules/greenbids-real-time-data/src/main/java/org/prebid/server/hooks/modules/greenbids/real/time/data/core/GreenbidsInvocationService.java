@@ -1,4 +1,4 @@
-package org.prebid.server.hooks.modules.greenbids.real.time.data.model.result;
+package org.prebid.server.hooks.modules.greenbids.real.time.data.core;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -8,6 +8,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.analytics.reporter.greenbids.model.ExplorationResult;
 import org.prebid.server.analytics.reporter.greenbids.model.Ortb2ImpExtResult;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.data.Partner;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.model.result.AnalyticsResult;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.model.result.GreenbidsInvocationResult;
 import org.prebid.server.hooks.v1.InvocationAction;
 
 import java.util.List;
