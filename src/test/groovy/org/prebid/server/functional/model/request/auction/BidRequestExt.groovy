@@ -11,4 +11,5 @@ class BidRequestExt {
     AppNexus appnexus
     String bc
     String platform
+    IxDiag ixdiag
 }
