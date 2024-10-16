@@ -1,4 +1,4 @@
-package org.prebid.server.hooks.modules.greenbids.real.time.data.model.data;
+package org.prebid.server.hooks.modules.greenbids.real.time.data.core;
 
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -15,6 +15,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.model.data.ThrottlingMessage;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider;
 
 import java.io.IOException;

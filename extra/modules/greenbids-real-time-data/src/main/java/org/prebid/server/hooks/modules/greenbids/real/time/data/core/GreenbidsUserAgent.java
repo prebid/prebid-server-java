@@ -1,4 +1,4 @@
-package org.prebid.server.hooks.modules.greenbids.real.time.data.model.data;
+package org.prebid.server.hooks.modules.greenbids.real.time.data.core;
 
 import org.apache.commons.lang3.StringUtils;
 import ua_parser.Client;

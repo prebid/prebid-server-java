@@ -1,4 +1,4 @@
-package org.prebid.server.hooks.modules.greenbids.real.time.data.model.data;
+package org.prebid.server.hooks.modules.greenbids.real.time.data.core;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -13,6 +13,7 @@ import com.maxmind.geoip2.model.CountryResponse;
 import com.maxmind.geoip2.record.Country;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.model.data.ThrottlingMessage;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 
 import java.io.IOException;
