@@ -307,6 +307,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         }
 
         and: "Account in the DB with blocking configuration"
+        def disallowedOrtb2Attributes = PBSUtils.randomNumber
         def ortb2BlockingAttributeConfig = Ortb2BlockingAttributeConfig.getDefaultConfig([disallowedOrtb2Attributes], attributeName).tap {
             enforceBlocks = true
         }
@@ -314,7 +315,6 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         accountDao.save(account)
 
         and: "Default bidder response with ortb2 attributes"
-        def disallowedOrtb2Attributes = PBSUtils.randomNumber
         def removeBid = getBidWithOrtb2Attribute(bidRequest.imp.first, disallowedOrtb2Attributes, attributeName).tap {
             it.mediaType = enforceType
         }
