@@ -10,7 +10,6 @@ import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
-import com.iab.openrtb.request.Uid;
 import com.iab.openrtb.request.User;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
@@ -571,19 +570,6 @@ public class RequestValidator {
                     if (StringUtils.isBlank(eid.getSource())) {
                         throw new ValidationException(
                                 "request.user.eids[%d] missing required field: \"source\"", index);
-                    }
-                    final List<Uid> eidUids = eid.getUids();
-                    if (CollectionUtils.isEmpty(eidUids)) {
-                        throw new ValidationException(
-                                "request.user.eids[%d].uids must contain at least one element", index);
-                    }
-                    for (int uidsIndex = 0; uidsIndex < eidUids.size(); uidsIndex++) {
-                        final Uid uid = eidUids.get(uidsIndex);
-                        if (StringUtils.isBlank(uid.getId())) {
-                            throw new ValidationException(
-                                    "request.user.eids[%d].uids[%d] missing required field: \"id\"", index,
-                                    uidsIndex);
-                        }
                     }
                 }
             }

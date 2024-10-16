@@ -18,6 +18,7 @@ import com.iab.openrtb.request.Request;
 import com.iab.openrtb.request.TitleObject;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.request.VideoObject;
+import com.iab.openrtb.response.SeatBid;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,6 +43,7 @@ import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -1347,7 +1349,7 @@ public class ImpValidatorTest extends VertxTest {
         // given
         final ObjectNode prebid = mapper.valueToTree(ExtImpPrebid.builder()
                 .storedBidResponse(singletonList(ExtStoredBidResponse.of("bidder", "id")))
-                .storedAuctionResponse(ExtStoredAuctionResponse.of("id", null))
+                .storedAuctionResponse(ExtStoredAuctionResponse.of("id", null, null))
                 .build());
 
         final List<Imp> givenImps = singletonList(validImpBuilder()
@@ -1573,14 +1575,28 @@ public class ImpValidatorTest extends VertxTest {
 
         // given
         final List<Imp> givenImps = singletonList(validImpBuilder()
-                        .ext(mapper.valueToTree(singletonMap("prebid", singletonMap(
-                                "storedauctionresponse", mapper.createObjectNode()))))
+                .ext(mapper.valueToTree(singletonMap("prebid", singletonMap(
+                        "storedauctionresponse", mapper.createObjectNode()))))
                 .build());
 
         // when & then
         assertThatThrownBy(() -> target.validateImps(givenImps, Collections.emptyMap(), null))
                 .isInstanceOf(ValidationException.class)
-                .hasMessage("request.imp[0].ext.prebid.storedauctionresponse.id should be defined");
+                .hasMessage("request.imp[0].ext.prebid.storedauctionresponse.{id or seatbidobj} should be defined");
+    }
+
+    @Test
+    public void validateImpsShouldNotReturnValidationMessageWhenStoredAuctionResponseWithoutIdAndWithSeatBidObj()
+            throws ValidationException {
+
+        // given
+        final List<Imp> givenImps = singletonList(validImpBuilder()
+                .ext(mapper.valueToTree(singletonMap("prebid", singletonMap(
+                        "storedauctionresponse", singletonMap("seatbidobj", SeatBid.builder().build())))))
+                .build());
+
+        // when & then
+        assertThatNoException().isThrownBy(() -> target.validateImps(givenImps, Collections.emptyMap(), null));
     }
 
     @Test
@@ -1589,11 +1605,11 @@ public class ImpValidatorTest extends VertxTest {
 
         // given
         final List<Imp> givenImps = singletonList(validImpBuilder()
-                        .ext(mapper.valueToTree(singletonMap("prebid", Map.of(
-                                "storedauctionresponse", mapper.createObjectNode()
-                                        .put("id", "1")
-                                        .set("seatbidarr", mapper.createArrayNode())))
-                        )).build());
+                .ext(mapper.valueToTree(singletonMap("prebid", Map.of(
+                        "storedauctionresponse", mapper.createObjectNode()
+                                .put("id", "1")
+                                .set("seatbidarr", mapper.createArrayNode())))
+                )).build());
 
         final List<String> debugMessages = new ArrayList<>();
 

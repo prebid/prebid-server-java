@@ -37,6 +37,7 @@ import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
 
@@ -426,6 +427,31 @@ public class AnalyticsReporterDelegatorTest extends VertxTest {
     }
 
     @Test
+    public void shouldCallAnalyticsAdapterIfAdapterNodePresentButEnabledPropertyNotPresent() {
+        // given
+        final ObjectNode moduleConfig = mapper.createObjectNode();
+        moduleConfig.put("property1", "value1");
+        moduleConfig.put("property2", "value2");
+
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .account(Account.builder()
+                        .analytics(AccountAnalyticsConfig.of(
+                                true, null, Map.of("logAnalytics", moduleConfig)))
+                        .build())
+                .bidRequest(BidRequest.builder()
+                        .ext(ExtRequest.of(ExtRequestPrebid.builder().analytics(mapper.createObjectNode()).build()))
+                        .build())
+                .build();
+
+        // when
+        target.processEvent(AuctionEvent.builder().auctionContext(auctionContext).build());
+
+        // then
+        verify(vertx, times(2)).runOnContext(any());
+        verify(firstReporter).processEvent(any());
+    }
+
+    @Test
     public void shouldUpdateAuctionEventWithPropertiesFromAdapterSpecificAccountConfig() {
         // given
         final ObjectNode moduleConfig = mapper.createObjectNode();
@@ -486,7 +512,10 @@ public class AnalyticsReporterDelegatorTest extends VertxTest {
                                 true, null, Map.of("logAnalytics", moduleConfig)))
                         .build())
                 .bidRequest(BidRequest.builder()
-                        .ext(ExtRequest.of(ExtRequestPrebid.builder().analytics(analyticsNode).build()))
+                        .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                                .channel(ExtRequestPrebidChannel.of("channel"))
+                                .analytics(analyticsNode)
+                                .build()))
                         .build())
                 .build();
 
@@ -503,6 +532,11 @@ public class AnalyticsReporterDelegatorTest extends VertxTest {
         expectedLogAnalyticsNode.put("property3", "requestValue3");
         expectedAnalyticsNode.set("logAnalytics", expectedLogAnalyticsNode);
 
+        final ExtRequestPrebid expectedExtRequestPrebid = ExtRequestPrebid.builder()
+                .analytics(expectedAnalyticsNode)
+                .channel(ExtRequestPrebidChannel.of("channel"))
+                .build();
+
         final ArgumentCaptor<AuctionEvent> auctionEventCaptor = ArgumentCaptor.forClass(AuctionEvent.class);
         verify(firstReporter).processEvent(auctionEventCaptor.capture());
         assertThat(auctionEventCaptor.getValue())
@@ -510,8 +544,7 @@ public class AnalyticsReporterDelegatorTest extends VertxTest {
                 .extracting(AuctionContext::getBidRequest)
                 .extracting(BidRequest::getExt)
                 .extracting(ExtRequest::getPrebid)
-                .extracting(ExtRequestPrebid::getAnalytics)
-                .isEqualTo(expectedAnalyticsNode);
+                .isEqualTo(expectedExtRequestPrebid);
     }
 
     @SuppressWarnings("unchecked")

@@ -126,7 +126,7 @@ public class SkippedAuctionServiceTest {
         final AuctionContext auctionContext = AuctionContext.builder()
                 .bidRequest(BidRequest.builder()
                         .ext(ExtRequest.of(ExtRequestPrebid.builder()
-                                .storedAuctionResponse(ExtStoredAuctionResponse.of(null, null))
+                                .storedAuctionResponse(ExtStoredAuctionResponse.of(null, null, null))
                                 .build()))
                         .build())
                 .build();
@@ -147,7 +147,7 @@ public class SkippedAuctionServiceTest {
     public void skipAuctionShouldReturnBidResponseWithSeatBidsFromStoredAuctionResponse() {
         // given
         final List<SeatBid> givenSeatBids = givenSeatBids("bidId1", "bidId2");
-        final ExtStoredAuctionResponse givenStoredResponse = ExtStoredAuctionResponse.of("id", givenSeatBids);
+        final ExtStoredAuctionResponse givenStoredResponse = ExtStoredAuctionResponse.of("id", givenSeatBids, null);
         final AuctionContext givenAuctionContext = AuctionContext.builder()
                 .debugWarnings(new ArrayList<>())
                 .bidRequest(BidRequest.builder()
@@ -179,7 +179,8 @@ public class SkippedAuctionServiceTest {
     @Test
     public void skipAuctionShouldReturnEmptySeatBidsWhenSeatBidIsNull() {
         // given
-        final ExtStoredAuctionResponse givenStoredResponse = ExtStoredAuctionResponse.of("id", singletonList(null));
+        final ExtStoredAuctionResponse givenStoredResponse = ExtStoredAuctionResponse.of(
+                "id", singletonList(null), null);
         final AuctionContext givenAuctionContext = AuctionContext.builder()
                 .debugWarnings(new ArrayList<>())
                 .bidRequest(BidRequest.builder()
@@ -214,7 +215,7 @@ public class SkippedAuctionServiceTest {
     public void skipAuctionShouldReturnEmptySeatBidsWhenSeatIsEmpty() {
         // given
         final List<SeatBid> givenSeatBids = singletonList(SeatBid.builder().seat("").build());
-        final ExtStoredAuctionResponse givenStoredResponse = ExtStoredAuctionResponse.of("id", givenSeatBids);
+        final ExtStoredAuctionResponse givenStoredResponse = ExtStoredAuctionResponse.of("id", givenSeatBids, null);
         final AuctionContext givenAuctionContext = AuctionContext.builder()
                 .debugWarnings(new ArrayList<>())
                 .bidRequest(BidRequest.builder()
@@ -249,7 +250,7 @@ public class SkippedAuctionServiceTest {
     public void skipAuctionShouldReturnEmptySeatBidsWhenBidsAreEmpty() {
         // given
         final List<SeatBid> givenSeatBids = singletonList(SeatBid.builder().seat("seat").bid(emptyList()).build());
-        final ExtStoredAuctionResponse givenStoredResponse = ExtStoredAuctionResponse.of("id", givenSeatBids);
+        final ExtStoredAuctionResponse givenStoredResponse = ExtStoredAuctionResponse.of("id", givenSeatBids, null);
         final AuctionContext givenAuctionContext = AuctionContext.builder()
                 .debugWarnings(new ArrayList<>())
                 .bidRequest(BidRequest.builder()
@@ -283,7 +284,7 @@ public class SkippedAuctionServiceTest {
     @Test
     public void skipAuctionShouldReturnBidResponseWithEmptySeatBidsWhenNoValueAvailableById() {
         // given
-        final ExtStoredAuctionResponse givenStoredResponse = ExtStoredAuctionResponse.of("id", null);
+        final ExtStoredAuctionResponse givenStoredResponse = ExtStoredAuctionResponse.of("id", null, null);
         final AuctionContext givenAuctionContext = AuctionContext.builder()
                 .debugWarnings(new ArrayList<>())
                 .timeoutContext(TimeoutContext.of(1000L, timeout, 0))
@@ -320,7 +321,7 @@ public class SkippedAuctionServiceTest {
     public void skipAuctionShouldReturnBidResponseWithStoredSeatBidsByProvidedId() {
         // given
         final List<SeatBid> givenSeatBids = givenSeatBids("bidId1", "bidId2");
-        final ExtStoredAuctionResponse givenStoredResponse = ExtStoredAuctionResponse.of("id", null);
+        final ExtStoredAuctionResponse givenStoredResponse = ExtStoredAuctionResponse.of("id", null, null);
         final AuctionContext givenAuctionContext = AuctionContext.builder()
                 .debugWarnings(new ArrayList<>())
                 .timeoutContext(TimeoutContext.of(1000L, timeout, 0))

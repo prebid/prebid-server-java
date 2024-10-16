@@ -83,7 +83,7 @@ public class StoredResponseProcessorTest extends VertxTest {
     @Test
     public void getStoredResponseResultShouldReturnSeatBidsForAuctionResponseId() throws JsonProcessingException {
         // given
-        final List<Imp> imps = singletonList(givenImp("impId", ExtStoredAuctionResponse.of("1", null), null));
+        final List<Imp> imps = singletonList(givenImp("impId", ExtStoredAuctionResponse.of("1", null, null), null));
 
         given(applicationSettings.getStoredResponses(any(), any()))
                 .willReturn(Future.succeededFuture(StoredResponseDataResult.of(singletonMap("1",
@@ -149,7 +149,7 @@ public class StoredResponseProcessorTest extends VertxTest {
     @Test
     public void getStoredResponseResultShouldReturnFailedFutureWhenErrorHappenedDuringRetrievingStoredResponse() {
         // given
-        final List<Imp> imps = singletonList(givenImp("impId", ExtStoredAuctionResponse.of("1", null), null));
+        final List<Imp> imps = singletonList(givenImp("impId", ExtStoredAuctionResponse.of("1", null, null), null));
 
         given(applicationSettings.getStoredResponses(any(), any()))
                 .willReturn(Future.failedFuture(new PreBidException("Failed.")));
@@ -194,7 +194,7 @@ public class StoredResponseProcessorTest extends VertxTest {
         // given
         final Imp imp1 = givenImp(
                 "impId1",
-                ExtStoredAuctionResponse.of("storedAuctionResponseId", Collections.emptyList()),
+                ExtStoredAuctionResponse.of("storedAuctionResponseId", Collections.emptyList(), null),
                 null);
         final Imp imp2 = givenImp(
                 "impId2",
@@ -228,7 +228,7 @@ public class StoredResponseProcessorTest extends VertxTest {
     @Test
     public void getStoredResponseResultShouldThrowInvalidRequestExceptionWhenStoredAuctionResponseWasNotFound() {
         // given
-        final Imp imp1 = givenImp("impId1", ExtStoredAuctionResponse.of("storedAuctionResponseId", null), null);
+        final Imp imp1 = givenImp("impId1", ExtStoredAuctionResponse.of("storedAuctionResponseId", null, null), null);
         given(applicationSettings.getStoredResponses(any(), any())).willReturn(
                 Future.succeededFuture(StoredResponseDataResult.of(emptyMap(), emptyList())));
 
@@ -247,8 +247,8 @@ public class StoredResponseProcessorTest extends VertxTest {
     public void getStoredResponseResultShouldMergeStoredSeatBidsForTheSameBidder() throws JsonProcessingException {
         // given
         final List<Imp> imps = asList(
-                givenImp("impId1", ExtStoredAuctionResponse.of("storedAuctionResponse1", null), null),
-                givenImp("impId2", ExtStoredAuctionResponse.of("storedAuctionResponse2", null), null));
+                givenImp("impId1", ExtStoredAuctionResponse.of("storedAuctionResponse1", null, null), null),
+                givenImp("impId2", ExtStoredAuctionResponse.of("storedAuctionResponse2", null, null), null));
 
         final Map<String, String> storedResponse = new HashMap<>();
         storedResponse.put("storedAuctionResponse1", mapper.writeValueAsString(asList(
@@ -275,9 +275,65 @@ public class StoredResponseProcessorTest extends VertxTest {
                         SeatBid.builder()
                                 .seat("rubicon")
                                 .bid(asList(
-                                        Bid.builder().id("id2").impid("impId2").build(),
-                                        Bid.builder().id("id3").impid("impId1").build()
-                                ))
+                                        Bid.builder().id("id3").impid("impId1").build(),
+                                        Bid.builder().id("id2").impid("impId2").build()))
+                                .build()),
+                emptyMap()));
+    }
+
+    @Test
+    public void getStoredResponseResultShouldUseStoredSeatBidsFromRequest() throws JsonProcessingException {
+        // given
+        final List<Imp> imps = asList(
+                givenImp(
+                        "impId1",
+                        ExtStoredAuctionResponse.of(
+                                "storedAuctionResponse1",
+                                null,
+                                SeatBid.builder()
+                                        .seat("rubicon")
+                                        .bid(singletonList(Bid.builder().id("id4").build()))
+                                        .build()),
+                        null),
+                givenImp("impId2", ExtStoredAuctionResponse.of("storedAuctionResponse2", null, null), null),
+                givenImp(
+                        "impId3",
+                        ExtStoredAuctionResponse.of(
+                                null,
+                                null,
+                                SeatBid.builder()
+                                        .seat("appnexus")
+                                        .bid(singletonList(Bid.builder().id("id5").build()))
+                                        .build()),
+                        null));
+
+        final Map<String, String> storedResponse = new HashMap<>();
+        storedResponse.put("storedAuctionResponse1", mapper.writeValueAsString(asList(
+                SeatBid.builder().seat("appnexus").bid(singletonList(Bid.builder().id("id1").build())).build(),
+                SeatBid.builder().seat("rubicon").bid(singletonList(Bid.builder().id("id3").build())).build())));
+        storedResponse.put("storedAuctionResponse2", mapper.writeValueAsString(singletonList(
+                SeatBid.builder().seat("rubicon").bid(singletonList(Bid.builder().id("id2").build())).build())));
+
+        given(applicationSettings.getStoredResponses(any(), any())).willReturn(
+                Future.succeededFuture(StoredResponseDataResult.of(storedResponse, emptyList())));
+
+        // when
+        final Future<StoredResponseResult> result =
+                target.getStoredResponseResult(imps, timeout);
+
+        // then
+        assertThat(result.result()).isEqualTo(StoredResponseResult.of(
+                emptyList(),
+                asList(
+                        SeatBid.builder()
+                                .seat("appnexus")
+                                .bid(singletonList(Bid.builder().id("id5").impid("impId3").build()))
+                                .build(),
+                        SeatBid.builder()
+                                .seat("rubicon")
+                                .bid(asList(
+                                        Bid.builder().id("id4").impid("impId1").build(),
+                                        Bid.builder().id("id2").impid("impId2").build()))
                                 .build()),
                 emptyMap()));
     }
@@ -301,7 +357,7 @@ public class StoredResponseProcessorTest extends VertxTest {
             throws JsonProcessingException {
 
         // given
-        final List<Imp> imps = singletonList(givenImp("impId", ExtStoredAuctionResponse.of("1", null), null));
+        final List<Imp> imps = singletonList(givenImp("impId", ExtStoredAuctionResponse.of("1", null, null), null));
 
         given(applicationSettings.getStoredResponses(any(), any()))
                 .willReturn(Future.succeededFuture(StoredResponseDataResult.of(
@@ -328,7 +384,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // given
         final List<Imp> imps = singletonList(
-                givenImp("impId", ExtStoredAuctionResponse.of("1", null), null));
+                givenImp("impId", ExtStoredAuctionResponse.of("1", null, null), null));
 
         given(applicationSettings.getStoredResponses(any(), any()))
                 .willReturn(Future.succeededFuture(StoredResponseDataResult.of(
@@ -352,7 +408,7 @@ public class StoredResponseProcessorTest extends VertxTest {
     @Test
     public void getStoredResponseResultShouldReturnFailedFutureSeatBidsCannotBeParsed() {
         // given
-        final List<Imp> imps = singletonList(givenImp("impId", ExtStoredAuctionResponse.of("1", null), null));
+        final List<Imp> imps = singletonList(givenImp("impId", ExtStoredAuctionResponse.of("1", null, null), null));
 
         given(applicationSettings.getStoredResponses(any(), any())).willReturn(Future.succeededFuture(
                 StoredResponseDataResult.of(singletonMap("1", "{invalid"), emptyList())));

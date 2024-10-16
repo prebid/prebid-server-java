@@ -164,7 +164,8 @@ public class PrivacyServiceConfiguration {
             GeoLocationServiceWrapper geoLocationServiceWrapper,
             BidderCatalog bidderCatalog,
             IpAddressHelper ipAddressHelper,
-            Metrics metrics) {
+            Metrics metrics,
+            @Value("${logging.sampling-rate:0.01}") double samplingRate) {
 
         final Set<String> eeaCountries = new HashSet<>(Arrays.asList(eeaCountriesAsString.trim().split(",")));
 
@@ -175,7 +176,8 @@ public class PrivacyServiceConfiguration {
                 geoLocationServiceWrapper,
                 bidderCatalog,
                 ipAddressHelper,
-                metrics);
+                metrics,
+                samplingRate);
     }
 
     @Bean

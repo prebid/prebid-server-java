@@ -1962,10 +1962,10 @@ public class RubiconBidderTest extends VertxTest {
     public void makeHttpRequestsShouldUseGivenUserIdIfOtherExtUserFieldsPassed() {
         // given
         final ExtUser extUser = ExtUser.builder()
-                .eids(singletonList(Eid.of(
-                        "liveramp.com",
-                        singletonList(Uid.of("firstId", null, null)),
-                        null)))
+                .eids(singletonList(Eid.builder()
+                        .source("liveramp.com")
+                        .uids(singletonList(Uid.builder().id("firstId").build()))
+                        .build()))
                 .build();
         final BidRequest bidRequest = givenBidRequest(builder -> builder.user(User.builder()
                         .id("userId")
@@ -1989,13 +1989,21 @@ public class RubiconBidderTest extends VertxTest {
     public void makeHttpRequestsShouldCreateUserIdIfMissingFromFirstUidStypePpuid() {
         // given
         final BidRequest bidRequest = givenBidRequest(builder -> builder.user(User.builder()
-                        .eids(singletonList(Eid.of(
-                                null,
-                                asList(
-                                        Uid.of("id1", null, mapper.valueToTree(Map.of("stype", "other"))),
-                                        Uid.of("id2", null, mapper.valueToTree(Map.of("stype", "ppuid"))),
-                                        Uid.of("id3", null, mapper.valueToTree(Map.of("stype", "ppuid")))),
-                                null)))
+                        .eids(singletonList(Eid.builder()
+                                .uids(asList(
+                                        Uid.builder()
+                                                .id("id1")
+                                                .ext(mapper.valueToTree(Map.of("stype", "other")))
+                                                .build(),
+                                        Uid.builder()
+                                                .id("id2")
+                                                .ext(mapper.valueToTree(Map.of("stype", "ppuid")))
+                                                .build(),
+                                        Uid.builder()
+                                                .id("id3")
+                                                .ext(mapper.valueToTree(Map.of("stype", "ppuid")))
+                                                .build()))
+                                .build()))
                         .build()),
                 builder -> builder.video(Video.builder().build()), identity());
 
@@ -2015,12 +2023,16 @@ public class RubiconBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(builder -> builder.user(User.builder()
                         .ext(ExtUser.builder()
-                                .eids(singletonList(Eid.of(
-                                        null,
-                                        asList(
-                                                Uid.of("id1", null, mapper.valueToTree(Map.of("stype", "other"))),
-                                                Uid.of("id2", null, mapper.valueToTree(Map.of("stype", "other")))),
-                                        null)))
+                                .eids(singletonList(Eid.builder().uids(asList(
+                                                Uid.builder()
+                                                        .id("id1")
+                                                        .ext(mapper.valueToTree(Map.of("stype", "other")))
+                                                        .build(),
+                                                Uid.builder()
+                                                        .id("id2")
+                                                        .ext(mapper.valueToTree(Map.of("stype", "other")))
+                                                        .build()))
+                                        .build()))
                                 .build())
                         .build()),
                 builder -> builder.video(Video.builder().build()), identity());
@@ -2038,15 +2050,28 @@ public class RubiconBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldRemoveStypesPpuidSha256emailDmp() {
         // given
-        final BidRequest bidRequest = givenBidRequest(builder -> builder.user(User.builder()
-                        .eids(singletonList(Eid.of(
-                                "source",
-                                asList(
-                                        Uid.of("id1", null, mapper.valueToTree(Map.of("stype", "other"))),
-                                        Uid.of("id2", null, mapper.valueToTree(Map.of("stype", "ppuid"))),
-                                        Uid.of("id3", null, mapper.valueToTree(Map.of("stype", "sha256email"))),
-                                        Uid.of("id4", null, mapper.valueToTree(Map.of("stype", "dmp")))),
-                                null)))
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.user(User.builder()
+                        .eids(singletonList(Eid.builder()
+                                .source("source")
+                                .uids(asList(
+                                        Uid.builder()
+                                                .id("id1")
+                                                .ext(mapper.valueToTree(Map.of("stype", "other")))
+                                                .build(),
+                                        Uid.builder()
+                                                .id("id2")
+                                                .ext(mapper.valueToTree(Map.of("stype", "ppuid")))
+                                                .build(),
+                                        Uid.builder()
+                                                .id("id3")
+                                                .ext(mapper.valueToTree(Map.of("stype", "sha256email")))
+                                                .build(),
+                                        Uid.builder()
+                                                .id("id4")
+                                                .ext(mapper.valueToTree(Map.of("stype", "dmp")))
+                                                .build()))
+                                .build()))
                         .build()),
                 builder -> builder.video(Video.builder().build()), identity());
 
@@ -2059,14 +2084,15 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(request -> request.getUser().getExt()).hasSize(1).element(0)
                 .isEqualTo(ExtUser.builder()
-                        .eids(singletonList(Eid.of(
-                                "source",
-                                asList(
-                                        Uid.of("id1", null, mapper.valueToTree(Map.of("stype", "other"))),
-                                        Uid.of("id2", null, mapper.createObjectNode()),
-                                        Uid.of("id3", null, mapper.createObjectNode()),
-                                        Uid.of("id4", null, mapper.createObjectNode())),
-                                null)))
+                        .eids(singletonList(Eid.builder()
+                                .source("source")
+                                .uids(asList(
+                                        Uid.builder().id("id1")
+                                                .ext(mapper.valueToTree(Map.of("stype", "other"))).build(),
+                                        Uid.builder().id("id2").ext(mapper.createObjectNode()).build(),
+                                        Uid.builder().id("id3").ext(mapper.createObjectNode()).build(),
+                                        Uid.builder().id("id4").ext(mapper.createObjectNode()).build()))
+                                .build()))
                         .build());
     }
 
@@ -2075,10 +2101,10 @@ public class RubiconBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(builder -> builder.user(User.builder()
                         .ext(ExtUser.builder()
-                                .eids(singletonList(Eid.of(
-                                        "adserver.org",
-                                        singletonList(Uid.of("id", null, null)),
-                                        null)))
+                                .eids(singletonList(Eid.builder()
+                                                .source("adserver.org")
+                                                .uids(singletonList(Uid.builder().id("id").build()))
+                                                .build()))
                                 .build())
                         .build()),
                 builder -> builder.video(Video.builder().build()), identity());
@@ -2092,10 +2118,10 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(request -> request.getUser().getExt())
                 .containsOnly(ExtUser.builder()
-                        .eids(singletonList(Eid.of(
-                                "adserver.org",
-                                singletonList(Uid.of("id", null, null)),
-                                null)))
+                        .eids(singletonList(Eid.builder()
+                                .source("adserver.org")
+                                .uids(singletonList(Uid.builder().id("id").build()))
+                                .build()))
                         .build());
     }
 
@@ -2104,13 +2130,13 @@ public class RubiconBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(builder -> builder.user(User.builder()
                         .ext(ExtUser.builder()
-                                .eids(singletonList(Eid.of(
-                                        "adserver.org",
-                                        singletonList(Uid.of(
-                                                "adServerUid",
-                                                null,
-                                                mapper.valueToTree(Map.of("rtiPartner", "TDID")))),
-                                        null)))
+                                .eids(singletonList(Eid.builder()
+                                        .source("adserver.org")
+                                        .uids(singletonList(Uid.builder()
+                                                .id("adServerUid")
+                                                .ext(mapper.valueToTree(Map.of("rtiPartner", "TDID")))
+                                                .build()))
+                                        .build()))
                                 .build())
                         .build()),
                 builder -> builder.video(Video.builder().build()), identity());
@@ -2125,13 +2151,13 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(request -> request.getUser().getExt())
                 .containsOnly(jacksonMapper.fillExtension(
                         ExtUser.builder()
-                                .eids(singletonList(Eid.of(
-                                        "adserver.org",
-                                        singletonList(Uid.of(
-                                                "adServerUid",
-                                                null,
-                                                mapper.valueToTree(Map.of("rtiPartner", "TDID")))),
-                                        null)))
+                                .eids(singletonList(Eid.builder()
+                                        .source("adserver.org")
+                                        .uids(singletonList(Uid.builder()
+                                                .id("adServerUid")
+                                                .ext(mapper.valueToTree(Map.of("rtiPartner", "TDID")))
+                                                .build()))
+                                        .build()))
                                 .build(),
                         RubiconUserExt.builder().build()));
     }
@@ -2141,8 +2167,8 @@ public class RubiconBidderTest extends VertxTest {
         // given
         final ExtUser extUser = ExtUser.builder()
                 .eids(asList(
-                        Eid.of("liveramp.com", null, null),
-                        Eid.of("liveramp.com", emptyList(), null)))
+                        Eid.builder().source("liveramp.com").build(),
+                        Eid.builder().source("liveramp.com").uids(emptyList()).build()))
                 .build();
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder.user(User.builder().ext(extUser).build()),
@@ -2165,13 +2191,13 @@ public class RubiconBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(builder -> builder.user(User.builder()
                         .ext(ExtUser.builder()
-                                .eids(singletonList(Eid.of(
-                                        "unknownSource",
-                                        singletonList(Uid.of(
-                                                "id",
-                                                null,
-                                                mapper.valueToTree(Map.of("rtiPartner", "eidUidId")))),
-                                        null)))
+                                .eids(singletonList(Eid.builder()
+                                        .source("unknownSource")
+                                        .uids(singletonList(Uid.builder()
+                                                .id("id")
+                                                .ext(mapper.valueToTree(Map.of("rtiPartner", "eidUidId")))
+                                                .build()))
+                                        .build()))
                                 .build())
                         .build()),
                 builder -> builder.video(Video.builder().build()), identity());
@@ -2185,10 +2211,13 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(request -> request.getUser().getExt())
                 .containsOnly(ExtUser.builder()
-                        .eids(singletonList(Eid.of(
-                                "unknownSource",
-                                singletonList(Uid.of("id", null, mapper.valueToTree(Map.of("rtiPartner", "eidUidId")))),
-                                null)))
+                        .eids(singletonList(Eid.builder()
+                                .source("unknownSource")
+                                .uids(singletonList(Uid.builder()
+                                        .id("id")
+                                        .ext(mapper.valueToTree(Map.of("rtiPartner", "eidUidId")))
+                                        .build()))
+                                .build()))
                         .build());
     }
 
@@ -3725,13 +3754,17 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBidWithDchainFromRequest() throws JsonProcessingException {
+    public void makeBidsShouldReturnBidMetaFromRequest() throws JsonProcessingException {
         // given
         final ObjectNode requestNode = mapper.valueToTree(ExtBidPrebid.builder()
                 .meta(ExtBidPrebidMeta.builder()
                         .dchain(mapper.createObjectNode().set("dChain", TextNode.valueOf("dChain")))
+                        .mediaType("banner")
                         .build())
                 .build());
+
+        final ObjectNode expectedNode = requestNode.deepCopy();
+
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(identity()),
                 mapper.writeValueAsString(RubiconBidResponse.builder()
@@ -3748,7 +3781,7 @@ public class RubiconBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(BidderBid::getBid)
                 .extracting(Bid::getExt)
-                .containsExactly(requestNode);
+                .containsExactly(expectedNode);
     }
 
     @Test
