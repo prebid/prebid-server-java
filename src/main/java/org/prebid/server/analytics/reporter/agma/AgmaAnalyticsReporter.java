@@ -97,7 +97,12 @@ public class AgmaAnalyticsReporter implements AnalyticsReporter, Initializable {
 
     @Override
     public void initialize(Promise<Void> initializePromise) {
-        vertx.setPeriodic(bufferTimeoutMs, ignored -> sendEvents(buffer.pollAll()));
+        vertx.setPeriodic(bufferTimeoutMs, ignored -> {
+            final List<String> toFlush = buffer.pollAll();
+            if (!toFlush.isEmpty()) {
+                sendEvents(toFlush);
+            }
+        });
         initializePromise.complete();
     }
 
@@ -190,17 +195,17 @@ public class AgmaAnalyticsReporter implements AnalyticsReporter, Initializable {
 
         final String publisherId = Optional.ofNullable(site).map(Site::getPublisher).map(Publisher::getId)
                 .or(() -> Optional.ofNullable(app).map(App::getPublisher).map(Publisher::getId))
-                .orElse(null);
+                .orElse("");
         final String appSiteId = Optional.ofNullable(site).map(Site::getId)
                 .or(() -> Optional.ofNullable(app).map(App::getId))
                 .or(() -> Optional.ofNullable(app).map(App::getBundle))
                 .orElse(null);
 
-        if (publisherId == null && appSiteId == null) {
+        if (publisherId.equals("") && appSiteId == null) {
             return null;
         }
 
-        return publisherId;
+        return appSiteId != null ? publisherId + "_" + appSiteId : publisherId;
     }
 
     private void sendEvents(List<String> events) {
