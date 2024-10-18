@@ -64,6 +64,6 @@ class PbsServiceFactory {
     private static int getMaxContainerCount() {
         USE_FIXED_CONTAINER_PORTS
                 ? 1
-                : SystemProperties.getPropertyOrDefault("tests.max-container-count", 2)
+                : SystemProperties.getPropertyOrDefault("tests.max-container-count", 5)
     }
 }
