@@ -22,6 +22,7 @@ class ImpExt {
     ImpExtContextData data
     String tid
     String gpid
+    String sid
     Integer ae
     String all
     String skadn
