@@ -12,7 +12,7 @@ import org.prebid.server.functional.model.response.auction.MediaType
 @JsonNaming(PropertyNamingStrategies.KebabCaseStrategy)
 class AccountAuctionConfig {
 
-    String priceGranularity
+    PriceGranularityType priceGranularity
     Integer bannerCacheTtl
     Integer videoCacheTtl
     Integer truncateTargetAttr
@@ -28,7 +28,7 @@ class AccountAuctionConfig {
     PrivacySandbox privacySandbox
 
     @JsonProperty("price_granularity")
-    String priceGranularitySnakeCase
+    PriceGranularityType priceGranularitySnakeCase
     @JsonProperty("banner_cache_ttl")
     Integer bannerCacheTtlSnakeCase
     @JsonProperty("video_cache_ttl")
