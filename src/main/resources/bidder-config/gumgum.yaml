@@ -1,6 +1,7 @@
 adapters:
   gumgum:
     endpoint: https://g2.gumgum.com/providers/prbds2s/bid
+    ortb-version: "2.6"
     meta-info:
       maintainer-email: prebid@gumgum.com
       app-media-types:

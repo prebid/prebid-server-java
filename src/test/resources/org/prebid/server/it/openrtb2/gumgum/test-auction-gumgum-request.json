@@ -19,8 +19,6 @@
     "buyeruid": "GUM-UID"
   },
   "regs": {
-    "ext": {
-      "gdpr": 0
-    }
+    "gdpr": 0
   }
 }
