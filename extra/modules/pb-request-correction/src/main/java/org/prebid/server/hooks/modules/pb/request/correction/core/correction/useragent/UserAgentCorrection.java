@@ -10,7 +10,7 @@ public class UserAgentCorrection implements Correction {
     private static final String USER_AGENT_PATTERN = "PrebidMobile/[0-9][^ ]*";
 
     @Override
-    public BidRequest apply(Config config, BidRequest bidRequest) {
+    public BidRequest apply(BidRequest bidRequest) {
         return bidRequest.toBuilder()
                 .device(correctDevice(bidRequest.getDevice()))
                 .build();

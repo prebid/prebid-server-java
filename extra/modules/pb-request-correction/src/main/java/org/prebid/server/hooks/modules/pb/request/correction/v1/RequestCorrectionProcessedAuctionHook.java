@@ -58,8 +58,8 @@ public class RequestCorrectionProcessedAuctionHook implements ProcessedAuctionRe
         final InvocationResult<AuctionRequestPayload> invocationResult = InvocationResultImpl.builder()
                 .status(InvocationStatus.success)
                 .action(InvocationAction.update)
-                .payloadUpdate(initialPayload -> AuctionRequestPayloadImpl.of(
-                        applyCorrections(initialPayload.bidRequest(), config, corrections)))
+                .payloadUpdate(initialPayload ->
+                        AuctionRequestPayloadImpl.of(applyCorrections(initialPayload.bidRequest(), corrections)))
                 .build();
 
         return Future.succeededFuture(invocationResult);
@@ -73,10 +73,10 @@ public class RequestCorrectionProcessedAuctionHook implements ProcessedAuctionRe
         }
     }
 
-    private static BidRequest applyCorrections(BidRequest bidRequest, Config config, List<Correction> corrections) {
+    private static BidRequest applyCorrections(BidRequest bidRequest, List<Correction> corrections) {
         BidRequest result = bidRequest;
         for (Correction correction : corrections) {
-            result = correction.apply(config, result);
+            result = correction.apply(result);
         }
         return result;
     }

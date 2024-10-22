@@ -6,11 +6,6 @@ public class VersionUtil {
         return compareVersion(versionAsString, major, minor, patch) < 0;
     }
 
-
-    public static boolean isVersionLessThanOrEqual(String versionAsString, int major, int minor, int patch) {
-        return compareVersion(versionAsString, major, minor, patch) <= 0;
-    }
-
     private static int compareVersion(String versionAsString, int major, int minor, int patch) {
         final String[] version = versionAsString.split("\\.");
 

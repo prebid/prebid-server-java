@@ -8,7 +8,7 @@ import org.prebid.server.hooks.modules.pb.request.correction.core.correction.Cor
 public class InterstitialCorrection implements Correction {
 
     @Override
-    public BidRequest apply(Config config, BidRequest bidRequest) {
+    public BidRequest apply(BidRequest bidRequest) {
         return bidRequest.toBuilder()
                 .imp(bidRequest.getImp().stream()
                         .map(InterstitialCorrection::removeInterstitial)

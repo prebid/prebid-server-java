@@ -5,5 +5,5 @@ import org.prebid.server.hooks.modules.pb.request.correction.core.config.model.C
 
 public interface Correction {
 
-    BidRequest apply(Config config, BidRequest bidRequest);
+    BidRequest apply(BidRequest bidRequest);
 }
