@@ -3984,7 +3984,7 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldDropBidsWithInvalidPriceAndAddDebugWarnings() {
+    public void shouldDropBidsWithInvalidPrice() {
         // given
         final Bidder<?> bidder = mock(Bidder.class);
         final List<Bid> bids = List.of(
@@ -3998,7 +3998,35 @@ public class ExchangeServiceTest extends VertxTest {
 
         final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), identity())),
                 identity());
-        final AuctionContext givenContext = givenRequestContext(bidRequest);
+        final AuctionContext givenContext = givenRequestContext(bidRequest).with(DebugContext.empty());
+
+        // when
+        final AuctionContext result = target.holdAuction(givenContext).result();
+
+        // then
+        assertThat(result.getBidResponse().getSeatbid())
+                .flatExtracting(SeatBid::getBid).hasSize(1);
+        assertThat(givenContext.getDebugWarnings()).isEmpty();
+        verify(metrics, times(3)).updateAdapterRequestErrorMetric("bidder", MetricName.unknown_error);
+    }
+
+    @Test
+    public void shouldDropBidsWithInvalidPriceAndAddDebugWarningsWhenDebugEnabled() {
+        // given
+        final Bidder<?> bidder = mock(Bidder.class);
+        final List<Bid> bids = List.of(
+                Bid.builder().id("valid_bid").impid("impId").price(BigDecimal.valueOf(2.0)).build(),
+                Bid.builder().id("invalid_bid_1").impid("impId").price(null).build(),
+                Bid.builder().id("invalid_bid_2").impid("impId").price(BigDecimal.ZERO).build(),
+                Bid.builder().id("invalid_bid_3").impid("impId").price(BigDecimal.valueOf(-0.01)).build());
+        final BidderSeatBid seatBid = givenSeatBid(bids.stream().map(ExchangeServiceTest::givenBidderBid).toList());
+
+        givenBidder("bidder", bidder, seatBid);
+
+        final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), identity())),
+                identity());
+        final AuctionContext givenContext = givenRequestContext(bidRequest)
+                .with(DebugContext.of(true, false, null));
 
         // when
         final AuctionContext result = target.holdAuction(givenContext).result();
