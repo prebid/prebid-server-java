@@ -107,9 +107,9 @@ class PBSUtils implements ObjectMapperWrapper {
         getRandomDecimal(min, max).setScale(scale, HALF_UP)
     }
 
-    static <T extends Enum<T>> T getRandomEnum(Class<T> anEnum) {
-        def values = anEnum.enumConstants
-        values[getRandomNumber(0, values.length - 1)]
+    static <T extends Enum<T>> T getRandomEnum(Class<T> anEnum, List<T> exclude = []) {
+        def values = anEnum.enumConstants.findAll { !exclude.contains(it) } as T[]
+        values[getRandomNumber(0, values.size() - 1)]
     }
 
     static String convertCase(String input, Case caseType) {

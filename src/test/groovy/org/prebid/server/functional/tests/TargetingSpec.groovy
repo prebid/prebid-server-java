@@ -4,6 +4,7 @@ import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.bidder.Openx
 import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountConfig
+import org.prebid.server.functional.model.config.PriceGranularityType
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.db.StoredResponse
@@ -17,13 +18,17 @@ import org.prebid.server.functional.model.request.auction.StoredBidResponse
 import org.prebid.server.functional.model.request.auction.Targeting
 import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
+import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
 
 import java.math.RoundingMode
 import java.nio.charset.StandardCharsets
 
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
+import static org.prebid.server.functional.model.AccountStatus.ACTIVE
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.config.PriceGranularityType.UNKNOWN
 import static org.prebid.server.functional.model.response.auction.ErrorType.TARGETING
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 
@@ -1119,6 +1124,230 @@ class TargetingSpec extends BaseSpec {
         then: "Amp response should contain amp hb_env"
         def targeting = ampResponse.targeting
         assert targeting["hb_env"] == HB_ENV_AMP
+    }
+
+    def "PBS auction should throw error when price granularity from original request is empty"() {
+        given: "Default bidRequest with empty price granularity"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.targeting = new Targeting(priceGranularity: PriceGranularity.getDefault(UNKNOWN))
+        }
+
+        and: "Account in the DB"
+        def account = createAccountWithPriceGranularity(bidRequest.accountId, PBSUtils.getRandomEnum(PriceGranularityType))
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Request should fail with an error"
+        def exception = thrown(PrebidServerException)
+        assert exception.statusCode == BAD_REQUEST.code()
+        assert exception.responseBody == 'Invalid request format: Price granularity error: empty granularity definition supplied'
+    }
+
+    def "PBS auction should prioritize price granularity from original request over account config"() {
+        given: "Default bidRequest with price granularity"
+        def requestPriceGranularity = PriceGranularity.getDefault(priceGranularity as PriceGranularityType)
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.targeting = new Targeting(priceGranularity: requestPriceGranularity)
+        }
+
+        and: "Account in the DB"
+        def accountAuctionConfig = new AccountAuctionConfig(priceGranularity: PBSUtils.getRandomEnum(PriceGranularityType))
+        def accountConfig = new AccountConfig(status: ACTIVE, auction: accountAuctionConfig)
+        def account = new Account(uuid: bidRequest.accountId, config: accountConfig)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "BidderRequest should include price granularity from bidRequest"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest?.ext?.prebid?.targeting?.priceGranularity == requestPriceGranularity
+
+        where:
+        priceGranularity << (PriceGranularityType.values() - UNKNOWN  as List<PriceGranularityType>)
+    }
+
+    def "PBS amp should prioritize price granularity from original request over account config"() {
+        given: "Default AmpRequest"
+        def ampRequest = AmpRequest.defaultAmpRequest
+
+        and: "Default ampStoredRequest"
+        def requestPriceGranularity = PriceGranularity.getDefault(priceGranularity)
+        def ampStoredRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.targeting = new Targeting(priceGranularity: requestPriceGranularity)
+            setAccountId(ampRequest.account)
+        }
+
+        and: "Create and save stored request into DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        and: "Account in the DB"
+        def account = createAccountWithPriceGranularity(ampRequest.account, PBSUtils.getRandomEnum(PriceGranularityType))
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAmpRequest(ampRequest)
+
+        then: "BidderRequest should include price granularity from bidRequest"
+        def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
+        assert bidderRequest?.ext?.prebid?.targeting?.priceGranularity == requestPriceGranularity
+
+        where:
+        priceGranularity << (PriceGranularityType.values() - UNKNOWN  as List<PriceGranularityType>)
+    }
+
+    def "PBS auction should include price granularity from account config when original request doesn't contain price granularity"() {
+        given: "Default basic BidRequest"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.targeting = Targeting.createWithAllValuesSetTo(false)
+        }
+
+        and: "Account in the DB"
+        def account = createAccountWithPriceGranularity(bidRequest.accountId, priceGranularity)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "BidderRequest should include price granularity from account config"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest?.ext?.prebid?.targeting?.priceGranularity == PriceGranularity.getDefault(priceGranularity)
+
+        where:
+        priceGranularity << (PriceGranularityType.values() - UNKNOWN  as List<PriceGranularityType>)
+    }
+
+    def "PBS auction should include price granularity from account config with different name case when original request doesn't contain price granularity"() {
+        given: "Default basic BidRequest"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.targeting = Targeting.createWithAllValuesSetTo(false)
+        }
+
+        and: "Account in the DB"
+        def account = createAccountWithPriceGranularity(bidRequest.accountId, priceGranularity)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "BidderRequest should include price granularity from account config"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest?.ext?.prebid?.targeting?.priceGranularity == PriceGranularity.getDefault(priceGranularity)
+
+        where:
+        priceGranularity << (PriceGranularityType.values() - UNKNOWN  as List<PriceGranularityType>)
+    }
+
+    def "PBS auction should include price granularity from default account config when original request doesn't contain price granularity"() {
+        given: "Pbs with default account that include privacySandbox configuration"
+        def priceGranularity = PBSUtils.getRandomEnum(PriceGranularityType, [UNKNOWN])
+        def accountAuctionConfig = new AccountAuctionConfig(priceGranularity: priceGranularity)
+        def accountConfig = new AccountConfig(status: ACTIVE, auction: accountAuctionConfig)
+        def pbsService = pbsServiceFactory.getService(
+                ["settings.default-account-config": encode(accountConfig)])
+
+        and: "Default basic BidRequest"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.targeting = Targeting.createWithAllValuesSetTo(false)
+        }
+
+        when: "PBS processes auction request"
+        pbsService.sendAuctionRequest(bidRequest)
+
+        then: "BidderRequest should include price granularity from account config"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest?.ext?.prebid?.targeting?.priceGranularity == PriceGranularity.getDefault(priceGranularity)
+    }
+
+    def "PBS auction should include include default price granularity when original request and account config doesn't contain price granularity"() {
+        given: "Default basic BidRequest"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.targeting = Targeting.createWithAllValuesSetTo(false)
+        }
+
+        and: "Account in the DB"
+        def accountConfig = new AccountConfig(status: ACTIVE, auction: accountAuctionConfig)
+        def account = new Account(uuid: bidRequest.accountId, config: accountConfig)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "BidderRequest should include default price granularity"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest?.ext?.prebid?.targeting?.priceGranularity == PriceGranularity.default
+
+        where:
+        accountAuctionConfig << [
+                null,
+                new AccountAuctionConfig(),
+                new AccountAuctionConfig(priceGranularity: UNKNOWN)]
+    }
+
+    def "PBS amp should throw error when price granularity from original request is empty"() {
+        given: "Default AmpRequest"
+        def ampRequest = AmpRequest.defaultAmpRequest
+
+        and: "Default ampStoredRequest with empty price granularity"
+        def ampStoredRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.targeting = new Targeting(priceGranularity: PriceGranularity.getDefault(UNKNOWN))
+            setAccountId(ampRequest.account)
+        }
+
+        and: "Create and save stored request into DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+
+        and: "Account in the DB"
+        def account = createAccountWithPriceGranularity(ampRequest.account, PBSUtils.getRandomEnum(PriceGranularityType))
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAmpRequest(ampRequest)
+
+        then: "Request should fail with an error"
+        def exception = thrown(PrebidServerException)
+        assert exception.statusCode == BAD_REQUEST.code()
+        assert exception.responseBody == 'Invalid request format: Price granularity error: empty granularity definition supplied'
+    }
+
+    def "PBS amp should include price granularity from account config when original request doesn't contain price granularity"() {
+        given: "Default AmpRequest"
+        def ampRequest = AmpRequest.defaultAmpRequest
+
+        and: "Default ampStoredRequest"
+        def ampStoredRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.targeting = Targeting.createWithAllValuesSetTo(false)
+            setAccountId(ampRequest.account)
+        }
+
+        and: "Account in the DB"
+        def account = createAccountWithPriceGranularity(ampRequest.account, priceGranularity)
+        accountDao.save(account)
+
+        and: "Create and save stored request into DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        defaultPbsService.sendAmpRequest(ampRequest)
+
+        then: "BidderRequest should include price granularity from account config"
+        def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
+        assert bidderRequest?.ext?.prebid?.targeting?.priceGranularity == PriceGranularity.getDefault(priceGranularity)
+
+        where:
+        priceGranularity << (PriceGranularityType.values() - UNKNOWN  as List<PriceGranularityType>)
+    }
+
+    def createAccountWithPriceGranularity(String accountId, PriceGranularityType priceGranularity) {
+        def accountAuctionConfig = new AccountAuctionConfig(priceGranularity: priceGranularity)
+        def accountConfig = new AccountConfig(status: ACTIVE, auction: accountAuctionConfig)
+        return new Account(uuid: accountId, config: accountConfig)
     }
 
     private static PrebidServerService getEnabledWinBidsPbsService() {
