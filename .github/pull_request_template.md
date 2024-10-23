@@ -28,7 +28,6 @@ Why did you choose to make these changes? Were there any trade-offs you had to c
 - [ ] cover an adapter configuration with an integration test
 
 
-
 ### 🧪 Test plan
 
 How do you know the changes are safe to ship to production?
