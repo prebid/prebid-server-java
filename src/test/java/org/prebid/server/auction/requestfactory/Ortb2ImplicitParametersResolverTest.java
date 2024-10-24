@@ -58,6 +58,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidServer;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
+import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAuctionConfig;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -1834,6 +1836,33 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .extracting(ExtRequestTargeting::getPricegranularity)
                 .containsOnly(mapper.valueToTree(ExtPriceGranularity.of(2, singletonList(ExtGranularityRange.of(
                         BigDecimal.valueOf(20), BigDecimal.valueOf(0.1))))));
+    }
+
+    @Test
+    public void shouldSetAccountPriceGranularityIfPriceGranularityAndMediaTypePriceGranularityIsMissing() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder().video(Video.builder().build()).ext(mapper.createObjectNode()).build()))
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .targeting(ExtRequestTargeting.builder().build())
+                        .build()))
+                .build();
+
+        final AuctionContext givenAuctionContext = auctionContext.with(Account.builder()
+                .auction(AccountAuctionConfig.builder().priceGranularity("low").build())
+                .build());
+
+        // when
+        final BidRequest result = target.resolve(bidRequest, givenAuctionContext, ENDPOINT, false);
+
+        // then
+        assertThat(singletonList(result))
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getTargeting)
+                .extracting(ExtRequestTargeting::getPricegranularity)
+                .containsOnly(mapper.valueToTree(ExtPriceGranularity.of(2, singletonList(ExtGranularityRange.of(
+                        BigDecimal.valueOf(5), BigDecimal.valueOf(0.5))))));
     }
 
     @Test

@@ -27,6 +27,19 @@ public class PriceGranularityTest {
     }
 
     @Test
+    public void createFromStringOrDefaultShouldCreateMedPriceGranularityWhenInvalidStringType() {
+        // given and when
+        final PriceGranularity defaultPriceGranularity = PriceGranularity.createFromStringOrDefault(
+                "invalid");
+
+        // then
+        assertThat(defaultPriceGranularity.getRangesMax()).isEqualByComparingTo(BigDecimal.valueOf(20));
+        assertThat(defaultPriceGranularity.getPrecision()).isEqualTo(2);
+        assertThat(defaultPriceGranularity.getRanges()).containsOnly(
+                ExtGranularityRange.of(BigDecimal.valueOf(20), BigDecimal.valueOf(0.1)));
+    }
+
+    @Test
     public void createCustomPriceGranularityByStringLow() {
         // given and when
         final PriceGranularity priceGranularity = PriceGranularity.createFromString("low");

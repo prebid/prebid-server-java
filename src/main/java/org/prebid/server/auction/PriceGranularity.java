@@ -72,6 +72,12 @@ public class PriceGranularity {
         }
     }
 
+    public static PriceGranularity createFromStringOrDefault(String stringPriceGranularity) {
+        return isValidStringPriceGranularityType(stringPriceGranularity)
+                ? STRING_TO_CUSTOM_PRICE_GRANULARITY.get(PriceGranularityType.valueOf(stringPriceGranularity))
+                : PriceGranularity.DEFAULT;
+    }
+
     /**
      * Returns list of {@link ExtGranularityRange}s.
      */
