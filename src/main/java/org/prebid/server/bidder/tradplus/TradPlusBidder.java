@@ -26,9 +26,7 @@ import org.prebid.server.util.HttpUtil;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 public class TradPlusBidder implements Bidder<BidRequest> {
@@ -50,19 +48,14 @@ public class TradPlusBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
-        final Map<ExtImpTradPlus, List<Imp>> extToImps = new HashMap<>();
+        final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
         try {
             final ExtImpTradPlus extImpTradPlus = parseImpExt(bidRequest.getImp().getFirst().getExt());
             validateImpExt(extImpTradPlus);
-            extToImps.computeIfAbsent(extImpTradPlus, ext -> new ArrayList<>()).add(bidRequest.getImp().getFirst());
+            httpRequests.add(makeHttpRequest(extImpTradPlus, bidRequest.getImp(), bidRequest));
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
-
-        final List<HttpRequest<BidRequest>> httpRequests = extToImps.entrySet().stream()
-                .map(entry -> makeHttpRequest(entry.getKey(), entry.getValue(), bidRequest))
-                .toList();
-
         return Result.withValues(httpRequests);
     }
 
@@ -88,21 +81,21 @@ public class TradPlusBidder implements Bidder<BidRequest> {
                 .replace(ZONE_ID, extImpTradPlus.getZoneId())
                 .replace(ACCOUNT_ID, extImpTradPlus.getAccountId());
 
-        final BidRequest outgoingRequest = bidRequest.toBuilder().imp(removeFirstImpExt(imps)).build();
+        final BidRequest outgoingRequest = bidRequest.toBuilder().imp(removeImpsExt(imps)).build();
 
         return BidderUtil.defaultRequest(outgoingRequest, uri, mapper);
     }
 
-    private static List<Imp> removeFirstImpExt(List<Imp> imps) {
-        imps.set(0, imps.getFirst().toBuilder().ext(null).build());
-        return imps;
+    private static List<Imp> removeImpsExt(List<Imp> imps) {
+        return imps.stream().map(imp -> imp.toBuilder().ext(null).build())
+                .toList();
     }
 
     @Override
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(bidResponse, httpCall.getRequest().getPayload()), Collections.emptyList());
+            return Result.withValues(extractBids(bidResponse, httpCall.getRequest().getPayload()));
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
