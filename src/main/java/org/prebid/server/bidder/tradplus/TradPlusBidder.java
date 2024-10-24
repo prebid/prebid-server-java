@@ -6,6 +6,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.vertx.core.MultiMap;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -34,6 +35,8 @@ public class TradPlusBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpTradPlus>> EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
+
+    private static final String X_OPENRTB_VERSION = "2.5";
 
     private static final String ZONE_ID = "{{ZoneID}}";
     private static final String ACCOUNT_ID = "{{AccountID}}";
@@ -83,7 +86,13 @@ public class TradPlusBidder implements Bidder<BidRequest> {
 
         final BidRequest outgoingRequest = bidRequest.toBuilder().imp(removeImpsExt(imps)).build();
 
-        return BidderUtil.defaultRequest(outgoingRequest, uri, mapper);
+        return BidderUtil.defaultRequest(outgoingRequest, makeHeaders(), uri, mapper);
+    }
+
+    private MultiMap makeHeaders() {
+        final MultiMap headers = HttpUtil.headers();
+        headers.set(HttpUtil.X_OPENRTB_VERSION_HEADER, X_OPENRTB_VERSION);
+        return headers;
     }
 
     private static List<Imp> removeImpsExt(List<Imp> imps) {

@@ -20,15 +20,19 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.tradplus.ExtImpTradPlus;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import static java.util.Collections.singletonList;
+import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
+import static org.prebid.server.util.HttpUtil.X_OPENRTB_VERSION_HEADER;
 
 public class TradPlusBidderTest extends VertxTest {
 
@@ -42,9 +46,51 @@ public class TradPlusBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldMakeSingleRequestForAllImps() {
+
+        // given
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.id("givenImp1"), imp -> imp.id("givenImp2"));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getImp)
+                .extracting(List::size)
+                .containsOnly(2);
+
+        assertThat(result.getValue()).hasSize(1)
+                .flatExtracting(HttpRequest::getImpIds)
+                .containsOnly("givenImp1", "givenImp2");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnExpectedHeaders() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1).first()
+                .extracting(HttpRequest::getHeaders)
+                .satisfies(headers -> assertThat(headers.get(X_OPENRTB_VERSION_HEADER))
+                        .isEqualTo("2.5"));
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
     public void makeHttpRequestsShouldCreateCorrectURL() {
         // given
-        final BidRequest bidRequest = givenBidRequest(ExtImpTradPlus.of("testAccountId", "testZoneId"));
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpTradPlus.of("testAccountId", "testZoneId"))))
+                        .build()))
+                .build();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -58,7 +104,11 @@ public class TradPlusBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
-        final BidRequest bidRequest = givenBidRequest(mapper.createArrayNode());
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
+                        .build()))
+                .build();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -72,7 +122,11 @@ public class TradPlusBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorWhenAccountIdIsNull() {
         // given
-        final BidRequest bidRequest = givenBidRequest(ExtImpTradPlus.of(null, "testZoneId"));
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpTradPlus.of(null, "testZoneId"))))
+                        .build()))
+                .build();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -86,7 +140,11 @@ public class TradPlusBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorWhenAccountIdIsBlank() {
         // given
-        final BidRequest bidRequest = givenBidRequest(ExtImpTradPlus.of(" ", "testZoneId"));
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpTradPlus.of(" ", "testZoneId"))))
+                        .build()))
+                .build();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -222,11 +280,17 @@ public class TradPlusBidderTest extends VertxTest {
                 .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), xNative, "USD"));
     }
 
-    private static BidRequest givenBidRequest(Object extImpDatablocks) {
+    private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder>... impCustomizers) {
         return BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, extImpDatablocks)))
-                        .build()))
+                .imp(Arrays.stream(impCustomizers).map(TradPlusBidderTest::givenImp).toList())
+                .build();
+    }
+
+    private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
+        return impCustomizer.apply(Imp.builder()
+                        .id("impId")
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpTradPlus.of("accountId", "zoneId")))))
                 .build();
     }
 

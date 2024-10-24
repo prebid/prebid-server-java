@@ -18,7 +18,7 @@ public class TradPlusTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromTradPlus() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/tradplus-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/accountTestID/tradplus-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/tradplus/test-tradplus-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/tradplus/test-tradplus-bid-response.json"))));
 
