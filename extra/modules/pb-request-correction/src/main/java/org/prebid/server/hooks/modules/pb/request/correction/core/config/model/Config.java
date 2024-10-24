@@ -4,8 +4,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Value;
 
+@Value
 @Builder
-@Value(staticConstructor = "of")
 public class Config {
 
     boolean enabled;
