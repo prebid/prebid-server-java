@@ -18,7 +18,7 @@ public class OnnxModelRunner {
     }
 
     public OrtSession.Result runModel(String[][] throttlingInferenceRow) throws OrtException {
-        final OnnxTensor inputTensor = OnnxTensor.createTensor(OrtEnvironment.getEnvironment(), throttlingInferenceRow);
+        final OnnxTensor inputTensor = OnnxTensor.createTensor(ENVIRONMENT, throttlingInferenceRow);
         return session.run(Collections.singletonMap("input", inputTensor));
     }
 }

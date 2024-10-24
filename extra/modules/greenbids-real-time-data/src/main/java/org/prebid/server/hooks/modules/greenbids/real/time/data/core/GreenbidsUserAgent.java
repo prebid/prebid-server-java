@@ -42,19 +42,17 @@ public class GreenbidsUserAgent {
     public String getBrowser() {
         return Optional.ofNullable(userAgent)
                 .filter(userAgent -> !"Other".equals(userAgent.family) && StringUtils.isNoneBlank(userAgent.family))
-                .map(userAgent -> {
-                    final String major = Optional.ofNullable(userAgent.major).orElse(StringUtils.EMPTY);
-                    return "%s %s".formatted(userAgent.family, major).trim();
-                })
+                .map(ua -> "%s %s".formatted(ua.family, StringUtils.defaultString(userAgent.major)).trim())
                 .orElse(StringUtils.EMPTY);
     }
 
     private boolean isPC() {
+        final String osFamily = osFamily();
         return Optional.ofNullable(userAgentString)
                 .map(userAgent -> userAgent.contains("Windows NT")
-                        || PC_OS_FAMILIES.contains(osFamily())
-                        || ("Windows".equals(osFamily()) && "ME".equals(osMajor()))
-                        || ("Mac OS X".equals(osFamily()) && !userAgent.contains("Silk"))
+                        || PC_OS_FAMILIES.contains(osFamily)
+                        || ("Windows".equals(osFamily) && "ME".equals(osMajor()))
+                        || ("Mac OS X".equals(osFamily) && !userAgent.contains("Silk"))
                         || (userAgent.contains("Linux") && userAgent.contains("X11")))
                 .orElse(false);
     }

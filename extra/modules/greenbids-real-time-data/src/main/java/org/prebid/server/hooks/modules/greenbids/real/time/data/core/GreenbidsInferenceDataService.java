@@ -45,9 +45,7 @@ public class GreenbidsInferenceDataService {
                 .map(GreenbidsUserAgent::new)
                 .orElse(null);
 
-        return extractThrottlingMessages(
-                bidRequest,
-                userAgent);
+        return extractThrottlingMessages(bidRequest, userAgent);
     }
 
     private List<ThrottlingMessage> extractThrottlingMessages(

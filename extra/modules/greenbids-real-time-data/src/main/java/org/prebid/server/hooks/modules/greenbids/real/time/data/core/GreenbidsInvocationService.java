@@ -115,7 +115,6 @@ public class GreenbidsInvocationService {
         final Map<String, Boolean> impBiddersFilterMap = impsBiddersFilterMap.get(imp.getId());
         final ExplorationResult explorationResult = ExplorationResult.of(
                 greenbidsId, impBiddersFilterMap, isExploration);
-        return Ortb2ImpExtResult.of(
-                explorationResult, tid);
+        return Ortb2ImpExtResult.of(explorationResult, tid);
     }
 }
