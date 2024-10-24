@@ -52,6 +52,10 @@ class PrebidCache extends NetworkScaffolding {
                 .collect { decode(it.body.toString(), BidCacheRequest) }
     }
 
+    Map<String, List<String>> getRequestHeaders(String impId) {
+        getLastRecordedRequestHeaders(getRequest(impId))
+    }
+
     @Override
     HttpRequest getRequest() {
         request().withMethod("POST")

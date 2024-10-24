@@ -19,6 +19,8 @@ import static org.prebid.server.functional.model.response.auction.MediaType.VIDE
 
 class CacheSpec extends BaseSpec {
 
+    private final static String PBS_API_HEADER = 'x-pbc-api-key'
+
     def "PBS should update prebid_cache.creative_size.xml metric when xml creative is received"() {
         given: "Current value of metric prebid_cache.requests.ok"
         def initialValue = getCurrentMetricValue(defaultPbsService, "prebid_cache.requests.ok")
@@ -87,6 +89,51 @@ class CacheSpec extends BaseSpec {
 
         then: "PBS should call PBC"
         assert prebidCache.getRequestCount(bidRequest.imp[0].id) == 1
+
+        and: "PBS call shouldn't include api-key"
+        assert !prebidCache.getRequestHeaders(bidRequest.imp[0].id)[PBS_API_HEADER]
+    }
+
+    def "PBS should cache bids without api-key header when targeting is specified and api-key-secured disabled"() {
+        given: "Pbs config with disabled api-key-secured and pbc.api.key"
+        def apiKey = PBSUtils.randomString
+        def pbsService = pbsServiceFactory.getService(['pbc.api.key': apiKey, 'cache.api-key-secured': 'false'])
+
+        and: "Default BidRequest with cache, targeting"
+        def bidRequest = BidRequest.defaultBidRequest
+        bidRequest.enableCache()
+        bidRequest.ext.prebid.targeting = new Targeting()
+
+        when: "PBS processes auction request"
+        pbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS should call PBC"
+        prebidCache.getRequest()
+        assert prebidCache.getRequestCount(bidRequest.imp[0].id) == 1
+
+        and: "PBS call shouldn't include api-key"
+        assert !prebidCache.getRequestHeaders(bidRequest.imp[0].id)[PBS_API_HEADER]
+    }
+
+    def "PBS should cache bids with api-key header when targeting is specified and api-key-secured enabled"() {
+        given: "Pbs config with api-key-secured and pbc.api.key"
+        def apiKey = PBSUtils.randomString
+        def pbsService = pbsServiceFactory.getService(['pbc.api.key': apiKey, 'cache.api-key-secured': 'true'])
+
+        and: "Default BidRequest with cache, targeting"
+        def bidRequest = BidRequest.defaultBidRequest
+        bidRequest.enableCache()
+        bidRequest.ext.prebid.targeting = new Targeting()
+
+        when: "PBS processes auction request"
+        pbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS should call PBC"
+        prebidCache.getRequest()
+        assert prebidCache.getRequestCount(bidRequest.imp[0].id) == 1
+
+        and: "PBS call should include api-key"
+        assert prebidCache.getRequestHeaders(bidRequest.imp[0].id)[PBS_API_HEADER] == [apiKey]
     }
 
     def "PBS should not cache bids when targeting isn't specified"() {
