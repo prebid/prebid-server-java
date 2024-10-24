@@ -82,7 +82,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                     bidRequest, null, InvocationAction.no_action));
         }
 
-        return Future.join(
+        return Future.all(
                         onnxModelRunnerWithThresholds.retrieveOnnxModelRunner(partner),
                         onnxModelRunnerWithThresholds.retrieveThreshold(partner))
                 .compose(compositeFuture -> toInvocationResult(
