@@ -8,6 +8,7 @@ import org.prebid.server.hooks.execution.HookCatalog;
 import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.hooks.v1.Module;
 import org.prebid.server.json.JacksonMapper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -30,7 +31,9 @@ public class HooksConfiguration {
                                         TimeoutFactory timeoutFactory,
                                         Vertx vertx,
                                         Clock clock,
-                                        JacksonMapper mapper) {
+                                        JacksonMapper mapper,
+                                        @Value("${settings.modules.require-config-to-invoke:false}")
+                                        boolean isConfigToInvokeRequired) {
 
         return HookStageExecutor.create(
                 hooksConfiguration.getHostExecutionPlan(),
@@ -39,7 +42,8 @@ public class HooksConfiguration {
                 timeoutFactory,
                 vertx,
                 clock,
-                mapper);
+                mapper,
+                isConfigToInvokeRequired);
     }
 
     @Bean

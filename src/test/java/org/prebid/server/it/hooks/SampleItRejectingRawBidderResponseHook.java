@@ -2,7 +2,7 @@ package org.prebid.server.it.hooks;
 
 import io.vertx.core.Future;
 import org.prebid.server.hooks.v1.InvocationResult;
-import org.prebid.server.hooks.v1.InvocationResultImpl;
+import org.prebid.server.hooks.v1.InvocationResultUtils;
 import org.prebid.server.hooks.v1.bidder.BidderInvocationContext;
 import org.prebid.server.hooks.v1.bidder.BidderResponsePayload;
 import org.prebid.server.hooks.v1.bidder.RawBidderResponseHook;
@@ -13,7 +13,7 @@ public class SampleItRejectingRawBidderResponseHook implements RawBidderResponse
     public Future<InvocationResult<BidderResponsePayload>> call(
             BidderResponsePayload bidderResponsePayload, BidderInvocationContext invocationContext) {
 
-        return Future.succeededFuture(InvocationResultImpl.rejected("Rejected by rejecting raw bidder response hook"));
+        return Future.succeededFuture(InvocationResultUtils.rejected("Rejected by rejecting raw bidder response hook"));
     }
 
     @Override

@@ -70,13 +70,15 @@ public class HookStageExecutor {
     private final TimeoutFactory timeoutFactory;
     private final Vertx vertx;
     private final Clock clock;
+    private final boolean isConfigToInvokeRequired;
 
     private HookStageExecutor(ExecutionPlan hostExecutionPlan,
                               ExecutionPlan defaultAccountExecutionPlan,
                               HookCatalog hookCatalog,
                               TimeoutFactory timeoutFactory,
                               Vertx vertx,
-                              Clock clock) {
+                              Clock clock,
+                              boolean isConfigToInvokeRequired) {
 
         this.hostExecutionPlan = hostExecutionPlan;
         this.defaultAccountExecutionPlan = defaultAccountExecutionPlan;
@@ -84,6 +86,7 @@ public class HookStageExecutor {
         this.timeoutFactory = timeoutFactory;
         this.vertx = vertx;
         this.clock = clock;
+        this.isConfigToInvokeRequired = isConfigToInvokeRequired;
     }
 
     public static HookStageExecutor create(String hostExecutionPlan,
@@ -92,7 +95,8 @@ public class HookStageExecutor {
                                            TimeoutFactory timeoutFactory,
                                            Vertx vertx,
                                            Clock clock,
-                                           JacksonMapper mapper) {
+                                           JacksonMapper mapper,
+                                           boolean isConfigToInvokeRequired) {
 
         return new HookStageExecutor(
                 parseAndValidateExecutionPlan(
@@ -103,7 +107,8 @@ public class HookStageExecutor {
                 hookCatalog,
                 Objects.requireNonNull(timeoutFactory),
                 Objects.requireNonNull(vertx),
-                Objects.requireNonNull(clock));
+                Objects.requireNonNull(clock),
+                isConfigToInvokeRequired);
     }
 
     public Future<HookStageExecutionResult<EntrypointPayload>> executeEntrypointStage(
@@ -254,7 +259,7 @@ public class HookStageExecutor {
             String entity,
             HookExecutionContext context) {
 
-        return StageExecutor.<PAYLOAD, CONTEXT>create(hookCatalog, vertx, clock)
+        return StageExecutor.<PAYLOAD, CONTEXT>create(hookCatalog, vertx, clock, isConfigToInvokeRequired)
                 .withStage(stage)
                 .withEntity(entity)
                 .withHookExecutionContext(context);

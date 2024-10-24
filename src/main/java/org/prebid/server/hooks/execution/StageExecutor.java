@@ -18,6 +18,7 @@ class StageExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
     private final HookCatalog hookCatalog;
     private final Vertx vertx;
     private final Clock clock;
+    private final boolean isConfigToInvokeRequired;
 
     private StageWithHookType<? extends Hook<PAYLOAD, CONTEXT>> stage;
     private String entity;
@@ -27,18 +28,20 @@ class StageExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
     private HookExecutionContext hookExecutionContext;
     private boolean rejectAllowed;
 
-    private StageExecutor(HookCatalog hookCatalog, Vertx vertx, Clock clock) {
+    private StageExecutor(HookCatalog hookCatalog, Vertx vertx, Clock clock, boolean isConfigToInvokeRequired) {
         this.hookCatalog = hookCatalog;
         this.vertx = vertx;
         this.clock = clock;
+        this.isConfigToInvokeRequired = isConfigToInvokeRequired;
     }
 
     public static <PAYLOAD, CONTEXT extends InvocationContext> StageExecutor<PAYLOAD, CONTEXT> create(
             HookCatalog hookCatalog,
             Vertx vertx,
-            Clock clock) {
+            Clock clock,
+            boolean isConfigToInvokeRequired) {
 
-        return new StageExecutor<>(hookCatalog, vertx, clock);
+        return new StageExecutor<>(hookCatalog, vertx, clock, isConfigToInvokeRequired);
     }
 
     public StageExecutor<PAYLOAD, CONTEXT> withStage(StageWithHookType<? extends Hook<PAYLOAD, CONTEXT>> stage) {
@@ -94,7 +97,7 @@ class StageExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
     }
 
     private Future<GroupResult<PAYLOAD>> executeGroup(ExecutionGroup group, PAYLOAD initialPayload) {
-        return GroupExecutor.<PAYLOAD, CONTEXT>create(vertx, clock)
+        return GroupExecutor.<PAYLOAD, CONTEXT>create(vertx, clock, isConfigToInvokeRequired)
                 .withGroup(group)
                 .withInitialPayload(initialPayload)
                 .withHookProvider(

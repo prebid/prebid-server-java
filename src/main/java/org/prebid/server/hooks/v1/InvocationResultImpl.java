@@ -1,13 +1,8 @@
-package org.prebid.server.hooks.modules.ortb2.blocking.v1.model;
+package org.prebid.server.hooks.v1;
 
 import lombok.Builder;
 import lombok.Value;
 import lombok.experimental.Accessors;
-import org.prebid.server.hooks.modules.ortb2.blocking.model.ModuleContext;
-import org.prebid.server.hooks.v1.InvocationAction;
-import org.prebid.server.hooks.v1.InvocationResult;
-import org.prebid.server.hooks.v1.InvocationStatus;
-import org.prebid.server.hooks.v1.PayloadUpdate;
 import org.prebid.server.hooks.v1.analytics.Tags;
 
 import java.util.List;
@@ -31,7 +26,7 @@ public class InvocationResultImpl<PAYLOAD> implements InvocationResult<PAYLOAD> 
 
     List<String> debugMessages;
 
-    ModuleContext moduleContext;
+    Object moduleContext;
 
     Tags analyticsTags;
 }
