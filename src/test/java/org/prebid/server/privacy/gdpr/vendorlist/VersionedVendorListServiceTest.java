@@ -47,7 +47,7 @@ public class VersionedVendorListServiceTest {
     @Test
     public void versionedVendorListServiceShouldTreatTcfPolicyGreaterOrEqualFourAsVendorListSpecificationThree() {
         // given
-        final int tcfPolicyVersion = ThreadLocalRandom.current().nextInt(4, 100);
+        final int tcfPolicyVersion = ThreadLocalRandom.current().nextInt(4, 64);
         final TCString consent = TCStringEncoder.newBuilder()
                 .version(2)
                 .tcfPolicyVersion(tcfPolicyVersion)
