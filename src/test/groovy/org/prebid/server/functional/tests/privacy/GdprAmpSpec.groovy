@@ -26,6 +26,7 @@ import static org.prebid.server.functional.model.config.Purpose.P2
 import static org.prebid.server.functional.model.config.Purpose.P4
 import static org.prebid.server.functional.model.config.PurposeEnforcement.BASIC
 import static org.prebid.server.functional.model.config.PurposeEnforcement.NO
+import static org.prebid.server.functional.model.mock.services.vendorlist.GvlSpecificationVersion.V3
 import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ADAPTER_DISALLOWED_COUNT
 import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_REQUEST_DISALLOWED_COUNT
 import static org.prebid.server.functional.model.request.amp.ConsentType.BOGUS
@@ -360,11 +361,12 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         tcfPolicyVersion << [TCF_POLICY_V2, TCF_POLICY_V4, TCF_POLICY_V5]
     }
 
-    def "PBS amp with invalid consent.tcfPolicyVersion parameter should reject request and include proper warning"() {
-        given: "Tcf consent string"
-        def invalidTcfPolicyVersion = PBSUtils.getRandomNumber(5, 63)
+    def "PBS amp shouldn't reject request with proper warning and metrics when incoming consent.tcfPolicyVersion have invalid parameter"() {
+        given: "Tcf consent string with invalid tcf policy version"
         def tcfConsent = new TcfConsent.Builder()
+                .setPurposesLITransparency(BASIC_ADS)
                 .setTcfPolicyVersion(invalidTcfPolicyVersion)
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
 
         and: "AMP request"
@@ -377,13 +379,28 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
+        and: "Flush metrics"
+        flushMetrics(privacyPbsService)
+
         when: "PBS processes amp request"
         def response = privacyPbsService.sendAmpRequest(ampRequest)
 
         then: "Bid response should contain warning"
         assert response.ext?.warnings[PREBID]*.code == [999]
         assert response.ext?.warnings[PREBID]*.message ==
-                ["Parsing consent string: ${tcfConsent} failed. TCF policy version ${invalidTcfPolicyVersion} is not supported" as String]
+                ["Unknown tcfPolicyVersion ${invalidTcfPolicyVersion}, defaulting to gvlSpecificationVersion=3" as String]
+
+        and: "Alerts.general metrics should be populated"
+        def metrics = privacyPbsService.sendCollectedMetricsRequest()
+        assert metrics["alerts.general"] == 1
+
+        and: "Bidder should be called"
+        assert bidder.getBidderRequest(ampStoredRequest.id)
+
+        where:
+        invalidTcfPolicyVersion << [MIN_INVALID_TCF_POLICY_VERSION,
+                                    PBSUtils.getRandomNumber(MIN_INVALID_TCF_POLICY_VERSION, MAX_INVALID_TCF_POLICY_VERSION),
+                                    MAX_INVALID_TCF_POLICY_VERSION]
     }
 
     def "PBS amp should emit the same error without a second GVL list request if a retry is too soon for the exponential-backoff"() {
@@ -633,5 +650,40 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         assert !metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)]
         assert !metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_EIDS)]
         assert !metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_PRECISE_GEO)]
+    }
+
+    def "PBS amp should set 3 for tcfPolicyVersion when tcfPolicyVersion is #tcfPolicyVersion"() {
+        given: "Tcf consent setup"
+        def tcfConsent = new TcfConsent.Builder()
+                .setPurposesLITransparency(BASIC_ADS)
+                .setTcfPolicyVersion(tcfPolicyVersion.value)
+                .setVendorListVersion(tcfPolicyVersion.vendorListVersion)
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .build()
+
+        and: "AMP request"
+        def ampRequest = getGdprAmpRequest(tcfConsent)
+
+        and: "Default stored request"
+        def ampStoredRequest = BidRequest.defaultStoredRequest
+
+        and: "Stored request in DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        and: "Set vendor list response"
+        vendorListResponse.setResponse(tcfPolicyVersion)
+
+        when: "PBS processes amp request"
+        privacyPbsService.sendAmpRequest(ampRequest)
+
+        then: "Used vendor list have proper specification version of GVL"
+        def properVendorListPath = VENDOR_LIST_PATH.replace("{VendorVersion}", tcfPolicyVersion.vendorListVersion.toString())
+        PBSUtils.waitUntil { privacyPbsService.isFileExist(properVendorListPath) }
+        def vendorList = privacyPbsService.getValueFromContainer(properVendorListPath, VendorListConsent.class)
+        assert vendorList.gvlSpecificationVersion == V3
+
+        where:
+        tcfPolicyVersion << [TCF_POLICY_V4, TCF_POLICY_V5]
     }
 }

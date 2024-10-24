@@ -37,6 +37,8 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
              "adapters.generic.modifying-vast-xml-allowed": "false"] +
                     responseCorrectionConfig)
 
+    private final static int OPTIMAL_MAX_LENGTH = 20
+
     def "PBS shouldn't modify response when in account correction module disabled"() {
         given: "Start up time"
         def start = Instant.now()
@@ -326,7 +328,7 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
 
         and: "Set bidder response"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            seatbid[0].bid[0].setAdm(PBSUtils.getRandomCase("<${PBSUtils.randomString}VAST${PBSUtils.randomString}"))
+            seatbid[0].bid[0].setAdm(PBSUtils.getRandomCase(admValue))
         }
         bidder.setResponse(bidRequest.id, bidResponse)
 
@@ -352,20 +354,28 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
 
         and: "Response shouldn't contain warnings"
         assert !response.ext.warnings
+
+        where:
+        admValue << [
+                "${PBSUtils.randomString}<${' ' * PBSUtils.getRandomNumber(0, OPTIMAL_MAX_LENGTH)}VAST ${PBSUtils.randomString}",
+                "${PBSUtils.randomString}<${' ' * PBSUtils.getRandomNumber(0, OPTIMAL_MAX_LENGTH)}VAST ${PBSUtils.randomString}>",
+                "${PBSUtils.randomString}${' ' * PBSUtils.getRandomNumber(0, OPTIMAL_MAX_LENGTH)}<${' ' * PBSUtils.getRandomNumber(0, OPTIMAL_MAX_LENGTH)}VAST ${PBSUtils.randomString}>",
+                "<${' ' * PBSUtils.getRandomNumber(0, OPTIMAL_MAX_LENGTH)}VAST${' ' * PBSUtils.getRandomNumber(1, OPTIMAL_MAX_LENGTH)}",
+                "<${' ' * PBSUtils.getRandomNumber(0, OPTIMAL_MAX_LENGTH)}VAST${' ' * PBSUtils.getRandomNumber(1, OPTIMAL_MAX_LENGTH)}>",
+                "<${' ' * PBSUtils.getRandomNumber(0, OPTIMAL_MAX_LENGTH)}VAST${' ' * PBSUtils.getRandomNumber(1, OPTIMAL_MAX_LENGTH)}${PBSUtils.randomString}>"
+        ]
     }
 
-    def "PBS should modify response when requested #mediaType impression respond with adm VAST keyword"() {
+    def "PBS should modify response when requested video impression respond with invalid adm VAST keyword"() {
         given: "Start up time"
         def start = Instant.now()
 
-        and: "Default bid request with APP and #mediaType imp"
-        def bidRequest = getDefaultBidRequest(APP).tap {
-            imp[0] = Imp.getDefaultImpression(mediaType)
-        }
+        and: "Default bid request with APP and Video imp"
+        def bidRequest = getDefaultVideoRequest(APP)
 
         and: "Set bidder response"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            seatbid[0].bid[0].setAdm(PBSUtils.getRandomCase("<${PBSUtils.randomString}VAST${PBSUtils.randomString}"))
+            seatbid[0].bid[0].setAdm(PBSUtils.getRandomCase(admValue))
         }
         bidder.setResponse(bidRequest.id, bidResponse)
 
@@ -376,7 +386,7 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         when: "PBS processes auction request"
         def response = pbsServiceWithResponseCorrectionModule.sendAuctionRequest(bidRequest)
 
-        then: "PBS shouldn't emit log"
+        then: "PBS should emit log"
         def logsByTime = pbsServiceWithResponseCorrectionModule.getLogsByTime(start)
         def bidId = bidResponse.seatbid[0].bid[0].id
         def responseCorrection = getLogsByText(logsByTime, bidId)
@@ -401,7 +411,71 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         assert !response.ext.warnings
 
         where:
-        mediaType << [BANNER, AUDIO, NATIVE]
+        admValue << [
+                "<${' ' * PBSUtils.getRandomNumber(0, OPTIMAL_MAX_LENGTH)}VAST${PBSUtils.randomString}",
+                "<${' ' * PBSUtils.getRandomNumber(0, OPTIMAL_MAX_LENGTH)}VAST",
+                "<${' ' * PBSUtils.getRandomNumber(0, OPTIMAL_MAX_LENGTH)}VAST>",
+                "<${PBSUtils.randomString}VAST${' ' * PBSUtils.getRandomNumber(1, OPTIMAL_MAX_LENGTH)}"
+        ]
+    }
+
+    def "PBS should modify response when requested #mediaType impression respond with adm VAST keyword"() {
+        given: "Start up time"
+        def start = Instant.now()
+
+        and: "Default bid request with APP and #mediaType imp"
+        def bidRequest = getDefaultBidRequest(APP).tap {
+            imp[0] = Imp.getDefaultImpression(mediaType)
+        }
+
+        and: "Set bidder response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid[0].bid[0].setAdm(PBSUtils.getRandomCase(admValue))
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        and: "Save account with enabled response correction module"
+        def accountWithResponseCorrectionModule = accountConfigWithResponseCorrectionModule(bidRequest)
+        accountDao.save(accountWithResponseCorrectionModule)
+
+        when: "PBS processes auction request"
+        def response = pbsServiceWithResponseCorrectionModule.sendAuctionRequest(bidRequest)
+
+        then: "PBS should emit log"
+        def logsByTime = pbsServiceWithResponseCorrectionModule.getLogsByTime(start)
+        def bidId = bidResponse.seatbid[0].bid[0].id
+        def responseCorrection = getLogsByText(logsByTime, bidId)
+        assert responseCorrection.size() == 1
+        assert responseCorrection.any {
+            it.contains("Bid $bidId of bidder generic: changing media type to banner" as String)
+        }
+
+        and: "Response should contain seatBid"
+        assert response.seatbid.size() == 1
+
+        and: "Response should contain single seatBid with proper media type"
+        assert response.seatbid.bid.ext.prebid.type.flatten() == [BANNER]
+
+        and: "Response should contain single seatBid with proper meta media type"
+        assert response.seatbid.bid.ext.prebid.meta.mediaType.flatten() == [VIDEO.value]
+
+        and: "Response shouldn't contain errors"
+        assert !response.ext.errors
+
+        and: "Response shouldn't contain warnings"
+        assert !response.ext.warnings
+
+        where:
+        mediaType | admValue
+        BANNER    | "${PBSUtils.randomString}<${' ' * PBSUtils.getRandomNumber(0, OPTIMAL_MAX_LENGTH)}VAST${PBSUtils.randomString}"
+        BANNER    | "<${' ' * PBSUtils.getRandomNumber(0, OPTIMAL_MAX_LENGTH)}VAST${' ' * PBSUtils.getRandomNumber(1, OPTIMAL_MAX_LENGTH)}"
+        BANNER    | "<${' ' * PBSUtils.getRandomNumber(0, OPTIMAL_MAX_LENGTH)}}VAST${' ' * PBSUtils.getRandomNumber(1, OPTIMAL_MAX_LENGTH)}${PBSUtils.randomString}"
+        AUDIO     | "${PBSUtils.randomString}<${' ' * PBSUtils.getRandomNumber(0, OPTIMAL_MAX_LENGTH)}VAST${PBSUtils.randomString}"
+        AUDIO     | "<${' ' * PBSUtils.getRandomNumber(0, OPTIMAL_MAX_LENGTH)}VAST${' ' * PBSUtils.getRandomNumber(1, OPTIMAL_MAX_LENGTH)}"
+        AUDIO     | "<${' ' * PBSUtils.getRandomNumber(0, OPTIMAL_MAX_LENGTH)}}VAST${' ' * PBSUtils.getRandomNumber(1, OPTIMAL_MAX_LENGTH)}${PBSUtils.randomString}"
+        NATIVE    | "${PBSUtils.randomString}<${' ' * PBSUtils.getRandomNumber(0, OPTIMAL_MAX_LENGTH)}VAST${PBSUtils.randomString}"
+        NATIVE    | "<${' ' * PBSUtils.getRandomNumber(0, OPTIMAL_MAX_LENGTH)}VAST${' ' * PBSUtils.getRandomNumber(1, OPTIMAL_MAX_LENGTH)}"
+        NATIVE    | "<${' ' * PBSUtils.getRandomNumber(0, OPTIMAL_MAX_LENGTH)}}VAST${' ' * PBSUtils.getRandomNumber(1, OPTIMAL_MAX_LENGTH)}${PBSUtils.randomString}"
     }
 
     def "PBS shouldn't modify response meta.mediaType to video and emit logs when requested impression with video and adm obj with asset"() {

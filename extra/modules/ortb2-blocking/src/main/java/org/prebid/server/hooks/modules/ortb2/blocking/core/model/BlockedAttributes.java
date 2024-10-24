@@ -2,6 +2,7 @@ package org.prebid.server.hooks.modules.ortb2.blocking.core.model;
 
 import lombok.Builder;
 import lombok.Value;
+import org.prebid.server.spring.config.bidder.model.MediaType;
 
 import java.util.List;
 import java.util.Map;
@@ -20,5 +21,5 @@ public class BlockedAttributes {
 
     Map<String, List<Integer>> btype;
 
-    Map<String, List<Integer>> battr;
+    Map<MediaType, Map<String, List<Integer>>> battr;
 }

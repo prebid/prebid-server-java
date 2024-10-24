@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.prebid</groupId>
         <artifactId>prebid-server-aggregator</artifactId>
-        <version>3.13.0-SNAPSHOT</version>
+        <version>3.15.0-SNAPSHOT</version>
         <relativePath>extra/pom.xml</relativePath>
     </parent>
 
@@ -645,7 +645,7 @@
                     <systemPropertyVariables>
                         <mockserver.version>${mockserver.version}</mockserver.version>
                         <pbs.version>${project.version}</pbs.version>
-                        <tests.max-container-count>2</tests.max-container-count>
+                        <tests.max-container-count>5</tests.max-container-count>
                         <tests.fixed-container-ports>false</tests.fixed-container-ports>
                     </systemPropertyVariables>
                 </configuration>
