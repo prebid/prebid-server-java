@@ -102,11 +102,8 @@ public class DisplayioBidder implements Bidder<BidRequest> {
         final BigDecimal bidFloor = imp.getBidfloor();
         final String bidFloorCurrency = imp.getBidfloorcur();
 
-        if (!BidderUtil.isValidPrice(bidFloor)) {
-            throw new PreBidException("BidFloor should be defined");
-        }
-
-        if (StringUtils.isNotBlank(bidFloorCurrency)
+        if (BidderUtil.isValidPrice(bidFloor)
+                && StringUtils.isNotBlank(bidFloorCurrency)
                 && !StringUtils.equalsIgnoreCase(bidFloorCurrency, BIDDER_CURRENCY)) {
             return currencyConversionService.convertCurrency(bidFloor, bidRequest, bidFloorCurrency, BIDDER_CURRENCY);
         }
