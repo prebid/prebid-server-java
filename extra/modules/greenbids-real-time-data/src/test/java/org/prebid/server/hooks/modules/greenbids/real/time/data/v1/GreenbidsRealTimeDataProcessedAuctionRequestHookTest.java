@@ -50,9 +50,12 @@ import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 
-import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
@@ -85,8 +88,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
     public void setUp() throws IOException {
         final Storage storage = StorageOptions.newBuilder()
                 .setProjectId("test_project").build().getService();
-        final File database = new File("src/test/resources/GeoLite2-Country.mmdb");
-        final DatabaseReader dbReader = new DatabaseReader.Builder(database).build();
+        final DatabaseReader dbReader = givenDatabaseReader();
         final FilterService filterService = new FilterService();
         final OnnxModelRunnerFactory onnxModelRunnerFactory = new OnnxModelRunnerFactory();
         final ThrottlingThresholdsFactory throttlingThresholdsFactory = new ThrottlingThresholdsFactory();
@@ -325,6 +327,19 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         assertThat(fingerprint).isNotNull();
         assertThat(resultBidRequest).usingRecursiveComparison()
                 .isEqualTo(expectedBidRequest);
+    }
+
+    static DatabaseReader givenDatabaseReader() throws IOException {
+        URL url = new URL("https://git.io/GeoLite2-Country.mmdb");
+        Path databasePath = Files.createTempFile("GeoLite2-Country", ".mmdb");
+
+        try (
+                InputStream inputStream = url.openStream();
+                FileOutputStream outputStream = new FileOutputStream(databasePath.toFile())) {
+            inputStream.transferTo(outputStream);
+        }
+
+        return new DatabaseReader.Builder(databasePath.toFile()).build();
     }
 
     static ExtRequest givenExtRequest(Double explorationRate) {

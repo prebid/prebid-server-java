@@ -24,8 +24,12 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -35,10 +39,17 @@ import java.util.concurrent.TimeUnit;
 public class GreenbidsRealTimeDataConfiguration {
 
     @Bean
-    DatabaseReader dbReader(GreenbidsRealTimeDataProperties properties) {
-        final File database = new File(properties.getGeoLiteCountryPath());
+    DatabaseReader dbReader(GreenbidsRealTimeDataProperties properties) throws IOException {
+        URL url = new URL(properties.getGeoLiteCountryPath());
+        Path databasePath = Files.createTempFile("GeoLite2-Country", ".mmdb");
+
+        try (InputStream inputStream = url.openStream();
+             FileOutputStream outputStream = new FileOutputStream(databasePath.toFile())) {
+            inputStream.transferTo(outputStream);
+        }
+
         try {
-            return new DatabaseReader.Builder(database).build();
+            return new DatabaseReader.Builder(databasePath.toFile()).build();
         } catch (IOException e) {
             throw new PreBidException("Failed build DatabaseReader from DB", e);
         }
