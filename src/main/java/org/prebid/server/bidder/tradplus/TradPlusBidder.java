@@ -32,11 +32,10 @@ import java.util.Objects;
 
 public class TradPlusBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpTradPlus>> EXT_TYPE_REFERENCE =
-            new TypeReference<>() {
-            };
+    private static final TypeReference<ExtPrebid<?, ExtImpTradPlus>> EXT_TYPE_REFERENCE = new TypeReference<>() {
+    };
 
-    private static final String X_OPENRTB_VERSION = "2.5";
+    public static final String X_OPENRTB_VERSION = "2.5";
 
     private static final String ZONE_ID = "{{ZoneID}}";
     private static final String ACCOUNT_ID = "{{AccountID}}";
@@ -51,25 +50,24 @@ public class TradPlusBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
-        final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
         try {
             final ExtImpTradPlus extImpTradPlus = parseImpExt(bidRequest.getImp().getFirst().getExt());
             validateImpExt(extImpTradPlus);
-            httpRequests.add(makeHttpRequest(extImpTradPlus, bidRequest.getImp(), bidRequest));
+            HttpRequest<BidRequest> httpRequest = makeHttpRequest(extImpTradPlus, bidRequest.getImp(), bidRequest);
+            return Result.withValue(httpRequest);
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
-        return Result.withValues(httpRequests);
     }
 
     private ExtImpTradPlus parseImpExt(ObjectNode extNode) {
         final ExtImpTradPlus extImpTradPlus;
         try {
             extImpTradPlus = mapper.mapper().convertValue(extNode, EXT_TYPE_REFERENCE).getBidder();
+            return extImpTradPlus;
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage());
         }
-        return extImpTradPlus;
     }
 
     private void validateImpExt(ExtImpTradPlus extImpTradPlus) {
@@ -78,11 +76,8 @@ public class TradPlusBidder implements Bidder<BidRequest> {
         }
     }
 
-    private HttpRequest<BidRequest> makeHttpRequest(ExtImpTradPlus extImpTradPlus, List<Imp> imps,
-                                                    BidRequest bidRequest) {
-        final String uri = endpointUrl
-                .replace(ZONE_ID, extImpTradPlus.getZoneId())
-                .replace(ACCOUNT_ID, extImpTradPlus.getAccountId());
+    private HttpRequest<BidRequest> makeHttpRequest(ExtImpTradPlus extImpTradPlus, List<Imp> imps, BidRequest bidRequest) {
+        final String uri = endpointUrl.replace(ZONE_ID, extImpTradPlus.getZoneId()).replace(ACCOUNT_ID, extImpTradPlus.getAccountId());
 
         final BidRequest outgoingRequest = bidRequest.toBuilder().imp(removeImpsExt(imps)).build();
 
@@ -90,14 +85,11 @@ public class TradPlusBidder implements Bidder<BidRequest> {
     }
 
     private MultiMap makeHeaders() {
-        final MultiMap headers = HttpUtil.headers();
-        headers.set(HttpUtil.X_OPENRTB_VERSION_HEADER, X_OPENRTB_VERSION);
-        return headers;
+        return HttpUtil.headers().set(HttpUtil.X_OPENRTB_VERSION_HEADER, X_OPENRTB_VERSION);
     }
 
     private static List<Imp> removeImpsExt(List<Imp> imps) {
-        return imps.stream().map(imp -> imp.toBuilder().ext(null).build())
-                .toList();
+        return imps.stream().map(imp -> imp.toBuilder().ext(null).build()).toList();
     }
 
     @Override
@@ -111,19 +103,11 @@ public class TradPlusBidder implements Bidder<BidRequest> {
     }
 
     private static List<BidderBid> extractBids(BidResponse bidResponse, BidRequest bidRequest) {
-        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
-                ? Collections.emptyList()
-                : bidsFromResponse(bidResponse, bidRequest.getImp());
+        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid()) ? Collections.emptyList() : bidsFromResponse(bidResponse, bidRequest.getImp());
     }
 
     private static List<BidderBid> bidsFromResponse(BidResponse bidResponse, List<Imp> imps) {
-        return bidResponse.getSeatbid().stream()
-                .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), imps), bidResponse.getCur()))
-                .toList();
+        return bidResponse.getSeatbid().stream().filter(Objects::nonNull).map(SeatBid::getBid).filter(Objects::nonNull).flatMap(Collection::stream).map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), imps), bidResponse.getCur())).toList();
     }
 
     private static BidType getBidType(String impId, List<Imp> imps) {
@@ -138,8 +122,7 @@ public class TradPlusBidder implements Bidder<BidRequest> {
                 return BidType.banner;
             }
         }
-        throw new PreBidException("Invalid bid imp ID #%s does not match any imp IDs from the original bid request"
-                .formatted(impId));
+        throw new PreBidException("Invalid bid imp ID #%s does not match any imp IDs from the original bid request".formatted(impId));
     }
 
 }

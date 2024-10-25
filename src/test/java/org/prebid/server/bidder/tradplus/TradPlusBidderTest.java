@@ -29,6 +29,7 @@ import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.prebid.server.bidder.tradplus.TradPlusBidder.X_OPENRTB_VERSION;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
@@ -43,6 +44,33 @@ public class TradPlusBidderTest extends VertxTest {
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException().isThrownBy(() -> new TradPlusBidder("invalid_url", jacksonMapper));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldRemoveAllImpExt() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                imp -> imp.id("impId1"),
+                imp -> imp.id("impId2"));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getImp)
+                .extracting(imps -> imps.get(0))
+                .extracting(Imp::getExt)
+                .containsOnlyNulls();
+
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getImp)
+                .extracting(imps -> imps.get(1))
+                .extracting(Imp::getExt)
+                .containsOnlyNulls();
     }
 
     @Test
@@ -79,7 +107,7 @@ public class TradPlusBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1).first()
                 .extracting(HttpRequest::getHeaders)
                 .satisfies(headers -> assertThat(headers.get(X_OPENRTB_VERSION_HEADER))
-                        .isEqualTo("2.5"));
+                        .isEqualTo(X_OPENRTB_VERSION));
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -268,8 +296,7 @@ public class TradPlusBidderTest extends VertxTest {
                                 .id("123")
                                 .build()))
                         .build(),
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                givenBidResponse(bidBuilder -> bidBuilder.impid("123")));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -294,13 +321,13 @@ public class TradPlusBidderTest extends VertxTest {
                 .build();
     }
 
-    private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
-        return BidResponse.builder()
+    private static String givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) throws JsonProcessingException {
+        return mapper.writeValueAsString(BidResponse.builder()
                 .cur("USD")
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
                         .build()))
-                .build();
+                .build());
     }
 
     private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
