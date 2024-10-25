@@ -24,7 +24,6 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -53,7 +52,8 @@ public class TradPlusBidder implements Bidder<BidRequest> {
         try {
             final ExtImpTradPlus extImpTradPlus = parseImpExt(bidRequest.getImp().getFirst().getExt());
             validateImpExt(extImpTradPlus);
-            HttpRequest<BidRequest> httpRequest = makeHttpRequest(extImpTradPlus, bidRequest.getImp(), bidRequest);
+            final HttpRequest<BidRequest> httpRequest;
+            httpRequest = makeHttpRequest(extImpTradPlus, bidRequest.getImp(), bidRequest);
             return Result.withValue(httpRequest);
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
@@ -76,8 +76,11 @@ public class TradPlusBidder implements Bidder<BidRequest> {
         }
     }
 
-    private HttpRequest<BidRequest> makeHttpRequest(ExtImpTradPlus extImpTradPlus, List<Imp> imps, BidRequest bidRequest) {
-        final String uri = endpointUrl.replace(ZONE_ID, extImpTradPlus.getZoneId()).replace(ACCOUNT_ID, extImpTradPlus.getAccountId());
+    private HttpRequest<BidRequest> makeHttpRequest(ExtImpTradPlus extImpTradPlus, List<Imp> imps,
+                                                    BidRequest bidRequest) {
+        final String uri;
+        uri = endpointUrl.replace(ZONE_ID, extImpTradPlus.getZoneId()).replace(ACCOUNT_ID,
+                extImpTradPlus.getAccountId());
 
         final BidRequest outgoingRequest = bidRequest.toBuilder().imp(removeImpsExt(imps)).build();
 
@@ -103,11 +106,14 @@ public class TradPlusBidder implements Bidder<BidRequest> {
     }
 
     private static List<BidderBid> extractBids(BidResponse bidResponse, BidRequest bidRequest) {
-        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid()) ? Collections.emptyList() : bidsFromResponse(bidResponse, bidRequest.getImp());
+        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid()) ? Collections
+                .emptyList() : bidsFromResponse(bidResponse, bidRequest.getImp());
     }
 
     private static List<BidderBid> bidsFromResponse(BidResponse bidResponse, List<Imp> imps) {
-        return bidResponse.getSeatbid().stream().filter(Objects::nonNull).map(SeatBid::getBid).filter(Objects::nonNull).flatMap(Collection::stream).map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), imps), bidResponse.getCur())).toList();
+        return bidResponse.getSeatbid().stream().filter(Objects::nonNull).map(SeatBid::getBid)
+                .filter(Objects::nonNull).flatMap(Collection::stream).map(bid -> BidderBid
+                        .of(bid, getBidType(bid.getImpid(), imps), bidResponse.getCur())).toList();
     }
 
     private static BidType getBidType(String impId, List<Imp> imps) {
@@ -122,7 +128,8 @@ public class TradPlusBidder implements Bidder<BidRequest> {
                 return BidType.banner;
             }
         }
-        throw new PreBidException("Invalid bid imp ID #%s does not match any imp IDs from the original bid request".formatted(impId));
+        throw new PreBidException(
+                ("Invalid bid imp ID #%s does not match any imp IDs from the original bid request").formatted(impId));
     }
 
 }

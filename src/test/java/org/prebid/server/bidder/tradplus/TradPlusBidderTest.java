@@ -233,7 +233,7 @@ public class TradPlusBidderTest extends VertxTest {
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
                         .build(),
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("wrongBlock"))));
+                givenBidResponse(bidBuilder -> bidBuilder.impid("wrongBlock")));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(bidderCall, null);
@@ -252,8 +252,7 @@ public class TradPlusBidderTest extends VertxTest {
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").build()))
                         .build(),
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123")));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -274,8 +273,7 @@ public class TradPlusBidderTest extends VertxTest {
                                 .id("123")
                                 .build()))
                         .build(),
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123")));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -321,7 +319,8 @@ public class TradPlusBidderTest extends VertxTest {
                 .build();
     }
 
-    private static String givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) throws JsonProcessingException {
+    private static String givenBidResponse(Function<Bid.BidBuilder
+            , Bid.BidBuilder> bidCustomizer) throws JsonProcessingException {
         return mapper.writeValueAsString(BidResponse.builder()
                 .cur("USD")
                 .seatbid(singletonList(SeatBid.builder()
