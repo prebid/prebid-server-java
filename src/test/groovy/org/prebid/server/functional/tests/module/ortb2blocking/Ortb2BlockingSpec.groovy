@@ -1396,7 +1396,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
 
     private static Account getAccountWithOrtb2BlockingConfig(String accountId, Map<Ortb2BlockingAttribute, Ortb2BlockingAttributeConfig> attributes) {
         def blockingConfig = new Ortb2BlockingConfig(attributes: attributes)
-        def executionPlan = ExecutionPlan.getEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB2_BLOCKING, [BIDDER_REQUEST, RAW_BIDDER_RESPONSE])
+        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB2_BLOCKING, [BIDDER_REQUEST, RAW_BIDDER_RESPONSE])
         def moduleConfig = new PbsModulesConfig(ortb2Blocking: blockingConfig)
         def accountHooksConfig = new AccountHooksConfiguration(executionPlan: executionPlan, modules: moduleConfig)
         def accountConfig = new AccountConfig(hooks: accountHooksConfig)
