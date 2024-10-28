@@ -26,4 +26,8 @@ enum Stage {
     String toString() {
         value
     }
+
+    String getMetricValue() {
+        value.replaceAll("-", "")
+    }
 }

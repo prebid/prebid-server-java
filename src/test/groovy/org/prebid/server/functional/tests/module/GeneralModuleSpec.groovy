@@ -16,6 +16,7 @@ import static org.prebid.server.functional.model.ModuleName.PB_RESPONSE_CORRECTI
 import static org.prebid.server.functional.model.ModuleName.PB_RICHMEDIA_FILTER
 import static org.prebid.server.functional.model.config.Endpoint.OPENRTB2_AUCTION
 import static org.prebid.server.functional.model.config.ModuleHookImplementation.PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES
+import static org.prebid.server.functional.model.config.ModuleHookImplementation.RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES
 import static org.prebid.server.functional.model.config.Stage.ALL_PROCESSED_BID_RESPONSES
 import static org.prebid.server.functional.model.request.auction.BidRequest.getDefaultBidRequest
 import static org.prebid.server.functional.model.response.auction.InvocationStatus.SUCCESS
@@ -60,12 +61,12 @@ class GeneralModuleSpec extends ModuleBaseSpec {
 
         and: "no-invocation metrics shouldn't be updated"
         def metrics = pbsServiceWithMultipleModule.sendCollectedMetricsRequest()
-        assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.value, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)]
-        assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.value, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)]
+        assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.metricValue, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)]
+        assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)]
 
         and: "hook call metrics should be updated"
-        assert metrics[CALL_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.value, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)] == 1
-        assert metrics[CALL_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.value, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)] == 1
+        assert metrics[CALL_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.metricValue, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)] == 1
+        assert metrics[CALL_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)] == 1
 
         where:
         modulesConfig << [null, new PbsModulesConfig()]
@@ -98,12 +99,12 @@ class GeneralModuleSpec extends ModuleBaseSpec {
 
         and: "no-invocation metrics shouldn't be updated"
         def metrics = pbsServiceWithMultipleModule.sendCollectedMetricsRequest()
-        assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.value, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)]
-        assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.value, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)]
+        assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.metricValue, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)]
+        assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)]
 
         and: "hook call metrics should be updated"
-        assert metrics[CALL_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.value, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)] == 1
-        assert metrics[CALL_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.value, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)] == 1
+        assert metrics[CALL_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.metricValue, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)] == 1
+        assert metrics[CALL_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)] == 1
 
         where:
         pbRichmediaFilterConfig                | pbResponseCorrectionConfig
@@ -140,12 +141,12 @@ class GeneralModuleSpec extends ModuleBaseSpec {
 
         and: "no-invocation metrics should be updated"
         def metrics = pbsServiceWithMultipleModuleWithRequireInvoke.sendCollectedMetricsRequest()
-        assert metrics[NO_INVOCATION_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.value, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)] == 1
-        assert metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.value, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)] == 1
+        assert metrics[NO_INVOCATION_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.metricValue, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)] == 1
+        assert metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)] == 1
 
         and: "hook call metrics shouldn't be updated"
-        assert !metrics[CALL_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.value, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)]
-        assert !metrics[CALL_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.value, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)]
+        assert !metrics[CALL_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.metricValue, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)]
+        assert !metrics[CALL_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)]
 
         where:
         modulesConfig << [null, new PbsModulesConfig()]
@@ -178,12 +179,12 @@ class GeneralModuleSpec extends ModuleBaseSpec {
 
         and: "no-invocation metrics shouldn't be updated"
         def metrics = pbsServiceWithMultipleModuleWithRequireInvoke.sendCollectedMetricsRequest()
-        assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.value, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)]
-        assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.value, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)]
+        assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.metricValue, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)]
+        assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)]
 
         and: "hook call metrics should be updated"
-        assert metrics[CALL_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.value, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)] == 1
-        assert metrics[CALL_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.value, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)] == 1
+        assert metrics[CALL_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.metricValue, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)] == 1
+        assert metrics[CALL_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)] == 1
 
         where:
         pbRichmediaFilterConfig                | pbResponseCorrectionConfig
@@ -228,11 +229,11 @@ class GeneralModuleSpec extends ModuleBaseSpec {
 
         and: "Richmedia module metrics should be updated"
         def metrics = pbsServiceWithMultipleModuleWithRequireInvoke.sendCollectedMetricsRequest()
-        assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.value, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)]
-        assert metrics[CALL_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.value, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)] == 1
+        assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.metricValue, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)]
+        assert metrics[CALL_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.metricValue, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)] == 1
 
         and: "Response-correction module metrics should be updated"
-        assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.value, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)]
-        assert metrics[CALL_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.value, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)] == 1
+        assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)]
+        assert metrics[CALL_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)] == 1
     }
 }
