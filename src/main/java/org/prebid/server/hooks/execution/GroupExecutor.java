@@ -122,7 +122,7 @@ class GroupExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
             if (accountConfig == null || accountConfig.isNull()) {
                 return Future.succeededFuture(InvocationResultImpl.<PAYLOAD>builder()
                         .status(InvocationStatus.success)
-                        .action(InvocationAction.no_action)
+                        .action(InvocationAction.no_invocation)
                         .build());
             }
         }

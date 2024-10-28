@@ -1166,6 +1166,13 @@ public class MetricsTest {
                 "module1", Stage.raw_auction_request, "hook2", ExecutionStatus.success, 5L, ExecutionAction.no_action);
         metrics.updateHooksMetrics(
                 "module1",
+                Stage.raw_auction_request,
+                "hook2",
+                ExecutionStatus.success,
+                5L,
+                ExecutionAction.no_invocation);
+        metrics.updateHooksMetrics(
+                "module1",
                 Stage.processed_auction_request,
                 "hook3",
                 ExecutionStatus.success,
@@ -1191,11 +1198,14 @@ public class MetricsTest {
                 .isEqualTo(1);
 
         assertThat(metricRegistry.counter("modules.module.module1.stage.rawauction.hook.hook2.call").getCount())
-                .isEqualTo(1);
+                .isEqualTo(2);
         assertThat(metricRegistry.counter("modules.module.module1.stage.rawauction.hook.hook2.success.noop").getCount())
                 .isEqualTo(1);
-        assertThat(metricRegistry.timer("modules.module.module1.stage.rawauction.hook.hook2.duration").getCount())
+        assertThat(metricRegistry.counter("modules.module.module1.stage.rawauction.hook.hook2.success.no-invocation")
+                .getCount())
                 .isEqualTo(1);
+        assertThat(metricRegistry.timer("modules.module.module1.stage.rawauction.hook.hook2.duration").getCount())
+                .isEqualTo(2);
 
         assertThat(metricRegistry.counter("modules.module.module1.stage.procauction.hook.hook3.call").getCount())
                 .isEqualTo(1);
