@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.reporter.agma.AgmaAnalyticsReporter;
@@ -114,8 +115,8 @@ public class AnalyticsConfiguration {
                                 account -> {
                                     final String publisherId = account.getPublisherId();
                                     final String siteAppId = account.getSiteAppId();
-                                    return (siteAppId != null && !siteAppId.isEmpty())
-                                            ? publisherId + "_" + siteAppId
+                                    return StringUtils.isNotBlank(siteAppId)
+                                            ? String.format("%s_%s", publisherId, siteAppId)
                                             : publisherId;
                                 },
                                 AgmaAnalyticsAccountProperties::getCode

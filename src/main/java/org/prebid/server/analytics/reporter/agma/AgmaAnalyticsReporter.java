@@ -16,6 +16,7 @@ import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.AmpEvent;
@@ -195,17 +196,19 @@ public class AgmaAnalyticsReporter implements AnalyticsReporter, Initializable {
 
         final String publisherId = Optional.ofNullable(site).map(Site::getPublisher).map(Publisher::getId)
                 .or(() -> Optional.ofNullable(app).map(App::getPublisher).map(Publisher::getId))
-                .orElse("");
+                .orElse(null);
         final String appSiteId = Optional.ofNullable(site).map(Site::getId)
                 .or(() -> Optional.ofNullable(app).map(App::getId))
                 .or(() -> Optional.ofNullable(app).map(App::getBundle))
                 .orElse(null);
 
-        if (publisherId.equals("") && appSiteId == null) {
+        if (publisherId == null && appSiteId == null) {
             return null;
         }
 
-        return appSiteId != null ? publisherId + "_" + appSiteId : publisherId;
+        return appSiteId != null
+                ? String.format("%s_%s", StringUtils.defaultString(publisherId, ""), appSiteId)
+                : publisherId;
     }
 
     private void sendEvents(List<String> events) {
