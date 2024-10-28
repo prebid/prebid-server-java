@@ -25,8 +25,8 @@ import static org.prebid.server.functional.model.response.auction.ResponseAction
 
 class GeneralModuleSpec extends ModuleBaseSpec {
 
-    private final static String NO_INVOCATION_METRIC = "modules.module.%s.stage.%s.hook.%s.no-invocation"
-    private final static String CALL_METRIC = "modules.module.%s.stage.%s.hook.%s.success.call"
+    private final static String NO_INVOCATION_METRIC = "modules.module.%s.stage.%s.hook.%s.success.no-invocation"
+    private final static String CALL_METRIC = "modules.module.%s.stage.%s.hook.%s.call"
 
     private final static Map<String, String> ENABLED_INVOKE_CONFIG = ['settings.modules.require-config-to-invoke': 'true']
     private final static Map<String, String> MULTY_MODULE_CONFIG = getRichMediaFilterSettings(PBSUtils.randomString) + getResponseCorrectionConfig() +
@@ -229,8 +229,8 @@ class GeneralModuleSpec extends ModuleBaseSpec {
 
         and: "Richmedia module metrics should be updated"
         def metrics = pbsServiceWithMultipleModuleWithRequireInvoke.sendCollectedMetricsRequest()
-        assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.metricValue, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)]
-        assert metrics[CALL_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.metricValue, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)] == 1
+        assert metrics[NO_INVOCATION_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.metricValue, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)] == 1
+        assert !metrics[CALL_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.metricValue, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)]
 
         and: "Response-correction module metrics should be updated"
         assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)]
