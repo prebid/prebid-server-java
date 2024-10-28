@@ -129,7 +129,7 @@ public class TradPlusBidder implements Bidder<BidRequest> {
             }
         }
         throw new PreBidException(
-                ("Invalid bid imp ID #%s does not match any imp IDs from the original bid request").formatted(impId));
+                "Invalid bid imp ID #%s does not match any imp IDs from the original bid request".formatted(impId));
     }
 
 }

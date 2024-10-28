@@ -319,8 +319,8 @@ public class TradPlusBidderTest extends VertxTest {
                 .build();
     }
 
-    private static String givenBidResponse(Function<Bid.BidBuilder
-            , Bid.BidBuilder> bidCustomizer) throws JsonProcessingException {
+    private static String givenBidResponse(Function<Bid.BidBuilder,
+            Bid.BidBuilder> bidCustomizer) throws JsonProcessingException {
         return mapper.writeValueAsString(BidResponse.builder()
                 .cur("USD")
                 .seatbid(singletonList(SeatBid.builder()
