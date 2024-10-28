@@ -663,6 +663,7 @@ public class Metrics extends UpdatableMetrics {
             ACTION_TO_METRIC.put(ExecutionAction.no_action, MetricName.noop);
             ACTION_TO_METRIC.put(ExecutionAction.update, MetricName.update);
             ACTION_TO_METRIC.put(ExecutionAction.reject, MetricName.reject);
+            ACTION_TO_METRIC.put(ExecutionAction.no_invocation, MetricName.no_invocation);
         }
 
         static MetricName fromStatus(ExecutionStatus status) {
