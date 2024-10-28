@@ -1198,14 +1198,14 @@ public class MetricsTest {
                 .isEqualTo(1);
 
         assertThat(metricRegistry.counter("modules.module.module1.stage.rawauction.hook.hook2.call").getCount())
-                .isEqualTo(2);
+                .isEqualTo(1);
         assertThat(metricRegistry.counter("modules.module.module1.stage.rawauction.hook.hook2.success.noop").getCount())
                 .isEqualTo(1);
         assertThat(metricRegistry.counter("modules.module.module1.stage.rawauction.hook.hook2.success.no-invocation")
                 .getCount())
                 .isEqualTo(1);
         assertThat(metricRegistry.timer("modules.module.module1.stage.rawauction.hook.hook2.duration").getCount())
-                .isEqualTo(2);
+                .isEqualTo(1);
 
         assertThat(metricRegistry.counter("modules.module.module1.stage.procauction.hook.hook3.call").getCount())
                 .isEqualTo(1);
@@ -1258,6 +1258,8 @@ public class MetricsTest {
                 Account.empty("accountId"), "module2", ExecutionStatus.failure, null);
         metrics.updateAccountHooksMetrics(
                 Account.empty("accountId"), "module3", ExecutionStatus.timeout, null);
+        metrics.updateAccountHooksMetrics(
+                Account.empty("accountId"), "module4", ExecutionStatus.success, ExecutionAction.no_invocation);
 
         // then
         assertThat(metricRegistry.counter("account.accountId.modules.module.module1.call").getCount())
@@ -1273,6 +1275,11 @@ public class MetricsTest {
         assertThat(metricRegistry.counter("account.accountId.modules.module.module3.call").getCount())
                 .isEqualTo(1);
         assertThat(metricRegistry.counter("account.accountId.modules.module.module3.failure").getCount())
+                .isEqualTo(1);
+
+        assertThat(metricRegistry.counter("account.accountId.modules.module.module4.call").getCount())
+                .isEqualTo(0);
+        assertThat(metricRegistry.counter("account.accountId.modules.module.module4.success.no-invocation").getCount())
                 .isEqualTo(1);
     }
 
