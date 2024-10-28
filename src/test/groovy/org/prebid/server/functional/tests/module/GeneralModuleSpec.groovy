@@ -15,13 +15,17 @@ import org.prebid.server.functional.util.PBSUtils
 import static org.prebid.server.functional.model.ModuleName.PB_RESPONSE_CORRECTION
 import static org.prebid.server.functional.model.ModuleName.PB_RICHMEDIA_FILTER
 import static org.prebid.server.functional.model.config.Endpoint.OPENRTB2_AUCTION
+import static org.prebid.server.functional.model.config.ModuleHookImplementation.PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES
 import static org.prebid.server.functional.model.config.Stage.ALL_PROCESSED_BID_RESPONSES
 import static org.prebid.server.functional.model.request.auction.BidRequest.getDefaultBidRequest
 import static org.prebid.server.functional.model.response.auction.InvocationStatus.SUCCESS
 import static org.prebid.server.functional.model.response.auction.ResponseAction.NO_ACTION
-import static org.prebid.server.functional.model.response.auction.ResponseAction.NO_CALLED
+import static org.prebid.server.functional.model.response.auction.ResponseAction.NO_INVOCATION
 
 class GeneralModuleSpec extends ModuleBaseSpec {
+
+    private final static String NO_INVOCATION_METRIC = "modules.module.%s.stage.%s.hook.%s.no-invocation"
+    private final static String CALL_METRIC = "modules.module.%s.stage.%s.hook.%s.success.call"
 
     private final static Map<String, String> ENABLED_INVOKE_CONFIG = ['settings.modules.require-config-to-invoke': 'true']
     private final static Map<String, String> MULTY_MODULE_CONFIG = getRichMediaFilterSettings(PBSUtils.randomString) + getResponseCorrectionConfig() +
@@ -41,6 +45,9 @@ class GeneralModuleSpec extends ModuleBaseSpec {
         def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
         accountDao.save(account)
 
+        and: "Flush metrics"
+        flushMetrics(pbsServiceWithMultipleModule)
+
         when: "PBS processes auction request"
         def response = pbsServiceWithMultipleModule.sendAuctionRequest(bidRequest)
 
@@ -51,7 +58,16 @@ class GeneralModuleSpec extends ModuleBaseSpec {
             it.hookId.moduleCode.sort() == [PB_RICHMEDIA_FILTER, PB_RESPONSE_CORRECTION].code.sort()
         }
 
-        where :
+        and: "no-invocation metrics shouldn't be updated"
+        def metrics = pbsServiceWithMultipleModule.sendCollectedMetricsRequest()
+        assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.value, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)]
+        assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.value, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)]
+
+        and: "hook call metrics should be updated"
+        assert metrics[CALL_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.value, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)] == 1
+        assert metrics[CALL_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.value, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)] == 1
+
+        where:
         modulesConfig << [null, new PbsModulesConfig()]
     }
 
@@ -67,6 +83,9 @@ class GeneralModuleSpec extends ModuleBaseSpec {
         def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
         accountDao.save(account)
 
+        and: "Flush metrics"
+        flushMetrics(pbsServiceWithMultipleModule)
+
         when: "PBS processes auction request"
         def response = pbsServiceWithMultipleModule.sendAuctionRequest(bidRequest)
 
@@ -76,6 +95,15 @@ class GeneralModuleSpec extends ModuleBaseSpec {
             it.action == [NO_ACTION, NO_ACTION]
             it.hookId.moduleCode.sort() == [PB_RICHMEDIA_FILTER, PB_RESPONSE_CORRECTION].code.sort()
         }
+
+        and: "no-invocation metrics shouldn't be updated"
+        def metrics = pbsServiceWithMultipleModule.sendCollectedMetricsRequest()
+        assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.value, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)]
+        assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.value, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)]
+
+        and: "hook call metrics should be updated"
+        assert metrics[CALL_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.value, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)] == 1
+        assert metrics[CALL_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.value, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)] == 1
 
         where:
         pbRichmediaFilterConfig                | pbResponseCorrectionConfig
@@ -97,17 +125,29 @@ class GeneralModuleSpec extends ModuleBaseSpec {
         def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
         accountDao.save(account)
 
+        and: "Flush metrics"
+        flushMetrics(pbsServiceWithMultipleModuleWithRequireInvoke)
+
         when: "PBS processes auction request"
         def response = pbsServiceWithMultipleModuleWithRequireInvoke.sendAuctionRequest(bidRequest)
 
         then: "PBS response should include trace information about no-called modules"
         verifyAll(response?.ext?.prebid?.modules?.trace?.stages?.outcomes?.groups?.invocationResults?.flatten() as List<InvocationResult>) {
             it.status == [SUCCESS, SUCCESS]
-            it.action == [NO_CALLED, NO_CALLED]
+            it.action == [NO_INVOCATION, NO_INVOCATION]
             it.hookId.moduleCode.sort() == [PB_RICHMEDIA_FILTER, PB_RESPONSE_CORRECTION].code.sort()
         }
 
-        where :
+        and: "no-invocation metrics should be updated"
+        def metrics = pbsServiceWithMultipleModuleWithRequireInvoke.sendCollectedMetricsRequest()
+        assert metrics[NO_INVOCATION_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.value, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)] == 1
+        assert metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.value, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)] == 1
+
+        and: "hook call metrics shouldn't be updated"
+        assert !metrics[CALL_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.value, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)]
+        assert !metrics[CALL_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.value, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)]
+
+        where:
         modulesConfig << [null, new PbsModulesConfig()]
     }
 
@@ -123,6 +163,9 @@ class GeneralModuleSpec extends ModuleBaseSpec {
         def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
         accountDao.save(account)
 
+        and: "Flush metrics"
+        flushMetrics(pbsServiceWithMultipleModuleWithRequireInvoke)
+
         when: "PBS processes auction request"
         def response = pbsServiceWithMultipleModuleWithRequireInvoke.sendAuctionRequest(bidRequest)
 
@@ -132,6 +175,15 @@ class GeneralModuleSpec extends ModuleBaseSpec {
             it.action == [NO_ACTION, NO_ACTION]
             it.hookId.moduleCode.sort() == [PB_RICHMEDIA_FILTER, PB_RESPONSE_CORRECTION].code.sort()
         }
+
+        and: "no-invocation metrics shouldn't be updated"
+        def metrics = pbsServiceWithMultipleModuleWithRequireInvoke.sendCollectedMetricsRequest()
+        assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.value, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)]
+        assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.value, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)]
+
+        and: "hook call metrics should be updated"
+        assert metrics[CALL_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.value, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)] == 1
+        assert metrics[CALL_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.value, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)] == 1
 
         where:
         pbRichmediaFilterConfig                | pbResponseCorrectionConfig
@@ -153,22 +205,34 @@ class GeneralModuleSpec extends ModuleBaseSpec {
         def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
         accountDao.save(account)
 
+        and: "Flush metrics"
+        flushMetrics(pbsServiceWithMultipleModuleWithRequireInvoke)
+
         when: "PBS processes auction request"
         def response = pbsServiceWithMultipleModuleWithRequireInvoke.sendAuctionRequest(bidRequest)
 
         then: "PBS response should include trace information about called module"
         def invocationTrace = response?.ext?.prebid?.modules?.trace?.stages?.outcomes?.groups?.invocationResults?.flatten() as List<InvocationResult>
-        verifyAll (invocationTrace.findAll {it -> it.hookId.moduleCode == PB_RESPONSE_CORRECTION.code}) {
+        verifyAll(invocationTrace.findAll { it -> it.hookId.moduleCode == PB_RESPONSE_CORRECTION.code }) {
             it.status == [SUCCESS]
             it.action == [NO_ACTION]
             it.hookId.moduleCode.sort() == [PB_RESPONSE_CORRECTION].code.sort()
         }
 
         and: "PBS response should include trace information about no-called module"
-        verifyAll(response?.ext?.prebid?.modules?.trace?.stages?.outcomes?.groups?.invocationResults?.flatten() as List<InvocationResult>) {
+        verifyAll(invocationTrace.findAll { it -> it.hookId.moduleCode == PB_RICHMEDIA_FILTER.code }) {
             it.status == [SUCCESS]
-            it.action == [NO_CALLED]
+            it.action == [NO_INVOCATION]
             it.hookId.moduleCode.sort() == [PB_RICHMEDIA_FILTER].code.sort()
         }
+
+        and: "Richmedia module metrics should be updated"
+        def metrics = pbsServiceWithMultipleModuleWithRequireInvoke.sendCollectedMetricsRequest()
+        assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.value, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)]
+        assert metrics[CALL_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.value, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)] == 1
+
+        and: "Response-correction module metrics should be updated"
+        assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.value, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)]
+        assert metrics[CALL_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.value, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)] == 1
     }
 }
