@@ -60,15 +60,7 @@ public class TradPlusBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
-                .extracting(BidRequest::getImp)
-                .extracting(imps -> imps.get(0))
-                .extracting(Imp::getExt)
-                .containsOnlyNulls();
-
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .extracting(BidRequest::getImp)
-                .extracting(imps -> imps.get(1))
+                .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
                 .containsOnlyNulls();
     }
@@ -252,7 +244,7 @@ public class TradPlusBidderTest extends VertxTest {
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").build()))
                         .build(),
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123")));
+                givenBidResponse(bidBuilder -> bidBuilder.impid("123")));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -273,7 +265,7 @@ public class TradPlusBidderTest extends VertxTest {
                                 .id("123")
                                 .build()))
                         .build(),
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123")));
+                givenBidResponse(bidBuilder -> bidBuilder.impid("123")));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
