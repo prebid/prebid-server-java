@@ -206,8 +206,8 @@ public class AgmaAnalyticsReporter implements AnalyticsReporter, Initializable {
             return null;
         }
 
-        return appSiteId != null
-                ? String.format("%s_%s", StringUtils.defaultString(publisherId, ""), appSiteId)
+        return StringUtils.isNotBlank(appSiteId)
+                ? String.format("%s_%s", StringUtils.defaultString(publisherId), appSiteId)
                 : publisherId;
     }
 
