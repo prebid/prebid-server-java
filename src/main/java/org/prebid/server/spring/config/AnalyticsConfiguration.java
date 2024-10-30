@@ -112,13 +112,7 @@ public class AnalyticsConfiguration {
             public AgmaAnalyticsProperties toComponentProperties() {
                 final Map<String, String> accountsByPublisherId = accounts.stream()
                         .collect(Collectors.toMap(
-                                account -> {
-                                    final String publisherId = account.getPublisherId();
-                                    final String siteAppId = account.getSiteAppId();
-                                    return StringUtils.isNotBlank(siteAppId)
-                                            ? String.format("%s_%s", publisherId, siteAppId)
-                                            : publisherId;
-                                },
+                                this::buildPublisherSiteAppIdKey,
                                 AgmaAnalyticsAccountProperties::getCode
                         ));
 
@@ -131,6 +125,14 @@ public class AnalyticsConfiguration {
                         .httpTimeoutMs(endpoint.getTimeoutMs())
                         .accounts(accountsByPublisherId)
                         .build();
+            }
+
+            private String buildPublisherSiteAppIdKey(AgmaAnalyticsAccountProperties account) {
+                final String publisherId = account.getPublisherId();
+                final String siteAppId = account.getSiteAppId();
+                return StringUtils.isNotBlank(siteAppId)
+                        ? String.format("%s_%s", publisherId, siteAppId)
+                        : publisherId;
             }
 
             @Validated
