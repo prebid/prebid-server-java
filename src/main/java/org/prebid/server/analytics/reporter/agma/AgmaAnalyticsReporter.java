@@ -98,12 +98,7 @@ public class AgmaAnalyticsReporter implements AnalyticsReporter, Initializable {
 
     @Override
     public void initialize(Promise<Void> initializePromise) {
-        vertx.setPeriodic(bufferTimeoutMs, ignored -> {
-            final List<String> toFlush = buffer.pollAll();
-            if (!toFlush.isEmpty()) {
-                sendEvents(toFlush);
-            }
-        });
+        vertx.setPeriodic(bufferTimeoutMs, ignored -> sendEvents(buffer.pollAll()));
         initializePromise.complete();
     }
 
@@ -152,11 +147,7 @@ public class AgmaAnalyticsReporter implements AnalyticsReporter, Initializable {
 
         final String eventString = jacksonMapper.encodeToString(agmaEvent);
         buffer.put(eventString, eventString.length());
-        final List<String> toFlush = buffer.pollToFlush();
-        if (!toFlush.isEmpty()) {
-            sendEvents(toFlush);
-        }
-
+        sendEvents(buffer.pollToFlush());
         return Future.succeededFuture();
     }
 
@@ -212,6 +203,9 @@ public class AgmaAnalyticsReporter implements AnalyticsReporter, Initializable {
     }
 
     private void sendEvents(List<String> events) {
+        if (events.isEmpty()) {
+            return;
+        }
         final String payload = preparePayload(events);
         final Future<HttpClientResponse> responseFuture = compressToGzip
                 ? httpClient.request(HttpMethod.POST, url, headers, gzip(payload), httpTimeoutMs)
