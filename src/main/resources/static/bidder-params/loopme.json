@@ -20,5 +20,5 @@
       "minLength": 1
     }
   },
-  "required": ["publisherId", "bundleId", "placementId"]
+  "required": ["publisherId"]
 }
