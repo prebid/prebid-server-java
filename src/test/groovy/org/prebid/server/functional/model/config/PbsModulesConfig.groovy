@@ -12,4 +12,5 @@ class PbsModulesConfig {
     RichmediaFilter pbRichmediaFilter
     Ortb2BlockingConfig ortb2Blocking
     PbResponseCorrection pbResponseCorrection
+    PbRequestCorrectionConfig pbRequestCorrection
 }
