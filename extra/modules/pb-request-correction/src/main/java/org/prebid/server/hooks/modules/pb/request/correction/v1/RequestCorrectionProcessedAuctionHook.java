@@ -23,7 +23,7 @@ import java.util.Objects;
 
 public class RequestCorrectionProcessedAuctionHook implements ProcessedAuctionRequestHook {
 
-    private static final String CODE = "mgni-request-correction-processed-auction-request";
+    private static final String CODE = "pb-request-correction-processed-auction-request";
 
     private final RequestCorrectionProvider requestCorrectionProvider;
     private final ObjectMapper mapper;
