@@ -286,7 +286,7 @@ class PbRequestCorrectionSpec extends ModuleBaseSpec {
                      "${PBSUtils.randomString} ${DEVICE_PREBID_MOBILE_PATTERN}${PBSUtils.randomNumber}${PBSUtils.randomString} ${PBSUtils.randomString}"]
     }
 
-    def "PBS shouldn't remove pattern device.ua pattern when request correction is enabled for account and user agent correction disabled"() {
+    def "PBS shouldn't remove pattern device.ua when request correction is enabled for account and user agent correction disabled"() {
         given: "Android APP bid request with version lover then 2.1.5"
         def deviceUserAgent = "${DEVICE_PREBID_MOBILE_PATTERN}${PBSUtils.randomNumber}"
         def prebid = new AppPrebid(source: PBSUtils.getRandomCase(PREBID_MOBILE), version: getRandomVersion("0.0.0", "2.1.5"))
