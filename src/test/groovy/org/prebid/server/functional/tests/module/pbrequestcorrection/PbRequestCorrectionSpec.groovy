@@ -285,15 +285,19 @@ class PbRequestCorrectionSpec extends ModuleBaseSpec {
 
         then: "Bidder request should contain device.ua"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.device.ua
+        assert bidderRequest.device.ua.contains(deviceUa.split()
+                .findAll { it.replaceAll("PrebidMobile/[0-9][^ ]*", "") }
+                .toString()
+                .replace("[", "")
+                .replace(",", " ")
+                .replace("]", ""))
 
         where:
         deviceUa << ["${PBSUtils.randomNumber} ${DEVICE_PREBID_MOBILE_PATTERN}${PBSUtils.randomNumber} ${PBSUtils.randomString}",
                      "${PBSUtils.randomString} ${DEVICE_PREBID_MOBILE_PATTERN}${PBSUtils.randomNumber}${PBSUtils.randomString} ${PBSUtils.randomString}",
                      "${DEVICE_PREBID_MOBILE_PATTERN}",
-                     "${DEVICE_PREBID_MOBILE_PATTERN} ${PBSUtils.randomNumber}",
-                     "${DEVICE_PREBID_MOBILE_PATTERN} ${PBSUtils.randomNumber} ${PBSUtils.randomString}"
-
+                     "${DEVICE_PREBID_MOBILE_PATTERN}${PBSUtils.randomNumber}",
+                     "${DEVICE_PREBID_MOBILE_PATTERN}${PBSUtils.randomNumber} ${PBSUtils.randomString}"
         ]
     }
 
