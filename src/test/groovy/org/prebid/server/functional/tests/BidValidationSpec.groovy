@@ -18,6 +18,8 @@ import spock.lang.PendingFeature
 import java.time.Instant
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.request.auction.DebugCondition.DISABLED
+import static org.prebid.server.functional.model.request.auction.DebugCondition.ENABLED
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.DOOH
 import static org.prebid.server.functional.util.HttpUtil.REFERER_HEADER
 
@@ -65,8 +67,8 @@ class BidValidationSpec extends BaseSpec {
 
         where:
         bidRequest << [BidRequest.getDefaultBidRequest(DistributionChannel.APP).tap {
-            it.dooh = Dooh.defaultDooh
-        },
+                           it.dooh = Dooh.defaultDooh
+                       },
                        BidRequest.getDefaultBidRequest(DistributionChannel.SITE).tap {
                            it.dooh = Dooh.defaultDooh
                        },
@@ -113,8 +115,8 @@ class BidValidationSpec extends BaseSpec {
 
         where:
         bidRequest << [BidRequest.getDefaultBidRequest(DistributionChannel.APP).tap {
-            it.dooh = Dooh.defaultDooh
-        },
+                           it.dooh = Dooh.defaultDooh
+                       },
                        BidRequest.getDefaultBidRequest(DistributionChannel.SITE).tap {
                            it.dooh = Dooh.defaultDooh
                        },
@@ -133,7 +135,7 @@ class BidValidationSpec extends BaseSpec {
             dooh.id = null
             dooh.venueType = null
         }
-        bidDoohRequest.ext.prebid.debug = 1
+        bidDoohRequest.ext.prebid.debug = ENABLED
 
         when: "PBS processes auction request"
         defaultPbsService.sendAuctionRequest(bidDoohRequest)
@@ -148,7 +150,7 @@ class BidValidationSpec extends BaseSpec {
         given: "Default basic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
         bidRequest.site = new Site(id: null, name: PBSUtils.randomString, page: null)
-        bidRequest.ext.prebid.debug = 1
+        bidRequest.ext.prebid.debug = ENABLED
 
         when: "PBS processes auction request"
         defaultPbsService.sendAuctionRequest(bidRequest)
@@ -161,7 +163,7 @@ class BidValidationSpec extends BaseSpec {
     def "PBS should treat bids with 0 price as valid when deal id is present"() {
         given: "Default basic BidRequest with generic bidder and enabled debug"
         def bidRequest = BidRequest.defaultBidRequest
-        bidRequest.ext.prebid.debug = 1
+        bidRequest.ext.prebid.debug = ENABLED
 
         and: "Bid response with 0 price bid"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
@@ -190,11 +192,14 @@ class BidValidationSpec extends BaseSpec {
         }
 
         and: "Bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        def bid = bidResponse.seatbid.first().bid.first()
-        bid.dealid = dealId
-        bid.price = bidPrice
-        def bidId = bid.id
+        def bidId = PBSUtils.randomString
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            it.seatbid.first.bid.first.tap {
+                id = bidId
+                dealid = dealId
+                price = bidPrice
+            }
+        }
 
         and: "Set bidder response"
         bidder.setResponse(bidRequest.id, bidResponse)
@@ -203,7 +208,8 @@ class BidValidationSpec extends BaseSpec {
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "Invalid bid should be deleted"
-        assert response.seatbid.size() == 0
+        assert !response.seatbid
+        assert !response.ext.seatnonbid
 
         and: "PBS should emit an error"
         assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
@@ -211,23 +217,65 @@ class BidValidationSpec extends BaseSpec {
                 ["Dropped bid '$bidId'. Does not contain a positive (or zero if there is a deal) 'price'" as String]
 
         where:
-        debug | test | bidPrice                      | dealId
-        0     | 1    | PBSUtils.randomNegativeNumber | null
-        0     | 1    | PBSUtils.randomNegativeNumber | PBSUtils.randomNumber
-        0     | 1    | 0                             | null
-        0     | 1    | null                          | PBSUtils.randomNumber
-        0     | 1    | null                          | null
-        1     | 0    | PBSUtils.randomNegativeNumber | null
-        1     | 0    | PBSUtils.randomNegativeNumber | PBSUtils.randomNumber
-        1     | 0    | 0                             | null
-        1     | 0    | null                          | PBSUtils.randomNumber
-        1     | 0    | null                          | null
+        debug    | test     | bidPrice                      | dealId
+        DISABLED | ENABLED  | PBSUtils.randomNegativeNumber | null
+        DISABLED | ENABLED  | PBSUtils.randomNegativeNumber | PBSUtils.randomNumber
+        DISABLED | ENABLED  | 0                             | null
+        DISABLED | ENABLED  | null                          | PBSUtils.randomNumber
+        DISABLED | ENABLED  | null                          | null
+        ENABLED  | DISABLED | PBSUtils.randomNegativeNumber | null
+        ENABLED  | DISABLED | PBSUtils.randomNegativeNumber | PBSUtils.randomNumber
+        ENABLED  | DISABLED | 0                             | null
+        ENABLED  | DISABLED | null                          | PBSUtils.randomNumber
+        ENABLED  | DISABLED | null                          | null
+    }
+
+    def "PBS should drop invalid bid without debug error when request debug disabled and bid price is #bidPrice and deal id is #dealId"() {
+        given: "Default basic BidRequest with generic bidder"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            test = DISABLED
+            ext.prebid.debug = DISABLED
+        }
+
+        and: "Bid response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            it.seatbid.first.bid.first.tap {
+                dealid = dealId
+                price = bidPrice
+            }
+        }
+
+        and: "Set bidder response"
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Invalid bid should be deleted"
+        assert !response.seatbid
+        assert !response.ext.seatnonbid
+
+        and: "PBS shouldn't emit an error"
+        assert !response.ext?.warnings
+        assert !response.ext?.warnings
+
+        and: "PBS should call bidder"
+        def bidderRequests = bidder.getBidderRequests(bidResponse.id)
+        assert bidderRequests.size() == 1
+
+        where:
+        bidPrice                      | dealId
+        PBSUtils.randomNegativeNumber | null
+        PBSUtils.randomNegativeNumber | PBSUtils.randomNumber
+        0                             | null
+        null                          | PBSUtils.randomNumber
+        null                          | null
     }
 
     def "PBS should only drop invalid bid without discarding whole seat"() {
         given: "Default basic  BidRequest with generic bidder"
         def bidRequest = BidRequest.defaultBidRequest
-        bidRequest.ext.prebid.debug = 1
+        bidRequest.ext.prebid.debug = ENABLED
         bidRequest.ext.prebid.multibid = [new MultiBid(bidder: GENERIC, maxBids: 2)]
 
         and: "Bid response with 2 bids"
@@ -246,7 +294,7 @@ class BidValidationSpec extends BaseSpec {
         when: "PBS processes auction request"
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Invalid bids should be deleted"
+        then: "Bid response contains only valid bid"
         assert response.seatbid?.first()?.bid*.id == [validBidId]
 
         and: "PBS should emit an error"
@@ -268,47 +316,12 @@ class BidValidationSpec extends BaseSpec {
         1     | 0    | null                          | null
     }
 
-    def "PBS should drop invalid bid without debug error when request debug disabled and bid price is #bidPrice and deal id is #dealId"() {
-        given: "Default basic BidRequest with generic bidder"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            test = 0
-            ext.prebid.debug = 0
-        }
-
-        and: "Bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        def bid = bidResponse.seatbid.first().bid.first()
-        bid.dealid = dealId
-        bid.price = bidPrice
-
-        and: "Set bidder response"
-        bidder.setResponse(bidRequest.id, bidResponse)
-
-        when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
-
-        then: "Invalid bid should be deleted"
-        assert response.seatbid.size() == 0
-
-        and: "PBS shouldn't emit an error"
-        assert !response.ext?.warnings
-        assert !response.ext?.warnings
-
-        where:
-        bidPrice                      | dealId
-        PBSUtils.randomNegativeNumber | null
-        PBSUtils.randomNegativeNumber | PBSUtils.randomNumber
-        0                             | null
-        null                          | PBSUtils.randomNumber
-        null                          | null
-    }
-
-    def "PBS should only drop invalid bid without discarding whole seat without debug error when  request debug disabled "() {
+    def "PBS should only drop invalid bid without discarding whole seat without debug error when request debug disabled "() {
         given: "Default basic  BidRequest with generic bidder"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            test = 0
+            test = DISABLED
             ext.prebid.tap {
-                debug = 0
+                debug = DISABLED
                 multibid = [new MultiBid(bidder: GENERIC, maxBids: 2)]
             }
         }
@@ -329,7 +342,7 @@ class BidValidationSpec extends BaseSpec {
         when: "PBS processes auction request"
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Invalid bids should be deleted"
+        then: "Bid response contains only valid bid"
         assert response.seatbid?.first()?.bid*.id == [validBidId]
 
         and: "PBS shouldn't emit an error"

@@ -25,6 +25,7 @@ import org.prebid.server.functional.util.PBSUtils
 
 import java.math.RoundingMode
 
+import static org.prebid.server.functional.model.request.auction.DebugCondition.ENABLED
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 import static org.prebid.server.functional.model.request.auction.FetchStatus.INPROGRESS
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
@@ -85,7 +86,7 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
     static BidRequest getStoredRequestWithFloors(DistributionChannel channel = SITE) {
         channel == SITE
                 ? BidRequest.defaultStoredRequest.tap { ext.prebid.floors = ExtPrebidFloors.extPrebidFloors }
-                : new BidRequest(ext: new BidRequestExt(prebid: new Prebid(debug: 1, floors: ExtPrebidFloors.extPrebidFloors)))
+                : new BidRequest(ext: new BidRequestExt(prebid: new Prebid(debug: ENABLED, floors: ExtPrebidFloors.extPrebidFloors)))
 
     }
 
