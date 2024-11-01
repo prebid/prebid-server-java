@@ -28,11 +28,12 @@ class GeneralModuleSpec extends ModuleBaseSpec {
     private final static String NO_INVOCATION_METRIC = "modules.module.%s.stage.%s.hook.%s.success.no-invocation"
     private final static String CALL_METRIC = "modules.module.%s.stage.%s.hook.%s.call"
 
+    private final static Map<String, String> DISABLED_INVOKE_CONFIG = ['settings.modules.require-config-to-invoke': 'false']
     private final static Map<String, String> ENABLED_INVOKE_CONFIG = ['settings.modules.require-config-to-invoke': 'true']
     private final static Map<String, String> MULTY_MODULE_CONFIG = getRichMediaFilterSettings(PBSUtils.randomString) + getResponseCorrectionConfig() +
             ['hooks.host-execution-plan': encode(ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, [(ALL_PROCESSED_BID_RESPONSES): [PB_RICHMEDIA_FILTER, PB_RESPONSE_CORRECTION]]))]
 
-    private final static PrebidServerService pbsServiceWithMultipleModule = pbsServiceFactory.getService(MULTY_MODULE_CONFIG)
+    private final static PrebidServerService pbsServiceWithMultipleModule = pbsServiceFactory.getService(MULTY_MODULE_CONFIG + DISABLED_INVOKE_CONFIG)
     private final static PrebidServerService pbsServiceWithMultipleModuleWithRequireInvoke = pbsServiceFactory.getService(MULTY_MODULE_CONFIG + ENABLED_INVOKE_CONFIG)
 
     def "PBS should call all modules and traces response when account config is empty and require-config-to-invoke is disabled"() {
