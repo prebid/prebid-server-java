@@ -2,7 +2,6 @@ package org.prebid.server.hooks.modules.pb.request.correction.core.correction.in
 
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
-import org.prebid.server.hooks.modules.pb.request.correction.core.config.model.Config;
 import org.prebid.server.hooks.modules.pb.request.correction.core.correction.Correction;
 
 public class InterstitialCorrection implements Correction {
