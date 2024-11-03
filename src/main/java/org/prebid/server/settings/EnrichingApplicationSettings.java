@@ -4,7 +4,7 @@ import io.vertx.core.Future;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.activity.ActivitiesConfigResolver;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.execution.Timeout;
+import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.floors.PriceFloorsConfigResolver;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
