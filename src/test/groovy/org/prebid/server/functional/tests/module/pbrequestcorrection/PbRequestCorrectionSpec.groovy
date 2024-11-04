@@ -167,7 +167,7 @@ class PbRequestCorrectionSpec extends ModuleBaseSpec {
         assert bidderRequest.imp.instl == bidRequest.imp.instl
     }
 
-    def "PBS shouldn't remove positive instl from imps for android app when request correction is enabled for account and version is higher then 2.2.3"() {
+    def "PBS shouldn't remove positive instl from imps for android app when request correction is enabled for account and version is higher then threshold"() {
         given: "Android APP bid request with version higher then version threshold"
         def prebid = new AppPrebid(source: PBSUtils.getRandomCase(PREBID_MOBILE), version: PBSUtils.getRandomVersion("2.2.4"))
         def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
@@ -354,7 +354,7 @@ class PbRequestCorrectionSpec extends ModuleBaseSpec {
                    PBSUtils.randomString]
     }
 
-    def "PBS shouldn't remove pattern device.ua when request correction is enabled for account and version biggest that 2.1.6"() {
+    def "PBS shouldn't remove pattern device.ua when request correction is enabled for account and version biggest that threshold"() {
         given: "Android APP bid request with version higher then version threshold"
         def randomDeviceUa = "${DEVICE_PREBID_MOBILE_PATTERN}${PBSUtils.randomNumber}"
         def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
@@ -375,7 +375,7 @@ class PbRequestCorrectionSpec extends ModuleBaseSpec {
         assert bidderRequest.device.ua == randomDeviceUa
     }
 
-    def "PBS shouldn't remove pattern device.ua when request correction is enabled for account and version 2.1.6"() {
+    def "PBS shouldn't remove pattern device.ua when request correction is enabled for account and version threshold"() {
         given: "Android APP bid request with version threshold"
         def randomDeviceUa = "${DEVICE_PREBID_MOBILE_PATTERN}${PBSUtils.randomNumber}"
         def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
@@ -396,7 +396,7 @@ class PbRequestCorrectionSpec extends ModuleBaseSpec {
         assert bidderRequest.device.ua == randomDeviceUa
     }
 
-    def "PBS shouldn't remove device.ua pattern when request correction is enabled for account and version biggest that 2.1.6"() {
+    def "PBS shouldn't remove device.ua pattern when request correction is enabled for account and version threshold"() {
         given: "Android APP bid request with version higher then version threshold"
         def randomDeviceUa = PBSUtils.randomString
         def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
