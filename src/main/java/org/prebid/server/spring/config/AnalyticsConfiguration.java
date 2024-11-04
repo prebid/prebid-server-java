@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.reporter.agma.AgmaAnalyticsReporter;
@@ -111,8 +112,9 @@ public class AnalyticsConfiguration {
             public AgmaAnalyticsProperties toComponentProperties() {
                 final Map<String, String> accountsByPublisherId = accounts.stream()
                         .collect(Collectors.toMap(
-                                AgmaAnalyticsAccountProperties::getPublisherId,
-                                AgmaAnalyticsAccountProperties::getCode));
+                                this::buildPublisherSiteAppIdKey,
+                                AgmaAnalyticsAccountProperties::getCode
+                        ));
 
                 return AgmaAnalyticsProperties.builder()
                         .url(endpoint.getUrl())
@@ -123,6 +125,14 @@ public class AnalyticsConfiguration {
                         .httpTimeoutMs(endpoint.getTimeoutMs())
                         .accounts(accountsByPublisherId)
                         .build();
+            }
+
+            private String buildPublisherSiteAppIdKey(AgmaAnalyticsAccountProperties account) {
+                final String publisherId = account.getPublisherId();
+                final String siteAppId = account.getSiteAppId();
+                return StringUtils.isNotBlank(siteAppId)
+                        ? String.format("%s_%s", publisherId, siteAppId)
+                        : publisherId;
             }
 
             @Validated
