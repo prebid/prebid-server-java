@@ -243,7 +243,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         def account = getAccountWithEnabledFetch(bidRequest.accountId).tap {
             config.auction.priceFloors.fetch.enabled = priceFloors
             config.auction.priceFloorsSnakeCase = new AccountPriceFloorsConfig(enabled: true,
-                    fetch: new PriceFloorsFetch(url: basicFetchUrl + bidRequest.accountId, enabled: priceFloorsSnakeCase))
+                    fetch: new PriceFloorsFetch(url: BASIC_FETCH_URL + bidRequest.accountId, enabled: priceFloorsSnakeCase))
         }
         accountDao.save(account)
 
