@@ -22,16 +22,16 @@ class PbRequestCorrectionSpec extends ModuleBaseSpec {
 
     private static final String PREBID_MOBILE = "prebid-mobile"
     private static final String DEVICE_PREBID_MOBILE_PATTERN = "PrebidMobile/"
-    private static final String ACCEPTABLE_DEVICE_UA_PREBID_MOBILE_VERSION = PBSUtils.getRandomVersion("0.0", "2.1.5")
-    private static final String ACCEPTABLE_DEVICE_INSTL_PREBID_MOBILE_VERSION = PBSUtils.getRandomVersion("0.0", "2.2.3")
+    private static final String ACCEPTABLE_DEVICE_UA_VERSION_THRESHOLD = PBSUtils.getRandomVersion("0.0", "2.1.5")
+    private static final String ACCEPTABLE_DEVICE_INSTL_VERSION_THRESHOLD = PBSUtils.getRandomVersion("0.0", "2.2.3")
     private static final String ANDROID = "android"
     private static final String IOS = "IOS"
 
     private PrebidServerService pbsServiceWithRequestCorrectionModule = pbsServiceFactory.getService(requestCorrectionSettings)
 
     def "PBS should remove positive instl from imps for android app when request correction is enabled for account"() {
-        given: "Android APP bid request with version lover then 2.2.3"
-        def prebid = new AppPrebid(source: PBSUtils.getRandomCase(PREBID_MOBILE), version: ACCEPTABLE_DEVICE_INSTL_PREBID_MOBILE_VERSION)
+        given: "Android APP bid request with version lover then version threshold"
+        def prebid = new AppPrebid(source: PBSUtils.getRandomCase(PREBID_MOBILE), version: ACCEPTABLE_DEVICE_INSTL_VERSION_THRESHOLD)
         def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
             imp = imps
             app.bundle = PBSUtils.getRandomCase(bundle)
@@ -60,7 +60,7 @@ class PbRequestCorrectionSpec extends ModuleBaseSpec {
 
     def "PBS shouldn't remove negative instl from imps for android app when request correction is enabled for account"() {
         given: "Android APP bid request with version lover then version threshold"
-        def prebid = new AppPrebid(source: PBSUtils.getRandomCase(PREBID_MOBILE), version: ACCEPTABLE_DEVICE_INSTL_PREBID_MOBILE_VERSION)
+        def prebid = new AppPrebid(source: PBSUtils.getRandomCase(PREBID_MOBILE), version: ACCEPTABLE_DEVICE_INSTL_VERSION_THRESHOLD)
         def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
             imp = imps
             app.bundle = PBSUtils.getRandomCase(ANDROID)
@@ -88,7 +88,7 @@ class PbRequestCorrectionSpec extends ModuleBaseSpec {
 
     def "PBS shouldn't remove positive instl from imps for not android or not prebid-mobile app when request correction is enabled for account"() {
         given: "Android APP bid request with version lover then version threshold"
-        def prebid = new AppPrebid(source: PBSUtils.getRandomCase(source), version: PBSUtils.getRandomVersion("0.0", ACCEPTABLE_DEVICE_INSTL_PREBID_MOBILE_VERSION))
+        def prebid = new AppPrebid(source: PBSUtils.getRandomCase(source), version: PBSUtils.getRandomVersion(ACCEPTABLE_DEVICE_INSTL_VERSION_THRESHOLD))
         def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
             imp.first.instl = YES
             app.bundle = PBSUtils.getRandomCase(bundle)
@@ -138,15 +138,15 @@ class PbRequestCorrectionSpec extends ModuleBaseSpec {
         assert bidderRequest.imp.instl == bidRequest.imp.instl
 
         where:
-        bundle  | source        | version                                       | instl
-        null    | PREBID_MOBILE | ACCEPTABLE_DEVICE_INSTL_PREBID_MOBILE_VERSION | YES
-        ANDROID | null          | ACCEPTABLE_DEVICE_INSTL_PREBID_MOBILE_VERSION | YES
-        ANDROID | PREBID_MOBILE | null                                          | YES
-        ANDROID | PREBID_MOBILE | ACCEPTABLE_DEVICE_INSTL_PREBID_MOBILE_VERSION | null
+        bundle  | source        | version                                   | instl
+        null    | PREBID_MOBILE | ACCEPTABLE_DEVICE_INSTL_VERSION_THRESHOLD | YES
+        ANDROID | null          | ACCEPTABLE_DEVICE_INSTL_VERSION_THRESHOLD | YES
+        ANDROID | PREBID_MOBILE | null                                      | YES
+        ANDROID | PREBID_MOBILE | ACCEPTABLE_DEVICE_INSTL_VERSION_THRESHOLD | null
     }
 
-    def "PBS shouldn't remove positive instl from imps for android app when request correction is enabled for account and version is 2.2.3"() {
-        given: "Android APP bid request with version equal to 2.2.3"
+    def "PBS shouldn't remove positive instl from imps for android app when request correction is enabled for account and version is threshold"() {
+        given: "Android APP bid request with version threshold"
         def prebid = new AppPrebid(source: PBSUtils.getRandomCase(PREBID_MOBILE), version: "2.2.3")
         def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
             imp.first.instl = YES
@@ -168,7 +168,7 @@ class PbRequestCorrectionSpec extends ModuleBaseSpec {
     }
 
     def "PBS shouldn't remove positive instl from imps for android app when request correction is enabled for account and version is higher then 2.2.3"() {
-        given: "Android APP bid request with version higher then 2.2.3"
+        given: "Android APP bid request with version higher then version threshold"
         def prebid = new AppPrebid(source: PBSUtils.getRandomCase(PREBID_MOBILE), version: PBSUtils.getRandomVersion("2.2.4"))
         def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
             imp.first.instl = YES
@@ -191,7 +191,7 @@ class PbRequestCorrectionSpec extends ModuleBaseSpec {
 
     def "PBS shouldn't remove positive instl from imps for android app when request correction is disabled for account"() {
         given: "Android APP bid request with version lover then version threshold"
-        def prebid = new AppPrebid(source: PBSUtils.getRandomCase(PREBID_MOBILE), version: ACCEPTABLE_DEVICE_INSTL_PREBID_MOBILE_VERSION)
+        def prebid = new AppPrebid(source: PBSUtils.getRandomCase(PREBID_MOBILE), version: ACCEPTABLE_DEVICE_INSTL_VERSION_THRESHOLD)
         def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
             imp.first.instl = YES
             app.bundle = PBSUtils.getRandomCase(ANDROID)
@@ -221,7 +221,7 @@ class PbRequestCorrectionSpec extends ModuleBaseSpec {
 
     def "PBS shouldn't remove positive instl from imps for android app when request correction is not applied for account"() {
         given: "Android APP bid request with version lover then version threshold"
-        def prebid = new AppPrebid(source: PBSUtils.getRandomCase(PREBID_MOBILE), version: ACCEPTABLE_DEVICE_INSTL_PREBID_MOBILE_VERSION)
+        def prebid = new AppPrebid(source: PBSUtils.getRandomCase(PREBID_MOBILE), version: ACCEPTABLE_DEVICE_INSTL_VERSION_THRESHOLD)
         def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
             imp.first.instl = YES
             app.bundle = PBSUtils.getRandomCase(ANDROID)
@@ -242,8 +242,8 @@ class PbRequestCorrectionSpec extends ModuleBaseSpec {
     }
 
     def "PBS should remove pattern device.ua when request correction is enabled for account and user agent correction enabled"() {
-       given: "Android APP bid request with version lover then version threshold"
-        def prebid = new AppPrebid(source: PREBID_MOBILE, version: ACCEPTABLE_DEVICE_UA_PREBID_MOBILE_VERSION)
+        given: "Android APP bid request with version lover then version threshold"
+        def prebid = new AppPrebid(source: PREBID_MOBILE, version: ACCEPTABLE_DEVICE_UA_VERSION_THRESHOLD)
         def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
             app.ext = new AppExt(prebid: prebid)
             device = new Device(ua: deviceUa)
@@ -267,8 +267,8 @@ class PbRequestCorrectionSpec extends ModuleBaseSpec {
     }
 
     def "PBS should remove only pattern device.ua when request correction is enabled for account and user agent correction enabled"() {
-       given: "Android APP bid request with version lover then version threshold"
-        def prebid = new AppPrebid(source: PREBID_MOBILE, version: ACCEPTABLE_DEVICE_UA_PREBID_MOBILE_VERSION)
+        given: "Android APP bid request with version lover then version threshold"
+        def prebid = new AppPrebid(source: PREBID_MOBILE, version: ACCEPTABLE_DEVICE_UA_VERSION_THRESHOLD)
         def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
             app.ext = new AppExt(prebid: prebid)
             device = new Device(ua: deviceUa)
@@ -296,9 +296,9 @@ class PbRequestCorrectionSpec extends ModuleBaseSpec {
     }
 
     def "PBS shouldn't remove pattern device.ua when request correction is enabled for account and user agent correction disabled"() {
-       given: "Android APP bid request with version lover then version threshold"
+        given: "Android APP bid request with version lover then version threshold"
         def deviceUserAgent = "${DEVICE_PREBID_MOBILE_PATTERN}${PBSUtils.randomNumber}"
-        def prebid = new AppPrebid(source: PBSUtils.getRandomCase(PREBID_MOBILE), version: ACCEPTABLE_DEVICE_UA_PREBID_MOBILE_VERSION)
+        def prebid = new AppPrebid(source: PBSUtils.getRandomCase(PREBID_MOBILE), version: ACCEPTABLE_DEVICE_UA_VERSION_THRESHOLD)
         def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
             app.ext = new AppExt(prebid: prebid)
             device = new Device(ua: deviceUserAgent)
@@ -326,10 +326,10 @@ class PbRequestCorrectionSpec extends ModuleBaseSpec {
     }
 
     def "PBS shouldn't remove pattern device.ua when request correction is enabled for account and source not a prebid-mobile"() {
-       given: "Android APP bid request with version lover then version threshold"
+        given: "Android APP bid request with version lover then version threshold"
         def randomDeviceUa = "${DEVICE_PREBID_MOBILE_PATTERN}${PBSUtils.randomNumber}"
         def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
-            app.ext = new AppExt(prebid: new AppPrebid(source: source, version: ACCEPTABLE_DEVICE_UA_PREBID_MOBILE_VERSION))
+            app.ext = new AppExt(prebid: new AppPrebid(source: source, version: ACCEPTABLE_DEVICE_UA_VERSION_THRESHOLD))
             device = new Device(ua: randomDeviceUa)
         }
 
@@ -348,14 +348,14 @@ class PbRequestCorrectionSpec extends ModuleBaseSpec {
         where:
         source << ["prebid",
                    "mobile",
-                   "mobile-prebid" + PBSUtils.randomString,
-                   PBSUtils.randomString + "mobile-prebid",
+                   PREBID_MOBILE + PBSUtils.randomString,
+                   PBSUtils.randomString + PREBID_MOBILE,
                    "mobile-prebid",
                    PBSUtils.randomString]
     }
 
     def "PBS shouldn't remove pattern device.ua when request correction is enabled for account and version biggest that 2.1.6"() {
-        given: "Android APP bid request with version biggest then 2.1.6"
+        given: "Android APP bid request with version higher then version threshold"
         def randomDeviceUa = "${DEVICE_PREBID_MOBILE_PATTERN}${PBSUtils.randomNumber}"
         def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
             app.ext = new AppExt(prebid: new AppPrebid(source: PBSUtils.getRandomCase(PREBID_MOBILE), version: PBSUtils.getRandomVersion("2.1.6")))
@@ -376,7 +376,7 @@ class PbRequestCorrectionSpec extends ModuleBaseSpec {
     }
 
     def "PBS shouldn't remove pattern device.ua when request correction is enabled for account and version 2.1.6"() {
-        given: "Android APP bid request with version 2.1.6"
+        given: "Android APP bid request with version threshold"
         def randomDeviceUa = "${DEVICE_PREBID_MOBILE_PATTERN}${PBSUtils.randomNumber}"
         def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
             app.ext = new AppExt(prebid: new AppPrebid(source: PBSUtils.getRandomCase(PREBID_MOBILE), version: "2.1.6"))
@@ -397,7 +397,7 @@ class PbRequestCorrectionSpec extends ModuleBaseSpec {
     }
 
     def "PBS shouldn't remove device.ua pattern when request correction is enabled for account and version biggest that 2.1.6"() {
-        given: "Android APP bid request with version biggest then 2.1.6"
+        given: "Android APP bid request with version higher then version threshold"
         def randomDeviceUa = PBSUtils.randomString
         def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
             app.ext = new AppExt(prebid: new AppPrebid(source: PBSUtils.getRandomCase(PREBID_MOBILE), version: PBSUtils.getRandomVersion("2.1.6")))
@@ -418,8 +418,8 @@ class PbRequestCorrectionSpec extends ModuleBaseSpec {
     }
 
     def "PBS shouldn't remove device.ua pattern from device for android app when request correction is not applied for account"() {
-       given: "Android APP bid request with version lover then version threshold"
-        def prebid = new AppPrebid(source: PREBID_MOBILE, version: ACCEPTABLE_DEVICE_UA_PREBID_MOBILE_VERSION)
+        given: "Android APP bid request with version lover then version threshold"
+        def prebid = new AppPrebid(source: PREBID_MOBILE, version: ACCEPTABLE_DEVICE_UA_VERSION_THRESHOLD)
         def deviceUa = "${DEVICE_PREBID_MOBILE_PATTERN}${PBSUtils.randomNumber}"
         def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
             app.ext = new AppExt(prebid: prebid)
