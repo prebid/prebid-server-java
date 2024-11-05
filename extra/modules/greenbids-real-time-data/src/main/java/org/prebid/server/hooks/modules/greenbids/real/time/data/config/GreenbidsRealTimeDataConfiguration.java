@@ -39,25 +39,14 @@ import java.util.concurrent.TimeUnit;
 public class GreenbidsRealTimeDataConfiguration {
 
     @Bean
-    DatabaseReader dbReader(GreenbidsRealTimeDataProperties properties) throws IOException {
-        URL url = new URL(properties.getGeoLiteCountryPath());
-        Path databasePath = Files.createTempFile("GeoLite2-Country", ".mmdb");
-
-        try (InputStream inputStream = url.openStream();
-             FileOutputStream outputStream = new FileOutputStream(databasePath.toFile())) {
-            inputStream.transferTo(outputStream);
-        }
-
-        try {
-            return new DatabaseReader.Builder(databasePath.toFile()).build();
-        } catch (IOException e) {
-            throw new PreBidException("Failed build DatabaseReader from DB", e);
-        }
+    DatabaseReaderFactory dbReaderFactory(GreenbidsRealTimeDataProperties properties, Vertx vertx) {
+        return new DatabaseReaderFactory(properties.getGeoLiteCountryPath(), vertx);
     }
 
     @Bean
-    GreenbidsInferenceDataService greenbidsInferenceDataService(DatabaseReader dbReader) {
-        return new GreenbidsInferenceDataService(dbReader, ObjectMapperProvider.mapper());
+    GreenbidsInferenceDataService greenbidsInferenceDataService(DatabaseReaderFactory dbReaderFactory) {
+        return new GreenbidsInferenceDataService(
+                dbReaderFactory.getDatabaseReader(), ObjectMapperProvider.mapper());
     }
 
     @Bean
