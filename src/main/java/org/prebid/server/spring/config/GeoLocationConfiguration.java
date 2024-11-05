@@ -7,7 +7,7 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.GeoLocationServiceWrapper;
 import org.prebid.server.auction.requestfactory.Ortb2ImplicitParametersResolver;
-import org.prebid.server.execution.file.RemoteFileSyncer;
+import org.prebid.server.execution.file.syncer.RemoteFileSyncer;
 import org.prebid.server.execution.retry.ExponentialBackoffRetryPolicy;
 import org.prebid.server.execution.retry.FixedIntervalRetryPolicy;
 import org.prebid.server.execution.retry.RetryPolicy;

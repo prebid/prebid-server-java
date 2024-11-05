@@ -2,10 +2,7 @@ package org.prebid.server.execution.file;
 
 import io.vertx.core.Future;
 
-/**
- * Contract fro services which use external files.
- */
-public interface RemoteFileProcessor {
+public interface FileProcessor {
 
     Future<?> setDataPath(String dataFilePath);
 }
