@@ -50,6 +50,7 @@ public class RemoteFileSyncerV2 extends FileSyncer {
 
     @Override
     protected Future<Void> doOnSuccess() {
+        remoteFileSupplier.clearTmp();
         remoteFileSupplier.deleteBackup();
         forceLastSupplyTimeUpdate();
         return Future.succeededFuture();

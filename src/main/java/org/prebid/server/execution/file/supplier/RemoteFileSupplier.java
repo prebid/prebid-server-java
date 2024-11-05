@@ -117,36 +117,40 @@ public class RemoteFileSupplier implements Supplier<Future<String>> {
     }
 
     private Future<Void> tmpToSave() {
-        return copyFile(tmpPath, savePath)
-                .compose(ignored -> deleteFile(tmpPath));
+        return copyFile(tmpPath, savePath);
     }
 
-    public Future<Void> clearTmp() {
-        return fileSystem.exists(tmpPath)
-                .compose(exists -> exists ? deleteFile(tmpPath) : Future.succeededFuture());
+    public void clearTmp() {
+        fileSystem.exists(tmpPath).onSuccess(exists -> {
+            if (exists) {
+                deleteFile(tmpPath);
+            }
+        });
     }
 
     private Future<Void> createBackup() {
         return copyFile(savePath, backupPath);
     }
 
-    public Future<Void> deleteBackup() {
-        return fileSystem.exists(backupPath)
-                .compose(exists -> exists ? deleteFile(backupPath) : Future.succeededFuture());
+    public void deleteBackup() {
+        fileSystem.exists(backupPath).onSuccess(exists -> {
+            if (exists) {
+                deleteFile(backupPath);
+            }
+        });
     }
 
     public Future<Void> restoreFromBackup() {
         return copyFile(backupPath, savePath)
-                .compose(ignored -> deleteFile(backupPath));
+                .onSuccess(ignored -> deleteFile(backupPath));
     }
 
     private Future<Void> copyFile(String from, String to) {
         return fileSystem.move(from, to, new CopyOptions().setReplaceExisting(true));
     }
 
-    private Future<Void> deleteFile(String filePath) {
-        return fileSystem.delete(filePath)
-                .onFailure(error -> logger.error("Can't delete file: " + filePath))
-                .otherwiseEmpty();
+    private void deleteFile(String filePath) {
+        fileSystem.delete(filePath)
+                .onFailure(error -> logger.error("Can't delete file: " + filePath));
     }
 }
