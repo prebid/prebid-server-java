@@ -132,14 +132,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
         final Map<String, Ortb2ImpExtResult> analyticsResultFromAnalyticsTag = extractAnalyticsResultFromAnalyticsTag(
                 bidResponse);
 
-        final String greenbidsId = Optional.ofNullable(analyticsResultFromAnalyticsTag)
-                .flatMap(analyticsResult -> analyticsResult.values().stream()
-                        .map(ortb2ImpExtResult ->
-                                Optional.ofNullable(ortb2ImpExtResult.getGreenbids())
-                                        .map(ExplorationResult::getFingerprint)
-                                        .orElse(UUID.randomUUID().toString()))
-                        .findFirst())
-                .orElse(UUID.randomUUID().toString());
+        final String greenbidsId = greenbidsId(analyticsResultFromAnalyticsTag);
 
         if (!isSampled(greenbidsBidRequestExt.getGreenbidsSampling(), greenbidsId)) {
             return Future.succeededFuture();
@@ -256,6 +249,16 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
         }
     }
 
+    private String greenbidsId(Map<String, Ortb2ImpExtResult> analyticsResultFromAnalyticsTag) {
+        return Optional.ofNullable(analyticsResultFromAnalyticsTag)
+                .map(Map::values)
+                .map(Collection::stream)
+                .flatMap(Stream::findFirst)
+                .map(Ortb2ImpExtResult::getGreenbids)
+                .map(ExplorationResult::getFingerprint)
+                .orElseGet(() -> UUID.randomUUID().toString());
+    }
+
     private Future<Void> processAnalyticServerResponse(HttpClientResponse response) {
         final int responseStatusCode = response.getStatusCode();
         if (responseStatusCode >= 200 && responseStatusCode < 300) {
@@ -314,12 +317,10 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
 
         final Map<String, NonBid> seatsWithNonBids = getSeatsWithNonBids(auctionContext);
 
-        final List<GreenbidsAdUnit> adUnitsWithBidResponses = imps.stream().map(imp -> {
-            final Ortb2ImpExtResult ortb2ImpExtResult = Optional.ofNullable(analyticsResultFromAnalyticsTag)
-                    .map(analyticsResult -> analyticsResult.get(imp.getId()))
-                    .orElse(null);
-            return createAdUnit(imp, seatsWithBids, seatsWithNonBids, bidResponse.getCur(), ortb2ImpExtResult);
-        }).toList();
+        final List<GreenbidsAdUnit> adUnitsWithBidResponses = imps.stream().map(imp ->
+                createAdUnit(
+                        imp, seatsWithBids, seatsWithNonBids, bidResponse.getCur(), analyticsResultFromAnalyticsTag))
+                .toList();
 
         final String auctionId = bidRequest
                 .map(BidRequest::getId)
@@ -382,7 +383,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
             Map<String, Bid> seatsWithBids,
             Map<String, NonBid> seatsWithNonBids,
             String currency,
-            Ortb2ImpExtResult analyticsResultFromAnalyticsTag) {
+            Map<String, Ortb2ImpExtResult> analyticsResultFromAnalyticsTag) {
         final ExtBanner extBanner = getExtBanner(imp.getBanner());
         final Video video = imp.getVideo();
         final Native nativeObject = imp.getXNative();
@@ -406,6 +407,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 imp.getId(), seatsWithBids, seatsWithNonBids, impExtPrebid, currency);
 
         final Ortb2ImpResult ortb2ImpResult = Optional.ofNullable(analyticsResultFromAnalyticsTag)
+                .map(analyticsResult -> analyticsResult.get(imp.getId()))
                 .map(Ortb2ImpResult::of)
                 .orElse(null);
 
