@@ -70,8 +70,7 @@ public class RemoteFileSupplier implements Supplier<Future<String>> {
     @Override
     public Future<String> get() {
         return isDownloadRequired().compose(isDownloadRequired -> isDownloadRequired
-                ? downloadFile()
-                .compose(ignored -> createBackup())
+                ? Future.join(downloadFile(), createBackup())
                 .compose(ignored -> tmpToSave())
                 .map(savePath)
                 : Future.succeededFuture());
