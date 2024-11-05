@@ -17,7 +17,6 @@ import static org.prebid.server.functional.model.config.Ortb2BlockingAttribute.V
 class Ortb2BlockingAttributeConfig {
 
     Boolean enforceBlocks
-    Boolean strictMediaType
 
     Object blockedAdomain
     Object blockedApp

@@ -134,47 +134,10 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         PBSUtils.randomNumber | BTYPE
     }
 
-    def "PBS should be able to send original battr ortb2 attribute when strictMediaType doesn't enabled and original bidder doesn't contain such type impression"() {
+    def "PBS shouldn't be able to send original battr ortb2 attribute when original bidder doesn't contain such type impression"() {
         given: "Account in the DB with blocking configuration"
         def ortb2Attribute = PBSUtils.randomNumber
         def account = getAccountWithOrtb2BlockingConfig(bidRequest.accountId, [ortb2Attribute], attributeName)
-        accountDao.save(account)
-
-        and: "Default bidder response with ortb2 attributes"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            it.seatbid.first.bid = [getBidWithOrtb2Attribute(bidRequest.imp.first, ortb2Attribute, attributeName)]
-        }
-        bidder.setResponse(bidRequest.id, bidResponse)
-
-        when: "PBS processes the auction request"
-        def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
-
-        then: "PBS request should contain proper ortb2 attributes from account config"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert getOrtb2Attributes(bidderRequest, attributeName) == [ortb2Attribute]*.toString()
-
-        and: "PBS request should contain multiple media types"
-        assert bidderRequest.imp.first.mediaTypes.size() == 2
-
-        and: "PBS response shouldn't contain any module errors"
-        assert !response?.ext?.prebid?.modules?.errors
-
-        and: "PBS response shouldn't contain any module warning"
-        assert !response?.ext?.prebid?.modules?.warnings
-
-        where:
-        bidRequest                     | attributeName
-        BidRequest.defaultVideoRequest | BANNER_BATTR
-        BidRequest.defaultAudioRequest | VIDEO_BATTR
-        BidRequest.defaultBidRequest   | AUDIO_BATTR
-    }
-
-    def "PBS shouldn't be able to send original battr ortb2 attribute when strictMediaType enabled and original bidder doesn't contain such type impression"() {
-        given: "Account in the DB with blocking configuration"
-        def ortb2Attribute = PBSUtils.randomNumber
-        def account = getAccountWithOrtb2BlockingConfig(bidRequest.accountId, [ortb2Attribute], attributeName).tap {
-            config.hooks.modules.ortb2Blocking.attributes[attributeName].strictMediaType = true
-        }
         accountDao.save(account)
 
         and: "Default bidder response with ortb2 attributes"
@@ -208,7 +171,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         BidRequest.defaultBidRequest   | AUDIO_BATTR
     }
 
-    def "PBS should be able to send original battr ortb2 attribute when strictMediaType enabled and default preferred media type specified at request level"() {
+    def "PBS shouldn't be able to send original battr ortb2 attribute when default preferred media type specified at request level"() {
         given: "Default bid request with multiply types"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp.first.banner = Banner.defaultBanner
@@ -219,55 +182,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
 
         and: "Account in the DB with blocking configuration"
         def ortb2Attribute = PBSUtils.randomNumber
-        def account = getAccountWithOrtb2BlockingConfig(bidRequest.accountId, [ortb2Attribute], attributeName).tap {
-            config.hooks.modules.ortb2Blocking.attributes[attributeName].strictMediaType = true
-        }
-        accountDao.save(account)
-
-        and: "Default bidder response with ortb2 attributes"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            it.seatbid.first.bid = [getBidWithOrtb2Attribute(bidRequest.imp.first, ortb2Attribute, attributeName)]
-        }
-        bidder.setResponse(bidRequest.id, bidResponse)
-
-        when: "PBS processes the auction request"
-        def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
-
-        then: "PBS request should contain proper ortb2 attributes from account config"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert getOrtb2Attributes(bidderRequest, attributeName) == [ortb2Attribute]*.toString()
-
-        and: "PBS request should contain multiple media types"
-        assert bidderRequest.imp.first.mediaTypes.size() == 2
-        assert bidderRequest.imp.first.mediaTypes.contains(preferredMediaType)
-
-        and: "PBS response shouldn't contain any module errors"
-        assert !response?.ext?.prebid?.modules?.errors
-
-        and: "PBS response shouldn't contain any module warning"
-        assert !response?.ext?.prebid?.modules?.warnings
-
-        where:
-        preferredMediaType | attributeName
-        VIDEO              | BANNER_BATTR
-        AUDIO              | VIDEO_BATTR
-        BANNER             | AUDIO_BATTR
-    }
-
-    def "PBS shouldn't be able to send original battr ortb2 attribute when strictMediaType enabled and default preferred media type specified at request level"() {
-        given: "Default bid request with multiply types"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp.first.banner = Banner.defaultBanner
-            imp.first.video = Video.defaultVideo
-            imp.first.audio = Audio.defaultAudio
-            ext.prebid.bidderControls = new BidderControls(generic: new GenericPreferredBidder(preferredMediaType: preferredMediaType))
-        }
-
-        and: "Account in the DB with blocking configuration"
-        def ortb2Attribute = PBSUtils.randomNumber
-        def account = getAccountWithOrtb2BlockingConfig(bidRequest.accountId, [ortb2Attribute], attributeName).tap {
-            config.hooks.modules.ortb2Blocking.attributes[attributeName].strictMediaType = true
-        }
+        def account = getAccountWithOrtb2BlockingConfig(bidRequest.accountId, [ortb2Attribute], attributeName)
         accountDao.save(account)
 
         and: "Default bidder response with ortb2 attributes"
@@ -301,52 +216,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         BANNER             | AUDIO_BATTR
     }
 
-    def "PBS should be able to send original battr ortb2 attribute when strictMediaType doesn't enabled and default preferred media type specified at account level"() {
-        given: "Default bid request with alias"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp.first.banner = Banner.defaultBanner
-            imp.first.video = Video.defaultVideo
-            imp.first.audio = Audio.defaultAudio
-        }
-
-        and: "Account in the DB with blocking configuration"
-        def ortb2Attribute = PBSUtils.randomNumber
-        def account = getAccountWithOrtb2BlockingConfig(bidRequest.accountId, [ortb2Attribute], attributeName).tap {
-            config.auction = new AccountAuctionConfig(preferredMediaType: [(GENERIC): preferredMediaType])
-        }
-        accountDao.save(account)
-
-        and: "Default bidder response with ortb2 attributes"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            it.seatbid.first.bid = [getBidWithOrtb2Attribute(bidRequest.imp.first, ortb2Attribute, attributeName)]
-        }
-        bidder.setResponse(bidRequest.id, bidResponse)
-
-        when: "PBS processes the auction request"
-        def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
-
-        then: "PBS request should contain proper ortb2 attributes from account config"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert getOrtb2Attributes(bidderRequest, attributeName) == [ortb2Attribute]*.toString()
-
-        and: "PBS request should contain multiple media types"
-        assert bidderRequest.imp.first.mediaTypes.size() == 2
-        assert bidderRequest.imp.first.mediaTypes.contains(preferredMediaType)
-
-        and: "PBS response shouldn't contain any module errors"
-        assert !response?.ext?.prebid?.modules?.errors
-
-        and: "PBS response shouldn't contain any module warning"
-        assert !response?.ext?.prebid?.modules?.warnings
-
-        where:
-        preferredMediaType | attributeName
-        VIDEO              | BANNER_BATTR
-        AUDIO              | VIDEO_BATTR
-        BANNER             | AUDIO_BATTR
-    }
-
-    def "PBS shouldn't be able to send original battr ortb2 attribute when strictMediaType enabled and default preferred media type specified at account level"() {
+    def "PBS shouldn't be able to send original battr ortb2 attribute when default preferred media type specified at account level"() {
         given: "Default bid request with multiply types"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp.first.banner = Banner.defaultBanner
@@ -358,7 +228,6 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         def ortb2Attribute = PBSUtils.randomNumber
         def account = getAccountWithOrtb2BlockingConfig(bidRequest.accountId, [ortb2Attribute], attributeName).tap {
             config.auction = new AccountAuctionConfig(preferredMediaType: [(GENERIC): preferredMediaType])
-            config.hooks.modules.ortb2Blocking.attributes[attributeName].strictMediaType = true
         }
         accountDao.save(account)
 
