@@ -121,6 +121,11 @@ public class RemoteFileSupplier implements Supplier<Future<String>> {
                 .compose(ignored -> deleteFile(tmpPath));
     }
 
+    public Future<Void> clearTmp() {
+        return fileSystem.exists(tmpPath)
+                .compose(exists -> exists ? deleteFile(tmpPath) : Future.succeededFuture());
+    }
+
     private Future<Void> createBackup() {
         return copyFile(savePath, backupPath);
     }
