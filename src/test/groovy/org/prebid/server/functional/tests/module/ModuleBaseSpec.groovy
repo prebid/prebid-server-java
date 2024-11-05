@@ -25,7 +25,7 @@ class ModuleBaseSpec extends BaseSpec {
 
     protected static Map<String, String> getResponseCorrectionConfig(Endpoint endpoint = OPENRTB2_AUCTION) {
         ["hooks.${PB_RESPONSE_CORRECTION.code}.enabled": true,
-         "hooks.host-execution-plan"                   : ExecutionPlan.getSingleEndpointExecutionPlan(endpoint, [(ALL_PROCESSED_BID_RESPONSES): [PB_RESPONSE_CORRECTION]])]
+         "hooks.host-execution-plan"                   : encode(ExecutionPlan.getSingleEndpointExecutionPlan(endpoint, [(ALL_PROCESSED_BID_RESPONSES): [PB_RESPONSE_CORRECTION]]))]
                 .collectEntries { key, value -> [(key.toString()): value.toString()] }
     }
 
@@ -36,7 +36,7 @@ class ModuleBaseSpec extends BaseSpec {
         ["hooks.${PB_RICHMEDIA_FILTER.code}.enabled"                     : true,
          "hooks.modules.${PB_RICHMEDIA_FILTER.code}.mraid-script-pattern": scriptPattern,
          "hooks.modules.${PB_RICHMEDIA_FILTER.code}.filter-mraid"        : filterMraidEnabled,
-         "hooks.host-execution-plan"                                     : ExecutionPlan.getSingleEndpointExecutionPlan(endpoint, [(ALL_PROCESSED_BID_RESPONSES): [PB_RICHMEDIA_FILTER]])]
+         "hooks.host-execution-plan"                                     : encode(ExecutionPlan.getSingleEndpointExecutionPlan(endpoint, [(ALL_PROCESSED_BID_RESPONSES): [PB_RICHMEDIA_FILTER]]))]
                 .collectEntries { key, value -> [(key.toString()): value.toString()] }
     }
 
