@@ -52,6 +52,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
@@ -60,6 +61,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class AmpRequestFactory {
@@ -407,7 +409,7 @@ public class AmpRequestFactory {
                 .map(ortbVersionConversionManager::convertToAuctionSupportedVersion)
                 .map(bidRequest -> gppService.updateBidRequest(bidRequest, auctionContext))
                 .map(bidRequest -> validateStoredBidRequest(storedRequestId, bidRequest))
-                .map(this::fillExplicitParameters)
+                .map(bidRequest -> fillExplicitParameters(bidRequest, account))
                 .map(bidRequest -> overrideParameters(bidRequest, httpRequest, auctionContext.getPrebidErrors()))
                 .map(bidRequest -> paramsResolver.resolve(bidRequest, auctionContext, ENDPOINT, true))
                 .map(bidRequest -> ortb2RequestFactory.removeEmptyEids(bidRequest, auctionContext.getDebugWarnings()))
@@ -459,7 +461,7 @@ public class AmpRequestFactory {
      * - Sets {@link BidRequest}.test = 1 if it was passed in {@link RoutingContext}
      * - Updates {@link BidRequest}.ext.prebid.amp.data with all query parameters
      */
-    private BidRequest fillExplicitParameters(BidRequest bidRequest) {
+    private BidRequest fillExplicitParameters(BidRequest bidRequest, Account account) {
         final List<Imp> imps = bidRequest.getImp();
         // Force HTTPS as AMP requires it, but pubs can forget to set it.
         final Imp imp = imps.getFirst();
@@ -496,6 +498,7 @@ public class AmpRequestFactory {
                     .imp(setSecure ? Collections.singletonList(imps.getFirst().toBuilder().secure(1).build()) : imps)
                     .ext(extRequest(
                             bidRequest,
+                            account,
                             setDefaultTargeting,
                             setDefaultCache))
                     .build();
@@ -692,6 +695,7 @@ public class AmpRequestFactory {
      * Creates updated bidrequest.ext {@link ObjectNode}.
      */
     private ExtRequest extRequest(BidRequest bidRequest,
+                                  Account account,
                                   boolean setDefaultTargeting,
                                   boolean setDefaultCache) {
 
@@ -704,7 +708,7 @@ public class AmpRequestFactory {
                     : ExtRequestPrebid.builder();
 
             if (setDefaultTargeting) {
-                prebidBuilder.targeting(createTargetingWithDefaults(prebid));
+                prebidBuilder.targeting(createTargetingWithDefaults(prebid, account));
             }
             if (setDefaultCache) {
                 prebidBuilder.cache(ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null),
@@ -727,15 +731,14 @@ public class AmpRequestFactory {
      * Creates updated with default values bidrequest.ext.targeting {@link ExtRequestTargeting} if at least one of it's
      * child properties is missed or entire targeting does not exist.
      */
-    private ExtRequestTargeting createTargetingWithDefaults(ExtRequestPrebid prebid) {
+    private ExtRequestTargeting createTargetingWithDefaults(ExtRequestPrebid prebid, Account account) {
         final ExtRequestTargeting targeting = prebid != null ? prebid.getTargeting() : null;
         final boolean isTargetingNull = targeting == null;
 
         final JsonNode priceGranularityNode = isTargetingNull ? null : targeting.getPricegranularity();
         final boolean isPriceGranularityNull = priceGranularityNode == null || priceGranularityNode.isNull();
-        final JsonNode outgoingPriceGranularityNode
-                = isPriceGranularityNull
-                ? mapper.mapper().valueToTree(ExtPriceGranularity.from(PriceGranularity.DEFAULT))
+        final JsonNode outgoingPriceGranularityNode = isPriceGranularityNull
+                ? mapper.mapper().valueToTree(ExtPriceGranularity.from(getDefaultPriceGranularity(account)))
                 : priceGranularityNode;
 
         final ExtMediaTypePriceGranularity mediaTypePriceGranularity = isTargetingNull
@@ -757,6 +760,14 @@ public class AmpRequestFactory {
                 .includebidderkeys(includeBidderKeys)
                 .includeformat(includeFormat)
                 .build();
+    }
+
+    private static PriceGranularity getDefaultPriceGranularity(Account account) {
+        return Optional.ofNullable(account)
+                .map(Account::getAuction)
+                .map(AccountAuctionConfig::getPriceGranularity)
+                .map(PriceGranularity::createFromStringOrDefault)
+                .orElse(PriceGranularity.DEFAULT);
     }
 
     @Value(staticConstructor = "of")

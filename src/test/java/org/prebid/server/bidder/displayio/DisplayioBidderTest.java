@@ -88,16 +88,22 @@ class DisplayioBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorWhenBidFloorIsMissing() {
+    public void makeHttpRequestsShouldSetDefaultCurrencyEvenWhenBidfloorIsAbsent() {
         // given
-        final BidRequest bidRequest = givenBidRequest(imp -> imp.bidfloor(null));
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.bidfloor(null).bidfloorcur("EUR"));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).containsOnly(BidderError.badInput("BidFloor should be defined"));
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBidfloor, Imp::getBidfloorcur)
+                .containsOnly(tuple(null, "USD"));
+
+        verifyNoInteractions(currencyConversionService);
     }
 
     @Test
@@ -156,8 +162,7 @@ class DisplayioBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 imp -> imp.id("impId1").ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))),
-                imp -> imp.id("impId2").bidfloor(null),
-                imp -> imp.id("impId3"));
+                imp -> imp.id("impId2"));
 
         //when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -167,7 +172,7 @@ class DisplayioBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getId)
-                .containsExactly("impId3");
+                .containsExactly("impId2");
     }
 
     @Test

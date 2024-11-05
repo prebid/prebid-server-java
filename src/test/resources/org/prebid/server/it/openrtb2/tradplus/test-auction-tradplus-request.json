@@ -8,14 +8,17 @@
         "h": 250
       },
       "ext": {
-        "triplelift": {
-          "inventoryCode": "foo"
+        "tradplus": {
+          "accountId": "accountTestID",
+          "zoneId": ""
         }
       }
     }
   ],
   "tmax": 5000,
   "regs": {
-    "gdpr": 0
+    "ext": {
+      "gdpr": 0
+    }
   }
 }

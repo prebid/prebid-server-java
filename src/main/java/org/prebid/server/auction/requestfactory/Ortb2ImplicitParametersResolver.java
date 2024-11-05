@@ -56,6 +56,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidServer;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.util.StreamUtil;
@@ -187,7 +189,11 @@ public class Ortb2ImplicitParametersResolver {
         final ExtRequest ext = bidRequest.getExt();
         final List<Imp> imps = bidRequest.getImp();
         final ExtRequest populatedExt = populateRequestExt(
-                ext, bidRequest, ObjectUtils.defaultIfNull(populatedImps, imps), endpoint);
+                ext,
+                bidRequest,
+                ObjectUtils.defaultIfNull(populatedImps, imps),
+                endpoint,
+                auctionContext.getAccount());
 
         final Source source = bidRequest.getSource();
         final Source populatedSource = populateSource(source, populatedExt, hasStoredBidRequest);
@@ -713,10 +719,15 @@ public class Ortb2ImplicitParametersResolver {
         return impIdsSet.size() == impIdsList.size();
     }
 
-    private ExtRequest populateRequestExt(ExtRequest ext, BidRequest bidRequest, List<Imp> imps, String endpoint) {
+    private ExtRequest populateRequestExt(ExtRequest ext,
+                                          BidRequest bidRequest,
+                                          List<Imp> imps,
+                                          String endpoint,
+                                          Account account) {
+
         final ExtRequestPrebid prebid = ObjectUtil.getIfNotNull(ext, ExtRequest::getPrebid);
 
-        final ExtRequestTargeting updatedTargeting = targetingOrNull(prebid, imps);
+        final ExtRequestTargeting updatedTargeting = targetingOrNull(prebid, imps, account);
         final ExtRequestPrebidCache updatedCache = cacheOrNull(prebid);
         final ExtRequestPrebidChannel updatedChannel = channelOrNull(prebid, bidRequest, endpoint);
 
@@ -783,7 +794,7 @@ public class Ortb2ImplicitParametersResolver {
     /**
      * Returns populated {@link ExtRequestTargeting} or null if no changes were applied.
      */
-    private ExtRequestTargeting targetingOrNull(ExtRequestPrebid prebid, List<Imp> imps) {
+    private ExtRequestTargeting targetingOrNull(ExtRequestPrebid prebid, List<Imp> imps, Account account) {
         final ExtRequestTargeting targeting = prebid != null ? prebid.getTargeting() : null;
 
         final boolean isTargetingNotNull = targeting != null;
@@ -796,8 +807,12 @@ public class Ortb2ImplicitParametersResolver {
 
         if (isPriceGranularityNull || isPriceGranularityTextual || isIncludeWinnersNull || isIncludeBidderKeysNull) {
             return targeting.toBuilder()
-                    .pricegranularity(resolvePriceGranularity(targeting, isPriceGranularityNull,
-                            isPriceGranularityTextual, imps))
+                    .pricegranularity(resolvePriceGranularity(
+                            targeting,
+                            isPriceGranularityNull,
+                            isPriceGranularityTextual,
+                            imps,
+                            account))
                     .includewinners(isIncludeWinnersNull || targeting.getIncludewinners())
                     .includebidderkeys(isIncludeBidderKeysNull
                             ? !isWinningOnly(prebid.getCache())
@@ -822,14 +837,22 @@ public class Ortb2ImplicitParametersResolver {
      * In case of valid string price granularity replaced it with appropriate custom view.
      * In case of invalid string value throws {@link InvalidRequestException}.
      */
-    private JsonNode resolvePriceGranularity(ExtRequestTargeting targeting, boolean isPriceGranularityNull,
-                                             boolean isPriceGranularityTextual, List<Imp> imps) {
+    private JsonNode resolvePriceGranularity(ExtRequestTargeting targeting,
+                                             boolean isPriceGranularityNull,
+                                             boolean isPriceGranularityTextual,
+                                             List<Imp> imps,
+                                             Account account) {
 
         final boolean hasAllMediaTypes = checkExistingMediaTypes(targeting.getMediatypepricegranularity())
                 .containsAll(getImpMediaTypes(imps));
 
         if (isPriceGranularityNull && !hasAllMediaTypes) {
-            return mapper.mapper().valueToTree(ExtPriceGranularity.from(PriceGranularity.DEFAULT));
+            final PriceGranularity defaultPriceGranularity = Optional.ofNullable(account)
+                    .map(Account::getAuction)
+                    .map(AccountAuctionConfig::getPriceGranularity)
+                    .map(PriceGranularity::createFromStringOrDefault)
+                    .orElse(PriceGranularity.DEFAULT);
+            return mapper.mapper().valueToTree(ExtPriceGranularity.from(defaultPriceGranularity));
         }
 
         final JsonNode priceGranularityNode = targeting.getPricegranularity();

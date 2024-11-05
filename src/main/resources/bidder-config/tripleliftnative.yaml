@@ -1,6 +1,7 @@
 adapters:
   triplelift_native:
     endpoint: https://tlx.3lift.com/s2sn/auction?supplier_id=20
+    ortb-version: "2.6"
     meta-info:
       maintainer-email: prebid@triplelift.com
       app-media-types:
