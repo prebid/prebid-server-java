@@ -134,7 +134,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         PBSUtils.randomNumber | BTYPE
     }
 
-    def "PBS shouldn't be able to send original battr ortb2 attribute when original bidder doesn't contain such type impression"() {
+    def "PBS shouldn't be able to send original battr ortb2 attribute when bid request imps type doesn't match with attribute type"() {
         given: "Account in the DB with blocking configuration"
         def ortb2Attribute = PBSUtils.randomNumber
         def account = getAccountWithOrtb2BlockingConfig(bidRequest.accountId, [ortb2Attribute], attributeName)
@@ -171,7 +171,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         BidRequest.defaultBidRequest   | AUDIO_BATTR
     }
 
-    def "PBS shouldn't be able to send original battr ortb2 attribute when default preferred media type specified at request level"() {
+    def "PBS shouldn't be able to send original battr ortb2 attribute when preferredMediaType doesn't match with attribute type"() {
         given: "Default bid request with multiply types"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp.first.banner = Banner.defaultBanner
@@ -216,7 +216,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         BANNER             | AUDIO_BATTR
     }
 
-    def "PBS shouldn't be able to send original battr ortb2 attribute when default preferred media type specified at account level"() {
+    def "PBS shouldn't be able to send original battr ortb2 attribute when account level preferredMediaType doesn't match with attribute type"() {
         given: "Default bid request with multiply types"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp.first.banner = Banner.defaultBanner
