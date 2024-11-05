@@ -13,6 +13,7 @@ import com.maxmind.geoip2.model.CountryResponse;
 import com.maxmind.geoip2.record.Country;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.config.DatabaseReaderFactory;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.data.ThrottlingMessage;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 
@@ -30,12 +31,12 @@ import java.util.stream.Collectors;
 
 public class GreenbidsInferenceDataService {
 
-    private final DatabaseReader dbReader;
+    private final DatabaseReaderFactory databaseReaderFactory;
 
     private final ObjectMapper mapper;
 
-    public GreenbidsInferenceDataService(DatabaseReader dbReader, ObjectMapper mapper) {
-        this.dbReader = Objects.requireNonNull(dbReader);
+    public GreenbidsInferenceDataService(DatabaseReaderFactory dbReaderFactory, ObjectMapper mapper) {
+        this.databaseReaderFactory = Objects.requireNonNull(dbReaderFactory);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -101,9 +102,10 @@ public class GreenbidsInferenceDataService {
             return null;
         }
 
+        DatabaseReader databaseReader = databaseReaderFactory.getDatabaseReader();
         try {
             final InetAddress inetAddress = InetAddress.getByName(ip);
-            final CountryResponse response = dbReader.country(inetAddress);
+            final CountryResponse response = databaseReader.country(inetAddress);
             final Country country = response.getCountry();
             return country.getName();
         } catch (IOException | GeoIp2Exception e) {

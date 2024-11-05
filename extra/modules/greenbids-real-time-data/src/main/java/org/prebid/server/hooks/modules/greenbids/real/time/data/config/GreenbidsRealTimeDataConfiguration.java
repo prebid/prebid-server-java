@@ -24,12 +24,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -39,14 +33,14 @@ import java.util.concurrent.TimeUnit;
 public class GreenbidsRealTimeDataConfiguration {
 
     @Bean
-    DatabaseReaderFactory dbReaderFactory(GreenbidsRealTimeDataProperties properties, Vertx vertx) {
+    DatabaseReaderFactory databaseReaderFactory(GreenbidsRealTimeDataProperties properties, Vertx vertx) {
         return new DatabaseReaderFactory(properties.getGeoLiteCountryPath(), vertx);
     }
 
     @Bean
-    GreenbidsInferenceDataService greenbidsInferenceDataService(DatabaseReaderFactory dbReaderFactory) {
+    GreenbidsInferenceDataService greenbidsInferenceDataService(DatabaseReaderFactory databaseReaderFactory) {
         return new GreenbidsInferenceDataService(
-                dbReaderFactory.getDatabaseReader(), ObjectMapperProvider.mapper());
+                databaseReaderFactory, ObjectMapperProvider.mapper());
     }
 
     @Bean

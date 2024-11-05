@@ -23,6 +23,7 @@ import org.prebid.server.analytics.reporter.greenbids.model.ExplorationResult;
 import org.prebid.server.analytics.reporter.greenbids.model.Ortb2ImpExtResult;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.config.DatabaseReaderFactory;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.filter.ThrottlingThresholds;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingThresholdsFactory;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.GreenbidsInferenceDataService;
@@ -64,6 +65,7 @@ import java.util.function.UnaryOperator;
 
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider.givenBanner;
@@ -81,6 +83,9 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
 
     @Mock
     private Cache<String, ThrottlingThresholds> thresholdsCacheWithExpiration;
+
+    @Mock(strictness = LENIENT)
+    private DatabaseReaderFactory databaseReaderFactory;
 
     private GreenbidsRealTimeDataProcessedAuctionRequestHook target;
 
@@ -110,8 +115,9 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final OnnxModelRunnerWithThresholds onnxModelRunnerWithThresholds = new OnnxModelRunnerWithThresholds(
                 modelCache,
                 thresholdCache);
+        when(databaseReaderFactory.getDatabaseReader()).thenReturn(dbReader);
         final GreenbidsInferenceDataService greenbidsInferenceDataService = new GreenbidsInferenceDataService(
-                dbReader,
+                databaseReaderFactory,
                 TestBidRequestProvider.MAPPER);
         final GreenbidsInvocationService greenbidsInvocationService = new GreenbidsInvocationService();
         target = new GreenbidsRealTimeDataProcessedAuctionRequestHook(

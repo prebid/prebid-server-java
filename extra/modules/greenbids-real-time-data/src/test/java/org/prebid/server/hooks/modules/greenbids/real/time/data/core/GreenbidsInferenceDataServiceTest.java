@@ -15,6 +15,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.config.DatabaseReaderFactory;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.data.ThrottlingMessage;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider;
 
@@ -29,6 +30,7 @@ import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider.givenBanner;
@@ -39,8 +41,11 @@ import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.Test
 @ExtendWith(MockitoExtension.class)
 public class GreenbidsInferenceDataServiceTest {
 
+    @Mock(strictness = LENIENT)
+    private DatabaseReaderFactory databaseReaderFactory;
+
     @Mock
-    private DatabaseReader dbReader;
+    private DatabaseReader databaseReader;
 
     @Mock
     private Country country;
@@ -49,7 +54,8 @@ public class GreenbidsInferenceDataServiceTest {
 
     @BeforeEach
     public void setUp() {
-        target = new GreenbidsInferenceDataService(dbReader, TestBidRequestProvider.MAPPER);
+        when(databaseReaderFactory.getDatabaseReader()).thenReturn(databaseReader);
+        target = new GreenbidsInferenceDataService(databaseReaderFactory, TestBidRequestProvider.MAPPER);
     }
 
     @Test
@@ -71,7 +77,7 @@ public class GreenbidsInferenceDataServiceTest {
         final Integer expectedHourBucket = timestamp.getHour();
         final Integer expectedMinuteQuadrant = (timestamp.getMinute() / 15) + 1;
 
-        when(dbReader.country(any(InetAddress.class))).thenReturn(countryResponse);
+        when(databaseReader.country(any(InetAddress.class))).thenReturn(countryResponse);
         when(countryResponse.getCountry()).thenReturn(country);
         when(country.getName()).thenReturn("US");
 
@@ -143,7 +149,7 @@ public class GreenbidsInferenceDataServiceTest {
         final Device device = givenDevice(identity());
         final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device, null);
 
-        when(dbReader.country(any(InetAddress.class))).thenThrow(new GeoIp2Exception("GeoIP failure"));
+        when(databaseReader.country(any(InetAddress.class))).thenThrow(new GeoIp2Exception("GeoIP failure"));
 
         // when & then
         assertThatThrownBy(() -> target.extractThrottlingMessagesFromBidRequest(bidRequest))
