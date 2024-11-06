@@ -2,6 +2,7 @@ package org.prebid.server.settings.model;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.spring.config.bidder.model.MediaType;
@@ -32,6 +33,9 @@ public class AccountAuctionConfig {
 
     @JsonAlias("bid-validations")
     AccountBidValidationConfig bidValidations;
+
+    @JsonAlias("bid-adjustments")
+    ObjectNode bidAdjustments;
 
     AccountEventsConfig events;
 
