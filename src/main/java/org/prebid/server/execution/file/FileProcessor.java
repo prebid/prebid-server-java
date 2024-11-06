@@ -6,4 +6,3 @@ public interface FileProcessor {
 
     Future<?> setDataPath(String dataFilePath);
 }
-
