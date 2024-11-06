@@ -400,7 +400,7 @@ public class AccountConfigReaderTest {
         final AccountConfigReader reader = AccountConfigReader.create(accountConfig, "bidder1", ORTB_VERSION, true);
 
         // when and then
-        assertThatThrownBy(() -> reader.blockedAttributesFor(emptyRequest()))
+        assertThatThrownBy(() -> reader.blockedAttributesFor(request(imp -> imp.banner(Banner.builder().build()))))
                 .isInstanceOf(InvalidAccountConfigurationException.class)
                 .hasMessage("blocked-banner-type field in account configuration has unexpected type. "
                         + "Expected class java.lang.Integer");
@@ -700,17 +700,23 @@ public class AccountConfigReaderTest {
                 .btype(Attribute.btypeBuilder()
                         .actionOverrides(AttributeActionOverrides.blocked(asList(
                                 ArrayOverride.of(
-                                        Conditions.of(singletonList("bidder1"), singletonList("video")),
+                                        Conditions.of(singletonList("bidder1"), singletonList("banner")),
                                         singletonList(1)),
                                 ArrayOverride.of(
-                                        Conditions.of(singletonList("bidder1"), singletonList("video")),
+                                        Conditions.of(singletonList("bidder1"), singletonList("banner")),
                                         singletonList(2)),
                                 ArrayOverride.of(
-                                        Conditions.of(singletonList("bidder1"), singletonList("banner")),
+                                        Conditions.of(singletonList("bidder1"), singletonList("video")),
                                         singletonList(3)),
                                 ArrayOverride.of(
-                                        Conditions.of(singletonList("bidder1"), singletonList("banner")),
-                                        singletonList(4)))))
+                                        Conditions.of(singletonList("bidder1"), singletonList("video")),
+                                        singletonList(4)),
+                                ArrayOverride.of(
+                                        Conditions.of(singletonList("bidder1"), singletonList("audio")),
+                                        singletonList(5)),
+                                ArrayOverride.of(
+                                        Conditions.of(singletonList("bidder1"), singletonList("audio")),
+                                        singletonList(6)))))
                         .build())
                 .build()));
         final AccountConfigReader reader = AccountConfigReader.create(accountConfig, "bidder1", ORTB_VERSION, true);
@@ -718,20 +724,16 @@ public class AccountConfigReaderTest {
         // when and then
         final Map<String, List<Integer>> expectedBtype = new HashMap<>();
         expectedBtype.put("impId1", singletonList(1));
-        expectedBtype.put("impId2", singletonList(3));
         assertThat(reader
                 .blockedAttributesFor(BidRequest.builder()
                         .imp(asList(
-                                Imp.builder().id("impId1").video(Video.builder().build()).build(),
-                                Imp.builder().id("impId2").banner(Banner.builder().build()).build()))
+                                Imp.builder().id("impId1").banner(Banner.builder().build()).build(),
+                                Imp.builder().id("impId2").video(Video.builder().build()).build()))
                         .build()))
                 .isEqualTo(Result.of(
                         BlockedAttributes.builder().btype(expectedBtype).build(),
-                        asList(
-                                "More than one conditions matches request. Bidder: bidder1, " +
-                                        "request media types: [video]",
-                                "More than one conditions matches request. Bidder: bidder1, " +
-                                        "request media types: [banner]")));
+                        List.of("More than one conditions matches request. Bidder: bidder1, " +
+                                "request media types: [banner]")));
     }
 
     @Test
@@ -778,8 +780,8 @@ public class AccountConfigReaderTest {
         final AccountConfigReader reader = AccountConfigReader.create(accountConfig, "bidder1", ORTB_VERSION, true);
 
         // when and then
-        assertThat(reader.blockedAttributesFor(request(imp -> imp.id("impId1")))).isEqualTo(
-                Result.withValue(BlockedAttributes.builder()
+        assertThat(reader.blockedAttributesFor(request(imp -> imp.id("impId1").banner(Banner.builder().build()))))
+                .isEqualTo(Result.withValue(BlockedAttributes.builder()
                         .badv(singletonList("domain3.com"))
                         .bcat(singletonList("cat3"))
                         .bapp(singletonList("app3"))
@@ -832,12 +834,11 @@ public class AccountConfigReaderTest {
         final AccountConfigReader reader = AccountConfigReader.create(accountConfig, "bidder1", ORTB_VERSION, true);
 
         // when and then
-        assertThat(reader.blockedAttributesFor(request(imp -> imp.id("impId1")))).isEqualTo(
-                Result.withValue(BlockedAttributes.builder()
+        assertThat(reader.blockedAttributesFor(request(imp -> imp.id("impId1").video(Video.builder().build()))))
+                .isEqualTo(Result.withValue(BlockedAttributes.builder()
                         .badv(singletonList("domain3.com"))
                         .bcat(singletonList("cat3"))
                         .bapp(singletonList("app3"))
-                        .btype(singletonMap("impId1", singletonList(3)))
                         .battr(singletonMap(MediaType.VIDEO, singletonMap("impId1", singletonList(3))))
                         .build()));
     }
@@ -886,12 +887,11 @@ public class AccountConfigReaderTest {
         final AccountConfigReader reader = AccountConfigReader.create(accountConfig, "bidder1", ORTB_VERSION, true);
 
         // when and then
-        assertThat(reader.blockedAttributesFor(request(imp -> imp.id("impId1")))).isEqualTo(
-                Result.withValue(BlockedAttributes.builder()
+        assertThat(reader.blockedAttributesFor(request(imp -> imp.id("impId1").audio(Audio.builder().build()))))
+                .isEqualTo(Result.withValue(BlockedAttributes.builder()
                         .badv(singletonList("domain3.com"))
                         .bcat(singletonList("cat3"))
                         .bapp(singletonList("app3"))
-                        .btype(singletonMap("impId1", singletonList(3)))
                         .battr(singletonMap(MediaType.AUDIO, singletonMap("impId1", singletonList(3))))
                         .build()));
     }
