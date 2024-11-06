@@ -2,6 +2,7 @@ package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.pgamssp.PgamSspBidder;
+import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -29,13 +30,14 @@ public class PgamSspConfiguration {
 
     @Bean
     BidderDeps pgamsspBidderDeps(BidderConfigurationProperties pgamsspConfigurationProperties,
+                                 CurrencyConversionService currencyConversionService,
                                  @NotBlank @Value("${external-url}") String externalUrl,
                                  JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(pgamsspConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new PgamSspBidder(config.getEndpoint(), mapper))
+                .bidderCreator(config -> new PgamSspBidder(config.getEndpoint(), currencyConversionService, mapper))
                 .assemble();
     }
 }
