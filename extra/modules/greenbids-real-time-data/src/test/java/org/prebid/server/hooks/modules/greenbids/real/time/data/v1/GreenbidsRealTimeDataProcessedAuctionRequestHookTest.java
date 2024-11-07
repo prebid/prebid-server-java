@@ -336,8 +336,8 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
     }
 
     static DatabaseReader givenDatabaseReader() throws IOException {
-        URL url = new URL("https://git.io/GeoLite2-Country.mmdb");
-        Path databasePath = Files.createTempFile("GeoLite2-Country", ".mmdb");
+        final URL url = new URL("https://git.io/GeoLite2-Country.mmdb");
+        final Path databasePath = Files.createTempFile("GeoLite2-Country", ".mmdb");
 
         try (
                 InputStream inputStream = url.openStream();

@@ -36,7 +36,7 @@ public class DatabaseReaderFactory implements Initializable {
                 final Path databasePath = Files.createTempFile("GeoLite2-Country", ".mmdb");
 
                 try (InputStream inputStream = url.openStream();
-                     final FileOutputStream outputStream = new FileOutputStream(databasePath.toFile())) {
+                     FileOutputStream outputStream = new FileOutputStream(databasePath.toFile())) {
                     inputStream.transferTo(outputStream);
                 }
 

@@ -102,7 +102,7 @@ public class GreenbidsInferenceDataService {
             return null;
         }
 
-        DatabaseReader databaseReader = databaseReaderFactory.getDatabaseReader();
+        final DatabaseReader databaseReader = databaseReaderFactory.getDatabaseReader();
         try {
             final InetAddress inetAddress = InetAddress.getByName(ip);
             final CountryResponse response = databaseReader.country(inetAddress);
