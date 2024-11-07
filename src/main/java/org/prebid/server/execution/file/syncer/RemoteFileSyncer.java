@@ -24,6 +24,7 @@ import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Objects;
+import java.util.function.Function;
 
 @Deprecated
 public class RemoteFileSyncer {
@@ -86,6 +87,7 @@ public class RemoteFileSyncer {
 
     private Future<Void> processSavedFile() {
         return vertx.executeBlocking(() -> processor.setDataPath(saveFilePath))
+                .compose(Function.identity())
                 .onFailure(error -> logger.error("Can't process saved file: " + saveFilePath))
                 .recover(ignored -> deleteFile(saveFilePath).mapEmpty())
                 .mapEmpty();

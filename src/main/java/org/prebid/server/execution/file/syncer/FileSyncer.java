@@ -9,6 +9,7 @@ import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
 
 import java.util.Objects;
+import java.util.function.Function;
 
 public abstract class FileSyncer {
 
@@ -46,6 +47,7 @@ public abstract class FileSyncer {
     private Future<?> processFile(String filePath) {
         return filePath != null
                 ? vertx.executeBlocking(() -> fileProcessor.setDataPath(filePath))
+                .compose(Function.identity())
                 .onFailure(error -> logger.error("Can't process saved file: " + filePath))
                 : Future.succeededFuture();
     }
