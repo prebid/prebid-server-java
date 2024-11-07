@@ -30,7 +30,7 @@ class Imp {
     Pmp pmp
     String displayManager
     String displayManagerVer
-    Integer instl
+    OperationState instl
     String tagId
     BigDecimal bidFloor
     Currency bidFloorCur
