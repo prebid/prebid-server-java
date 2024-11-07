@@ -39,7 +39,6 @@ class PbRequestCorrectionSpec extends ModuleBaseSpec {
         }
 
         and: "Account in the DB"
-        def requestCorrectionConfig = PbRequestCorrectionConfig.defaultConfigWithInterstitial
         def account = createAccountWithRequestCorrectionConfig(bidRequest, requestCorrectionConfig)
         accountDao.save(account)
 
@@ -51,11 +50,15 @@ class PbRequestCorrectionSpec extends ModuleBaseSpec {
         assert bidderRequest.imp.instl.every { it == null }
 
         where:
-        imps                                                                                    | bundle
-        [Imp.defaultImpression.tap { instl = YES }]                                             | "$ANDROID${PBSUtils.randomString}"
-        [Imp.defaultImpression.tap { instl = null }, Imp.defaultImpression.tap { instl = YES }] | "${PBSUtils.randomString}$ANDROID${PBSUtils.randomString}"
-        [Imp.defaultImpression.tap { instl = YES }, Imp.defaultImpression.tap { instl = null }] | "${PBSUtils.randomString}$ANDROID${PBSUtils.getRandomNumber()}"
-        [Imp.defaultImpression.tap { instl = YES }, Imp.defaultImpression.tap { instl = YES }]  | "$ANDROID${PBSUtils.randomString}_$ANDROID${PBSUtils.getRandomNumber()}"
+        imps                                                                                    | bundle                                                                   | requestCorrectionConfig
+        [Imp.defaultImpression.tap { instl = YES }]                                             | "$ANDROID${PBSUtils.randomString}"                                       | PbRequestCorrectionConfig.defaultConfigWithInterstitial
+        [Imp.defaultImpression.tap { instl = null }, Imp.defaultImpression.tap { instl = YES }] | "${PBSUtils.randomString}$ANDROID${PBSUtils.randomString}"               | PbRequestCorrectionConfig.defaultConfigWithInterstitial
+        [Imp.defaultImpression.tap { instl = YES }, Imp.defaultImpression.tap { instl = null }] | "${PBSUtils.randomString}$ANDROID${PBSUtils.getRandomNumber()}"          | PbRequestCorrectionConfig.defaultConfigWithInterstitial
+        [Imp.defaultImpression.tap { instl = YES }, Imp.defaultImpression.tap { instl = YES }]  | "$ANDROID${PBSUtils.randomString}_$ANDROID${PBSUtils.getRandomNumber()}" | PbRequestCorrectionConfig.defaultConfigWithInterstitial
+        [Imp.defaultImpression.tap { instl = YES }]                                             | "$ANDROID${PBSUtils.randomString}"                                       | new PbRequestCorrectionConfig(enabled: true, interstitialCorrectionEnabledKebabCase: true)
+        [Imp.defaultImpression.tap { instl = null }, Imp.defaultImpression.tap { instl = YES }] | "${PBSUtils.randomString}$ANDROID${PBSUtils.randomString}"               | new PbRequestCorrectionConfig(enabled: true, interstitialCorrectionEnabledKebabCase: true)
+        [Imp.defaultImpression.tap { instl = YES }, Imp.defaultImpression.tap { instl = null }] | "${PBSUtils.randomString}$ANDROID${PBSUtils.getRandomNumber()}"          | new PbRequestCorrectionConfig(enabled: true, interstitialCorrectionEnabledKebabCase: true)
+        [Imp.defaultImpression.tap { instl = YES }, Imp.defaultImpression.tap { instl = YES }]  | "$ANDROID${PBSUtils.randomString}_$ANDROID${PBSUtils.getRandomNumber()}" | new PbRequestCorrectionConfig(enabled: true, interstitialCorrectionEnabledKebabCase: true)
     }
 
     def "PBS shouldn't remove negative instl from imps for android app when request correction is enabled for account"() {
@@ -250,7 +253,6 @@ class PbRequestCorrectionSpec extends ModuleBaseSpec {
         }
 
         and: "Account in the DB"
-        def requestCorrectionConfig = PbRequestCorrectionConfig.defaultConfigWithUserAgentCorrection
         def account = createAccountWithRequestCorrectionConfig(bidRequest, requestCorrectionConfig)
         accountDao.save(account)
 
@@ -262,8 +264,11 @@ class PbRequestCorrectionSpec extends ModuleBaseSpec {
         assert !bidderRequest.device.ua
 
         where:
-        deviceUa << ["${DEVICE_PREBID_MOBILE_PATTERN}${PBSUtils.randomNumber}",
-                     "${DEVICE_PREBID_MOBILE_PATTERN}${PBSUtils.randomNumber}${PBSUtils.randomString}"]
+        deviceUa                                                                          | requestCorrectionConfig
+        "${DEVICE_PREBID_MOBILE_PATTERN}${PBSUtils.randomNumber}"                         | PbRequestCorrectionConfig.defaultConfigWithUserAgentCorrection
+        "${DEVICE_PREBID_MOBILE_PATTERN}${PBSUtils.randomNumber}${PBSUtils.randomString}" | PbRequestCorrectionConfig.defaultConfigWithUserAgentCorrection
+        "${DEVICE_PREBID_MOBILE_PATTERN}${PBSUtils.randomNumber}"                         | new PbRequestCorrectionConfig(enabled: true, userAgentCorrectionEnabledKebabCase: true)
+        "${DEVICE_PREBID_MOBILE_PATTERN}${PBSUtils.randomNumber}${PBSUtils.randomString}" | new PbRequestCorrectionConfig(enabled: true, userAgentCorrectionEnabledKebabCase: true)
     }
 
     def "PBS should remove only pattern device.ua when request correction is enabled for account and user agent correction enabled"() {

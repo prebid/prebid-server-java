@@ -10,6 +10,11 @@ class PbRequestCorrectionConfig {
     Boolean interstitialCorrectionEnabled
     @JsonProperty("pbsdkUaCleanup")
     Boolean userAgentCorrectionEnabled
+    @JsonProperty("pbsdk-android-instl-remove")
+    Boolean interstitialCorrectionEnabledKebabCase
+    @JsonProperty("pbsdk-ua-cleanup")
+    Boolean userAgentCorrectionEnabledKebabCase
+
     Boolean enabled
 
     static PbRequestCorrectionConfig getDefaultConfigWithInterstitial(Boolean interstitialCorrectionEnabled = true,
