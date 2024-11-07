@@ -39,8 +39,15 @@ import org.prebid.server.analytics.reporter.greenbids.model.Ortb2ImpResult;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.auction.model.BidRejectionTracker;
+import org.prebid.server.hooks.execution.model.GroupExecutionOutcome;
+import org.prebid.server.hooks.execution.model.HookExecutionContext;
+import org.prebid.server.hooks.execution.model.HookExecutionOutcome;
 import org.prebid.server.hooks.execution.model.HookId;
 import org.prebid.server.hooks.execution.model.Stage;
+import org.prebid.server.hooks.execution.model.StageExecutionOutcome;
+import org.prebid.server.hooks.v1.analytics.ActivityImpl;
+import org.prebid.server.hooks.v1.analytics.ResultImpl;
+import org.prebid.server.hooks.v1.analytics.TagsImpl;
 import org.prebid.server.json.EncodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.model.HttpRequestContext;
@@ -67,6 +74,7 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -146,7 +154,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .build();
 
         final AuctionContext auctionContext = givenAuctionContextWithAnalyticsTag(
-                context -> context, List.of(imp), true);
+                context -> context, List.of(imp), true, true);
         final AuctionEvent event = AuctionEvent.builder()
                 .auctionContext(auctionContext)
                 .bidResponse(auctionContext.getBidResponse())
@@ -587,14 +595,20 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
     private static AuctionContext givenAuctionContextWithAnalyticsTag(
             UnaryOperator<AuctionContext.AuctionContextBuilder> auctionContextCustomizer,
             List<Imp> imps,
-            boolean includeBidResponse) {
+            boolean includeBidResponse,
+            boolean includeHookExecutionContextWithAnalyticsTag) {
         final AuctionContext.AuctionContextBuilder auctionContextBuilder = AuctionContext.builder()
                 .httpRequest(HttpRequestContext.builder().build())
                 .bidRequest(givenBidRequest(request -> request, imps))
                 .bidRejectionTrackers(Map.of("seat3", givenBidRejectionTracker()));
 
+        if (includeHookExecutionContextWithAnalyticsTag) {
+            final HookExecutionContext hookExecutionContext = givenHookExecutionContextWithAnalyticsTag();
+            auctionContextBuilder.hookExecutionContext(hookExecutionContext);
+        }
+
         if (includeBidResponse) {
-            auctionContextBuilder.bidResponse(givenBidResponseWithAnalyticsTag(response -> response));
+            auctionContextBuilder.bidResponse(givenBidResponse(response -> response));
         }
 
         return auctionContextCustomizer.apply(auctionContextBuilder).build();
@@ -623,6 +637,37 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
     private static String givenUserAgent() {
         return "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_6_8)"
                 + "AppleWebKit/537.13 (KHTML, like Gecko) Version/5.1.7 Safari/534.57.2";
+    }
+
+    private static HookExecutionContext givenHookExecutionContextWithAnalyticsTag() {
+        final ObjectNode analyticsResultNode = mapper.valueToTree(
+                singletonMap(
+                        "adunitcodevalue",
+                        createAnalyticsResultNode()));
+
+        final ActivityImpl activity = ActivityImpl.of(
+                "greenbids-filter",
+                "success",
+                Collections.singletonList(
+                        ResultImpl.of("success", analyticsResultNode, null)));
+
+        final TagsImpl tags = TagsImpl.of(Collections.singletonList(activity));
+
+        final HookExecutionOutcome hookExecutionOutcome = HookExecutionOutcome.builder()
+                .hookId(HookId.of("greenbids-real-time-data", null))
+                .analyticsTags(tags)
+                .build();
+
+        final GroupExecutionOutcome groupExecutionOutcome = GroupExecutionOutcome.of(
+                Collections.singletonList(hookExecutionOutcome));
+
+        final StageExecutionOutcome stageExecutionOutcome = StageExecutionOutcome.of(
+                "auction-request", Collections.singletonList(groupExecutionOutcome));
+
+        final EnumMap<Stage, List<StageExecutionOutcome>> stageOutcomes = new EnumMap<>(Stage.class);
+        stageOutcomes.put(Stage.processed_auction_request, Collections.singletonList(stageExecutionOutcome));
+
+        return HookExecutionContext.of(null, stageOutcomes);
     }
 
     private static BidResponse givenBidResponse(UnaryOperator<BidResponse.BidResponseBuilder> bidResponseCustomizer) {
