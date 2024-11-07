@@ -85,7 +85,7 @@ public class RemoteFileSyncer {
     }
 
     private Future<Void> processSavedFile() {
-        return processor.setDataPath(saveFilePath)
+        return vertx.executeBlocking(() -> processor.setDataPath(saveFilePath))
                 .onFailure(error -> logger.error("Can't process saved file: " + saveFilePath))
                 .recover(ignored -> deleteFile(saveFilePath).mapEmpty())
                 .mapEmpty();
