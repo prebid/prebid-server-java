@@ -35,5 +35,7 @@
       "description": "Placement size"
     }
   },
-  "required": ["placementId"]
+  "required": [
+    "placementId"
+  ]
 }

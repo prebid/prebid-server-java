@@ -273,7 +273,8 @@ public class ExchangeService {
                                 storedAuctionResponses,
                                 bidRequest.getImp(),
                                 context.getBidRejectionTrackers()))
-                        .map(auctionParticipations -> dropZeroNonDealBids(auctionParticipations, debugWarnings))
+                        .map(auctionParticipations -> dropZeroNonDealBids(
+                                auctionParticipations, debugWarnings, context.getDebugContext().isDebugEnabled()))
                         .map(auctionParticipations ->
                                 bidsAdjuster.validateAndAdjustBids(auctionParticipations, context, aliases))
                         .map(auctionParticipations -> updateResponsesMetrics(auctionParticipations, account, aliases))
@@ -1269,15 +1270,18 @@ public class ExchangeService {
     }
 
     private List<AuctionParticipation> dropZeroNonDealBids(List<AuctionParticipation> auctionParticipations,
-                                                           List<String> debugWarnings) {
+                                                           List<String> debugWarnings,
+                                                           boolean isDebugEnabled) {
 
         return auctionParticipations.stream()
-                .map(auctionParticipation -> dropZeroNonDealBids(auctionParticipation, debugWarnings))
+                .map(auctionParticipation -> dropZeroNonDealBids(auctionParticipation, debugWarnings, isDebugEnabled))
                 .toList();
     }
 
     private AuctionParticipation dropZeroNonDealBids(AuctionParticipation auctionParticipation,
-                                                     List<String> debugWarnings) {
+                                                     List<String> debugWarnings,
+                                                     boolean isDebugEnabled) {
+
         final BidderResponse bidderResponse = auctionParticipation.getBidderResponse();
         final BidderSeatBid seatBid = bidderResponse.getSeatBid();
         final List<BidderBid> bidderBids = seatBid.getBids();
@@ -1287,8 +1291,11 @@ public class ExchangeService {
             final Bid bid = bidderBid.getBid();
             if (isZeroNonDealBids(bid.getPrice(), bid.getDealid())) {
                 metrics.updateAdapterRequestErrorMetric(bidderResponse.getBidder(), MetricName.unknown_error);
-                debugWarnings.add("Dropped bid '%s'. Does not contain a positive (or zero if there is a deal) 'price'"
-                        .formatted(bid.getId()));
+                if (isDebugEnabled) {
+                    debugWarnings.add(
+                            "Dropped bid '%s'. Does not contain a positive (or zero if there is a deal) 'price'"
+                            .formatted(bid.getId()));
+                }
             } else {
                 validBids.add(bidderBid);
             }
