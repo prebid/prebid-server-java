@@ -18,6 +18,9 @@ public class PriceFloorData {
     @JsonProperty("skipRate")
     Integer skipRate;
 
+    @JsonProperty("useFetchDataRate")
+    Integer useFetchDataRate;
+
     @JsonProperty("floorsSchemaVersion")
     String floorsSchemaVersion;
 

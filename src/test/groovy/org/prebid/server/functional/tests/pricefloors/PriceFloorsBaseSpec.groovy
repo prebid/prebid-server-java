@@ -37,14 +37,14 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
     public static final Map<String, String> FLOORS_CONFIG = ["price-floors.enabled"           : "true",
                                                              "settings.default-account-config": encode(defaultAccountConfigSettings)]
 
-    protected static final String basicFetchUrl = networkServiceContainer.rootUri + FloorsProvider.FLOORS_ENDPOINT
-    protected static final FloorsProvider floorsProvider = new FloorsProvider(networkServiceContainer)
+    protected static final String BASIC_FETCH_URL = networkServiceContainer.rootUri + FloorsProvider.FLOORS_ENDPOINT
     protected static final int MAX_MODEL_WEIGHT = 100
 
     private static final int DEFAULT_MODEL_WEIGHT = 1
     private static final int CURRENCY_CONVERSION_PRECISION = 3
     private static final int FLOOR_VALUE_PRECISION = 4
 
+    protected static final FloorsProvider floorsProvider = new FloorsProvider(networkServiceContainer)
     protected final PrebidServerService floorsPbsService = pbsServiceFactory.getService(FLOORS_CONFIG + GENERIC_ALIAS_CONFIG)
 
     def setupSpec() {
@@ -69,7 +69,7 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
 
     protected static Account getAccountWithEnabledFetch(String accountId) {
         def priceFloors = new AccountPriceFloorsConfig(enabled: true,
-                fetch: new PriceFloorsFetch(url: basicFetchUrl + accountId, enabled: true))
+                fetch: new PriceFloorsFetch(url: BASIC_FETCH_URL + accountId, enabled: true))
         def accountConfig = new AccountConfig(auction: new AccountAuctionConfig(priceFloors: priceFloors))
         new Account(uuid: accountId, config: accountConfig)
     }

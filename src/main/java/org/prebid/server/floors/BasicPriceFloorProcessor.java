@@ -36,6 +36,7 @@ import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class BasicPriceFloorProcessor implements PriceFloorProcessor {
@@ -45,6 +46,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
 
     private static final int SKIP_RATE_MIN = 0;
     private static final int SKIP_RATE_MAX = 100;
+    private static final int USE_FETCH_DATA_RATE_MAX = 100;
     private static final int MODEL_WEIGHT_MAX_VALUE = 100;
     private static final int MODEL_WEIGHT_MIN_VALUE = 1;
 
@@ -126,7 +128,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         final FetchResult fetchResult = floorFetcher.fetch(account);
         final FetchStatus fetchStatus = ObjectUtil.getIfNotNull(fetchResult, FetchResult::getFetchStatus);
 
-        if (shouldUseDynamicData(account) && fetchResult != null && fetchStatus == FetchStatus.success) {
+        if (fetchResult != null && fetchStatus == FetchStatus.success && shouldUseDynamicData(account, fetchResult)) {
             final PriceFloorRules mergedFloors = mergeFloors(requestFloors, fetchResult.getRulesData());
             return createFloorsFrom(mergedFloors, fetchStatus, PriceFloorLocation.fetch);
         }
@@ -147,13 +149,20 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         return createFloorsFrom(null, fetchStatus, PriceFloorLocation.noData);
     }
 
-    private static boolean shouldUseDynamicData(Account account) {
-        final AccountAuctionConfig auctionConfig = ObjectUtil.getIfNotNull(account, Account::getAuction);
-        final AccountPriceFloorsConfig floorsConfig =
-                ObjectUtil.getIfNotNull(auctionConfig, AccountAuctionConfig::getPriceFloors);
+    private static boolean shouldUseDynamicData(Account account, FetchResult fetchResult) {
+        final boolean isUsingDynamicDataAllowed = Optional.ofNullable(account)
+                .map(Account::getAuction)
+                .map(AccountAuctionConfig::getPriceFloors)
+                .map(AccountPriceFloorsConfig::getUseDynamicData)
+                .map(BooleanUtils::isNotFalse)
+                .orElse(true);
 
-        return BooleanUtils.isNotFalse(
-                ObjectUtil.getIfNotNull(floorsConfig, AccountPriceFloorsConfig::getUseDynamicData));
+        final boolean shouldUseDynamicData = Optional.ofNullable(fetchResult.getRulesData())
+                .map(PriceFloorData::getUseFetchDataRate)
+                .map(rate -> ThreadLocalRandom.current().nextInt(USE_FETCH_DATA_RATE_MAX) < rate)
+                .orElse(true);
+
+        return isUsingDynamicDataAllowed && shouldUseDynamicData;
     }
 
     private PriceFloorRules mergeFloors(PriceFloorRules requestFloors,

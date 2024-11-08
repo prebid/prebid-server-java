@@ -63,6 +63,18 @@ public class PriceFloorRulesValidatorTest extends VertxTest {
     }
 
     @Test
+    public void validateShouldThrowExceptionOnInvalidUseFetchDataRateWhenPresent() {
+        // given
+        final PriceFloorRules priceFloorRules = givenPriceFloorRulesWithData(
+                dataBuilder -> dataBuilder.useFetchDataRate(-1));
+
+        // when and then
+        assertThatExceptionOfType(PreBidException.class)
+                .isThrownBy(() -> PriceFloorRulesValidator.validateRules(priceFloorRules, 100))
+                .withMessage("Price floor data useFetchDataRate must be in range(0-100), but was -1");
+    }
+
+    @Test
     public void validateShouldThrowExceptionOnAbsentDataModelGroups() {
         // given
         final PriceFloorRules priceFloorRules = givenPriceFloorRulesWithData(
