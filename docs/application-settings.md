@@ -19,6 +19,7 @@ There are two ways to configure application settings: database and file. This do
       operational warning.
     - "enforce": if a bidder returns a creative that's larger in height or width than any of the allowed sizes, reject
       the bid and log an operational warning.
+- `auction.bidadjustments` - configuration JSON for default bid adjustments
 - `auction.events.enabled` - enables events for account if true
 - `auction.price-floors.enabeled` - enables price floors for account if true. Defaults to true.
 - `auction.price-floors.fetch.enabled`- enables data fetch for price floors for account if true. Defaults to false.
