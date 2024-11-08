@@ -43,10 +43,11 @@ public class BidAdjustmentsRetriever {
         final List<String> debugWarnings = auctionContext.getDebugWarnings();
         final boolean debugEnabled = auctionContext.getDebugContext().isDebugEnabled();
 
-        final JsonNode requestBidAdjustmentsNode = parseRequestBidAdjustments(
-                auctionContext.getBidRequest(),
-                debugEnabled,
-                debugWarnings);
+        final JsonNode requestBidAdjustmentsNode = Optional.ofNullable(auctionContext.getBidRequest())
+                .map(BidRequest::getExt)
+                .map(ExtRequest::getPrebid)
+                .map(ExtRequestPrebid::getBidadjustments)
+                .orElseGet(mapper::createObjectNode);
 
         final JsonNode accountBidAdjustmentsNode = Optional.ofNullable(auctionContext.getAccount())
                 .map(Account::getAuction)
@@ -66,40 +67,33 @@ public class BidAdjustmentsRetriever {
             return BidAdjustments.of(mergedBidAdjustments);
 
         } catch (IllegalArgumentException | ValidationException e) {
-            final String message = "bid adjustment from account was invalid: " + e.getMessage();
-            if (debugEnabled) {
-                debugWarnings.add(message);
-            }
-            conditionalLogger.error(message, samplingRate);
-        }
-
-        return BidAdjustments.of(Collections.emptyMap());
-    }
-
-    private JsonNode parseRequestBidAdjustments(BidRequest bidRequest,
-                                                boolean debugEnabled,
-                                                List<String> debugWarnings) {
-
-        final JsonNode requestBidAdjustments = Optional.ofNullable(bidRequest)
-                .map(BidRequest::getExt)
-                .map(ExtRequest::getPrebid)
-                .map(ExtRequestPrebid::getBidadjustments)
-                .orElseGet(mapper::createObjectNode);
-
-        try {
-            final ExtRequestBidAdjustments extRequestBidAdjustments = mapper.convertValue(
-                    requestBidAdjustments,
-                    ExtRequestBidAdjustments.class);
-
-            BidAdjustmentRulesValidator.validate(extRequestBidAdjustments);
-            return requestBidAdjustments;
-        } catch (IllegalArgumentException | ValidationException e) {
             final String message = "bid adjustment from request was invalid: " + e.getMessage();
             if (debugEnabled) {
                 debugWarnings.add(message);
             }
             conditionalLogger.error(message, samplingRate);
-            return mapper.createObjectNode();
+            return retrieveAccountAdjustmentsOnly(accountBidAdjustmentsNode, debugEnabled, debugWarnings);
+        }
+    }
+
+    private BidAdjustments retrieveAccountAdjustmentsOnly(JsonNode accountBidAdjustmentsNode,
+                                                          boolean debugEnabled,
+                                                          List<String> debugWarnings) {
+
+        try {
+            final ExtRequestBidAdjustments accountBidAdjustments = mapper.convertValue(
+                    accountBidAdjustmentsNode,
+                    ExtRequestBidAdjustments.class);
+
+            BidAdjustmentRulesValidator.validate(accountBidAdjustments);
+            return BidAdjustments.of(accountBidAdjustments);
+        } catch (IllegalArgumentException | ValidationException e) {
+            final String message = "bid adjustment from account was invalid: " + e.getMessage();
+            if (debugEnabled) {
+                debugWarnings.add(message);
+            }
+            conditionalLogger.error(message, samplingRate);
+            return BidAdjustments.of(Collections.emptyMap());
         }
     }
 }

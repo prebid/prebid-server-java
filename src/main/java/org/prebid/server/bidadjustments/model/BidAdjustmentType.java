@@ -1,9 +1,6 @@
 package org.prebid.server.bidadjustments.model;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import org.apache.commons.lang3.StringUtils;
-
-import java.util.Arrays;
 
 public enum BidAdjustmentType {
 
@@ -12,10 +9,11 @@ public enum BidAdjustmentType {
     @SuppressWarnings("unused")
     @JsonCreator
     public static BidAdjustmentType of(String name) {
-        return Arrays.stream(values())
-                .filter(type -> StringUtils.equalsIgnoreCase(type.name(), name))
-                .findFirst()
-                .orElse(UNKNOWN);
+        try {
+            return BidAdjustmentType.valueOf(name.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return UNKNOWN;
+        }
     }
 
 }

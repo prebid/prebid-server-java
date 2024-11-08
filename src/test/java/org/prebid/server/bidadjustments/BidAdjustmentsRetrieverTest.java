@@ -26,7 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.prebid.server.bidadjustments.model.BidAdjustmentType.CPM;
 import static org.prebid.server.bidadjustments.model.BidAdjustmentType.STATIC;
 
-class BidAdjustmentsRetrieverTest extends VertxTest {
+public class BidAdjustmentsRetrieverTest extends VertxTest {
 
     private BidAdjustmentsRetriever target;
 
@@ -244,9 +244,9 @@ class BidAdjustmentsRetrieverTest extends VertxTest {
 
         // then
         assertThat(actual).isEqualTo(BidAdjustments.of(Collections.emptyMap()));
-        assertThat(debugMessages)
-                .containsOnly("bid adjustment from request was invalid: the found rule "
-                                + "[adjtype=UNKNOWN, value=0.1, currency=USD] in banner.*.* is invalid",
+        assertThat(debugMessages).containsExactlyInAnyOrder(
+                        "bid adjustment from request was invalid: the found rule "
+                                + "[adjtype=UNKNOWN, value=0.1, currency=USD] in audio.bidder.* is invalid",
                         "bid adjustment from account was invalid: the found rule "
                                 + "[adjtype=UNKNOWN, value=0.1, currency=USD] in audio.bidder.* is invalid");
     }

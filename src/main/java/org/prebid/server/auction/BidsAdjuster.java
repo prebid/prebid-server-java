@@ -28,7 +28,8 @@ public class BidsAdjuster {
     private final DsaEnforcer dsaEnforcer;
 
     public BidsAdjuster(ResponseBidValidator responseBidValidator,
-                        PriceFloorEnforcer priceFloorEnforcer, BidAdjustmentsProcessor bidAdjustmentsProcessor,
+                        PriceFloorEnforcer priceFloorEnforcer,
+                        BidAdjustmentsProcessor bidAdjustmentsProcessor,
                         DsaEnforcer dsaEnforcer) {
 
         this.responseBidValidator = Objects.requireNonNull(responseBidValidator);
