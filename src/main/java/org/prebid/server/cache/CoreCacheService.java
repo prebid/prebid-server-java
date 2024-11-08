@@ -250,7 +250,7 @@ public class CoreCacheService {
     private List<CacheBid> getVideoCacheBids(List<BidInfo> bidInfos) {
         return bidInfos.stream()
                 .filter(bidInfo -> Objects.equals(bidInfo.getBidType(), BidType.video))
-                .map(bidInfo -> CacheBid.of(bidInfo, bidInfo.getVideoTtl()))
+                .map(bidInfo -> CacheBid.of(bidInfo, bidInfo.getVastTtl()))
                 .toList();
     }
 

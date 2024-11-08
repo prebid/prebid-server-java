@@ -6,6 +6,7 @@
         {
           "id": "bid_id",
           "impid": "imp_id",
+          "exp": 300,
           "price": 4.7,
           "adm": "adm6_4.7",
           "nurl": "nurl_4.7",

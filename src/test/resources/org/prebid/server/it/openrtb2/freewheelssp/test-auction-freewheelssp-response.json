@@ -6,6 +6,7 @@
         {
           "id": "12345_freewheelssp-test_1",
           "impid": "imp-1",
+          "exp": 1500,
           "price": 1.0,
           "adid": "7857",
           "adm": "<?xml version='1.0' encoding='UTF-8'?><VAST version='2.0'></VAST>",

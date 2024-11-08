@@ -107,6 +107,7 @@ import org.prebid.server.privacy.PrivacyExtractor;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.BidValidationEnforcement;
+import org.prebid.server.spring.config.model.CacheDefaultTtlProperties;
 import org.prebid.server.spring.config.model.ExternalConversionProperties;
 import org.prebid.server.spring.config.model.HttpClientCircuitBreakerProperties;
 import org.prebid.server.spring.config.model.HttpClientProperties;
@@ -790,6 +791,16 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    CacheDefaultTtlProperties cacheDefaultTtlProperties(
+            @Value("${cache.default-ttl-seconds.banner:300}") Integer bannerTtl,
+            @Value("${cache.default-ttl-seconds.video:1500}") Integer videoTtl,
+            @Value("${cache.default-ttl-seconds.audio:1500}") Integer audioTtl,
+            @Value("${cache.default-ttl-seconds.native:300}") Integer nativeTtl) {
+
+        return CacheDefaultTtlProperties.of(bannerTtl, videoTtl, audioTtl, nativeTtl);
+    }
+
+    @Bean
     BidResponseCreator bidResponseCreator(
             CoreCacheService coreCacheService,
             BidderCatalog bidderCatalog,
@@ -804,7 +815,8 @@ public class ServiceConfiguration {
             Clock clock,
             JacksonMapper mapper,
             @Value("${cache.banner-ttl-seconds:#{null}}") Integer bannerCacheTtl,
-            @Value("${cache.video-ttl-seconds:#{null}}") Integer videoCacheTtl) {
+            @Value("${cache.video-ttl-seconds:#{null}}") Integer videoCacheTtl,
+            CacheDefaultTtlProperties cacheDefaultTtlProperties) {
 
         return new BidResponseCreator(
                 coreCacheService,
@@ -819,7 +831,8 @@ public class ServiceConfiguration {
                 truncateAttrChars,
                 clock,
                 mapper,
-                CacheTtl.of(bannerCacheTtl, videoCacheTtl));
+                CacheTtl.of(bannerCacheTtl, videoCacheTtl),
+                cacheDefaultTtlProperties);
     }
 
     @Bean

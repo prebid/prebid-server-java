@@ -6,6 +6,7 @@
         {
           "id": "id",
           "impid": "id",
+          "exp": 300,
           "price": 46.6,
           "adm": "",
           "crid": "Dummy_supership.jp",

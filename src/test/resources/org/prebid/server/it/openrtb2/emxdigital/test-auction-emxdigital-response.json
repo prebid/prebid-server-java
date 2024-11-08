@@ -6,6 +6,7 @@
         {
           "id": "imp_id",
           "impid": "imp_id",
+          "exp": 300,
           "price": 2.942808,
           "adm": "<div id=\"123456789_ad\"><script>!function(){console.log\"Hello, world.\";}();</script></div>",
           "adid": "94395500",
