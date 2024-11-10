@@ -10,6 +10,7 @@ import static org.prebid.server.functional.model.request.auction.DistributionCha
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.DOOH
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 import static org.prebid.server.functional.model.response.auction.MediaType.AUDIO
+import static org.prebid.server.functional.model.response.auction.MediaType.NATIVE
 import static org.prebid.server.functional.model.response.auction.MediaType.VIDEO
 
 @EqualsAndHashCode
@@ -46,6 +47,10 @@ class BidRequest {
 
     static BidRequest getDefaultVideoRequest(DistributionChannel channel = SITE) {
         getDefaultRequest(channel, Imp.getDefaultImpression(VIDEO))
+    }
+
+    static BidRequest getDefaultNativeRequest(DistributionChannel channel = SITE) {
+        getDefaultRequest(channel, Imp.getDefaultImpression(NATIVE))
     }
 
     static BidRequest getDefaultAudioRequest(DistributionChannel channel = SITE) {
