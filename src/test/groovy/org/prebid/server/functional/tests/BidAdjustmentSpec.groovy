@@ -910,7 +910,6 @@ class BidAdjustmentSpec extends BaseSpec {
         assert response.ext.warnings[PREBID]?.message ==
                 ["bid adjustment from request was invalid: the found rule [adjtype=UNKNOWN, value=${adjustmentPrice}, currency=USD] in banner.generic.* is invalid".toString()]
 
-
         and: "Original bid price and currency should be presented in bid.ext"
         verifyAll(response.seatbid.first.bid.first.ext) {
             origbidcpm == bidResponse.seatbid.first.bid.first.price

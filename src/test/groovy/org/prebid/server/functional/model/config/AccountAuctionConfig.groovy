@@ -27,7 +27,7 @@ class AccountAuctionConfig {
     Map<BidderName, MediaType> preferredMediaType
     @JsonProperty("privacysandbox")
     PrivacySandbox privacySandbox
-    @JsonProperty("bid-adjustments")
+    @JsonProperty("bidadjustments")
     BidAdjustment bidAdjustments
 
     @JsonProperty("price_granularity")
