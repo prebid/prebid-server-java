@@ -34,7 +34,7 @@ public class AccountAuctionConfig {
     @JsonAlias("bid-validations")
     AccountBidValidationConfig bidValidations;
 
-    @JsonAlias("bid-adjustments")
+    @JsonProperty("bidadjustments")
     ObjectNode bidAdjustments;
 
     AccountEventsConfig events;
