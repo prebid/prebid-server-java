@@ -14,16 +14,16 @@ public class RemoteFileSyncerV2 extends FileSyncer {
     private final LocalFileSupplier localFileSupplier;
     private final RemoteFileSupplier remoteFileSupplier;
 
-    protected RemoteFileSyncerV2(FileProcessor fileProcessor,
-                                 String downloadUrl,
-                                 String saveFilePath,
-                                 String tmpFilePath,
-                                 HttpClient httpClient,
-                                 long timeout,
-                                 boolean checkSize,
-                                 long updatePeriod,
-                                 RetryPolicy retryPolicy,
-                                 Vertx vertx) {
+    public RemoteFileSyncerV2(FileProcessor fileProcessor,
+                              String downloadUrl,
+                              String saveFilePath,
+                              String tmpFilePath,
+                              HttpClient httpClient,
+                              long timeout,
+                              boolean checkSize,
+                              long updatePeriod,
+                              RetryPolicy retryPolicy,
+                              Vertx vertx) {
 
         super(fileProcessor, updatePeriod, retryPolicy, vertx);
 

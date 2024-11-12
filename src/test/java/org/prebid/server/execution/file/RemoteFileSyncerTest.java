@@ -17,6 +17,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
@@ -26,6 +27,7 @@ import org.prebid.server.execution.retry.FixedIntervalRetryPolicy;
 import org.prebid.server.execution.retry.RetryPolicy;
 
 import java.io.File;
+import java.util.concurrent.Callable;
 
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
@@ -58,7 +60,8 @@ public class RemoteFileSyncerTest extends VertxTest {
     private static final String TMP_FILE_PATH = String.join(File.separator, "tmp", "fake", "path", "to", "file.pdf");
     private static final String DIR_PATH = String.join(File.separator, "fake", "path", "to");
     private static final Long FILE_SIZE = 2131242L;
-    @Mock
+
+    @Mock(strictness = LENIENT)
     private Vertx vertx;
 
     @Mock(strictness = LENIENT)
@@ -86,6 +89,14 @@ public class RemoteFileSyncerTest extends VertxTest {
     @BeforeEach
     public void setUp() {
         when(vertx.fileSystem()).thenReturn(fileSystem);
+        given(vertx.executeBlocking(Mockito.<Callable<?>>any())).willAnswer(invocation -> {
+            try {
+                return Future.succeededFuture(((Callable<?>) invocation.getArgument(0)).call());
+            } catch (Throwable e) {
+                return Future.failedFuture(e);
+            }
+        });
+
         remoteFileSyncer = new RemoteFileSyncer(fileProcessor, SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY,
                 TIMEOUT, 0, httpClient, vertx);
     }

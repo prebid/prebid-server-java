@@ -10,11 +10,11 @@ public class LocalFileSyncer extends FileSyncer {
 
     private final LocalFileSupplier localFileSupplier;
 
-    protected LocalFileSyncer(FileProcessor fileProcessor,
-                              String localFile,
-                              long updatePeriod,
-                              RetryPolicy retryPolicy,
-                              Vertx vertx) {
+    public LocalFileSyncer(FileProcessor fileProcessor,
+                           String localFile,
+                           long updatePeriod,
+                           RetryPolicy retryPolicy,
+                           Vertx vertx) {
 
         super(fileProcessor, updatePeriod, retryPolicy, vertx);
 

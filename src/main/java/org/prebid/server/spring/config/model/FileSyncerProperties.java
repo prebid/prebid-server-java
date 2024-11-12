@@ -11,7 +11,9 @@ import jakarta.validation.constraints.NotNull;
 @Validated
 @Data
 @NoArgsConstructor
-public class RemoteFileSyncerProperties {
+public class FileSyncerProperties {
+
+    private Type type = Type.REMOTE;
 
     @NotBlank
     private String downloadUrl;
@@ -37,6 +39,13 @@ public class RemoteFileSyncerProperties {
     @NotNull
     private Long updateIntervalMs;
 
+    private boolean checkSize;
+
     @NotNull
     private HttpClientProperties httpClient;
+
+    public enum Type {
+
+        LOCAL, REMOTE
+    }
 }
