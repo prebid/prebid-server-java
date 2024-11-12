@@ -70,7 +70,7 @@ public class RemoteFileSupplier implements Supplier<Future<String>> {
     @Override
     public Future<String> get() {
         return isDownloadRequired().compose(isDownloadRequired -> isDownloadRequired
-                ? Future.join(downloadFile(), createBackup())
+                ? Future.all(downloadFile(), createBackup())
                 .compose(ignored -> tmpToSave())
                 .map(savePath)
                 : Future.succeededFuture());
@@ -89,8 +89,8 @@ public class RemoteFileSupplier implements Supplier<Future<String>> {
                 .map(response -> response.getHeader(HttpHeaders.CONTENT_LENGTH))
                 .map(Long::parseLong);
 
-        return Future.join(localFileSize, remoteFileSize)
-                .map(compositeResult -> Objects.equals(compositeResult.resultAt(0), compositeResult.resultAt(1)));
+        return Future.all(localFileSize, remoteFileSize)
+                .map(compositeResult -> !Objects.equals(compositeResult.resultAt(0), compositeResult.resultAt(1)));
     }
 
     private Future<Void> downloadFile() {
@@ -129,7 +129,8 @@ public class RemoteFileSupplier implements Supplier<Future<String>> {
     }
 
     private Future<Void> createBackup() {
-        return copyFile(savePath, backupPath);
+        return fileSystem.exists(savePath)
+                .compose(exists -> exists ? copyFile(savePath, backupPath) : Future.succeededFuture());
     }
 
     public void deleteBackup() {
@@ -141,8 +142,11 @@ public class RemoteFileSupplier implements Supplier<Future<String>> {
     }
 
     public Future<Void> restoreFromBackup() {
-        return copyFile(backupPath, savePath)
-                .onSuccess(ignored -> deleteFile(backupPath));
+        return fileSystem.exists(backupPath)
+                .compose(exists -> exists
+                        ? copyFile(backupPath, savePath)
+                        .onSuccess(ignored -> deleteFile(backupPath))
+                        : Future.succeededFuture());
     }
 
     private Future<Void> copyFile(String from, String to) {

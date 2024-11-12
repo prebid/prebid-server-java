@@ -1,4 +1,4 @@
-package org.prebid.server.execution.file;
+package org.prebid.server.execution.file.syncer;
 
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Future;
@@ -22,7 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.execution.file.syncer.RemoteFileSyncer;
+import org.prebid.server.execution.file.FileProcessor;
 import org.prebid.server.execution.retry.FixedIntervalRetryPolicy;
 import org.prebid.server.execution.retry.RetryPolicy;
 
