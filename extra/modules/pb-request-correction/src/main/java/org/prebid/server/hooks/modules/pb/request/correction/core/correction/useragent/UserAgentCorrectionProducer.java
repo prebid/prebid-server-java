@@ -12,8 +12,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtAppPrebid;
 
 import java.util.Optional;
-import java.util.regex.Pattern;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class UserAgentCorrectionProducer implements CorrectionProducer {
 
@@ -70,7 +70,7 @@ public class UserAgentCorrectionProducer implements CorrectionProducer {
 
 
     @Override
-    public Correction produce() {
+    public Correction produce(Config config) {
         return CORRECTION_INSTANCE;
     }
 }

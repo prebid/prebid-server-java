@@ -47,7 +47,7 @@ public class RequestCorrectionProviderTest {
         given(correctionProducer.shouldProduce(any(), any())).willReturn(true);
 
         final Correction correction = mock(Correction.class);
-        given(correctionProducer.produce()).willReturn(correction);
+        given(correctionProducer.produce(any())).willReturn(correction);
 
         // when
         final List<Correction> corrections = target.corrections(null, null);

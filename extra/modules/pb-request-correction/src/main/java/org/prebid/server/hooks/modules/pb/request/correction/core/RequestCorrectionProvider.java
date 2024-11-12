@@ -19,7 +19,7 @@ public class RequestCorrectionProvider {
     public List<Correction> corrections(Config config, BidRequest bidRequest) {
         return correctionProducers.stream()
                 .filter(correctionProducer -> correctionProducer.shouldProduce(config, bidRequest))
-                .map(CorrectionProducer::produce)
+                .map(correctionProducer -> correctionProducer.produce(config))
                 .toList();
     }
 }

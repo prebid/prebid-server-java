@@ -74,7 +74,7 @@ public class InterstitialCorrectionProducer implements CorrectionProducer {
     }
 
     @Override
-    public Correction produce() {
+    public Correction produce(Config config) {
         return CORRECTION_INSTANCE;
     }
 }

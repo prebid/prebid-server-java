@@ -7,5 +7,5 @@ public interface CorrectionProducer {
 
     boolean shouldProduce(Config config, BidRequest bidRequest);
 
-    Correction produce();
+    Correction produce(Config config);
 }
