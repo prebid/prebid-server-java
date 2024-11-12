@@ -810,7 +810,7 @@ class BidAdjustmentSpec extends BaseSpec {
 
     def "PBS shouldn't adjust bid price for matching bidder when cpm or static bidAdjustments doesn't have currency value"() {
         given: "Default BidRequest with ext.prebid.bidAdjustments"
-        def adjustmentPrice = PBSUtils.roundDecimal(PBSUtils.randomPrice, BID_ADJUST_PRECISION)
+        def adjustmentPrice = PBSUtils.randomPrice.toDouble()
         def rule = new BidAdjustmentRule(generic: [(WILDCARD): [new AdjustmentRule(adjustmentType: adjustmentType, value: adjustmentPrice, currency: null)]])
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.bidAdjustments = BidAdjustment.getDefaultWithSingleMediaTypeRule(BANNER, rule)
@@ -848,7 +848,7 @@ class BidAdjustmentSpec extends BaseSpec {
 
     def "PBS shouldn't adjust bid price for matching bidder when bidAdjustments have unknown mediatype"() {
         given: "Default BidRequest with ext.prebid.bidAdjustments"
-        def adjustmentPrice = PBSUtils.roundDecimal(PBSUtils.randomPrice, BID_ADJUST_PRECISION)
+        def adjustmentPrice = PBSUtils.randomPrice
         def rule = new BidAdjustmentRule(generic: [(WILDCARD): [new AdjustmentRule(adjustmentType: adjustmentType, value: adjustmentPrice, currency: null)]])
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.bidAdjustments = BidAdjustment.getDefaultWithSingleMediaTypeRule(UNKNOWN, rule)
@@ -884,7 +884,7 @@ class BidAdjustmentSpec extends BaseSpec {
 
     def "PBS shouldn't adjust bid price for matching bidder when bidAdjustments have unknown adjustmentType"() {
         given: "Default BidRequest with ext.prebid.bidAdjustments"
-        def adjustmentPrice = PBSUtils.roundDecimal(PBSUtils.randomPrice, BID_ADJUST_PRECISION)
+        def adjustmentPrice = PBSUtils.randomPrice.toDouble()
         def rule = new BidAdjustmentRule(generic: [(WILDCARD): [new AdjustmentRule(adjustmentType: AdjustmentType.UNKNOWN, value: adjustmentPrice, currency: USD)]])
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.bidAdjustments = BidAdjustment.getDefaultWithSingleMediaTypeRule(BANNER, rule)
