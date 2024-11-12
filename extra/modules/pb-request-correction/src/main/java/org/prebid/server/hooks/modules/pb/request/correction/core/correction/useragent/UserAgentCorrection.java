@@ -2,12 +2,13 @@ package org.prebid.server.hooks.modules.pb.request.correction.core.correction.us
 
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
-import org.prebid.server.hooks.modules.pb.request.correction.core.config.model.Config;
 import org.prebid.server.hooks.modules.pb.request.correction.core.correction.Correction;
+
+import java.util.regex.Pattern;
 
 public class UserAgentCorrection implements Correction {
 
-    private static final String USER_AGENT_PATTERN = "PrebidMobile/[0-9][^ ]*";
+    private static final Pattern USER_AGENT_PATTERN = Pattern.compile("PrebidMobile/[0-9][^ ]*");
 
     @Override
     public BidRequest apply(BidRequest bidRequest) {
@@ -18,7 +19,7 @@ public class UserAgentCorrection implements Correction {
 
     private static Device correctDevice(Device device) {
         return device.toBuilder()
-                .ua(device.getUa().replaceAll(USER_AGENT_PATTERN, ""))
+                .ua(USER_AGENT_PATTERN.matcher(device.getUa()).replaceAll(""))
                 .build();
     }
 }

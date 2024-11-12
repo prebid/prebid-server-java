@@ -12,14 +12,16 @@ import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtAppPrebid;
 
 import java.util.Optional;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 public class UserAgentCorrectionProducer implements CorrectionProducer {
 
     private static final UserAgentCorrection CORRECTION_INSTANCE = new UserAgentCorrection();
 
     private static final String PREBID_MOBILE = "prebid-mobile";
+    private static final Pattern USER_AGENT_PATTERN = Pattern.compile(".*PrebidMobile/[0-9]+[^ ]*.*");
 
-    private static final String USER_AGENT_PATTERN = ".*PrebidMobile/[0-9][^ ]*.*";
 
     private static final int MAX_VERSION_MAJOR = 2;
     private static final int MAX_VERSION_MINOR = 1;
@@ -58,10 +60,14 @@ public class UserAgentCorrectionProducer implements CorrectionProducer {
     }
 
     private static boolean isApplicableDevice(Device device) {
-        return Optional.ofNullable(device.getUa())
-                .orElse(StringUtils.EMPTY)
-                .matches(USER_AGENT_PATTERN);
+        return Optional.ofNullable(device)
+                .map(Device::getUa)
+                .filter(StringUtils::isNotEmpty)
+                .map(USER_AGENT_PATTERN::matcher)
+                .map(Matcher::matches)
+                .orElse(false);
     }
+
 
     @Override
     public Correction produce() {
