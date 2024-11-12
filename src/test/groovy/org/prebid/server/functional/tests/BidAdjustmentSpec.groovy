@@ -19,12 +19,11 @@ import org.prebid.server.functional.testcontainers.scaffolding.CurrencyConversio
 import org.prebid.server.functional.util.PBSUtils
 
 import java.math.RoundingMode
+import java.time.Instant
 
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
-import static org.prebid.server.functional.model.Currency.CAD
-import static org.prebid.server.functional.model.Currency.CHF
 import static org.prebid.server.functional.model.Currency.EUR
-import static org.prebid.server.functional.model.Currency.JPY
+import static org.prebid.server.functional.model.Currency.GBP
 import static org.prebid.server.functional.model.Currency.USD
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
@@ -50,15 +49,16 @@ class BidAdjustmentSpec extends BaseSpec {
 
     private static final String WILDCARD = '*'
     private static final BigDecimal MIN_ADJUST_VALUE = 0
-    private static final BigDecimal MAX_ADJUST_MULTIPLIER_VALUE = 99
+    private static final BigDecimal MAX_MULTIPLIER_ADJUST_VALUE = 99
+    private static final BigDecimal MAX_CPM_ADJUST_VALUE = Integer.MAX_VALUE
+    private static final BigDecimal MAX_STATIC_ADJUST_VALUE = Integer.MAX_VALUE
     private static final Currency DEFAULT_CURRENCY = USD
     private static final int BID_ADJUST_PRECISION = 4
     private static final int PRICE_PRECISION = 3
-    private static final Map<Currency, Map<Currency, BigDecimal>> DEFAULT_CURRENCY_RATES = [(USD): [(USD): 1,
-                                                                                                    (EUR): 0.9249838127832763,
-                                                                                                    (CHF): 0.9033391915641477,
-                                                                                                    (JPY): 151.1886041994265,
-                                                                                                    (CAD): 1.357136250115623],
+    private static final Map<Currency, Map<Currency, BigDecimal>> DEFAULT_CURRENCY_RATES = [(USD): [(EUR): 0.9124920156948626,
+                                                                                                    (GBP): 0.793776804452961],
+                                                                                            (GBP): [(USD): 1.2597999770088517,
+                                                                                                    (EUR): 1.1495574203931487],
                                                                                             (EUR): [(USD): 1.3429368029739777]]
     private static final CurrencyConversion currencyConversion = new CurrencyConversion(networkServiceContainer).tap {
         setCurrencyConversionRatesResponse(CurrencyConversionRatesResponse.getDefaultCurrencyConversionRatesResponse(DEFAULT_CURRENCY_RATES))
@@ -186,13 +186,16 @@ class BidAdjustmentSpec extends BaseSpec {
 
     def "PBS should adjust bid price for matching bidder when request has bidAdjustments config"() {
         given: "Default BidRequest with ext.prebid.bidAdjustments"
-        def rule = new BidAdjustmentRule(generic: [(WILDCARD): [new AdjustmentRule(adjustmentType: adjustmentType, value: ruleValue, currency: USD)]])
+        def ruleValue = PBSUtils.getRandomDecimal(MIN_ADJUST_VALUE, maxRuleValue)
+        def currency = USD
+        def rule = new BidAdjustmentRule(generic: [(WILDCARD): [new AdjustmentRule(adjustmentType: adjustmentType, value: ruleValue, currency: currency)]])
         bidRequest.ext.prebid.bidAdjustments = BidAdjustment.getDefaultWithSingleMediaTypeRule(mediaType, rule)
+        bidRequest.cur = [currency]
 
         and: "Default bid response"
         def originalPrice = PBSUtils.randomPrice
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            cur = USD
+            cur = currency
             seatbid.first.bid.first.price = originalPrice
         }
         bidder.setResponse(bidRequest.id, bidResponse)
@@ -206,72 +209,52 @@ class BidAdjustmentSpec extends BaseSpec {
 
         and: "Original bid price and currency should be presented in bid.ext"
         verifyAll(response.seatbid.first.bid.first.ext) {
-            origbidcpm == bidResponse.seatbid.first.bid.first.price
+            origbidcpm == originalPrice
             origbidcur == bidResponse.cur
         }
 
+        and: "Bidder request should contain default c"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.cur == [currency]
+
         where:
-        adjustmentType | ruleValue                   | mediaType        | bidRequest
-        MULTIPLIER     | MIN_ADJUST_VALUE            | BANNER           | BidRequest.defaultBidRequest
-        MULTIPLIER     | MIN_ADJUST_VALUE            | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        MULTIPLIER     | MIN_ADJUST_VALUE            | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
-        MULTIPLIER     | MIN_ADJUST_VALUE            | AUDIO            | BidRequest.defaultAudioRequest
-        MULTIPLIER     | MIN_ADJUST_VALUE            | NATIVE           | BidRequest.defaultNativeRequest
-        MULTIPLIER     | PBSUtils.randomPrice        | BANNER           | BidRequest.defaultBidRequest
-        MULTIPLIER     | PBSUtils.randomPrice        | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        MULTIPLIER     | PBSUtils.randomPrice        | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
-        MULTIPLIER     | PBSUtils.randomPrice        | AUDIO            | BidRequest.defaultAudioRequest
-        MULTIPLIER     | PBSUtils.randomPrice        | NATIVE           | BidRequest.defaultNativeRequest
-        MULTIPLIER     | MAX_ADJUST_MULTIPLIER_VALUE | BANNER           | BidRequest.defaultBidRequest
-        MULTIPLIER     | MAX_ADJUST_MULTIPLIER_VALUE | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        MULTIPLIER     | MAX_ADJUST_MULTIPLIER_VALUE | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
-        MULTIPLIER     | MAX_ADJUST_MULTIPLIER_VALUE | AUDIO            | BidRequest.defaultAudioRequest
-        MULTIPLIER     | MAX_ADJUST_MULTIPLIER_VALUE | NATIVE           | BidRequest.defaultNativeRequest
+        adjustmentType | maxRuleValue                | mediaType        | bidRequest
+        MULTIPLIER     | MAX_MULTIPLIER_ADJUST_VALUE | BANNER           | BidRequest.defaultBidRequest
+        MULTIPLIER     | MAX_MULTIPLIER_ADJUST_VALUE | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
+        MULTIPLIER     | MAX_MULTIPLIER_ADJUST_VALUE | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
+        MULTIPLIER     | MAX_MULTIPLIER_ADJUST_VALUE | AUDIO            | BidRequest.defaultAudioRequest
+        MULTIPLIER     | MAX_MULTIPLIER_ADJUST_VALUE | NATIVE           | BidRequest.defaultNativeRequest
+        MULTIPLIER     | MAX_MULTIPLIER_ADJUST_VALUE | ANY              | BidRequest.defaultBidRequest
 
-        CPM            | MIN_ADJUST_VALUE            | BANNER           | BidRequest.defaultBidRequest
-        CPM            | MIN_ADJUST_VALUE            | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        CPM            | MIN_ADJUST_VALUE            | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
-        CPM            | MIN_ADJUST_VALUE            | AUDIO            | BidRequest.defaultAudioRequest
-        CPM            | MIN_ADJUST_VALUE            | NATIVE           | BidRequest.defaultNativeRequest
-        CPM            | PBSUtils.randomPrice        | BANNER           | BidRequest.defaultBidRequest
-        CPM            | PBSUtils.randomPrice        | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        CPM            | PBSUtils.randomPrice        | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
-        CPM            | PBSUtils.randomPrice        | AUDIO            | BidRequest.defaultAudioRequest
-        CPM            | PBSUtils.randomPrice        | NATIVE           | BidRequest.defaultNativeRequest
-        CPM            | PBSUtils.randomNumber       | BANNER           | BidRequest.defaultBidRequest
-        CPM            | PBSUtils.randomNumber       | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        CPM            | PBSUtils.randomNumber       | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
-        CPM            | PBSUtils.randomNumber       | AUDIO            | BidRequest.defaultAudioRequest
-        CPM            | PBSUtils.randomNumber       | NATIVE           | BidRequest.defaultNativeRequest
+        CPM            | MAX_CPM_ADJUST_VALUE        | BANNER           | BidRequest.defaultBidRequest
+        CPM            | MAX_CPM_ADJUST_VALUE        | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
+        CPM            | MAX_CPM_ADJUST_VALUE        | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
+        CPM            | MAX_CPM_ADJUST_VALUE        | AUDIO            | BidRequest.defaultAudioRequest
+        CPM            | MAX_CPM_ADJUST_VALUE        | NATIVE           | BidRequest.defaultNativeRequest
+        CPM            | MAX_CPM_ADJUST_VALUE        | ANY              | BidRequest.defaultBidRequest
 
-        STATIC         | MIN_ADJUST_VALUE            | BANNER           | BidRequest.defaultBidRequest
-        STATIC         | MIN_ADJUST_VALUE            | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        STATIC         | MIN_ADJUST_VALUE            | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
-        STATIC         | MIN_ADJUST_VALUE            | AUDIO            | BidRequest.defaultAudioRequest
-        STATIC         | MIN_ADJUST_VALUE            | NATIVE           | BidRequest.defaultNativeRequest
-        STATIC         | PBSUtils.randomPrice        | BANNER           | BidRequest.defaultBidRequest
-        STATIC         | PBSUtils.randomPrice        | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        STATIC         | PBSUtils.randomPrice        | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
-        STATIC         | PBSUtils.randomPrice        | AUDIO            | BidRequest.defaultAudioRequest
-        STATIC         | PBSUtils.randomPrice        | NATIVE           | BidRequest.defaultNativeRequest
-        STATIC         | PBSUtils.randomNumber       | BANNER           | BidRequest.defaultBidRequest
-        STATIC         | PBSUtils.randomNumber       | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        STATIC         | PBSUtils.randomNumber       | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
-        STATIC         | PBSUtils.randomNumber       | AUDIO            | BidRequest.defaultAudioRequest
-        STATIC         | PBSUtils.randomNumber       | NATIVE           | BidRequest.defaultNativeRequest
+        STATIC         | MAX_STATIC_ADJUST_VALUE     | BANNER           | BidRequest.defaultBidRequest
+        STATIC         | MAX_STATIC_ADJUST_VALUE     | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
+        STATIC         | MAX_STATIC_ADJUST_VALUE     | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
+        STATIC         | MAX_STATIC_ADJUST_VALUE     | AUDIO            | BidRequest.defaultAudioRequest
+        STATIC         | MAX_STATIC_ADJUST_VALUE     | NATIVE           | BidRequest.defaultNativeRequest
+        STATIC         | MAX_CPM_ADJUST_VALUE        | ANY              | BidRequest.defaultBidRequest
     }
 
     def "PBS should adjust bid price for matching bidder with specific dealId when request has bidAdjustments config"() {
         given: "Default BidRequest with ext.prebid.bidAdjustments"
         def dealId = PBSUtils.randomString
-        def rule = new BidAdjustmentRule(generic: [(dealId): [new AdjustmentRule(adjustmentType: adjustmentType, value: ruleValue, currency: USD)]])
+        def ruleValue = PBSUtils.getRandomDecimal(MIN_ADJUST_VALUE, maxRuleValue)
+        def currency = USD
+        def rule = new BidAdjustmentRule(generic: [(dealId): [new AdjustmentRule(adjustmentType: adjustmentType, value: ruleValue, currency: currency)]])
         bidRequest.ext.prebid.bidAdjustments = BidAdjustment.getDefaultWithSingleMediaTypeRule(mediaType, rule)
         bidRequest.imp.add(Imp.defaultImpression)
+        bidRequest.cur = [currency]
 
         and: "Default bid response"
         def originalPrice = PBSUtils.randomPrice
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            cur = USD
+            cur = currency
             seatbid.first.bid.first.price = originalPrice
             seatbid.first.bid.first.dealid = dealId
         }
@@ -295,68 +278,47 @@ class BidAdjustmentSpec extends BaseSpec {
         assert response.seatbid.first.bid.ext.first.origbidcur == bidResponse.cur
         assert response.seatbid.first.bid.ext.last.origbidcur == bidResponse.cur
 
+        and: "Bidder request should contain currency from request"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.cur == [currency]
+
         where:
-        adjustmentType | ruleValue                   | mediaType        | bidRequest
-        MULTIPLIER     | MIN_ADJUST_VALUE            | BANNER           | BidRequest.defaultBidRequest
-        MULTIPLIER     | MIN_ADJUST_VALUE            | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        MULTIPLIER     | MIN_ADJUST_VALUE            | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
-        MULTIPLIER     | MIN_ADJUST_VALUE            | AUDIO            | BidRequest.defaultAudioRequest
-        MULTIPLIER     | MIN_ADJUST_VALUE            | NATIVE           | BidRequest.defaultNativeRequest
-        MULTIPLIER     | PBSUtils.randomPrice        | BANNER           | BidRequest.defaultBidRequest
-        MULTIPLIER     | PBSUtils.randomPrice        | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        MULTIPLIER     | PBSUtils.randomPrice        | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
-        MULTIPLIER     | PBSUtils.randomPrice        | AUDIO            | BidRequest.defaultAudioRequest
-        MULTIPLIER     | PBSUtils.randomPrice        | NATIVE           | BidRequest.defaultNativeRequest
-        MULTIPLIER     | MAX_ADJUST_MULTIPLIER_VALUE | BANNER           | BidRequest.defaultBidRequest
-        MULTIPLIER     | MAX_ADJUST_MULTIPLIER_VALUE | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        MULTIPLIER     | MAX_ADJUST_MULTIPLIER_VALUE | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
-        MULTIPLIER     | MAX_ADJUST_MULTIPLIER_VALUE | AUDIO            | BidRequest.defaultAudioRequest
-        MULTIPLIER     | MAX_ADJUST_MULTIPLIER_VALUE | NATIVE           | BidRequest.defaultNativeRequest
+        adjustmentType | maxRuleValue                | mediaType        | bidRequest
+        MULTIPLIER     | MAX_MULTIPLIER_ADJUST_VALUE | BANNER           | BidRequest.defaultBidRequest
+        MULTIPLIER     | MAX_MULTIPLIER_ADJUST_VALUE | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
+        MULTIPLIER     | MAX_MULTIPLIER_ADJUST_VALUE | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
+        MULTIPLIER     | MAX_MULTIPLIER_ADJUST_VALUE | AUDIO            | BidRequest.defaultAudioRequest
+        MULTIPLIER     | MAX_MULTIPLIER_ADJUST_VALUE | NATIVE           | BidRequest.defaultNativeRequest
+        MULTIPLIER     | MAX_MULTIPLIER_ADJUST_VALUE | ANY              | BidRequest.defaultBidRequest
 
-        CPM            | MIN_ADJUST_VALUE            | BANNER           | BidRequest.defaultBidRequest
-        CPM            | MIN_ADJUST_VALUE            | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        CPM            | MIN_ADJUST_VALUE            | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
-        CPM            | MIN_ADJUST_VALUE            | AUDIO            | BidRequest.defaultAudioRequest
-        CPM            | MIN_ADJUST_VALUE            | NATIVE           | BidRequest.defaultNativeRequest
-        CPM            | PBSUtils.randomPrice        | BANNER           | BidRequest.defaultBidRequest
-        CPM            | PBSUtils.randomPrice        | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        CPM            | PBSUtils.randomPrice        | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
-        CPM            | PBSUtils.randomPrice        | AUDIO            | BidRequest.defaultAudioRequest
-        CPM            | PBSUtils.randomPrice        | NATIVE           | BidRequest.defaultNativeRequest
-        CPM            | PBSUtils.randomNumber       | BANNER           | BidRequest.defaultBidRequest
-        CPM            | PBSUtils.randomNumber       | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        CPM            | PBSUtils.randomNumber       | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
-        CPM            | PBSUtils.randomNumber       | AUDIO            | BidRequest.defaultAudioRequest
-        CPM            | PBSUtils.randomNumber       | NATIVE           | BidRequest.defaultNativeRequest
+        CPM            | MAX_CPM_ADJUST_VALUE        | BANNER           | BidRequest.defaultBidRequest
+        CPM            | MAX_CPM_ADJUST_VALUE        | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
+        CPM            | MAX_CPM_ADJUST_VALUE        | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
+        CPM            | MAX_CPM_ADJUST_VALUE        | AUDIO            | BidRequest.defaultAudioRequest
+        CPM            | MAX_CPM_ADJUST_VALUE        | NATIVE           | BidRequest.defaultNativeRequest
+        CPM            | MAX_CPM_ADJUST_VALUE        | ANY              | BidRequest.defaultBidRequest
 
-        STATIC         | MIN_ADJUST_VALUE            | BANNER           | BidRequest.defaultBidRequest
-        STATIC         | MIN_ADJUST_VALUE            | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        STATIC         | MIN_ADJUST_VALUE            | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
-        STATIC         | MIN_ADJUST_VALUE            | AUDIO            | BidRequest.defaultAudioRequest
-        STATIC         | MIN_ADJUST_VALUE            | NATIVE           | BidRequest.defaultNativeRequest
-        STATIC         | PBSUtils.randomPrice        | BANNER           | BidRequest.defaultBidRequest
-        STATIC         | PBSUtils.randomPrice        | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        STATIC         | PBSUtils.randomPrice        | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
-        STATIC         | PBSUtils.randomPrice        | AUDIO            | BidRequest.defaultAudioRequest
-        STATIC         | PBSUtils.randomPrice        | NATIVE           | BidRequest.defaultNativeRequest
-        STATIC         | PBSUtils.randomNumber       | BANNER           | BidRequest.defaultBidRequest
-        STATIC         | PBSUtils.randomNumber       | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        STATIC         | PBSUtils.randomNumber       | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
-        STATIC         | PBSUtils.randomNumber       | AUDIO            | BidRequest.defaultAudioRequest
-        STATIC         | PBSUtils.randomNumber       | NATIVE           | BidRequest.defaultNativeRequest
+        STATIC         | MAX_STATIC_ADJUST_VALUE     | BANNER           | BidRequest.defaultBidRequest
+        STATIC         | MAX_STATIC_ADJUST_VALUE     | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
+        STATIC         | MAX_STATIC_ADJUST_VALUE     | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
+        STATIC         | MAX_STATIC_ADJUST_VALUE     | AUDIO            | BidRequest.defaultAudioRequest
+        STATIC         | MAX_STATIC_ADJUST_VALUE     | NATIVE           | BidRequest.defaultNativeRequest
+        STATIC         | MAX_CPM_ADJUST_VALUE        | ANY              | BidRequest.defaultBidRequest
     }
 
     def "PBS should adjust bid price for matching bidder when account config has bidAdjustments"() {
         given: "Default bid response"
         def originalPrice = PBSUtils.randomPrice
+        def currency = USD
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            cur = USD
+            cur = currency
             seatbid.first.bid.first.price = originalPrice
         }
         bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Account in the DB with bidAdjustments"
-        def rule = new BidAdjustmentRule(generic: [(WILDCARD): [new AdjustmentRule(adjustmentType: adjustmentType, value: ruleValue, currency: USD)]])
+        def ruleValue = PBSUtils.getRandomDecimal(MIN_ADJUST_VALUE, maxRuleValue)
+        def rule = new BidAdjustmentRule(generic: [(WILDCARD): [new AdjustmentRule(adjustmentType: adjustmentType, value: ruleValue, currency: currency)]])
         def accountConfig = new AccountAuctionConfig(bidAdjustments: BidAdjustment.getDefaultWithSingleMediaTypeRule(mediaType, rule))
         def account = new Account(uuid: bidRequest.accountId, config: new AccountConfig(auction: accountConfig))
         accountDao.save(account)
@@ -374,73 +336,44 @@ class BidAdjustmentSpec extends BaseSpec {
             origbidcur == bidResponse.cur
         }
 
+        and: "Bidder request should contain currency from request"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.cur == [currency]
+
         where:
-        adjustmentType | ruleValue                   | mediaType        | bidRequest
-        MULTIPLIER     | MIN_ADJUST_VALUE            | BANNER           | BidRequest.defaultBidRequest
-        MULTIPLIER     | MIN_ADJUST_VALUE            | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        MULTIPLIER     | MIN_ADJUST_VALUE            | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
-        MULTIPLIER     | MIN_ADJUST_VALUE            | AUDIO            | BidRequest.defaultAudioRequest
-        MULTIPLIER     | MIN_ADJUST_VALUE            | NATIVE           | BidRequest.defaultNativeRequest
-        MULTIPLIER     | MIN_ADJUST_VALUE            | ANY              | BidRequest.defaultNativeRequest
-        MULTIPLIER     | PBSUtils.randomPrice        | BANNER           | BidRequest.defaultBidRequest
-        MULTIPLIER     | PBSUtils.randomPrice        | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        MULTIPLIER     | PBSUtils.randomPrice        | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
-        MULTIPLIER     | PBSUtils.randomPrice        | AUDIO            | BidRequest.defaultAudioRequest
-        MULTIPLIER     | PBSUtils.randomPrice        | NATIVE           | BidRequest.defaultNativeRequest
-        MULTIPLIER     | PBSUtils.randomPrice        | ANY              | BidRequest.defaultNativeRequest
-        MULTIPLIER     | MAX_ADJUST_MULTIPLIER_VALUE | BANNER           | BidRequest.defaultBidRequest
-        MULTIPLIER     | MAX_ADJUST_MULTIPLIER_VALUE | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        MULTIPLIER     | MAX_ADJUST_MULTIPLIER_VALUE | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
-        MULTIPLIER     | MAX_ADJUST_MULTIPLIER_VALUE | AUDIO            | BidRequest.defaultAudioRequest
-        MULTIPLIER     | MAX_ADJUST_MULTIPLIER_VALUE | NATIVE           | BidRequest.defaultNativeRequest
-        MULTIPLIER     | MAX_ADJUST_MULTIPLIER_VALUE | ANY              | BidRequest.defaultNativeRequest
+        adjustmentType | maxRuleValue                | mediaType        | bidRequest
+        MULTIPLIER     | MAX_MULTIPLIER_ADJUST_VALUE | BANNER           | BidRequest.defaultBidRequest
+        MULTIPLIER     | MAX_MULTIPLIER_ADJUST_VALUE | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
+        MULTIPLIER     | MAX_MULTIPLIER_ADJUST_VALUE | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
+        MULTIPLIER     | MAX_MULTIPLIER_ADJUST_VALUE | AUDIO            | BidRequest.defaultAudioRequest
+        MULTIPLIER     | MAX_MULTIPLIER_ADJUST_VALUE | NATIVE           | BidRequest.defaultNativeRequest
+        MULTIPLIER     | MAX_MULTIPLIER_ADJUST_VALUE | ANY              | BidRequest.defaultBidRequest
 
-        CPM            | MIN_ADJUST_VALUE            | BANNER           | BidRequest.defaultBidRequest
-        CPM            | MIN_ADJUST_VALUE            | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        CPM            | MIN_ADJUST_VALUE            | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
-        CPM            | MIN_ADJUST_VALUE            | AUDIO            | BidRequest.defaultAudioRequest
-        CPM            | MIN_ADJUST_VALUE            | NATIVE           | BidRequest.defaultNativeRequest
-        CPM            | MIN_ADJUST_VALUE            | ANY              | BidRequest.defaultNativeRequest
-        CPM            | PBSUtils.randomPrice        | BANNER           | BidRequest.defaultBidRequest
-        CPM            | PBSUtils.randomPrice        | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        CPM            | PBSUtils.randomPrice        | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
-        CPM            | PBSUtils.randomPrice        | AUDIO            | BidRequest.defaultAudioRequest
-        CPM            | PBSUtils.randomPrice        | NATIVE           | BidRequest.defaultNativeRequest
-        CPM            | PBSUtils.randomPrice        | ANY              | BidRequest.defaultNativeRequest
-        CPM            | PBSUtils.randomNumber       | BANNER           | BidRequest.defaultBidRequest
-        CPM            | PBSUtils.randomNumber       | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        CPM            | PBSUtils.randomNumber       | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
-        CPM            | PBSUtils.randomNumber       | AUDIO            | BidRequest.defaultAudioRequest
-        CPM            | PBSUtils.randomNumber       | NATIVE           | BidRequest.defaultNativeRequest
-        CPM            | PBSUtils.randomNumber       | ANY              | BidRequest.defaultNativeRequest
+        CPM            | MAX_CPM_ADJUST_VALUE        | BANNER           | BidRequest.defaultBidRequest
+        CPM            | MAX_CPM_ADJUST_VALUE        | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
+        CPM            | MAX_CPM_ADJUST_VALUE        | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
+        CPM            | MAX_CPM_ADJUST_VALUE        | AUDIO            | BidRequest.defaultAudioRequest
+        CPM            | MAX_CPM_ADJUST_VALUE        | NATIVE           | BidRequest.defaultNativeRequest
+        CPM            | MAX_CPM_ADJUST_VALUE        | ANY              | BidRequest.defaultBidRequest
 
-        STATIC         | MIN_ADJUST_VALUE            | BANNER           | BidRequest.defaultBidRequest
-        STATIC         | MIN_ADJUST_VALUE            | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        STATIC         | MIN_ADJUST_VALUE            | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
-        STATIC         | MIN_ADJUST_VALUE            | AUDIO            | BidRequest.defaultAudioRequest
-        STATIC         | MIN_ADJUST_VALUE            | NATIVE           | BidRequest.defaultNativeRequest
-        STATIC         | MIN_ADJUST_VALUE            | ANY              | BidRequest.defaultNativeRequest
-        STATIC         | PBSUtils.randomPrice        | BANNER           | BidRequest.defaultBidRequest
-        STATIC         | PBSUtils.randomPrice        | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        STATIC         | PBSUtils.randomPrice        | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
-        STATIC         | PBSUtils.randomPrice        | AUDIO            | BidRequest.defaultAudioRequest
-        STATIC         | PBSUtils.randomPrice        | NATIVE           | BidRequest.defaultNativeRequest
-        STATIC         | PBSUtils.randomPrice        | ANY              | BidRequest.defaultNativeRequest
-        STATIC         | PBSUtils.randomNumber       | BANNER           | BidRequest.defaultBidRequest
-        STATIC         | PBSUtils.randomNumber       | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        STATIC         | PBSUtils.randomNumber       | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
-        STATIC         | PBSUtils.randomNumber       | AUDIO            | BidRequest.defaultAudioRequest
-        STATIC         | PBSUtils.randomNumber       | NATIVE           | BidRequest.defaultNativeRequest
-        STATIC         | PBSUtils.randomNumber       | ANY              | BidRequest.defaultNativeRequest
+        STATIC         | MAX_STATIC_ADJUST_VALUE     | BANNER           | BidRequest.defaultBidRequest
+        STATIC         | MAX_STATIC_ADJUST_VALUE     | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
+        STATIC         | MAX_STATIC_ADJUST_VALUE     | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
+        STATIC         | MAX_STATIC_ADJUST_VALUE     | AUDIO            | BidRequest.defaultAudioRequest
+        STATIC         | MAX_STATIC_ADJUST_VALUE     | NATIVE           | BidRequest.defaultNativeRequest
+        STATIC         | MAX_CPM_ADJUST_VALUE        | ANY              | BidRequest.defaultBidRequest
     }
 
     def "PBS should prioritize BidAdjustmentRule from request when account and request config bidAdjustments conflict"() {
         given: "Default BidRequest with ext.prebid.bidAdjustments"
-        def rule = new BidAdjustmentRule(generic: [(WILDCARD): [new AdjustmentRule(adjustmentType: adjustmentType, value: ruleValue, currency: USD)]])
+        def ruleValue = PBSUtils.getRandomDecimal(MIN_ADJUST_VALUE, maxRuleValue)
+        def currency = USD
+        def rule = new BidAdjustmentRule(generic: [(WILDCARD): [new AdjustmentRule(adjustmentType: adjustmentType, value: ruleValue, currency: currency)]])
         bidRequest.ext.prebid.bidAdjustments = BidAdjustment.getDefaultWithSingleMediaTypeRule(mediaType, rule)
+        bidRequest.cur = [currency]
 
         and: "Account in the DB with bidAdjustments"
-        def accountRule = new BidAdjustmentRule(generic: [(WILDCARD): [new AdjustmentRule(adjustmentType: adjustmentType, value: ruleValue, currency: USD)]])
+        def accountRule = new BidAdjustmentRule(generic: [(WILDCARD): [new AdjustmentRule(adjustmentType: adjustmentType, value: ruleValue, currency: currency)]])
         def accountConfig = new AccountAuctionConfig(bidAdjustments: BidAdjustment.getDefaultWithSingleMediaTypeRule(mediaType, accountRule))
         def account = new Account(uuid: bidRequest.accountId, config: new AccountConfig(auction: accountConfig))
         accountDao.save(account)
@@ -448,7 +381,7 @@ class BidAdjustmentSpec extends BaseSpec {
         and: "Default bid response"
         def originalPrice = PBSUtils.randomPrice
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            cur = USD
+            cur = currency
             seatbid.first.bid.first.price = originalPrice
         }
         bidder.setResponse(bidRequest.id, bidResponse)
@@ -466,79 +399,49 @@ class BidAdjustmentSpec extends BaseSpec {
             origbidcur == bidResponse.cur
         }
 
+        and: "Bidder request should contain currency from request"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.cur == [currency]
+
         where:
-        adjustmentType | ruleValue                   | mediaType        | bidRequest
-        MULTIPLIER     | MIN_ADJUST_VALUE            | BANNER           | BidRequest.defaultBidRequest
-        MULTIPLIER     | MIN_ADJUST_VALUE            | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        MULTIPLIER     | MIN_ADJUST_VALUE            | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
-        MULTIPLIER     | MIN_ADJUST_VALUE            | AUDIO            | BidRequest.defaultAudioRequest
-        MULTIPLIER     | MIN_ADJUST_VALUE            | NATIVE           | BidRequest.defaultNativeRequest
-        MULTIPLIER     | MIN_ADJUST_VALUE            | ANY              | BidRequest.defaultNativeRequest
-        MULTIPLIER     | PBSUtils.randomPrice        | BANNER           | BidRequest.defaultBidRequest
-        MULTIPLIER     | PBSUtils.randomPrice        | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        MULTIPLIER     | PBSUtils.randomPrice        | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
-        MULTIPLIER     | PBSUtils.randomPrice        | AUDIO            | BidRequest.defaultAudioRequest
-        MULTIPLIER     | PBSUtils.randomPrice        | NATIVE           | BidRequest.defaultNativeRequest
-        MULTIPLIER     | PBSUtils.randomPrice        | ANY              | BidRequest.defaultNativeRequest
-        MULTIPLIER     | MAX_ADJUST_MULTIPLIER_VALUE | BANNER           | BidRequest.defaultBidRequest
-        MULTIPLIER     | MAX_ADJUST_MULTIPLIER_VALUE | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        MULTIPLIER     | MAX_ADJUST_MULTIPLIER_VALUE | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
-        MULTIPLIER     | MAX_ADJUST_MULTIPLIER_VALUE | AUDIO            | BidRequest.defaultAudioRequest
-        MULTIPLIER     | MAX_ADJUST_MULTIPLIER_VALUE | NATIVE           | BidRequest.defaultNativeRequest
-        MULTIPLIER     | MAX_ADJUST_MULTIPLIER_VALUE | ANY              | BidRequest.defaultNativeRequest
+        adjustmentType | maxRuleValue                | mediaType        | bidRequest
+        MULTIPLIER     | MAX_MULTIPLIER_ADJUST_VALUE | BANNER           | BidRequest.defaultBidRequest
+        MULTIPLIER     | MAX_MULTIPLIER_ADJUST_VALUE | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
+        MULTIPLIER     | MAX_MULTIPLIER_ADJUST_VALUE | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
+        MULTIPLIER     | MAX_MULTIPLIER_ADJUST_VALUE | AUDIO            | BidRequest.defaultAudioRequest
+        MULTIPLIER     | MAX_MULTIPLIER_ADJUST_VALUE | NATIVE           | BidRequest.defaultNativeRequest
+        MULTIPLIER     | MAX_MULTIPLIER_ADJUST_VALUE | ANY              | BidRequest.defaultBidRequest
 
-        CPM            | MIN_ADJUST_VALUE            | BANNER           | BidRequest.defaultBidRequest
-        CPM            | MIN_ADJUST_VALUE            | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        CPM            | MIN_ADJUST_VALUE            | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
-        CPM            | MIN_ADJUST_VALUE            | AUDIO            | BidRequest.defaultAudioRequest
-        CPM            | MIN_ADJUST_VALUE            | NATIVE           | BidRequest.defaultNativeRequest
-        CPM            | MIN_ADJUST_VALUE            | ANY              | BidRequest.defaultNativeRequest
-        CPM            | PBSUtils.randomPrice        | BANNER           | BidRequest.defaultBidRequest
-        CPM            | PBSUtils.randomPrice        | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        CPM            | PBSUtils.randomPrice        | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
-        CPM            | PBSUtils.randomPrice        | AUDIO            | BidRequest.defaultAudioRequest
-        CPM            | PBSUtils.randomPrice        | NATIVE           | BidRequest.defaultNativeRequest
-        CPM            | PBSUtils.randomPrice        | ANY              | BidRequest.defaultNativeRequest
-        CPM            | PBSUtils.randomNumber       | BANNER           | BidRequest.defaultBidRequest
-        CPM            | PBSUtils.randomNumber       | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        CPM            | PBSUtils.randomNumber       | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
-        CPM            | PBSUtils.randomNumber       | AUDIO            | BidRequest.defaultAudioRequest
-        CPM            | PBSUtils.randomNumber       | NATIVE           | BidRequest.defaultNativeRequest
-        CPM            | PBSUtils.randomNumber       | ANY              | BidRequest.defaultNativeRequest
+        CPM            | MAX_CPM_ADJUST_VALUE        | BANNER           | BidRequest.defaultBidRequest
+        CPM            | MAX_CPM_ADJUST_VALUE        | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
+        CPM            | MAX_CPM_ADJUST_VALUE        | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
+        CPM            | MAX_CPM_ADJUST_VALUE        | AUDIO            | BidRequest.defaultAudioRequest
+        CPM            | MAX_CPM_ADJUST_VALUE        | NATIVE           | BidRequest.defaultNativeRequest
+        CPM            | MAX_CPM_ADJUST_VALUE        | ANY              | BidRequest.defaultBidRequest
 
-        STATIC         | MIN_ADJUST_VALUE            | BANNER           | BidRequest.defaultBidRequest
-        STATIC         | MIN_ADJUST_VALUE            | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        STATIC         | MIN_ADJUST_VALUE            | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
-        STATIC         | MIN_ADJUST_VALUE            | AUDIO            | BidRequest.defaultAudioRequest
-        STATIC         | MIN_ADJUST_VALUE            | NATIVE           | BidRequest.defaultNativeRequest
-        STATIC         | MIN_ADJUST_VALUE            | ANY              | BidRequest.defaultNativeRequest
-        STATIC         | PBSUtils.randomPrice        | BANNER           | BidRequest.defaultBidRequest
-        STATIC         | PBSUtils.randomPrice        | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        STATIC         | PBSUtils.randomPrice        | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
-        STATIC         | PBSUtils.randomPrice        | AUDIO            | BidRequest.defaultAudioRequest
-        STATIC         | PBSUtils.randomPrice        | NATIVE           | BidRequest.defaultNativeRequest
-        STATIC         | PBSUtils.randomPrice        | ANY              | BidRequest.defaultNativeRequest
-        STATIC         | PBSUtils.randomNumber       | BANNER           | BidRequest.defaultBidRequest
-        STATIC         | PBSUtils.randomNumber       | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        STATIC         | PBSUtils.randomNumber       | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
-        STATIC         | PBSUtils.randomNumber       | AUDIO            | BidRequest.defaultAudioRequest
-        STATIC         | PBSUtils.randomNumber       | NATIVE           | BidRequest.defaultNativeRequest
-        STATIC         | PBSUtils.randomNumber       | ANY              | BidRequest.defaultNativeRequest
+        STATIC         | MAX_STATIC_ADJUST_VALUE     | BANNER           | BidRequest.defaultBidRequest
+        STATIC         | MAX_STATIC_ADJUST_VALUE     | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
+        STATIC         | MAX_STATIC_ADJUST_VALUE     | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
+        STATIC         | MAX_STATIC_ADJUST_VALUE     | AUDIO            | BidRequest.defaultAudioRequest
+        STATIC         | MAX_STATIC_ADJUST_VALUE     | NATIVE           | BidRequest.defaultNativeRequest
+        STATIC         | MAX_CPM_ADJUST_VALUE        | ANY              | BidRequest.defaultBidRequest
     }
 
     def "PBS should prioritize exact bid price adjustment for matching bidder when request has exact and general bidAdjustment"() {
         given: "Default BidRequest with ext.prebid.bidAdjustments"
         def exactRulePrice = PBSUtils.randomPrice
-        def exactRule = new BidAdjustmentRule(generic: [(WILDCARD): [new AdjustmentRule(adjustmentType: STATIC, value: exactRulePrice, currency: USD)]])
-        def generalRule = new BidAdjustmentRule(generic: [(WILDCARD): [new AdjustmentRule(adjustmentType: STATIC, value: PBSUtils.randomPrice, currency: USD)]])
+        def currency = USD
+        def exactRule = new BidAdjustmentRule(generic: [(WILDCARD): [new AdjustmentRule(adjustmentType: STATIC, value: exactRulePrice, currency: currency)]])
+        def generalRule = new BidAdjustmentRule(generic: [(WILDCARD): [new AdjustmentRule(adjustmentType: STATIC, value: PBSUtils.randomPrice, currency: currency)]])
         def bidRequest = BidRequest.defaultBidRequest.tap {
+            cur = [currency]
             ext.prebid.bidAdjustments = new BidAdjustment(mediaType: [(BANNER): exactRule, (ANY): generalRule])
         }
 
         and: "Default bid response"
         def originalPrice = PBSUtils.randomPrice
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            cur = USD
+            cur = currency
             seatbid.first.bid.first.price = originalPrice
         }
         bidder.setResponse(bidRequest.id, bidResponse)
@@ -555,21 +458,27 @@ class BidAdjustmentSpec extends BaseSpec {
             origbidcpm == originalPrice
             origbidcur == bidResponse.cur
         }
+
+        and: "Bidder request should contain currency from request"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.cur == [currency]
     }
 
     def "PBS should adjust bid price for matching bidder in provided order when bidAdjustments have multiple matching rules"() {
         given: "Default BidRequest with ext.prebid.bidAdjustments"
-        def firstRule = new AdjustmentRule(adjustmentType: MULTIPLIER, value: PBSUtils.randomPrice)
-        def secondRule = new AdjustmentRule(adjustmentType: CPM, value: PBSUtils.randomPrice, currency: USD)
+        def currency = USD
+        def firstRule = new AdjustmentRule(adjustmentType: firstRuleType, value: PBSUtils.randomPrice, currency: currency)
+        def secondRule = new AdjustmentRule(adjustmentType: secondRuleType, value: PBSUtils.randomPrice, currency: currency)
         def bidAdjustmentMultyRule = new BidAdjustmentRule(generic: [(WILDCARD): [firstRule, secondRule]])
         def bidRequest = BidRequest.defaultBidRequest.tap {
+            cur = [currency]
             ext.prebid.bidAdjustments = BidAdjustment.getDefaultWithSingleMediaTypeRule(BANNER, bidAdjustmentMultyRule)
         }
 
         and: "Default bid response"
         def originalPrice = PBSUtils.randomPrice
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            cur = USD
+            cur = currency
             seatbid.first.bid.first.price = originalPrice
         }
         bidder.setResponse(bidRequest.id, bidResponse)
@@ -589,6 +498,10 @@ class BidAdjustmentSpec extends BaseSpec {
             origbidcur == bidResponse.cur
         }
 
+        and: "Bidder request should contain currency from request"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.cur == [currency]
+
         where:
         firstRuleType | secondRuleType
         MULTIPLIER    | CPM
@@ -604,9 +517,10 @@ class BidAdjustmentSpec extends BaseSpec {
 
     def "PBS should convert CPM currency before adjustment when it different from original response currency"() {
         given: "Default BidRequest with ext.prebid.bidAdjustments"
-        def adjustmentRule = new AdjustmentRule(adjustmentType: CPM, value: PBSUtils.randomPrice, currency: EUR)
+        def adjustmentRule = new AdjustmentRule(adjustmentType: CPM, value: PBSUtils.randomPrice, currency: GBP)
         def bidAdjustmentMultyRule = new BidAdjustmentRule(generic: [(WILDCARD): [adjustmentRule]])
         def bidRequest = BidRequest.defaultBidRequest.tap {
+            cur = [EUR]
             ext.prebid.bidAdjustments = BidAdjustment.getDefaultWithSingleMediaTypeRule(BANNER, bidAdjustmentMultyRule)
         }
 
@@ -622,27 +536,31 @@ class BidAdjustmentSpec extends BaseSpec {
         def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Final bid price should be adjusted"
-        def convertedAdjustment = convertCurrency(adjustmentRule.value, EUR, USD)
+        def convertedAdjustment = convertCurrency(adjustmentRule.value, adjustmentRule.currency, bidResponse.cur)
         def adjustedBidPrice = getAdjustedPrice(originalPrice, convertedAdjustment, adjustmentRule.adjustmentType)
-        assert response.seatbid.first.bid.first.price == adjustedBidPrice
-        assert response.cur == bidResponse.cur
+        response.seatbid.first.bid.first.price == convertCurrency(adjustedBidPrice, bidResponse.cur, bidRequest.cur.first)
 
         and: "Original bid price and currency should be presented in bid.ext"
         verifyAll(response.seatbid.first.bid.first.ext) {
             origbidcpm == originalPrice
             origbidcur == bidResponse.cur
         }
+
+        and: "Bidder request should contain currency from request"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.cur == bidRequest.cur
     }
 
     def "PBS should change original currency when static bidAdjustments and original response have different currencies"() {
         given: "Default BidRequest with ext.prebid.bidAdjustments"
-        def adjustmentRule = new AdjustmentRule(adjustmentType: STATIC, value: PBSUtils.randomPrice, currency: EUR)
+        def adjustmentRule = new AdjustmentRule(adjustmentType: STATIC, value: PBSUtils.randomPrice, currency: GBP)
         def bidAdjustmentMultyRule = new BidAdjustmentRule(generic: [(WILDCARD): [adjustmentRule]])
         def bidRequest = BidRequest.defaultBidRequest.tap {
+            cur = [EUR]
             ext.prebid.bidAdjustments = BidAdjustment.getDefaultWithSingleMediaTypeRule(BANNER, bidAdjustmentMultyRule)
         }
 
-        and: "Default bid response"
+        and: "Default bid response with JPY currency"
         def originalPrice = PBSUtils.randomPrice
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
             cur = USD
@@ -653,23 +571,29 @@ class BidAdjustmentSpec extends BaseSpec {
         when: "PBS processes auction request"
         def response = pbsService.sendAuctionRequest(bidRequest)
 
-        then: "Final bid price should be adjusted"
-        assert response.seatbid.first.bid.first.price == adjustmentRule.value
-        assert response.cur == adjustmentRule.currency
+        then: "Final bid price should be adjusted and converted to original request cur"
+        assert response.seatbid.first.bid.first.price == convertCurrency(adjustmentRule.value, adjustmentRule.currency, bidRequest.cur.first)
+        assert response.cur == bidRequest.cur.first
 
         and: "Original bid price and currency should be presented in bid.ext"
         verifyAll(response.seatbid.first.bid.first.ext) {
             origbidcpm == originalPrice
             origbidcur == bidResponse.cur
         }
+
+        and: "Bidder request should contain currency from request"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.cur == bidRequest.cur
     }
 
     def "PBS should apply bidAdjustments after bidAdjustmentFactors when both are present"() {
         given: "Default BidRequest with ext.prebid.bidAdjustments"
+        def currency = USD
         def bidAdjustmentFactorsPrice = PBSUtils.randomPrice
-        def adjustmentRule = new AdjustmentRule(adjustmentType: adjustmentType, value: PBSUtils.randomPrice, currency: USD)
+        def adjustmentRule = new AdjustmentRule(adjustmentType: adjustmentType, value: PBSUtils.randomPrice, currency: currency)
         def bidAdjustmentMultyRule = new BidAdjustmentRule(generic: [(WILDCARD): [adjustmentRule]])
         def bidRequest = BidRequest.defaultBidRequest.tap {
+            cur = [currency]
             ext.prebid.bidAdjustments = BidAdjustment.getDefaultWithSingleMediaTypeRule(BANNER, bidAdjustmentMultyRule)
             ext.prebid.bidAdjustmentFactors = new BidAdjustmentFactors(adjustments: [(GENERIC): bidAdjustmentFactorsPrice])
         }
@@ -677,7 +601,7 @@ class BidAdjustmentSpec extends BaseSpec {
         and: "Default bid response"
         def originalPrice = PBSUtils.randomPrice
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            cur = USD
+            cur = currency
             seatbid.first.bid.first.price = originalPrice
         }
         bidder.setResponse(bidRequest.id, bidResponse)
@@ -696,19 +620,28 @@ class BidAdjustmentSpec extends BaseSpec {
             origbidcur == bidResponse.cur
         }
 
+        and: "Bidder request should contain currency from request"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.cur == [currency]
+
         where:
         adjustmentType << [MULTIPLIER, CPM, STATIC]
     }
 
     def "PBS shouldn't adjust bid price for matching bidder when request has invalid value bidAdjustments config"() {
-        given: "Default BidRequest with ext.prebid.bidAdjustments"
-        def rule = new BidAdjustmentRule(generic: [(WILDCARD): [new AdjustmentRule(adjustmentType: adjustmentType, value: ruleValue, currency: USD)]])
+        given: "Start time"
+        def startTime = Instant.now()
+
+        and: "Default BidRequest with ext.prebid.bidAdjustments"
+        def currency = USD
+        def rule = new BidAdjustmentRule(generic: [(WILDCARD): [new AdjustmentRule(adjustmentType: adjustmentType, value: ruleValue, currency: currency)]])
         bidRequest.ext.prebid.bidAdjustments = BidAdjustment.getDefaultWithSingleMediaTypeRule(mediaType, rule)
+        bidRequest.cur = [currency]
 
         and: "Default bid response"
         def originalPrice = PBSUtils.randomPrice
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            cur = USD
+            cur = currency
             seatbid.first.bid.first.price = originalPrice
         }
         bidder.setResponse(bidRequest.id, bidResponse)
@@ -716,20 +649,28 @@ class BidAdjustmentSpec extends BaseSpec {
         when: "PBS processes auction request"
         def response = pbsService.sendAuctionRequest(bidRequest)
 
-        then: "PBS should ignore bidadjustments for this request"
+        then: "PBS should ignore bidAdjustments for this request"
         assert response.seatbid.first.bid.first.price == originalPrice
         assert response.cur == bidResponse.cur
 
         and: "Should add a warning when in debug mode"
+        String errorMessage = "bid adjustment from request was invalid: the found rule [adjtype=${adjustmentType}, value=${ruleValue}, currency=${currency}] in ${mediaType.value}.generic.* is invalid"
         assert response.ext.warnings[PREBID]?.code == [999]
-        assert response.ext.warnings[PREBID]?.message ==
-                ["bid adjustment from request was invalid: the found rule [adjtype=${adjustmentType}, value=${ruleValue}, currency=USD] in ${mediaType.value}.generic.* is invalid".toString()]
+        assert response.ext.warnings[PREBID]?.message == [errorMessage]
 
         and: "Original bid price and currency should be presented in bid.ext"
         verifyAll(response.seatbid.first.bid.first.ext) {
-            origbidcpm == bidResponse.seatbid.first.bid.first.price
+            origbidcpm == originalPrice
             origbidcur == bidResponse.cur
         }
+
+        and: "PBS log should contain error"
+        def logs = pbsService.getLogsByTime(startTime)
+        assert getLogsByText(logs, errorMessage)
+
+        and: "Bidder request should contain currency from request"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.cur == [currency]
 
         where:
         adjustmentType | ruleValue                       | mediaType        | bidRequest
@@ -739,12 +680,12 @@ class BidAdjustmentSpec extends BaseSpec {
         MULTIPLIER     | MIN_ADJUST_VALUE - 1            | AUDIO            | BidRequest.defaultAudioRequest
         MULTIPLIER     | MIN_ADJUST_VALUE - 1            | NATIVE           | BidRequest.defaultNativeRequest
         MULTIPLIER     | MIN_ADJUST_VALUE - 1            | ANY              | BidRequest.defaultNativeRequest
-        MULTIPLIER     | MAX_ADJUST_MULTIPLIER_VALUE + 1 | BANNER           | BidRequest.defaultBidRequest
-        MULTIPLIER     | MAX_ADJUST_MULTIPLIER_VALUE + 1 | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        MULTIPLIER     | MAX_ADJUST_MULTIPLIER_VALUE + 1 | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
-        MULTIPLIER     | MAX_ADJUST_MULTIPLIER_VALUE + 1 | AUDIO            | BidRequest.defaultAudioRequest
-        MULTIPLIER     | MAX_ADJUST_MULTIPLIER_VALUE + 1 | NATIVE           | BidRequest.defaultNativeRequest
-        MULTIPLIER     | MAX_ADJUST_MULTIPLIER_VALUE + 1 | ANY              | BidRequest.defaultNativeRequest
+        MULTIPLIER     | MAX_MULTIPLIER_ADJUST_VALUE + 1 | BANNER           | BidRequest.defaultBidRequest
+        MULTIPLIER     | MAX_MULTIPLIER_ADJUST_VALUE + 1 | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
+        MULTIPLIER     | MAX_MULTIPLIER_ADJUST_VALUE + 1 | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
+        MULTIPLIER     | MAX_MULTIPLIER_ADJUST_VALUE + 1 | AUDIO            | BidRequest.defaultAudioRequest
+        MULTIPLIER     | MAX_MULTIPLIER_ADJUST_VALUE + 1 | NATIVE           | BidRequest.defaultNativeRequest
+        MULTIPLIER     | MAX_MULTIPLIER_ADJUST_VALUE + 1 | ANY              | BidRequest.defaultNativeRequest
 
         CPM            | MIN_ADJUST_VALUE - 1            | BANNER           | BidRequest.defaultBidRequest
         CPM            | MIN_ADJUST_VALUE - 1            | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
@@ -752,12 +693,12 @@ class BidAdjustmentSpec extends BaseSpec {
         CPM            | MIN_ADJUST_VALUE - 1            | AUDIO            | BidRequest.defaultAudioRequest
         CPM            | MIN_ADJUST_VALUE - 1            | NATIVE           | BidRequest.defaultNativeRequest
         CPM            | MIN_ADJUST_VALUE - 1            | ANY              | BidRequest.defaultNativeRequest
-        CPM            | Integer.MAX_VALUE + 1           | BANNER           | BidRequest.defaultBidRequest
-        CPM            | Integer.MAX_VALUE + 1           | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        CPM            | Integer.MAX_VALUE + 1           | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
-        CPM            | Integer.MAX_VALUE + 1           | AUDIO            | BidRequest.defaultAudioRequest
-        CPM            | Integer.MAX_VALUE + 1           | NATIVE           | BidRequest.defaultNativeRequest
-        CPM            | Integer.MAX_VALUE + 1           | ANY              | BidRequest.defaultNativeRequest
+        CPM            | MAX_CPM_ADJUST_VALUE + 1        | BANNER           | BidRequest.defaultBidRequest
+        CPM            | MAX_CPM_ADJUST_VALUE + 1        | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
+        CPM            | MAX_CPM_ADJUST_VALUE + 1        | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
+        CPM            | MAX_CPM_ADJUST_VALUE + 1        | AUDIO            | BidRequest.defaultAudioRequest
+        CPM            | MAX_CPM_ADJUST_VALUE + 1        | NATIVE           | BidRequest.defaultNativeRequest
+        CPM            | MAX_CPM_ADJUST_VALUE + 1        | ANY              | BidRequest.defaultNativeRequest
 
         STATIC         | MIN_ADJUST_VALUE - 1            | BANNER           | BidRequest.defaultBidRequest
         STATIC         | MIN_ADJUST_VALUE - 1            | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
@@ -765,25 +706,27 @@ class BidAdjustmentSpec extends BaseSpec {
         STATIC         | MIN_ADJUST_VALUE - 1            | AUDIO            | BidRequest.defaultAudioRequest
         STATIC         | MIN_ADJUST_VALUE - 1            | NATIVE           | BidRequest.defaultNativeRequest
         STATIC         | MIN_ADJUST_VALUE - 1            | ANY              | BidRequest.defaultNativeRequest
-        STATIC         | Integer.MAX_VALUE + 1           | BANNER           | BidRequest.defaultBidRequest
-        STATIC         | Integer.MAX_VALUE + 1           | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        STATIC         | Integer.MAX_VALUE + 1           | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
-        STATIC         | Integer.MAX_VALUE + 1           | AUDIO            | BidRequest.defaultAudioRequest
-        STATIC         | Integer.MAX_VALUE + 1           | NATIVE           | BidRequest.defaultNativeRequest
-        STATIC         | Integer.MAX_VALUE + 1           | ANY              | BidRequest.defaultNativeRequest
+        STATIC         | MAX_STATIC_ADJUST_VALUE + 1     | BANNER           | BidRequest.defaultBidRequest
+        STATIC         | MAX_STATIC_ADJUST_VALUE + 1     | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
+        STATIC         | MAX_STATIC_ADJUST_VALUE + 1     | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
+        STATIC         | MAX_STATIC_ADJUST_VALUE + 1     | AUDIO            | BidRequest.defaultAudioRequest
+        STATIC         | MAX_STATIC_ADJUST_VALUE + 1     | NATIVE           | BidRequest.defaultNativeRequest
+        STATIC         | MAX_STATIC_ADJUST_VALUE + 1     | ANY              | BidRequest.defaultNativeRequest
     }
 
     def "PBS shouldn't adjust bid price for matching bidder when request has different bidder name in bidAdjustments config"() {
         given: "Default BidRequest with ext.prebid.bidAdjustments"
-        def rule = new BidAdjustmentRule(alias: [(WILDCARD): [new AdjustmentRule(adjustmentType: adjustmentType, value: PBSUtils.randomPrice, currency: USD)]])
+        def currency = USD
+        def rule = new BidAdjustmentRule(alias: [(WILDCARD): [new AdjustmentRule(adjustmentType: adjustmentType, value: PBSUtils.randomPrice, currency: currency)]])
         def bidRequest = BidRequest.defaultBidRequest.tap {
+            cur = [currency]
             ext.prebid.bidAdjustments = BidAdjustment.getDefaultWithSingleMediaTypeRule(BANNER, rule)
         }
 
         and: "Default bid response"
         def originalPrice = PBSUtils.randomPrice
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            cur = USD
+            cur = currency
             seatbid.first.bid.first.price = originalPrice
         }
         bidder.setResponse(bidRequest.id, bidResponse)
@@ -791,7 +734,7 @@ class BidAdjustmentSpec extends BaseSpec {
         when: "PBS processes auction request"
         def response = pbsService.sendAuctionRequest(bidRequest)
 
-        then: "PBS should ignore bidadjustments for this request"
+        then: "PBS should ignore bidAdjustments for this request"
         assert response.seatbid.first.bid.first.price == originalPrice
         assert response.cur == bidResponse.cur
 
@@ -800,26 +743,35 @@ class BidAdjustmentSpec extends BaseSpec {
 
         and: "Original bid price and currency should be presented in bid.ext"
         verifyAll(response.seatbid.first.bid.first.ext) {
-            origbidcpm == bidResponse.seatbid.first.bid.first.price
+            origbidcpm == originalPrice
             origbidcur == bidResponse.cur
         }
+
+        and: "Bidder request should contain currency from request"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.cur == [currency]
 
         where:
         adjustmentType << [MULTIPLIER, CPM, STATIC]
     }
 
     def "PBS shouldn't adjust bid price for matching bidder when cpm or static bidAdjustments doesn't have currency value"() {
-        given: "Default BidRequest with ext.prebid.bidAdjustments"
+        given: "Start time"
+        def startTime = Instant.now()
+
+        and: "Default BidRequest with ext.prebid.bidAdjustments"
+        def currency = USD
         def adjustmentPrice = PBSUtils.randomPrice.toDouble()
         def rule = new BidAdjustmentRule(generic: [(WILDCARD): [new AdjustmentRule(adjustmentType: adjustmentType, value: adjustmentPrice, currency: null)]])
         def bidRequest = BidRequest.defaultBidRequest.tap {
+            cur = [currency]
             ext.prebid.bidAdjustments = BidAdjustment.getDefaultWithSingleMediaTypeRule(BANNER, rule)
         }
 
         and: "Default bid response"
         def originalPrice = PBSUtils.randomPrice
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            cur = USD
+            cur = currency
             seatbid.first.bid.first.price = originalPrice
         }
         bidder.setResponse(bidRequest.id, bidResponse)
@@ -827,20 +779,28 @@ class BidAdjustmentSpec extends BaseSpec {
         when: "PBS processes auction request"
         def response = pbsService.sendAuctionRequest(bidRequest)
 
-        then: "PBS should ignore bidadjustments for this request"
+        then: "PBS should ignore bidAdjustments for this request"
         assert response.seatbid.first.bid.first.price == originalPrice
         assert response.cur == bidResponse.cur
 
         and: "Should add a warning when in debug mode"
+        String errorMessage = "bid adjustment from request was invalid: the found rule [adjtype=${adjustmentType}, value=${adjustmentPrice}, currency=null] in banner.generic.* is invalid"
         assert response.ext.warnings[PREBID]?.code == [999]
-        assert response.ext.warnings[PREBID]?.message ==
-                ["bid adjustment from request was invalid: the found rule [adjtype=${adjustmentType}, value=${adjustmentPrice}, currency=null] in banner.generic.* is invalid".toString()]
+        assert response.ext.warnings[PREBID]?.message == [errorMessage]
 
         and: "Original bid price and currency should be presented in bid.ext"
         verifyAll(response.seatbid.first.bid.first.ext) {
-            origbidcpm == bidResponse.seatbid.first.bid.first.price
+            origbidcpm == originalPrice
             origbidcur == bidResponse.cur
         }
+
+        and: "PBS log should contain error"
+        def logs = pbsService.getLogsByTime(startTime)
+        assert getLogsByText(logs, errorMessage)
+
+        and: "Bidder request should contain currency from request"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.cur == [currency]
 
         where:
         adjustmentType << [CPM, STATIC]
@@ -849,15 +809,17 @@ class BidAdjustmentSpec extends BaseSpec {
     def "PBS shouldn't adjust bid price for matching bidder when bidAdjustments have unknown mediatype"() {
         given: "Default BidRequest with ext.prebid.bidAdjustments"
         def adjustmentPrice = PBSUtils.randomPrice
+        def currency = USD
         def rule = new BidAdjustmentRule(generic: [(WILDCARD): [new AdjustmentRule(adjustmentType: adjustmentType, value: adjustmentPrice, currency: null)]])
         def bidRequest = BidRequest.defaultBidRequest.tap {
+            cur = [currency]
             ext.prebid.bidAdjustments = BidAdjustment.getDefaultWithSingleMediaTypeRule(UNKNOWN, rule)
         }
 
         and: "Default bid response"
         def originalPrice = PBSUtils.randomPrice
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            cur = USD
+            cur = currency
             seatbid.first.bid.first.price = originalPrice
         }
         bidder.setResponse(bidRequest.id, bidResponse)
@@ -865,7 +827,7 @@ class BidAdjustmentSpec extends BaseSpec {
         when: "PBS processes auction request"
         def response = pbsService.sendAuctionRequest(bidRequest)
 
-        then: "PBS should ignore bidadjustments for this request"
+        then: "PBS should ignore bidAdjustments for this request"
         assert response.seatbid.first.bid.first.price == originalPrice
         assert response.cur == bidResponse.cur
 
@@ -874,26 +836,35 @@ class BidAdjustmentSpec extends BaseSpec {
 
         and: "Original bid price and currency should be presented in bid.ext"
         verifyAll(response.seatbid.first.bid.first.ext) {
-            origbidcpm == bidResponse.seatbid.first.bid.first.price
+            origbidcpm == originalPrice
             origbidcur == bidResponse.cur
         }
+
+        and: "Bidder request should contain currency from request"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.cur == [currency]
 
         where:
         adjustmentType << [MULTIPLIER, CPM, STATIC]
     }
 
     def "PBS shouldn't adjust bid price for matching bidder when bidAdjustments have unknown adjustmentType"() {
-        given: "Default BidRequest with ext.prebid.bidAdjustments"
+        given: "Start time"
+        def startTime = Instant.now()
+
+        and: "Default BidRequest with ext.prebid.bidAdjustments"
+        def currency = USD
         def adjustmentPrice = PBSUtils.randomPrice.toDouble()
-        def rule = new BidAdjustmentRule(generic: [(WILDCARD): [new AdjustmentRule(adjustmentType: AdjustmentType.UNKNOWN, value: adjustmentPrice, currency: USD)]])
+        def rule = new BidAdjustmentRule(generic: [(WILDCARD): [new AdjustmentRule(adjustmentType: AdjustmentType.UNKNOWN, value: adjustmentPrice, currency: currency)]])
         def bidRequest = BidRequest.defaultBidRequest.tap {
+            cur = [currency]
             ext.prebid.bidAdjustments = BidAdjustment.getDefaultWithSingleMediaTypeRule(BANNER, rule)
         }
 
         and: "Default bid response"
         def originalPrice = PBSUtils.randomPrice
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            cur = USD
+            cur = currency
             seatbid.first.bid.first.price = originalPrice
         }
         bidder.setResponse(bidRequest.id, bidResponse)
@@ -901,34 +872,44 @@ class BidAdjustmentSpec extends BaseSpec {
         when: "PBS processes auction request"
         def response = pbsService.sendAuctionRequest(bidRequest)
 
-        then: "PBS should ignore bidadjustments for this request"
+        then: "PBS should ignore bidAdjustments for this request"
         assert response.seatbid.first.bid.first.price == originalPrice
         assert response.cur == bidResponse.cur
 
         and: "Should add a warning when in debug mode"
+        String errorMessage = "bid adjustment from request was invalid: the found rule [adjtype=UNKNOWN, value=$adjustmentPrice, currency=$currency] in banner.generic.* is invalid"
         assert response.ext.warnings[PREBID]?.code == [999]
-        assert response.ext.warnings[PREBID]?.message ==
-                ["bid adjustment from request was invalid: the found rule [adjtype=UNKNOWN, value=${adjustmentPrice}, currency=USD] in banner.generic.* is invalid".toString()]
+        assert response.ext.warnings[PREBID]?.message == [errorMessage]
 
         and: "Original bid price and currency should be presented in bid.ext"
         verifyAll(response.seatbid.first.bid.first.ext) {
-            origbidcpm == bidResponse.seatbid.first.bid.first.price
+            origbidcpm == originalPrice
             origbidcur == bidResponse.cur
         }
+
+        and: "PBS log should contain error"
+        def logs = pbsService.getLogsByTime(startTime)
+        assert getLogsByText(logs, errorMessage)
+
+        and: "Bidder request should contain currency from request"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.cur == [currency]
     }
 
     def "PBS shouldn't adjust bid price for matching bidder when multiplier bidAdjustments doesn't have currency value"() {
         given: "Default BidRequest with ext.prebid.bidAdjustments"
+        def currency = USD
         def adjustmentPrice = PBSUtils.randomPrice
         def rule = new BidAdjustmentRule(generic: [(WILDCARD): [new AdjustmentRule(adjustmentType: MULTIPLIER, value: adjustmentPrice, currency: null)]])
         def bidRequest = BidRequest.defaultBidRequest.tap {
+            cur = [currency]
             ext.prebid.bidAdjustments = BidAdjustment.getDefaultWithSingleMediaTypeRule(BANNER, rule)
         }
 
         and: "Default bid response"
         def originalPrice = PBSUtils.randomPrice
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            cur = USD
+            cur = currency
             seatbid.first.bid.first.price = originalPrice
         }
         bidder.setResponse(bidRequest.id, bidResponse)
@@ -942,7 +923,7 @@ class BidAdjustmentSpec extends BaseSpec {
 
         and: "Original bid price and currency should be presented in bid.ext"
         verifyAll(response.seatbid.first.bid.first.ext) {
-            origbidcpm == bidResponse.seatbid.first.bid.first.price
+            origbidcpm == originalPrice
             origbidcur == bidResponse.cur
         }
 
@@ -951,9 +932,14 @@ class BidAdjustmentSpec extends BaseSpec {
 
         and: "Original bid price and currency should be presented in bid.ext"
         verifyAll(response.seatbid.first.bid.first.ext) {
-            origbidcpm == bidResponse.seatbid.first.bid.first.price
+            origbidcpm == originalPrice
             origbidcur == bidResponse.cur
         }
+
+        and: "Bidder request should contain currency from request"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.cur == [currency]
+
 
         where:
         adjustmentType << [CPM, STATIC]
