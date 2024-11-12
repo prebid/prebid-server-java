@@ -15,6 +15,8 @@ import org.prebid.server.functional.util.PBSUtils
 import spock.lang.PendingFeature
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.request.auction.DebugCondition.DISABLED
+import static org.prebid.server.functional.model.request.auction.DebugCondition.ENABLED
 import static org.prebid.server.functional.model.response.auction.BidderCallType.STORED_BID_RESPONSE
 
 class DebugSpec extends BaseSpec {
@@ -34,10 +36,10 @@ class DebugSpec extends BaseSpec {
         assert response.ext?.debug
 
         where:
-        debug | test
-        1     | null
-        1     | 0
-        null  | 1
+        debug   | test
+        ENABLED | null
+        ENABLED | DISABLED
+        null    | ENABLED
     }
 
     def "PBS shouldn't return debug information when debug flag is #debug and test flag is #test"() {
@@ -53,9 +55,9 @@ class DebugSpec extends BaseSpec {
         assert !response.ext?.debug
 
         where:
-        debug | test
-        0     | null
-        null  | 0
+        debug    | test
+        DISABLED | null
+        null     | DISABLED
     }
 
     def "PBS should not return debug information when bidder-level setting debug.allowed = false"() {
@@ -64,7 +66,7 @@ class DebugSpec extends BaseSpec {
 
         and: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
-        bidRequest.ext.prebid.debug = 1
+        bidRequest.ext.prebid.debug = ENABLED
 
         when: "PBS processes auction request"
         def response = pbsService.sendAuctionRequest(bidRequest)
@@ -84,7 +86,7 @@ class DebugSpec extends BaseSpec {
 
         and: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
-        bidRequest.ext.prebid.debug = 1
+        bidRequest.ext.prebid.debug = ENABLED
 
         when: "PBS processes auction request"
         def response = pbsService.sendAuctionRequest(bidRequest)
@@ -102,7 +104,7 @@ class DebugSpec extends BaseSpec {
 
         and: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
-        bidRequest.ext.prebid.debug = 1
+        bidRequest.ext.prebid.debug = ENABLED
 
         and: "Account in the DB"
         def account = new Account(uuid: bidRequest.site.publisher.id, config: accountConfig)
@@ -132,7 +134,7 @@ class DebugSpec extends BaseSpec {
 
         and: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
-        bidRequest.ext.prebid.debug = 1
+        bidRequest.ext.prebid.debug = ENABLED
 
         and: "Account in the DB"
         def account = new Account(uuid: bidRequest.site.publisher.id, config: accountConfig)
@@ -161,7 +163,7 @@ class DebugSpec extends BaseSpec {
 
         and: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
-        bidRequest.ext.prebid.debug = 1
+        bidRequest.ext.prebid.debug = ENABLED
 
         and: "Account in the DB"
         def accountConfig = new AccountConfig(auction: new AccountAuctionConfig(debugAllow: false))
@@ -183,7 +185,7 @@ class DebugSpec extends BaseSpec {
     def "PBS should use default values = true for bidder-level setting debug.allow and account-level setting debug-allowed when they are not specified"() {
         given: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
-        bidRequest.ext.prebid.debug = 1
+        bidRequest.ext.prebid.debug = ENABLED
 
         when: "PBS processes auction request"
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
@@ -201,7 +203,7 @@ class DebugSpec extends BaseSpec {
 
         and: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
-        bidRequest.ext.prebid.debug = 1
+        bidRequest.ext.prebid.debug = ENABLED
 
         and: "Account in the DB"
         def accountConfig = new AccountConfig(auction: new AccountAuctionConfig(debugAllow: debugAllowedAccount))
@@ -233,7 +235,7 @@ class DebugSpec extends BaseSpec {
 
         and: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
-        bidRequest.ext.prebid.debug = 1
+        bidRequest.ext.prebid.debug = ENABLED
 
         and: "Account in the DB"
         def accountConfig = new AccountConfig(auction: new AccountAuctionConfig(debugAllow: false))
@@ -278,11 +280,11 @@ class DebugSpec extends BaseSpec {
         assert response.ext?.debug
 
         where:
-        requestDebug || storedRequestDebug
-        1            || 0
-        1            || 1
-        1            || null
-        null         || 1
+        requestDebug | storedRequestDebug
+        ENABLED      | DISABLED
+        ENABLED      | ENABLED
+        ENABLED      | null
+        null         | ENABLED
     }
 
     def "PBS AMP shouldn't return debug information when request flag is #requestDebug and stored request flag is #storedRequestDebug"() {
@@ -307,12 +309,12 @@ class DebugSpec extends BaseSpec {
         assert !response.ext?.debug
 
         where:
-        requestDebug || storedRequestDebug
-        0            || 1
-        0            || 0
-        0            || null
-        null         || 0
-        null         || null
+        requestDebug | storedRequestDebug
+        DISABLED     | ENABLED
+        DISABLED     | DISABLED
+        DISABLED     | null
+        null         | DISABLED
+        null         | null
     }
 
     def "PBS shouldn't populate call type when it's default bidder call"() {

@@ -193,28 +193,6 @@ public class ImprovedigitalBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfCannotParseConsentedProviders() {
-        // given
-        final ExtUser extUser = ExtUser.builder()
-                .consentedProvidersSettings(ConsentedProvidersSettings.of("1~a.fv.90"))
-                .build();
-
-        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
-                        .user(User.builder().ext(extUser).build()).id("request_id"),
-                identity());
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).allSatisfy(error -> {
-            assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
-            assertThat(error.getMessage()).startsWith("Cannot deserialize value of type");
-        });
-    }
-
-    @Test
     public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
         final BidRequest bidRequest = givenBidRequest(

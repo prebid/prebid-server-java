@@ -5,6 +5,7 @@ import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 import org.prebid.server.functional.model.Currency
 
+import static org.prebid.server.functional.model.request.auction.DebugCondition.ENABLED
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.DOOH
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
@@ -22,7 +23,7 @@ class BidRequest {
     Dooh dooh
     Device device
     User user
-    Integer test
+    DebugCondition test
     Integer at
     Long tmax
     List<String> wseat
@@ -63,7 +64,7 @@ class BidRequest {
             regs = Regs.defaultRegs
             id = UUID.randomUUID()
             tmax = 2500
-            ext = new BidRequestExt(prebid: new Prebid(debug: 1))
+            ext = new BidRequestExt(prebid: new Prebid(debug: ENABLED))
             if (channel == SITE) {
                 site = Site.defaultSite
             }
