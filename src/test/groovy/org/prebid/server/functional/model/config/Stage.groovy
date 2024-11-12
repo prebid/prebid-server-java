@@ -6,20 +6,22 @@ import groovy.transform.ToString
 @ToString
 enum Stage {
 
-    ENTRYPOINT("entrypoint"),
-    RAW_AUCTION_REQUEST("raw-auction-request"),
-    PROCESSED_AUCTION_REQUEST("processed-auction-request"),
-    BIDDER_REQUEST("bidder-request"),
-    RAW_BIDDER_RESPONSE("raw-bidder-response"),
-    PROCESSED_BIDDER_RESPONSE("processed-bidder-response"),
-    ALL_PROCESSED_BID_RESPONSES("all-processed-bid-responses"),
-    AUCTION_RESPONSE("auction-response")
+    ENTRYPOINT("entrypoint", "entrypoint"),
+    RAW_AUCTION_REQUEST("raw-auction-request", "rawauction"),
+    PROCESSED_AUCTION_REQUEST("processed-auction-request", "procauction"),
+    BIDDER_REQUEST("bidder-request", "bidrequest"),
+    RAW_BIDDER_RESPONSE("raw-bidder-response", "rawbidresponse"),
+    PROCESSED_BIDDER_RESPONSE("processed-bidder-response", "procbidresponse"),
+    ALL_PROCESSED_BID_RESPONSES("all-processed-bid-responses", "allprocbidresponses"),
+    AUCTION_RESPONSE("auction-response", "auctionresponse")
 
     @JsonValue
     final String value
+    final String metricValue
 
-    Stage(String value) {
+    Stage(String value, String metricValue) {
         this.value = value
+        this.metricValue = metricValue
     }
 
     @Override

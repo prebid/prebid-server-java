@@ -1,5 +1,6 @@
 package org.prebid.server.hooks.execution;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
@@ -8,8 +9,12 @@ import org.prebid.server.hooks.execution.model.ExecutionGroup;
 import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.hooks.execution.model.HookId;
 import org.prebid.server.hooks.v1.Hook;
+import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationContext;
 import org.prebid.server.hooks.v1.InvocationResult;
+import org.prebid.server.hooks.v1.InvocationResultImpl;
+import org.prebid.server.hooks.v1.InvocationStatus;
+import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.LoggerFactory;
 
@@ -25,6 +30,7 @@ class GroupExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
 
     private final Vertx vertx;
     private final Clock clock;
+    private final boolean isConfigToInvokeRequired;
 
     private ExecutionGroup group;
     private PAYLOAD initialPayload;
@@ -33,16 +39,18 @@ class GroupExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
     private HookExecutionContext hookExecutionContext;
     private boolean rejectAllowed;
 
-    private GroupExecutor(Vertx vertx, Clock clock) {
+    private GroupExecutor(Vertx vertx, Clock clock, boolean isConfigToInvokeRequired) {
         this.vertx = vertx;
         this.clock = clock;
+        this.isConfigToInvokeRequired = isConfigToInvokeRequired;
     }
 
     public static <PAYLOAD, CONTEXT extends InvocationContext> GroupExecutor<PAYLOAD, CONTEXT> create(
             Vertx vertx,
-            Clock clock) {
+            Clock clock,
+            boolean isConfigToInvokeRequired) {
 
-        return new GroupExecutor<>(vertx, clock);
+        return new GroupExecutor<>(vertx, clock, isConfigToInvokeRequired);
     }
 
     public GroupExecutor<PAYLOAD, CONTEXT> withGroup(ExecutionGroup group) {
@@ -107,11 +115,19 @@ class GroupExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
             return Future.failedFuture(new FailedException("Hook implementation does not exist or disabled"));
         }
 
-        return executeWithTimeout(
-                () -> hook.call(
-                        groupResult.payload(),
-                        invocationContextProvider.apply(timeout, hookId, moduleContextFor(hookId))),
-                timeout);
+        final CONTEXT invocationContext = invocationContextProvider.apply(timeout, hookId, moduleContextFor(hookId));
+
+        if (isConfigToInvokeRequired && invocationContext instanceof AuctionInvocationContext) {
+            final ObjectNode accountConfig = ((AuctionInvocationContext) invocationContext).accountConfig();
+            if (accountConfig == null || accountConfig.isNull()) {
+                return Future.succeededFuture(InvocationResultImpl.<PAYLOAD>builder()
+                        .status(InvocationStatus.success)
+                        .action(InvocationAction.no_invocation)
+                        .build());
+            }
+        }
+
+        return executeWithTimeout(() -> hook.call(groupResult.payload(), invocationContext), timeout);
     }
 
     private <T> Future<T> executeWithTimeout(Supplier<Future<T>> action, Long timeout) {
