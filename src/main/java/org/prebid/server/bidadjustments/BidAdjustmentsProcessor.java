@@ -99,54 +99,69 @@ public class BidAdjustmentsProcessor {
                                           BidAdjustments bidAdjustments,
                                           List<BidderError> errors) {
         try {
-            final BidderBid bidWithOriginalPriceAndCurrency = enrichWithOriginalBidPriceAndCurrency(bidderBid);
-            final BidderBid bidWithAdjustedPrice = applyBidAdjustmentFactors(
-                    bidWithOriginalPriceAndCurrency,
+            final Price originalPrice = getOriginalPrice(bidderBid);
+            final Price priceWithFactorsApplied = applyBidAdjustmentFactors(
+                    originalPrice,
+                    bidderBid,
                     bidder,
                     bidRequest);
-            return applyBidAdjustmentRules(bidWithAdjustedPrice, bidder, bidRequest, bidAdjustments);
+            final Price priceWithAdjustmentsApplied = applyBidAdjustmentRules(
+                    priceWithFactorsApplied,
+                    bidderBid,
+                    bidder,
+                    bidRequest,
+                    bidAdjustments);
+            return updateBid(originalPrice, priceWithAdjustmentsApplied, bidderBid, bidRequest);
         } catch (PreBidException e) {
             errors.add(BidderError.generic(e.getMessage()));
             return null;
         }
     }
 
-    private BidderBid enrichWithOriginalBidPriceAndCurrency(BidderBid bidderBid) {
+    private BidderBid updateBid(Price originalPrice, Price adjustedPrice, BidderBid bidderBid, BidRequest bidRequest) {
         final Bid bid = bidderBid.getBid();
-        final String bidCurrency = bidderBid.getBidCurrency();
-        final BigDecimal price = bid.getPrice();
-
         final ObjectNode bidExt = bid.getExt();
         final ObjectNode updatedBidExt = bidExt != null ? bidExt : mapper.mapper().createObjectNode();
 
-        updatedBidExt.set(ORIGINAL_BID_CPM, new DecimalNode(price));
-        if (StringUtils.isNotBlank(bidCurrency)) {
-            updatedBidExt.set(ORIGINAL_BID_CURRENCY, new TextNode(bidCurrency));
+        final BigDecimal originalBidPrice = originalPrice.getValue();
+        final String originalBidCurrency = originalPrice.getCurrency();
+        updatedBidExt.set(ORIGINAL_BID_CPM, new DecimalNode(originalBidPrice));
+        if (StringUtils.isNotBlank(originalBidCurrency)) {
+            updatedBidExt.set(ORIGINAL_BID_CURRENCY, new TextNode(originalBidCurrency));
         }
 
-        final Bid updatedBid = bid.toBuilder()
-                .ext(updatedBidExt.isEmpty() ? bidExt : updatedBidExt)
+        final String requestCurrency = bidRequest.getCur().getFirst();
+        final BigDecimal requestCurrencyPrice = currencyService.convertCurrency(
+                adjustedPrice.getValue(),
+                bidRequest,
+                adjustedPrice.getCurrency(),
+                requestCurrency);
+
+        return bidderBid.toBuilder()
+                .bidCurrency(requestCurrency)
+                .bid(bid.toBuilder()
+                        .ext(updatedBidExt.isEmpty() ? bidExt : updatedBidExt)
+                        .price(requestCurrencyPrice)
+                        .build())
                 .build();
-        return bidderBid.toBuilder().bid(updatedBid).build();
     }
 
-    private BidderBid applyBidAdjustmentFactors(BidderBid bidderBid, String bidder, BidRequest bidRequest) {
+    private Price getOriginalPrice(BidderBid bidderBid) {
         final Bid bid = bidderBid.getBid();
         final String bidCurrency = bidderBid.getBidCurrency();
         final BigDecimal price = bid.getPrice();
-        final String requestCurrency = bidRequest.getCur().getFirst();
 
-        final BigDecimal priceInAdServerCurrency = currencyService.convertCurrency(
-                price, bidRequest, StringUtils.stripToNull(bidCurrency), requestCurrency);
+        return Price.of(StringUtils.stripToNull(bidCurrency), price);
+    }
+
+    private Price applyBidAdjustmentFactors(Price bidPrice, BidderBid bidderBid, String bidder, BidRequest bidRequest) {
+        final String bidCurrency = bidPrice.getCurrency();
+        final BigDecimal price = bidPrice.getValue();
 
         final BigDecimal priceAdjustmentFactor = bidAdjustmentForBidder(bidder, bidRequest, bidderBid);
-        final BigDecimal adjustedPrice = adjustPrice(priceAdjustmentFactor, priceInAdServerCurrency);
+        final BigDecimal adjustedPrice = adjustPrice(priceAdjustmentFactor, price);
 
-        final Bid adjustedBid = bid.toBuilder()
-                .price(adjustedPrice.compareTo(price) != 0 ? adjustedPrice : price)
-                .build();
-
-        return bidderBid.toBuilder().bid(adjustedBid).build();
+        return Price.of(bidCurrency, adjustedPrice.compareTo(price) != 0 ? adjustedPrice : price);
     }
 
     private BigDecimal bidAdjustmentForBidder(String bidder, BidRequest bidRequest, BidderBid bidderBid) {
@@ -163,31 +178,27 @@ public class BidAdjustmentsProcessor {
         return bidAdjustmentFactorResolver.resolve(mediaType, adjustmentFactors, bidder);
     }
 
-    private BidderBid applyBidAdjustmentRules(BidderBid bidderBid,
-                                              String bidder,
-                                              BidRequest bidRequest,
-                                              BidAdjustments bidAdjustments) {
+    private Price applyBidAdjustmentRules(Price bidPrice,
+                                          BidderBid bidderBid,
+                                          String bidder,
+                                          BidRequest bidRequest,
+                                          BidAdjustments bidAdjustments) {
 
         final Bid bid = bidderBid.getBid();
-        final String bidCurrency = bidderBid.getBidCurrency();
-        final BigDecimal bidPrice = bid.getPrice();
+        final String bidCurrency = bidPrice.getCurrency();
+        final BigDecimal price = bidPrice.getValue();
 
         final ImpMediaType mediaType = ImpMediaTypeResolver.resolve(
                 bid.getImpid(),
                 bidRequest.getImp(),
                 bidderBid.getType());
 
-        final Price adjustedBidPrice = bidAdjustmentsResolver.resolve(
-                Price.of(bidCurrency, bidPrice),
+        return bidAdjustmentsResolver.resolve(
+                Price.of(bidCurrency, price),
                 bidRequest,
                 bidAdjustments,
                 mediaType == null || mediaType == ImpMediaType.video ? ImpMediaType.video_instream : mediaType,
                 bidder,
                 bid.getDealid());
-
-        return bidderBid.toBuilder()
-                .bidCurrency(adjustedBidPrice.getCurrency())
-                .bid(bid.toBuilder().price(adjustedBidPrice.getValue()).build())
-                .build();
     }
 }

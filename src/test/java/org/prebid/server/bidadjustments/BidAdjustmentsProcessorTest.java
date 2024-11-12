@@ -50,7 +50,6 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.audio;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
@@ -93,11 +92,11 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
 
         final AuctionParticipation auctionParticipation = givenAuctionParticipation(bidderResponse, bidRequest);
 
-        final BigDecimal convertedPrice = BigDecimal.valueOf(5.0);
-        given(currencyService.convertCurrency(any(), any(), any(), any())).willReturn(convertedPrice);
-
         final Price adjustedPrice = Price.of("EUR", BigDecimal.valueOf(5.0));
         given(bidAdjustmentsResolver.resolve(any(), any(), any(), any(), any(), any())).willReturn(adjustedPrice);
+
+        final BigDecimal expectedPrice = new BigDecimal("123.5");
+        given(currencyService.convertCurrency(any(), any(), eq("EUR"), eq("UAH"))).willReturn(expectedPrice);
 
         // when
         final AuctionParticipation result = target.enrichWithAdjustedBids(
@@ -106,10 +105,10 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
         // then
         assertThat(result.getBidderResponse().getSeatBid().getBids())
                 .extracting(BidderBid::getBidCurrency, bidderBid -> bidderBid.getBid().getPrice())
-                .containsExactly(tuple(adjustedPrice.getCurrency(), adjustedPrice.getValue()));
+                .containsExactly(tuple("UAH", expectedPrice));
 
         verify(bidAdjustmentsResolver).resolve(
-                eq(Price.of("USD", convertedPrice)),
+                eq(Price.of("USD", BigDecimal.valueOf(2.0))),
                 eq(bidRequest),
                 eq(givenBidAdjustments()),
                 eq(ImpMediaType.banner),
@@ -166,8 +165,6 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
         final BidderSeatBid firstSeatBid = result.getBidderResponse().getSeatBid();
         assertThat(firstSeatBid.getBids()).isEmpty();
         assertThat(firstSeatBid.getErrors()).containsOnly(expectedError);
-
-        verifyNoInteractions(bidAdjustmentsResolver);
     }
 
     @Test
@@ -217,25 +214,24 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
 
         given(bidAdjustmentFactorResolver.resolve(ImpMediaType.banner, givenAdjustments, "bidder"))
                 .willReturn(BigDecimal.TEN);
-        given(currencyService.convertCurrency(any(), any(), any(), any()))
-                .willReturn(BigDecimal.TEN);
         final Price adjustedPrice = Price.of("EUR", BigDecimal.valueOf(5.0));
         given(bidAdjustmentsResolver.resolve(any(), any(), any(), any(), any(), any())).willReturn(adjustedPrice);
+        final BigDecimal expectedPrice = new BigDecimal("123.5");
+        given(currencyService.convertCurrency(any(), any(), eq("EUR"), eq("UAH"))).willReturn(expectedPrice);
 
         // when
         final AuctionParticipation result = target.enrichWithAdjustedBids(
                 auctionParticipation, bidRequest, givenBidAdjustments());
 
         // then
-        final BigDecimal updatedPrice = BigDecimal.valueOf(100);
         final BidderSeatBid seatBid = result.getBidderResponse().getSeatBid();
         assertThat(seatBid.getBids())
                 .extracting(BidderBid::getBidCurrency, bidderBid -> bidderBid.getBid().getPrice())
-                .containsExactly(tuple(adjustedPrice.getCurrency(), adjustedPrice.getValue()));
+                .containsExactly(tuple("UAH", expectedPrice));
         assertThat(seatBid.getErrors()).isEmpty();
 
         verify(bidAdjustmentsResolver).resolve(
-                eq(Price.of("USD", updatedPrice)),
+                eq(Price.of("USD", BigDecimal.valueOf(20.0))),
                 eq(bidRequest),
                 eq(givenBidAdjustments()),
                 eq(ImpMediaType.banner),
@@ -280,16 +276,13 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
         expectedBidExt.put("origbidcpm", new BigDecimal("2.0"));
         expectedBidExt.put("origbidcur", "CUR1");
         final Bid expectedBid = Bid.builder().impid("impId1").price(updatedPrice).ext(expectedBidExt).build();
-        final BidderBid expectedBidderBid = BidderBid.of(expectedBid, banner, "CUR1");
+        final BidderBid expectedBidderBid = BidderBid.of(expectedBid, banner, "UAH");
         final BidderError expectedError =
                 BidderError.generic("Unable to convert bid currency CUR2 to desired ad server currency USD");
 
         final BidderSeatBid firstSeatBid = result.getBidderResponse().getSeatBid();
         assertThat(firstSeatBid.getBids()).containsOnly(expectedBidderBid);
         assertThat(firstSeatBid.getErrors()).containsOnly(expectedError);
-
-        verify(bidAdjustmentsResolver).resolve(any(), any(), any(), any(), any(), any());
-        verifyNoMoreInteractions(bidAdjustmentsResolver);
     }
 
     @Test
@@ -302,20 +295,20 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
                 BidderSeatBid.builder()
                         .bids(List.of(
                                 givenBidderBid(Bid.builder().impid("impId1").price(firstBidderPrice).build(), "USD"),
-                                givenBidderBid(Bid.builder().impid("impId2").price(secondBidderPrice).build(), "CUR")
+                                givenBidderBid(Bid.builder().impid("impId2").price(secondBidderPrice).build(), "EUR")
                         ))
                         .build(),
                 1);
 
         final BidRequest bidRequest = BidRequest.builder()
-                .cur(singletonList("BAD"))
+                .cur(singletonList("CUR"))
                 .imp(singletonList(givenImp(doubleMap("bidder1", 2, "bidder2", 3),
                         identity()))).build();
 
         final BigDecimal updatedPrice = BigDecimal.valueOf(20);
         given(currencyService.convertCurrency(any(), any(), any(), any())).willReturn(updatedPrice);
-        given(currencyService.convertCurrency(any(), any(), eq("CUR"), eq("BAD")))
-                .willThrow(new PreBidException("Unable to convert bid currency CUR to desired ad server currency BAD"));
+        given(currencyService.convertCurrency(any(), any(), eq("EUR"), eq("CUR")))
+                .willThrow(new PreBidException("Unable to convert bid currency EUR to desired ad server currency CUR"));
 
         final AuctionParticipation auctionParticipation = givenAuctionParticipation(bidderResponse, bidRequest);
 
@@ -324,18 +317,18 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
                 auctionParticipation, bidRequest, givenBidAdjustments());
 
         // then
-        verify(currencyService).convertCurrency(eq(firstBidderPrice), eq(bidRequest), eq("USD"), eq("BAD"));
-        verify(currencyService).convertCurrency(eq(secondBidderPrice), eq(bidRequest), eq("CUR"), eq("BAD"));
+        verify(currencyService).convertCurrency(eq(firstBidderPrice), eq(bidRequest), eq("USD"), eq("CUR"));
+        verify(currencyService).convertCurrency(eq(secondBidderPrice), eq(bidRequest), eq("EUR"), eq("CUR"));
 
         final ObjectNode expectedBidExt = mapper.createObjectNode();
         expectedBidExt.put("origbidcpm", new BigDecimal("2.0"));
         expectedBidExt.put("origbidcur", "USD");
         final Bid expectedBid = Bid.builder().impid("impId1").price(updatedPrice).ext(expectedBidExt).build();
-        final BidderBid expectedBidderBid = BidderBid.of(expectedBid, banner, "USD");
+        final BidderBid expectedBidderBid = BidderBid.of(expectedBid, banner, "CUR");
         assertThat(result.getBidderResponse().getSeatBid().getBids()).containsOnly(expectedBidderBid);
 
         final BidderError expectedError = BidderError.generic(
-                "Unable to convert bid currency CUR to desired ad server currency BAD");
+                "Unable to convert bid currency EUR to desired ad server currency CUR");
         assertThat(result.getBidderResponse().getSeatBid().getErrors()).containsOnly(expectedError);
     }
 
@@ -773,7 +766,7 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
                                               UnaryOperator<BidRequest.BidRequestBuilder> bidRequestBuilderCustomizer) {
 
         return bidRequestBuilderCustomizer
-                .apply(BidRequest.builder().cur(singletonList("USD")).imp(imp).tmax(500L))
+                .apply(BidRequest.builder().cur(singletonList("UAH")).imp(imp).tmax(500L))
                 .build();
     }
 
