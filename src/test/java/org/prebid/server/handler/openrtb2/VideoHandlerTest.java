@@ -24,6 +24,7 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.CachedDebugLog;
 import org.prebid.server.auction.model.TimeoutContext;
 import org.prebid.server.auction.model.WithPodErrors;
+import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.auction.requestfactory.VideoRequestFactory;
 import org.prebid.server.cache.CoreCacheService;
 import org.prebid.server.cookie.UidsCookie;
@@ -300,6 +301,7 @@ public class VideoHandlerTest extends VertxTest {
                 .bidRequest(BidRequest.builder().imp(emptyList()).build())
                 .account(Account.builder().auction(AccountAuctionConfig.builder().videoCacheTtl(100).build()).build())
                 .cachedDebugLog(new CachedDebugLog(true, 10, null, jacksonMapper))
+                .debugContext(DebugContext.empty())
                 .build();
 
         final WithPodErrors<AuctionContext> auctionContextWithPodErrors = WithPodErrors.of(auctionContext, emptyList());
@@ -327,6 +329,7 @@ public class VideoHandlerTest extends VertxTest {
         final AuctionContext auctionContext = AuctionContext.builder()
                 .bidRequest(BidRequest.builder().imp(emptyList()).build())
                 .account(Account.builder().auction(AccountAuctionConfig.builder().videoCacheTtl(100).build()).build())
+                .debugContext(DebugContext.empty())
                 .cachedDebugLog(cachedDebugLog)
                 .build();
 
@@ -377,6 +380,7 @@ public class VideoHandlerTest extends VertxTest {
                 .uidsCookie(uidsCookie)
                 .bidRequest(bidRequest)
                 .timeoutContext(TimeoutContext.of(0, timeout, 0))
+                .debugContext(DebugContext.empty())
                 .build();
 
         return WithPodErrors.of(auctionContext, errors);

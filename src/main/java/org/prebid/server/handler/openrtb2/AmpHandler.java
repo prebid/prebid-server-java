@@ -135,6 +135,7 @@ public class AmpHandler implements ApplicationResource {
 
         ampRequestFactory.fromRequest(routingContext, startTime)
 
+                .map(this::updateDebugRequestMetrics)
                 .map(context -> addToEvent(context, ampEventBuilder::auctionContext, context))
                 .map(this::updateAppAndNoCookieAndImpsMetrics)
 
@@ -144,6 +145,12 @@ public class AmpHandler implements ApplicationResource {
                 .compose(context -> prepareAmpResponse(context, routingContext))
                 .map(result -> addToEvent(result.getLeft().getTargeting(), ampEventBuilder::targeting, result))
                 .onComplete(responseResult -> handleResult(responseResult, ampEventBuilder, routingContext, startTime));
+    }
+
+    private AuctionContext updateDebugRequestMetrics(AuctionContext auctionContext) {
+        final boolean debugEnabled = auctionContext.getDebugContext().isDebugEnabled();
+        metrics.updateDebugRequestMetrics(debugEnabled);
+        return auctionContext;
     }
 
     private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {

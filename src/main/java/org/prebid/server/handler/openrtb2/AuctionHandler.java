@@ -100,9 +100,16 @@ public class AuctionHandler implements ApplicationResource {
                 .httpContext(HttpRequestContext.from(routingContext));
 
         auctionRequestFactory.parseRequest(routingContext, startTime)
+                .map(this::updateDebugRequestMetrics)
                 .compose(auctionContext -> skippedAuctionService.skipAuction(auctionContext)
                         .recover(throwable -> holdAuction(auctionEventBuilder, auctionContext)))
                 .onComplete(context -> handleResult(context, auctionEventBuilder, routingContext, startTime));
+    }
+
+    private AuctionContext updateDebugRequestMetrics(AuctionContext auctionContext) {
+        final boolean debugEnabled = auctionContext.getDebugContext().isDebugEnabled();
+        metrics.updateDebugRequestMetrics(debugEnabled);
+        return auctionContext;
     }
 
     private Future<AuctionContext> holdAuction(AuctionEvent.AuctionEventBuilder auctionEventBuilder,

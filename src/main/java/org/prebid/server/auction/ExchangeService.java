@@ -1083,9 +1083,11 @@ public class ExchangeService {
                                                MetricName requestTypeMetric) {
 
         final List<AuctionParticipation> auctionParticipations = context.getAuctionParticipations();
+        final boolean debugEnabled = context.getDebugContext().isDebugEnabled();
 
         metrics.updateRequestBidderCardinalityMetric(auctionParticipations.size());
         metrics.updateAccountRequestMetrics(account, requestTypeMetric);
+        metrics.updateAccountDebugRequestMetrics(account, debugEnabled);
 
         for (AuctionParticipation auctionParticipation : auctionParticipations) {
             if (auctionParticipation.isRequestBlocked()) {
