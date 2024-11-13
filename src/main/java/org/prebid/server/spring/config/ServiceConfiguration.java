@@ -752,11 +752,13 @@ public class ServiceConfiguration {
             HttpBidderRequestEnricher requestEnricher,
             JacksonMapper mapper) {
 
-        return new HttpBidderRequester(httpClient,
+        return new HttpBidderRequester(
+                httpClient,
                 bidderRequestCompletionTrackerFactory,
                 bidderErrorNotifier,
                 requestEnricher,
-                mapper);
+                mapper,
+                logSamplingRate);
     }
 
     @Bean
