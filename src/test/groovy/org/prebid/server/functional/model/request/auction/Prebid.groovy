@@ -15,6 +15,7 @@ class Prebid {
     Map<String, BidderName> aliases
     Map<String, Integer> aliasgvlids
     BidAdjustmentFactors bidAdjustmentFactors
+    BidAdjustment bidAdjustments
     PrebidCurrency currency
     Targeting targeting
     TraceLevel trace
