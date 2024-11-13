@@ -19,8 +19,13 @@ There are two ways to configure application settings: database and file. This do
       operational warning.
     - "enforce": if a bidder returns a creative that's larger in height or width than any of the allowed sizes, reject
       the bid and log an operational warning.
+- `auction.bidadjustments` - configuration JSON for default bid adjustments
+- `auction.bidadjustments.mediatype.{banner, video-instream, video-outstream, audio, native, *}.{<BIDDER>, *}.{<DEAL_ID>, *}[]` - array of bid adjustment to be applied to any bid of the provided mediatype, <BIDDER> and <DEAL_ID> (`*` means ANY)
+- `auction.bidadjustments.mediatype.*.*.*[].adjtype` - type of the bid adjustment (cpm, multiplier, static)
+- `auction.bidadjustments.mediatype.*.*.*[].value` - value of the bid adjustment
+- `auction.bidadjustments.mediatype.*.*.*[].currency` - currency of the bid adjustment
 - `auction.events.enabled` - enables events for account if true
-- `auction.price-floors.enabeled` - enables price floors for account if true. Defaults to true.
+- `auction.price-floors.enabled` - enables price floors for account if true. Defaults to true.
 - `auction.price-floors.fetch.enabled`- enables data fetch for price floors for account if true. Defaults to false.
 - `auction.price-floors.fetch.url` - url to fetch price floors data from.
 - `auction.price-floors.fetch.timeout-ms` - timeout for fetching price floors data. Defaults to 5000.

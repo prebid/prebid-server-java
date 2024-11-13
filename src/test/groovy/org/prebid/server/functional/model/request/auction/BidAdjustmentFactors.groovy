@@ -15,7 +15,6 @@ class BidAdjustmentFactors {
     Map<BidderName, BigDecimal> adjustments
     Map<BidAdjustmentMediaType, Map<BidderName, BigDecimal>> mediaTypes
 
-
     @JsonAnyGetter
     Map<BidderName, BigDecimal> getAdjustments() {
         adjustments

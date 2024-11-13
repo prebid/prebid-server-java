@@ -51,6 +51,11 @@ public class ExtRequestPrebid {
     ExtRequestBidAdjustmentFactors bidadjustmentfactors;
 
     /**
+     * Defines the contract for bidrequest.ext.prebid.bidadjustments
+     */
+    ObjectNode bidadjustments;
+
+    /**
      * Defines the contract for bidrequest.ext.prebid.currency
      */
     ExtRequestCurrency currency;
