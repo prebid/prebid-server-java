@@ -2,6 +2,7 @@ package org.prebid.server.functional.tests.module.ortb2blocking
 
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.bidder.Generic
+import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountHooksConfiguration
 import org.prebid.server.functional.model.config.ExecutionPlan
@@ -16,6 +17,8 @@ import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.Asset
 import org.prebid.server.functional.model.request.auction.Audio
 import org.prebid.server.functional.model.request.auction.Banner
+import org.prebid.server.functional.model.request.auction.BidderControls
+import org.prebid.server.functional.model.request.auction.GenericPreferredBidder
 import org.prebid.server.functional.model.request.auction.Ix
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Imp
@@ -53,12 +56,12 @@ import static org.prebid.server.functional.testcontainers.Dependencies.getNetwor
 
 class Ortb2BlockingSpec extends ModuleBaseSpec {
 
+    private static final String WILDCARD = '*'
     private static final Map IX_CONFIG = ["adapters.ix.enabled" : "true",
                                           "adapters.ix.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
-    private static final String WILDCARD = '*'
 
     private final PrebidServerService pbsServiceWithEnabledOrtb2Blocking = pbsServiceFactory.getService(ortb2BlockingSettings + IX_CONFIG +
-            ["adapters.generic.ortb.multiformat-supported": "true"])
+            ['adapter-defaults.ortb.multiformat-supported': 'false'])
 
     def "PBS should send original array ortb2 attribute to bidder when enforce blocking is disabled"() {
         given: "Default bid request with proper ortb attribute"
@@ -129,6 +132,134 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         PBSUtils.randomNumber | VIDEO_BATTR
         PBSUtils.randomNumber | AUDIO_BATTR
         PBSUtils.randomNumber | BTYPE
+    }
+
+    def "PBS shouldn't be able to send original battr ortb2 attribute when bid request imps type doesn't match with attribute type"() {
+        given: "Account in the DB with blocking configuration"
+        def ortb2Attribute = PBSUtils.randomNumber
+        def account = getAccountWithOrtb2BlockingConfig(bidRequest.accountId, [ortb2Attribute], attributeName)
+        accountDao.save(account)
+
+        and: "Default bidder response with ortb2 attributes"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            it.seatbid.first.bid = [getBidWithOrtb2Attribute(bidRequest.imp.first, ortb2Attribute, attributeName)]
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes the auction request"
+        def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
+
+        then: "PBS request shouldn't contain ortb2 attributes from account config for any media-type"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert !bidderRequest?.imp?.first?.banner?.battr
+        assert !bidderRequest?.imp?.first?.video?.battr
+        assert !bidderRequest?.imp?.first?.audio?.battr
+
+        and: "PBS request should contain single media type"
+        assert bidderRequest.imp.first.mediaTypes.size() == 1
+
+        and: "PBS response shouldn't contain any module errors"
+        assert !response?.ext?.prebid?.modules?.errors
+
+        and: "PBS response shouldn't contain any module warning"
+        assert !response?.ext?.prebid?.modules?.warnings
+
+        where:
+        bidRequest                     | attributeName
+        BidRequest.defaultVideoRequest | BANNER_BATTR
+        BidRequest.defaultAudioRequest | VIDEO_BATTR
+        BidRequest.defaultBidRequest   | AUDIO_BATTR
+    }
+
+    def "PBS shouldn't be able to send original battr ortb2 attribute when preferredMediaType doesn't match with attribute type"() {
+        given: "Default bid request with multiply types"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp.first.banner = Banner.defaultBanner
+            imp.first.video = Video.defaultVideo
+            imp.first.audio = Audio.defaultAudio
+            ext.prebid.bidderControls = new BidderControls(generic: new GenericPreferredBidder(preferredMediaType: preferredMediaType))
+        }
+
+        and: "Account in the DB with blocking configuration"
+        def ortb2Attribute = PBSUtils.randomNumber
+        def account = getAccountWithOrtb2BlockingConfig(bidRequest.accountId, [ortb2Attribute], attributeName)
+        accountDao.save(account)
+
+        and: "Default bidder response with ortb2 attributes"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            it.seatbid.first.bid = [getBidWithOrtb2Attribute(bidRequest.imp.first, ortb2Attribute, attributeName)]
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes the auction request"
+        def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
+
+        then: "PBS request shouldn't contain ortb2 attributes from account config for any media-type"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert !bidderRequest?.imp?.first?.banner?.battr
+        assert !bidderRequest?.imp?.first?.video?.battr
+        assert !bidderRequest?.imp?.first?.audio?.battr
+
+        and: "PBS request should contain only preferred media type"
+        assert bidderRequest.imp.first.mediaTypes == [preferredMediaType]
+
+        and: "PBS response shouldn't contain any module errors"
+        assert !response?.ext?.prebid?.modules?.errors
+
+        and: "PBS response shouldn't contain any module warning"
+        assert !response?.ext?.prebid?.modules?.warnings
+
+        where:
+        preferredMediaType | attributeName
+        VIDEO              | BANNER_BATTR
+        AUDIO              | VIDEO_BATTR
+        BANNER             | AUDIO_BATTR
+    }
+
+    def "PBS shouldn't be able to send original battr ortb2 attribute when account level preferredMediaType doesn't match with attribute type"() {
+        given: "Default bid request with multiply types"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp.first.banner = Banner.defaultBanner
+            imp.first.video = Video.defaultVideo
+            imp.first.audio = Audio.defaultAudio
+        }
+
+        and: "Account in the DB with blocking configuration"
+        def ortb2Attribute = PBSUtils.randomNumber
+        def account = getAccountWithOrtb2BlockingConfig(bidRequest.accountId, [ortb2Attribute], attributeName).tap {
+            config.auction = new AccountAuctionConfig(preferredMediaType: [(GENERIC): preferredMediaType])
+        }
+        accountDao.save(account)
+
+        and: "Default bidder response with ortb2 attributes"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            it.seatbid.first.bid = [getBidWithOrtb2Attribute(bidRequest.imp.first, ortb2Attribute, attributeName)]
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes the auction request"
+        def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
+
+        then: "PBS request shouldn't contain ortb2 attributes from account config for any media-type"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert !bidderRequest?.imp?.first?.banner?.battr
+        assert !bidderRequest?.imp?.first?.video?.battr
+        assert !bidderRequest?.imp?.first?.audio?.battr
+
+        and: "PBS request should contain only preferred media type"
+        assert bidderRequest.imp.first.mediaTypes == [preferredMediaType]
+
+        and: "PBS response shouldn't contain any module errors"
+        assert !response?.ext?.prebid?.modules?.errors
+
+        and: "PBS response shouldn't contain any module warning"
+        assert !response?.ext?.prebid?.modules?.warnings
+
+        where:
+        preferredMediaType | attributeName
+        VIDEO              | BANNER_BATTR
+        AUDIO              | VIDEO_BATTR
+        BANNER             | AUDIO_BATTR
     }
 
     def "PBS shouldn't send original single ortb2 attribute to bidder when enforce blocking is disabled"() {

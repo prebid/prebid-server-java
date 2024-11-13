@@ -133,3 +133,15 @@ Following metrics are collected and submitted if account is configured with `det
 - `analytics.<reporter-name>.(auction|amp|video|cookie_sync|event|setuid).timeout` - number of event requests, failed with timeout cause
 - `analytics.<reporter-name>.(auction|amp|video|cookie_sync|event|setuid).err` - number of event requests, failed with errors
 - `analytics.<reporter-name>.(auction|amp|video|cookie_sync|event|setuid).badinput` - number of event requests, rejected with bad input cause
+
+## Modules metrics
+- `modules.module.<module>.stage.<stage>.hook.<hook>.call` - number of times the hook is called
+- `modules.module.<module>.stage.<stage>.hook.<hook>.duration` - timer tracking the called hook execution time
+- `modules.module.<module>.stage.<stage>.hook.<hook>.success.(noop|update|reject|no-invocation)` - number of times the hook is called successfully with the action applied
+- `modules.module.<module>.stage.<stage>.hook.<hook>.(failure|timeout|execution-error)` - number of times the hook execution is failed
+
+## Modules per-account metrics
+- `account.<account-id>.modules.module.<module>.call` - number of times the module is called
+- `account.<account-id>.modules.module.<module>.duration` - timer tracking the called module execution time
+- `account.<account-id>.modules.module.<module>.success.(noop|update|reject|no-invocation)` - number of times the module is called successfully with the action applied
+- `account.<account-id>.modules.module.<module>.failure` - number of times the module execution is failed

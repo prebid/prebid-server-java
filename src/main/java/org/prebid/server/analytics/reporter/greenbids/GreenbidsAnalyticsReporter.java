@@ -21,6 +21,7 @@ import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.AmpEvent;
 import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.reporter.greenbids.model.CommonMessage;
+import org.prebid.server.analytics.reporter.greenbids.model.ExplorationResult;
 import org.prebid.server.analytics.reporter.greenbids.model.ExtBanner;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsAdUnit;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsAnalyticsProperties;
@@ -29,9 +30,19 @@ import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsPrebidExt;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsSource;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsUnifiedCode;
 import org.prebid.server.analytics.reporter.greenbids.model.MediaTypes;
+import org.prebid.server.analytics.reporter.greenbids.model.Ortb2ImpExtResult;
+import org.prebid.server.analytics.reporter.greenbids.model.Ortb2ImpResult;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.hooks.execution.model.GroupExecutionOutcome;
+import org.prebid.server.hooks.execution.model.HookExecutionContext;
+import org.prebid.server.hooks.execution.model.HookExecutionOutcome;
+import org.prebid.server.hooks.execution.model.Stage;
+import org.prebid.server.hooks.execution.model.StageExecutionOutcome;
+import org.prebid.server.hooks.v1.analytics.Activity;
+import org.prebid.server.hooks.v1.analytics.Result;
+import org.prebid.server.hooks.v1.analytics.Tags;
 import org.prebid.server.json.EncodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.Logger;
@@ -50,6 +61,8 @@ import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 import java.time.Clock;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -110,8 +123,12 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
             return Future.succeededFuture();
         }
 
-        final String greenbidsId = UUID.randomUUID().toString();
         final String billingId = UUID.randomUUID().toString();
+
+        final Map<String, Ortb2ImpExtResult> analyticsResultFromAnalyticsTag = extractAnalyticsResultFromAnalyticsTag(
+                auctionContext);
+
+        final String greenbidsId = greenbidsId(analyticsResultFromAnalyticsTag);
 
         if (!isSampled(greenbidsBidRequestExt.getGreenbidsSampling(), greenbidsId)) {
             return Future.succeededFuture();
@@ -124,7 +141,8 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                     bidResponse,
                     greenbidsId,
                     billingId,
-                    greenbidsBidRequestExt);
+                    greenbidsBidRequestExt,
+                    analyticsResultFromAnalyticsTag);
             commonMessageJson = jacksonMapper.encodeToString(commonMessage);
         } catch (PreBidException e) {
             return Future.failedFuture(e);
@@ -162,6 +180,10 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 .orElse(null);
     }
 
+    private boolean isNotEmptyObjectNode(JsonNode analytics) {
+        return analytics != null && analytics.isObject() && !analytics.isEmpty();
+    }
+
     private GreenbidsPrebidExt toGreenbidsPrebidExt(ObjectNode adapterNode) {
         try {
             return jacksonMapper.mapper().treeToValue(adapterNode, GreenbidsPrebidExt.class);
@@ -170,8 +192,62 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
         }
     }
 
-    private boolean isNotEmptyObjectNode(JsonNode analytics) {
-        return analytics != null && analytics.isObject() && !analytics.isEmpty();
+    private Map<String, Ortb2ImpExtResult> extractAnalyticsResultFromAnalyticsTag(AuctionContext auctionContext) {
+        return Optional.ofNullable(auctionContext)
+                .map(AuctionContext::getHookExecutionContext)
+                .map(HookExecutionContext::getStageOutcomes)
+                .map(stages -> stages.get(Stage.processed_auction_request))
+                .stream()
+                .flatMap(Collection::stream)
+                .filter(stageExecutionOutcome -> "auction-request".equals(stageExecutionOutcome.getEntity()))
+                .map(StageExecutionOutcome::getGroups)
+                .flatMap(Collection::stream)
+                .map(GroupExecutionOutcome::getHooks)
+                .flatMap(Collection::stream)
+                .filter(hook -> "greenbids-real-time-data".equals(hook.getHookId().getModuleCode()))
+                .map(HookExecutionOutcome::getAnalyticsTags)
+                .map(Tags::activities)
+                .flatMap(Collection::stream)
+                .filter(activity -> "greenbids-filter".equals(activity.name()))
+                .map(Activity::results)
+                .map(List::getFirst)
+                .map(Result::values)
+                .map(this::parseAnalyticsResult)
+                .flatMap(map -> map.entrySet().stream())
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        Map.Entry::getValue,
+                        (existing, replacement) -> existing));
+    }
+
+    private Map<String, Ortb2ImpExtResult> parseAnalyticsResult(ObjectNode analyticsResult) {
+        try {
+            final Map<String, Ortb2ImpExtResult> parsedAnalyticsResult = new HashMap<>();
+            final Iterator<Map.Entry<String, JsonNode>> fields = analyticsResult.fields();
+
+            while (fields.hasNext()) {
+                final Map.Entry<String, JsonNode> field = fields.next();
+                final String impId = field.getKey();
+                final JsonNode explorationResultNode = field.getValue();
+                final Ortb2ImpExtResult ortb2ImpExtResult = jacksonMapper.mapper()
+                        .treeToValue(explorationResultNode, Ortb2ImpExtResult.class);
+                parsedAnalyticsResult.put(impId, ortb2ImpExtResult);
+            }
+
+            return parsedAnalyticsResult;
+        } catch (JsonProcessingException e) {
+            throw new PreBidException("Analytics result parsing error", e);
+        }
+    }
+
+    private String greenbidsId(Map<String, Ortb2ImpExtResult> analyticsResultFromAnalyticsTag) {
+        return Optional.ofNullable(analyticsResultFromAnalyticsTag)
+                .map(Map::values)
+                .map(Collection::stream)
+                .flatMap(Stream::findFirst)
+                .map(Ortb2ImpExtResult::getGreenbids)
+                .map(ExplorationResult::getFingerprint)
+                .orElseGet(() -> UUID.randomUUID().toString());
     }
 
     private Future<Void> processAnalyticServerResponse(HttpClientResponse response) {
@@ -213,7 +289,8 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
             BidResponse bidResponse,
             String greenbidsId,
             String billingId,
-            GreenbidsPrebidExt greenbidsImpExt) {
+            GreenbidsPrebidExt greenbidsImpExt,
+            Map<String, Ortb2ImpExtResult> analyticsResultFromAnalyticsTag) {
         final Optional<BidRequest> bidRequest = Optional.ofNullable(auctionContext.getBidRequest());
 
         final List<Imp> imps = bidRequest
@@ -231,8 +308,10 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
 
         final Map<String, NonBid> seatsWithNonBids = getSeatsWithNonBids(auctionContext);
 
-        final List<GreenbidsAdUnit> adUnitsWithBidResponses = imps.stream().map(imp -> createAdUnit(
-                imp, seatsWithBids, seatsWithNonBids, bidResponse.getCur())).toList();
+        final List<GreenbidsAdUnit> adUnitsWithBidResponses = imps.stream().map(imp ->
+                createAdUnit(
+                        imp, seatsWithBids, seatsWithNonBids, bidResponse.getCur(), analyticsResultFromAnalyticsTag))
+                .toList();
 
         final String auctionId = bidRequest
                 .map(BidRequest::getId)
@@ -294,7 +373,8 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
             Imp imp,
             Map<String, Bid> seatsWithBids,
             Map<String, NonBid> seatsWithNonBids,
-            String currency) {
+            String currency,
+            Map<String, Ortb2ImpExtResult> analyticsResultFromAnalyticsTag) {
         final ExtBanner extBanner = getExtBanner(imp.getBanner());
         final Video video = imp.getVideo();
         final Native nativeObject = imp.getXNative();
@@ -317,11 +397,17 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
         final List<GreenbidsBid> bids = extractBidders(
                 imp.getId(), seatsWithBids, seatsWithNonBids, impExtPrebid, currency);
 
+        final Ortb2ImpResult ortb2ImpResult = Optional.ofNullable(analyticsResultFromAnalyticsTag)
+                .map(analyticsResult -> analyticsResult.get(imp.getId()))
+                .map(Ortb2ImpResult::of)
+                .orElse(null);
+
         return GreenbidsAdUnit.builder()
                 .code(adUnitCode)
                 .unifiedCode(greenbidsUnifiedCode)
                 .mediaTypes(mediaTypes)
                 .bids(bids)
+                .ortb2ImpResult(ortb2ImpResult)
                 .build();
     }
 

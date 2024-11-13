@@ -1,4 +1,4 @@
-package org.prebid.server.hooks.modules.pb.response.correction.v1.model;
+package org.prebid.server.hooks.modules.greenbids.real.time.data.v1.model;
 
 import lombok.Builder;
 import lombok.Value;
@@ -8,15 +8,13 @@ import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
 import org.prebid.server.hooks.v1.PayloadUpdate;
 import org.prebid.server.hooks.v1.analytics.Tags;
-import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
-import org.prebid.server.hooks.v1.bidder.AllProcessedBidResponsesPayload;
 
 import java.util.List;
 
 @Accessors(fluent = true)
 @Builder
 @Value
-public class InvocationResultImpl implements InvocationResult<AllProcessedBidResponsesPayload> {
+public class InvocationResultImpl<PAYLOAD> implements InvocationResult<PAYLOAD> {
 
     InvocationStatus status;
 
@@ -24,7 +22,7 @@ public class InvocationResultImpl implements InvocationResult<AllProcessedBidRes
 
     InvocationAction action;
 
-    PayloadUpdate<AllProcessedBidResponsesPayload> payloadUpdate;
+    PayloadUpdate<PAYLOAD> payloadUpdate;
 
     List<String> errors;
 
