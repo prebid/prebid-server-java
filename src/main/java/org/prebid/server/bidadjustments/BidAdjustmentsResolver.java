@@ -87,15 +87,17 @@ public class BidAdjustmentsResolver {
             final BigDecimal adjustmentValue = rule.getValue();
             final String adjustmentCurrency = rule.getCurrency();
 
-            if (adjustmentType == BidAdjustmentType.MULTIPLIER) {
-                resolvedPrice = BidderUtil.roundFloor(resolvedPrice.multiply(adjustmentValue));
-            } else if (adjustmentType == BidAdjustmentType.CPM) {
-                final BigDecimal convertedAdjustmentValue = currencyService.convertCurrency(
-                        adjustmentValue, bidRequest, adjustmentCurrency, resolvedCurrency);
-                resolvedPrice = BidderUtil.roundFloor(resolvedPrice.subtract(convertedAdjustmentValue));
-            } else if (adjustmentType == BidAdjustmentType.STATIC) {
-                resolvedPrice = adjustmentValue;
-                resolvedCurrency = adjustmentCurrency;
+            switch (adjustmentType) {
+                case MULTIPLIER -> resolvedPrice = BidderUtil.roundFloor(resolvedPrice.multiply(adjustmentValue));
+                case CPM -> {
+                    final BigDecimal convertedAdjustmentValue = currencyService.convertCurrency(
+                            adjustmentValue, bidRequest, adjustmentCurrency, resolvedCurrency);
+                    resolvedPrice = BidderUtil.roundFloor(resolvedPrice.subtract(convertedAdjustmentValue));
+                }
+                case STATIC -> {
+                    resolvedPrice = adjustmentValue;
+                    resolvedCurrency = adjustmentCurrency;
+                }
             }
         }
 

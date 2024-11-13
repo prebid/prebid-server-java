@@ -58,42 +58,29 @@ public class BidAdjustmentsRetriever {
                 requestBidAdjustmentsNode,
                 accountBidAdjustmentsNode);
 
-        try {
-            final ExtRequestBidAdjustments mergedBidAdjustments = mapper.convertValue(
-                    mergedBidAdjustmentsNode,
-                    ExtRequestBidAdjustments.class);
-
-            BidAdjustmentRulesValidator.validate(mergedBidAdjustments);
-            return BidAdjustments.of(mergedBidAdjustments);
-
-        } catch (IllegalArgumentException | ValidationException e) {
-            final String message = "bid adjustment from request was invalid: " + e.getMessage();
-            if (debugEnabled) {
-                debugWarnings.add(message);
-            }
-            conditionalLogger.error(message, samplingRate);
-            return retrieveAccountAdjustmentsOnly(accountBidAdjustmentsNode, debugEnabled, debugWarnings);
-        }
+        final List<String> resolvedWarnings = debugEnabled ? debugWarnings : null;
+        return convertAndValidate(mergedBidAdjustmentsNode, resolvedWarnings, "request")
+                .or(() -> convertAndValidate(accountBidAdjustmentsNode, resolvedWarnings, "account"))
+                .orElse(BidAdjustments.of(Collections.emptyMap()));
     }
 
-    private BidAdjustments retrieveAccountAdjustmentsOnly(JsonNode accountBidAdjustmentsNode,
-                                                          boolean debugEnabled,
-                                                          List<String> debugWarnings) {
-
+    private Optional<BidAdjustments> convertAndValidate(JsonNode bidAdjustmentsNode,
+                                                        List<String> debugWarnings,
+                                                        String errorLocation) {
         try {
             final ExtRequestBidAdjustments accountBidAdjustments = mapper.convertValue(
-                    accountBidAdjustmentsNode,
+                    bidAdjustmentsNode,
                     ExtRequestBidAdjustments.class);
 
             BidAdjustmentRulesValidator.validate(accountBidAdjustments);
-            return BidAdjustments.of(accountBidAdjustments);
+            return Optional.of(BidAdjustments.of(accountBidAdjustments));
         } catch (IllegalArgumentException | ValidationException e) {
-            final String message = "bid adjustment from account was invalid: " + e.getMessage();
-            if (debugEnabled) {
+            final String message = "bid adjustment from " + errorLocation + " was invalid: " + e.getMessage();
+            if (debugWarnings != null) {
                 debugWarnings.add(message);
             }
             conditionalLogger.error(message, samplingRate);
-            return BidAdjustments.of(Collections.emptyMap());
+            return Optional.empty();
         }
     }
 }

@@ -140,7 +140,7 @@ public class BidAdjustmentsProcessor {
         return bidderBid.toBuilder()
                 .bidCurrency(requestCurrency)
                 .bid(bid.toBuilder()
-                        .ext(updatedBidExt.isEmpty() ? bidExt : updatedBidExt)
+                        .ext(updatedBidExt)
                         .price(requestCurrencyPrice)
                         .build())
                 .build();
