@@ -2,13 +2,16 @@ package org.prebid.server.functional.tests.module
 
 import org.prebid.server.functional.model.config.Endpoint
 import org.prebid.server.functional.model.config.ExecutionPlan
+import org.prebid.server.functional.model.config.Stage
 import org.prebid.server.functional.tests.BaseSpec
 
 import static org.prebid.server.functional.model.ModuleName.ORTB2_BLOCKING
+import static org.prebid.server.functional.model.ModuleName.PB_REQUEST_CORRECTION
 import static org.prebid.server.functional.model.ModuleName.PB_RESPONSE_CORRECTION
 import static org.prebid.server.functional.model.ModuleName.PB_RICHMEDIA_FILTER
 import static org.prebid.server.functional.model.config.Endpoint.OPENRTB2_AUCTION
 import static org.prebid.server.functional.model.config.Stage.ALL_PROCESSED_BID_RESPONSES
+import static org.prebid.server.functional.model.config.Stage.PROCESSED_AUCTION_REQUEST
 
 class ModuleBaseSpec extends BaseSpec {
 
@@ -50,5 +53,10 @@ class ModuleBaseSpec extends BaseSpec {
 
     protected static Map<String, String> getOrtb2BlockingSettings(boolean isEnabled = true) {
         ["hooks.${ORTB2_BLOCKING.code}.enabled": isEnabled as String]
+    }
+
+    protected static Map<String, String> getRequestCorrectionSettings(Endpoint endpoint = OPENRTB2_AUCTION, Stage stage = PROCESSED_AUCTION_REQUEST) {
+        ["hooks.${PB_REQUEST_CORRECTION.code}.enabled": "true",
+         "hooks.host-execution-plan"                  : encode(ExecutionPlan.getSingleEndpointExecutionPlan(endpoint, PB_REQUEST_CORRECTION, [stage]))]
     }
 }
