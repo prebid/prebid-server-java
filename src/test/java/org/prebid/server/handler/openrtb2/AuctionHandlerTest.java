@@ -24,7 +24,6 @@ import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.SkippedAuctionService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.TimeoutContext;
-import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.BlocklistedAccountException;
@@ -537,7 +536,6 @@ public class AuctionHandlerTest extends VertxTest {
 
         // then
         verify(metrics).updateAppAndNoCookieAndImpsRequestedMetrics(anyBoolean(), anyBoolean(), eq(1));
-        verify(metrics).updateDebugRequestMetrics(false);
     }
 
     @Test
@@ -867,8 +865,7 @@ public class AuctionHandlerTest extends VertxTest {
                 .uidsCookie(uidsCookie)
                 .bidRequest(bidRequest)
                 .requestTypeMetric(MetricName.openrtb2web)
-                .timeoutContext(TimeoutContext.of(0, timeout, 0))
-                .debugContext(DebugContext.empty());
+                .timeoutContext(TimeoutContext.of(0, timeout, 0));
 
         return auctionContextCustomizer.apply(auctionContextBuilder)
                 .build();

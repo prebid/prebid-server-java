@@ -97,7 +97,6 @@ public class VideoHandler implements ApplicationResource {
                 .httpContext(HttpRequestContext.from(routingContext));
 
         videoRequestFactory.fromRequest(routingContext, startTime)
-                .map(this::updateDebugRequestMetrics)
                 .map(contextToErrors -> addToEvent(
                         contextToErrors.getData(), videoEventBuilder::auctionContext, contextToErrors))
 
@@ -114,12 +113,6 @@ public class VideoHandler implements ApplicationResource {
                 .map(videoResponse -> addToEvent(videoResponse, videoEventBuilder::bidResponse, videoResponse))
                 .onComplete(responseResult -> handleResult(responseResult, videoEventBuilder, routingContext,
                         startTime));
-    }
-
-    private WithPodErrors<AuctionContext> updateDebugRequestMetrics(WithPodErrors<AuctionContext> contextWithErrors) {
-        final boolean debugEnabled = contextWithErrors.getData().getDebugContext().isDebugEnabled();
-        metrics.updateDebugRequestMetrics(debugEnabled);
-        return contextWithErrors;
     }
 
     private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {

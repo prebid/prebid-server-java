@@ -745,7 +745,6 @@ public class AmpHandlerTest extends VertxTest {
 
         // then
         verify(metrics).updateRequestTimeMetric(eq(MetricName.request_time), eq(500L));
-        verify(metrics).updateDebugRequestMetrics(false);
     }
 
     @Test
