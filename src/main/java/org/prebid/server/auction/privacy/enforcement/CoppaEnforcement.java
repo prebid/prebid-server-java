@@ -1,18 +1,18 @@
 package org.prebid.server.auction.privacy.enforcement;
 
-import com.iab.openrtb.request.Device;
-import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
+import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.auction.privacy.enforcement.mask.UserFpdCoppaMask;
 import org.prebid.server.metric.Metrics;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-public class CoppaEnforcement {
+public class CoppaEnforcement implements PrivacyEnforcement {
 
     private final UserFpdCoppaMask userFpdCoppaMask;
     private final Metrics metrics;
@@ -22,22 +22,32 @@ public class CoppaEnforcement {
         this.metrics = Objects.requireNonNull(metrics);
     }
 
-    public boolean isApplicable(AuctionContext auctionContext) {
+    public Future<List<BidderPrivacyResult>> enforce(AuctionContext auctionContext,
+                                                     BidderAliases aliases,
+                                                     List<BidderPrivacyResult> results) {
+
+        if (!isApplicable(auctionContext)) {
+            return Future.succeededFuture(results);
+        }
+
+        final Set<String> bidders = results.stream()
+                .map(BidderPrivacyResult::getRequestBidder)
+                .collect(Collectors.toSet());
+
+        metrics.updatePrivacyCoppaMetric(auctionContext.getActivityInfrastructure(), bidders);
+        return Future.succeededFuture(enforce(results));
+    }
+
+    private static boolean isApplicable(AuctionContext auctionContext) {
         return auctionContext.getPrivacyContext().getPrivacy().getCoppa() == 1;
     }
 
-    public Future<List<BidderPrivacyResult>> enforce(AuctionContext auctionContext, Map<String, User> bidderToUser) {
-        metrics.updatePrivacyCoppaMetric(auctionContext.getActivityInfrastructure(), bidderToUser.keySet());
-        return Future.succeededFuture(results(bidderToUser, auctionContext.getBidRequest().getDevice()));
-    }
-
-    private List<BidderPrivacyResult> results(Map<String, User> bidderToUser, Device device) {
-        final Device maskedDevice = userFpdCoppaMask.maskDevice(device);
-        return bidderToUser.entrySet().stream()
-                .map(bidderAndUser -> BidderPrivacyResult.builder()
-                        .requestBidder(bidderAndUser.getKey())
-                        .user(userFpdCoppaMask.maskUser(bidderAndUser.getValue()))
-                        .device(maskedDevice)
+    private List<BidderPrivacyResult> enforce(List<BidderPrivacyResult> results) {
+        return results.stream()
+                .map(result -> BidderPrivacyResult.builder()
+                        .requestBidder(result.getRequestBidder())
+                        .user(userFpdCoppaMask.maskUser(result.getUser()))
+                        .device(userFpdCoppaMask.maskDevice(result.getDevice()))
                         .build())
                 .toList();
     }

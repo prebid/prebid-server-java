@@ -57,6 +57,7 @@ import org.prebid.server.auction.privacy.contextfactory.SetuidPrivacyContextFact
 import org.prebid.server.auction.privacy.enforcement.ActivityEnforcement;
 import org.prebid.server.auction.privacy.enforcement.CcpaEnforcement;
 import org.prebid.server.auction.privacy.enforcement.CoppaEnforcement;
+import org.prebid.server.auction.privacy.enforcement.PrivacyEnforcement;
 import org.prebid.server.auction.privacy.enforcement.PrivacyEnforcementService;
 import org.prebid.server.auction.privacy.enforcement.TcfEnforcement;
 import org.prebid.server.auction.requestfactory.AmpRequestFactory;
@@ -933,16 +934,8 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    PrivacyEnforcementService privacyEnforcementService(CoppaEnforcement coppaEnforcement,
-                                                        CcpaEnforcement ccpaEnforcement,
-                                                        TcfEnforcement tcfEnforcement,
-                                                        ActivityEnforcement activityEnforcement) {
-
-        return new PrivacyEnforcementService(
-                coppaEnforcement,
-                ccpaEnforcement,
-                tcfEnforcement,
-                activityEnforcement);
+    PrivacyEnforcementService privacyEnforcementService(List<PrivacyEnforcement> enforcements) {
+        return new PrivacyEnforcementService(enforcements);
     }
 
     @Bean

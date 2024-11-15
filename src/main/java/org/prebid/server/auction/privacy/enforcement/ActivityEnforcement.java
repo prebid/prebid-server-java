@@ -12,6 +12,7 @@ import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
 import org.prebid.server.activity.infrastructure.payload.impl.ActivityInvocationPayloadImpl;
 import org.prebid.server.activity.infrastructure.payload.impl.PrivacyEnforcementServiceActivityInvocationPayload;
+import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
@@ -21,7 +22,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-public class ActivityEnforcement {
+public class ActivityEnforcement implements PrivacyEnforcement {
 
     private final UserFpdActivityMask userFpdActivityMask;
 
@@ -29,17 +30,18 @@ public class ActivityEnforcement {
         this.userFpdActivityMask = Objects.requireNonNull(userFpdActivityMask);
     }
 
-    public Future<List<BidderPrivacyResult>> enforce(List<BidderPrivacyResult> bidderPrivacyResults,
-                                                     AuctionContext auctionContext) {
+    public Future<List<BidderPrivacyResult>> enforce(AuctionContext auctionContext,
+                                                     BidderAliases aliases,
+                                                     List<BidderPrivacyResult> results) {
 
-        final List<BidderPrivacyResult> results = bidderPrivacyResults.stream()
+        final List<BidderPrivacyResult> enforcedResults = results.stream()
                 .map(bidderPrivacyResult -> applyActivityRestrictions(
                         bidderPrivacyResult,
                         auctionContext.getActivityInfrastructure(),
                         auctionContext.getBidRequest()))
                 .toList();
 
-        return Future.succeededFuture(results);
+        return Future.succeededFuture(enforcedResults);
     }
 
     private BidderPrivacyResult applyActivityRestrictions(BidderPrivacyResult bidderPrivacyResult,

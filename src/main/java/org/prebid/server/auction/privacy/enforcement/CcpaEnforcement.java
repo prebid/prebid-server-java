@@ -1,8 +1,6 @@
 package org.prebid.server.auction.privacy.enforcement;
 
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Device;
-import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.auction.BidderAliases;
@@ -22,12 +20,12 @@ import org.prebid.server.settings.model.AccountPrivacyConfig;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-public class CcpaEnforcement {
+public class CcpaEnforcement implements PrivacyEnforcement {
 
     private static final String CATCH_ALL_BIDDERS = "*";
 
@@ -48,8 +46,8 @@ public class CcpaEnforcement {
     }
 
     public Future<List<BidderPrivacyResult>> enforce(AuctionContext auctionContext,
-                                                     Map<String, User> bidderToUser,
-                                                     BidderAliases aliases) {
+                                                     BidderAliases aliases,
+                                                     List<BidderPrivacyResult> results) {
 
         final Ccpa ccpa = auctionContext.getPrivacyContext().getPrivacy().getCcpa();
         final BidRequest bidRequest = auctionContext.getBidRequest();
@@ -58,7 +56,7 @@ public class CcpaEnforcement {
         final boolean isCcpaEnabled = isCcpaEnabled(auctionContext.getAccount(), auctionContext.getRequestTypeMetric());
 
         final Set<String> enforcedBidders = isCcpaEnabled && isCcpaEnforced
-                ? extractCcpaEnforcedBidders(bidderToUser.keySet(), bidRequest, aliases)
+                ? extractCcpaEnforcedBidders(results, bidRequest, aliases)
                 : Collections.emptySet();
 
         metrics.updatePrivacyCcpaMetrics(
@@ -68,7 +66,11 @@ public class CcpaEnforcement {
                 isCcpaEnabled,
                 enforcedBidders);
 
-        return Future.succeededFuture(maskCcpa(bidderToUser, enforcedBidders, bidRequest.getDevice()));
+        final List<BidderPrivacyResult> enforcedResults = results.stream()
+                .map(result -> enforcedBidders.contains(result.getRequestBidder()) ? maskCcpa(result) : result)
+                .toList();
+
+        return Future.succeededFuture(enforcedResults);
     }
 
     public boolean isCcpaEnforced(Ccpa ccpa, Account account) {
@@ -90,8 +92,14 @@ public class CcpaEnforcement {
                 ccpaEnforce);
     }
 
-    private Set<String> extractCcpaEnforcedBidders(Set<String> bidders, BidRequest bidRequest, BidderAliases aliases) {
-        final Set<String> ccpaEnforcedBidders = new HashSet<>(bidders);
+    private Set<String> extractCcpaEnforcedBidders(List<BidderPrivacyResult> results,
+                                                   BidRequest bidRequest,
+                                                   BidderAliases aliases) {
+
+        final Set<String> ccpaEnforcedBidders = results.stream()
+                .map(BidderPrivacyResult::getRequestBidder)
+                .collect(Collectors.toCollection(HashSet::new));
+
         final List<String> nosaleBidders = Optional.ofNullable(bidRequest.getExt())
                 .map(ExtRequest::getPrebid)
                 .map(ExtRequestPrebid::getNosale)
@@ -109,14 +117,11 @@ public class CcpaEnforcement {
         return ccpaEnforcedBidders;
     }
 
-    private List<BidderPrivacyResult> maskCcpa(Map<String, User> bidderToUser, Set<String> bidders, Device device) {
-        final Device maskedDevice = userFpdCcpaMask.maskDevice(device);
-        return bidders.stream()
-                .map(bidder -> BidderPrivacyResult.builder()
-                        .requestBidder(bidder)
-                        .user(userFpdCcpaMask.maskUser(bidderToUser.get(bidder)))
-                        .device(maskedDevice)
-                        .build())
-                .toList();
+    private BidderPrivacyResult maskCcpa(BidderPrivacyResult result) {
+        return BidderPrivacyResult.builder()
+                .requestBidder(result.getRequestBidder())
+                .user(userFpdCcpaMask.maskUser(result.getUser()))
+                .device(userFpdCcpaMask.maskDevice(result.getDevice()))
+                .build();
     }
 }
