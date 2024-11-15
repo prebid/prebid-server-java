@@ -24,7 +24,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.WithPodErrors;
 import org.prebid.server.exception.InvalidRequestException;
-import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;

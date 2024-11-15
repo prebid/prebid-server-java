@@ -33,7 +33,7 @@ import org.prebid.server.cookie.model.UidsCookieUpdateResult;
 import org.prebid.server.cookie.proto.Uids;
 import org.prebid.server.exception.InvalidAccountConfigException;
 import org.prebid.server.exception.InvalidRequestException;
-import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.HostVendorTcfDefinerService;
 import org.prebid.server.privacy.gdpr.model.HostVendorTcfResponse;

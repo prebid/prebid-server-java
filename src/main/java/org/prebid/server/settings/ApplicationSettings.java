@@ -1,7 +1,7 @@
 package org.prebid.server.settings;
 
 import io.vertx.core.Future;
-import org.prebid.server.execution.Timeout;
+import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;

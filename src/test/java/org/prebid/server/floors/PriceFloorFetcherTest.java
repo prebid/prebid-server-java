@@ -12,7 +12,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.floors.model.PriceFloorData;
 import org.prebid.server.floors.model.PriceFloorDebugProperties;
 import org.prebid.server.floors.model.PriceFloorField;

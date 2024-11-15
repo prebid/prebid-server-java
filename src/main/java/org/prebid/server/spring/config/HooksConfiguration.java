@@ -3,7 +3,7 @@ package org.prebid.server.spring.config;
 import io.vertx.core.Vertx;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.hooks.execution.HookCatalog;
 import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.hooks.v1.Module;

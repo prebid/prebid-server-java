@@ -1,13 +1,11 @@
-package org.prebid.server.execution;
+package org.prebid.server.execution.file.syncer;
 
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.file.CopyOptions;
-import io.vertx.core.file.FileProps;
 import io.vertx.core.file.FileSystem;
-import io.vertx.core.file.FileSystemException;
 import io.vertx.core.file.OpenOptions;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
@@ -17,22 +15,23 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.RequestOptions;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.execution.file.FileProcessor;
+import org.prebid.server.execution.file.FileUtil;
 import org.prebid.server.execution.retry.RetryPolicy;
 import org.prebid.server.execution.retry.Retryable;
 import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.util.HttpUtil;
 
-import java.nio.file.Files;
-import java.nio.file.InvalidPathException;
-import java.nio.file.Paths;
 import java.util.Objects;
+import java.util.function.Function;
 
+@Deprecated
 public class RemoteFileSyncer {
 
     private static final Logger logger = LoggerFactory.getLogger(RemoteFileSyncer.class);
 
-    private final RemoteFileProcessor processor;
+    private final FileProcessor processor;
     private final String downloadUrl;
     private final String saveFilePath;
     private final String tmpFilePath;
@@ -44,7 +43,7 @@ public class RemoteFileSyncer {
     private final RequestOptions getFileRequestOptions;
     private final RequestOptions isUpdateRequiredRequestOptions;
 
-    public RemoteFileSyncer(RemoteFileProcessor processor,
+    public RemoteFileSyncer(FileProcessor processor,
                             String downloadUrl,
                             String saveFilePath,
                             String tmpFilePath,
@@ -64,8 +63,8 @@ public class RemoteFileSyncer {
         this.vertx = Objects.requireNonNull(vertx);
         this.fileSystem = vertx.fileSystem();
 
-        createAndCheckWritePermissionsFor(fileSystem, saveFilePath);
-        createAndCheckWritePermissionsFor(fileSystem, tmpFilePath);
+        FileUtil.createAndCheckWritePermissionsFor(fileSystem, saveFilePath);
+        FileUtil.createAndCheckWritePermissionsFor(fileSystem, tmpFilePath);
 
         getFileRequestOptions = new RequestOptions()
                 .setMethod(HttpMethod.GET)
@@ -80,20 +79,6 @@ public class RemoteFileSyncer {
                 .setFollowRedirects(true);
     }
 
-    private static void createAndCheckWritePermissionsFor(FileSystem fileSystem, String filePath) {
-        try {
-            final String dirPath = Paths.get(filePath).getParent().toString();
-            final FileProps props = fileSystem.existsBlocking(dirPath) ? fileSystem.propsBlocking(dirPath) : null;
-            if (props == null || !props.isDirectory()) {
-                fileSystem.mkdirsBlocking(dirPath);
-            } else if (!Files.isWritable(Paths.get(dirPath))) {
-                throw new PreBidException("No write permissions for directory: " + dirPath);
-            }
-        } catch (FileSystemException | InvalidPathException e) {
-            throw new PreBidException("Cannot create directory for file: " + filePath, e);
-        }
-    }
-
     public void sync() {
         fileSystem.exists(saveFilePath)
                 .compose(exists -> exists ? processSavedFile() : syncRemoteFile(retryPolicy))
@@ -101,7 +86,8 @@ public class RemoteFileSyncer {
     }
 
     private Future<Void> processSavedFile() {
-        return processor.setDataPath(saveFilePath)
+        return vertx.executeBlocking(() -> processor.setDataPath(saveFilePath))
+                .compose(Function.identity())
                 .onFailure(error -> logger.error("Can't process saved file: " + saveFilePath))
                 .recover(ignored -> deleteFile(saveFilePath).mapEmpty())
                 .mapEmpty();

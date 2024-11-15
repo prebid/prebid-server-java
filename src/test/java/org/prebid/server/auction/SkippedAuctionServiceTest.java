@@ -13,7 +13,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.auction.model.TimeoutContext;
-import org.prebid.server.execution.Timeout;
+import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredAuctionResponse;

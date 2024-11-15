@@ -21,7 +21,7 @@ import org.prebid.server.cache.proto.request.bid.BidPutObject;
 import org.prebid.server.cache.proto.response.bid.BidCacheResponse;
 import org.prebid.server.cache.proto.response.bid.CacheObject;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;

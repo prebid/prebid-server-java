@@ -16,7 +16,7 @@ import org.prebid.server.analytics.reporter.pubstack.model.PubstackAnalyticsProp
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.TimeoutContext;
 import org.prebid.server.cookie.UidsCookie;
-import org.prebid.server.execution.Timeout;
+import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 import org.springframework.test.util.ReflectionTestUtils;

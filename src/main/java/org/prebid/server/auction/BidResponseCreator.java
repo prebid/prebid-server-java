@@ -52,7 +52,7 @@ import org.prebid.server.events.EventsContext;
 import org.prebid.server.events.EventsService;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.execution.Timeout;
+import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
 import org.prebid.server.hooks.v1.bidder.AllProcessedBidResponsesPayload;

@@ -13,7 +13,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.execution.Timeout;
+import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;

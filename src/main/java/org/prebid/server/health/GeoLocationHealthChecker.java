@@ -1,7 +1,7 @@
 package org.prebid.server.health;
 
 import io.vertx.core.Vertx;
-import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.health.model.Status;
 import org.prebid.server.health.model.StatusResponse;

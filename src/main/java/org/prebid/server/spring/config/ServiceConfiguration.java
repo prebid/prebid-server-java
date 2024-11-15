@@ -87,7 +87,7 @@ import org.prebid.server.cookie.PrioritizedCoopSyncProvider;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.events.EventsService;
-import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.floors.PriceFloorAdjuster;
 import org.prebid.server.floors.PriceFloorEnforcer;
 import org.prebid.server.floors.PriceFloorProcessor;
