@@ -15,7 +15,6 @@
 
     <properties>
         <fiftyone-device-detection.version>4.4.94</fiftyone-device-detection.version>
-        <logback.version>1.2.13</logback.version>
     </properties>
 
     <dependencies>
@@ -31,19 +30,6 @@
             <groupId>com.51degrees</groupId>
             <artifactId>device-detection</artifactId>
             <version>${fiftyone-device-detection.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-            <version>${logback.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-core</artifactId>
-            <version>${logback.version}</version>
-            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>
