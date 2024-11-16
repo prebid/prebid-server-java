@@ -505,7 +505,7 @@ class DebugSpec extends BaseSpec {
         assert !metricsRequest[ACCOUNT_REQUESTED_WITH_DEBUG_MODE_METRICS.formatted(ampRequest.account)]
 
         and: "Metrics should be incremented"
-        assert metricsRequest[AUCTION_REQUESTED_WITH_DEBUG_MODE_METRICS]
+        assert metricsRequest[AUCTION_REQUESTED_WITH_DEBUG_MODE_METRICS] == 1
 
         where:
         verbosityLevel << [NONE, BASIC]
