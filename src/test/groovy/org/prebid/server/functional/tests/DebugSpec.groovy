@@ -15,7 +15,6 @@ import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.IgnoreRest
 import spock.lang.PendingFeature
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
@@ -32,6 +31,7 @@ class DebugSpec extends BaseSpec {
     private static final String ACCOUNT_METRICS_PREFIX_NAME = "account"
     private static final String AUCTION_REQUESTED_WITH_DEBUG_MODE_METRICS = "debug_requests"
     private static final String ACCOUNT_REQUESTED_WITH_DEBUG_MODE_METRICS = "account.%s.debug_requests"
+    private static final String REQUEST_OK_WEB_METRICS = "requests.ok.openrtb2-web"
 
     def "PBS should return debug information and emit metrics when debug flag is #debug and test flag is #test"() {
         given: "Default BidRequest with test flag"
@@ -81,6 +81,9 @@ class DebugSpec extends BaseSpec {
         def metricsRequest = defaultPbsService.sendCollectedMetricsRequest()
         assert !metricsRequest[AUCTION_REQUESTED_WITH_DEBUG_MODE_METRICS]
         assert !metricsRequest.keySet().contains(ACCOUNT_METRICS_PREFIX_NAME)
+
+        and: "General metrics should be present"
+        assert metricsRequest[REQUEST_OK_WEB_METRICS] == 1
 
         where:
         debug    | test
@@ -508,11 +511,14 @@ class DebugSpec extends BaseSpec {
         verbosityLevel << [NONE, BASIC]
     }
 
-    def "PBS should validate site and not emit auction request metric when site without id and page"() {
+    def "PBS shouldn't emit auction request metric when incoming request invalid"() {
         given: "Default basic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
         bidRequest.site = new Site(id: null, name: PBSUtils.randomString, page: null)
         bidRequest.ext.prebid.debug = ENABLED
+
+        and: "Flash metrics"
+        flushMetrics(defaultPbsService)
 
         when: "PBS processes auction request"
         defaultPbsService.sendAuctionRequest(bidRequest)
@@ -525,5 +531,8 @@ class DebugSpec extends BaseSpec {
         def metricsRequest = defaultPbsService.sendCollectedMetricsRequest()
         assert !metricsRequest[AUCTION_REQUESTED_WITH_DEBUG_MODE_METRICS]
         assert !metricsRequest.keySet().contains(ACCOUNT_METRICS_PREFIX_NAME)
+
+        and: "General metrics shouldn't be present"
+        assert !metricsRequest[REQUEST_OK_WEB_METRICS]
     }
 }
