@@ -35,6 +35,7 @@ class GroupExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
     private ExecutionGroup group;
     private PAYLOAD initialPayload;
     private Function<HookId, Hook<PAYLOAD, CONTEXT>> hookProvider;
+    private Function<HookId, Boolean> moduleConfigProvider;
     private InvocationContextProvider<CONTEXT> invocationContextProvider;
     private HookExecutionContext hookExecutionContext;
     private boolean rejectAllowed;
@@ -65,6 +66,11 @@ class GroupExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
 
     public GroupExecutor<PAYLOAD, CONTEXT> withHookProvider(Function<HookId, Hook<PAYLOAD, CONTEXT>> hookProvider) {
         this.hookProvider = hookProvider;
+        return this;
+    }
+
+    public GroupExecutor<PAYLOAD, CONTEXT> withModuleConfigProvider(Function<HookId, Boolean> moduleConfigProvider) {
+        this.moduleConfigProvider = moduleConfigProvider;
         return this;
     }
 
@@ -117,7 +123,12 @@ class GroupExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
 
         final CONTEXT invocationContext = invocationContextProvider.apply(timeout, hookId, moduleContextFor(hookId));
 
-        if (isConfigToInvokeRequired && invocationContext instanceof AuctionInvocationContext) {
+        final Boolean isHostConfigProvided = moduleConfigProvider.apply(hookId);
+
+        if (!isHostConfigProvided
+                && isConfigToInvokeRequired
+                && invocationContext instanceof AuctionInvocationContext) {
+
             final ObjectNode accountConfig = ((AuctionInvocationContext) invocationContext).accountConfig();
             if (accountConfig == null || accountConfig.isNull()) {
                 return Future.succeededFuture(InvocationResultImpl.<PAYLOAD>builder()

@@ -1363,6 +1363,86 @@ public class HookStageExecutorTest extends VertxTest {
     }
 
     @Test
+    public void shouldExecuteRawAuctionRequestHooksWhichHasHostConfigWhenAccountConfigIsRequiredAndAbsent(
+            VertxTestContext context) {
+
+        // given
+        givenRawAuctionRequestHook(
+                "module-alpha",
+                "hook-a",
+                immediateHook(InvocationResultUtils.succeeded(payload -> AuctionRequestPayloadImpl.of(
+                        payload.bidRequest().toBuilder().at(1).build()))));
+
+        givenRawAuctionRequestHook(
+                "module-alpha",
+                "hook-b",
+                immediateHook(InvocationResultUtils.succeeded(payload -> AuctionRequestPayloadImpl.of(
+                        payload.bidRequest().toBuilder().id("id").build()))));
+
+        givenRawAuctionRequestHook(
+                "module-beta",
+                "hook-a",
+                immediateHook(InvocationResultUtils.succeeded(payload -> AuctionRequestPayloadImpl.of(
+                        payload.bidRequest().toBuilder().test(1).build()))));
+
+        givenRawAuctionRequestHook(
+                "module-beta",
+                "hook-b",
+                immediateHook(InvocationResultUtils.succeeded(payload -> AuctionRequestPayloadImpl.of(
+                        payload.bidRequest().toBuilder().tmax(1000L).build()))));
+
+        given(hookCatalog.hasHostConfig("module-alpha")).willReturn(true);
+        given(hookCatalog.hasHostConfig("module-beta")).willReturn(false);
+
+        final String hostExecutionPlan = executionPlan(singletonMap(
+                Endpoint.openrtb2_auction,
+                EndpointExecutionPlan.of(singletonMap(
+                        Stage.raw_auction_request,
+                        execPlanTwoGroupsTwoHooksEach()))));
+
+        final HookStageExecutor executor = HookStageExecutor.create(
+                hostExecutionPlan,
+                null,
+                hookCatalog,
+                timeoutFactory,
+                vertx,
+                clock,
+                jacksonMapper,
+                true);
+
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+
+        // when
+        final Future<HookStageExecutionResult<AuctionRequestPayload>> future = executor.executeRawAuctionRequestStage(
+                AuctionContext.builder()
+                        .bidRequest(BidRequest.builder().build())
+                        .account(Account.empty("accountId"))
+                        .hookExecutionContext(hookExecutionContext)
+                        .debugContext(DebugContext.empty())
+                        .build());
+
+        // then
+        future.onComplete(context.succeeding(result -> {
+            assertThat(result).isNotNull();
+            assertThat(result.getPayload()).isNotNull().satisfies(payload ->
+                    assertThat(payload.bidRequest()).isEqualTo(BidRequest.builder()
+                            .at(1)
+                            .id("id")
+                            .build()));
+
+            assertThat(hookExecutionContext.getStageOutcomes())
+                    .hasEntrySatisfying(
+                            Stage.raw_auction_request,
+                            stageOutcomes -> assertThat(stageOutcomes)
+                                    .hasSize(1)
+                                    .extracting(StageExecutionOutcome::getEntity)
+                                    .containsOnly("auction-request"));
+
+            context.completeNow();
+        }));
+    }
+
+    @Test
     public void shouldExecuteRawAuctionRequestHooksHappyPath(VertxTestContext context) {
         // given
         givenRawAuctionRequestHook(

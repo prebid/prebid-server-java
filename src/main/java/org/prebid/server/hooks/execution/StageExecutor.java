@@ -102,6 +102,7 @@ class StageExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
                 .withInitialPayload(initialPayload)
                 .withHookProvider(
                         hookId -> hookCatalog.hookById(hookId.getModuleCode(), hookId.getHookImplCode(), stage))
+                .withModuleConfigProvider(hookId -> hookCatalog.hasHostConfig(hookId.getModuleCode()))
                 .withInvocationContextProvider(invocationContextProvider)
                 .withHookExecutionContext(hookExecutionContext)
                 .withRejectAllowed(rejectAllowed)
