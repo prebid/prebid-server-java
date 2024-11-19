@@ -54,12 +54,9 @@ import org.prebid.server.auction.privacy.contextfactory.AmpPrivacyContextFactory
 import org.prebid.server.auction.privacy.contextfactory.AuctionPrivacyContextFactory;
 import org.prebid.server.auction.privacy.contextfactory.CookieSyncPrivacyContextFactory;
 import org.prebid.server.auction.privacy.contextfactory.SetuidPrivacyContextFactory;
-import org.prebid.server.auction.privacy.enforcement.ActivityEnforcement;
 import org.prebid.server.auction.privacy.enforcement.CcpaEnforcement;
-import org.prebid.server.auction.privacy.enforcement.CoppaEnforcement;
 import org.prebid.server.auction.privacy.enforcement.PrivacyEnforcement;
 import org.prebid.server.auction.privacy.enforcement.PrivacyEnforcementService;
-import org.prebid.server.auction.privacy.enforcement.TcfEnforcement;
 import org.prebid.server.auction.requestfactory.AmpRequestFactory;
 import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
 import org.prebid.server.auction.requestfactory.Ortb2ImplicitParametersResolver;

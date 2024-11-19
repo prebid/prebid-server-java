@@ -27,6 +27,7 @@ import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.util.ObjectUtil;
 
 import java.util.AbstractMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -74,7 +75,7 @@ public class TcfEnforcement implements PrivacyEnforcement {
                 .collect(Collectors.toSet());
         final Map<String, User> bidderToUser = results.stream()
                 .map(result -> new AbstractMap.SimpleEntry<>(result.getRequestBidder(), result.getUser()))
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                .collect(HashMap::new, (map, entry) -> map.put(entry.getKey(), entry.getValue()), HashMap::putAll);
 
         return tcfDefinerService.resultForBidderNames(
                         bidders,

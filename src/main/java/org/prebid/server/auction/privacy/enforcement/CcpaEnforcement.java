@@ -2,7 +2,6 @@ package org.prebid.server.auction.privacy.enforcement;
 
 import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Future;
-import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderPrivacyResult;
@@ -81,15 +80,11 @@ public class CcpaEnforcement implements PrivacyEnforcement {
         final Optional<AccountCcpaConfig> accountCcpaConfig = Optional.ofNullable(account.getPrivacy())
                 .map(AccountPrivacyConfig::getCcpa);
 
-        return ObjectUtils.firstNonNull(
-                accountCcpaConfig
-                        .map(AccountCcpaConfig::getEnabledForRequestType)
-                        .map(enabledForRequestType -> enabledForRequestType.isEnabledFor(requestType))
-                        .orElse(null),
-                accountCcpaConfig
-                        .map(AccountCcpaConfig::getEnabled)
-                        .orElse(null),
-                ccpaEnforce);
+        return accountCcpaConfig
+                .map(AccountCcpaConfig::getEnabledForRequestType)
+                .map(enabledForRequestType -> enabledForRequestType.isEnabledFor(requestType))
+                .or(() -> accountCcpaConfig.map(AccountCcpaConfig::getEnabled))
+                .orElse(ccpaEnforce);
     }
 
     private Set<String> extractCcpaEnforcedBidders(List<BidderPrivacyResult> results,

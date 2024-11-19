@@ -38,10 +38,6 @@ public class CoppaEnforcement implements PrivacyEnforcement {
         return Future.succeededFuture(enforce(results));
     }
 
-    private static boolean isApplicable(AuctionContext auctionContext) {
-        return auctionContext.getPrivacyContext().getPrivacy().getCoppa() == 1;
-    }
-
     private List<BidderPrivacyResult> enforce(List<BidderPrivacyResult> results) {
         return results.stream()
                 .map(result -> BidderPrivacyResult.builder()
@@ -50,5 +46,9 @@ public class CoppaEnforcement implements PrivacyEnforcement {
                         .device(userFpdCoppaMask.maskDevice(result.getDevice()))
                         .build())
                 .toList();
+    }
+
+    private static boolean isApplicable(AuctionContext auctionContext) {
+        return auctionContext.getPrivacyContext().getPrivacy().getCoppa() == 1;
     }
 }
