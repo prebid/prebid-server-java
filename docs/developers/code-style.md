@@ -28,7 +28,7 @@ in `pom.xml` directly.
 
 It is recommended to define version of library to separate property in `pom.xml`:
 
-```
+```xml
 <project>
     <properties>
         <caffeine.version>2.6.2</caffeine.version>
@@ -48,7 +48,7 @@ It is recommended to define version of library to separate property in `pom.xml`
 
 Do not use wildcard in imports because they hide what exactly is required by the class.
 
-```
+```java
 // bad
 import java.util.*;
 
@@ -61,7 +61,7 @@ import java.util.Map;
 
 Prefer to use `camelCase` naming convention for variables and methods.
 
-```
+```java
 // bad
 String account_id = "id";
 
@@ -71,7 +71,7 @@ String accountId = "id";
 
 Name of variable should be self-explanatory:
 
-```
+```java
 // bad
 String s = resolveParamA();
 
@@ -83,7 +83,7 @@ This helps other developers flesh your code out better without additional questi
 
 For `Map`s it is recommended to use `To` between key and value designation:
 
-```
+```java
 // bad
 Map<Imp, ExtImp> map = getData();
 
@@ -97,7 +97,7 @@ Make data transfer object(DTO) classes immutable with static constructor.
 This can be achieved by using Lombok and `@Value(staticConstructor="of")`. When constructor uses multiple(more than 4) arguments, use builder instead(`@Builder`).
 If dto must be modified somewhere, use builders annotation `toBuilder=true` parameter and rebuild instance by calling `toBuilder()` method.
 
-```
+```java
 // bad
 public class MyDto {
 
@@ -138,7 +138,7 @@ final MyDto updatedDto = myDto.toBuilder().value("newValue").build();
 Although Java supports the `var` keyword at the time of writing this documentation, the maintainers have chosen not to utilize it within the PBS codebase.
 Instead, write full variable type.
 
-```
+```java
 // bad
 final var result = getResult();
 
@@ -150,7 +150,7 @@ final Data result = getResult();
 
 Enclosing parenthesis should be placed on expression end.
 
-```
+```java
 // bad
 methodCall(
     long list of arguments
@@ -163,7 +163,7 @@ methodCall(
 
 This also applies for nested expressions.
 
-```
+```java
 // bad 
 methodCall(
     nestedCall(
@@ -181,7 +181,7 @@ methodCall(
 
 Please, place methods inside a class in call order.
 
-```
+```java
 // bad
 public interface Test {
 
@@ -249,7 +249,7 @@ Define interface first method, then all methods that it is calling, then second 
 Not strict, but methods with long parameters list, that cannot be placed on single line,
 should add empty line before body definition.
 
-```
+```java
 // bad
 public static void method(
     parameters definitions) {
@@ -266,7 +266,7 @@ public static void method(
 
 Use collection literals where it is possible to define and initialize collections.
 
-```
+```java
 // bad 
 final List<String> foo = new ArrayList();
 foo.add("foo");
@@ -278,7 +278,7 @@ final List<String> foo = List.of("foo", "bar");
 
 Also, use special methods of Collections class for empty or single-value one-line collection creation. This makes developer intention clear and code less error-prone.
 
-```
+```java
 // bad 
 return List.of();
 
@@ -296,7 +296,7 @@ return Collections.singletonList("foo");
 
 It is recommended to declare variable as `final`- not strict but rather project convention to keep the code safe.
 
-```
+```java
 // bad
 String value = "value";
 
@@ -308,7 +308,7 @@ final String value = "value";
 
 Results of long ternary operators should be on separate lines:
 
-```
+```java
 // bad
 boolean result = someVeryVeryLongConditionThatForcesLineWrap ? firstResult
     : secondResult;
@@ -321,7 +321,7 @@ boolean result = someVeryVeryLongConditionThatForcesLineWrap
 
 Not so strict, but short ternary operations should be on one line:
 
-```
+```java
 // bad
 boolean result = someShortCondition
     ? firstResult
@@ -335,7 +335,7 @@ boolean result = someShortCondition ? firstResult : secondResult;
 
 Do not rely on operator precedence in boolean logic, use parenthesis instead. This will make code simpler and less error-prone.
 
-```
+```java
 // bad
 final boolean result = a && b || c;
 
@@ -347,7 +347,7 @@ final boolean result = (a && b) || c;
 
 Try to avoid hard-readable multiple nested method calls:
 
-```
+```java
 // bad
 int resolvedValue = resolveValue(fetchExternalJson(url, httpClient), populateAdditionalKeys(mainKeys, keyResolver));
 
@@ -361,7 +361,7 @@ int resolvedValue = resolveValue(externalJson, additionalKeys);
 
 Try not to retrieve same data more than once:
 
-```
+```java
 // bad
 if (getData() != null) {
     final Data resolvedData = resolveData(getData());
@@ -380,7 +380,7 @@ if (data != null) {
 
 If you're dealing with incoming data, please be sure to check if the nested object is not null before chaining.
 
-```
+```java
 // bad
 final ExtRequestTargeting targeting = bidRequest.getExt().getPrebid().getTargeting();
 
@@ -400,7 +400,7 @@ We are trying to get rid of long chains of null checks, which are described in s
 
 Don't leave commented code (don't think about the future).
 
-```
+```java
 // bad
 // String iWillUseThisLater = "never";
 ```
@@ -426,7 +426,7 @@ The code should be covered over 90%.
 
 The common way for writing tests has to comply with `given-when-then` style.
 
-```
+```java
 // given
 final BidRequest bidRequest = BidRequest.builder().id("").build();
 
@@ -451,7 +451,7 @@ The team decided to use name `target` for class instance under test.
 
 Unit tests should be as granular as possible. Try to split unit tests into smaller ones until this is impossible to do.
 
-```
+```java
 // bad
 @Test
 public void testFooBar() {
@@ -487,7 +487,7 @@ public void testBar() {
 This also applies to cases where same method is tested with different arguments inside single unit test.
 Note: This represents the replacement we have selected for parameterized testing.
 
-```
+```java
 // bad
 @Test
 public void testFooFirstSecond() {
@@ -527,7 +527,7 @@ It is also recommended to structure test method names with this scheme:
 name of method that is being tested, word `should`, what a method should return.
 If a method should return something based on a certain condition, add word `when` and description of a condition.
 
-```
+```java
 // bad
 @Test
 public void doSomethingTest() {
@@ -547,7 +547,7 @@ public void processDataShouldReturnResultWhenInputIsData() {
 
 Place data used in test as close as possible to test code. This will make tests easier to read, review and understand.
 
-```
+```java
 // bad
 @Test
 public void testFoo() {
@@ -576,7 +576,7 @@ This point also implies the next one.
 Since we are trying to improve test simplicity and readability and place test data close to tests, we decided to avoid usage of top level constants where it is possible.
 Instead, just inline constant values.
 
-```
+```java
 // bad
 public class TestClass {
 
@@ -609,7 +609,7 @@ public class TestClass {
 
 Don't use real information in tests, like existing endpoint URLs, account IDs, etc.
 
-```
+```java
 // bad
 String ENDPOINT_URL = "https://prebid.org";
 
