@@ -4,17 +4,42 @@ import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.BidRequest
+import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.PrebidCache
 import org.prebid.server.functional.model.request.auction.PrebidCacheSettings
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
 
+import static org.prebid.server.functional.model.response.auction.MediaType.BANNER
+import static org.prebid.server.functional.model.response.auction.MediaType.VIDEO
+import static org.prebid.server.functional.model.response.auction.MediaType.NATIVE
+import static org.prebid.server.functional.model.response.auction.MediaType.AUDIO
+
 class BidExpResponseSpec extends BaseSpec {
 
-    private static def hostBannerTtl = PBSUtils.randomNumber
-    private static def hostVideoTtl = PBSUtils.randomNumber
-    private static def cacheTtlService = pbsServiceFactory.getService(['cache.banner-ttl-seconds': hostBannerTtl as String,
-                                                                       'cache.video-ttl-seconds' : hostVideoTtl as String])
+    private static def HOST_BANNER_TTL = PBSUtils.randomNumber
+    private static def HOST_VIDEO_TTL = PBSUtils.randomNumber
+    private static def DEFAULT_TTL_SECONDS_BANNER = PBSUtils.randomNumber
+    private static def DEFAULT_TTL_SECONDS_VIDEO = PBSUtils.randomNumber
+    private static def DEFAULT_TTL_SECONDS_AUDIO = PBSUtils.randomNumber
+    private static def DEFAULT_TTL_SECONDS_NATIVE = PBSUtils.randomNumber
+    private static final Map<String, String> CONFIG_CACHE_TTL_SECONDS = ["cache.banner-ttl-seconds": HOST_BANNER_TTL as String,
+                                                                         "cache.video-ttl-seconds" : HOST_VIDEO_TTL as String]
+    private static final Map<String, String> CONFIG_CACHE_TTL_DEFAULT_SECONDS = ["cache.default-ttl-seconds.banner": DEFAULT_TTL_SECONDS_BANNER as String,
+                                                                                 "cache.default-ttl-seconds.video" : DEFAULT_TTL_SECONDS_VIDEO as String,
+                                                                                 "cache.default-ttl-seconds.native": DEFAULT_TTL_SECONDS_NATIVE as String,
+                                                                                 "cache.default-ttl-seconds.audio" : DEFAULT_TTL_SECONDS_AUDIO as String]
+    private static final Map<String, String> EMPTY_DEFAULT_TTL_SECOND_CONFIG = ["cache.default-ttl-seconds.banner": "",
+                                                                                "cache.default-ttl-seconds.video" : "",
+                                                                                "cache.default-ttl-seconds.native": "",
+                                                                                "cache.default-ttl-seconds.audio" : ""]
+    private static final Map<String, String> EMPTY_CACHE_TTL_SECOND = ["cache.banner-ttl-seconds": "",
+                                                                       "cache.video-ttl-seconds" : ""]
+    private static def pbsWithOnlyCacheSecondsTtlService = pbsServiceFactory.getService(CONFIG_CACHE_TTL_SECONDS + EMPTY_DEFAULT_TTL_SECOND_CONFIG)
+    private static def pbsWithoutCacheTtlService = pbsServiceFactory.getService(EMPTY_DEFAULT_TTL_SECOND_CONFIG + EMPTY_CACHE_TTL_SECOND)
+    private static def pbsWithCacheSecondsAndDefaultTtlSecondsService = pbsServiceFactory.getService(CONFIG_CACHE_TTL_SECONDS + CONFIG_CACHE_TTL_DEFAULT_SECONDS)
+    private static def pbsWithOnlyDefaultCacheSecondsTtlService = pbsServiceFactory.getService(EMPTY_CACHE_TTL_SECOND + CONFIG_CACHE_TTL_DEFAULT_SECONDS)
+
 
     def "PBS auction should resolve bid.exp from response that is set by the bidder’s adapter"() {
         given: "Default basicResponse with exp"
@@ -131,25 +156,6 @@ class BidExpResponseSpec extends BaseSpec {
         assert response.seatbid.bid.first.exp == [bidRequestExp]
     }
 
-    def "PBS auction shouldn't resolve exp from request.ext.prebid.cache for request when it have invalid type"() {
-        given: "Set bidder response without exp"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            seatbid[0].bid[0].exp = null
-        }
-        bidder.setResponse(bidRequest.id, bidResponse)
-
-        when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
-
-        then: "Bid response shouldn't contain exp data"
-        assert !response.seatbid.first.bid.first.exp
-
-        where:
-        bidRequest                     | cache
-        BidRequest.defaultBidRequest   | new PrebidCache(vastXml: new PrebidCacheSettings(ttlSeconds: PBSUtils.randomNumber))
-        BidRequest.defaultVideoRequest | new PrebidCache(bids: new PrebidCacheSettings(ttlSeconds: PBSUtils.randomNumber))
-    }
-
     def "PBS auction should resolve exp from account config for banner request when it have value"() {
         given: "default bidRequest"
         def bidRequest = BidRequest.defaultBidRequest
@@ -171,28 +177,6 @@ class BidExpResponseSpec extends BaseSpec {
 
         then: "Bid response should contain exp data"
         assert response.seatbid.bid.first.exp == [accountCacheTtl]
-    }
-
-    def "PBS auction shouldn't resolve exp from account videoCacheTtl config when bidRequest type doesn't matching"() {
-        given: "default bidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
-
-        and: "Account in the DB"
-        def auctionConfig = new AccountAuctionConfig(videoCacheTtl: PBSUtils.randomNumber)
-        def account = new Account(uuid: bidRequest.accountId, config: new AccountConfig(auction: auctionConfig))
-        accountDao.save(account)
-
-        and: "Set bidder response without exp"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            seatbid[0].bid[0].exp = null
-        }
-        bidder.setResponse(bidRequest.id, bidResponse)
-
-        when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
-
-        then: "Bid response shouldn't contain exp data"
-        assert !response.seatbid.first.bid.first.exp
     }
 
     def "PBS auction should resolve exp from account videoCacheTtl config for video request when it have value"() {
@@ -218,55 +202,15 @@ class BidExpResponseSpec extends BaseSpec {
         assert response.seatbid.bid.first.exp == [accountCacheTtl]
     }
 
-    def "PBS auction should resolve exp from account bannerCacheTtl config for video request when it have value"() {
-        given: "default bidRequest"
-        def bidRequest = BidRequest.defaultVideoRequest
-
-        and: "Account in the DB"
-        def accountCacheTtl = PBSUtils.randomNumber
-        def auctionConfig = new AccountAuctionConfig(bannerCacheTtl: accountCacheTtl)
-        def account = new Account(uuid: bidRequest.accountId, config: new AccountConfig(auction: auctionConfig))
-        accountDao.save(account)
-
-        and: "Set bidder response without exp"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            seatbid[0].bid[0].exp = null
-        }
-        bidder.setResponse(bidRequest.id, bidResponse)
-
-        when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
-
-        then: "Bid response should contain exp data"
-        assert response.seatbid.bid.first.exp == [accountCacheTtl]
-    }
-
     def "PBS auction should resolve exp from global banner config for banner request"() {
         given: "Default bidRequest"
         def bidRequest = BidRequest.defaultBidRequest
 
         when: "PBS processes auction request"
-        def response = cacheTtlService.sendAuctionRequest(bidRequest)
+        def response = pbsWithCacheSecondsAndDefaultTtlSecondsService.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain exp data"
-        assert response.seatbid.bid.first.exp == [hostBannerTtl]
-    }
-
-    def "PBS auction should resolve exp from global config for video request based on highest value"() {
-        given: "Default bidRequest"
-        def bidRequest = BidRequest.defaultVideoRequest
-
-        and: "Set bidder response without exp"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            seatbid[0].bid[0].exp = null
-        }
-        bidder.setResponse(bidRequest.id, bidResponse)
-
-        when: "PBS processes auction request"
-        def response = cacheTtlService.sendAuctionRequest(bidRequest)
-
-        then: "Bid response should contain exp data"
-        assert response.seatbid.bid.first.exp == [Math.max(hostVideoTtl, hostBannerTtl)]
+        assert response.seatbid.bid.first.exp == [HOST_BANNER_TTL]
     }
 
     def "PBS auction should prioritize value from bid.exp rather than request.imp[].exp"() {
@@ -356,9 +300,409 @@ class BidExpResponseSpec extends BaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
-        def response = cacheTtlService.sendAuctionRequest(bidRequest)
+        def response = pbsWithCacheSecondsAndDefaultTtlSecondsService.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain exp data"
         assert response.seatbid.bid.first.exp == [accountCacheTtl]
+    }
+
+    def "PBS auction should resolve bid.exp for #mediaType when imp contain #mediaType and bid responded with bid.exp"() {
+        given: "Default bid request with different media type in imp"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0] = Imp.getDefaultImpression(mediaType).tap {
+                exp = PBSUtils.randomNumber
+            }
+            ext.prebid.cache = new PrebidCache(
+                    vastXml: new PrebidCacheSettings(ttlSeconds: PBSUtils.randomNumber),
+                    bids: new PrebidCacheSettings(ttlSeconds: PBSUtils.randomNumber))
+        }
+
+        and: "Default bid response with bid.exp"
+        def randomExp = PBSUtils.randomNumber
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid[0].bid[0].exp = randomExp
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        and: "Account in the DB"
+        def auctionConfig = new AccountAuctionConfig(
+                videoCacheTtl: PBSUtils.randomNumber,
+                bannerCacheTtl: PBSUtils.randomNumber)
+        def account = new Account(uuid: bidRequest.accountId, config: new AccountConfig(auction: auctionConfig))
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        def response = pbsWithCacheSecondsAndDefaultTtlSecondsService.sendAuctionRequest(bidRequest)
+
+        then: "Bid response should contain exp data"
+        assert response.seatbid.first.bid.first.exp == randomExp
+
+        where:
+        mediaType << [BANNER, VIDEO, NATIVE, AUDIO]
+    }
+
+    def "PBS auction shouldn't resolve bid.exp for #mediaType when imp contain #mediaType and bid without exp"() {
+        given: "Default bid request with different media type in imp"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0] = Imp.getDefaultImpression(mediaType)
+        }
+
+        and: "Default bid response with bid.exp"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid[0].bid[0].exp = null
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = pbsWithoutCacheTtlService.sendAuctionRequest(bidRequest)
+
+        then: "Bid response shouldn't contain exp data"
+        assert !response.seatbid.first.bid.first.exp
+
+        where:
+        mediaType << [BANNER, VIDEO, NATIVE, AUDIO]
+    }
+
+    def "PBS auction should resolve bid.exp for #mediaType when imp contain #mediaType and imp.exp"() {
+        given: "Default bid request"
+        def randomExp = PBSUtils.randomNumber
+        def bidRequest = BidRequest.getDefaultBidRequest().tap {
+            imp[0] = Imp.getDefaultImpression(mediaType).tap {
+                exp = randomExp
+            }
+            ext.prebid.cache = new PrebidCache(
+                    vastXml: new PrebidCacheSettings(ttlSeconds: PBSUtils.randomNumber),
+                    bids: new PrebidCacheSettings(ttlSeconds: PBSUtils.randomNumber))
+        }
+
+        and: "Default bid response without bid.exp"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        and: "Account in the DB"
+        def auctionConfig = new AccountAuctionConfig(
+                videoCacheTtl: PBSUtils.randomNumber,
+                bannerCacheTtl: PBSUtils.randomNumber)
+        def account = new Account(uuid: bidRequest.accountId, config: new AccountConfig(auction: auctionConfig))
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        def response = pbsWithCacheSecondsAndDefaultTtlSecondsService.sendAuctionRequest(bidRequest)
+
+        then: "Bid response should contain exp data"
+        assert response.seatbid.first.bid.first.exp == randomExp
+
+        where:
+        mediaType << [BANNER, VIDEO, NATIVE, AUDIO]
+    }
+
+    def "PBS auction shouldn't resolve bid.exp for #mediaType when imp contain #mediaType and doesn't imp.exp"() {
+        given: "Default bid request"
+        def bidRequest = BidRequest.getDefaultBidRequest().tap {
+            imp[0] = Imp.getDefaultImpression(mediaType).tap {
+                exp = null
+            }
+        }
+
+        and: "Default bid response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = pbsWithoutCacheTtlService.sendAuctionRequest(bidRequest)
+
+        then: "Bid response shouldn't contain exp data"
+        assert !response.seatbid.first.bid.first.exp
+
+        where:
+        mediaType << [BANNER, VIDEO, NATIVE, AUDIO]
+    }
+
+    def "PBS auction shouldn't resolve vast xml bid.exp when ext.prebid.cache.vastxml.ttlseconds specified and mediaType is #mediaType"() {
+        given: "Default bid request"
+        def randomExp = PBSUtils.randomNumber
+        def bidRequest = BidRequest.getDefaultBidRequest().tap {
+            enableCache()
+            imp[0] = Imp.getDefaultImpression(mediaType)
+            ext.prebid.cache = new PrebidCache(vastXml: new PrebidCacheSettings(ttlSeconds: randomExp))
+        }
+
+        and: "Default bid response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        and: "Account in the DB"
+        def auctionConfig = new AccountAuctionConfig(
+                videoCacheTtl: PBSUtils.randomNumber)
+        def account = new Account(uuid: bidRequest.accountId, config: new AccountConfig(auction: auctionConfig))
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        def response = pbsWithoutCacheTtlService.sendAuctionRequest(bidRequest)
+
+        then: "Bid response shouldn't contain exp data"
+        assert !response?.seatbid?.first?.bid?.first?.exp
+
+        where:
+        mediaType << [BANNER, NATIVE, AUDIO]
+    }
+
+    def "PBS auction should resolve vast xml bid.exp when ext.prebid.cache.vastxml.ttlseconds specified and mediaType is video"() {
+        given: "Default bid request"
+        def randomExp = PBSUtils.randomNumber
+        def bidRequest = BidRequest.getDefaultBidRequest().tap {
+            enableCache()
+            imp[0] = Imp.getDefaultImpression(VIDEO)
+            ext.prebid.cache = new PrebidCache(vastXml: new PrebidCacheSettings(ttlSeconds: randomExp))
+        }
+
+        and: "Default bid response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        and: "Account in the DB"
+        def auctionConfig = new AccountAuctionConfig(
+                videoCacheTtl: PBSUtils.randomNumber,
+                bannerCacheTtl: PBSUtils.randomNumber)
+        def account = new Account(uuid: bidRequest.accountId, config: new AccountConfig(auction: auctionConfig))
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        def response = pbsWithCacheSecondsAndDefaultTtlSecondsService.sendAuctionRequest(bidRequest)
+
+        then: "Bid response should contain exp data"
+        assert response.seatbid.first.bid.first.exp == randomExp
+    }
+
+    def "PBS auction should resolve bid.exp when ext.prebid.cache.bids.ttlseconds specified"() {
+        given: "Default bid request"
+        def randomExp = PBSUtils.randomNumber
+        def bidRequest = BidRequest.getDefaultBidRequest().tap {
+            enableCache()
+            imp[0] = Imp.getDefaultImpression(mediaType)
+            ext.prebid.cache = new PrebidCache(bids: new PrebidCacheSettings(ttlSeconds: randomExp))
+        }
+
+        and: "Default bid response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        and: "Account in the DB"
+        def auctionConfig = new AccountAuctionConfig(
+                videoCacheTtl: PBSUtils.randomNumber,
+                bannerCacheTtl: PBSUtils.randomNumber)
+        def account = new Account(uuid: bidRequest.accountId, config: new AccountConfig(auction: auctionConfig))
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        def response = pbsWithCacheSecondsAndDefaultTtlSecondsService.sendAuctionRequest(bidRequest)
+
+        then: "Bid response should contain exp data"
+        assert response.seatbid.first.bid.first.exp == randomExp
+
+        where:
+        mediaType << [BANNER, VIDEO, NATIVE, AUDIO]
+    }
+
+    def "PBS auction shouldn't resolve bid.exp when ext.prebid.cache.bids.ttlseconds doesn't specified"() {
+        given: "Default bid request"
+        def bidRequest = BidRequest.getDefaultBidRequest().tap {
+            enableCache()
+            imp[0] = Imp.getDefaultImpression(mediaType)
+            ext.prebid.cache = new PrebidCache(bids: new PrebidCacheSettings(ttlSeconds: null))
+        }
+
+        and: "Default bid response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = pbsWithoutCacheTtlService.sendAuctionRequest(bidRequest)
+
+        then: "Bid response shouldn't contain exp data"
+        assert !response.seatbid.first.bid.first.exp
+
+        where:
+        mediaType << [BANNER, VIDEO, NATIVE, AUDIO]
+    }
+
+    def "PBS auction shouldn't resolve bid.exp when account.auction.{video/banner}-cache-ttl specified and {video/banner} not a bid"() {
+        given: "Default bid request"
+        def bidRequest = BidRequest.getDefaultBidRequest().tap {
+            imp[0] = Imp.getDefaultImpression(mediaType)
+        }
+
+        and: "Default bid response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        and: "Account in the DB"
+        def account = new Account(uuid: bidRequest.accountId, config: new AccountConfig(auction: auctionConfig))
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        def response = pbsWithoutCacheTtlService.sendAuctionRequest(bidRequest)
+
+        then: "Bid response shouldn't contain exp data"
+        assert !response.seatbid.first.bid.first.exp
+
+        where:
+        mediaType | auctionConfig
+        VIDEO     | new AccountAuctionConfig(videoCacheTtl: null)
+        VIDEO     | new AccountAuctionConfig(bannerCacheTtl: PBSUtils.randomNumber)
+        BANNER    | new AccountAuctionConfig(bannerCacheTtl: null)
+        BANNER    | new AccountAuctionConfig(videoCacheTtl: PBSUtils.randomNumber)
+        NATIVE    | new AccountAuctionConfig(bannerCacheTtl: PBSUtils.randomNumber)
+        NATIVE    | new AccountAuctionConfig(videoCacheTtl: PBSUtils.randomNumber)
+        AUDIO     | new AccountAuctionConfig(bannerCacheTtl: PBSUtils.randomNumber)
+        AUDIO     | new AccountAuctionConfig(videoCacheTtl: PBSUtils.randomNumber)
+    }
+
+    def "PBS auction shouldn't resolve bid.exp when account.auction.{video/banner}-cache-ttl specified and #mediaType bid but value in account {video/banner}-cache-ttl not specified"() {
+        given: "Default bid request"
+        def bidRequest = BidRequest.getDefaultBidRequest()
+
+        and: "Default bid response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        and: "Account in the DB"
+        def account = new Account(uuid: bidRequest.accountId, config: new AccountConfig(auction: auctionConfig))
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        def response = pbsWithoutCacheTtlService.sendAuctionRequest(bidRequest)
+
+        then: "Bid response shouldn't contain exp data"
+        assert !response.seatbid.first.bid.first.exp
+
+        where:
+        mediaType | auctionConfig
+        VIDEO     | new AccountAuctionConfig(videoCacheTtl: null)
+        VIDEO     | new AccountAuctionConfig(bannerCacheTtl: null)
+        VIDEO     | new AccountAuctionConfig(bannerCacheTtl: null, videoCacheTtl: null)
+        BANNER    | new AccountAuctionConfig(bannerCacheTtl: null)
+        BANNER    | new AccountAuctionConfig(videoCacheTtl: null)
+        BANNER    | new AccountAuctionConfig(bannerCacheTtl: null, videoCacheTtl: null)
+        NATIVE    | new AccountAuctionConfig(bannerCacheTtl: null)
+        NATIVE    | new AccountAuctionConfig(videoCacheTtl: null)
+        NATIVE    | new AccountAuctionConfig(bannerCacheTtl: null, videoCacheTtl: null)
+        AUDIO     | new AccountAuctionConfig(bannerCacheTtl: null)
+        AUDIO     | new AccountAuctionConfig(videoCacheTtl: null)
+        AUDIO     | new AccountAuctionConfig(bannerCacheTtl: null, videoCacheTtl: null)
+    }
+
+    def "PBS auction should resolve bid.exp when account.auction.banner-cache-ttl and banner bid specified"() {
+        given: "Default bid request"
+        def bidRequest = BidRequest.getDefaultBidRequest().tap {
+            enableCache()
+            imp[0] = Imp.getDefaultImpression(BANNER)
+        }
+
+        and: "Account in the DB"
+        def accountCacheTtl = PBSUtils.randomNumber
+        def auctionConfig = new AccountAuctionConfig(bannerCacheTtl: accountCacheTtl)
+        def account = new Account(uuid: bidRequest.accountId, config: new AccountConfig(auction: auctionConfig))
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        def response = pbsWithoutCacheTtlService.sendAuctionRequest(bidRequest)
+
+        then: "Bid response should contain exp data"
+        assert response.seatbid.first.bid.first.exp == accountCacheTtl
+    }
+
+    def "PBS auction should resolve bid.exp when account.auction.video-cache-ttl and video bid specified"() {
+        given: "Default bid request"
+        def bidRequest = BidRequest.getDefaultBidRequest().tap {
+            imp[0] = Imp.getDefaultImpression(VIDEO)
+        }
+
+        and: "Default bid response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        and: "Account in the DB"
+        def accountCacheTtl = PBSUtils.randomNumber
+        def auctionConfig = new AccountAuctionConfig(videoCacheTtl: accountCacheTtl)
+        def account = new Account(uuid: bidRequest.accountId, config: new AccountConfig(auction: auctionConfig))
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        def response = pbsWithoutCacheTtlService.sendAuctionRequest(bidRequest)
+
+        then: "Bid response should contain exp data"
+        assert response.seatbid.first.bid.first.exp == accountCacheTtl
+    }
+
+    def "PBS auction should resolve bid.exp when cache.banner-ttl-seconds config specified"() {
+        given: "Default bid request"
+        def bidRequest = BidRequest.getDefaultBidRequest().tap {
+            imp[0] = Imp.getDefaultImpression(BANNER)
+            enableCache()
+        }
+
+        when: "PBS processes auction request"
+        def response = pbsWithOnlyCacheSecondsTtlService.sendAuctionRequest(bidRequest)
+
+        then: "Bid response should contain exp data"
+        assert response.seatbid.first.bid.first.exp == HOST_BANNER_TTL
+    }
+
+    def "PBS auction should resolve bid.exp when cache.video-ttl-seconds config specified"() {
+        given: "Default bid request"
+        def bidRequest = BidRequest.getDefaultBidRequest().tap {
+            imp[0] = Imp.getDefaultImpression(VIDEO)
+        }
+
+        and: "Set bidder response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = pbsWithOnlyCacheSecondsTtlService.sendAuctionRequest(bidRequest)
+
+        then: "Bid response should contain exp data"
+        assert response.seatbid.first.bid.first.exp == HOST_VIDEO_TTL
+    }
+
+    def "PBS auction shouldn't resolve bid.exp when cache.{banner/video}-ttl-seconds specified and media type is #mediaType"() {
+        given: "Default bid request"
+        def bidRequest = BidRequest.getDefaultBidRequest().tap {
+            imp[0] = Imp.getDefaultImpression(mediaType)
+        }
+
+        when: "PBS processes auction request"
+        def response = pbsWithOnlyCacheSecondsTtlService.sendAuctionRequest(bidRequest)
+
+        then: "Bid response shouldn't contain exp data"
+        assert !response.seatbid.first.bid.first.exp
+
+        where:
+        mediaType << [NATIVE, AUDIO]
+    }
+
+    def "PBS auction should resolve bid.exp when cache.default-ttl-seconds.{banner,video,audio,native} last place where present value for bid.exp"() {
+        given: "Default bid request"
+        def bidRequest = BidRequest.getDefaultBidRequest().tap {
+            imp[0] = Imp.getDefaultImpression(mediaType)
+        }
+
+        and: "Set bidder response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = pbsWithOnlyDefaultCacheSecondsTtlService.sendAuctionRequest(bidRequest)
+
+        then: "Bid response should contain exp data"
+        assert response.seatbid.first.bid.first.exp == bidExpValue
+
+        where:
+        mediaType | bidExpValue
+        BANNER    | DEFAULT_TTL_SECONDS_BANNER
+        VIDEO     | DEFAULT_TTL_SECONDS_VIDEO
+        AUDIO     | DEFAULT_TTL_SECONDS_AUDIO
+        NATIVE    | DEFAULT_TTL_SECONDS_NATIVE
     }
 }
