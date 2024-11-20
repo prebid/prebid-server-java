@@ -5,7 +5,10 @@ import org.prebid.server.functional.model.ChannelType
 import org.prebid.server.functional.model.config.AccountGdprConfig
 import org.prebid.server.functional.model.config.PurposeConfig
 import org.prebid.server.functional.model.config.PurposeEnforcement
+import org.prebid.server.functional.model.pricefloors.Country
 import org.prebid.server.functional.model.request.auction.DistributionChannel
+import org.prebid.server.functional.model.request.auction.Regs
+import org.prebid.server.functional.model.request.auction.RegsExt
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
@@ -36,6 +39,7 @@ import static org.prebid.server.functional.model.request.auction.ActivityType.TR
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_PRECISE_GEO
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_UFPD
 import static org.prebid.server.functional.model.request.auction.Prebid.Channel
+import static org.prebid.server.functional.model.request.auction.PublicCountryIp.BGR_IP
 import static org.prebid.server.functional.model.request.auction.TraceLevel.BASIC
 import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.REQUEST_BLOCKED_PRIVACY
@@ -804,5 +808,156 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
 
         where:
         tcfPolicyVersion << [TCF_POLICY_V4, TCF_POLICY_V5]
+    }
+
+    def "PBS should process with GDPR enforcement when GDPR and COPPA configurations are present in request"() {
+        given: "Valid consent string without basic ads"
+        def validConsentString = new TcfConsent.Builder()
+                .setPurposesLITransparency(DEVICE_ACCESS)
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .build()
+
+        and: "Bid request with gdpr and coppa config"
+        def bidRequest = getGdprBidRequest(DistributionChannel.APP, validConsentString).tap {
+            regs = new Regs(gdpr: gdpr, coppa: coppa, ext: new RegsExt(gdpr: extGdpr, coppa: extCoppa))
+        }
+
+        and: "Save account config without eea countries into DB"
+        accountDao.save(getAccountWithGdpr(bidRequest.accountId,
+                new AccountGdprConfig(enabled: true, eeaCountries: PBSUtils.getRandomEnum(Country.class, [BULGARIA]))))
+
+        and: "Flush metrics"
+        flushMetrics(privacyPbsService)
+
+        when: "PBS processes auction request"
+        privacyPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder should be called"
+        assert !bidder.getBidderRequests(bidRequest.id)
+
+        then: "Metrics processed across activities should be updated"
+        def metrics = privacyPbsService.sendCollectedMetricsRequest()
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+
+        where:
+        gdpr | coppa | extGdpr | extCoppa
+        1    | 1     | 1       | 1
+        1    | 1     | 1       | 0
+        1    | 1     | 1       | null
+        1    | 1     | 0       | 1
+        1    | 1     | 0       | 0
+        1    | 1     | 0       | null
+        1    | 1     | null    | 1
+        1    | 1     | null    | 0
+        1    | 1     | null    | null
+        1    | 0     | 1       | 1
+        1    | 0     | 1       | 0
+        1    | 0     | 1       | null
+        1    | 0     | 0       | 1
+        1    | 0     | 0       | 0
+        1    | 0     | 0       | null
+        1    | 0     | null    | 1
+        1    | 0     | null    | 0
+        1    | 0     | null    | null
+        1    | null  | 1       | 1
+        1    | null  | 1       | 0
+        1    | null  | 1       | null
+        1    | null  | 0       | 1
+        1    | null  | 0       | 0
+        1    | null  | 0       | null
+        1    | null  | null    | 1
+        1    | null  | null    | 0
+        1    | null  | null    | null
+
+        0    | 1     | 1       | 1
+        0    | 1     | 1       | 0
+        0    | 1     | 1       | null
+        0    | 0     | 1       | 1
+        0    | 0     | 1       | 0
+        0    | 0     | 1       | null
+        0    | null  | 1       | 1
+        0    | null  | 1       | 0
+        0    | null  | 1       | null
+
+        null | 1     | 1       | 1
+        null | 1     | 1       | 0
+        null | 1     | 1       | null
+        null | 0     | 1       | 1
+        null | 0     | 1       | 0
+        null | 0     | 1       | null
+        null | null  | 1       | 1
+        null | null  | 1       | 0
+        null | null  | 1       | null
+    }
+
+    def "PBS should process with GDPR enforcement when request comes from EEA IP with COPPA enabled"() {
+        given: "Valid consent string without basic ads"
+        def validConsentString = new TcfConsent.Builder()
+                .setPurposesLITransparency(DEVICE_ACCESS)
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .build()
+
+        and: "Bid request with gdpr and coppa config"
+        def bidRequest = getGdprBidRequest(DistributionChannel.APP, validConsentString).tap {
+            regs = new Regs(gdpr: 1, coppa: 1, ext: new RegsExt(gdpr: 1, coppa: 1))
+            device.geo.country = requestCountry
+            device.geo.region = null
+            device.ip = requestIpV4
+            device.ipv6 = requestIpV6
+        }
+
+        and: "Save account config without eea countries into DB"
+        accountDao.save(getAccountWithGdpr(bidRequest.accountId,
+                new AccountGdprConfig(enabled: true, eeaCountries: accountCountry)))
+
+        and: "Flush metrics"
+        flushMetrics(privacyPbsService)
+
+        when: "PBS processes auction request"
+        privacyPbsService.sendAuctionRequest(bidRequest, header)
+
+        then: "Bidder should be called"
+        assert !bidder.getBidderRequests(bidRequest.id)
+
+        then: "Metrics processed across activities should be updated"
+        def metrics = privacyPbsService.sendCollectedMetricsRequest()
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+
+        where:
+        requestCountry | accountCountry | requestIpV4 | requestIpV6 | header
+        BULGARIA       | BULGARIA       | BGR_IP.v4   | BGR_IP.v6   | ["X-Forwarded-For": BGR_IP.v4]
+        BULGARIA       | null           | BGR_IP.v4   | BGR_IP.v6   | ["X-Forwarded-For": BGR_IP.v4]
+        BULGARIA       | BULGARIA       | BGR_IP.v4   | null        | ["X-Forwarded-For": BGR_IP.v4]
+        BULGARIA       | null           | BGR_IP.v4   | null        | ["X-Forwarded-For": BGR_IP.v4]
+        BULGARIA       | BULGARIA       | null        | BGR_IP.v6   | ["X-Forwarded-For": BGR_IP.v4]
+        BULGARIA       | null           | null        | BGR_IP.v6   | ["X-Forwarded-For": BGR_IP.v4]
+        BULGARIA       | BULGARIA       | null        | null        | ["X-Forwarded-For": BGR_IP.v4]
+        BULGARIA       | null           | null        | null        | ["X-Forwarded-For": BGR_IP.v4]
+        null           | BULGARIA       | BGR_IP.v4   | BGR_IP.v6   | ["X-Forwarded-For": BGR_IP.v4]
+        null           | null           | BGR_IP.v4   | BGR_IP.v6   | ["X-Forwarded-For": BGR_IP.v4]
+        null           | BULGARIA       | BGR_IP.v4   | null        | ["X-Forwarded-For": BGR_IP.v4]
+        null           | null           | BGR_IP.v4   | null        | ["X-Forwarded-For": BGR_IP.v4]
+        null           | BULGARIA       | null        | BGR_IP.v6   | ["X-Forwarded-For": BGR_IP.v4]
+        null           | null           | null        | BGR_IP.v6   | ["X-Forwarded-For": BGR_IP.v4]
+        null           | BULGARIA       | null        | null        | ["X-Forwarded-For": BGR_IP.v4]
+        null           | null           | null        | null        | ["X-Forwarded-For": BGR_IP.v4]
+        BULGARIA       | BULGARIA       | BGR_IP.v4   | BGR_IP.v6   | [:]
+        BULGARIA       | null           | BGR_IP.v4   | BGR_IP.v6   | [:]
+        BULGARIA       | BULGARIA       | BGR_IP.v4   | null        | [:]
+        BULGARIA       | null           | BGR_IP.v4   | null        | [:]
+        BULGARIA       | BULGARIA       | null        | BGR_IP.v6   | [:]
+        BULGARIA       | null           | null        | BGR_IP.v6   | [:]
+        BULGARIA       | BULGARIA       | null        | null        | [:]
+        BULGARIA       | null           | null        | null        | [:]
+        null           | BULGARIA       | BGR_IP.v4   | BGR_IP.v6   | [:]
+        null           | null           | BGR_IP.v4   | BGR_IP.v6   | [:]
+        null           | BULGARIA       | BGR_IP.v4   | null        | [:]
+        null           | null           | BGR_IP.v4   | null        | [:]
+        null           | BULGARIA       | null        | BGR_IP.v6   | [:]
+        null           | null           | null        | BGR_IP.v6   | [:]
+        null           | BULGARIA       | null        | null        | [:]
+        null           | null           | null        | null        | [:]
     }
 }
