@@ -31,5 +31,8 @@ explaining it. Are there better ways to achieve those goals?
 - Is there dead code which can be deleted? Or TODO comments which should be resolved?
 - Look for code used by other adapters. Encourage adapter submitter to utilize common code.
 - Specific bid adapter rules:
+    - The email contact must work and be a group, not an individual.
     - Host endpoints cannot be fully dynamic. i.e. they can utilize "https://REGION.example.com", but not "https://HOST".
     - They cannot _require_ a "region" parameter. Region may be an optional parameter, but must have a default.
+    - No direct use of HTTP is prohibited - *implement an existing Bidder interface that will do all the job*
+    - If the ORTB is just forwarded to the endpoint, use the generic adapter - *define the new adapter as the alias of the generic adapter*
