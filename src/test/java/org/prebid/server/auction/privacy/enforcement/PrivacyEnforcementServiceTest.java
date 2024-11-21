@@ -58,7 +58,7 @@ public class PrivacyEnforcementServiceTest {
         final Map<String, User> bidderToUser = singletonMap("bidder", user);
 
         // when
-        Future<List<BidderPrivacyResult>> result = target.mask(auctionContext, bidderToUser, bidderAliases);
+        final Future<List<BidderPrivacyResult>> result = target.mask(auctionContext, bidderToUser, bidderAliases);
 
         // then
         assertThat(result)
