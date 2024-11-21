@@ -1062,10 +1062,7 @@ public class AuctionHandlerTest extends VertxTest {
 
         // then
         final AuctionEvent auctionEvent = captureAuctionEvent();
-        final BidResponse bidResponseBeforeHook = auctionEvent.getBidResponse();
-        assertThat(bidResponseBeforeHook.getExt()).isNull();
-
-        final BidResponse bidResponseAfterHook = auctionEvent.getAuctionContext().getBidResponse();
+        final BidResponse bidResponse = auctionEvent.getBidResponse();
         final ExtModulesTraceAnalyticsTags expectedAnalyticsTags = ExtModulesTraceAnalyticsTags.of(singletonList(
                 ExtModulesTraceAnalyticsActivity.of(
                         "some-activity",
@@ -1074,7 +1071,7 @@ public class AuctionHandlerTest extends VertxTest {
                                 "success",
                                 mapper.createObjectNode(),
                                 givenExtModulesTraceAnalyticsAppliedTo())))));
-        assertThat(bidResponseAfterHook.getExt().getPrebid().getModules().getTrace()).isEqualTo(ExtModulesTrace.of(
+        assertThat(bidResponse.getExt().getPrebid().getModules().getTrace()).isEqualTo(ExtModulesTrace.of(
                 8L,
                 List.of(
                         ExtModulesTraceStage.of(
@@ -1181,11 +1178,8 @@ public class AuctionHandlerTest extends VertxTest {
 
         // then
         final AuctionEvent auctionEvent = captureAuctionEvent();
-        final BidResponse bidResponseBeforeHook = auctionEvent.getBidResponse();
-        assertThat(bidResponseBeforeHook.getExt()).isNull();
-
-        final BidResponse bidResponseAfterHook = auctionEvent.getAuctionContext().getBidResponse();
-        assertThat(bidResponseAfterHook.getExt())
+        final BidResponse bidResponse = auctionEvent.getBidResponse();
+        assertThat(bidResponse.getExt())
                 .extracting(ExtBidResponse::getPrebid)
                 .extracting(ExtBidResponsePrebid::getAnalytics)
                 .extracting(ExtAnalytics::getTags)

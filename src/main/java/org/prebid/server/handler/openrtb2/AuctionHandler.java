@@ -118,6 +118,7 @@ public class AuctionHandler implements ApplicationResource {
                 .compose(this::invokeExitpointHooks)
                 .map(hooksMetricsService::updateHooksMetrics)
                 .map(context -> addToEvent(context, auctionEventBuilder::auctionContext, context))
+                .map(context -> addToEvent(context.getBidResponse(), auctionEventBuilder::bidResponse, context))
                 .onComplete(context -> handleResult(context, auctionEventBuilder, routingContext, startTime));
     }
 
@@ -126,13 +127,9 @@ public class AuctionHandler implements ApplicationResource {
 
         return auctionRequestFactory.enrichAuctionContext(auctionContext)
                 .map(this::updateAppAndNoCookieAndImpsMetrics)
-
                 // In case of holdAuction Exception and auctionContext is not present below
                 .map(context -> addToEvent(context, auctionEventBuilder::auctionContext, context))
-
-                .compose(exchangeService::holdAuction)
-                // populate event with updated context
-                .map(context -> addToEvent(context.getBidResponse(), auctionEventBuilder::bidResponse, context));
+                .compose(exchangeService::holdAuction);
     }
 
     private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {

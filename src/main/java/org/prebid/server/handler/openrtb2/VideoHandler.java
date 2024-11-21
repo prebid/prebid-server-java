@@ -120,25 +120,24 @@ public class VideoHandler implements ApplicationResource {
                 .map(contextToErrors ->
                         addToEvent(contextToErrors.getData(), videoEventBuilder::auctionContext, contextToErrors))
 
-                .map(contextToErrors -> prepareSuccessfulResponse(contextToErrors, routingContext, videoEventBuilder))
-                .compose(this::invokeExitpointHooks)
-                .map(hooksMetricsService::updateHooksMetrics)
-                // populate event with updated context
-                .map(context -> addToEvent(context, videoEventBuilder::auctionContext, context))
-                .onComplete(result -> handleResult(result, videoEventBuilder, routingContext, startTime));
+                .compose(contextToErrors -> prepareSuccessfulResponse(contextToErrors, routingContext)
+                        .compose(this::invokeExitpointHooks)
+                        .map(hooksMetricsService::updateHooksMetrics)
+                        .map(context -> addToEvent(context, videoEventBuilder::auctionContext, context))
+                        .map(context -> WithPodErrors.of(context, contextToErrors.getPodErrors())))
+
+                .map(contextToErrors -> prepareVideoResponse(contextToErrors, videoEventBuilder))
+                .onComplete(context -> handleResult(context, videoEventBuilder, routingContext, startTime));
     }
 
-    private AuctionContext prepareSuccessfulResponse(WithPodErrors<AuctionContext> context,
-                                                     RoutingContext routingContext,
-                                                     VideoEvent.VideoEventBuilder videoEventBuilder) {
+    private Future<AuctionContext> prepareSuccessfulResponse(WithPodErrors<AuctionContext> context,
+                                                     RoutingContext routingContext) {
 
         final AuctionContext auctionContext = context.getData();
         final VideoResponse videoResponse = videoResponseFactory.toVideoResponse(
                 auctionContext,
                 auctionContext.getBidResponse(),
                 context.getPodErrors());
-
-        addToEvent(videoResponse, videoEventBuilder::bidResponse, videoResponse);
 
         final MultiMap responseHeaders = getCommonResponseHeaders(routingContext)
                 .add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
@@ -148,7 +147,7 @@ public class VideoHandler implements ApplicationResource {
                 .responseHeaders(responseHeaders)
                 .build();
 
-        return auctionContext.with(rawAuctionResponse);
+        return Future.succeededFuture(auctionContext.with(rawAuctionResponse));
     }
 
     private Future<AuctionContext> invokeExitpointHooks(AuctionContext auctionContext) {
@@ -162,6 +161,16 @@ public class VideoHandler implements ApplicationResource {
                 .map(auctionContext::with)
                 .map(AnalyticsTagsEnricher::enrichWithAnalyticsTags)
                 .map(HookDebugInfoEnricher::enrichWithHooksDebugInfo);
+    }
+
+    private AuctionContext prepareVideoResponse(WithPodErrors<AuctionContext> contextToErrors,
+                                                VideoEvent.VideoEventBuilder videoEventBuilder) {
+
+        final VideoResponse videoResponse = videoResponseFactory.toVideoResponse(
+                contextToErrors.getData(), contextToErrors.getData().getBidResponse(),
+                contextToErrors.getPodErrors());
+        addToEvent(videoResponse, videoEventBuilder::bidResponse, videoResponse);
+        return contextToErrors.getData();
     }
 
     private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {

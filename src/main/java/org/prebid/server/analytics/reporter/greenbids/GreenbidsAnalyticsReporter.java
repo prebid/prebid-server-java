@@ -101,17 +101,19 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
     @Override
     public <T> Future<Void> processEvent(T event) {
         final AuctionContext auctionContext;
+        final BidResponse bidResponse;
 
         if (event instanceof AmpEvent ampEvent) {
             auctionContext = ampEvent.getAuctionContext();
+            bidResponse = ampEvent.getBidResponse();
         } else if (event instanceof AuctionEvent auctionEvent) {
             auctionContext = auctionEvent.getAuctionContext();
+            bidResponse = auctionEvent.getBidResponse();
         } else {
             return Future.failedFuture(new PreBidException("Unprocessable event received"));
         }
 
-        final BidResponse bidResponse = auctionContext != null ? auctionContext.getBidResponse() : null;
-        if (auctionContext == null || bidResponse == null) {
+        if (bidResponse == null || auctionContext == null) {
             return Future.failedFuture(new PreBidException("Bid response or auction context cannot be null"));
         }
 

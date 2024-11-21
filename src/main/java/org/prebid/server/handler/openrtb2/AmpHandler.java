@@ -147,11 +147,16 @@ public class AmpHandler implements ApplicationResource {
                 .map(context -> addToEvent(context, ampEventBuilder::auctionContext, context))
                 .map(this::updateAppAndNoCookieAndImpsMetrics)
                 .compose(exchangeService::holdAuction)
-                .map(context -> addToEvent(context.getBidResponse(), ampEventBuilder::bidResponse, context))
-                .compose(context -> prepareSuccessfulResponse(context, routingContext, ampEventBuilder))
+                .compose(context -> prepareSuccessfulResponse(context, routingContext))
                 .compose(this::invokeExitpointHooks)
                 .map(hooksMetricsService::updateHooksMetrics)
                 .map(context -> addToEvent(context, ampEventBuilder::auctionContext, context))
+                .map(context -> addToEvent(context.getBidResponse(), ampEventBuilder::bidResponse, context))
+                .compose(context -> prepareAmpResponse(context, routingContext))
+                .map(result -> {
+                    addToEvent(result.getLeft().getTargeting(), ampEventBuilder::targeting, result);
+                    return result.getRight();
+                })
                 .onComplete(responseResult -> handleResult(responseResult, ampEventBuilder, routingContext, startTime));
     }
 
@@ -176,15 +181,13 @@ public class AmpHandler implements ApplicationResource {
     }
 
     private Future<AuctionContext> prepareSuccessfulResponse(AuctionContext auctionContext,
-                                                             RoutingContext routingContext,
-                                                             AmpEvent.AmpEventBuilder ampEventBuilder) {
+                                                             RoutingContext routingContext) {
 
         final String origin = originFrom(routingContext);
         final MultiMap responseHeaders = getCommonResponseHeaders(routingContext, origin)
                 .add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
 
         return prepareAmpResponse(auctionContext, routingContext)
-                .map(result -> addToEvent(result.getLeft().getTargeting(), ampEventBuilder::targeting, result))
                 .map(result -> {
                     final RawAuctionResponse rawAuctionResponse = RawAuctionResponse.builder()
                             .responseBody(mapper.encodeToString(result.getLeft()))
