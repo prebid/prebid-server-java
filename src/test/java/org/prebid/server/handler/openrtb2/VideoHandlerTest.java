@@ -64,7 +64,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
@@ -309,7 +308,7 @@ public class VideoHandlerTest extends VertxTest {
         target.handle(routingContext);
 
         // then
-        verify(videoResponseFactory, times(2)).toVideoResponse(any(), any(), any());
+        verify(videoResponseFactory).toVideoResponse(any(), any(), any());
 
         assertThat(httpResponse.headers()).hasSize(2)
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
@@ -354,7 +353,7 @@ public class VideoHandlerTest extends VertxTest {
         target.handle(routingContext);
 
         // then
-        verify(videoResponseFactory, times(2)).toVideoResponse(any(), any(), any());
+        verify(videoResponseFactory).toVideoResponse(any(), any(), any());
 
         assertThat(httpResponse.headers()).hasSize(1)
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
