@@ -27,6 +27,7 @@ import org.prebid.server.analytics.model.AmpEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
+import org.prebid.server.auction.HooksMetricsService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.TimeoutContext;
 import org.prebid.server.auction.model.debug.DebugContext;
@@ -41,34 +42,67 @@ import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.execution.timeout.TimeoutFactory;
+import org.prebid.server.hooks.execution.HookStageExecutor;
+import org.prebid.server.hooks.execution.model.ExecutionAction;
+import org.prebid.server.hooks.execution.model.ExecutionStatus;
+import org.prebid.server.hooks.execution.model.GroupExecutionOutcome;
+import org.prebid.server.hooks.execution.model.HookExecutionContext;
+import org.prebid.server.hooks.execution.model.HookExecutionOutcome;
+import org.prebid.server.hooks.execution.model.HookId;
+import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
+import org.prebid.server.hooks.execution.model.Stage;
+import org.prebid.server.hooks.execution.model.StageExecutionOutcome;
+import org.prebid.server.hooks.execution.v1.exitpoint.ExitpointPayloadImpl;
+import org.prebid.server.hooks.v1.analytics.ActivityImpl;
+import org.prebid.server.hooks.v1.analytics.AppliedToImpl;
+import org.prebid.server.hooks.v1.analytics.ResultImpl;
+import org.prebid.server.hooks.v1.analytics.TagsImpl;
 import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
+import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
+import org.prebid.server.proto.openrtb.ext.response.ExtAnalytics;
+import org.prebid.server.proto.openrtb.ext.response.ExtAnalyticsTags;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponsePrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtModules;
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTrace;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceAnalyticsActivity;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceAnalyticsAppliedTo;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceAnalyticsResult;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceAnalyticsTags;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceGroup;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceInvocationResult;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceStage;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceStageOutcome;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
+import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.version.PrebidVersionProvider;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
-import static java.util.function.Function.identity;
+import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
@@ -104,8 +138,15 @@ public class AmpHandlerTest extends VertxTest {
     private Clock clock;
     @Mock
     private HttpInteractionLogger httpInteractionLogger;
+    @Mock
+    private PrebidVersionProvider prebidVersionProvider;
+    @Mock(strictness = LENIENT)
+    private HooksMetricsService hooksMetricsService;
+    @Mock(strictness = LENIENT)
+    private HookStageExecutor hookStageExecutor;
 
-    private AmpHandler ampHandler;
+    private AmpHandler target;
+
     @Mock
     private RoutingContext routingContext;
     @Mock(strictness = LENIENT)
@@ -114,8 +155,6 @@ public class AmpHandlerTest extends VertxTest {
     private HttpServerResponse httpResponse;
     @Mock(strictness = LENIENT)
     private UidsCookie uidsCookie;
-    @Mock
-    private PrebidVersionProvider prebidVersionProvider;
 
     private Timeout timeout;
 
@@ -139,19 +178,28 @@ public class AmpHandlerTest extends VertxTest {
 
         given(prebidVersionProvider.getNameVersionRecord()).willReturn("pbs-java/1.00");
 
+        given(hookStageExecutor.executeExitpointStage(any(), any(), any()))
+                .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
+                        false,
+                        ExitpointPayloadImpl.of(invocation.getArgument(0), invocation.getArgument(1)))));
+
+        given(hooksMetricsService.updateHooksMetrics(any())).willAnswer(invocation -> invocation.getArgument(0));
+
         timeout = new TimeoutFactory(clock).create(2000L);
 
-        ampHandler = new AmpHandler(
+        target = new AmpHandler(
                 ampRequestFactory,
                 exchangeService,
                 analyticsReporterDelegator,
                 metrics,
+                hooksMetricsService,
                 clock,
                 bidderCatalog,
                 singleton("bidder1"),
                 new AmpResponsePostProcessor.NoOpAmpResponsePostProcessor(),
                 httpInteractionLogger,
                 prebidVersionProvider,
+                hookStageExecutor,
                 jacksonMapper,
                 0);
     }
@@ -165,7 +213,7 @@ public class AmpHandlerTest extends VertxTest {
         givenHoldAuction(BidResponse.builder().build());
 
         // when
-        ampHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         final AuctionContext auctionContext = captureAuctionContext();
@@ -181,7 +229,7 @@ public class AmpHandlerTest extends VertxTest {
         givenHoldAuction(BidResponse.builder().build());
 
         // when
-        ampHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         assertThat(captureAuctionContext())
@@ -203,7 +251,7 @@ public class AmpHandlerTest extends VertxTest {
                         .build()));
 
         // when
-        ampHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         assertThat(httpResponse.headers())
@@ -225,7 +273,7 @@ public class AmpHandlerTest extends VertxTest {
                         .build()));
 
         // when
-        ampHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         assertThat(httpResponse.headers())
@@ -245,7 +293,7 @@ public class AmpHandlerTest extends VertxTest {
         given(clock.millis()).willReturn(now.toEpochMilli()).willReturn(now.plusMillis(50L).toEpochMilli());
 
         // when
-        ampHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         assertThat(captureAuctionContext())
@@ -263,7 +311,7 @@ public class AmpHandlerTest extends VertxTest {
                 .willReturn(Future.failedFuture(new InvalidRequestException("Request is invalid")));
 
         // when
-        ampHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verifyNoInteractions(exchangeService);
@@ -276,6 +324,7 @@ public class AmpHandlerTest extends VertxTest {
                         tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"),
                         tuple("x-prebid", "pbs-java/1.00"));
         verify(httpResponse).end(eq("Invalid request format: Request is invalid"));
+        verifyNoInteractions(hookStageExecutor, hooksMetricsService);
     }
 
     @Test
@@ -285,7 +334,7 @@ public class AmpHandlerTest extends VertxTest {
                 .willReturn(Future.failedFuture(new BlocklistedAccountException("Blocklisted account")));
 
         // when
-        ampHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verifyNoInteractions(exchangeService);
@@ -297,6 +346,7 @@ public class AmpHandlerTest extends VertxTest {
                         tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"),
                         tuple("x-prebid", "pbs-java/1.00"));
         verify(httpResponse).end(eq("Blocklisted: Blocklisted account"));
+        verifyNoInteractions(hookStageExecutor, hooksMetricsService);
     }
 
     @Test
@@ -306,7 +356,7 @@ public class AmpHandlerTest extends VertxTest {
                 .willReturn(Future.failedFuture(new BlocklistedAppException("Blocklisted app")));
 
         // when
-        ampHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verifyNoInteractions(exchangeService);
@@ -318,6 +368,7 @@ public class AmpHandlerTest extends VertxTest {
                         tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"),
                         tuple("x-prebid", "pbs-java/1.00"));
         verify(httpResponse).end(eq("Blocklisted: Blocklisted app"));
+        verifyNoInteractions(hookStageExecutor, hooksMetricsService);
     }
 
     @Test
@@ -327,7 +378,7 @@ public class AmpHandlerTest extends VertxTest {
                 .willReturn(Future.failedFuture(new UnauthorizedAccountException("Account id is not provided", null)));
 
         // when
-        ampHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verifyNoInteractions(exchangeService);
@@ -339,6 +390,7 @@ public class AmpHandlerTest extends VertxTest {
                         tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"),
                         tuple("x-prebid", "pbs-java/1.00"));
         verify(httpResponse).end(eq("Account id is not provided"));
+        verifyNoInteractions(hookStageExecutor, hooksMetricsService);
     }
 
     @Test
@@ -348,7 +400,7 @@ public class AmpHandlerTest extends VertxTest {
                 .willReturn(Future.failedFuture(new InvalidAccountConfigException("Account is invalid")));
 
         // when
-        ampHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verifyNoInteractions(exchangeService);
@@ -361,6 +413,7 @@ public class AmpHandlerTest extends VertxTest {
                         tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"),
                         tuple("x-prebid", "pbs-java/1.00"));
         verify(httpResponse).end(eq("Invalid account configuration: Account is invalid"));
+        verifyNoInteractions(hookStageExecutor, hooksMetricsService);
     }
 
     @Test
@@ -373,7 +426,7 @@ public class AmpHandlerTest extends VertxTest {
                 .willThrow(new RuntimeException("Unexpected exception"));
 
         // when
-        ampHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(httpResponse).setStatusCode(eq(500));
@@ -384,6 +437,7 @@ public class AmpHandlerTest extends VertxTest {
                         tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"),
                         tuple("x-prebid", "pbs-java/1.00"));
         verify(httpResponse).end(eq("Critical error while running the auction: Unexpected exception"));
+        verifyNoInteractions(hookStageExecutor, hooksMetricsService);
     }
 
     @Test
@@ -398,7 +452,7 @@ public class AmpHandlerTest extends VertxTest {
         givenHoldAuction(givenBidResponse(ext));
 
         // when
-        ampHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(httpResponse).setStatusCode(eq(500));
@@ -410,6 +464,7 @@ public class AmpHandlerTest extends VertxTest {
                         tuple("x-prebid", "pbs-java/1.00"));
         verify(httpResponse).end(
                 startsWith("Critical error while running the auction: Critical error while unpacking AMP targets:"));
+        verifyNoInteractions(hookStageExecutor, hooksMetricsService);
     }
 
     @Test
@@ -421,10 +476,11 @@ public class AmpHandlerTest extends VertxTest {
         given(routingContext.response().closed()).willReturn(true);
 
         // when
-        ampHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(httpResponse, never()).end(anyString());
+        verifyNoInteractions(hookStageExecutor, hooksMetricsService);
     }
 
     @Test
@@ -442,7 +498,7 @@ public class AmpHandlerTest extends VertxTest {
         givenHoldAuction(givenBidResponse(mapper.valueToTree(extPrebid)));
 
         // when
-        ampHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         assertThat(httpResponse.headers()).hasSize(4)
@@ -453,6 +509,68 @@ public class AmpHandlerTest extends VertxTest {
                         tuple("Content-Type", "application/json"),
                         tuple("x-prebid", "pbs-java/1.00"));
         verify(httpResponse).end(eq("{\"targeting\":{\"key1\":\"value1\",\"hb_cache_id_bidder1\":\"value2\"}}"));
+
+        final ArgumentCaptor<MultiMap> responseHeadersCaptor = ArgumentCaptor.forClass(MultiMap.class);
+        verify(hookStageExecutor).executeExitpointStage(
+                responseHeadersCaptor.capture(),
+                eq("{\"targeting\":{\"key1\":\"value1\",\"hb_cache_id_bidder1\":\"value2\"}}"),
+                any());
+
+        assertThat(responseHeadersCaptor.getValue()).hasSize(4)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsOnly(
+                        tuple("AMP-Access-Control-Allow-Source-Origin", "http://example.com"),
+                        tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"),
+                        tuple("Content-Type", "application/json"),
+                        tuple("x-prebid", "pbs-java/1.00"));
+
+        verify(hooksMetricsService).updateHooksMetrics(any());
+    }
+
+    @Test
+    public void shouldRespondWithExpectedResponseWhenExitpointHookChangesResponseAndHeaders() {
+        // given
+        given(ampRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
+
+        final Map<String, String> targeting = new HashMap<>();
+        targeting.put("key1", "value1");
+        targeting.put("hb_cache_id_bidder1", "value2");
+        final ExtPrebid<ExtBidPrebid, Object> extPrebid = ExtPrebid.of(
+                ExtBidPrebid.builder().targeting(targeting).build(),
+                null);
+        givenHoldAuction(givenBidResponse(mapper.valueToTree(extPrebid)));
+
+        given(hookStageExecutor.executeExitpointStage(any(), any(), any()))
+                .willReturn(Future.succeededFuture(HookStageExecutionResult.success(
+                        ExitpointPayloadImpl.of(
+                                MultiMap.caseInsensitiveMultiMap().add("New-Header", "New-Header-Value"),
+                                "{\"targeting\":{\"new-key\":\"new-value\"}}"))));
+
+        // when
+        target.handle(routingContext);
+
+        // then
+        assertThat(httpResponse.headers()).hasSize(1)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsOnly(tuple("New-Header", "New-Header-Value"));
+        verify(httpResponse).end(eq("{\"targeting\":{\"new-key\":\"new-value\"}}"));
+
+        final ArgumentCaptor<MultiMap> responseHeadersCaptor = ArgumentCaptor.forClass(MultiMap.class);
+        verify(hookStageExecutor).executeExitpointStage(
+                responseHeadersCaptor.capture(),
+                eq("{\"targeting\":{\"key1\":\"value1\",\"hb_cache_id_bidder1\":\"value2\"}}"),
+                any());
+
+        assertThat(responseHeadersCaptor.getValue()).hasSize(4)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsOnly(
+                        tuple("AMP-Access-Control-Allow-Source-Origin", "http://example.com"),
+                        tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"),
+                        tuple("Content-Type", "application/json"),
+                        tuple("x-prebid", "pbs-java/1.00"));
+
+        verify(hooksMetricsService).updateHooksMetrics(any());
     }
 
     @Test
@@ -485,11 +603,18 @@ public class AmpHandlerTest extends VertxTest {
         willReturn(bidder).given(bidderCatalog).bidderByName(anyString());
 
         // when
-        ampHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(httpResponse).end(eq("{\"targeting\":{\"key1\":\"value1\",\"rpfl_11078\":\"15_tier0030\","
                 + "\"hb_cache_id_bidder1\":\"value2\"}}"));
+        verify(hookStageExecutor).executeExitpointStage(
+                any(),
+                eq("{\"targeting\":{\"key1\":\"value1\",\"rpfl_11078\":\"15_tier0030\","
+                        + "\"hb_cache_id_bidder1\":\"value2\"}}"),
+                any());
+
+        verify(hooksMetricsService).updateHooksMetrics(any());
     }
 
     @Test
@@ -524,10 +649,15 @@ public class AmpHandlerTest extends VertxTest {
                 .build());
 
         // when
-        ampHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(httpResponse).end(eq("{\"targeting\":{\"key\":\"value\",\"test-key\":\"test-value\"}}"));
+        verify(hookStageExecutor).executeExitpointStage(
+                any(),
+                eq("{\"targeting\":{\"key\":\"value\",\"test-key\":\"test-value\"}}"),
+                any());
+        verify(hooksMetricsService).updateHooksMetrics(any());
     }
 
     @Test
@@ -547,10 +677,15 @@ public class AmpHandlerTest extends VertxTest {
         givenHoldAuction(givenBidResponseWithExt(ExtBidResponse.builder().prebid(extBidResponsePrebid).build()));
 
         // when
-        ampHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(httpResponse).end(eq("{\"targeting\":{\"key\":\"value\",\"test-key\":\"test-value\"}}"));
+        verify(hookStageExecutor).executeExitpointStage(
+                any(),
+                eq("{\"targeting\":{\"key\":\"value\",\"test-key\":\"test-value\"}}"),
+                any());
+        verify(hooksMetricsService).updateHooksMetrics(any());
     }
 
     @Test
@@ -569,12 +704,19 @@ public class AmpHandlerTest extends VertxTest {
                         .build()));
 
         // when
-        ampHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(httpResponse).end(eq(
                 "{\"targeting\":{},"
                         + "\"ext\":{\"debug\":{\"resolvedrequest\":{\"id\":\"reqId1\",\"imp\":[],\"tmax\":5000}}}}"));
+        verify(hookStageExecutor).executeExitpointStage(
+                any(),
+                eq("{\"targeting\":{},"
+                        + "\"ext\":{\"debug\":{\"resolvedrequest\":{\"id\":\"reqId1\",\"imp\":[],\"tmax\":5000}}}}"),
+                any());
+        verify(hooksMetricsService).updateHooksMetrics(any());
+
     }
 
     @Test
@@ -597,7 +739,7 @@ public class AmpHandlerTest extends VertxTest {
                         .build()));
 
         // when
-        ampHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(httpResponse).end(eq(
@@ -606,6 +748,15 @@ public class AmpHandlerTest extends VertxTest {
                         + "\"errors\":{\"module1\":{\"hook1\":[\"error1\"]}},"
                         + "\"warnings\":{\"module1\":{\"hook1\":[\"warning1\"]}},"
                         + "\"trace\":{\"executiontimemillis\":2,\"stages\":[]}}}}}"));
+        verify(hookStageExecutor).executeExitpointStage(
+                any(),
+                eq("{\"targeting\":{},"
+                        + "\"ext\":{\"prebid\":{\"modules\":{"
+                        + "\"errors\":{\"module1\":{\"hook1\":[\"error1\"]}},"
+                        + "\"warnings\":{\"module1\":{\"hook1\":[\"warning1\"]}},"
+                        + "\"trace\":{\"executiontimemillis\":2,\"stages\":[]}}}}}"),
+                any());
+        verify(hooksMetricsService).updateHooksMetrics(any());
     }
 
     @Test
@@ -618,7 +769,7 @@ public class AmpHandlerTest extends VertxTest {
                 ExtPrebid.of(ExtBidPrebid.builder().build(), null))));
 
         // when
-        ampHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(metrics).updateRequestTypeMetric(eq(MetricName.amp), eq(MetricName.ok));
@@ -634,7 +785,7 @@ public class AmpHandlerTest extends VertxTest {
                 ExtPrebid.of(ExtBidPrebid.builder().build(), null))));
 
         // when
-        ampHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(metrics).updateAppAndNoCookieAndImpsRequestedMetrics(eq(true), anyBoolean(), anyInt());
@@ -655,7 +806,7 @@ public class AmpHandlerTest extends VertxTest {
                 + "AppleWebKit/601.7.7 (KHTML, like Gecko) Version/9.1.2 Safari/601.7.7");
 
         // when
-        ampHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(metrics).updateAppAndNoCookieAndImpsRequestedMetrics(eq(false), eq(false), anyInt());
@@ -672,7 +823,7 @@ public class AmpHandlerTest extends VertxTest {
                 ExtPrebid.of(ExtBidPrebid.builder().build(), null))));
 
         // when
-        ampHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(metrics).updateAppAndNoCookieAndImpsRequestedMetrics(anyBoolean(), anyBoolean(), eq(1));
@@ -690,7 +841,7 @@ public class AmpHandlerTest extends VertxTest {
                 ExtPrebid.of(ExtBidPrebid.builder().build(), null))));
 
         // when
-        ampHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(metrics).updateImpTypesMetrics(same(imps));
@@ -703,7 +854,7 @@ public class AmpHandlerTest extends VertxTest {
                 .willReturn(Future.failedFuture(new InvalidRequestException("Request is invalid")));
 
         // when
-        ampHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(metrics).updateRequestTypeMetric(eq(MetricName.amp), eq(MetricName.badinput));
@@ -716,7 +867,7 @@ public class AmpHandlerTest extends VertxTest {
                 .willReturn(Future.failedFuture(new RuntimeException()));
 
         // when
-        ampHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(metrics).updateRequestTypeMetric(eq(MetricName.amp), eq(MetricName.err));
@@ -741,7 +892,7 @@ public class AmpHandlerTest extends VertxTest {
         });
 
         // when
-        ampHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(metrics).updateRequestTimeMetric(eq(MetricName.request_time), eq(500L));
@@ -754,7 +905,7 @@ public class AmpHandlerTest extends VertxTest {
                 .willReturn(Future.failedFuture(new InvalidRequestException("Request is invalid")));
 
         // when
-        ampHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(httpResponse, never()).endHandler(any());
@@ -777,7 +928,7 @@ public class AmpHandlerTest extends VertxTest {
         });
 
         // when
-        ampHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(metrics).updateRequestTypeMetric(eq(MetricName.amp), eq(MetricName.networkerr));
@@ -793,7 +944,7 @@ public class AmpHandlerTest extends VertxTest {
                 ExtPrebid.of(ExtBidPrebid.builder().build(), null))));
 
         // when
-        ampHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(metrics, never()).updateRequestTypeMetric(eq(MetricName.amp), eq(MetricName.networkerr));
@@ -811,7 +962,7 @@ public class AmpHandlerTest extends VertxTest {
         given(routingContext.response().closed()).willReturn(true);
 
         // when
-        ampHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(metrics).updateRequestTypeMetric(eq(MetricName.amp), eq(MetricName.networkerr));
@@ -824,7 +975,7 @@ public class AmpHandlerTest extends VertxTest {
                 .willReturn(Future.failedFuture(new InvalidRequestException("Request is invalid")));
 
         // when
-        ampHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         final AmpEvent ampEvent = captureAmpEvent();
@@ -834,6 +985,8 @@ public class AmpHandlerTest extends VertxTest {
                 .status(400)
                 .errors(singletonList("Invalid request format: Request is invalid"))
                 .build());
+
+        verifyNoInteractions(hookStageExecutor, hooksMetricsService);
     }
 
     @Test
@@ -847,7 +1000,7 @@ public class AmpHandlerTest extends VertxTest {
                 .willThrow(new RuntimeException("Unexpected exception"));
 
         // when
-        ampHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         final AmpEvent ampEvent = captureAmpEvent();
@@ -862,6 +1015,8 @@ public class AmpHandlerTest extends VertxTest {
                 .status(500)
                 .errors(singletonList("Unexpected exception"))
                 .build());
+
+        verifyNoInteractions(hookStageExecutor, hooksMetricsService);
     }
 
     @Test
@@ -876,7 +1031,7 @@ public class AmpHandlerTest extends VertxTest {
                         null))));
 
         // when
-        ampHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         final AmpEvent ampEvent = captureAmpEvent();
@@ -889,33 +1044,334 @@ public class AmpHandlerTest extends VertxTest {
                                 .build()))
                         .build()))
                 .build();
-        final AuctionContext expectedAuctionContext = auctionContext.toBuilder()
-                .requestTypeMetric(MetricName.amp)
-                .bidResponse(expectedBidResponse)
+
+        assertThat(ampEvent.getHttpContext()).isEqualTo(givenHttpContext(singletonMap("Origin", "http://example.com")));
+        assertThat(ampEvent.getBidResponse()).isEqualTo(expectedBidResponse);
+        assertThat(ampEvent.getTargeting())
+                .isEqualTo(singletonMap("hb_cache_id_bidder1", TextNode.valueOf("value1")));
+        assertThat(ampEvent.getOrigin()).isEqualTo("http://example.com");
+        assertThat(ampEvent.getStatus()).isEqualTo(200);
+        assertThat(ampEvent.getAuctionContext().getRequestTypeMetric()).isEqualTo(MetricName.amp);
+        assertThat(ampEvent.getAuctionContext().getBidResponse()).isEqualTo(expectedBidResponse);
+        assertThat(ampEvent.getAuctionContext().getRawAuctionResponse().getResponseBody())
+                .isEqualTo("{\"targeting\":{\"hb_cache_id_bidder1\":\"value1\"}}");
+        assertThat(ampEvent.getAuctionContext().getRawAuctionResponse().getResponseHeaders()).hasSize(4)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsOnly(
+                        tuple("AMP-Access-Control-Allow-Source-Origin", "http://example.com"),
+                        tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"),
+                        tuple("Content-Type", "application/json"),
+                        tuple("x-prebid", "pbs-java/1.00"));
+
+        final ArgumentCaptor<MultiMap> responseHeadersCaptor = ArgumentCaptor.forClass(MultiMap.class);
+        verify(hookStageExecutor).executeExitpointStage(
+                responseHeadersCaptor.capture(),
+                eq("{\"targeting\":{\"hb_cache_id_bidder1\":\"value1\"}}"),
+                any());
+
+        assertThat(responseHeadersCaptor.getValue()).hasSize(4)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsOnly(
+                        tuple("AMP-Access-Control-Allow-Source-Origin", "http://example.com"),
+                        tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"),
+                        tuple("Content-Type", "application/json"),
+                        tuple("x-prebid", "pbs-java/1.00"));
+
+        verify(hooksMetricsService).updateHooksMetrics(any());
+    }
+
+    @Test
+    public void shouldPassSuccessfulEventToAnalyticsReporterWhenExitpointHookChangesResponseAndHeaders() {
+        // given
+        final AuctionContext auctionContext = givenAuctionContext(identity());
+        given(ampRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(auctionContext));
+
+        given(hookStageExecutor.executeExitpointStage(any(), any(), any()))
+                .willReturn(Future.succeededFuture(HookStageExecutionResult.success(
+                        ExitpointPayloadImpl.of(
+                                MultiMap.caseInsensitiveMultiMap().add("New-Header", "New-Header-Value"),
+                                "{\"targeting\":{\"new-key\":\"new-value\"}}"))));
+
+        givenHoldAuction(givenBidResponse(mapper.valueToTree(
+                ExtPrebid.of(ExtBidPrebid.builder().targeting(singletonMap("hb_cache_id_bidder1", "value1")).build(),
+                        null))));
+
+        // when
+        target.handle(routingContext);
+
+        // then
+        final AmpEvent ampEvent = captureAmpEvent();
+        final BidResponse expectedBidResponse = BidResponse.builder().seatbid(singletonList(SeatBid.builder()
+                        .bid(singletonList(Bid.builder()
+                                .ext(mapper.valueToTree(ExtPrebid.of(
+                                        ExtBidPrebid.builder().targeting(singletonMap("hb_cache_id_bidder1", "value1"))
+                                                .build(),
+                                        null)))
+                                .build()))
+                        .build()))
                 .build();
 
-        assertThat(ampEvent).isEqualTo(AmpEvent.builder()
-                .httpContext(givenHttpContext(singletonMap("Origin", "http://example.com")))
-                .auctionContext(expectedAuctionContext)
-                .bidResponse(expectedBidResponse)
-                .targeting(singletonMap("hb_cache_id_bidder1", TextNode.valueOf("value1")))
-                .origin("http://example.com")
-                .status(200)
-                .errors(emptyList())
-                .build());
+        assertThat(ampEvent.getAuctionContext().getBidResponse()).isEqualTo(expectedBidResponse);
+        assertThat(ampEvent.getAuctionContext().getRawAuctionResponse().getResponseBody())
+                .isEqualTo("{\"targeting\":{\"new-key\":\"new-value\"}}");
+        assertThat(ampEvent.getAuctionContext().getRawAuctionResponse().getResponseHeaders()).hasSize(1)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsOnly(tuple("New-Header", "New-Header-Value"));
+
+        final ArgumentCaptor<MultiMap> responseHeadersCaptor = ArgumentCaptor.forClass(MultiMap.class);
+        verify(hookStageExecutor).executeExitpointStage(
+                responseHeadersCaptor.capture(),
+                eq("{\"targeting\":{\"hb_cache_id_bidder1\":\"value1\"}}"),
+                any());
+
+        assertThat(responseHeadersCaptor.getValue()).hasSize(4)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsOnly(
+                        tuple("AMP-Access-Control-Allow-Source-Origin", "http://example.com"),
+                        tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"),
+                        tuple("Content-Type", "application/json"),
+                        tuple("x-prebid", "pbs-java/1.00"));
+
+        verify(hooksMetricsService).updateHooksMetrics(any());
+    }
+
+    @Test
+    public void shouldReturnSendAmpEventWithAuctionContextBidResponseDebugInfoHoldingExitpointHookOutcome() {
+        // given
+        final AuctionContext auctionContext = givenAuctionContext(identity()).toBuilder()
+                .hookExecutionContext(HookExecutionContext.of(
+                        Endpoint.openrtb2_amp,
+                        stageOutcomes()))
+                .build();
+
+        given(ampRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(auctionContext));
+
+        given(hookStageExecutor.executeExitpointStage(any(), any(), any()))
+                .willAnswer(invocation -> {
+                    final AuctionContext context = invocation.getArgument(2, AuctionContext.class);
+                    final HookExecutionContext hookExecutionContext = context.getHookExecutionContext();
+                    hookExecutionContext.getStageOutcomes().put(Stage.exitpoint, singletonList(StageExecutionOutcome.of(
+                            "http-response",
+                            singletonList(
+                                    GroupExecutionOutcome.of(singletonList(
+                                            HookExecutionOutcome.builder()
+                                                    .hookId(HookId.of("exitpoint-module", "exitpoint-hook"))
+                                                    .executionTime(4L)
+                                                    .status(ExecutionStatus.success)
+                                                    .message("exitpoint hook has been executed")
+                                                    .action(ExecutionAction.update)
+                                                    .analyticsTags(TagsImpl.of(singletonList(
+                                                            ActivityImpl.of(
+                                                                    "some-activity",
+                                                                    "success",
+                                                                    singletonList(ResultImpl.of(
+                                                                            "success",
+                                                                            mapper.createObjectNode(),
+                                                                            givenAppliedToImpl()))))))
+                                                    .build()))))));
+                    return Future.succeededFuture(HookStageExecutionResult.success(
+                            ExitpointPayloadImpl.of(invocation.getArgument(0), invocation.getArgument(1))));
+                });
+
+        givenHoldAuction(givenBidResponse(mapper.valueToTree(
+                ExtPrebid.of(ExtBidPrebid.builder().targeting(singletonMap("hb_cache_id_bidder1", "value1")).build(),
+                        null))));
+
+
+        // when
+        target.handle(routingContext);
+
+        // then
+        final AmpEvent ampEvent = captureAmpEvent();
+        final BidResponse bidResponseBeforeHook = ampEvent.getBidResponse();
+        assertThat(bidResponseBeforeHook.getExt()).isNull();
+
+        final BidResponse bidResponseAfterHook = ampEvent.getAuctionContext().getBidResponse();
+        assertThat(bidResponseAfterHook.getExt().getPrebid().getModules().getTrace()).isEqualTo(ExtModulesTrace.of(
+                8L,
+                List.of(
+                        ExtModulesTraceStage.of(
+                                Stage.auction_response,
+                                4L,
+                                singletonList(ExtModulesTraceStageOutcome.of(
+                                        "auction-response",
+                                        4L,
+                                        singletonList(
+                                                ExtModulesTraceGroup.of(
+                                                        4L,
+                                                        asList(
+                                                                ExtModulesTraceInvocationResult.builder()
+                                                                        .hookId(HookId.of("module1", "hook1"))
+                                                                        .executionTime(4L)
+                                                                        .status(ExecutionStatus.success)
+                                                                        .message("module1 hook1")
+                                                                        .action(ExecutionAction.update)
+                                                                        .build(),
+                                                                ExtModulesTraceInvocationResult.builder()
+                                                                        .hookId(HookId.of("module1", "hook2"))
+                                                                        .executionTime(4L)
+                                                                        .status(ExecutionStatus.success)
+                                                                        .message("module1 hook2")
+                                                                        .action(ExecutionAction.no_action)
+                                                                        .build())))))),
+
+                        ExtModulesTraceStage.of(
+                                Stage.exitpoint,
+                                4L,
+                                singletonList(ExtModulesTraceStageOutcome.of(
+                                        "http-response",
+                                        4L,
+                                        singletonList(
+                                                ExtModulesTraceGroup.of(
+                                                        4L,
+                                                        singletonList(
+                                                                ExtModulesTraceInvocationResult.builder()
+                                                                        .hookId(HookId.of("exitpoint-module", "exitpoint-hook"))
+                                                                        .executionTime(4L)
+                                                                        .status(ExecutionStatus.success)
+                                                                        .message("exitpoint hook has been executed")
+                                                                        .action(ExecutionAction.update)
+                                                                        .analyticsTags(ExtModulesTraceAnalyticsTags.of(singletonList(
+                                                                                ExtModulesTraceAnalyticsActivity.of(
+                                                                                        "some-activity",
+                                                                                        "success",
+                                                                                        singletonList(ExtModulesTraceAnalyticsResult.of(
+                                                                                                "success",
+                                                                                                mapper.createObjectNode(),
+                                                                                                givenExtModulesTraceAnalyticsAppliedTo()))))))
+                                                                        .build())))))))));
+    }
+
+    @Test
+    public void shouldReturnSendAmpEventWithAuctionContextBidResponseAnalyticsTagsHoldingExitpointHookOutcome() {
+        // given
+        final ObjectNode analyticsNode = mapper.createObjectNode();
+        final ObjectNode optionsNode = analyticsNode.putObject("options");
+        optionsNode.put("enableclientdetails", true);
+
+        final AuctionContext auctionContext = givenAuctionContext(
+                request -> request.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .analytics(analyticsNode)
+                        .build()))).toBuilder()
+                .hookExecutionContext(HookExecutionContext.of(
+                        Endpoint.openrtb2_amp,
+                        stageOutcomes()))
+                .build();
+
+        given(ampRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(auctionContext));
+
+        given(hookStageExecutor.executeExitpointStage(any(), any(), any()))
+                .willAnswer(invocation -> {
+                    final AuctionContext context = invocation.getArgument(2, AuctionContext.class);
+                    final HookExecutionContext hookExecutionContext = context.getHookExecutionContext();
+                    hookExecutionContext.getStageOutcomes().put(Stage.exitpoint, singletonList(StageExecutionOutcome.of(
+                            "http-response",
+                            singletonList(
+                                    GroupExecutionOutcome.of(singletonList(
+                                            HookExecutionOutcome.builder()
+                                                    .hookId(HookId.of("exitpoint-module", "exitpoint-hook"))
+                                                    .executionTime(4L)
+                                                    .status(ExecutionStatus.success)
+                                                    .message("exitpoint hook has been executed")
+                                                    .action(ExecutionAction.update)
+                                                    .analyticsTags(TagsImpl.of(singletonList(
+                                                            ActivityImpl.of(
+                                                                    "some-activity",
+                                                                    "success",
+                                                                    singletonList(ResultImpl.of(
+                                                                            "success",
+                                                                            mapper.createObjectNode(),
+                                                                            givenAppliedToImpl()))))))
+                                                    .build()))))));
+                    return Future.succeededFuture(HookStageExecutionResult.success(
+                            ExitpointPayloadImpl.of(invocation.getArgument(0), invocation.getArgument(1))));
+                });
+
+        givenHoldAuction(givenBidResponse(mapper.valueToTree(
+                ExtPrebid.of(ExtBidPrebid.builder().targeting(singletonMap("hb_cache_id_bidder1", "value1")).build(),
+                        null))));
+
+
+        // when
+        target.handle(routingContext);
+
+        // then
+        final AmpEvent ampEvent = captureAmpEvent();
+        final BidResponse bidResponseBeforeHook = ampEvent.getBidResponse();
+        assertThat(bidResponseBeforeHook.getExt()).isNull();
+
+        final BidResponse bidResponseAfterHook = ampEvent.getAuctionContext().getBidResponse();
+        assertThat(bidResponseAfterHook.getExt())
+                .extracting(ExtBidResponse::getPrebid)
+                .extracting(ExtBidResponsePrebid::getAnalytics)
+                .extracting(ExtAnalytics::getTags)
+                .asInstanceOf(InstanceOfAssertFactories.list(ExtAnalyticsTags.class))
+                .hasSize(1)
+                .allSatisfy(extAnalyticsTags -> {
+                    assertThat(extAnalyticsTags.getStage()).isEqualTo(Stage.exitpoint);
+                    assertThat(extAnalyticsTags.getModule()).isEqualTo("exitpoint-module");
+                    assertThat(extAnalyticsTags.getAnalyticsTags()).isNotNull();
+                });
+    }
+
+    private static AppliedToImpl givenAppliedToImpl() {
+        return AppliedToImpl.builder()
+                .impIds(asList("impId1", "impId2"))
+                .request(true)
+                .build();
+    }
+
+    private static ExtModulesTraceAnalyticsAppliedTo givenExtModulesTraceAnalyticsAppliedTo() {
+        return ExtModulesTraceAnalyticsAppliedTo.builder()
+                .impIds(asList("impId1", "impId2"))
+                .request(true)
+                .build();
+    }
+
+    private static EnumMap<Stage, List<StageExecutionOutcome>> stageOutcomes() {
+        final Map<Stage, List<StageExecutionOutcome>> stageOutcomes = new HashMap<>();
+
+        stageOutcomes.put(Stage.auction_response, singletonList(StageExecutionOutcome.of(
+                "auction-response",
+                singletonList(
+                        GroupExecutionOutcome.of(asList(
+                                HookExecutionOutcome.builder()
+                                        .hookId(HookId.of("module1", "hook1"))
+                                        .executionTime(4L)
+                                        .status(ExecutionStatus.success)
+                                        .message("module1 hook1")
+                                        .action(ExecutionAction.update)
+                                        .build(),
+                                HookExecutionOutcome.builder()
+                                        .hookId(HookId.of("module1", "hook2"))
+                                        .executionTime(4L)
+                                        .message("module1 hook2")
+                                        .status(ExecutionStatus.success)
+                                        .action(ExecutionAction.no_action)
+                                        .build()))))));
+
+        return new EnumMap<>(stageOutcomes);
     }
 
     private AuctionContext givenAuctionContext(
-            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestBuilderCustomizer) {
+            UnaryOperator<BidRequest.BidRequestBuilder> bidRequestBuilderCustomizer) {
+
         final BidRequest bidRequest = bidRequestBuilderCustomizer.apply(BidRequest.builder()
                 .imp(emptyList()).tmax(5000L)).build();
 
         return AuctionContext.builder()
+                .account(Account.builder()
+                        .analytics(AccountAnalyticsConfig.of(true, null, null))
+                        .build())
                 .uidsCookie(uidsCookie)
                 .bidRequest(bidRequest)
                 .requestTypeMetric(MetricName.amp)
                 .timeoutContext(TimeoutContext.of(0, timeout, 0))
-                .debugContext(DebugContext.empty())
+                .debugContext(DebugContext.of(true, false, TraceLevel.verbose))
+                .hookExecutionContext(HookExecutionContext.of(Endpoint.openrtb2_amp))
                 .build();
     }
 
@@ -924,7 +1380,6 @@ public class AmpHandlerTest extends VertxTest {
                 .willAnswer(inv -> Future.succeededFuture(((AuctionContext) inv.getArgument(0)).toBuilder()
                         .bidResponse(bidResponse)
                         .build()));
-
     }
 
     private static BidResponse givenBidResponse(ObjectNode extBid) {

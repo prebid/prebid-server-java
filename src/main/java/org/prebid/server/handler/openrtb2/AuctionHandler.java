@@ -12,9 +12,13 @@ import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
+import org.prebid.server.auction.AnalyticsTagsEnricher;
 import org.prebid.server.auction.ExchangeService;
+import org.prebid.server.auction.HookDebugInfoEnricher;
+import org.prebid.server.auction.HooksMetricsService;
 import org.prebid.server.auction.SkippedAuctionService;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.RawAuctionResponse;
 import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.BlocklistedAccountException;
@@ -22,6 +26,8 @@ import org.prebid.server.exception.BlocklistedAppException;
 import org.prebid.server.exception.InvalidAccountConfigException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
+import org.prebid.server.hooks.execution.HookStageExecutor;
+import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.HttpInteractionLogger;
@@ -55,9 +61,11 @@ public class AuctionHandler implements ApplicationResource {
     private final SkippedAuctionService skippedAuctionService;
     private final AnalyticsReporterDelegator analyticsDelegator;
     private final Metrics metrics;
+    private final HooksMetricsService hooksMetricsService;
     private final Clock clock;
     private final HttpInteractionLogger httpInteractionLogger;
     private final PrebidVersionProvider prebidVersionProvider;
+    private final HookStageExecutor hookStageExecutor;
     private final JacksonMapper mapper;
 
     public AuctionHandler(double logSamplingRate,
@@ -66,9 +74,11 @@ public class AuctionHandler implements ApplicationResource {
                           SkippedAuctionService skippedAuctionService,
                           AnalyticsReporterDelegator analyticsDelegator,
                           Metrics metrics,
+                          HooksMetricsService hooksMetricsService,
                           Clock clock,
                           HttpInteractionLogger httpInteractionLogger,
                           PrebidVersionProvider prebidVersionProvider,
+                          HookStageExecutor hookStageExecutor,
                           JacksonMapper mapper) {
 
         this.logSamplingRate = logSamplingRate;
@@ -77,9 +87,11 @@ public class AuctionHandler implements ApplicationResource {
         this.skippedAuctionService = Objects.requireNonNull(skippedAuctionService);
         this.analyticsDelegator = Objects.requireNonNull(analyticsDelegator);
         this.metrics = Objects.requireNonNull(metrics);
+        this.hooksMetricsService = Objects.requireNonNull(hooksMetricsService);
         this.clock = Objects.requireNonNull(clock);
         this.httpInteractionLogger = Objects.requireNonNull(httpInteractionLogger);
         this.prebidVersionProvider = Objects.requireNonNull(prebidVersionProvider);
+        this.hookStageExecutor = Objects.requireNonNull(hookStageExecutor);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -102,6 +114,10 @@ public class AuctionHandler implements ApplicationResource {
         auctionRequestFactory.parseRequest(routingContext, startTime)
                 .compose(auctionContext -> skippedAuctionService.skipAuction(auctionContext)
                         .recover(throwable -> holdAuction(auctionEventBuilder, auctionContext)))
+                .map(context -> prepareSuccessfulResponse(context, routingContext))
+                .compose(this::invokeExitpointHooks)
+                .map(hooksMetricsService::updateHooksMetrics)
+                .map(context -> addToEvent(context, auctionEventBuilder::auctionContext, context))
                 .onComplete(context -> handleResult(context, auctionEventBuilder, routingContext, startTime));
     }
 
@@ -116,7 +132,6 @@ public class AuctionHandler implements ApplicationResource {
 
                 .compose(exchangeService::holdAuction)
                 // populate event with updated context
-                .map(context -> addToEvent(context, auctionEventBuilder::auctionContext, context))
                 .map(context -> addToEvent(context.getBidResponse(), auctionEventBuilder::bidResponse, context));
     }
 
@@ -142,6 +157,35 @@ public class AuctionHandler implements ApplicationResource {
         return context;
     }
 
+    private AuctionContext prepareSuccessfulResponse(AuctionContext auctionContext, RoutingContext routingContext) {
+        MultiMap responseHeaders = getCommonResponseHeaders(routingContext)
+                .add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
+
+        final RawAuctionResponse rawAuctionResponse = RawAuctionResponse.builder()
+                .responseBody(mapper.encodeToString(auctionContext.getBidResponse()))
+                .responseHeaders(responseHeaders)
+                .build();
+
+        return auctionContext.with(rawAuctionResponse);
+    }
+
+    private Future<AuctionContext> invokeExitpointHooks(AuctionContext auctionContext) {
+        if (auctionContext.isAuctionSkipped()) {
+            return Future.succeededFuture(auctionContext);
+        }
+
+        final RawAuctionResponse rawAuctionResponse = auctionContext.getRawAuctionResponse();
+        return hookStageExecutor.executeExitpointStage(
+                        rawAuctionResponse.getResponseHeaders(),
+                        rawAuctionResponse.getResponseBody(),
+                        auctionContext)
+                .map(HookStageExecutionResult::getPayload)
+                .map(rawAuctionResponse::of)
+                .map(auctionContext::with)
+                .map(AnalyticsTagsEnricher::enrichWithAnalyticsTags)
+                .map(HookDebugInfoEnricher::enrichWithHooksDebugInfo);
+    }
+
     private void handleResult(AsyncResult<AuctionContext> responseResult,
                               AuctionEvent.AuctionEventBuilder auctionEventBuilder,
                               RoutingContext routingContext,
@@ -161,15 +205,18 @@ public class AuctionHandler implements ApplicationResource {
         final String body;
 
         final HttpServerResponse response = routingContext.response();
-        enrichResponseWithCommonHeaders(routingContext);
+        final MultiMap responseHeaders = response.headers();
 
         if (responseSucceeded) {
             metricRequestStatus = MetricName.ok;
             errorMessages = Collections.emptyList();
-
             status = HttpResponseStatus.OK;
-            enrichWithSuccessfulHeaders(response);
-            body = mapper.encodeToString(responseResult.result().getBidResponse());
+
+            final RawAuctionResponse rawAuctionResponse = auctionContext.getRawAuctionResponse();
+            rawAuctionResponse.getResponseHeaders()
+                    .forEach(header -> HttpUtil.addHeaderIfValueIsNotEmpty(
+                            responseHeaders, header.getKey(), header.getValue()));
+            body = rawAuctionResponse.getResponseBody();
         } else {
             final Throwable exception = responseResult.cause();
             if (exception instanceof InvalidRequestException invalidRequestException) {
@@ -222,6 +269,10 @@ public class AuctionHandler implements ApplicationResource {
                 status = HttpResponseStatus.INTERNAL_SERVER_ERROR;
                 body = "Critical error while running the auction: " + message;
             }
+
+            getCommonResponseHeaders(routingContext)
+                    .forEach(header -> HttpUtil.addHeaderIfValueIsNotEmpty(
+                            responseHeaders, header.getKey(), header.getValue()));
         }
 
         final AuctionEvent auctionEvent = auctionEventBuilder.status(status.code()).errors(errorMessages).build();
@@ -263,8 +314,8 @@ public class AuctionHandler implements ApplicationResource {
         metrics.updateRequestTypeMetric(requestType, MetricName.networkerr);
     }
 
-    private void enrichResponseWithCommonHeaders(RoutingContext routingContext) {
-        final MultiMap responseHeaders = routingContext.response().headers();
+    private MultiMap getCommonResponseHeaders(RoutingContext routingContext) {
+        MultiMap responseHeaders = MultiMap.caseInsensitiveMultiMap();
         HttpUtil.addHeaderIfValueIsNotEmpty(
                 responseHeaders, HttpUtil.X_PREBID_HEADER, prebidVersionProvider.getNameVersionRecord());
 
@@ -272,10 +323,7 @@ public class AuctionHandler implements ApplicationResource {
         if (requestHeaders.contains(HttpUtil.SEC_BROWSING_TOPICS_HEADER)) {
             responseHeaders.add(HttpUtil.OBSERVE_BROWSING_TOPICS_HEADER, "?1");
         }
-    }
 
-    private void enrichWithSuccessfulHeaders(HttpServerResponse response) {
-        response.headers()
-                .add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
+        return responseHeaders;
     }
 }

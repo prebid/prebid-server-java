@@ -62,14 +62,7 @@ import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.floors.PriceFloorAdjuster;
 import org.prebid.server.floors.PriceFloorProcessor;
 import org.prebid.server.hooks.execution.HookStageExecutor;
-import org.prebid.server.hooks.execution.model.ExecutionAction;
-import org.prebid.server.hooks.execution.model.ExecutionStatus;
-import org.prebid.server.hooks.execution.model.GroupExecutionOutcome;
-import org.prebid.server.hooks.execution.model.HookExecutionOutcome;
-import org.prebid.server.hooks.execution.model.HookId;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
-import org.prebid.server.hooks.execution.model.Stage;
-import org.prebid.server.hooks.execution.model.StageExecutionOutcome;
 import org.prebid.server.hooks.v1.bidder.BidderRequestPayload;
 import org.prebid.server.hooks.v1.bidder.BidderResponsePayload;
 import org.prebid.server.json.JacksonMapper;
@@ -110,7 +103,6 @@ import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -221,8 +213,7 @@ public class ExchangeService {
         return processAuctionRequest(context)
                 .compose(this::invokeResponseHooks)
                 .map(AnalyticsTagsEnricher::enrichWithAnalyticsTags)
-                .map(HookDebugInfoEnricher::enrichWithHooksDebugInfo)
-                .map(this::updateHooksMetrics);
+                .map(HookDebugInfoEnricher::enrichWithHooksDebugInfo);
     }
 
     private Future<AuctionContext> processAuctionRequest(AuctionContext context) {
@@ -1373,59 +1364,5 @@ public class ExchangeService {
             case invalid_bid -> MetricName.bid_validation;
             case rejected_ipf, generic -> MetricName.unknown_error;
         };
-    }
-
-    private AuctionContext updateHooksMetrics(AuctionContext context) {
-        final EnumMap<Stage, List<StageExecutionOutcome>> stageOutcomes =
-                context.getHookExecutionContext().getStageOutcomes();
-
-        final Account account = context.getAccount();
-
-        stageOutcomes.forEach((stage, outcomes) -> updateHooksStageMetrics(account, stage, outcomes));
-
-        // account might be null if request is rejected by the entrypoint hook
-        if (account != null) {
-            stageOutcomes.values().stream()
-                    .flatMap(Collection::stream)
-                    .map(StageExecutionOutcome::getGroups)
-                    .flatMap(Collection::stream)
-                    .map(GroupExecutionOutcome::getHooks)
-                    .flatMap(Collection::stream)
-                    .filter(hookOutcome -> hookOutcome.getAction() != ExecutionAction.no_invocation)
-                    .collect(Collectors.groupingBy(
-                            outcome -> outcome.getHookId().getModuleCode(),
-                            Collectors.summingLong(HookExecutionOutcome::getExecutionTime)))
-                    .forEach((moduleCode, executionTime) ->
-                            metrics.updateAccountModuleDurationMetric(account, moduleCode, executionTime));
-        }
-
-        return context;
-    }
-
-    private void updateHooksStageMetrics(Account account, Stage stage, List<StageExecutionOutcome> stageOutcomes) {
-        stageOutcomes.stream()
-                .flatMap(stageOutcome -> stageOutcome.getGroups().stream())
-                .flatMap(groupOutcome -> groupOutcome.getHooks().stream())
-                .forEach(hookOutcome -> updateHookInvocationMetrics(account, stage, hookOutcome));
-    }
-
-    private void updateHookInvocationMetrics(Account account, Stage stage, HookExecutionOutcome hookOutcome) {
-        final HookId hookId = hookOutcome.getHookId();
-        final ExecutionStatus status = hookOutcome.getStatus();
-        final ExecutionAction action = hookOutcome.getAction();
-        final String moduleCode = hookId.getModuleCode();
-
-        metrics.updateHooksMetrics(
-                moduleCode,
-                stage,
-                hookId.getHookImplCode(),
-                status,
-                hookOutcome.getExecutionTime(),
-                action);
-
-        // account might be null if request is rejected by the entrypoint hook
-        if (account != null) {
-            metrics.updateAccountHooksMetrics(account, moduleCode, status, action);
-        }
     }
 }

@@ -385,6 +385,7 @@ public class Ortb2RequestFactory {
         }
 
         return HttpRequestContext.builder()
+                .httpMethod(routingContext.request().method())
                 .absoluteUri(routingContext.request().absoluteURI())
                 .queryParams(stageResult.getPayload().queryParams())
                 .headers(stageResult.getPayload().headers())

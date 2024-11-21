@@ -22,8 +22,12 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.analytics.model.AmpEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.AmpResponsePostProcessor;
+import org.prebid.server.auction.AnalyticsTagsEnricher;
 import org.prebid.server.auction.ExchangeService;
+import org.prebid.server.auction.HookDebugInfoEnricher;
+import org.prebid.server.auction.HooksMetricsService;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.RawAuctionResponse;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.auction.requestfactory.AmpRequestFactory;
 import org.prebid.server.bidder.BidderCatalog;
@@ -34,6 +38,8 @@ import org.prebid.server.exception.InvalidAccountConfigException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.exception.UnauthorizedAccountException;
+import org.prebid.server.hooks.execution.HookStageExecutor;
+import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.HttpInteractionLogger;
@@ -81,25 +87,27 @@ public class AmpHandler implements ApplicationResource {
     private final ExchangeService exchangeService;
     private final AnalyticsReporterDelegator analyticsDelegator;
     private final Metrics metrics;
+    private final HooksMetricsService hooksMetricsService;
     private final Clock clock;
     private final BidderCatalog bidderCatalog;
     private final Set<String> biddersSupportingCustomTargeting;
     private final AmpResponsePostProcessor ampResponsePostProcessor;
     private final HttpInteractionLogger httpInteractionLogger;
     private final PrebidVersionProvider prebidVersionProvider;
+    private final HookStageExecutor hookStageExecutor;
     private final JacksonMapper mapper;
     private final double logSamplingRate;
 
     public AmpHandler(AmpRequestFactory ampRequestFactory,
                       ExchangeService exchangeService,
                       AnalyticsReporterDelegator analyticsDelegator,
-                      Metrics metrics,
+                      Metrics metrics, HooksMetricsService hooksMetricsService,
                       Clock clock,
                       BidderCatalog bidderCatalog,
                       Set<String> biddersSupportingCustomTargeting,
                       AmpResponsePostProcessor ampResponsePostProcessor,
                       HttpInteractionLogger httpInteractionLogger,
-                      PrebidVersionProvider prebidVersionProvider,
+                      PrebidVersionProvider prebidVersionProvider, HookStageExecutor hookStageExecutor,
                       JacksonMapper mapper,
                       double logSamplingRate) {
 
@@ -107,12 +115,14 @@ public class AmpHandler implements ApplicationResource {
         this.exchangeService = Objects.requireNonNull(exchangeService);
         this.analyticsDelegator = Objects.requireNonNull(analyticsDelegator);
         this.metrics = Objects.requireNonNull(metrics);
+        this.hooksMetricsService = Objects.requireNonNull(hooksMetricsService);
         this.clock = Objects.requireNonNull(clock);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.biddersSupportingCustomTargeting = Objects.requireNonNull(biddersSupportingCustomTargeting);
         this.ampResponsePostProcessor = Objects.requireNonNull(ampResponsePostProcessor);
         this.httpInteractionLogger = Objects.requireNonNull(httpInteractionLogger);
         this.prebidVersionProvider = Objects.requireNonNull(prebidVersionProvider);
+        this.hookStageExecutor = Objects.requireNonNull(hookStageExecutor);
         this.mapper = Objects.requireNonNull(mapper);
         this.logSamplingRate = logSamplingRate;
     }
@@ -134,15 +144,14 @@ public class AmpHandler implements ApplicationResource {
                 .httpContext(HttpRequestContext.from(routingContext));
 
         ampRequestFactory.fromRequest(routingContext, startTime)
-
                 .map(context -> addToEvent(context, ampEventBuilder::auctionContext, context))
                 .map(this::updateAppAndNoCookieAndImpsMetrics)
-
                 .compose(exchangeService::holdAuction)
-                .map(context -> addToEvent(context, ampEventBuilder::auctionContext, context))
                 .map(context -> addToEvent(context.getBidResponse(), ampEventBuilder::bidResponse, context))
-                .compose(context -> prepareAmpResponse(context, routingContext))
-                .map(result -> addToEvent(result.getLeft().getTargeting(), ampEventBuilder::targeting, result))
+                .compose(context -> prepareSuccessfulResponse(context, routingContext, ampEventBuilder))
+                .compose(this::invokeExitpointHooks)
+                .map(hooksMetricsService::updateHooksMetrics)
+                .map(context -> addToEvent(context, ampEventBuilder::auctionContext, context))
                 .onComplete(responseResult -> handleResult(responseResult, ampEventBuilder, routingContext, startTime));
     }
 
@@ -166,8 +175,41 @@ public class AmpHandler implements ApplicationResource {
         return context;
     }
 
+    private Future<AuctionContext> prepareSuccessfulResponse(AuctionContext auctionContext,
+                                                             RoutingContext routingContext,
+                                                             AmpEvent.AmpEventBuilder ampEventBuilder) {
+
+        final String origin = originFrom(routingContext);
+        MultiMap responseHeaders = getCommonResponseHeaders(routingContext, origin)
+                .add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
+
+        return prepareAmpResponse(auctionContext, routingContext)
+                .map(result -> addToEvent(result.getLeft().getTargeting(), ampEventBuilder::targeting, result))
+                .map(result -> {
+                    final RawAuctionResponse rawAuctionResponse = RawAuctionResponse.builder()
+                            .responseBody(mapper.encodeToString(result.getLeft()))
+                            .responseHeaders(responseHeaders)
+                            .build();
+                    return result.getRight().with(rawAuctionResponse);
+                });
+    }
+
+    private Future<AuctionContext> invokeExitpointHooks(AuctionContext auctionContext) {
+        final RawAuctionResponse rawAuctionResponse = auctionContext.getRawAuctionResponse();
+        return hookStageExecutor.executeExitpointStage(
+                        rawAuctionResponse.getResponseHeaders(),
+                        rawAuctionResponse.getResponseBody(),
+                        auctionContext)
+                .map(HookStageExecutionResult::getPayload)
+                .map(rawAuctionResponse::of)
+                .map(auctionContext::with)
+                .map(AnalyticsTagsEnricher::enrichWithAnalyticsTags)
+                .map(HookDebugInfoEnricher::enrichWithHooksDebugInfo);
+    }
+
     private Future<Tuple2<AmpResponse, AuctionContext>> prepareAmpResponse(AuctionContext context,
                                                                            RoutingContext routingContext) {
+
         final BidRequest bidRequest = context.getBidRequest();
         final BidResponse bidResponse = context.getBidResponse();
         final AmpResponse ampResponse = toAmpResponse(bidResponse);
@@ -271,12 +313,13 @@ public class AmpHandler implements ApplicationResource {
                 : null;
     }
 
-    private void handleResult(AsyncResult<Tuple2<AmpResponse, AuctionContext>> responseResult,
+    private void handleResult(AsyncResult<AuctionContext> responseResult,
                               AmpEvent.AmpEventBuilder ampEventBuilder,
                               RoutingContext routingContext,
                               long startTime) {
 
         final boolean responseSucceeded = responseResult.succeeded();
+        final AuctionContext auctionContext = responseSucceeded ? responseResult.result() : null;
 
         final MetricName metricRequestStatus;
         final List<String> errorMessages;
@@ -287,15 +330,18 @@ public class AmpHandler implements ApplicationResource {
         ampEventBuilder.origin(origin);
 
         final HttpServerResponse response = routingContext.response();
-        enrichResponseWithCommonHeaders(routingContext, origin);
+        final MultiMap responseHeaders = response.headers();
 
         if (responseSucceeded) {
             metricRequestStatus = MetricName.ok;
             errorMessages = Collections.emptyList();
-
             status = HttpResponseStatus.OK;
-            enrichWithSuccessfulHeaders(response);
-            body = mapper.encodeToString(responseResult.result().getLeft());
+
+            final RawAuctionResponse rawAuctionResponse = auctionContext.getRawAuctionResponse();
+            rawAuctionResponse.getResponseHeaders()
+                    .forEach(header -> HttpUtil.addHeaderIfValueIsNotEmpty(
+                            responseHeaders, header.getKey(), header.getValue()));
+            body = rawAuctionResponse.getResponseBody();
         } else {
             final Throwable exception = responseResult.cause();
             if (exception instanceof InvalidRequestException invalidRequestException) {
@@ -351,12 +397,14 @@ public class AmpHandler implements ApplicationResource {
                 status = HttpResponseStatus.INTERNAL_SERVER_ERROR;
                 body = "Critical error while running the auction: " + message;
             }
+
+            getCommonResponseHeaders(routingContext, origin)
+                    .forEach(header -> HttpUtil.addHeaderIfValueIsNotEmpty(
+                            responseHeaders, header.getKey(), header.getValue()));
         }
 
         final int statusCode = status.code();
         final AmpEvent ampEvent = ampEventBuilder.status(statusCode).errors(errorMessages).build();
-
-        final AuctionContext auctionContext = responseSucceeded ? responseResult.result().getRight() : null;
 
         final PrivacyContext privacyContext = auctionContext != null ? auctionContext.getPrivacyContext() : null;
         final TcfContext tcfContext = privacyContext != null ? privacyContext.getTcfContext() : TcfContext.empty();
@@ -406,8 +454,8 @@ public class AmpHandler implements ApplicationResource {
         metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, MetricName.networkerr);
     }
 
-    private void enrichResponseWithCommonHeaders(RoutingContext routingContext, String origin) {
-        final MultiMap responseHeaders = routingContext.response().headers();
+    private MultiMap getCommonResponseHeaders(RoutingContext routingContext, String origin) {
+        MultiMap responseHeaders = MultiMap.caseInsensitiveMultiMap();
         HttpUtil.addHeaderIfValueIsNotEmpty(
                 responseHeaders, HttpUtil.X_PREBID_HEADER, prebidVersionProvider.getNameVersionRecord());
 
@@ -419,10 +467,7 @@ public class AmpHandler implements ApplicationResource {
         // Add AMP headers
         responseHeaders.add("AMP-Access-Control-Allow-Source-Origin", origin)
                 .add("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin");
-    }
 
-    private void enrichWithSuccessfulHeaders(HttpServerResponse response) {
-        final MultiMap headers = response.headers();
-        headers.add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
+        return responseHeaders;
     }
 }

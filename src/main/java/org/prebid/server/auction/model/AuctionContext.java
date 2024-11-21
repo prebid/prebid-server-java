@@ -77,6 +77,9 @@ public class AuctionContext {
     @Builder.Default
     BidAdjustments bidAdjustments = BidAdjustments.of(Collections.emptyMap());
 
+    @JsonIgnore
+    RawAuctionResponse rawAuctionResponse;
+
     public AuctionContext with(Account account) {
         return this.toBuilder().account(account).build();
     }
@@ -135,6 +138,11 @@ public class AuctionContext {
                 .bidAdjustments(bidAdjustments)
                 .build();
     }
+
+    public AuctionContext with(RawAuctionResponse rawAuctionResponse) {
+        return this.toBuilder().rawAuctionResponse(rawAuctionResponse).build();
+    }
+
 
     public AuctionContext withRequestRejected() {
         return this.toBuilder()

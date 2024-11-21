@@ -3,7 +3,9 @@ package org.prebid.server.hooks.execution;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.BidResponse;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Future;
+import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -31,6 +33,7 @@ import org.prebid.server.hooks.execution.v1.bidder.BidderInvocationContextImpl;
 import org.prebid.server.hooks.execution.v1.bidder.BidderRequestPayloadImpl;
 import org.prebid.server.hooks.execution.v1.bidder.BidderResponsePayloadImpl;
 import org.prebid.server.hooks.execution.v1.entrypoint.EntrypointPayloadImpl;
+import org.prebid.server.hooks.execution.v1.exitpoint.ExitpointPayloadImpl;
 import org.prebid.server.hooks.v1.Hook;
 import org.prebid.server.hooks.v1.InvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
@@ -41,10 +44,13 @@ import org.prebid.server.hooks.v1.bidder.BidderInvocationContext;
 import org.prebid.server.hooks.v1.bidder.BidderRequestPayload;
 import org.prebid.server.hooks.v1.bidder.BidderResponsePayload;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointPayload;
+import org.prebid.server.hooks.v1.exit.ExitpointPayload;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.Endpoint;
+import org.prebid.server.proto.response.AmpResponse;
+import org.prebid.server.proto.response.VideoResponse;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountHooksConfiguration;
 
@@ -59,6 +65,7 @@ import java.util.stream.Stream;
 public class HookStageExecutor {
 
     private static final String ENTITY_HTTP_REQUEST = "http-request";
+    private static final String ENTITY_HTTP_RESPONSE = "http-response";
     private static final String ENTITY_AUCTION_REQUEST = "auction-request";
     private static final String ENTITY_AUCTION_RESPONSE = "auction-response";
     private static final String ENTITY_ALL_PROCESSED_BID_RESPONSES = "all-processed-bid-responses";
@@ -249,6 +256,22 @@ public class HookStageExecutor {
 
         return stageExecutor(StageWithHookType.AUCTION_RESPONSE, ENTITY_AUCTION_RESPONSE, context, account, endpoint)
                 .withInitialPayload(AuctionResponsePayloadImpl.of(bidResponse))
+                .withInvocationContextProvider(auctionInvocationContextProvider(endpoint, auctionContext))
+                .withRejectAllowed(false)
+                .execute();
+    }
+
+    public Future<HookStageExecutionResult<ExitpointPayload>> executeExitpointStage(MultiMap responseHeaders,
+                                                                                    String responseBody,
+                                                                                    AuctionContext auctionContext) {
+
+        final Account account = ObjectUtils.defaultIfNull(auctionContext.getAccount(), EMPTY_ACCOUNT);
+        final HookExecutionContext context = auctionContext.getHookExecutionContext();
+
+        final Endpoint endpoint = context.getEndpoint();
+
+        return stageExecutor(StageWithHookType.EXITPOINT, ENTITY_HTTP_RESPONSE, context, account, endpoint)
+                .withInitialPayload(ExitpointPayloadImpl.of(responseHeaders, responseBody))
                 .withInvocationContextProvider(auctionInvocationContextProvider(endpoint, auctionContext))
                 .withRejectAllowed(false)
                 .execute();

@@ -10,6 +10,7 @@ import org.prebid.server.hooks.v1.bidder.BidderRequestHook;
 import org.prebid.server.hooks.v1.bidder.ProcessedBidderResponseHook;
 import org.prebid.server.hooks.v1.bidder.RawBidderResponseHook;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointHook;
+import org.prebid.server.hooks.v1.exit.ExitpointHook;
 
 public interface StageWithHookType<TYPE extends Hook<?, ? extends InvocationContext>> {
 
@@ -29,6 +30,8 @@ public interface StageWithHookType<TYPE extends Hook<?, ? extends InvocationCont
             new StageWithHookTypeImpl<>(Stage.all_processed_bid_responses, AllProcessedBidResponsesHook.class);
     StageWithHookType<AuctionResponseHook> AUCTION_RESPONSE =
             new StageWithHookTypeImpl<>(Stage.auction_response, AuctionResponseHook.class);
+    StageWithHookType<ExitpointHook> EXITPOINT =
+            new StageWithHookTypeImpl<>(Stage.exitpoint, ExitpointHook.class);
 
     Stage stage();
 
@@ -44,6 +47,7 @@ public interface StageWithHookType<TYPE extends Hook<?, ? extends InvocationCont
             case all_processed_bid_responses -> ALL_PROCESSED_BID_RESPONSES;
             case processed_bidder_response -> PROCESSED_BIDDER_RESPONSE;
             case auction_response -> AUCTION_RESPONSE;
+            case exitpoint -> EXITPOINT;
         };
     }
 }
