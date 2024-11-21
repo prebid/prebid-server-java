@@ -70,7 +70,7 @@ public class HooksConfiguration {
         return modules.stream()
                 .map(Module::code)
                 .filter(code -> hooksPropertiesKeys.stream()
-                        .anyMatch(key -> key.startsWith("hooks.%s.config".formatted(code))))
+                        .anyMatch(key -> key.startsWith("hooks.%s".formatted(code))))
                 .collect(Collectors.toSet());
     }
 
