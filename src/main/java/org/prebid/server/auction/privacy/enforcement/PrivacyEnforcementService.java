@@ -5,58 +5,41 @@ import io.vertx.core.Future;
 import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderPrivacyResult;
-import org.prebid.server.util.ListUtil;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 
 /**
  * Service provides masking for OpenRTB client sensitive information.
  */
 public class PrivacyEnforcementService {
 
-    private final CoppaEnforcement coppaEnforcement;
-    private final CcpaEnforcement ccpaEnforcement;
-    private final TcfEnforcement tcfEnforcement;
-    private final ActivityEnforcement activityEnforcement;
+    private final List<PrivacyEnforcement> enforcements;
 
-    public PrivacyEnforcementService(CoppaEnforcement coppaEnforcement,
-                                     CcpaEnforcement ccpaEnforcement,
-                                     TcfEnforcement tcfEnforcement,
-                                     ActivityEnforcement activityEnforcement) {
-
-        this.coppaEnforcement = Objects.requireNonNull(coppaEnforcement);
-        this.ccpaEnforcement = Objects.requireNonNull(ccpaEnforcement);
-        this.tcfEnforcement = Objects.requireNonNull(tcfEnforcement);
-        this.activityEnforcement = Objects.requireNonNull(activityEnforcement);
+    public PrivacyEnforcementService(final List<PrivacyEnforcement> enforcements) {
+        this.enforcements = Objects.requireNonNull(enforcements);
     }
 
     public Future<List<BidderPrivacyResult>> mask(AuctionContext auctionContext,
                                                   Map<String, User> bidderToUser,
                                                   BidderAliases aliases) {
 
-        // For now, COPPA masking all values, so we can omit TCF masking.
-        return coppaEnforcement.isApplicable(auctionContext)
-                ? coppaEnforcement.enforce(auctionContext, bidderToUser)
-                : ccpaEnforcement.enforce(auctionContext, bidderToUser, aliases)
-                .compose(ccpaResult -> tcfEnforcement.enforce(
-                                auctionContext,
-                                bidderToUser,
-                                biddersToApplyTcf(bidderToUser.keySet(), ccpaResult),
-                                aliases)
-                        .map(tcfResult -> ListUtil.union(ccpaResult, tcfResult)))
-                .compose(bidderPrivacyResults -> activityEnforcement.enforce(bidderPrivacyResults, auctionContext));
-    }
+        final List<BidderPrivacyResult> initialResults = bidderToUser.entrySet().stream()
+                .map(entry -> BidderPrivacyResult.builder()
+                        .requestBidder(entry.getKey())
+                        .user(entry.getValue())
+                        .device(auctionContext.getBidRequest().getDevice())
+                        .build())
+                .toList();
 
-    private static Set<String> biddersToApplyTcf(Set<String> bidders, List<BidderPrivacyResult> ccpaResult) {
-        final Set<String> biddersToApplyTcf = new HashSet<>(bidders);
-        ccpaResult.stream()
-                .map(BidderPrivacyResult::getRequestBidder)
-                .forEach(biddersToApplyTcf::remove);
+        Future<List<BidderPrivacyResult>> composedResult = Future.succeededFuture(initialResults);
 
-        return biddersToApplyTcf;
+        for (PrivacyEnforcement enforcement : enforcements) {
+            composedResult = composedResult.compose(
+                    results -> enforcement.enforce(auctionContext, aliases, results));
+        }
+
+        return composedResult;
     }
 }

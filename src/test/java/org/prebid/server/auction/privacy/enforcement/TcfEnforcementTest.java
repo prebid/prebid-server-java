@@ -119,20 +119,20 @@ public class TcfEnforcementTest {
                 "bidder6", givenEnforcementAction(PrivacyEnforcementAction::setMaskDeviceInfo),
                 "bidder7", givenEnforcementAction(PrivacyEnforcementAction::setRemoveUserFpd)));
 
-        final AuctionContext auctionContext = givenAuctionContext(givenDeviceWithPrivacyData());
-        final Map<String, User> bidderToUser = Map.of(
-                "bidder0", givenUserWithPrivacyData(),
-                "bidder1Alias", givenUserWithPrivacyData(),
-                "bidder2", givenUserWithPrivacyData(),
-                "bidder3", givenUserWithPrivacyData(),
-                "bidder4", givenUserWithPrivacyData(),
-                "bidder5", givenUserWithPrivacyData(),
-                "bidder6", givenUserWithPrivacyData(),
-                "bidder7", givenUserWithPrivacyData());
-        final Set<String> bidders = Set.of();
+        final Device device = givenDeviceWithPrivacyData();
+        final AuctionContext auctionContext = givenAuctionContext(device);
+        final List<BidderPrivacyResult> initialResults = List.of(
+                givenBidderPrivacyResult("bidder0", givenUserWithPrivacyData(), device),
+                givenBidderPrivacyResult("bidder1Alias", givenUserWithPrivacyData(), device),
+                givenBidderPrivacyResult("bidder2", givenUserWithPrivacyData(), device),
+                givenBidderPrivacyResult("bidder3", givenUserWithPrivacyData(), device),
+                givenBidderPrivacyResult("bidder4", givenUserWithPrivacyData(), device),
+                givenBidderPrivacyResult("bidder5", givenUserWithPrivacyData(), device),
+                givenBidderPrivacyResult("bidder6", givenUserWithPrivacyData(), device),
+                givenBidderPrivacyResult("bidder7", givenUserWithPrivacyData(), device));
 
         // when
-        target.enforce(auctionContext, bidderToUser, bidders, aliases);
+        target.enforce(auctionContext, aliases, initialResults);
 
         // then
         verifyMetric("bidder0", false, false, false, false, false, true);
@@ -155,14 +155,13 @@ public class TcfEnforcementTest {
                 "bidder2", givenEnforcementAction(PrivacyEnforcementAction::setRemoveUserFpd)));
 
         final AuctionContext auctionContext = givenAuctionContext(givenDeviceWithNoPrivacyData());
-        final Map<String, User> bidderToUser = Map.of(
-                "bidder0", givenUserWithPrivacyData(),
-                "bidder1", givenUserWithPrivacyData(),
-                "bidder2", givenUserWithPrivacyData());
-        final Set<String> bidders = Set.of();
+        final List<BidderPrivacyResult> initialResults = List.of(
+                givenBidderPrivacyResult("bidder0", givenUserWithPrivacyData(), givenDeviceWithNoPrivacyData()),
+                givenBidderPrivacyResult("bidder1", givenUserWithPrivacyData(), givenDeviceWithNoPrivacyData()),
+                givenBidderPrivacyResult("bidder2", givenUserWithPrivacyData(), givenDeviceWithNoPrivacyData()));
 
         // when
-        target.enforce(auctionContext, bidderToUser, bidders, aliases);
+        target.enforce(auctionContext, aliases, initialResults);
 
         // then
         verifyMetric("bidder0", false, false, true, false, false, false);
@@ -179,17 +178,17 @@ public class TcfEnforcementTest {
                 "bidder2", givenEnforcementAction(PrivacyEnforcementAction::setMaskDeviceInfo),
                 "bidder3", givenEnforcementAction(PrivacyEnforcementAction::setRemoveUserFpd)));
 
-        final AuctionContext auctionContext = givenAuctionContext(givenDeviceWithPrivacyData());
-        final Map<String, User> bidderToUser = Map.of(
-                "bidder0", givenUserWithNoPrivacyData(),
-                "bidder1", givenUserWithNoPrivacyData(),
-                "bidder2", givenUserWithNoPrivacyData(),
-                "bidder3", givenUserWithNoPrivacyData(),
-                "bidder4", givenUserWithNoPrivacyData());
-        final Set<String> bidders = Set.of();
+        final Device device = givenDeviceWithPrivacyData();
+        final AuctionContext auctionContext = givenAuctionContext(device);
+        final List<BidderPrivacyResult> initialResults = List.of(
+                givenBidderPrivacyResult("bidder0", givenUserWithNoPrivacyData(), device),
+                givenBidderPrivacyResult("bidder1", givenUserWithNoPrivacyData(), device),
+                givenBidderPrivacyResult("bidder2", givenUserWithNoPrivacyData(), device),
+                givenBidderPrivacyResult("bidder3", givenUserWithNoPrivacyData(), device),
+                givenBidderPrivacyResult("bidder4", givenUserWithNoPrivacyData(), device));
 
         // when
-        target.enforce(auctionContext, bidderToUser, bidders, aliases);
+        target.enforce(auctionContext, aliases, initialResults);
 
         // then
         verifyMetric("bidder0", false, false, true, false, false, true);
@@ -207,14 +206,14 @@ public class TcfEnforcementTest {
                         PrivacyEnforcementAction::setRemoveUserFpd,
                         PrivacyEnforcementAction::setMaskDeviceInfo)));
 
-        final AuctionContext auctionContext = givenAuctionContext(givenDeviceWithNoPrivacyData());
-        final Map<String, User> bidderToUser = Map.of(
-                "bidder0", givenUserWithNoPrivacyData(),
-                "bidder1", givenUserWithNoPrivacyData());
-        final Set<String> bidders = Set.of();
+        final Device device = givenDeviceWithNoPrivacyData();
+        final AuctionContext auctionContext = givenAuctionContext(device);
+        final List<BidderPrivacyResult> initialResults = List.of(
+                givenBidderPrivacyResult("bidder0", givenUserWithNoPrivacyData(), device),
+                givenBidderPrivacyResult("bidder1", givenUserWithNoPrivacyData(), device));
 
         // when
-        target.enforce(auctionContext, bidderToUser, bidders, aliases);
+        target.enforce(auctionContext, aliases, initialResults);
 
         // then
         verifyMetric("bidder0", false, false, false, false, false, false);
@@ -226,12 +225,13 @@ public class TcfEnforcementTest {
         // give
         givenPrivacyEnforcementActions(Map.of("bidder", givenEnforcementAction()));
 
-        final AuctionContext auctionContext = givenAuctionContext(givenDeviceWithPrivacyData());
-        final Map<String, User> bidderToUser = Map.of("bidder", givenUserWithPrivacyData());
-        final Set<String> bidders = Set.of();
+        final Device device = givenDeviceWithPrivacyData();
+        final AuctionContext auctionContext = givenAuctionContext(device);
+        final List<BidderPrivacyResult> initialResults = List.of(
+                givenBidderPrivacyResult("bidder", givenUserWithPrivacyData(), device));
 
         // when
-        target.enforce(auctionContext, bidderToUser, bidders, aliases);
+        target.enforce(auctionContext, aliases, initialResults);
 
         // then
         verifyMetric("bidder", false, false, false, false, false, true);
@@ -242,12 +242,13 @@ public class TcfEnforcementTest {
         // give
         givenPrivacyEnforcementActions(Map.of("bidder", givenEnforcementAction()));
 
-        final AuctionContext auctionContext = givenAuctionContext(givenDeviceWithNoPrivacyData());
-        final Map<String, User> bidderToUser = Map.of("bidder", givenUserWithPrivacyData());
-        final Set<String> bidders = Set.of();
+        final Device device = givenDeviceWithNoPrivacyData();
+        final AuctionContext auctionContext = givenAuctionContext(device);
+        final List<BidderPrivacyResult> initialResults = List.of(
+                givenBidderPrivacyResult("bidder", givenUserWithPrivacyData(), device));
 
         // when
-        target.enforce(auctionContext, bidderToUser, bidders, aliases);
+        target.enforce(auctionContext, aliases, initialResults);
 
         // then
         verifyMetric("bidder", false, false, false, false, false, false);
@@ -259,14 +260,15 @@ public class TcfEnforcementTest {
         // give
         givenPrivacyEnforcementActions(Map.of("bidder", givenEnforcementAction()));
 
-        final AuctionContext auctionContext = givenAuctionContext(givenDeviceWithPrivacyData());
-        final Map<String, User> bidderToUser = Map.of("bidder", givenUserWithPrivacyData());
-        final Set<String> bidders = Set.of();
+        final Device device = givenDeviceWithPrivacyData();
+        final AuctionContext auctionContext = givenAuctionContext(device);
+        final List<BidderPrivacyResult> initialResults = List.of(
+                givenBidderPrivacyResult("bidder", givenUserWithPrivacyData(), device));
 
         target = new TcfEnforcement(tcfDefinerService, userFpdTcfMask, bidderCatalog, metrics, false);
 
         // when
-        target.enforce(auctionContext, bidderToUser, bidders, aliases);
+        target.enforce(auctionContext, aliases, initialResults);
 
         // then
         verifyMetric("bidder", false, false, false, false, false, false);
@@ -297,15 +299,15 @@ public class TcfEnforcementTest {
                         PrivacyEnforcementAction::setBlockAnalyticsReport),
                 "bidder2", givenEnforcementAction()));
 
-        final AuctionContext context = givenAuctionContext(givenDeviceWithNoPrivacyData());
-        final Map<String, User> bidderToUser = Map.of(
-                "bidder0", givenUserWithPrivacyData(),
-                "bidder1", givenUserWithPrivacyData(),
-                "bidder2", givenUserWithPrivacyData());
-        final Set<String> bidders = Set.of("bidder0", "bidder1", "bidder2");
+        final Device device = givenDeviceWithNoPrivacyData();
+        final AuctionContext context = givenAuctionContext(device);
+        final List<BidderPrivacyResult> initialResults = List.of(
+                givenBidderPrivacyResult("bidder0", givenUserWithPrivacyData(), device),
+                givenBidderPrivacyResult("bidder1", givenUserWithPrivacyData(), device),
+                givenBidderPrivacyResult("bidder2", givenUserWithPrivacyData(), device));
 
         // when
-        final List<BidderPrivacyResult> result = target.enforce(context, bidderToUser, bidders, aliases).result();
+        final List<BidderPrivacyResult> result = target.enforce(context, aliases, initialResults).result();
 
         // then
         assertThat(result).containsExactlyInAnyOrder(
@@ -343,12 +345,13 @@ public class TcfEnforcementTest {
 
         givenPrivacyEnforcementActions(Map.of("bidder", givenEnforcementAction()));
 
-        final AuctionContext context = givenAuctionContext(givenDeviceWithPrivacyData());
-        final Map<String, User> bidderToUser = Map.of("bidder", givenUserWithPrivacyData());
-        final Set<String> bidders = Set.of("bidder");
+        final Device device = givenDeviceWithPrivacyData();
+        final AuctionContext context = givenAuctionContext(device);
+        final List<BidderPrivacyResult> initialResults = List.of(
+                givenBidderPrivacyResult("bidder", givenUserWithPrivacyData(), device));
 
         // when
-        final List<BidderPrivacyResult> result = target.enforce(context, bidderToUser, bidders, aliases).result();
+        final List<BidderPrivacyResult> result = target.enforce(context, aliases, initialResults).result();
 
         // then
         assertThat(result).containsExactly(
@@ -376,6 +379,10 @@ public class TcfEnforcementTest {
                         .build())
                 .privacyContext(PrivacyContext.of(null, TcfContext.empty(), null))
                 .build();
+    }
+
+    private static BidderPrivacyResult givenBidderPrivacyResult(String bidder, User user, Device device) {
+        return BidderPrivacyResult.builder().requestBidder(bidder).user(user).device(device).build();
     }
 
     private static Device givenDeviceWithPrivacyData() {

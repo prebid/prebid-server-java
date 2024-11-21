@@ -26,12 +26,15 @@ import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.util.ObjectUtil;
 
+import java.util.AbstractMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-public class TcfEnforcement {
+public class TcfEnforcement implements PrivacyEnforcement {
 
     private static final Logger logger = LoggerFactory.getLogger(TcfEnforcement.class);
 
@@ -60,14 +63,19 @@ public class TcfEnforcement {
     }
 
     public Future<List<BidderPrivacyResult>> enforce(AuctionContext auctionContext,
-                                                     Map<String, User> bidderToUser,
-                                                     Set<String> bidders,
-                                                     BidderAliases aliases) {
+                                                     BidderAliases aliases,
+                                                     List<BidderPrivacyResult> results) {
 
         final Device device = auctionContext.getBidRequest().getDevice();
         final AccountGdprConfig accountGdprConfig = accountGdprConfig(auctionContext.getAccount());
         final MetricName requestType = auctionContext.getRequestTypeMetric();
         final ActivityInfrastructure activityInfrastructure = auctionContext.getActivityInfrastructure();
+        final Set<String> bidders = results.stream()
+                .map(BidderPrivacyResult::getRequestBidder)
+                .collect(Collectors.toSet());
+        final Map<String, User> bidderToUser = results.stream()
+                .map(result -> new AbstractMap.SimpleEntry<>(result.getRequestBidder(), result.getUser()))
+                .collect(HashMap::new, (map, entry) -> map.put(entry.getKey(), entry.getValue()), HashMap::putAll);
 
         return tcfDefinerService.resultForBidderNames(
                         bidders,
