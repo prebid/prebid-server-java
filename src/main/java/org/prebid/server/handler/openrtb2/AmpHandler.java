@@ -180,7 +180,7 @@ public class AmpHandler implements ApplicationResource {
                                                              AmpEvent.AmpEventBuilder ampEventBuilder) {
 
         final String origin = originFrom(routingContext);
-        MultiMap responseHeaders = getCommonResponseHeaders(routingContext, origin)
+        final MultiMap responseHeaders = getCommonResponseHeaders(routingContext, origin)
                 .add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
 
         return prepareAmpResponse(auctionContext, routingContext)
@@ -455,7 +455,7 @@ public class AmpHandler implements ApplicationResource {
     }
 
     private MultiMap getCommonResponseHeaders(RoutingContext routingContext, String origin) {
-        MultiMap responseHeaders = MultiMap.caseInsensitiveMultiMap();
+        final MultiMap responseHeaders = MultiMap.caseInsensitiveMultiMap();
         HttpUtil.addHeaderIfValueIsNotEmpty(
                 responseHeaders, HttpUtil.X_PREBID_HEADER, prebidVersionProvider.getNameVersionRecord());
 

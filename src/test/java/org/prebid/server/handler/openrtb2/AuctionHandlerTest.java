@@ -1,13 +1,10 @@
 package org.prebid.server.handler.openrtb2;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
@@ -22,7 +19,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
-import org.prebid.server.analytics.model.AmpEvent;
 import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.ExchangeService;
@@ -61,7 +57,6 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
@@ -71,7 +66,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 import org.prebid.server.proto.openrtb.ext.response.ExtAnalytics;
 import org.prebid.server.proto.openrtb.ext.response.ExtAnalyticsTags;
-import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponsePrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTrace;
@@ -101,7 +95,6 @@ import java.util.function.UnaryOperator;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
-import static java.util.Collections.singletonMap;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
@@ -166,7 +159,8 @@ public class AuctionHandlerTest extends VertxTest {
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
         given(httpResponse.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
 
-        given(skippedAuctionService.skipAuction(any())).willReturn(Future.failedFuture("Auction cannot be skipped"));
+        given(skippedAuctionService.skipAuction(any()))
+                .willReturn(Future.failedFuture("Auction cannot be skipped"));
 
         given(clock.millis()).willReturn(Instant.now().toEpochMilli());
 
@@ -1041,7 +1035,9 @@ public class AuctionHandlerTest extends VertxTest {
                             singletonList(
                                     GroupExecutionOutcome.of(singletonList(
                                             HookExecutionOutcome.builder()
-                                                    .hookId(HookId.of("exitpoint-module", "exitpoint-hook"))
+                                                    .hookId(HookId.of(
+                                                            "exitpoint-module",
+                                                            "exitpoint-hook"))
                                                     .executionTime(4L)
                                                     .status(ExecutionStatus.success)
                                                     .message("exitpoint hook has been executed")
@@ -1070,6 +1066,14 @@ public class AuctionHandlerTest extends VertxTest {
         assertThat(bidResponseBeforeHook.getExt()).isNull();
 
         final BidResponse bidResponseAfterHook = auctionEvent.getAuctionContext().getBidResponse();
+        final ExtModulesTraceAnalyticsTags expectedAnalyticsTags = ExtModulesTraceAnalyticsTags.of(singletonList(
+                ExtModulesTraceAnalyticsActivity.of(
+                        "some-activity",
+                        "success",
+                        singletonList(ExtModulesTraceAnalyticsResult.of(
+                                "success",
+                                mapper.createObjectNode(),
+                                givenExtModulesTraceAnalyticsAppliedTo())))));
         assertThat(bidResponseAfterHook.getExt().getPrebid().getModules().getTrace()).isEqualTo(ExtModulesTrace.of(
                 8L,
                 List.of(
@@ -1109,19 +1113,14 @@ public class AuctionHandlerTest extends VertxTest {
                                                         4L,
                                                         singletonList(
                                                                 ExtModulesTraceInvocationResult.builder()
-                                                                        .hookId(HookId.of("exitpoint-module", "exitpoint-hook"))
+                                                                        .hookId(HookId.of(
+                                                                                "exitpoint-module",
+                                                                                "exitpoint-hook"))
                                                                         .executionTime(4L)
                                                                         .status(ExecutionStatus.success)
                                                                         .message("exitpoint hook has been executed")
                                                                         .action(ExecutionAction.update)
-                                                                        .analyticsTags(ExtModulesTraceAnalyticsTags.of(singletonList(
-                                                                                ExtModulesTraceAnalyticsActivity.of(
-                                                                                        "some-activity",
-                                                                                        "success",
-                                                                                        singletonList(ExtModulesTraceAnalyticsResult.of(
-                                                                                                "success",
-                                                                                                mapper.createObjectNode(),
-                                                                                                givenExtModulesTraceAnalyticsAppliedTo()))))))
+                                                                        .analyticsTags(expectedAnalyticsTags)
                                                                         .build())))))))));
     }
 
@@ -1155,7 +1154,9 @@ public class AuctionHandlerTest extends VertxTest {
                             singletonList(
                                     GroupExecutionOutcome.of(singletonList(
                                             HookExecutionOutcome.builder()
-                                                    .hookId(HookId.of("exitpoint-module", "exitpoint-hook"))
+                                                    .hookId(HookId.of(
+                                                            "exitpoint-module",
+                                                            "exitpoint-hook"))
                                                     .executionTime(4L)
                                                     .status(ExecutionStatus.success)
                                                     .message("exitpoint hook has been executed")

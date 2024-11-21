@@ -516,16 +516,15 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
     public void shouldFailWhenAdUnitsListIsEmpty() {
         // given
         final AuctionContext auctionContext = mock(AuctionContext.class);
-        final BidResponse bidResponse = mock(BidResponse.class);
         when(auctionContext.getBidRequest())
                 .thenReturn(BidRequest.builder()
                         .id("request1")
                         .ext(givenExtRequest())
                         .build());
+        when(auctionContext.getBidResponse()).thenReturn(BidResponse.builder().build());
 
         final AuctionEvent event = mock(AuctionEvent.class);
         when(event.getAuctionContext()).thenReturn(auctionContext);
-        when(event.getBidResponse()).thenReturn(bidResponse);
 
         // when
         final Future<Void> result = target.processEvent(event);

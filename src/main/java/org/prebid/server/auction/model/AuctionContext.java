@@ -143,7 +143,6 @@ public class AuctionContext {
         return this.toBuilder().rawAuctionResponse(rawAuctionResponse).build();
     }
 
-
     public AuctionContext withRequestRejected() {
         return this.toBuilder()
                 .requestRejected(true)

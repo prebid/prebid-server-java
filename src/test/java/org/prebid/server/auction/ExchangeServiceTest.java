@@ -188,7 +188,6 @@ import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mock.Strictness.LENIENT;
@@ -197,7 +196,6 @@ import static org.mockito.Mockito.anyList;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -3563,124 +3561,6 @@ public class ExchangeServiceTest extends VertxTest {
                 .asInstanceOf(InstanceOfAssertFactories.list(ExtBidderError.class))
                 .containsExactly(
                         ExtBidderError.of(999, "analytics.options.enableclientdetails not enabled for account"));
-    }
-
-    @Test
-    public void shouldIncrementHooksGlobalMetrics() {
-        // given
-        final AuctionContext auctionContext = AuctionContext.builder()
-                .hookExecutionContext(HookExecutionContext.of(
-                        Endpoint.openrtb2_auction,
-                        stageOutcomes(givenAppliedToImpl(identity()))))
-                .debugContext(DebugContext.empty())
-                .requestRejected(true)
-                .build();
-
-        // when
-        target.holdAuction(auctionContext);
-
-        // then
-        verify(metrics, times(6)).updateHooksMetrics(anyString(), any(), any(), any(), any(), any());
-        verify(metrics).updateHooksMetrics(
-                eq("module1"),
-                eq(Stage.entrypoint),
-                eq("hook1"),
-                eq(ExecutionStatus.success),
-                eq(4L),
-                eq(ExecutionAction.update));
-        verify(metrics).updateHooksMetrics(
-                eq("module1"),
-                eq(Stage.entrypoint),
-                eq("hook2"),
-                eq(ExecutionStatus.invocation_failure),
-                eq(6L),
-                isNull());
-        verify(metrics).updateHooksMetrics(
-                eq("module1"),
-                eq(Stage.entrypoint),
-                eq("hook2"),
-                eq(ExecutionStatus.success),
-                eq(4L),
-                eq(ExecutionAction.no_action));
-        verify(metrics).updateHooksMetrics(
-                eq("module2"),
-                eq(Stage.entrypoint),
-                eq("hook1"),
-                eq(ExecutionStatus.timeout),
-                eq(6L),
-                isNull());
-        verify(metrics).updateHooksMetrics(
-                eq("module3"),
-                eq(Stage.auction_response),
-                eq("hook1"),
-                eq(ExecutionStatus.success),
-                eq(4L),
-                eq(ExecutionAction.update));
-        verify(metrics).updateHooksMetrics(
-                eq("module3"),
-                eq(Stage.auction_response),
-                eq("hook2"),
-                eq(ExecutionStatus.success),
-                eq(4L),
-                eq(ExecutionAction.no_action));
-        verify(metrics, never()).updateAccountHooksMetrics(any(), any(), any(), any());
-        verify(metrics, never()).updateAccountModuleDurationMetric(any(), any(), any());
-    }
-
-    @Test
-    public void shouldIncrementHooksGlobalAndAccountMetrics() {
-        // given
-        given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), any(), anyBoolean()))
-                .willReturn(Future.succeededFuture(givenSeatBid(emptyList())));
-
-        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
-        final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
-                .hookExecutionContext(HookExecutionContext.of(
-                        Endpoint.openrtb2_auction,
-                        stageOutcomes(givenAppliedToImpl(identity()))))
-                .debugContext(DebugContext.empty())
-                .build();
-
-        // when
-        target.holdAuction(auctionContext);
-
-        // then
-        verify(metrics, times(6)).updateHooksMetrics(anyString(), any(), any(), any(), any(), any());
-        verify(metrics, times(6)).updateAccountHooksMetrics(any(), any(), any(), any());
-        verify(metrics).updateAccountHooksMetrics(
-                any(),
-                eq("module1"),
-                eq(ExecutionStatus.success),
-                eq(ExecutionAction.update));
-        verify(metrics).updateAccountHooksMetrics(
-                any(),
-                eq("module1"),
-                eq(ExecutionStatus.invocation_failure),
-                isNull());
-        verify(metrics).updateAccountHooksMetrics(
-                any(),
-                eq("module1"),
-                eq(ExecutionStatus.success),
-                eq(ExecutionAction.no_action));
-        verify(metrics).updateAccountHooksMetrics(
-                any(),
-                eq("module2"),
-                eq(ExecutionStatus.timeout),
-                isNull());
-        verify(metrics).updateAccountHooksMetrics(
-                any(),
-                eq("module3"),
-                eq(ExecutionStatus.success),
-                eq(ExecutionAction.update));
-        verify(metrics).updateAccountHooksMetrics(
-                any(),
-                eq("module3"),
-                eq(ExecutionStatus.success),
-                eq(ExecutionAction.no_action));
-        verify(metrics, times(3)).updateAccountModuleDurationMetric(any(), any(), any());
-        verify(metrics).updateAccountModuleDurationMetric(any(), eq("module1"), eq(14L));
-        verify(metrics).updateAccountModuleDurationMetric(any(), eq("module2"), eq(6L));
-        verify(metrics).updateAccountModuleDurationMetric(any(), eq("module3"), eq(8L));
     }
 
     @Test

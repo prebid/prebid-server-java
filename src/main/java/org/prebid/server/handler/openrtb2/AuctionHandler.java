@@ -158,7 +158,7 @@ public class AuctionHandler implements ApplicationResource {
     }
 
     private AuctionContext prepareSuccessfulResponse(AuctionContext auctionContext, RoutingContext routingContext) {
-        MultiMap responseHeaders = getCommonResponseHeaders(routingContext)
+        final MultiMap responseHeaders = getCommonResponseHeaders(routingContext)
                 .add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
 
         final RawAuctionResponse rawAuctionResponse = RawAuctionResponse.builder()
@@ -315,7 +315,7 @@ public class AuctionHandler implements ApplicationResource {
     }
 
     private MultiMap getCommonResponseHeaders(RoutingContext routingContext) {
-        MultiMap responseHeaders = MultiMap.caseInsensitiveMultiMap();
+        final MultiMap responseHeaders = MultiMap.caseInsensitiveMultiMap();
         HttpUtil.addHeaderIfValueIsNotEmpty(
                 responseHeaders, HttpUtil.X_PREBID_HEADER, prebidVersionProvider.getNameVersionRecord());
 

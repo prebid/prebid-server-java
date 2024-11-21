@@ -51,5 +51,4 @@ public class SampleItExitpointHook implements ExitpointHook {
         return "exitpoint";
     }
 
-
 }

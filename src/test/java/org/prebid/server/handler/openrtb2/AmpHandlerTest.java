@@ -1179,7 +1179,6 @@ public class AmpHandlerTest extends VertxTest {
                 ExtPrebid.of(ExtBidPrebid.builder().targeting(singletonMap("hb_cache_id_bidder1", "value1")).build(),
                         null))));
 
-
         // when
         target.handle(routingContext);
 
@@ -1189,6 +1188,14 @@ public class AmpHandlerTest extends VertxTest {
         assertThat(bidResponseBeforeHook.getExt()).isNull();
 
         final BidResponse bidResponseAfterHook = ampEvent.getAuctionContext().getBidResponse();
+        final ExtModulesTraceAnalyticsTags expectedAnalyticsTags = ExtModulesTraceAnalyticsTags.of(singletonList(
+                ExtModulesTraceAnalyticsActivity.of(
+                        "some-activity",
+                        "success",
+                        singletonList(ExtModulesTraceAnalyticsResult.of(
+                                "success",
+                                mapper.createObjectNode(),
+                                givenExtModulesTraceAnalyticsAppliedTo())))));
         assertThat(bidResponseAfterHook.getExt().getPrebid().getModules().getTrace()).isEqualTo(ExtModulesTrace.of(
                 8L,
                 List.of(
@@ -1228,19 +1235,14 @@ public class AmpHandlerTest extends VertxTest {
                                                         4L,
                                                         singletonList(
                                                                 ExtModulesTraceInvocationResult.builder()
-                                                                        .hookId(HookId.of("exitpoint-module", "exitpoint-hook"))
+                                                                        .hookId(HookId.of(
+                                                                                "exitpoint-module",
+                                                                                "exitpoint-hook"))
                                                                         .executionTime(4L)
                                                                         .status(ExecutionStatus.success)
                                                                         .message("exitpoint hook has been executed")
                                                                         .action(ExecutionAction.update)
-                                                                        .analyticsTags(ExtModulesTraceAnalyticsTags.of(singletonList(
-                                                                                ExtModulesTraceAnalyticsActivity.of(
-                                                                                        "some-activity",
-                                                                                        "success",
-                                                                                        singletonList(ExtModulesTraceAnalyticsResult.of(
-                                                                                                "success",
-                                                                                                mapper.createObjectNode(),
-                                                                                                givenExtModulesTraceAnalyticsAppliedTo()))))))
+                                                                        .analyticsTags(expectedAnalyticsTags)
                                                                         .build())))))))));
     }
 
@@ -1272,7 +1274,9 @@ public class AmpHandlerTest extends VertxTest {
                             singletonList(
                                     GroupExecutionOutcome.of(singletonList(
                                             HookExecutionOutcome.builder()
-                                                    .hookId(HookId.of("exitpoint-module", "exitpoint-hook"))
+                                                    .hookId(HookId.of(
+                                                            "exitpoint-module",
+                                                            "exitpoint-hook"))
                                                     .executionTime(4L)
                                                     .status(ExecutionStatus.success)
                                                     .message("exitpoint hook has been executed")
@@ -1293,7 +1297,6 @@ public class AmpHandlerTest extends VertxTest {
         givenHoldAuction(givenBidResponse(mapper.valueToTree(
                 ExtPrebid.of(ExtBidPrebid.builder().targeting(singletonMap("hb_cache_id_bidder1", "value1")).build(),
                         null))));
-
 
         // when
         target.handle(routingContext);

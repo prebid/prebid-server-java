@@ -125,7 +125,7 @@ public class VideoHandler implements ApplicationResource {
                 .map(hooksMetricsService::updateHooksMetrics)
                 // populate event with updated context
                 .map(context -> addToEvent(context, videoEventBuilder::auctionContext, context))
-                .onComplete(responseResult -> handleResult(responseResult, videoEventBuilder, routingContext, startTime));
+                .onComplete(result -> handleResult(result, videoEventBuilder, routingContext, startTime));
     }
 
     private AuctionContext prepareSuccessfulResponse(WithPodErrors<AuctionContext> context,
@@ -140,7 +140,7 @@ public class VideoHandler implements ApplicationResource {
 
         addToEvent(videoResponse, videoEventBuilder::bidResponse, videoResponse);
 
-        MultiMap responseHeaders = getCommonResponseHeaders(routingContext)
+        final MultiMap responseHeaders = getCommonResponseHeaders(routingContext)
                 .add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
 
         final RawAuctionResponse rawAuctionResponse = RawAuctionResponse.builder()
@@ -297,7 +297,7 @@ public class VideoHandler implements ApplicationResource {
     }
 
     private MultiMap getCommonResponseHeaders(RoutingContext routingContext) {
-        MultiMap responseHeaders = MultiMap.caseInsensitiveMultiMap();
+        final MultiMap responseHeaders = MultiMap.caseInsensitiveMultiMap();
         HttpUtil.addHeaderIfValueIsNotEmpty(
                 responseHeaders, HttpUtil.X_PREBID_HEADER, prebidVersionProvider.getNameVersionRecord());
 
