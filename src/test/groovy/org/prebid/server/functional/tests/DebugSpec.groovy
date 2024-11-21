@@ -48,11 +48,11 @@ class DebugSpec extends BaseSpec {
         then: "Response should contain ext.debug"
         assert response.ext?.debug
 
-        and: "Metrics should be increase"
+        and: "Debug metrics should be incremented"
         def metricsRequest = defaultPbsService.sendCollectedMetricsRequest()
         assert metricsRequest[DEBUG_REQUESTS_METRIC] == 1
 
-        and: "Account metrics shouldn't be populated"
+        and: "Account debug metrics shouldn't be incremented"
         assert !metricsRequest.keySet().contains(ACCOUNT_METRICS_PREFIX_NAME)
 
         where:
@@ -403,7 +403,7 @@ class DebugSpec extends BaseSpec {
         then: "Response should contain ext.debug"
         assert response.ext?.debug
 
-        and: "Metrics account should be incremented"
+        and: "Debug metrics should be incremented"
         def metricsRequest = defaultPbsService.sendCollectedMetricsRequest()
         assert metricsRequest[ACCOUNT_DEBUG_REQUESTS_METRIC.formatted(bidRequest.accountId)] == 1
         assert metricsRequest[DEBUG_REQUESTS_METRIC] == 1
@@ -429,11 +429,11 @@ class DebugSpec extends BaseSpec {
         then: "Response should contain ext.debug"
         assert response.ext?.debug
 
-        and: "Metrics shouldn't be incremented"
+        and: "Account debug metrics shouldn't be incremented"
         def metricsRequest = defaultPbsService.sendCollectedMetricsRequest()
         assert !metricsRequest[ACCOUNT_DEBUG_REQUESTS_METRIC.formatted(bidRequest.accountId)]
 
-        and: "Metrics should be incremented"
+        and: "Request debug metrics should be incremented"
         assert metricsRequest[DEBUG_REQUESTS_METRIC] == 1
 
         where:
@@ -467,7 +467,7 @@ class DebugSpec extends BaseSpec {
         then: "Response should contain ext.debug"
         assert response.ext?.debug
 
-        and: "Metrics account should be incremented"
+        and: "Debug metrics should be incremented"
         def metricsRequest = defaultPbsService.sendCollectedMetricsRequest()
         assert metricsRequest[ACCOUNT_DEBUG_REQUESTS_METRIC.formatted(ampRequest.account)] == 1
         assert metricsRequest[DEBUG_REQUESTS_METRIC] == 1
@@ -500,11 +500,11 @@ class DebugSpec extends BaseSpec {
         then: "Response should contain ext.debug"
         assert response.ext?.debug
 
-        and: "Metrics shouldn't be incremented"
+        and: "Account debug metrics shouldn't be incremented"
         def metricsRequest = defaultPbsService.sendCollectedMetricsRequest()
         assert !metricsRequest[ACCOUNT_DEBUG_REQUESTS_METRIC.formatted(ampRequest.account)]
 
-        and: "Metrics should be incremented"
+        and: "Debug metrics should be incremented"
         assert metricsRequest[DEBUG_REQUESTS_METRIC] == 1
 
         where:
