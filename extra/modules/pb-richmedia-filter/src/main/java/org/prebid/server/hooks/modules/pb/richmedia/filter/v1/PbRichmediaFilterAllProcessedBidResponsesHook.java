@@ -18,7 +18,7 @@ import org.prebid.server.hooks.modules.pb.richmedia.filter.v1.model.analytics.Re
 import org.prebid.server.hooks.modules.pb.richmedia.filter.v1.model.analytics.TagsImpl;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
-import org.prebid.server.hooks.v1.InvocationResultImpl;
+import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.v1.InvocationStatus;
 import org.prebid.server.hooks.v1.analytics.Result;
 import org.prebid.server.hooks.v1.analytics.Tags;

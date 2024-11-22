@@ -8,11 +8,12 @@ import io.vertx.core.Vertx;
 import org.prebid.server.hooks.execution.model.ExecutionGroup;
 import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.hooks.execution.model.HookId;
+import org.prebid.server.hooks.execution.provider.HookProvider;
+import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.v1.Hook;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationContext;
 import org.prebid.server.hooks.v1.InvocationResult;
-import org.prebid.server.hooks.v1.InvocationResultImpl;
 import org.prebid.server.hooks.v1.InvocationStatus;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.log.ConditionalLogger;
@@ -20,7 +21,6 @@ import org.prebid.server.log.LoggerFactory;
 
 import java.time.Clock;
 import java.util.concurrent.TimeoutException;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 class GroupExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
@@ -34,7 +34,7 @@ class GroupExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
 
     private ExecutionGroup group;
     private PAYLOAD initialPayload;
-    private Function<HookId, Hook<PAYLOAD, CONTEXT>> hookProvider;
+    private HookProvider<PAYLOAD, CONTEXT> hookProvider;
     private InvocationContextProvider<CONTEXT> invocationContextProvider;
     private HookExecutionContext hookExecutionContext;
     private boolean rejectAllowed;
@@ -63,7 +63,7 @@ class GroupExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
         return this;
     }
 
-    public GroupExecutor<PAYLOAD, CONTEXT> withHookProvider(Function<HookId, Hook<PAYLOAD, CONTEXT>> hookProvider) {
+    public GroupExecutor<PAYLOAD, CONTEXT> withHookProvider(HookProvider<PAYLOAD, CONTEXT> hookProvider) {
         this.hookProvider = hookProvider;
         return this;
     }

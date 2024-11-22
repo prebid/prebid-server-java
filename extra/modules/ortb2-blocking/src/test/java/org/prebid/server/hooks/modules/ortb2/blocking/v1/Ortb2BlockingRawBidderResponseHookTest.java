@@ -29,7 +29,7 @@ import org.prebid.server.hooks.modules.ortb2.blocking.v1.model.analytics.ResultI
 import org.prebid.server.hooks.modules.ortb2.blocking.v1.model.analytics.TagsImpl;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
-import org.prebid.server.hooks.v1.InvocationResultImpl;
+import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.v1.InvocationStatus;
 import org.prebid.server.hooks.v1.PayloadUpdate;
 import org.prebid.server.hooks.v1.bidder.BidderResponsePayload;
