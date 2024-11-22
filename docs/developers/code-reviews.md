@@ -8,14 +8,16 @@ Anyone is free to review and comment on any [open pull requests](https://github.
 
 ## Process
 
-New pull requests should be [assigned](https://help.github.com/articles/assigning-issues-and-pull-requests-to-other-github-users/) 
-to a reviewer for review within 5 business days of being opened.
-That person should either approve the changes or request changes within 5 business days of being assigned.
-If they're too busy, they should assign it to someone else who can review it within that timeframe.
+New pull requests must be [assigned](https://help.github.com/articles/assigning-issues-and-pull-requests-to-other-github-users/) 
+to a reviewer within 5 business days of being opened. That person must either approve the changes or request changes within 5 business days of being assigned.
+
+If a reviewer is too busy, they should re-assign it to someone else as soon as possible so that person has enough time to take over the review and still meet the 5-day goal. Please tag the new reviewer in the PR. If you don't know who to assign it to, use the #prebid-server-java-dev Slack channel to ask for help in re-assigning.
+
+If a reviewer is going to be unavailable for more than a few days, they should update the notes column of the duty spreadsheet or drop a note about their availability into the Slack channel.
 
 After the review, if the PR touches PBS-core, it must be assigned to a second reviewer.
 
-## Priorities
+## Review Priorities
 
 Code reviews should focus on things which cannot be validated by machines.
 
