@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
@@ -2157,7 +2156,7 @@ public class HookStageExecutorTest extends VertxTest {
             checkpoint1.flag();
         }));
 
-        CompositeFuture.join(future1, future2).onComplete(context.succeeding(result -> {
+        Future.join(future1, future2).onComplete(context.succeeding(result -> {
             assertThat(hookExecutionContext.getStageOutcomes())
                     .hasEntrySatisfying(
                             Stage.raw_bidder_response,
