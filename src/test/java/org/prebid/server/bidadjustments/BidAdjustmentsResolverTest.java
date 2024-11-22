@@ -199,29 +199,6 @@ public class BidAdjustmentsResolverTest extends VertxTest {
     }
 
     @Test
-    public void resolveShouldPickAndApplyRulesByWildcardMediatypeWhenMediatypeIsNull() {
-        // given
-        final BidAdjustments givenBidAdjustments = BidAdjustments.of(Map.of(
-                "banner|*|dealId", List.of(givenCpm("15", "EUR"), givenCpm("15", "JPY")),
-                "*|*|*", List.of(givenCpm("25", "UAH"), givenCpm("25", "JPY"))));
-        final BidRequest givenBidRequest = BidRequest.builder().build();
-
-        // when
-        final Price actual = target.resolve(
-                Price.of("USD", BigDecimal.ONE),
-                givenBidRequest,
-                givenBidAdjustments,
-                null,
-                "bidderName",
-                "dealId");
-
-        // then
-        assertThat(actual).isEqualTo(Price.of("USD", new BigDecimal("-499")));
-        verify(currencyService).convertCurrency(new BigDecimal("25"), givenBidRequest, "UAH", "USD");
-        verify(currencyService).convertCurrency(new BigDecimal("25"), givenBidRequest, "JPY", "USD");
-    }
-
-    @Test
     public void resolveShouldReturnEmptyListWhenNoMatchFound() {
         // given
         final BidAdjustments givenBidAdjustments = BidAdjustments.of(Map.of(

@@ -523,7 +523,7 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnBidsWithAdjustedPricesWithNullMediaTypeIfVideoPlacementAndPlcmtIsMissing() {
+    public void shouldReturnBidsWithAdjustedPricesWithVideoOutstreamMediaTypeIfVideoPlacementAndPlcmtIsMissing() {
         // given
         final BidderResponse bidderResponse = BidderResponse.of(
                 "bidder",
@@ -542,7 +542,7 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
                 .mediatypes(new EnumMap<>(singletonMap(ImpMediaType.video,
                         singletonMap("bidder", BigDecimal.valueOf(3.456)))))
                 .build();
-        given(bidAdjustmentFactorResolver.resolve(null, givenAdjustments, "bidder"))
+        given(bidAdjustmentFactorResolver.resolve(ImpMediaType.video_outstream, givenAdjustments, "bidder"))
                 .willReturn(BigDecimal.valueOf(3.456));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), impBuilder ->
@@ -568,13 +568,13 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
                 eq(Price.of("USD", BigDecimal.valueOf(6.912))),
                 eq(bidRequest),
                 eq(givenBidAdjustments()),
-                eq(null),
+                eq(ImpMediaType.video_outstream),
                 eq("bidder"),
                 eq("dealId"));
     }
 
     @Test
-    public void shouldReturnBidAdjustmentMediaTypeNullIfImpIdNotEqualBidImpId() {
+    public void shouldReturnBidAdjustmentMediaTypeVideoOutstreamIfImpIdNotEqualBidImpId() {
         // given
         final BidderResponse bidderResponse = BidderResponse.of(
                 "bidder",
@@ -614,12 +614,12 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
                 .extracting(Bid::getPrice)
                 .containsExactly(BigDecimal.valueOf(2));
 
-        verify(bidAdjustmentFactorResolver).resolve(null, givenAdjustments, "bidder");
+        verify(bidAdjustmentFactorResolver).resolve(ImpMediaType.video_outstream, givenAdjustments, "bidder");
         verify(bidAdjustmentsResolver).resolve(
                 eq(Price.of("USD", BigDecimal.valueOf(2))),
                 eq(bidRequest),
                 eq(givenBidAdjustments()),
-                eq(null),
+                eq(ImpMediaType.video_outstream),
                 eq("bidder"),
                 eq("dealId"));
     }

@@ -68,7 +68,7 @@ public class BidAdjustmentsResolver {
 
     private PrebidConfigParameters createParameters(ImpMediaType mediaType, String bidder, String dealId) {
         final List<PrebidConfigParameter> conditionsMatchers = List.of(
-                mediaType != null ? SimpleDirectParameter.of(mediaType.toString()) : PrebidConfigParameter.wildcard(),
+                SimpleDirectParameter.of(mediaType.toString()),
                 SimpleDirectParameter.of(bidder),
                 StringUtils.isNotBlank(dealId) ? SimpleDirectParameter.of(dealId) : PrebidConfigParameter.wildcard());
 

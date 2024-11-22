@@ -31,15 +31,11 @@ public class ImpMediaTypeResolver {
                 .orElse(null);
 
         if (bidImpVideo == null) {
-            return null;
+            return ImpMediaType.video_outstream;
         }
 
         final Integer placement = bidImpVideo.getPlacement();
         final Integer plcmt = bidImpVideo.getPlcmt();
-
-        if (placement == null && plcmt == null) {
-            return null;
-        }
 
         return Objects.equals(placement, 1) || Objects.equals(plcmt, 1)
                 ? ImpMediaType.video_instream
