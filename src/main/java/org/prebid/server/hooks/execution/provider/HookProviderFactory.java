@@ -23,19 +23,21 @@ public class HookProviderFactory {
     }
 
     public <PAYLOAD, CONTEXT extends InvocationContext>
-    HookProducerBuilder<PAYLOAD, CONTEXT> builderForStage(StageWithHookType<? extends Hook<PAYLOAD, CONTEXT>> stage) {
-        return new HookProducerBuilder<>(stage);
+            HookProviderBuilder<PAYLOAD, CONTEXT> builderForStage(
+                    StageWithHookType<? extends Hook<PAYLOAD, CONTEXT>> stage) {
+
+        return new HookProviderBuilder<>(stage);
     }
 
-    public class HookProducerBuilder<PAYLOAD, CONTEXT extends InvocationContext> {
+    public class HookProviderBuilder<PAYLOAD, CONTEXT extends InvocationContext> {
 
         private HookProvider<PAYLOAD, CONTEXT> hookProvider;
 
-        public HookProducerBuilder(StageWithHookType<? extends Hook<PAYLOAD, CONTEXT>> stage) {
+        public HookProviderBuilder(StageWithHookType<? extends Hook<PAYLOAD, CONTEXT>> stage) {
             this.hookProvider = hookId -> hookCatalog.hookById(hookId, stage);
         }
 
-        public HookProducerBuilder<PAYLOAD, CONTEXT> decorateWithABTest(List<ABTest> abTests,
+        public HookProviderBuilder<PAYLOAD, CONTEXT> decorateWithABTest(List<ABTest> abTests,
                                                                         HookExecutionContext context) {
 
             this.hookProvider = new ABTestHookProvider<>(this.hookProvider, abTests, context, mapper);
