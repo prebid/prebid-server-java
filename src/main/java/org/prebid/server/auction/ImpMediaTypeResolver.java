@@ -35,8 +35,14 @@ public class ImpMediaTypeResolver {
         }
 
         final Integer placement = bidImpVideo.getPlacement();
-        return placement == null || Objects.equals(placement, 1)
-                ? ImpMediaType.video
+        final Integer plcmt = bidImpVideo.getPlcmt();
+
+        if (placement == null && plcmt == null) {
+            return null;
+        }
+
+        return Objects.equals(placement, 1) || Objects.equals(plcmt, 1)
+                ? ImpMediaType.video_instream
                 : ImpMediaType.video_outstream;
     }
 }
