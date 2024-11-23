@@ -20,8 +20,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.Response;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
-import lombok.Value;
-import lombok.experimental.Accessors;
 import org.apache.commons.collections4.MapUtils;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.BeforeEach;
@@ -67,7 +65,7 @@ import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
 import org.prebid.server.hooks.execution.v1.bidder.AllProcessedBidResponsesPayloadImpl;
-import org.prebid.server.hooks.v1.bidder.BidderResponsePayload;
+import org.prebid.server.hooks.execution.v1.bidder.BidderResponsePayloadImpl;
 import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.identity.IdGeneratorType;
 import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
@@ -3820,8 +3818,8 @@ public class BidResponseCreatorTest extends VertxTest {
 
         final AuctionContext auctionContext = givenAuctionContext(
                 givenBidRequest(builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
-                                .events(mapper.createObjectNode())
-                                .build())), imp),
+                        .events(mapper.createObjectNode())
+                        .build())), imp),
                 builder -> builder.account(Account.builder()
                         .id("accountId")
                         .auction(AccountAuctionConfig.builder()
@@ -4603,12 +4601,5 @@ public class BidResponseCreatorTest extends VertxTest {
     @SafeVarargs
     private static <T> List<T> mutableList(T... values) {
         return Arrays.stream(values).collect(Collectors.toCollection(ArrayList::new));
-    }
-
-    @Accessors(fluent = true)
-    @Value(staticConstructor = "of")
-    private static class BidderResponsePayloadImpl implements BidderResponsePayload {
-
-        List<BidderBid> bids;
     }
 }

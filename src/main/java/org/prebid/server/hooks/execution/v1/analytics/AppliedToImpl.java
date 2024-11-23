@@ -1,4 +1,4 @@
-package org.prebid.server.hooks.modules.pb.richmedia.filter.v1.model.analytics;
+package org.prebid.server.hooks.execution.v1.analytics;
 
 import lombok.Builder;
 import lombok.Value;
@@ -8,8 +8,8 @@ import org.prebid.server.hooks.v1.analytics.AppliedTo;
 import java.util.List;
 
 @Accessors(fluent = true)
-@Value
 @Builder
+@Value
 public class AppliedToImpl implements AppliedTo {
 
     List<String> impIds;
