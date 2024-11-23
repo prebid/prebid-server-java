@@ -48,6 +48,7 @@ public class ABTestHookProvider<PAYLOAD, CONTEXT extends InvocationContext> impl
 
         return new ABTestHookDecorator<>(
                 moduleCode,
+                // TODO: if we are staying with "lazy" approach, we need to move HookNotFound checks
                 new LazyHook<>(hookId, innerHookProvider),
                 shouldInvokeHook(moduleCode, abTest),
                 BooleanUtils.isNotFalse(abTest.getLogAnalyticsTag()),
