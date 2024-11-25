@@ -92,7 +92,6 @@ public class TcfEnforcement implements PrivacyEnforcement {
                                                                 MetricName requestType,
                                                                 List<BidderPrivacyResult> results) {
 
-
         // Metrics should represent real picture of the bidding process, so if bidder request is blocked
         // by privacy then no reason to increment another metrics, like geo masked, etc.
         for (BidderPrivacyResult result : results) {
