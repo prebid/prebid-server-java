@@ -60,6 +60,7 @@ public class TcfEnforcement implements PrivacyEnforcement {
                 .map(TcfResponse::getActions);
     }
 
+    @Override
     public Future<List<BidderPrivacyResult>> enforce(AuctionContext auctionContext,
                                                      BidderAliases aliases,
                                                      List<BidderPrivacyResult> results) {

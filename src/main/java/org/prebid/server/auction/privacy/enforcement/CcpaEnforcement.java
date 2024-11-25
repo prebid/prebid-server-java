@@ -44,6 +44,7 @@ public class CcpaEnforcement implements PrivacyEnforcement {
         this.ccpaEnforce = ccpaEnforce;
     }
 
+    @Override
     public Future<List<BidderPrivacyResult>> enforce(AuctionContext auctionContext,
                                                      BidderAliases aliases,
                                                      List<BidderPrivacyResult> results) {
