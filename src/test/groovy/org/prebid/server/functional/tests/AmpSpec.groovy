@@ -180,4 +180,43 @@ class AmpSpec extends BaseSpec {
         assert bidderRequest.imp[0]?.banner?.format[0]?.weight == ampStoredRequest.imp[0].banner.format[0].weight
         assert bidderRequest.regs?.gdpr == ampStoredRequest.regs.gdpr
     }
+
+    def "PBS should pass addtl_consent to user.ext.consented_providers_settings.consented_providers"() {
+        given: "Default amp request with addtlConsent"
+        def randomAddtlConsent = PBSUtils.randomString
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            addtlConsent = randomAddtlConsent
+        }
+
+        and: "Save storedRequest into DB"
+        def ampStoredRequest = BidRequest.defaultBidRequest
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        defaultPbsService.sendAmpRequest(ampRequest)
+
+        then: "Bidder request should contain addtl consent"
+        def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
+        assert bidderRequest.user.ext.consentedProvidersSettings.consentedProviders == randomAddtlConsent
+    }
+
+    def "PBS shouldn't pass addtl_consent to user.ext.consented_providers_settings.consented_providers when addtl_consent not specified"() {
+        given: "Default amp request without addtl_consent"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            addtlConsent = null
+        }
+
+        and: "Save storedRequest into DB"
+        def ampStoredRequest = BidRequest.defaultBidRequest
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        defaultPbsService.sendAmpRequest(ampRequest)
+
+        then: "Bidder request shouldn't contain addtl consent"
+        def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
+        assert !bidderRequest.user.ext.consentedProvidersSettings.consentedProviders
+    }
 }
