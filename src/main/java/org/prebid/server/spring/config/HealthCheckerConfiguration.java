@@ -2,7 +2,7 @@ package org.prebid.server.spring.config;
 
 import io.vertx.core.Vertx;
 import io.vertx.sqlclient.Pool;
-import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.health.ApplicationChecker;
 import org.prebid.server.health.DatabaseHealthChecker;

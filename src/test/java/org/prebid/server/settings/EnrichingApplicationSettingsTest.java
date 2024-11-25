@@ -8,7 +8,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.activity.ActivitiesConfigResolver;
-import org.prebid.server.execution.Timeout;
+import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.floors.PriceFloorsConfigResolver;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.settings.model.Account;

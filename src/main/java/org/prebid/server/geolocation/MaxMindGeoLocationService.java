@@ -14,8 +14,8 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.execution.RemoteFileProcessor;
-import org.prebid.server.execution.Timeout;
+import org.prebid.server.execution.file.FileProcessor;
+import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.geolocation.model.GeoInfo;
 
 import java.io.FileInputStream;
@@ -28,7 +28,7 @@ import java.util.zip.GZIPInputStream;
  * Implementation of the {@link GeoLocationService}
  * backed by <a href="https://dev.maxmind.com/geoip/geoip2/geolite2/">MaxMind free database</a>
  */
-public class MaxMindGeoLocationService implements GeoLocationService, RemoteFileProcessor {
+public class MaxMindGeoLocationService implements GeoLocationService, FileProcessor {
 
     private static final String VENDOR = "maxmind";
 

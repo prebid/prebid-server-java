@@ -57,8 +57,8 @@ import org.prebid.server.bidder.model.Price;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.execution.Timeout;
-import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.execution.timeout.Timeout;
+import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.floors.PriceFloorAdjuster;
 import org.prebid.server.floors.PriceFloorProcessor;
 import org.prebid.server.hooks.execution.HookStageExecutor;
@@ -249,6 +249,10 @@ public class ExchangeService {
         final Map<String, MultiBidConfig> bidderToMultiBid = bidderToMultiBids(bidRequest, debugWarnings);
         receivedContext.getBidRejectionTrackers().putAll(makeBidRejectionTrackers(bidRequest, aliases));
 
+        final boolean debugEnabled = receivedContext.getDebugContext().isDebugEnabled();
+        metrics.updateDebugRequestMetrics(debugEnabled);
+        metrics.updateAccountDebugRequestMetrics(account, debugEnabled);
+
         return storedResponseProcessor.getStoredResponseResult(bidRequest.getImp(), timeout)
                 .map(storedResponseResult -> populateStoredResponse(storedResponseResult, storedAuctionResponses))
                 .compose(storedResponseResult ->
@@ -274,7 +278,7 @@ public class ExchangeService {
                                 bidRequest.getImp(),
                                 context.getBidRejectionTrackers()))
                         .map(auctionParticipations -> dropZeroNonDealBids(
-                                auctionParticipations, debugWarnings, context.getDebugContext().isDebugEnabled()))
+                                auctionParticipations, debugWarnings, debugEnabled))
                         .map(auctionParticipations ->
                                 bidsAdjuster.validateAndAdjustBids(auctionParticipations, context, aliases))
                         .map(auctionParticipations -> updateResponsesMetrics(auctionParticipations, account, aliases))
@@ -285,7 +289,7 @@ public class ExchangeService {
                                 logger,
                                 bidResponse,
                                 context.getBidRequest(),
-                                context.getDebugContext().isDebugEnabled()))
+                                debugEnabled))
                         .compose(bidResponse -> bidResponsePostProcessor.postProcess(
                                 context.getHttpRequest(), uidsCookie, bidRequest, bidResponse, account))
                         .map(context::with));

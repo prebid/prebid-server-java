@@ -1,4 +1,4 @@
-package org.prebid.server.execution;
+package org.prebid.server.execution.timeout;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

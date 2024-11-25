@@ -32,7 +32,7 @@ import org.prebid.server.cookie.model.CookieSyncStatus;
 import org.prebid.server.cookie.model.PartitionedCookie;
 import org.prebid.server.cookie.proto.Uids;
 import org.prebid.server.exception.InvalidAccountConfigException;
-import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
