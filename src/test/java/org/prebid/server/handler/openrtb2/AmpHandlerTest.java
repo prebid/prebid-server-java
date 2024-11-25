@@ -1053,15 +1053,6 @@ public class AmpHandlerTest extends VertxTest {
         assertThat(ampEvent.getStatus()).isEqualTo(200);
         assertThat(ampEvent.getAuctionContext().getRequestTypeMetric()).isEqualTo(MetricName.amp);
         assertThat(ampEvent.getAuctionContext().getBidResponse()).isEqualTo(expectedBidResponse);
-        assertThat(ampEvent.getAuctionContext().getRawAuctionResponse().getResponseBody())
-                .isEqualTo("{\"targeting\":{\"hb_cache_id_bidder1\":\"value1\"}}");
-        assertThat(ampEvent.getAuctionContext().getRawAuctionResponse().getResponseHeaders()).hasSize(4)
-                .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(
-                        tuple("AMP-Access-Control-Allow-Source-Origin", "http://example.com"),
-                        tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"),
-                        tuple("Content-Type", "application/json"),
-                        tuple("x-prebid", "pbs-java/1.00"));
 
         final ArgumentCaptor<MultiMap> responseHeadersCaptor = ArgumentCaptor.forClass(MultiMap.class);
         verify(hookStageExecutor).executeExitpointStage(
@@ -1113,11 +1104,6 @@ public class AmpHandlerTest extends VertxTest {
                 .build();
 
         assertThat(ampEvent.getAuctionContext().getBidResponse()).isEqualTo(expectedBidResponse);
-        assertThat(ampEvent.getAuctionContext().getRawAuctionResponse().getResponseBody())
-                .isEqualTo("{\"targeting\":{\"new-key\":\"new-value\"}}");
-        assertThat(ampEvent.getAuctionContext().getRawAuctionResponse().getResponseHeaders()).hasSize(1)
-                .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(tuple("New-Header", "New-Header-Value"));
 
         final ArgumentCaptor<MultiMap> responseHeadersCaptor = ArgumentCaptor.forClass(MultiMap.class);
         verify(hookStageExecutor).executeExitpointStage(

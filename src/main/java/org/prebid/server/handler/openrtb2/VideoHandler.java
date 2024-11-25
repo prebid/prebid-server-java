@@ -1,5 +1,6 @@
 package org.prebid.server.handler.openrtb2;
 
+import com.iab.openrtb.request.video.PodError;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
@@ -17,7 +18,6 @@ import org.prebid.server.auction.HooksMetricsService;
 import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.CachedDebugLog;
-import org.prebid.server.auction.model.RawAuctionResponse;
 import org.prebid.server.auction.model.WithPodErrors;
 import org.prebid.server.auction.requestfactory.VideoRequestFactory;
 import org.prebid.server.cache.CoreCacheService;
@@ -120,48 +120,55 @@ public class VideoHandler implements ApplicationResource {
                 .map(contextToErrors ->
                         addToEvent(contextToErrors.getData(), videoEventBuilder::auctionContext, contextToErrors))
 
-                .map(contextToErrors -> prepareSuccessfulResponse(contextToErrors, routingContext, videoEventBuilder))
-                .compose(this::invokeExitpointHooks)
-                .map(hooksMetricsService::updateHooksMetrics)
-                // populate event with updated context
-                .map(context -> addToEvent(context, videoEventBuilder::auctionContext, context))
+                .compose(contextToErrors ->
+                        prepareSuccessfulResponse(contextToErrors, routingContext, videoEventBuilder)
+                        .compose(this::invokeExitpointHooks)
+                        .compose(context -> toVideoResponse(context.getAuctionContext(), contextToErrors.getPodErrors())
+                                .map(videoResponse ->
+                                        addToEvent(videoResponse, videoEventBuilder::bidResponse, context)))
+                        .map(context ->
+                                addToEvent(context.getAuctionContext(), videoEventBuilder::auctionContext, context)))
                 .onComplete(result -> handleResult(result, videoEventBuilder, routingContext, startTime));
     }
 
-    private AuctionContext prepareSuccessfulResponse(WithPodErrors<AuctionContext> context,
-                                                     RoutingContext routingContext,
-                                                     VideoEvent.VideoEventBuilder videoEventBuilder) {
+    private Future<RawResponseContext> prepareSuccessfulResponse(WithPodErrors<AuctionContext> context,
+                                                                 RoutingContext routingContext,
+                                                                 VideoEvent.VideoEventBuilder videoEventBuilder) {
 
         final AuctionContext auctionContext = context.getData();
-        final VideoResponse videoResponse = videoResponseFactory.toVideoResponse(
-                auctionContext,
-                auctionContext.getBidResponse(),
-                context.getPodErrors());
-
-        addToEvent(videoResponse, videoEventBuilder::bidResponse, videoResponse);
-
         final MultiMap responseHeaders = getCommonResponseHeaders(routingContext)
                 .add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
 
-        final RawAuctionResponse rawAuctionResponse = RawAuctionResponse.builder()
-                .responseBody(mapper.encodeToString(videoResponse))
-                .responseHeaders(responseHeaders)
-                .build();
-
-        return auctionContext.with(rawAuctionResponse);
+        return toVideoResponse(auctionContext, context.getPodErrors())
+                .map(videoResponse -> addToEvent(videoResponse, videoEventBuilder::bidResponse, videoResponse))
+                .map(videoResponse -> RawResponseContext.builder()
+                        .responseBody(mapper.encodeToString(videoResponse))
+                        .responseHeaders(responseHeaders)
+                        .auctionContext(auctionContext)
+                        .build());
     }
 
-    private Future<AuctionContext> invokeExitpointHooks(AuctionContext auctionContext) {
-        final RawAuctionResponse rawAuctionResponse = auctionContext.getRawAuctionResponse();
+    private Future<VideoResponse> toVideoResponse(AuctionContext auctionContext, List<PodError> podErrors) {
+        return Future.succeededFuture(
+                videoResponseFactory.toVideoResponse(auctionContext, auctionContext.getBidResponse(), podErrors));
+    }
+
+    private Future<RawResponseContext> invokeExitpointHooks(RawResponseContext rawResponseContext) {
+        final AuctionContext auctionContext = rawResponseContext.getAuctionContext();
         return hookStageExecutor.executeExitpointStage(
-                        rawAuctionResponse.getResponseHeaders(),
-                        rawAuctionResponse.getResponseBody(),
+                        rawResponseContext.getResponseHeaders(),
+                        rawResponseContext.getResponseBody(),
                         auctionContext)
                 .map(HookStageExecutionResult::getPayload)
-                .map(rawAuctionResponse::of)
-                .map(auctionContext::with)
-                .map(AnalyticsTagsEnricher::enrichWithAnalyticsTags)
-                .map(HookDebugInfoEnricher::enrichWithHooksDebugInfo);
+                .compose(payload -> Future.succeededFuture(auctionContext)
+                        .map(AnalyticsTagsEnricher::enrichWithAnalyticsTags)
+                        .map(HookDebugInfoEnricher::enrichWithHooksDebugInfo)
+                        .map(hooksMetricsService::updateHooksMetrics)
+                        .map(context -> RawResponseContext.builder()
+                                .auctionContext(context)
+                                .responseHeaders(payload.responseHeaders())
+                                .responseBody(payload.responseBody())
+                                .build()));
     }
 
     private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {
@@ -169,7 +176,7 @@ public class VideoHandler implements ApplicationResource {
         return result;
     }
 
-    private void handleResult(AsyncResult<AuctionContext> responseResult,
+    private void handleResult(AsyncResult<RawResponseContext> responseResult,
                               VideoEvent.VideoEventBuilder videoEventBuilder,
                               RoutingContext routingContext,
                               long startTime) {
@@ -179,7 +186,7 @@ public class VideoHandler implements ApplicationResource {
         final List<String> errorMessages;
         final HttpResponseStatus status;
         final String body;
-        final AuctionContext auctionContext = responseSucceeded ? responseResult.result() : null;
+        final RawResponseContext rawResponseContext = responseSucceeded ? responseResult.result() : null;
 
         final HttpServerResponse response = routingContext.response();
         final MultiMap responseHeaders = response.headers();
@@ -189,11 +196,10 @@ public class VideoHandler implements ApplicationResource {
             errorMessages = Collections.emptyList();
 
             status = HttpResponseStatus.OK;
-            final RawAuctionResponse rawAuctionResponse = auctionContext.getRawAuctionResponse();
-            rawAuctionResponse.getResponseHeaders()
+            rawResponseContext.getResponseHeaders()
                     .forEach(header -> HttpUtil.addHeaderIfValueIsNotEmpty(
                             responseHeaders, header.getKey(), header.getValue()));
-            body = rawAuctionResponse.getResponseBody();
+            body = rawResponseContext.getResponseBody();
         } else {
             final Throwable exception = responseResult.cause();
             if (exception instanceof InvalidRequestException) {
@@ -230,16 +236,16 @@ public class VideoHandler implements ApplicationResource {
         }
 
         VideoEvent videoEvent = videoEventBuilder.status(status.code()).errors(errorMessages).build();
-        final AuctionContext contextFromEvent = videoEvent.getAuctionContext();
+        final AuctionContext auctionContext = videoEvent.getAuctionContext();
 
-        final CachedDebugLog cachedDebugLog = contextFromEvent != null ? contextFromEvent.getCachedDebugLog() : null;
+        final CachedDebugLog cachedDebugLog = auctionContext != null ? auctionContext.getCachedDebugLog() : null;
         final String cacheKey = shouldCacheLog(status.code(), cachedDebugLog)
-                ? cacheDebugLog(contextFromEvent, videoEvent.getErrors())
+                ? cacheDebugLog(auctionContext, videoEvent.getErrors())
                 : null;
         if (status.code() != 200 && cacheKey != null) {
             videoEvent = updateEventWithDebugCacheMessage(videoEvent, cacheKey);
         }
-        final PrivacyContext privacyContext = contextFromEvent != null ? contextFromEvent.getPrivacyContext() : null;
+        final PrivacyContext privacyContext = auctionContext != null ? auctionContext.getPrivacyContext() : null;
         final TcfContext tcfContext = privacyContext != null ? privacyContext.getTcfContext() : TcfContext.empty();
 
         respondWith(routingContext, status, body, startTime, metricRequestStatus, videoEvent, tcfContext);

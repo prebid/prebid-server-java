@@ -18,7 +18,6 @@ import org.prebid.server.auction.HookDebugInfoEnricher;
 import org.prebid.server.auction.HooksMetricsService;
 import org.prebid.server.auction.SkippedAuctionService;
 import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.auction.model.RawAuctionResponse;
 import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.BlocklistedAccountException;
@@ -116,10 +115,10 @@ public class AuctionHandler implements ApplicationResource {
                         .recover(throwable -> holdAuction(auctionEventBuilder, auctionContext)))
                 .map(context -> prepareSuccessfulResponse(context, routingContext))
                 .compose(this::invokeExitpointHooks)
-                .map(hooksMetricsService::updateHooksMetrics)
-                .map(context -> addToEvent(context, auctionEventBuilder::auctionContext, context))
-                .map(context -> addToEvent(context.getBidResponse(), auctionEventBuilder::bidResponse, context))
-                .onComplete(context -> handleResult(context, auctionEventBuilder, routingContext, startTime));
+                .map(context -> addToEvent(context.getAuctionContext(), auctionEventBuilder::auctionContext, context))
+                .map(context -> addToEvent(
+                        context.getAuctionContext().getBidResponse(), auctionEventBuilder::bidResponse, context))
+                .onComplete(result -> handleResult(result, auctionEventBuilder, routingContext, startTime));
     }
 
     private Future<AuctionContext> holdAuction(AuctionEvent.AuctionEventBuilder auctionEventBuilder,
@@ -129,7 +128,8 @@ public class AuctionHandler implements ApplicationResource {
                 .map(this::updateAppAndNoCookieAndImpsMetrics)
                 // In case of holdAuction Exception and auctionContext is not present below
                 .map(context -> addToEvent(context, auctionEventBuilder::auctionContext, context))
-                .compose(exchangeService::holdAuction);
+                .compose(exchangeService::holdAuction)
+                .map(context -> addToEvent(context.getBidResponse(), auctionEventBuilder::bidResponse, context));
     }
 
     private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {
@@ -154,43 +154,53 @@ public class AuctionHandler implements ApplicationResource {
         return context;
     }
 
-    private AuctionContext prepareSuccessfulResponse(AuctionContext auctionContext, RoutingContext routingContext) {
+    private RawResponseContext prepareSuccessfulResponse(AuctionContext auctionContext, RoutingContext routingContext) {
         final MultiMap responseHeaders = getCommonResponseHeaders(routingContext)
                 .add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
 
-        final RawAuctionResponse rawAuctionResponse = RawAuctionResponse.builder()
+        return RawResponseContext.builder()
                 .responseBody(mapper.encodeToString(auctionContext.getBidResponse()))
                 .responseHeaders(responseHeaders)
+                .auctionContext(auctionContext)
                 .build();
-
-        return auctionContext.with(rawAuctionResponse);
     }
 
-    private Future<AuctionContext> invokeExitpointHooks(AuctionContext auctionContext) {
+    private Future<RawResponseContext> invokeExitpointHooks(RawResponseContext rawResponseContext) {
+        final AuctionContext auctionContext = rawResponseContext.getAuctionContext();
+
         if (auctionContext.isAuctionSkipped()) {
-            return Future.succeededFuture(auctionContext);
+            return Future.succeededFuture(auctionContext)
+                    .map(hooksMetricsService::updateHooksMetrics)
+                    .map(context -> rawResponseContext);
         }
 
-        final RawAuctionResponse rawAuctionResponse = auctionContext.getRawAuctionResponse();
         return hookStageExecutor.executeExitpointStage(
-                        rawAuctionResponse.getResponseHeaders(),
-                        rawAuctionResponse.getResponseBody(),
+                        rawResponseContext.getResponseHeaders(),
+                        rawResponseContext.getResponseBody(),
                         auctionContext)
                 .map(HookStageExecutionResult::getPayload)
-                .map(rawAuctionResponse::of)
-                .map(auctionContext::with)
-                .map(AnalyticsTagsEnricher::enrichWithAnalyticsTags)
-                .map(HookDebugInfoEnricher::enrichWithHooksDebugInfo);
+                .compose(payload -> Future.succeededFuture(auctionContext)
+                        .map(AnalyticsTagsEnricher::enrichWithAnalyticsTags)
+                        .map(HookDebugInfoEnricher::enrichWithHooksDebugInfo)
+                        .map(hooksMetricsService::updateHooksMetrics)
+                        .map(context -> RawResponseContext.builder()
+                                .auctionContext(context)
+                                .responseHeaders(payload.responseHeaders())
+                                .responseBody(payload.responseBody())
+                                .build()));
     }
 
-    private void handleResult(AsyncResult<AuctionContext> responseResult,
+    private void handleResult(AsyncResult<RawResponseContext> responseResult,
                               AuctionEvent.AuctionEventBuilder auctionEventBuilder,
                               RoutingContext routingContext,
                               long startTime) {
 
         final boolean responseSucceeded = responseResult.succeeded();
 
-        final AuctionContext auctionContext = responseSucceeded ? responseResult.result() : null;
+        final RawResponseContext rawResponseContext = responseSucceeded ? responseResult.result() : null;
+        final AuctionContext auctionContext = rawResponseContext != null
+                ? rawResponseContext.getAuctionContext()
+                : null;
         final boolean isAuctionSkipped = responseSucceeded && auctionContext.isAuctionSkipped();
         final MetricName requestType = responseSucceeded
                 ? auctionContext.getRequestTypeMetric()
@@ -209,11 +219,10 @@ public class AuctionHandler implements ApplicationResource {
             errorMessages = Collections.emptyList();
             status = HttpResponseStatus.OK;
 
-            final RawAuctionResponse rawAuctionResponse = auctionContext.getRawAuctionResponse();
-            rawAuctionResponse.getResponseHeaders()
+            rawResponseContext.getResponseHeaders()
                     .forEach(header -> HttpUtil.addHeaderIfValueIsNotEmpty(
                             responseHeaders, header.getKey(), header.getValue()));
-            body = rawAuctionResponse.getResponseBody();
+            body = rawResponseContext.getResponseBody();
         } else {
             final Throwable exception = responseResult.cause();
             if (exception instanceof InvalidRequestException invalidRequestException) {

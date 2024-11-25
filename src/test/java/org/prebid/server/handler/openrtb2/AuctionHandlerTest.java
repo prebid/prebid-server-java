@@ -872,12 +872,6 @@ public class AuctionHandlerTest extends VertxTest {
         assertThat(auctionEvent.getStatus()).isEqualTo(200);
         assertThat(auctionEvent.getAuctionContext().getRequestTypeMetric()).isEqualTo(MetricName.openrtb2web);
         assertThat(auctionEvent.getAuctionContext().getBidResponse()).isEqualTo(BidResponse.builder().build());
-        assertThat(auctionEvent.getAuctionContext().getRawAuctionResponse().getResponseBody()).isEqualTo("{}");
-        assertThat(auctionEvent.getAuctionContext().getRawAuctionResponse().getResponseHeaders()).hasSize(2)
-                .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(
-                        tuple("Content-Type", "application/json"),
-                        tuple("x-prebid", "pbs-java/1.00"));
 
         final ArgumentCaptor<MultiMap> responseHeadersCaptor = ArgumentCaptor.forClass(MultiMap.class);
         verify(hookStageExecutor).executeExitpointStage(
@@ -920,11 +914,6 @@ public class AuctionHandlerTest extends VertxTest {
         assertThat(auctionEvent.getStatus()).isEqualTo(200);
         assertThat(auctionEvent.getAuctionContext().getRequestTypeMetric()).isEqualTo(MetricName.openrtb2web);
         assertThat(auctionEvent.getAuctionContext().getBidResponse()).isEqualTo(BidResponse.builder().build());
-        assertThat(auctionEvent.getAuctionContext().getRawAuctionResponse().getResponseBody())
-                .isEqualTo("{\"response\":{}}");
-        assertThat(auctionEvent.getAuctionContext().getRawAuctionResponse().getResponseHeaders()).hasSize(1)
-                .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(tuple("New-Header", "New-Header-Value"));
 
         final ArgumentCaptor<MultiMap> responseHeadersCaptor = ArgumentCaptor.forClass(MultiMap.class);
         verify(hookStageExecutor).executeExitpointStage(

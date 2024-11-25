@@ -1187,6 +1187,9 @@ public class MetricsTest {
         metrics.updateHooksMetrics(
                 "module2", Stage.auction_response, "hook4", ExecutionStatus.invocation_failure, 5L, null);
 
+        metrics.updateHooksMetrics(
+                "module1", Stage.exitpoint, "hook5", ExecutionStatus.success, 5L, ExecutionAction.update);
+
         // then
         assertThat(metricRegistry.counter("modules.module.module1.stage.entrypoint.hook.hook1.call")
                 .getCount())
@@ -1245,6 +1248,15 @@ public class MetricsTest {
                 .getCount())
                 .isEqualTo(1);
         assertThat(metricRegistry.timer("modules.module.module2.stage.auctionresponse.hook.hook4.duration").getCount())
+                .isEqualTo(1);
+
+        assertThat(metricRegistry.counter("modules.module.module1.stage.exitpoint.hook.hook5.call")
+                .getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.counter("modules.module.module1.stage.exitpoint.hook.hook5.success.update")
+                .getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.timer("modules.module.module1.stage.exitpoint.hook.hook5.duration").getCount())
                 .isEqualTo(1);
     }
 
