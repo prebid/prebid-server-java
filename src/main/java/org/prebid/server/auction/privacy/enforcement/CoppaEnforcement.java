@@ -22,6 +22,7 @@ public class CoppaEnforcement implements PrivacyEnforcement {
         this.metrics = Objects.requireNonNull(metrics);
     }
 
+    @Override
     public Future<List<BidderPrivacyResult>> enforce(AuctionContext auctionContext,
                                                      BidderAliases aliases,
                                                      List<BidderPrivacyResult> results) {

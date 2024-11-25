@@ -30,6 +30,7 @@ public class ActivityEnforcement implements PrivacyEnforcement {
         this.userFpdActivityMask = Objects.requireNonNull(userFpdActivityMask);
     }
 
+    @Override
     public Future<List<BidderPrivacyResult>> enforce(AuctionContext auctionContext,
                                                      BidderAliases aliases,
                                                      List<BidderPrivacyResult> results) {
