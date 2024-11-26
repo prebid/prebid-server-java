@@ -100,13 +100,15 @@ public class AmpHandler implements ApplicationResource {
     public AmpHandler(AmpRequestFactory ampRequestFactory,
                       ExchangeService exchangeService,
                       AnalyticsReporterDelegator analyticsDelegator,
-                      Metrics metrics, HooksMetricsService hooksMetricsService,
+                      Metrics metrics,
+                      HooksMetricsService hooksMetricsService,
                       Clock clock,
                       BidderCatalog bidderCatalog,
                       Set<String> biddersSupportingCustomTargeting,
                       AmpResponsePostProcessor ampResponsePostProcessor,
                       HttpInteractionLogger httpInteractionLogger,
-                      PrebidVersionProvider prebidVersionProvider, HookStageExecutor hookStageExecutor,
+                      PrebidVersionProvider prebidVersionProvider,
+                      HookStageExecutor hookStageExecutor,
                       JacksonMapper mapper,
                       double logSamplingRate) {
 
