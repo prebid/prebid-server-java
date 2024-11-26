@@ -1,4 +1,4 @@
-package org.prebid.server.hooks.v1.exit;
+package org.prebid.server.hooks.v1.exitpoint;
 
 import io.vertx.core.MultiMap;
 

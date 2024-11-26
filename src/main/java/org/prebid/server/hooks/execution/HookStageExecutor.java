@@ -43,7 +43,7 @@ import org.prebid.server.hooks.v1.bidder.BidderInvocationContext;
 import org.prebid.server.hooks.v1.bidder.BidderRequestPayload;
 import org.prebid.server.hooks.v1.bidder.BidderResponsePayload;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointPayload;
-import org.prebid.server.hooks.v1.exit.ExitpointPayload;
+import org.prebid.server.hooks.v1.exitpoint.ExitpointPayload;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.model.CaseInsensitiveMultiMap;

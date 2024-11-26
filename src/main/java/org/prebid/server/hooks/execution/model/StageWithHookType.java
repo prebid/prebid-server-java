@@ -10,7 +10,7 @@ import org.prebid.server.hooks.v1.bidder.BidderRequestHook;
 import org.prebid.server.hooks.v1.bidder.ProcessedBidderResponseHook;
 import org.prebid.server.hooks.v1.bidder.RawBidderResponseHook;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointHook;
-import org.prebid.server.hooks.v1.exit.ExitpointHook;
+import org.prebid.server.hooks.v1.exitpoint.ExitpointHook;
 
 public interface StageWithHookType<TYPE extends Hook<?, ? extends InvocationContext>> {
 

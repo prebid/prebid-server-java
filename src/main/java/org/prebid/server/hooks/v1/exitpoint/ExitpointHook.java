@@ -1,4 +1,4 @@
-package org.prebid.server.hooks.v1.exit;
+package org.prebid.server.hooks.v1.exitpoint;
 
 import org.prebid.server.hooks.v1.Hook;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;

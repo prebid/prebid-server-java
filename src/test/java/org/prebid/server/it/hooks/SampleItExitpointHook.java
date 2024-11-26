@@ -13,8 +13,8 @@ import org.prebid.server.hooks.v1.analytics.AppliedToImpl;
 import org.prebid.server.hooks.v1.analytics.ResultImpl;
 import org.prebid.server.hooks.v1.analytics.TagsImpl;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
-import org.prebid.server.hooks.v1.exit.ExitpointHook;
-import org.prebid.server.hooks.v1.exit.ExitpointPayload;
+import org.prebid.server.hooks.v1.exitpoint.ExitpointHook;
+import org.prebid.server.hooks.v1.exitpoint.ExitpointPayload;
 import org.prebid.server.json.JacksonMapper;
 
 import java.util.Arrays;
