@@ -20,43 +20,30 @@ import org.prebid.server.hooks.v1.entrypoint.EntrypointHook;
 import static java.util.Collections.singleton;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mock.Strictness;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
 @ExtendWith(MockitoExtension.class)
 public class HookCatalogTest {
 
-    @Mock(strictness = Strictness.LENIENT)
+    @Mock
     private Module sampleModule;
     @Mock
     private Hook<?, ? extends InvocationContext> sampleHook;
 
-    private HookCatalog target;
+    private HookCatalog hookCatalog;
 
     @BeforeEach
     public void setUp() {
         given(sampleModule.code()).willReturn("sample-module");
 
-        target = new HookCatalog(singleton(sampleModule), singleton("sample-module"));
-    }
-
-    @Test
-    public void hasHostConfigShouldReturnTrueWhenModuleHasConfig() {
-        // when & then
-        assertThat(target.hasHostConfig("sample-module")).isTrue();
-    }
-
-    @Test
-    public void hasHostConfigShouldReturnFalseWhenModuleDoesNotHaveConfig() {
-        // when & then
-        assertThat(target.hasHostConfig("another-module")).isFalse();
+        hookCatalog = new HookCatalog(singleton(sampleModule));
     }
 
     @Test
     public void hookByIdShouldTolerateUnknownModule() {
         // when
-        final EntrypointHook foundHook = target.hookById(
+        final EntrypointHook foundHook = hookCatalog.hookById(
                 "unknown-module", null, StageWithHookType.ENTRYPOINT);
 
         // then
@@ -66,7 +53,7 @@ public class HookCatalogTest {
     @Test
     public void hookByIdShouldTolerateUnknownHook() {
         // when
-        final EntrypointHook foundHook = target.hookById(
+        final EntrypointHook foundHook = hookCatalog.hookById(
                 "sample-module", "unknown-hook", StageWithHookType.ENTRYPOINT);
 
         // then
@@ -79,7 +66,7 @@ public class HookCatalogTest {
         givenHook(EntrypointHook.class);
 
         // when
-        final EntrypointHook foundHook = target.hookById(
+        final EntrypointHook foundHook = hookCatalog.hookById(
                 "sample-module", "sample-hook", StageWithHookType.ENTRYPOINT);
 
         // then
@@ -94,7 +81,7 @@ public class HookCatalogTest {
         givenHook(RawAuctionRequestHook.class);
 
         // when
-        final RawAuctionRequestHook foundHook = target.hookById(
+        final RawAuctionRequestHook foundHook = hookCatalog.hookById(
                 "sample-module", "sample-hook", StageWithHookType.RAW_AUCTION_REQUEST);
 
         // then
@@ -109,7 +96,7 @@ public class HookCatalogTest {
         givenHook(ProcessedAuctionRequestHook.class);
 
         // when
-        final ProcessedAuctionRequestHook foundHook = target.hookById(
+        final ProcessedAuctionRequestHook foundHook = hookCatalog.hookById(
                 "sample-module", "sample-hook", StageWithHookType.PROCESSED_AUCTION_REQUEST);
 
         // then
@@ -124,7 +111,7 @@ public class HookCatalogTest {
         givenHook(BidderRequestHook.class);
 
         // when
-        final BidderRequestHook foundHook = target.hookById(
+        final BidderRequestHook foundHook = hookCatalog.hookById(
                 "sample-module", "sample-hook", StageWithHookType.BIDDER_REQUEST);
 
         // then
@@ -139,7 +126,7 @@ public class HookCatalogTest {
         givenHook(RawBidderResponseHook.class);
 
         // when
-        final RawBidderResponseHook foundHook = target.hookById(
+        final RawBidderResponseHook foundHook = hookCatalog.hookById(
                 "sample-module", "sample-hook", StageWithHookType.RAW_BIDDER_RESPONSE);
 
         // then
@@ -154,7 +141,7 @@ public class HookCatalogTest {
         givenHook(ProcessedBidderResponseHook.class);
 
         // when
-        final ProcessedBidderResponseHook foundHook = target.hookById(
+        final ProcessedBidderResponseHook foundHook = hookCatalog.hookById(
                 "sample-module", "sample-hook", StageWithHookType.PROCESSED_BIDDER_RESPONSE);
 
         // then
@@ -169,7 +156,7 @@ public class HookCatalogTest {
         givenHook(AuctionResponseHook.class);
 
         // when
-        final AuctionResponseHook foundHook = target.hookById(
+        final AuctionResponseHook foundHook = hookCatalog.hookById(
                 "sample-module", "sample-hook", StageWithHookType.AUCTION_RESPONSE);
 
         // then

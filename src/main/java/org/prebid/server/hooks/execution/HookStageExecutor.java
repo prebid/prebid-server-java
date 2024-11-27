@@ -54,6 +54,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 public class HookStageExecutor {
@@ -273,7 +274,14 @@ public class HookStageExecutor {
             Endpoint endpoint) {
 
         return stageExecutor(stage, entity, context)
+                .withModulesExecution(modulesExecutionForAccount(account))
                 .withExecutionPlan(planForStage(account, endpoint, stage.stage()));
+    }
+
+    private Map<String, Boolean> modulesExecutionForAccount(Account account) {
+        return Optional.ofNullable(account.getHooks())
+                .map(AccountHooksConfiguration::getModulesExecution)
+                .orElseGet(Collections::emptyMap);
     }
 
     private static ExecutionPlan parseAndValidateExecutionPlan(
@@ -402,8 +410,7 @@ public class HookStageExecutor {
             String bidder) {
 
         return (timeout, hookId, moduleContext) -> BidderInvocationContextImpl.of(
-                auctionInvocationContext(endpoint, timeout, auctionContext, hookId, moduleContext),
-                bidder);
+                auctionInvocationContext(endpoint, timeout, auctionContext, hookId, moduleContext), bidder);
     }
 
     private Timeout createTimeout(Long timeout) {

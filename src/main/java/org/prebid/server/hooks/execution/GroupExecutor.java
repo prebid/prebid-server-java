@@ -5,6 +5,7 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
+import org.apache.commons.lang3.BooleanUtils;
 import org.prebid.server.hooks.execution.model.ExecutionGroup;
 import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.hooks.execution.model.HookId;
@@ -19,6 +20,8 @@ import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.LoggerFactory;
 
 import java.time.Clock;
+import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -28,30 +31,38 @@ class GroupExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
     private static final ConditionalLogger conditionalLogger =
             new ConditionalLogger(LoggerFactory.getLogger(GroupExecutor.class));
 
+    private static final String MODULE_ALWAYS_EXECUTE_MESSAGE = "Can not skip the module execution execution";
+
     private final Vertx vertx;
     private final Clock clock;
     private final boolean isConfigToInvokeRequired;
+    private final Map<String, Boolean> modulesExecution;
 
     private ExecutionGroup group;
     private PAYLOAD initialPayload;
     private Function<HookId, Hook<PAYLOAD, CONTEXT>> hookProvider;
-    private Function<HookId, Boolean> moduleConfigProvider;
     private InvocationContextProvider<CONTEXT> invocationContextProvider;
     private HookExecutionContext hookExecutionContext;
     private boolean rejectAllowed;
 
-    private GroupExecutor(Vertx vertx, Clock clock, boolean isConfigToInvokeRequired) {
+    private GroupExecutor(Vertx vertx,
+                          Clock clock,
+                          boolean isConfigToInvokeRequired,
+                          Map<String, Boolean> modulesExecution) {
+
         this.vertx = vertx;
         this.clock = clock;
         this.isConfigToInvokeRequired = isConfigToInvokeRequired;
+        this.modulesExecution = modulesExecution;
     }
 
     public static <PAYLOAD, CONTEXT extends InvocationContext> GroupExecutor<PAYLOAD, CONTEXT> create(
             Vertx vertx,
             Clock clock,
-            boolean isConfigToInvokeRequired) {
+            boolean isConfigToInvokeRequired,
+            Map<String, Boolean> modulesExecution) {
 
-        return new GroupExecutor<>(vertx, clock, isConfigToInvokeRequired);
+        return new GroupExecutor<>(vertx, clock, isConfigToInvokeRequired, modulesExecution);
     }
 
     public GroupExecutor<PAYLOAD, CONTEXT> withGroup(ExecutionGroup group) {
@@ -66,11 +77,6 @@ class GroupExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
 
     public GroupExecutor<PAYLOAD, CONTEXT> withHookProvider(Function<HookId, Hook<PAYLOAD, CONTEXT>> hookProvider) {
         this.hookProvider = hookProvider;
-        return this;
-    }
-
-    public GroupExecutor<PAYLOAD, CONTEXT> withModuleConfigProvider(Function<HookId, Boolean> moduleConfigProvider) {
-        this.moduleConfigProvider = moduleConfigProvider;
         return this;
     }
 
@@ -123,22 +129,42 @@ class GroupExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
 
         final CONTEXT invocationContext = invocationContextProvider.apply(timeout, hookId, moduleContextFor(hookId));
 
-        final Boolean isHostConfigProvided = moduleConfigProvider.apply(hookId);
+        return skipExecution(invocationContext, hookId).recover(ignored ->
+                executeWithTimeout(() -> hook.call(groupResult.payload(), invocationContext), timeout));
+    }
 
-        if (!isHostConfigProvided
-                && isConfigToInvokeRequired
-                && invocationContext instanceof AuctionInvocationContext) {
-
-            final ObjectNode accountConfig = ((AuctionInvocationContext) invocationContext).accountConfig();
-            if (accountConfig == null || accountConfig.isNull()) {
-                return Future.succeededFuture(InvocationResultImpl.<PAYLOAD>builder()
-                        .status(InvocationStatus.success)
-                        .action(InvocationAction.no_invocation)
-                        .build());
-            }
+    private Future<InvocationResult<PAYLOAD>> skipExecution(CONTEXT invocationContext, HookId hookId) {
+        if (modulesExecution == null || !(invocationContext instanceof AuctionInvocationContext)) {
+            return Future.failedFuture(MODULE_ALWAYS_EXECUTE_MESSAGE);
         }
 
-        return executeWithTimeout(() -> hook.call(groupResult.payload(), invocationContext), timeout);
+        final String moduleCode = hookId.getModuleCode();
+        final Boolean toBeExecuted = modulesExecution.get(moduleCode);
+
+        if (BooleanUtils.isTrue(toBeExecuted)) {
+            return Future.failedFuture(MODULE_ALWAYS_EXECUTE_MESSAGE);
+        }
+
+        if (BooleanUtils.isFalse(toBeExecuted)) {
+            return Future.succeededFuture(InvocationResultImpl.<PAYLOAD>builder()
+                    .status(InvocationStatus.success)
+                    .action(InvocationAction.no_invocation)
+                    .debugMessages(Collections.singletonList(
+                            "The module %s is disabled by the account".formatted(moduleCode)))
+                    .build());
+        }
+
+        final ObjectNode accountConfig = ((AuctionInvocationContext) invocationContext).accountConfig();
+        if (isConfigToInvokeRequired && (accountConfig == null || accountConfig.isNull())) {
+            return Future.succeededFuture(InvocationResultImpl.<PAYLOAD>builder()
+                    .status(InvocationStatus.success)
+                    .action(InvocationAction.no_invocation)
+                    .debugMessages(Collections.singletonList(
+                            "The account config for the module %s is required but absent".formatted(moduleCode)))
+                    .build());
+        }
+
+        return Future.failedFuture(MODULE_ALWAYS_EXECUTE_MESSAGE);
     }
 
     private <T> Future<T> executeWithTimeout(Supplier<Future<T>> action, Long timeout) {

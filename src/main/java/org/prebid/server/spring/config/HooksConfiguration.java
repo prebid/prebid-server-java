@@ -12,24 +12,17 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.env.ConfigurableEnvironment;
-import org.springframework.core.env.EnumerablePropertySource;
-import org.springframework.core.env.Environment;
 import org.springframework.validation.annotation.Validated;
 
 import java.time.Clock;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @Configuration
 public class HooksConfiguration {
 
     @Bean
-    HookCatalog hookCatalog(Collection<Module> modules, Set<String> moduleConfigPresenceSet) {
-        return new HookCatalog(modules, moduleConfigPresenceSet);
+    HookCatalog hookCatalog(Collection<Module> modules) {
+        return new HookCatalog(modules);
     }
 
     @Bean
@@ -51,27 +44,6 @@ public class HooksConfiguration {
                 clock,
                 mapper,
                 isConfigToInvokeRequired);
-    }
-
-    @Bean
-    Set<String> moduleConfigPresenceSet(Collection<Module> modules, Environment environment) {
-        if (modules.isEmpty() || !(environment instanceof ConfigurableEnvironment)) {
-            return Collections.emptySet();
-        }
-
-        final Set<String> hooksPropertiesKeys = ((ConfigurableEnvironment) environment).getPropertySources().stream()
-                .filter(EnumerablePropertySource.class::isInstance)
-                .map(EnumerablePropertySource.class::cast)
-                .map(EnumerablePropertySource::getPropertyNames)
-                .flatMap(Arrays::stream)
-                .filter(propertyName -> propertyName.startsWith("hooks."))
-                .collect(Collectors.toSet());
-
-        return modules.stream()
-                .map(Module::code)
-                .filter(code -> hooksPropertiesKeys.stream()
-                        .anyMatch(key -> key.startsWith("hooks.%s".formatted(code))))
-                .collect(Collectors.toSet());
     }
 
     @Bean

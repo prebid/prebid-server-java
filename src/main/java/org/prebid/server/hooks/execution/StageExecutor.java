@@ -12,6 +12,7 @@ import org.prebid.server.hooks.v1.InvocationContext;
 
 import java.time.Clock;
 import java.util.ArrayList;
+import java.util.Map;
 
 class StageExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
 
@@ -27,6 +28,7 @@ class StageExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
     private InvocationContextProvider<CONTEXT> invocationContextProvider;
     private HookExecutionContext hookExecutionContext;
     private boolean rejectAllowed;
+    private Map<String, Boolean> modulesExecution;
 
     private StageExecutor(HookCatalog hookCatalog, Vertx vertx, Clock clock, boolean isConfigToInvokeRequired) {
         this.hookCatalog = hookCatalog;
@@ -81,6 +83,11 @@ class StageExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
         return this;
     }
 
+    public StageExecutor<PAYLOAD, CONTEXT> withModulesExecution(Map<String, Boolean> modulesExecution) {
+        this.modulesExecution = modulesExecution;
+        return this;
+    }
+
     public Future<HookStageExecutionResult<PAYLOAD>> execute() {
         Future<StageResult<PAYLOAD>> stageFuture = Future.succeededFuture(StageResult.of(initialPayload, entity));
 
@@ -97,12 +104,11 @@ class StageExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
     }
 
     private Future<GroupResult<PAYLOAD>> executeGroup(ExecutionGroup group, PAYLOAD initialPayload) {
-        return GroupExecutor.<PAYLOAD, CONTEXT>create(vertx, clock, isConfigToInvokeRequired)
+        return GroupExecutor.<PAYLOAD, CONTEXT>create(vertx, clock, isConfigToInvokeRequired, modulesExecution)
                 .withGroup(group)
                 .withInitialPayload(initialPayload)
                 .withHookProvider(
                         hookId -> hookCatalog.hookById(hookId.getModuleCode(), hookId.getHookImplCode(), stage))
-                .withModuleConfigProvider(hookId -> hookCatalog.hasHostConfig(hookId.getModuleCode()))
                 .withInvocationContextProvider(invocationContextProvider)
                 .withHookExecutionContext(hookExecutionContext)
                 .withRejectAllowed(rejectAllowed)

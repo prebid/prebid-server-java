@@ -7,7 +7,6 @@ import org.prebid.server.hooks.v1.Module;
 
 import java.util.Collection;
 import java.util.Objects;
-import java.util.Set;
 
 /**
  * Provides simple access to all {@link Hook}s registered in application.
@@ -15,11 +14,9 @@ import java.util.Set;
 public class HookCatalog {
 
     private final Collection<Module> modules;
-    private final Set<String> moduleConfigPresenceSet;
 
-    public HookCatalog(Collection<Module> modules, Set<String> moduleConfigPresenceSet) {
+    public HookCatalog(Collection<Module> modules) {
         this.modules = Objects.requireNonNull(modules);
-        this.moduleConfigPresenceSet = Objects.requireNonNull(moduleConfigPresenceSet);
     }
 
     public <HOOK extends Hook<?, ? extends InvocationContext>> HOOK hookById(
@@ -37,9 +34,5 @@ public class HookCatalog {
                 .map(clazz::cast)
                 .findFirst()
                 .orElse(null);
-    }
-
-    public boolean hasHostConfig(String moduleCode) {
-        return moduleConfigPresenceSet.contains(moduleCode);
     }
 }
