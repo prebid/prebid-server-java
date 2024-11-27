@@ -5,7 +5,7 @@ import org.prebid.server.hooks.execution.HookCatalog;
 import org.prebid.server.hooks.execution.model.ABTest;
 import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.hooks.execution.model.StageWithHookType;
-import org.prebid.server.hooks.execution.provider.ab.ABTestHookProvider;
+import org.prebid.server.hooks.execution.provider.abtest.ABTestHookProvider;
 import org.prebid.server.hooks.v1.Hook;
 import org.prebid.server.hooks.v1.InvocationContext;
 

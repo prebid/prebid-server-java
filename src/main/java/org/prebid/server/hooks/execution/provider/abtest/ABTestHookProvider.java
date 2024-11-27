@@ -1,4 +1,4 @@
-package org.prebid.server.hooks.execution.provider.ab;
+package org.prebid.server.hooks.execution.provider.abtest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.BooleanUtils;
@@ -68,7 +68,7 @@ public class ABTestHookProvider<PAYLOAD, CONTEXT extends InvocationContext> impl
             return hookExecutionOutcome.getAction() != ExecutionAction.no_invocation;
         }
 
-        final int percent = ObjectUtils.defaultIfNull(abTest.getPercent(), 100);
+        final int percent = ObjectUtils.defaultIfNull(abTest.getPercentActive(), 100);
         return ThreadLocalRandom.current().nextInt(100) < percent;
     }
 

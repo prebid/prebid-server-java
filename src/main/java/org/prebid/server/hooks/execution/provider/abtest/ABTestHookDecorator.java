@@ -1,4 +1,4 @@
-package org.prebid.server.hooks.execution.provider.ab;
+package org.prebid.server.hooks.execution.provider.abtest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;

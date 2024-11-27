@@ -21,7 +21,7 @@ public class ABTest {
 
     @JsonProperty("percent-active")
     @JsonAlias("percent_active")
-    Integer percent;
+    Integer percentActive;
 
     @JsonProperty("log-analytics-tag")
     @JsonAlias("log_analytics_tag")
