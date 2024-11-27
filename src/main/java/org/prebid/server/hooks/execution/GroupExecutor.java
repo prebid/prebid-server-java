@@ -16,17 +16,12 @@ import org.prebid.server.hooks.v1.InvocationContext;
 import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
-import org.prebid.server.log.ConditionalLogger;
-import org.prebid.server.log.LoggerFactory;
 
 import java.time.Clock;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
 class GroupExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
-
-    private static final ConditionalLogger conditionalLogger =
-            new ConditionalLogger(LoggerFactory.getLogger(GroupExecutor.class));
 
     private final Vertx vertx;
     private final Clock clock;
@@ -90,11 +85,9 @@ class GroupExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
         Future<GroupResult<PAYLOAD>> groupFuture = Future.succeededFuture(initialGroupResult);
 
         for (final HookId hookId : group.getHookSequence()) {
-            final Hook<PAYLOAD, CONTEXT> hook = hookProvider.apply(hookId);
-
             final long startTime = clock.millis();
             final Future<InvocationResult<PAYLOAD>> invocationResult =
-                    executeHook(hook, group.getTimeout(), initialGroupResult, hookId);
+                    executeHook(hookId, group.getTimeout(), initialGroupResult);
 
             groupFuture = groupFuture.compose(groupResult ->
                     applyInvocationResult(invocationResult, hookId, startTime, groupResult));
@@ -103,16 +96,15 @@ class GroupExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
         return groupFuture.recover(GroupExecutor::restoreResultFromRejection);
     }
 
-    private Future<InvocationResult<PAYLOAD>> executeHook(
-            Hook<PAYLOAD, CONTEXT> hook,
-            Long timeout,
-            GroupResult<PAYLOAD> groupResult,
-            HookId hookId) {
+    private Future<InvocationResult<PAYLOAD>> executeHook(HookId hookId,
+                                                          Long timeout,
+                                                          GroupResult<PAYLOAD> groupResult) {
 
-        if (hook == null) {
-            conditionalLogger.error("Hook implementation %s does not exist or disabled".formatted(hookId), 0.01d);
-
-            return Future.failedFuture(new FailedException("Hook implementation does not exist or disabled"));
+        final Hook<PAYLOAD, CONTEXT> hook;
+        try {
+            hook = hookProvider.apply(hookId);
+        } catch (Exception e) {
+            return Future.failedFuture(new FailedException(e.getMessage()));
         }
 
         final CONTEXT invocationContext = invocationContextProvider.apply(timeout, hookId, moduleContextFor(hookId));

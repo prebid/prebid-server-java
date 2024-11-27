@@ -5,11 +5,16 @@ import org.prebid.server.hooks.execution.model.StageWithHookType;
 import org.prebid.server.hooks.v1.Hook;
 import org.prebid.server.hooks.v1.InvocationContext;
 import org.prebid.server.hooks.v1.Module;
+import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.log.LoggerFactory;
 
 import java.util.Collection;
 import java.util.Objects;
 
 public class HookCatalog {
+
+    private static final ConditionalLogger conditionalLogger =
+            new ConditionalLogger(LoggerFactory.getLogger(HookCatalog.class));
 
     private final Collection<Module> modules;
 
@@ -29,6 +34,13 @@ public class HookCatalog {
                 .filter(clazz::isInstance)
                 .map(clazz::cast)
                 .findFirst()
-                .orElse(null);
+                .orElseThrow(() -> {
+                    logAbsentHook(hookId);
+                    return new IllegalArgumentException("Hook implementation does not exist or disabled");
+                });
+    }
+
+    private static void logAbsentHook(HookId hookId) {
+        conditionalLogger.error("Hook implementation %s does not exist or disabled".formatted(hookId), 0.01d);
     }
 }

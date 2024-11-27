@@ -150,7 +150,7 @@ public class HookStageExecutorTest extends VertxTest {
                                                 HookId.of("module-beta", "hook-a")))))))));
 
         given(hookCatalog.hookById(eqHook("module-alpha", "hook-a"), eq(StageWithHookType.ENTRYPOINT)))
-                .willReturn(null);
+                .willThrow(new IllegalArgumentException("Exception."));
 
         givenEntrypointHook("module-beta", "hook-a", immediateHook(InvocationResultUtils.noAction()));
 
@@ -173,7 +173,7 @@ public class HookStageExecutorTest extends VertxTest {
                                                 HookId.of("module-beta", "hook-a")))))))));
 
         given(hookCatalog.hookById(eqHook("module-alpha", "hook-a"), eq(StageWithHookType.ENTRYPOINT)))
-                .willReturn(null);
+                .willThrow(new IllegalArgumentException("Exception."));
 
         givenEntrypointHook("module-beta", "hook-a", immediateHook(InvocationResultUtils.noAction()));
 
@@ -1210,7 +1210,7 @@ public class HookStageExecutorTest extends VertxTest {
     public void shouldExecuteRawAuctionRequestHooksToleratingUnknownHookInAccountPlan(VertxTestContext context) {
         // given
         given(hookCatalog.hookById(eqHook("module-alpha", "hook-a"), eq(StageWithHookType.RAW_AUCTION_REQUEST)))
-                .willReturn(null);
+                .willThrow(new IllegalArgumentException("Hook implementation does not exist or disabled"));
 
         givenRawAuctionRequestHook(
                 "module-beta",

@@ -156,8 +156,9 @@ public class HookStageExecutor {
     }
 
     private static void validateHookId(Stage stage, HookId hookId, HookCatalog hookCatalog) {
-        final Hook<?, ?> hook = hookCatalog.hookById(hookId, StageWithHookType.forStage(stage));
-        if (hook == null) {
+        try {
+            hookCatalog.hookById(hookId, StageWithHookType.forStage(stage));
+        } catch (Throwable e) {
             throw new IllegalArgumentException(
                     "Hooks execution plan contains unknown or disabled hook: stage=%s, hookId=%s"
                             .formatted(stage, hookId));

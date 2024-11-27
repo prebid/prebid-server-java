@@ -20,6 +20,7 @@ import org.prebid.server.hooks.v1.entrypoint.EntrypointHook;
 
 import static java.util.Collections.singleton;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -42,23 +43,17 @@ public class HookCatalogTest {
     }
 
     @Test
-    public void hookByIdShouldTolerateUnknownModule() {
-        // when
-        final EntrypointHook foundHook = hookCatalog.hookById(
-                HookId.of("unknown-module", null), StageWithHookType.ENTRYPOINT);
-
-        // then
-        assertThat(foundHook).isNull();
+    public void hookByIdShouldThrowExceptionOnUnknownModule() {
+        // when and then
+        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
+                hookCatalog.hookById(HookId.of("unknown-module", null), StageWithHookType.ENTRYPOINT));
     }
 
     @Test
-    public void hookByIdShouldTolerateUnknownHook() {
-        // when
-        final EntrypointHook foundHook = hookCatalog.hookById(
-                HookId.of("sample-module", "unknown-hook"), StageWithHookType.ENTRYPOINT);
-
-        // then
-        assertThat(foundHook).isNull();
+    public void hookByIdShouldThrowExceptionOnUnknownHook() {
+        // when and then
+        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
+                hookCatalog.hookById(HookId.of("sample-module", "unknown-hook"), StageWithHookType.ENTRYPOINT));
     }
 
     @Test
