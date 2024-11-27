@@ -165,4 +165,30 @@ class BidRequest {
             ext.prebid.events = new Events()
         }
     }
+
+    static BidRequest getDefaultVideoRequestWithPlacement(VideoPlacementSubtypes videoPlacementSubtypes) {
+        BidRequest.defaultVideoRequest.tap {
+            imp.first.video.tap {
+                placement = videoPlacementSubtypes
+            }
+        }
+    }
+
+    static BidRequest getDefaultVideoRequestWithPlcmt(VideoPlcmtSubtype videoPlcmtSubtype) {
+        BidRequest.defaultVideoRequest.tap {
+            imp.first.video.tap {
+                plcmt = videoPlcmtSubtype
+            }
+        }
+    }
+
+    static BidRequest getDefaultVideoRequestWithPlcmtAndPlacement(VideoPlcmtSubtype videoPlcmtSubtype,
+                                                        VideoPlacementSubtypes videoPlacementSubtypes) {
+        BidRequest.defaultVideoRequest.tap {
+            imp.first.video.tap {
+                plcmt = videoPlcmtSubtype
+                placement = videoPlacementSubtypes
+            }
+        }
+    }
 }
