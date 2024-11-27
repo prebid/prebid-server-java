@@ -11,7 +11,6 @@ import org.prebid.server.hooks.execution.model.HookExecutionOutcome;
 import org.prebid.server.hooks.execution.model.HookId;
 import org.prebid.server.hooks.execution.model.StageExecutionOutcome;
 import org.prebid.server.hooks.execution.provider.HookProvider;
-import org.prebid.server.hooks.execution.v1.LazyHook;
 import org.prebid.server.hooks.v1.Hook;
 import org.prebid.server.hooks.v1.InvocationContext;
 
@@ -40,16 +39,20 @@ public class ABTestHookProvider<PAYLOAD, CONTEXT extends InvocationContext> impl
 
     @Override
     public Hook<PAYLOAD, CONTEXT> apply(HookId hookId) {
+        final Hook<PAYLOAD, CONTEXT> hook = innerHookProvider.apply(hookId);
+        if (hook == null) {
+            return null;
+        }
+
         final String moduleCode = hookId.getModuleCode();
         final ABTest abTest = searchForABTest(moduleCode);
         if (abTest == null) {
-            return innerHookProvider.apply(hookId);
+            return hook;
         }
 
-        return new ABTestHookDecorator<>(
+        return new ABTestHook<>(
                 moduleCode,
-                // TODO: if we are staying with "lazy" approach, we need to move HookNotFound checks
-                new LazyHook<>(hookId, innerHookProvider),
+                hook,
                 shouldInvokeHook(moduleCode, abTest),
                 BooleanUtils.isNotFalse(abTest.getLogAnalyticsTag()),
                 mapper);

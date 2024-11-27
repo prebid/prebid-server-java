@@ -3,7 +3,6 @@ package org.prebid.server.hooks.execution.provider.abtest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.vertx.core.Future;
-import org.prebid.server.hooks.execution.v1.HookDecorator;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.execution.v1.analytics.ActivityImpl;
 import org.prebid.server.hooks.execution.v1.analytics.ResultImpl;
@@ -22,28 +21,32 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-public class ABTestHookDecorator<PAYLOAD, CONTEXT extends InvocationContext>
-        extends HookDecorator<PAYLOAD, CONTEXT> {
+public class ABTestHook<PAYLOAD, CONTEXT extends InvocationContext> implements Hook<PAYLOAD, CONTEXT> {
 
     private static final String ANALYTICS_ACTIVITY_NAME = "core-module-abtests";
 
     private final String moduleName;
+    private final Hook<PAYLOAD, CONTEXT> hook;
     private final boolean shouldInvokeHook;
     private final boolean logABTestAnalyticsTag;
     private final ObjectMapper mapper;
 
-    public ABTestHookDecorator(String moduleName,
-                               Hook<PAYLOAD, CONTEXT> hook,
-                               boolean shouldInvokeHook,
-                               boolean logABTestAnalyticsTag,
-                               ObjectMapper mapper) {
-
-        super(hook);
+    public ABTestHook(String moduleName,
+                      Hook<PAYLOAD, CONTEXT> hook,
+                      boolean shouldInvokeHook,
+                      boolean logABTestAnalyticsTag,
+                      ObjectMapper mapper) {
 
         this.moduleName = Objects.requireNonNull(moduleName);
+        this.hook = Objects.requireNonNull(hook);
         this.shouldInvokeHook = shouldInvokeHook;
         this.logABTestAnalyticsTag = logABTestAnalyticsTag;
         this.mapper = Objects.requireNonNull(mapper);
+    }
+
+    @Override
+    public String code() {
+        return hook.code();
     }
 
     @Override

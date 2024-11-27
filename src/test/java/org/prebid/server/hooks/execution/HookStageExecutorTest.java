@@ -43,7 +43,6 @@ import org.prebid.server.hooks.execution.model.Stage;
 import org.prebid.server.hooks.execution.model.StageExecutionOutcome;
 import org.prebid.server.hooks.execution.model.StageExecutionPlan;
 import org.prebid.server.hooks.execution.model.StageWithHookType;
-import org.prebid.server.hooks.execution.provider.HookProviderFactory;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.execution.v1.analytics.ActivityImpl;
 import org.prebid.server.hooks.execution.v1.analytics.AppliedToImpl;
@@ -55,7 +54,6 @@ import org.prebid.server.hooks.execution.v1.bidder.AllProcessedBidResponsesPaylo
 import org.prebid.server.hooks.execution.v1.bidder.BidderRequestPayloadImpl;
 import org.prebid.server.hooks.execution.v1.bidder.BidderResponsePayloadImpl;
 import org.prebid.server.hooks.execution.v1.entrypoint.EntrypointPayloadImpl;
-import org.prebid.server.hooks.v1.Hook;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationContext;
 import org.prebid.server.hooks.v1.InvocationResult;
@@ -104,7 +102,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mock.Strictness.LENIENT;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -117,8 +114,6 @@ public class HookStageExecutorTest extends VertxTest {
 
     @Mock(strictness = LENIENT)
     private HookCatalog hookCatalog;
-    @Mock(strictness = LENIENT)
-    private HookProviderFactory hookProviderFactory;
     private TimeoutFactory timeoutFactory;
     private Vertx vertx;
     private Clock clock;
@@ -128,16 +123,6 @@ public class HookStageExecutorTest extends VertxTest {
         vertx = Vertx.vertx();
         clock = Clock.systemUTC();
         timeoutFactory = new TimeoutFactory(Clock.fixed(clock.instant(), ZoneOffset.UTC));
-
-        given(hookProviderFactory.builderForStage(any())).willAnswer(invocation -> {
-            final StageWithHookType<? extends Hook<Object, InvocationContext>> stage = invocation.getArgument(0);
-            final HookProviderFactory.HookProviderBuilder<Object, InvocationContext> hookProviderBuilder = mock();
-
-            given(hookProviderBuilder.decorateWithABTest(any(), any())).willReturn(hookProviderBuilder);
-            given(hookProviderBuilder.build()).willReturn(hookId -> hookCatalog.hookById(hookId, stage));
-
-            return hookProviderBuilder;
-        });
     }
 
     @AfterEach
@@ -1339,7 +1324,6 @@ public class HookStageExecutorTest extends VertxTest {
                 hostExecutionPlan,
                 null,
                 hookCatalog,
-                hookProviderFactory,
                 timeoutFactory,
                 vertx,
                 clock,
@@ -2889,7 +2873,6 @@ public class HookStageExecutorTest extends VertxTest {
                 hostExecutionPlan,
                 defaultAccountExecutionPlan,
                 hookCatalog,
-                hookProviderFactory,
                 timeoutFactory,
                 vertx,
                 clock,

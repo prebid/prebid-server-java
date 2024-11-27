@@ -1,5 +1,6 @@
 package org.prebid.server.hooks.execution;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.BidResponse;
@@ -25,7 +26,8 @@ import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
 import org.prebid.server.hooks.execution.model.Stage;
 import org.prebid.server.hooks.execution.model.StageExecutionPlan;
 import org.prebid.server.hooks.execution.model.StageWithHookType;
-import org.prebid.server.hooks.execution.provider.HookProviderFactory;
+import org.prebid.server.hooks.execution.provider.HookProvider;
+import org.prebid.server.hooks.execution.provider.abtest.ABTestHookProvider;
 import org.prebid.server.hooks.execution.v1.InvocationContextImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionInvocationContextImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
@@ -72,33 +74,35 @@ public class HookStageExecutor {
 
     private final ExecutionPlan hostExecutionPlan;
     private final ExecutionPlan defaultAccountExecutionPlan;
-    private final HookProviderFactory hookProviderFactory;
+    private final HookCatalog hookCatalog;
     private final TimeoutFactory timeoutFactory;
     private final Vertx vertx;
     private final Clock clock;
+    private final ObjectMapper mapper;
     private final boolean isConfigToInvokeRequired;
 
     private HookStageExecutor(ExecutionPlan hostExecutionPlan,
                               ExecutionPlan defaultAccountExecutionPlan,
-                              HookProviderFactory hookProviderFactory,
+                              HookCatalog hookCatalog,
                               TimeoutFactory timeoutFactory,
                               Vertx vertx,
                               Clock clock,
+                              ObjectMapper mapper,
                               boolean isConfigToInvokeRequired) {
 
         this.hostExecutionPlan = hostExecutionPlan;
         this.defaultAccountExecutionPlan = defaultAccountExecutionPlan;
-        this.hookProviderFactory = hookProviderFactory;
+        this.hookCatalog = hookCatalog;
         this.timeoutFactory = timeoutFactory;
         this.vertx = vertx;
         this.clock = clock;
+        this.mapper = mapper;
         this.isConfigToInvokeRequired = isConfigToInvokeRequired;
     }
 
     public static HookStageExecutor create(String hostExecutionPlan,
                                            String defaultAccountExecutionPlan,
                                            HookCatalog hookCatalog,
-                                           HookProviderFactory hookProviderFactory,
                                            TimeoutFactory timeoutFactory,
                                            Vertx vertx,
                                            Clock clock,
@@ -111,10 +115,11 @@ public class HookStageExecutor {
         return new HookStageExecutor(
                 parseAndValidateExecutionPlan(hostExecutionPlan, mapper, hookCatalog),
                 parseAndValidateExecutionPlan(defaultAccountExecutionPlan, mapper, hookCatalog),
-                Objects.requireNonNull(hookProviderFactory),
+                hookCatalog,
                 Objects.requireNonNull(timeoutFactory),
                 Objects.requireNonNull(vertx),
                 Objects.requireNonNull(clock),
+                mapper.mapper(),
                 isConfigToInvokeRequired);
     }
 
@@ -169,9 +174,7 @@ public class HookStageExecutor {
 
         return stageExecutor(StageWithHookType.ENTRYPOINT, ENTITY_HTTP_REQUEST, context)
                 .withExecutionPlan(planForEntrypointStage(endpoint))
-                .withHookProvider(hookProviderFactory.builderForStage(StageWithHookType.ENTRYPOINT)
-                        .decorateWithABTest(abTestsForEntrypointStage(), context)
-                        .build())
+                .withHookProvider(hookProviderForEntrypointStage(context))
                 .withInitialPayload(EntrypointPayloadImpl.of(queryParams, headers, body))
                 .withInvocationContextProvider(invocationContextProvider(endpoint))
                 .withRejectAllowed(true)
@@ -325,9 +328,7 @@ public class HookStageExecutor {
 
         return stageExecutor(stage, entity, context)
                 .withExecutionPlan(planForStage(account, endpoint, stage.stage()))
-                .withHookProvider(hookProviderFactory.builderForStage(stage)
-                        .decorateWithABTest(abTests(account), context)
-                        .build());
+                .withHookProvider(hookProvider(stage, account, context));
     }
 
     private StageExecutionPlan planForEntrypointStage(Endpoint endpoint) {
@@ -372,6 +373,34 @@ public class HookStageExecutor {
                 hooksAccountConfig != null ? hooksAccountConfig.getExecutionPlan() : null;
 
         return accountExecutionPlan != null ? accountExecutionPlan : defaultAccountExecutionPlan;
+    }
+
+    private HookProvider<EntrypointPayload, InvocationContext> hookProviderForEntrypointStage(
+            HookExecutionContext context) {
+
+        return new ABTestHookProvider<>(
+                defaultHookProvider(StageWithHookType.ENTRYPOINT),
+                abTestsForEntrypointStage(),
+                context,
+                mapper);
+    }
+
+    private <PAYLOAD, CONTEXT extends InvocationContext> HookProvider<PAYLOAD, CONTEXT> hookProvider(
+            StageWithHookType<? extends Hook<PAYLOAD, CONTEXT>> stage,
+            Account account,
+            HookExecutionContext context) {
+
+        return new ABTestHookProvider<>(
+                defaultHookProvider(stage),
+                abTests(account),
+                context,
+                mapper);
+    }
+
+    private <PAYLOAD, CONTEXT extends InvocationContext> HookProvider<PAYLOAD, CONTEXT> defaultHookProvider(
+            StageWithHookType<? extends Hook<PAYLOAD, CONTEXT>> stage) {
+
+        return hookId -> hookCatalog.hookById(hookId, stage);
     }
 
     private InvocationContextProvider<InvocationContext> invocationContextProvider(Endpoint endpoint) {

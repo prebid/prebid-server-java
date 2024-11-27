@@ -6,10 +6,8 @@ import lombok.NoArgsConstructor;
 import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.hooks.execution.HookCatalog;
 import org.prebid.server.hooks.execution.HookStageExecutor;
-import org.prebid.server.hooks.execution.provider.HookProviderFactory;
 import org.prebid.server.hooks.v1.Module;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.json.ObjectMapperProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -28,14 +26,8 @@ public class HooksConfiguration {
     }
 
     @Bean
-    HookProviderFactory hookProviderFactory(HookCatalog hookCatalog) {
-        return new HookProviderFactory(hookCatalog, ObjectMapperProvider.mapper());
-    }
-
-    @Bean
     HookStageExecutor hookStageExecutor(HooksConfigurationProperties hooksConfiguration,
                                         HookCatalog hookCatalog,
-                                        HookProviderFactory hookProviderFactory,
                                         TimeoutFactory timeoutFactory,
                                         Vertx vertx,
                                         Clock clock,
@@ -47,7 +39,6 @@ public class HooksConfiguration {
                 hooksConfiguration.getHostExecutionPlan(),
                 hooksConfiguration.getDefaultAccountExecutionPlan(),
                 hookCatalog,
-                hookProviderFactory,
                 timeoutFactory,
                 vertx,
                 clock,
