@@ -410,11 +410,13 @@ public class IxBidder implements Bidder<BidRequest> {
         return Optional.ofNullable(bidResponse)
                 .map(IxBidResponse::getExt)
                 .map(IxExtBidResponse::getProtectedAudienceAuctionConfigs)
-                .filter(CollectionUtils::isNotEmpty)
                 .orElse(Collections.emptyList())
                 .stream()
-                .map(ixAuctionConfig -> FledgeAuctionConfig.builder().impId(ixAuctionConfig.getBidId())
-                        .config(ixAuctionConfig.getConfig()).build())
+                .filter(Objects::nonNull)
+                .map(ixAuctionConfig -> FledgeAuctionConfig.builder()
+                        .impId(ixAuctionConfig.getBidId())
+                        .config(ixAuctionConfig.getConfig())
+                        .build())
                 .toList();
     }
 }
