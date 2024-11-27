@@ -472,7 +472,7 @@ public class HookStageExecutor {
     }
 
     private Optional<List<ABTest>> abTestsFromAccount(Account account) {
-        return Optional.ofNullable(effectiveExecutionPlanFor(account))
+        return Optional.of(effectiveExecutionPlanFor(account))
                 .map(ExecutionPlan::getAbTests)
                 .map(abTests -> abTests.stream()
                         .filter(HookStageExecutor::isABTestEnabled)

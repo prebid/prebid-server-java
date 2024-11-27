@@ -11,7 +11,7 @@ import java.util.Map;
 @Value(staticConstructor = "of")
 public class ExecutionPlan {
 
-    private static final ExecutionPlan EMPTY = of(Collections.emptyList(), Collections.emptyMap());
+    private static final ExecutionPlan EMPTY = of(null, Collections.emptyMap());
 
     @JsonProperty("abtests")
     List<ABTest> abTests;
