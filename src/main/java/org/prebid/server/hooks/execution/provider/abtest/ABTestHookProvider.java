@@ -40,9 +40,6 @@ public class ABTestHookProvider<PAYLOAD, CONTEXT extends InvocationContext> impl
     @Override
     public Hook<PAYLOAD, CONTEXT> apply(HookId hookId) {
         final Hook<PAYLOAD, CONTEXT> hook = innerHookProvider.apply(hookId);
-        if (hook == null) {
-            return null;
-        }
 
         final String moduleCode = hookId.getModuleCode();
         final ABTest abTest = searchForABTest(moduleCode);
