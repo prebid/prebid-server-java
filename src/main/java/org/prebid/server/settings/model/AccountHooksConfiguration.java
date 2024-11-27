@@ -15,6 +15,5 @@ public class AccountHooksConfiguration {
 
     Map<String, ObjectNode> modules;
 
-    @JsonAlias("modules-execute")
-    Map<String, Boolean> modulesExecution;
+    AccountHooksAdminConfig admin;
 }

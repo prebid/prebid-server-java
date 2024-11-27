@@ -46,6 +46,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountHooksAdminConfig;
 import org.prebid.server.settings.model.AccountHooksConfiguration;
 
 import java.time.Clock;
@@ -280,7 +281,8 @@ public class HookStageExecutor {
 
     private Map<String, Boolean> modulesExecutionForAccount(Account account) {
         return Optional.ofNullable(account.getHooks())
-                .map(AccountHooksConfiguration::getModulesExecution)
+                .map(AccountHooksConfiguration::getAdmin)
+                .map(AccountHooksAdminConfig::getModuleExecution)
                 .orElseGet(Collections::emptyMap);
     }
 

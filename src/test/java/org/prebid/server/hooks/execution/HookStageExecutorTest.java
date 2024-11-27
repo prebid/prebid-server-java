@@ -79,6 +79,7 @@ import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountHooksAdminConfig;
 import org.prebid.server.settings.model.AccountHooksConfiguration;
 
 import java.time.Clock;
@@ -1355,8 +1356,9 @@ public class HookStageExecutorTest extends VertxTest {
                                         Map.of("module-alpha", mapper.createObjectNode(),
                                                 "module-beta", mapper.createObjectNode(),
                                                 "module-gamma", mapper.createObjectNode()),
-                                        Map.of("module-alpha", true,
-                                                "module-beta", false)))
+                                        AccountHooksAdminConfig.builder()
+                                                .moduleExecution(Map.of("module-alpha", true, "module-beta", false))
+                                                .build()))
                                 .build())
                         .hookExecutionContext(hookExecutionContext)
                         .debugContext(DebugContext.empty())
@@ -1451,8 +1453,9 @@ public class HookStageExecutorTest extends VertxTest {
                                         Map.of("module-alpha", mapper.createObjectNode(),
                                                 "module-beta", mapper.createObjectNode(),
                                                 "module-gamma", mapper.createObjectNode()),
-                                        Map.of("module-alpha", true,
-                                                "module-beta", false)))
+                                        AccountHooksAdminConfig.builder()
+                                                .moduleExecution(Map.of("module-alpha", true, "module-beta", false))
+                                                .build()))
                                 .build())
                         .hookExecutionContext(hookExecutionContext)
                         .debugContext(DebugContext.empty())
