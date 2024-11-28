@@ -628,13 +628,20 @@ public class Metrics extends UpdatableMetrics {
 
         final HookImplMetrics hookImplMetrics = hooks().module(moduleCode).stage(stage).hookImpl(hookImplCode);
 
-        hookImplMetrics.incCounter(MetricName.call);
+        if (action != ExecutionAction.no_invocation) {
+            hookImplMetrics.incCounter(MetricName.call);
+        }
+
         if (status == ExecutionStatus.success) {
             hookImplMetrics.success().incCounter(HookMetricMapper.fromAction(action));
         } else {
             hookImplMetrics.incCounter(HookMetricMapper.fromStatus(status));
         }
-        hookImplMetrics.updateTimer(MetricName.duration, executionTime);
+
+        if (action != ExecutionAction.no_invocation) {
+            hookImplMetrics.updateTimer(MetricName.duration, executionTime);
+        }
+
     }
 
     public void updateAccountHooksMetrics(
@@ -646,7 +653,10 @@ public class Metrics extends UpdatableMetrics {
         if (accountMetricsVerbosityResolver.forAccount(account).isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
             final ModuleMetrics accountModuleMetrics = forAccount(account.getId()).hooks().module(moduleCode);
 
-            accountModuleMetrics.incCounter(MetricName.call);
+            if (action != ExecutionAction.no_invocation) {
+                accountModuleMetrics.incCounter(MetricName.call);
+            }
+
             if (status == ExecutionStatus.success) {
                 accountModuleMetrics.success().incCounter(HookMetricMapper.fromAction(action));
             } else {
@@ -677,6 +687,7 @@ public class Metrics extends UpdatableMetrics {
             ACTION_TO_METRIC.put(ExecutionAction.no_action, MetricName.noop);
             ACTION_TO_METRIC.put(ExecutionAction.update, MetricName.update);
             ACTION_TO_METRIC.put(ExecutionAction.reject, MetricName.reject);
+            ACTION_TO_METRIC.put(ExecutionAction.no_invocation, MetricName.no_invocation);
         }
 
         static MetricName fromStatus(ExecutionStatus status) {

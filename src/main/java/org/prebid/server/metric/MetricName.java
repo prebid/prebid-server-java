@@ -139,6 +139,7 @@ public enum MetricName {
     call,
     success,
     noop,
+    no_invocation("no-invocation"),
     reject,
     unknown,
     failure,

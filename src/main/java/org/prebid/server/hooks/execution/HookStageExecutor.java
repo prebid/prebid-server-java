@@ -47,7 +47,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.settings.model.Account;
-import org.prebid.server.settings.model.AccountHooksAdminConfig;
+import org.prebid.server.settings.model.HooksAdminConfig;
 import org.prebid.server.settings.model.AccountHooksConfiguration;
 
 import java.time.Clock;
@@ -70,6 +70,7 @@ public class HookStageExecutor {
 
     private final ExecutionPlan hostExecutionPlan;
     private final ExecutionPlan defaultAccountExecutionPlan;
+    private final Map<String, Boolean> hostModuleExecution;
     private final HookCatalog hookCatalog;
     private final TimeoutFactory timeoutFactory;
     private final Vertx vertx;
@@ -78,6 +79,7 @@ public class HookStageExecutor {
 
     private HookStageExecutor(ExecutionPlan hostExecutionPlan,
                               ExecutionPlan defaultAccountExecutionPlan,
+                              Map<String, Boolean> hostModuleExecution,
                               HookCatalog hookCatalog,
                               TimeoutFactory timeoutFactory,
                               Vertx vertx,
@@ -91,10 +93,12 @@ public class HookStageExecutor {
         this.vertx = vertx;
         this.clock = clock;
         this.isConfigToInvokeRequired = isConfigToInvokeRequired;
+        this.hostModuleExecution = hostModuleExecution;
     }
 
     public static HookStageExecutor create(String hostExecutionPlan,
                                            String defaultAccountExecutionPlan,
+                                           Map<String, Boolean> hostModuleExecution,
                                            HookCatalog hookCatalog,
                                            TimeoutFactory timeoutFactory,
                                            Vertx vertx,
@@ -108,6 +112,7 @@ public class HookStageExecutor {
                         Objects.requireNonNull(mapper),
                         Objects.requireNonNull(hookCatalog)),
                 parseAndValidateExecutionPlan(defaultAccountExecutionPlan, mapper, hookCatalog),
+                hostModuleExecution,
                 hookCatalog,
                 Objects.requireNonNull(timeoutFactory),
                 Objects.requireNonNull(vertx),
@@ -127,7 +132,7 @@ public class HookStageExecutor {
                 .withExecutionPlan(planForEntrypointStage(endpoint))
                 .withInitialPayload(EntrypointPayloadImpl.of(queryParams, headers, body))
                 .withInvocationContextProvider(invocationContextProvider(endpoint))
-                .withModulesExecution(Collections.emptyMap())
+                .withModulesExecution(DefaultedMap.defaultedMap(hostModuleExecution, true))
                 .withRejectAllowed(true)
                 .execute();
     }
@@ -285,23 +290,22 @@ public class HookStageExecutor {
     private Map<String, Boolean> modulesExecutionForAccount(Account account) {
         final Map<String, Boolean> accountModulesExecution = Optional.ofNullable(account.getHooks())
                 .map(AccountHooksConfiguration::getAdmin)
-                .map(AccountHooksAdminConfig::getModuleExecution)
+                .map(HooksAdminConfig::getModuleExecution)
                 .orElseGet(Collections::emptyMap);
-
-        if (!isConfigToInvokeRequired) {
-            return DefaultedMap.defaultedMap(accountModulesExecution, true);
-        }
 
         final Map<String, Boolean> resultModulesExecution = new HashMap<>(accountModulesExecution);
 
-        Optional.ofNullable(account.getHooks())
-                .map(AccountHooksConfiguration::getModules)
-                .map(Map::keySet)
-                .stream()
-                .flatMap(Collection::stream)
-                .forEach(module -> resultModulesExecution.computeIfAbsent(module, key -> true));
+        if (isConfigToInvokeRequired) {
+            Optional.ofNullable(account.getHooks())
+                    .map(AccountHooksConfiguration::getModules)
+                    .map(Map::keySet)
+                    .stream()
+                    .flatMap(Collection::stream)
+                    .forEach(module -> resultModulesExecution.computeIfAbsent(module, key -> true));
+        }
 
-        return DefaultedMap.defaultedMap(resultModulesExecution, false);
+        resultModulesExecution.putAll(hostModuleExecution);
+        return DefaultedMap.defaultedMap(resultModulesExecution, !isConfigToInvokeRequired);
     }
 
     private static ExecutionPlan parseAndValidateExecutionPlan(

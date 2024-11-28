@@ -12,13 +12,13 @@ import org.prebid.server.hooks.modules.pb.richmedia.filter.core.ModuleConfigReso
 import org.prebid.server.hooks.modules.pb.richmedia.filter.model.AnalyticsResult;
 import org.prebid.server.hooks.modules.pb.richmedia.filter.model.MraidFilterResult;
 import org.prebid.server.hooks.modules.pb.richmedia.filter.model.PbRichMediaFilterProperties;
-import org.prebid.server.hooks.modules.pb.richmedia.filter.v1.model.InvocationResultImpl;
 import org.prebid.server.hooks.modules.pb.richmedia.filter.v1.model.analytics.ActivityImpl;
 import org.prebid.server.hooks.modules.pb.richmedia.filter.v1.model.analytics.AppliedToImpl;
 import org.prebid.server.hooks.modules.pb.richmedia.filter.v1.model.analytics.ResultImpl;
 import org.prebid.server.hooks.modules.pb.richmedia.filter.v1.model.analytics.TagsImpl;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
+import org.prebid.server.hooks.v1.InvocationResultImpl;
 import org.prebid.server.hooks.v1.InvocationStatus;
 import org.prebid.server.hooks.v1.analytics.Result;
 import org.prebid.server.hooks.v1.analytics.Tags;

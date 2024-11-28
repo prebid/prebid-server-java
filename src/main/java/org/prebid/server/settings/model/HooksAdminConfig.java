@@ -8,7 +8,7 @@ import java.util.Map;
 
 @Builder
 @Value
-public class AccountHooksAdminConfig {
+public class HooksAdminConfig {
 
     @JsonAlias("module-execution")
     Map<String, Boolean> moduleExecution;

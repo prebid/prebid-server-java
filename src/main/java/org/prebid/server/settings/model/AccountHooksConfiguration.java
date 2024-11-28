@@ -15,5 +15,5 @@ public class AccountHooksConfiguration {
 
     Map<String, ObjectNode> modules;
 
-    AccountHooksAdminConfig admin;
+    HooksAdminConfig admin;
 }
