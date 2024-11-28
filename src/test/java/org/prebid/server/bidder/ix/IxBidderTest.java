@@ -27,6 +27,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.ix.model.request.IxDiag;
+import org.prebid.server.bidder.ix.model.response.AuctionConfigExtBidResponse;
 import org.prebid.server.bidder.ix.model.response.IxBidResponse;
 import org.prebid.server.bidder.ix.model.response.IxExtBidResponse;
 import org.prebid.server.bidder.ix.model.response.NativeV11Wrapper;
@@ -49,7 +50,6 @@ import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
 import org.prebid.server.version.PrebidVersionProvider;
 
 import java.util.List;
-import java.util.Map;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
@@ -778,7 +778,7 @@ public class IxBidderTest extends VertxTest {
         final IxBidResponse bidResponseWithFledge = IxBidResponse.builder()
                 .cur(bidResponse.getCur())
                 .seatbid(bidResponse.getSeatbid())
-                .ext(IxExtBidResponse.of(Map.of(impId, fledgeAuctionConfig)))
+                .ext(IxExtBidResponse.of(List.of(AuctionConfigExtBidResponse.of(impId, fledgeAuctionConfig))))
                 .build();
         final BidderCall<BidRequest> httpCall =
                 givenHttpCall(bidRequest, mapper.writeValueAsString(bidResponseWithFledge));
