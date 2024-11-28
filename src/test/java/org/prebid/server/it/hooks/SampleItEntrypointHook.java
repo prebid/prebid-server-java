@@ -5,7 +5,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.hooks.execution.v1.entrypoint.EntrypointPayloadImpl;
 import org.prebid.server.hooks.v1.InvocationContext;
 import org.prebid.server.hooks.v1.InvocationResult;
-import org.prebid.server.hooks.v1.InvocationResultUtils;
+import org.prebid.server.hooks.v1.InvocationResultImpl;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointHook;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointPayload;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
@@ -18,7 +18,7 @@ public class SampleItEntrypointHook implements EntrypointHook {
 
         final boolean rejectFlag = Boolean.parseBoolean(entrypointPayload.queryParams().get("sample-it-module-reject"));
         if (rejectFlag) {
-            return Future.succeededFuture(InvocationResultUtils.rejected("Rejected by sample entrypoint hook"));
+            return Future.succeededFuture(InvocationResultImpl.rejected("Rejected by sample entrypoint hook"));
         }
 
         return maybeUpdate(entrypointPayload);
@@ -35,7 +35,7 @@ public class SampleItEntrypointHook implements EntrypointHook {
                 ? updateBody(entrypointPayload.body())
                 : entrypointPayload.body();
 
-        return Future.succeededFuture(InvocationResultUtils.succeeded(payload -> EntrypointPayloadImpl.of(
+        return Future.succeededFuture(InvocationResultImpl.succeeded(payload -> EntrypointPayloadImpl.of(
                 payload.queryParams(),
                 updatedHeaders,
                 updatedBody)));

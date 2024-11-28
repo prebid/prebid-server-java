@@ -5,6 +5,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import org.apache.commons.collections4.map.DefaultedMap;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
@@ -52,6 +53,7 @@ import org.prebid.server.settings.model.AccountHooksConfiguration;
 import java.time.Clock;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -125,6 +127,7 @@ public class HookStageExecutor {
                 .withExecutionPlan(planForEntrypointStage(endpoint))
                 .withInitialPayload(EntrypointPayloadImpl.of(queryParams, headers, body))
                 .withInvocationContextProvider(invocationContextProvider(endpoint))
+                .withModulesExecution(Collections.emptyMap())
                 .withRejectAllowed(true)
                 .execute();
     }
@@ -261,7 +264,7 @@ public class HookStageExecutor {
             String entity,
             HookExecutionContext context) {
 
-        return StageExecutor.<PAYLOAD, CONTEXT>create(hookCatalog, vertx, clock, isConfigToInvokeRequired)
+        return StageExecutor.<PAYLOAD, CONTEXT>create(hookCatalog, vertx, clock)
                 .withStage(stage)
                 .withEntity(entity)
                 .withHookExecutionContext(context);
@@ -280,10 +283,25 @@ public class HookStageExecutor {
     }
 
     private Map<String, Boolean> modulesExecutionForAccount(Account account) {
-        return Optional.ofNullable(account.getHooks())
+        final Map<String, Boolean> accountModulesExecution = Optional.ofNullable(account.getHooks())
                 .map(AccountHooksConfiguration::getAdmin)
                 .map(AccountHooksAdminConfig::getModuleExecution)
                 .orElseGet(Collections::emptyMap);
+
+        if (!isConfigToInvokeRequired) {
+            return DefaultedMap.defaultedMap(accountModulesExecution, true);
+        }
+
+        final Map<String, Boolean> resultModulesExecution = new HashMap<>(accountModulesExecution);
+
+        Optional.ofNullable(account.getHooks())
+                .map(AccountHooksConfiguration::getModules)
+                .map(Map::keySet)
+                .stream()
+                .flatMap(Collection::stream)
+                .forEach(module -> resultModulesExecution.computeIfAbsent(module, key -> true));
+
+        return DefaultedMap.defaultedMap(resultModulesExecution, false);
     }
 
     private static ExecutionPlan parseAndValidateExecutionPlan(

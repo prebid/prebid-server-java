@@ -2,5 +2,5 @@ package org.prebid.server.hooks.v1;
 
 public enum InvocationAction {
 
-    no_action, update, reject, no_invocation
+    no_action, update, reject
 }

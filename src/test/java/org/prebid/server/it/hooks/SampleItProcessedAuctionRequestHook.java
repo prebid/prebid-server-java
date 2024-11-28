@@ -6,7 +6,7 @@ import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Future;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.v1.InvocationResult;
-import org.prebid.server.hooks.v1.InvocationResultUtils;
+import org.prebid.server.hooks.v1.InvocationResultImpl;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.ProcessedAuctionRequestHook;
@@ -29,7 +29,7 @@ public class SampleItProcessedAuctionRequestHook implements ProcessedAuctionRequ
 
         final BidRequest updatedBidRequest = updateBidRequest(originalBidRequest);
 
-        return Future.succeededFuture(InvocationResultUtils.succeeded(payload ->
+        return Future.succeededFuture(InvocationResultImpl.succeeded(payload ->
                 AuctionRequestPayloadImpl.of(payload.bidRequest().toBuilder()
                         .ext(updatedBidRequest.getExt())
                         .build())));

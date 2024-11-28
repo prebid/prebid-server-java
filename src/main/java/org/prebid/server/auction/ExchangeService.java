@@ -1395,7 +1395,6 @@ public class ExchangeService {
                     .flatMap(Collection::stream)
                     .map(GroupExecutionOutcome::getHooks)
                     .flatMap(Collection::stream)
-                    .filter(hookOutcome -> hookOutcome.getAction() != ExecutionAction.no_invocation)
                     .collect(Collectors.groupingBy(
                             outcome -> outcome.getHookId().getModuleCode(),
                             Collectors.summingLong(HookExecutionOutcome::getExecutionTime)))
