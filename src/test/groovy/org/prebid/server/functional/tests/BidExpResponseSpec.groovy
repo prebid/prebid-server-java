@@ -8,7 +8,9 @@ import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.PrebidCache
 import org.prebid.server.functional.model.request.auction.PrebidCacheSettings
 import org.prebid.server.functional.model.response.auction.BidResponse
+import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.IgnoreRest
 
 import static org.prebid.server.functional.model.response.auction.MediaType.BANNER
 import static org.prebid.server.functional.model.response.auction.MediaType.VIDEO
@@ -430,7 +432,9 @@ class BidExpResponseSpec extends BaseSpec {
         def bidRequest = BidRequest.getDefaultBidRequest().tap {
             enableCache()
             imp[0] = Imp.getDefaultImpression(VIDEO)
-            ext.prebid.cache = new PrebidCache(vastXml: new PrebidCacheSettings(ttlSeconds: randomExp))
+            ext.prebid.cache = new PrebidCache(
+                    vastXml: new PrebidCacheSettings(ttlSeconds: randomExp),
+                    bids: new PrebidCacheSettings(ttlSeconds: PBSUtils.randomNumber))
         }
 
         and: "Default bid response"
@@ -503,10 +507,8 @@ class BidExpResponseSpec extends BaseSpec {
 
         where:
         mediaType | auctionConfig
-        VIDEO     | new AccountAuctionConfig(videoCacheTtl: null)
         VIDEO     | new AccountAuctionConfig(bannerCacheTtl: PBSUtils.randomNumber)
         VIDEO     | new AccountAuctionConfig(bannerCacheTtl: PBSUtils.randomNumber, videoCacheTtl: null)
-        BANNER    | new AccountAuctionConfig(bannerCacheTtl: null)
         BANNER    | new AccountAuctionConfig(videoCacheTtl: PBSUtils.randomNumber)
         BANNER    | new AccountAuctionConfig(bannerCacheTtl: null, videoCacheTtl: PBSUtils.randomNumber)
         NATIVE    | new AccountAuctionConfig(bannerCacheTtl: PBSUtils.randomNumber, videoCacheTtl: PBSUtils.randomNumber)
@@ -519,14 +521,16 @@ class BidExpResponseSpec extends BaseSpec {
 
     def "PBS auction shouldn't resolve bid.exp when account config and request imp type match but account config for cache-ttl is not specified"() {
         given: "Default bid request"
-        def bidRequest = BidRequest.getDefaultBidRequest()
-
+        def bidRequest = BidRequest.getDefaultBidRequest().tap {
+            enableCache()
+            imp[0] = Imp.getDefaultImpression(mediaType)
+        }
         and: "Default bid response"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
         bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Account in the DB"
-        def account = new Account(uuid: bidRequest.accountId, config: new AccountConfig(auction: auctionConfig))
+        def account = new Account(uuid: bidRequest.accountId, config: new AccountConfig(auction: new AccountAuctionConfig(bannerCacheTtl: null, videoCacheTtl: null)))
         accountDao.save(account)
 
         when: "PBS processes auction request"
@@ -536,21 +540,7 @@ class BidExpResponseSpec extends BaseSpec {
         assert !response.seatbid.first.bid.first.exp
 
         where:
-        mediaType | auctionConfig
-        VIDEO     | new AccountAuctionConfig()
-        VIDEO     | new AccountAuctionConfig(bannerCacheTtl: null)
-        VIDEO     | new AccountAuctionConfig(bannerCacheTtl: null, videoCacheTtl: null)
-        BANNER    | new AccountAuctionConfig()
-        BANNER    | new AccountAuctionConfig(videoCacheTtl: null)
-        BANNER    | new AccountAuctionConfig(bannerCacheTtl: null, videoCacheTtl: null)
-        NATIVE    | new AccountAuctionConfig()
-        NATIVE    | new AccountAuctionConfig(bannerCacheTtl: null)
-        NATIVE    | new AccountAuctionConfig(videoCacheTtl: null)
-        NATIVE    | new AccountAuctionConfig(bannerCacheTtl: null, videoCacheTtl: null)
-        AUDIO     | new AccountAuctionConfig()
-        AUDIO     | new AccountAuctionConfig(bannerCacheTtl: null)
-        AUDIO     | new AccountAuctionConfig(videoCacheTtl: null)
-        AUDIO     | new AccountAuctionConfig(bannerCacheTtl: null, videoCacheTtl: null)
+        mediaType << [VIDEO, BANNER, NATIVE, AUDIO]
     }
 
     def "PBS auction should resolve bid.exp when account.auction.{banner/video}-cache-ttl and banner bid specified"() {
@@ -621,7 +611,11 @@ class BidExpResponseSpec extends BaseSpec {
     }
 
     def "PBS auction should resolve bid.exp when cache.default-ttl-seconds.{banner,video,audio,native} is specified and no higher-priority fields are present"() {
-        given: "Default bid request"
+        given: "Prebid server with empty host config and default cache ttl config"
+        def config = EMPTY_CACHE_TTL_HOST_CONFIG + DEFAULT_CACHE_TTL_CONFIG
+        def prebidServerService = pbsServiceFactory.getService(config)
+
+        and: "Default bid request"
         def bidRequest = BidRequest.getDefaultBidRequest().tap {
             imp[0] = Imp.getDefaultImpression(mediaType)
         }
@@ -631,12 +625,13 @@ class BidExpResponseSpec extends BaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
-        def response = pbsServiceFactory
-                .getService(EMPTY_CACHE_TTL_HOST_CONFIG + DEFAULT_CACHE_TTL_CONFIG)
-                .sendAuctionRequest(bidRequest)
+        def response = prebidServerService.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain exp data"
         assert response.seatbid.first.bid.first.exp == bidExpValue
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(config)
 
         where:
         mediaType | bidExpValue
