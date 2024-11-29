@@ -439,6 +439,10 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 - `analytics.pubstack.buffers.count` - threshold in events count for buffer to send events
 - `analytics.pubstack.buffers.report-ttl-ms` - max period between two reports.
 
+## Modules
+- `hooks.admin.module-execution` - a key-value map, where a key is a module name and a value is a boolean, that defines whether modules hooks should/should not be always executed; if the module is not specified it is executed by default when it's present in the execution plan
+- `settings.modules.require-config-to-invoke` - when enabled it requires a runtime config to exist for a module.
+
 ## Debugging
 - `debug.override-token` - special string token for overriding Prebid Server account and/or adapter debug information presence in the auction response.
 
