@@ -291,7 +291,7 @@ public class HookStageExecutor {
         final Map<String, Boolean> accountModulesExecution = Optional.ofNullable(account.getHooks())
                 .map(AccountHooksConfiguration::getAdmin)
                 .map(HooksAdminConfig::getModuleExecution)
-                .orElseGet(Collections::emptyMap);
+                .orElse(Collections.emptyMap());
 
         final Map<String, Boolean> resultModulesExecution = new HashMap<>(accountModulesExecution);
 
