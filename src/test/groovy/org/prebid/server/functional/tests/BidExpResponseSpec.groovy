@@ -9,7 +9,6 @@ import org.prebid.server.functional.model.request.auction.PrebidCache
 import org.prebid.server.functional.model.request.auction.PrebidCacheSettings
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.RepeatUntilFailure
 
 import static org.prebid.server.functional.model.response.auction.MediaType.BANNER
 import static org.prebid.server.functional.model.response.auction.MediaType.VIDEO
@@ -427,7 +426,6 @@ class BidExpResponseSpec extends BaseSpec {
         mediaType << [BANNER, NATIVE, AUDIO]
     }
 
-    @RepeatUntilFailure
     def "PBS auction should resolve bid.exp from ext.prebid.cache.vastxml.ttlseconds when request has video as mediaType"() {
         given: "Default bid request"
         def bidsTtlSeconds = PBSUtils.randomNumber
