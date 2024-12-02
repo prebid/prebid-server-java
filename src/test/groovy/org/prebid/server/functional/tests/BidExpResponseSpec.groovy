@@ -8,9 +8,7 @@ import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.PrebidCache
 import org.prebid.server.functional.model.request.auction.PrebidCacheSettings
 import org.prebid.server.functional.model.response.auction.BidResponse
-import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.IgnoreRest
 
 import static org.prebid.server.functional.model.response.auction.MediaType.BANNER
 import static org.prebid.server.functional.model.response.auction.MediaType.VIDEO
@@ -308,7 +306,7 @@ class BidExpResponseSpec extends BaseSpec {
     }
 
     def "PBS auction should prioritize bid.exp from the response over all other fields from the request and account config"() {
-        given: "Default bid request with different media type in imp"
+        given: "Default bid request with specific imp media type"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0] = Imp.getDefaultImpression(mediaType).tap {
                 exp = PBSUtils.randomNumber
@@ -343,7 +341,7 @@ class BidExpResponseSpec extends BaseSpec {
     }
 
     def "PBS auction shouldn't resolve bid.exp for #mediaType when the response, request, and account config don't include such data"() {
-        given: "Default bid request with different media type in imp"
+        given: "Default bid request with specific imp media type"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0] = Imp.getDefaultImpression(mediaType)
         }
@@ -377,7 +375,9 @@ class BidExpResponseSpec extends BaseSpec {
         }
 
         and: "Default bid response without bid.exp"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid[0].bid[0].exp = null
+        }
         bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Account in the DB"
@@ -525,6 +525,7 @@ class BidExpResponseSpec extends BaseSpec {
             enableCache()
             imp[0] = Imp.getDefaultImpression(mediaType)
         }
+
         and: "Default bid response"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
         bidder.setResponse(bidRequest.id, bidResponse)
