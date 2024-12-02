@@ -65,7 +65,7 @@ public class ABTestHook<PAYLOAD, CONTEXT extends InvocationContext> implements H
         return Future.succeededFuture(InvocationResultImpl.<PAYLOAD>builder()
                 .status(InvocationStatus.success)
                 .action(InvocationAction.no_invocation)
-                .analyticsTags(tags("skipped"))
+                .analyticsTags(logABTestAnalyticsTag ? tags("skipped") : null)
                 .build());
     }
 
