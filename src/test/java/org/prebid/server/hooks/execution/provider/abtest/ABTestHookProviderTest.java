@@ -39,7 +39,6 @@ class ABTestHookProviderTest extends VertxTest {
     @Mock
     private Hook<Object, InvocationContext> innerHook;
 
-
     @BeforeEach
     public void setUp() {
         given(innerHookProvider.apply(any())).willReturn(innerHook);
