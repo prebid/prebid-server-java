@@ -29,6 +29,7 @@ import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.execution.timeout.TimeoutFactory;
+import org.prebid.server.hooks.execution.model.ABTest;
 import org.prebid.server.hooks.execution.model.EndpointExecutionPlan;
 import org.prebid.server.hooks.execution.model.ExecutionAction;
 import org.prebid.server.hooks.execution.model.ExecutionGroup;
@@ -93,6 +94,7 @@ import java.util.function.UnaryOperator;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
+import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -2725,8 +2727,85 @@ public class HookStageExecutorTest extends VertxTest {
         }));
     }
 
+    @Test
+    public void abTestsForEntrypointStageShouldReturnEnabledTests() {
+        // given
+        final HookStageExecutor executor = createExecutor(executionPlan(asList(
+                ABTest.builder().enabled(true).accounts(singleton("1")).build(),
+                ABTest.builder().enabled(false).accounts(singleton("1")).build(),
+                ABTest.builder().enabled(false).accounts(singleton("2")).build(),
+                ABTest.builder().enabled(true).build())));
+
+        // when
+        final List<ABTest> abTests = executor.abTestsForEntrypointStage();
+
+        // then
+        assertThat(abTests)
+                .hasSize(2)
+                .extracting(ABTest::isEnabled)
+                .containsOnly(true);
+    }
+
+    @Test
+    public void abTestsShouldReturnEnabledTestsFromAccount() {
+        // given
+        final HookStageExecutor executor = createExecutor(executionPlan(asList(
+                ABTest.builder().enabled(true).accounts(singleton("1")).build(),
+                ABTest.builder().enabled(false).accounts(singleton("1")).build(),
+                ABTest.builder().enabled(false).accounts(singleton("2")).build(),
+                ABTest.builder().enabled(true).build())));
+
+        final Account account = Account.builder()
+                .id("1")
+                .hooks(AccountHooksConfiguration.of(
+                        ExecutionPlan.of(
+                                asList(
+                                        ABTest.builder().enabled(true).accounts(singleton("3")).build(),
+                                        ABTest.builder().enabled(false).accounts(singleton("4")).build(),
+                                        ABTest.builder().enabled(true).build()),
+                                emptyMap()),
+                        emptyMap()))
+                .build();
+
+        // when
+        final List<ABTest> abTests = executor.abTests(account);
+
+        // then
+        assertThat(abTests).containsExactly(
+                ABTest.builder().enabled(true).accounts(singleton("3")).build(),
+                ABTest.builder().enabled(true).build());
+    }
+
+    @Test
+    public void abTestsShouldReturnEnabledTestsFromHost() {
+        // given
+        final HookStageExecutor executor = createExecutor(
+                executionPlan(asList(
+                        ABTest.builder().enabled(true).accounts(singleton("1")).build(),
+                        ABTest.builder().enabled(false).accounts(singleton("1")).build(),
+                        ABTest.builder().enabled(false).accounts(singleton("2")).build(),
+                        ABTest.builder().enabled(true).build())),
+                jacksonMapper.encodeToString(ExecutionPlan.empty()));
+
+        final Account account = Account.builder()
+                .id("1")
+                .build();
+
+        // when
+        final List<ABTest> abTests = executor.abTests(account);
+
+        // then
+        assertThat(abTests).containsExactly(
+                ABTest.builder().enabled(true).accounts(singleton("1")).build(),
+                ABTest.builder().enabled(true).build());
+    }
+
     private String executionPlan(Map<Endpoint, EndpointExecutionPlan> endpoints) {
-        return jacksonMapper.encodeToString(ExecutionPlan.of(emptyList(), endpoints));
+        return jacksonMapper.encodeToString(ExecutionPlan.of(null, endpoints));
+    }
+
+    private String executionPlan(List<ABTest> abTests) {
+        return jacksonMapper.encodeToString(ExecutionPlan.of(abTests, emptyMap()));
     }
 
     private static StageExecutionPlan execPlanTwoGroupsTwoHooksEach() {
