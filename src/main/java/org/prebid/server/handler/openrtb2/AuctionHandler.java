@@ -113,12 +113,21 @@ public class AuctionHandler implements ApplicationResource {
         auctionRequestFactory.parseRequest(routingContext, startTime)
                 .compose(auctionContext -> skippedAuctionService.skipAuction(auctionContext)
                         .recover(throwable -> holdAuction(auctionEventBuilder, auctionContext)))
+                .map(context -> addContextAndBidResponseToEvent(context, auctionEventBuilder, context))
                 .map(context -> prepareSuccessfulResponse(context, routingContext))
                 .compose(this::invokeExitpointHooks)
-                .map(context -> addToEvent(context.getAuctionContext(), auctionEventBuilder::auctionContext, context))
-                .map(context -> addToEvent(
-                        context.getAuctionContext().getBidResponse(), auctionEventBuilder::bidResponse, context))
+                .map(context -> addContextAndBidResponseToEvent(
+                        context.getAuctionContext(), auctionEventBuilder, context))
                 .onComplete(result -> handleResult(result, auctionEventBuilder, routingContext, startTime));
+    }
+
+    private static <R> R addContextAndBidResponseToEvent(AuctionContext context,
+                                                         AuctionEvent.AuctionEventBuilder auctionEventBuilder,
+                                                         R result) {
+
+        auctionEventBuilder.auctionContext(context);
+        auctionEventBuilder.bidResponse(context.getBidResponse());
+        return result;
     }
 
     private Future<AuctionContext> holdAuction(AuctionEvent.AuctionEventBuilder auctionEventBuilder,
@@ -128,8 +137,7 @@ public class AuctionHandler implements ApplicationResource {
                 .map(this::updateAppAndNoCookieAndImpsMetrics)
                 // In case of holdAuction Exception and auctionContext is not present below
                 .map(context -> addToEvent(context, auctionEventBuilder::auctionContext, context))
-                .compose(exchangeService::holdAuction)
-                .map(context -> addToEvent(context.getBidResponse(), auctionEventBuilder::bidResponse, context));
+                .compose(exchangeService::holdAuction);
     }
 
     private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {
@@ -171,7 +179,7 @@ public class AuctionHandler implements ApplicationResource {
         if (auctionContext.isAuctionSkipped()) {
             return Future.succeededFuture(auctionContext)
                     .map(hooksMetricsService::updateHooksMetrics)
-                    .map(context -> rawResponseContext);
+                    .map(rawResponseContext);
         }
 
         return hookStageExecutor.executeExitpointStage(
@@ -224,6 +232,10 @@ public class AuctionHandler implements ApplicationResource {
                             responseHeaders, header.getKey(), header.getValue()));
             body = rawResponseContext.getResponseBody();
         } else {
+            getCommonResponseHeaders(routingContext)
+                    .forEach(header -> HttpUtil.addHeaderIfValueIsNotEmpty(
+                            responseHeaders, header.getKey(), header.getValue()));
+
             final Throwable exception = responseResult.cause();
             if (exception instanceof InvalidRequestException invalidRequestException) {
                 metricRequestStatus = MetricName.badinput;
@@ -275,10 +287,6 @@ public class AuctionHandler implements ApplicationResource {
                 status = HttpResponseStatus.INTERNAL_SERVER_ERROR;
                 body = "Critical error while running the auction: " + message;
             }
-
-            getCommonResponseHeaders(routingContext)
-                    .forEach(header -> HttpUtil.addHeaderIfValueIsNotEmpty(
-                            responseHeaders, header.getKey(), header.getValue()));
         }
 
         final AuctionEvent auctionEvent = auctionEventBuilder.status(status.code()).errors(errorMessages).build();

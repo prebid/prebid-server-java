@@ -148,16 +148,20 @@ public class AmpHandler implements ApplicationResource {
                 .map(context -> addToEvent(context, ampEventBuilder::auctionContext, context))
                 .map(this::updateAppAndNoCookieAndImpsMetrics)
                 .compose(exchangeService::holdAuction)
-                .map(context -> addToEvent(context, ampEventBuilder::auctionContext, context))
-                .map(context -> addToEvent(context.getBidResponse(), ampEventBuilder::bidResponse, context))
+                .map(context -> addContextAndBidResponseToEvent(context, ampEventBuilder, context))
                 .compose(context -> prepareSuccessfulResponse(context, routingContext, ampEventBuilder))
                 .compose(this::invokeExitpointHooks)
-                .map(context -> addToEvent(context.getAuctionContext(), ampEventBuilder::auctionContext, context))
-                .map(context -> addToEvent(
-                        context.getAuctionContext().getBidResponse(),
-                        ampEventBuilder::bidResponse,
-                        context))
+                .map(context -> addContextAndBidResponseToEvent(context.getAuctionContext(), ampEventBuilder, context))
                 .onComplete(responseResult -> handleResult(responseResult, ampEventBuilder, routingContext, startTime));
+    }
+
+    private static <R> R addContextAndBidResponseToEvent(AuctionContext context,
+                                                         AmpEvent.AmpEventBuilder ampEventBuilder,
+                                                         R result) {
+
+        ampEventBuilder.auctionContext(context);
+        ampEventBuilder.bidResponse(context.getBidResponse());
+        return result;
     }
 
     private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {
@@ -350,6 +354,10 @@ public class AmpHandler implements ApplicationResource {
                             responseHeaders, header.getKey(), header.getValue()));
             body = rawResponseContext.getResponseBody();
         } else {
+            getCommonResponseHeaders(routingContext, origin)
+                    .forEach(header -> HttpUtil.addHeaderIfValueIsNotEmpty(
+                            responseHeaders, header.getKey(), header.getValue()));
+
             final Throwable exception = responseResult.cause();
             if (exception instanceof InvalidRequestException invalidRequestException) {
                 metricRequestStatus = MetricName.badinput;
@@ -404,10 +412,6 @@ public class AmpHandler implements ApplicationResource {
                 status = HttpResponseStatus.INTERNAL_SERVER_ERROR;
                 body = "Critical error while running the auction: " + message;
             }
-
-            getCommonResponseHeaders(routingContext, origin)
-                    .forEach(header -> HttpUtil.addHeaderIfValueIsNotEmpty(
-                            responseHeaders, header.getKey(), header.getValue()));
         }
 
         final int statusCode = status.code();

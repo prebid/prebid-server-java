@@ -201,6 +201,10 @@ public class VideoHandler implements ApplicationResource {
                             responseHeaders, header.getKey(), header.getValue()));
             body = rawResponseContext.getResponseBody();
         } else {
+            getCommonResponseHeaders(routingContext)
+                    .forEach(header -> HttpUtil.addHeaderIfValueIsNotEmpty(
+                            responseHeaders, header.getKey(), header.getValue()));
+
             final Throwable exception = responseResult.cause();
             if (exception instanceof InvalidRequestException) {
                 metricRequestStatus = MetricName.badinput;
@@ -229,10 +233,6 @@ public class VideoHandler implements ApplicationResource {
                 status = HttpResponseStatus.INTERNAL_SERVER_ERROR;
                 body = "Critical error while running the auction: " + message;
             }
-
-            getCommonResponseHeaders(routingContext)
-                    .forEach(header -> HttpUtil.addHeaderIfValueIsNotEmpty(
-                            responseHeaders, header.getKey(), header.getValue()));
         }
 
         VideoEvent videoEvent = videoEventBuilder.status(status.code()).errors(errorMessages).build();
