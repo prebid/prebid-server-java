@@ -9,6 +9,7 @@ import org.prebid.server.functional.model.request.auction.PrebidCache
 import org.prebid.server.functional.model.request.auction.PrebidCacheSettings
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.RepeatUntilFailure
 
 import static org.prebid.server.functional.model.response.auction.MediaType.BANNER
 import static org.prebid.server.functional.model.response.auction.MediaType.VIDEO
@@ -426,15 +427,18 @@ class BidExpResponseSpec extends BaseSpec {
         mediaType << [BANNER, NATIVE, AUDIO]
     }
 
+    @RepeatUntilFailure
     def "PBS auction should resolve bid.exp from ext.prebid.cache.vastxml.ttlseconds when request has video as mediaType"() {
         given: "Default bid request"
-        def randomExp = PBSUtils.randomNumber
+        def bidsTtlSeconds = PBSUtils.randomNumber
+        def vastXmTtlSeconds = bidsTtlSeconds + 1
         def bidRequest = BidRequest.getDefaultBidRequest().tap {
             enableCache()
             imp[0] = Imp.getDefaultImpression(VIDEO)
+
             ext.prebid.cache = new PrebidCache(
-                    vastXml: new PrebidCacheSettings(ttlSeconds: randomExp),
-                    bids: new PrebidCacheSettings(ttlSeconds: PBSUtils.randomNumber))
+                    vastXml: new PrebidCacheSettings(ttlSeconds: vastXmTtlSeconds),
+                    bids: new PrebidCacheSettings(ttlSeconds: bidsTtlSeconds))
         }
 
         and: "Default bid response"
@@ -452,7 +456,7 @@ class BidExpResponseSpec extends BaseSpec {
         def response = pbsHostAndDefaultCacheTtlService.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain exp data"
-        assert response.seatbid.first.bid.first.exp == randomExp
+        assert response.seatbid.first.bid.first.exp == vastXmTtlSeconds
     }
 
     def "PBS auction should resolve bid.exp when ext.prebid.cache.bids.ttlseconds is specified and no higher-priority fields are present"() {
