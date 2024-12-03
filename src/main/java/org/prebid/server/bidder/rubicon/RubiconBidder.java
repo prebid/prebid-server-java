@@ -1648,12 +1648,10 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
         final ExtBidPrebid extBidPrebid = extPrebid != null ? extPrebid.getPrebid() : null;
         final ExtBidPrebidMeta meta = extBidPrebid != null ? extBidPrebid.getMeta() : null;
-        final ExtBidPrebidMeta updatedMeta = meta != null
-                ? meta.toBuilder()
-                .networkId(networkId != null ? networkId : meta.getNetworkId())
-                .seat(seat != null ? seat : meta.getSeat())
-                .build()
-                : ExtBidPrebidMeta.builder()
+
+        final ExtBidPrebidMeta updatedMeta = Optional.ofNullable(meta)
+                .map(ExtBidPrebidMeta::toBuilder)
+                .orElseGet(ExtBidPrebidMeta::builder)
                 .networkId(networkId)
                 .seat(seat)
                 .build();
