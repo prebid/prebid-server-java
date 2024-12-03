@@ -33,8 +33,8 @@ import org.prebid.server.bidder.model.CompositeBidderResponse;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.execution.Timeout;
-import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.execution.timeout.Timeout;
+import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
@@ -117,7 +117,7 @@ public class HttpBidderRequesterTest extends VertxTest {
         expiredTimeout = timeoutFactory.create(clock.instant().minusMillis(1500L).toEpochMilli(), 1000L);
 
         target = new HttpBidderRequester(
-                httpClient, null, bidderErrorNotifier, requestEnricher, jacksonMapper);
+                httpClient, null, bidderErrorNotifier, requestEnricher, jacksonMapper, 0.0);
         given(bidder.makeBidderResponse(any(BidderCall.class), any(BidRequest.class))).willCallRealMethod();
     }
 
@@ -506,7 +506,8 @@ public class HttpBidderRequesterTest extends VertxTest {
                 },
                 bidderErrorNotifier,
                 requestEnricher,
-                jacksonMapper);
+                jacksonMapper,
+                0.0);
 
         final BidRequest bidRequest = bidRequestWithDeals("deal1", "deal2");
         final BidderRequest bidderRequest = BidderRequest.builder()

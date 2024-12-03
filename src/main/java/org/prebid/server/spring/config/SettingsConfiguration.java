@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.activity.ActivitiesConfigResolver;
-import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.floors.PriceFloorsConfigResolver;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;

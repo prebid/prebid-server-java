@@ -11,4 +11,8 @@ class ExecutionPlan {
     static ExecutionPlan getSingleEndpointExecutionPlan(Endpoint endpoint, ModuleName moduleName, List<Stage> stage) {
         new ExecutionPlan(endpoints: [(endpoint): EndpointExecutionPlan.getModuleEndpointExecutionPlan(moduleName, stage)])
     }
+
+    static ExecutionPlan getSingleEndpointExecutionPlan(Endpoint endpoint, Map<Stage, List<ModuleName>> modulesStages) {
+        new ExecutionPlan(endpoints: [(endpoint): EndpointExecutionPlan.getModulesEndpointExecutionPlan(modulesStages)])
+    }
 }

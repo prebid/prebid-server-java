@@ -66,6 +66,9 @@ import org.prebid.server.auction.requestfactory.Ortb2RequestFactory;
 import org.prebid.server.auction.requestfactory.VideoRequestFactory;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConverterFactory;
+import org.prebid.server.bidadjustments.BidAdjustmentsProcessor;
+import org.prebid.server.bidadjustments.BidAdjustmentsResolver;
+import org.prebid.server.bidadjustments.BidAdjustmentsRetriever;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.BidderErrorNotifier;
@@ -84,7 +87,7 @@ import org.prebid.server.cookie.PrioritizedCoopSyncProvider;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.events.EventsService;
-import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.floors.PriceFloorAdjuster;
 import org.prebid.server.floors.PriceFloorEnforcer;
 import org.prebid.server.floors.PriceFloorProcessor;
@@ -425,7 +428,8 @@ public class ServiceConfiguration {
             AuctionPrivacyContextFactory auctionPrivacyContextFactory,
             DebugResolver debugResolver,
             JacksonMapper mapper,
-            GeoLocationServiceWrapper geoLocationServiceWrapper) {
+            GeoLocationServiceWrapper geoLocationServiceWrapper,
+            BidAdjustmentsRetriever bidAdjustmentsRetriever) {
 
         return new AuctionRequestFactory(
                 maxRequestSize,
@@ -441,7 +445,8 @@ public class ServiceConfiguration {
                 auctionPrivacyContextFactory,
                 debugResolver,
                 mapper,
-                geoLocationServiceWrapper);
+                geoLocationServiceWrapper,
+                bidAdjustmentsRetriever);
     }
 
     @Bean
@@ -753,11 +758,13 @@ public class ServiceConfiguration {
             HttpBidderRequestEnricher requestEnricher,
             JacksonMapper mapper) {
 
-        return new HttpBidderRequester(httpClient,
+        return new HttpBidderRequester(
+                httpClient,
                 bidderRequestCompletionTrackerFactory,
                 bidderErrorNotifier,
                 requestEnricher,
-                mapper);
+                mapper,
+                logSamplingRate);
     }
 
     @Bean
@@ -894,19 +901,11 @@ public class ServiceConfiguration {
 
     @Bean
     BidsAdjuster bidsAdjuster(ResponseBidValidator responseBidValidator,
-                              CurrencyConversionService currencyConversionService,
                               PriceFloorEnforcer priceFloorEnforcer,
                               DsaEnforcer dsaEnforcer,
-                              BidAdjustmentFactorResolver bidAdjustmentFactorResolver,
-                              JacksonMapper mapper) {
+                              BidAdjustmentsProcessor bidAdjustmentsProcessor) {
 
-        return new BidsAdjuster(
-                responseBidValidator,
-                currencyConversionService,
-                bidAdjustmentFactorResolver,
-                priceFloorEnforcer,
-                dsaEnforcer,
-                mapper);
+        return new BidsAdjuster(responseBidValidator, priceFloorEnforcer, bidAdjustmentsProcessor, dsaEnforcer);
     }
 
     @Bean
@@ -1183,6 +1182,29 @@ public class ServiceConfiguration {
                                              BidResponseCreator bidResponseCreator) {
 
         return new SkippedAuctionService(storedResponseProcessor, bidResponseCreator);
+    }
+
+    @Bean
+    BidAdjustmentsRetriever bidAdjustmentsRetriever(JacksonMapper mapper, JsonMerger jsonMerger) {
+        return new BidAdjustmentsRetriever(mapper, jsonMerger, logSamplingRate);
+    }
+
+    @Bean
+    BidAdjustmentsResolver bidAdjustmentsResolver(CurrencyConversionService currencyService) {
+        return new BidAdjustmentsResolver(currencyService);
+    }
+
+    @Bean
+    BidAdjustmentsProcessor bidAdjustmentsProcessor(CurrencyConversionService currencyService,
+                                                    BidAdjustmentFactorResolver bidAdjustmentFactorResolver,
+                                                    BidAdjustmentsResolver bidAdjustmentsResolver,
+                                                    JacksonMapper mapper) {
+
+        return new BidAdjustmentsProcessor(
+                currencyService,
+                bidAdjustmentFactorResolver,
+                bidAdjustmentsResolver,
+                mapper);
     }
 
     private static List<String> splitToList(String listAsString) {

@@ -24,8 +24,9 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.execution.Timeout;
+import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
@@ -62,24 +63,28 @@ import java.util.zip.GZIPOutputStream;
 public class HttpBidderRequester {
 
     private static final Logger logger = LoggerFactory.getLogger(HttpBidderRequester.class);
+    private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
 
     private final HttpClient httpClient;
     private final BidderRequestCompletionTrackerFactory completionTrackerFactory;
     private final BidderErrorNotifier bidderErrorNotifier;
     private final HttpBidderRequestEnricher requestEnricher;
     private final JacksonMapper mapper;
+    private final double logSamplingRate;
 
     public HttpBidderRequester(HttpClient httpClient,
                                BidderRequestCompletionTrackerFactory completionTrackerFactory,
                                BidderErrorNotifier bidderErrorNotifier,
                                HttpBidderRequestEnricher requestEnricher,
-                               JacksonMapper mapper) {
+                               JacksonMapper mapper,
+                               double logSamplingRate) {
 
         this.httpClient = Objects.requireNonNull(httpClient);
         this.completionTrackerFactory = completionTrackerFactoryOrFallback(completionTrackerFactory);
         this.bidderErrorNotifier = Objects.requireNonNull(bidderErrorNotifier);
         this.requestEnricher = Objects.requireNonNull(requestEnricher);
         this.mapper = Objects.requireNonNull(mapper);
+        this.logSamplingRate = logSamplingRate;
     }
 
     /**
@@ -241,9 +246,9 @@ public class HttpBidderRequester {
     /**
      * Produces {@link Future} with {@link BidderCall} containing request and error description.
      */
-    private static <T> Future<BidderCall<T>> failResponse(Throwable exception, HttpRequest<T> httpRequest) {
-        logger.warn("Error occurred while sending HTTP request to a bidder url: {} with message: {}",
-                httpRequest.getUri(), exception.getMessage());
+    private <T> Future<BidderCall<T>> failResponse(Throwable exception, HttpRequest<T> httpRequest) {
+        conditionalLogger.warn("Error occurred while sending HTTP request to a bidder url: %s with message: %s"
+                        .formatted(httpRequest.getUri(), exception.getMessage()), logSamplingRate);
         logger.debug("Error occurred while sending HTTP request to a bidder url: {}",
                 exception, httpRequest.getUri());
 

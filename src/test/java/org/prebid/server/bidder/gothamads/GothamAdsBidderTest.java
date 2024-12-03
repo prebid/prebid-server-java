@@ -46,7 +46,7 @@ import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
 
 public class GothamAdsBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test-url.com/?pass={{AccountId}}";
+    private static final String ENDPOINT_URL = "https://test-url.com/?pass={{AccountID}}";
 
     private final GothamAdsBidder target = new GothamAdsBidder(ENDPOINT_URL, jacksonMapper);
 

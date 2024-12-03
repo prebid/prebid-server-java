@@ -3,7 +3,7 @@ package org.prebid.server.vertx.database;
 import io.vertx.core.Future;
 import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowSet;
-import org.prebid.server.execution.Timeout;
+import org.prebid.server.execution.timeout.Timeout;
 
 import java.util.List;
 import java.util.function.Function;

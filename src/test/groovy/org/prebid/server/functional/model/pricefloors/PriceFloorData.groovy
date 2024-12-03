@@ -16,6 +16,7 @@ class PriceFloorData implements ResponseModel {
     String floorProvider
     Currency currency
     Integer skipRate
+    Integer useFetchDataRate
     String floorsSchemaVersion
     Integer modelTimestamp
     List<ModelGroup> modelGroups

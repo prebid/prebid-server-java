@@ -128,4 +128,27 @@ class PBSUtils implements ObjectMapperWrapper {
                 throw new IllegalArgumentException("Unknown case type: $caseType")
         }
     }
+
+    static String getRandomVersion(String minVersion = "0.0.0", String maxVersion = "99.99.99") {
+        def minParts = minVersion.split('\\.').collect { it.toInteger() }
+        def maxParts = maxVersion.split('\\.').collect { it.toInteger() }
+        def versionParts = []
+
+        def major = getRandomNumber(minParts[0], maxParts[0])
+        versionParts << major
+
+        def minorMin = (major == minParts[0]) ? minParts[1] : 0
+        def minorMax = (major == maxParts[0]) ? maxParts[1] : 99
+        def minor = getRandomNumber(minorMin, minorMax)
+        versionParts << minor
+
+        if (minParts.size() > 2 || maxParts.size() > 2) {
+            def patchMin = (major == minParts[0] && minor == minParts[1]) ? minParts[2] : 0
+            def patchMax = (major == maxParts[0] && minor == maxParts[1]) ? maxParts[2] : 99
+            def patch = getRandomNumber(patchMin, patchMax)
+            versionParts << patch
+        }
+        def version = versionParts.join('.')
+        return (version >= minVersion && version <= maxVersion) ? version : getRandomVersion(minVersion, maxVersion)
+    }
 }

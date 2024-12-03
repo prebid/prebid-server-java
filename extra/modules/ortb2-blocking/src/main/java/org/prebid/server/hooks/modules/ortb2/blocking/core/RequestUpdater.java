@@ -13,7 +13,6 @@ import org.prebid.server.spring.config.bidder.model.MediaType;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 
 public class RequestUpdater {
 
@@ -99,13 +98,15 @@ public class RequestUpdater {
     }
 
     private static Banner updateBanner(Banner banner, List<Integer> btype, List<Integer> battr) {
-        final List<Integer> existingBtype = banner != null ? banner.getBtype() : null;
-        final List<Integer> existingBattr = banner != null ? banner.getBattr() : null;
+        if (banner == null) {
+            return null;
+        }
+
+        final List<Integer> existingBtype = banner.getBtype();
+        final List<Integer> existingBattr = banner.getBattr();
 
         return CollectionUtils.isEmpty(existingBtype) || CollectionUtils.isEmpty(existingBattr)
-                ? Optional.ofNullable(banner)
-                .map(Banner::toBuilder)
-                .orElseGet(Banner::builder)
+                ? banner.toBuilder()
                 .btype(CollectionUtils.isNotEmpty(existingBtype) ? existingBtype : btype)
                 .battr(CollectionUtils.isNotEmpty(existingBattr) ? existingBattr : battr)
                 .build()
@@ -113,22 +114,26 @@ public class RequestUpdater {
     }
 
     private static Video updateVideo(Video video, List<Integer> battr) {
-        final List<Integer> existingBattr = video != null ? video.getBattr() : null;
+        if (video == null) {
+            return null;
+        }
+
+        final List<Integer> existingBattr = video.getBattr();
         return CollectionUtils.isEmpty(existingBattr)
-                ? Optional.ofNullable(video)
-                .map(Video::toBuilder)
-                .orElseGet(Video::builder)
+                ? video.toBuilder()
                 .battr(battr)
                 .build()
                 : video;
     }
 
     private static Audio updateAudio(Audio audio, List<Integer> battr) {
-        final List<Integer> existingBattr = audio != null ? audio.getBattr() : null;
+        if (audio == null) {
+            return null;
+        }
+
+        final List<Integer> existingBattr = audio.getBattr();
         return CollectionUtils.isEmpty(existingBattr)
-                ? Optional.ofNullable(audio)
-                .map(Audio::toBuilder)
-                .orElseGet(Audio::builder)
+                ? audio.toBuilder()
                 .battr(battr)
                 .build()
                 : audio;

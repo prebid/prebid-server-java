@@ -10,7 +10,7 @@ import org.prebid.server.auction.GeoLocationServiceWrapper;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.execution.Timeout;
+import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.Logger;

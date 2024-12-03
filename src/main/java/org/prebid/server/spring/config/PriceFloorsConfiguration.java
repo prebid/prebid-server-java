@@ -3,7 +3,7 @@ package org.prebid.server.spring.config;
 import io.vertx.core.Vertx;
 import org.prebid.server.auction.adjustment.FloorAdjustmentFactorResolver;
 import org.prebid.server.currency.CurrencyConversionService;
-import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.floors.BasicPriceFloorAdjuster;
 import org.prebid.server.floors.BasicPriceFloorEnforcer;
 import org.prebid.server.floors.BasicPriceFloorProcessor;

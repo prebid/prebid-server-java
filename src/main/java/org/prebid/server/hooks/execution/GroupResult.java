@@ -173,6 +173,7 @@ class GroupResult<T> {
             case reject -> ExecutionAction.reject;
             case update -> ExecutionAction.update;
             case no_action -> ExecutionAction.no_action;
+            case no_invocation -> ExecutionAction.no_invocation;
         };
     }
 
