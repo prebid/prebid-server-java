@@ -1280,7 +1280,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         assertThat(result.getUser())
                 .isEqualTo(User.builder()
                         .ext(ExtUser.builder()
-                                .consentedProvidersSettings(ConsentedProvidersSettings.of("someConsent"))
+                                .deprecatedConsentedProvidersSettings(ConsentedProvidersSettings.of("someConsent"))
                                 .build())
                         .build());
     }
