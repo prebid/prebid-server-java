@@ -369,6 +369,9 @@ contain 'WHERE last_updated > ?' for MySQL and 'WHERE last_updated > $1' for Pos
 For targeting available next options:
 - `settings.targeting.truncate-attr-chars` - set the max length for names of targeting keywords (0 means no truncation).
 
+For modules:
+- `settings.modules.require-config-to-invoke` - when enabled it requires a runtime config to exist for a module.
+
 ## Host Cookie
 - `host-cookie.optout-cookie.name` - set the cookie name for optout checking.
 - `host-cookie.optout-cookie.value` - set the cookie value for optout checking.
@@ -438,10 +441,6 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 - `analytics.pubstack.buffers.size-bytes` - threshold in bytes for buffer to send events. 
 - `analytics.pubstack.buffers.count` - threshold in events count for buffer to send events
 - `analytics.pubstack.buffers.report-ttl-ms` - max period between two reports.
-
-## Modules
-- `hooks.admin.module-execution` - a key-value map, where a key is a module name and a value is a boolean, that defines whether modules hooks should/should not be always executed; if the module is not specified it is executed by default when it's present in the execution plan
-- `settings.modules.require-config-to-invoke` - when enabled it requires a runtime config to exist for a module.
 
 ## Debugging
 - `debug.override-token` - special string token for overriding Prebid Server account and/or adapter debug information presence in the auction response.
