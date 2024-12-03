@@ -27,7 +27,47 @@
       "ix": "{{ ix.response_time_ms }}"
     },
     "prebid": {
-      "auctiontimestamp": 0
+      "auctiontimestamp": 0,
+      "fledge": {
+        "auctionconfigs": [
+          {
+            "impid": "imp_id",
+            "bidder": "ix",
+            "adapter": "ix",
+            "config": {
+              "seller": "https://test.casalemedia.com",
+              "decisionLogicUrl": "https://test.casalemedia.com/decision-logic.js",
+              "trustedScoringSignalsURL": "https://test.casalemedia.com/123",
+              "interestGroupBuyers": [
+                "https://test.com"
+              ],
+              "sellerSignals": {
+                "callbackURL": "https://test.casalemedia.com/callback/1",
+                "debugURL": "https://test.casalemedia.com/debug/1",
+                "width": 300,
+                "height": 250
+              },
+              "sellerTimeout": 150,
+              "perBuyerSignals": {
+                "https://test.com": [
+                  {
+                    "key": "value"
+                  }
+                ]
+              },
+              "perBuyerCurrencies": {
+                "*": "USD"
+              },
+              "sellerCurrency": "USD",
+              "requestedSize": {
+                "width": 300,
+                "height": 250
+              },
+              "maxTrustedBiddingSignalsURLLength": 1000
+            }
+          }
+        ]
+      }
     },
     "tmaxrequest": 5000
   }

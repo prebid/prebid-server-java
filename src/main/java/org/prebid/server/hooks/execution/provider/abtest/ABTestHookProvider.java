@@ -62,7 +62,7 @@ public class ABTestHookProvider<PAYLOAD, CONTEXT extends InvocationContext> impl
                 .orElse(null);
     }
 
-    private boolean shouldInvokeHook(String moduleCode, ABTest abTest) {
+    protected boolean shouldInvokeHook(String moduleCode, ABTest abTest) {
         final HookExecutionOutcome hookExecutionOutcome = searchForPreviousExecution(moduleCode);
         if (hookExecutionOutcome != null) {
             return hookExecutionOutcome.getAction() != ExecutionAction.no_invocation;

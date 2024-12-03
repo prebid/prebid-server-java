@@ -167,6 +167,12 @@ public class Metrics extends UpdatableMetrics {
         return hooksMetrics;
     }
 
+    public void updateDebugRequestMetrics(boolean debugEnabled) {
+        if (debugEnabled) {
+            incCounter(MetricName.debug_requests);
+        }
+    }
+
     public void updateAppAndNoCookieAndImpsRequestedMetrics(boolean isApp, boolean liveUidsPresent, int numImps) {
         if (isApp) {
             incCounter(MetricName.app_requests);
@@ -235,9 +241,17 @@ public class Metrics extends UpdatableMetrics {
             final AccountMetrics accountMetrics = forAccount(account.getId());
 
             accountMetrics.incCounter(MetricName.requests);
+
             if (verbosityLevel.isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
                 accountMetrics.requestType(requestType).incCounter(MetricName.requests);
             }
+        }
+    }
+
+    public void updateAccountDebugRequestMetrics(Account account, boolean debugEnabled) {
+        final AccountMetricsVerbosityLevel verbosityLevel = accountMetricsVerbosityResolver.forAccount(account);
+        if (verbosityLevel.isAtLeast(AccountMetricsVerbosityLevel.detailed) && debugEnabled) {
+            forAccount(account.getId()).incCounter(MetricName.debug_requests);
         }
     }
 

@@ -456,7 +456,7 @@ public class HookStageExecutor {
         return modulesConfiguration != null ? modulesConfiguration.get(hookId.getModuleCode()) : null;
     }
 
-    private List<ABTest> abTestsForEntrypointStage() {
+    protected List<ABTest> abTestsForEntrypointStage() {
         return ListUtils.emptyIfNull(hostExecutionPlan.getAbTests()).stream()
                 .filter(HookStageExecutor::isABTestEnabled)
                 .toList();
@@ -466,7 +466,7 @@ public class HookStageExecutor {
         return abTest != null && abTest.isEnabled();
     }
 
-    private List<ABTest> abTests(Account account) {
+    protected List<ABTest> abTests(Account account) {
         return abTestsFromAccount(account)
                 .or(() -> abTestsFromHostConfig(account.getId()))
                 .orElse(Collections.emptyList());

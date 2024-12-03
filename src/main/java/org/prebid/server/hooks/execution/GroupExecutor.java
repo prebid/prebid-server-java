@@ -85,9 +85,11 @@ class GroupExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
         Future<GroupResult<PAYLOAD>> groupFuture = Future.succeededFuture(initialGroupResult);
 
         for (final HookId hookId : group.getHookSequence()) {
+            final Future<Hook<PAYLOAD, CONTEXT>> hookFuture = hook(hookId);
+
             final long startTime = clock.millis();
-            final Future<InvocationResult<PAYLOAD>> invocationResult =
-                    executeHook(hookId, group.getTimeout(), initialGroupResult);
+            final Future<InvocationResult<PAYLOAD>> invocationResult = hookFuture
+                    .compose(hook -> executeHook(hook, group.getTimeout(), initialGroupResult, hookId));
 
             groupFuture = groupFuture.compose(groupResult ->
                     applyInvocationResult(invocationResult, hookId, startTime, groupResult));
@@ -96,16 +98,18 @@ class GroupExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
         return groupFuture.recover(GroupExecutor::restoreResultFromRejection);
     }
 
-    private Future<InvocationResult<PAYLOAD>> executeHook(HookId hookId,
-                                                          Long timeout,
-                                                          GroupResult<PAYLOAD> groupResult) {
-
-        final Hook<PAYLOAD, CONTEXT> hook;
+    private Future<Hook<PAYLOAD, CONTEXT>> hook(HookId hookId) {
         try {
-            hook = hookProvider.apply(hookId);
+            return Future.succeededFuture(hookProvider.apply(hookId));
         } catch (Exception e) {
             return Future.failedFuture(new FailedException(e.getMessage()));
         }
+    }
+
+    private Future<InvocationResult<PAYLOAD>> executeHook(Hook<PAYLOAD, CONTEXT> hook,
+                                                          Long timeout,
+                                                          GroupResult<PAYLOAD> groupResult,
+                                                          HookId hookId) {
 
         final CONTEXT invocationContext = invocationContextProvider.apply(timeout, hookId, moduleContextFor(hookId));
 
