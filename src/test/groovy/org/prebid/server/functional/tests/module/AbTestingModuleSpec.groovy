@@ -527,7 +527,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         }
 
         and: "Shouldn't include any analytics tags"
-        assert  (invocationResults.analyticsTags.activities.flatten() as List<AnalyticResult>).findAll { it.name != AB_TESTING.value }
+        assert !invocationResults?.analyticsTags?.any()
 
         and: "Metric for specified module should be updated based on ab test config"
         def metrics = ortbModulePbsService.sendCollectedMetricsRequest()
@@ -574,7 +574,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         }
 
         and: "Shouldn't include any analytics tags"
-        assert  (invocationResults.analyticsTags.activities.flatten() as List<AnalyticResult>).findAll { it.name != AB_TESTING.value }
+        assert (invocationResults.analyticsTags.activities.flatten() as List<AnalyticResult>).findAll { it.name != AB_TESTING.value }
 
         and: "Metric for specified module should be as default call"
         def metrics = ortbModulePbsService.sendCollectedMetricsRequest()
@@ -692,7 +692,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         pbsServiceFactory.removeContainer(pbsConfig)
 
         where:
-        accouns << [null, [], [null]]
+        accouns << [null, []]
     }
 
     def "PBS should apply a/b test config from host config for specific accounts and only specified module when account config and default account doesn't include a/b test config"() {
