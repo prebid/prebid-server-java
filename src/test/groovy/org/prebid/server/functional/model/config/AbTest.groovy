@@ -13,7 +13,7 @@ class AbTest {
     String moduleCode
     @JsonProperty("module_code")
     String moduleCodeSnakeCase
-    Set<String> accounts
+    Set<Integer> accounts
     Integer percentActive
     @JsonProperty("percent_active")
     Integer percentActiveSnakeCase
@@ -21,7 +21,7 @@ class AbTest {
     @JsonProperty("log_analytics_tag")
     Boolean logAnalyticsTagSnakeCase
 
-    static AbTest getDefault(String moduleCode, List<String> accounts = null) {
+    static AbTest getDefault(String moduleCode, List<Integer> accounts = null) {
         new AbTest(enabled: true,
                 moduleCode: moduleCode,
                 accounts: accounts,

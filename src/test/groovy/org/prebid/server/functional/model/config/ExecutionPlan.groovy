@@ -1,14 +1,15 @@
 package org.prebid.server.functional.model.config
 
-import com.fasterxml.jackson.annotation.JsonProperty
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.annotation.JsonNaming
 import groovy.transform.ToString
 import org.prebid.server.functional.model.ModuleName
 
 @ToString(includeNames = true, ignoreNulls = true)
+@JsonNaming(PropertyNamingStrategies.LowerCaseStrategy)
 class ExecutionPlan {
 
-    @JsonProperty("abtests")
-    AbTest abTest
+    List<AbTest> abTests
     Map<Endpoint, EndpointExecutionPlan> endpoints
 
     static ExecutionPlan getSingleEndpointExecutionPlan(Endpoint endpoint, ModuleName moduleName, List<Stage> stage) {

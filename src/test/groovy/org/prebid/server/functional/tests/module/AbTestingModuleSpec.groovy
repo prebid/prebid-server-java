@@ -7,6 +7,7 @@ import org.prebid.server.functional.model.config.AccountHooksConfiguration
 import org.prebid.server.functional.model.config.ExecutionPlan
 import org.prebid.server.functional.model.config.Stage
 import org.prebid.server.functional.model.db.Account
+import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.FetchStatus
 import org.prebid.server.functional.model.request.auction.TraceLevel
 import org.prebid.server.functional.model.response.auction.AnalyticResult
@@ -48,22 +49,20 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             ['hooks.host-execution-plan': null]
 
     private final static PrebidServerService ortbModulePbsService = pbsServiceFactory.getService(getOrtb2BlockingSettings())
-    private final static PrebidServerService multiModulesPbsService = pbsServiceFactory.getService(MULTI_MODULE_CONFIG)
 
-    def "PBS shouldn't apply a/b test config when config is disabled"() {
+    def "PBS shouldn't apply a/b test config when config of ab test is disabled"() {
         given: "Default bid request with verbose trace"
-        def bidRequest = defaultBidRequest.tap {
-            ext.prebid.trace = TraceLevel.VERBOSE
-        }
+        def bidRequest = getBidRequestWithTrace()
 
         and: "Flush metrics"
-        flushMetrics(multiModulesPbsService)
+        flushMetrics(ortbModulePbsService)
 
         and: "Save account with ab test config"
+        def abTest = AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
+            enabled = false
+        }
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB_STAGES).tap {
-            abTest = AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code.toUpperCase(), [PBSUtils.randomString]).tap {
-                enabled = false
-            }
+            it.abTests = [abTest]
         }
         def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(executionPlan: executionPlan))
         def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
@@ -74,17 +73,13 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         then: "PBS response should include trace information about called modules"
         def invocationResults = response?.ext?.prebid?.modules?.trace?.stages?.outcomes?.groups?.invocationResults?.flatten() as List<InvocationResult>
-
-        and: "PBS shouldn't apply ab test config for ortb module"
         verifyAll(invocationResults) {
             it.status == [SUCCESS, SUCCESS]
             it.action == [NO_ACTION, NO_ACTION]
-
-            it.analyticsTags.activities.name.flatten() == [ORTB2_BLOCKING].value
-            it.analyticsTags.activities.status.flatten() == [FetchStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [FetchStatus.SUCCESS_ALLOW].value
-            it.analyticsTags.activities.results.values.module.flatten().every { it == null }
         }
+
+        and: "Shouldn't include any analytics tags"
+        assert (invocationResults.analyticsTags.activities.flatten() as List<AnalyticResult>).findAll { it.name != AB_TESTING.value }
 
         and: "Metric for specified module should be as default call"
         def metrics = ortbModulePbsService.sendCollectedMetricsRequest()
@@ -103,16 +98,14 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request with verbose trace"
-        def bidRequest = defaultBidRequest.tap {
-            ext.prebid.trace = TraceLevel.VERBOSE
-        }
+        def bidRequest = getBidRequestWithTrace()
 
         and: "Flush metrics"
         flushMetrics(prebidServerService)
 
         and: "Save account with ab test config"
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB_STAGES).tap {
-            abTest = AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code)
+            abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code)]
         }
         def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(executionPlan: executionPlan))
         def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
@@ -150,18 +143,14 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
     def "PBS shouldn't apply a/b test config when module name is not matched"() {
         given: "Default bid request with verbose trace"
-        def bidRequest = defaultBidRequest.tap {
-            ext.prebid.trace = TraceLevel.VERBOSE
-        }
+        def bidRequest = getBidRequestWithTrace()
 
         and: "Flush metrics"
-        flushMetrics(multiModulesPbsService)
+        flushMetrics(ortbModulePbsService)
 
         and: "Save account with ab test config"
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB_STAGES).tap {
-            abTest = AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code.toUpperCase()).tap {
-                percentActive = MIN_PERCENT_AB
-            }
+            abTests = [AbTest.getDefault(moduleName)]
         }
         def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(executionPlan: executionPlan))
         def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
@@ -172,17 +161,13 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         then: "PBS response should include trace information about called modules"
         def invocationResults = response?.ext?.prebid?.modules?.trace?.stages?.outcomes?.groups?.invocationResults?.flatten() as List<InvocationResult>
-
-        and: "PBS shouldn't apply ab test config for ortb module"
         verifyAll(invocationResults) {
             it.status == [SUCCESS, SUCCESS]
             it.action == [NO_ACTION, NO_ACTION]
-
-            it.analyticsTags.activities.name.flatten() == [ORTB2_BLOCKING].value
-            it.analyticsTags.activities.status.flatten() == [FetchStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [FetchStatus.SUCCESS_ALLOW].value
-            it.analyticsTags.activities.results.values.module.flatten().every { it == null }
         }
+
+        and: "Shouldn't include any analytics tags"
+        assert (invocationResults.analyticsTags.activities.flatten() as List<AnalyticResult>).findAll { it.name != AB_TESTING.value }
 
         and: "Metric for specified module should be as default call"
         def metrics = ortbModulePbsService.sendCollectedMetricsRequest()
@@ -193,22 +178,23 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         assert !metrics[NO_INVOCATION_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)]
         assert !metrics[NO_INVOCATION_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)]
+
+        where:
+        moduleName << [ModuleName.ORTB2_BLOCKING.code.toUpperCase(), PBSUtils.randomString]
     }
 
     def "PBS should ignore accounts property for a/b test config when ab test config specialize for specific account"() {
         given: "Default bid request with verbose trace"
-        def bidRequest = defaultBidRequest.tap {
-            ext.prebid.trace = TraceLevel.VERBOSE
-        }
+        def bidRequest = getBidRequestWithTrace()
 
         and: "Flush metrics"
-        flushMetrics(multiModulesPbsService)
+        flushMetrics(ortbModulePbsService)
 
         and: "Save account with ab test config"
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB_STAGES).tap {
-            abTest = AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code, [PBSUtils.randomString]).tap {
+            abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code, [PBSUtils.randomNumber]).tap {
                 percentActive = MIN_PERCENT_AB
-            }
+            }]
         }
         def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(executionPlan: executionPlan))
         def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
@@ -236,21 +222,19 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         assert metrics[NO_INVOCATION_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)] == 1
     }
 
-    def "PBS shouldn't apply a/b test config when config is on max percentage or default value"() {
+    def "PBS apply a/b test config and run module when config is on max percentage or default value"() {
         given: "Default bid request with verbose trace"
-        def bidRequest = defaultBidRequest.tap {
-            ext.prebid.trace = TraceLevel.VERBOSE
-        }
+        def bidRequest = getBidRequestWithTrace()
 
         and: "Flush metrics"
-        flushMetrics(multiModulesPbsService)
+        flushMetrics(ortbModulePbsService)
 
         and: "Save account with ab test config"
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB_STAGES).tap {
-            abTest = AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
+            abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
                 it.percentActive = percentActive
                 it.percentActiveSnakeCase = percentActiveSnakeCase
-            }
+            }]
         }
         def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(executionPlan: executionPlan))
         def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
@@ -262,7 +246,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         then: "PBS response should include trace information about called modules"
         def invocationResults = response?.ext?.prebid?.modules?.trace?.stages?.outcomes?.groups?.invocationResults?.flatten() as List<InvocationResult>
 
-        and: "PBS shouldn't apply ab test config for ortb module"
+        and: "PBS should apply ab test config for ortb module and run module"
         verifyAll(invocationResults) {
             it.status == [SUCCESS, SUCCESS]
             it.action == [NO_ACTION, NO_ACTION]
@@ -289,21 +273,19 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         null           | null
     }
 
-    def "PBS should apply a/b test config when config is on min percentage"() {
+    def "PBS should apply a/b test config and skip module when config is on min percentage"() {
         given: "Default bid request with verbose trace"
-        def bidRequest = defaultBidRequest.tap {
-            ext.prebid.trace = TraceLevel.VERBOSE
-        }
+        def bidRequest = getBidRequestWithTrace()
 
         and: "Flush metrics"
-        flushMetrics(multiModulesPbsService)
+        flushMetrics(ortbModulePbsService)
 
         and: "Save account with ab test config"
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB_STAGES).tap {
-            abTest = AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
+            abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
                 it.percentActive = percentActive
                 it.percentActiveSnakeCase = percentActiveSnakeCase
-            }
+            }]
         }
         def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(executionPlan: executionPlan))
         def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
@@ -315,7 +297,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         then: "PBS response should include trace information about called modules"
         def invocationResults = response?.ext?.prebid?.modules?.trace?.stages?.outcomes?.groups?.invocationResults?.flatten() as List<InvocationResult>
 
-        and: "PBS shouldn't apply ab test config for ortb module"
+        and: "PBS should apply ab test config for ortb module and skip this module"
         verifyAll(invocationResults) {
             it.status == [SUCCESS, SUCCESS]
             it.action == [NO_INVOCATION, NO_INVOCATION]
@@ -338,19 +320,17 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
     def "PBS shouldn't apply a/b test config without warnings and errors when percent config is out of lover range"() {
         given: "Default bid request with verbose trace"
-        def bidRequest = defaultBidRequest.tap {
-            ext.prebid.trace = TraceLevel.VERBOSE
-        }
+        def bidRequest = getBidRequestWithTrace()
 
         and: "Flush metrics"
         flushMetrics(ortbModulePbsService)
 
         and: "Save account with ab test config"
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB_STAGES).tap {
-            abTest = AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
+            abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
                 it.percentActive = percentActive
                 it.percentActiveSnakeCase = percentActiveSnakeCase
-            }
+            }]
         }
         def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(executionPlan: executionPlan))
         def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
@@ -387,21 +367,19 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         null                          | PBSUtils.randomNegativeNumber
     }
 
-    def "PBS shouldn't apply a/b test config without warnings and errors when percent config is out of appear range"() {
+    def "PBS should apply a/b test config and run module without warnings and errors when percent config is out of appear range"() {
         given: "Default bid request with verbose trace"
-        def bidRequest = defaultBidRequest.tap {
-            ext.prebid.trace = TraceLevel.VERBOSE
-        }
+        def bidRequest = getBidRequestWithTrace()
 
         and: "Flush metrics"
         flushMetrics(ortbModulePbsService)
 
         and: "Save account with ab test config"
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB_STAGES).tap {
-            abTest = AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
+            abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
                 it.percentActive = percentActive
                 it.percentActiveSnakeCase = percentActiveSnakeCase
-            }
+            }]
         }
         def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(executionPlan: executionPlan))
         def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
@@ -417,7 +395,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         and: "PBS response should include trace information about called modules"
         def invocationResults = response?.ext?.prebid?.modules?.trace?.stages?.outcomes?.groups?.invocationResults?.flatten() as List<InvocationResult>
 
-        and: "PBS shouldn't apply ab test config for ortb module"
+        and: "PBS should apply ab test config for ortb module and run it"
         verifyAll(invocationResults) {
             it.status == [SUCCESS, SUCCESS]
             it.action == [NO_ACTION, NO_ACTION]
@@ -446,20 +424,18 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
     def "PBS should include analytics tags when a/b test config when logAnalyticsTag is enabled or empty"() {
         given: "Default bid request with verbose trace"
-        def bidRequest = defaultBidRequest.tap {
-            ext.prebid.trace = TraceLevel.VERBOSE
-        }
+        def bidRequest = getBidRequestWithTrace()
 
         and: "Flush metrics"
         flushMetrics(ortbModulePbsService)
 
         and: "Save account with ab test config"
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB_STAGES).tap {
-            abTest = AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
+            abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
                 percentActive = MIN_PERCENT_AB
                 it.logAnalyticsTag = logAnalyticsTag
                 it.logAnalyticsTagSnakeCase = logAnalyticsTagSnakeCase
-            }
+            }]
         }
         def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(executionPlan: executionPlan))
         def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
@@ -495,20 +471,18 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
     def "PBS shouldn't include analytics tags when a/b test config when logAnalyticsTag is disabled and is applied by percentage"() {
         given: "Default bid request with verbose trace"
-        def bidRequest = defaultBidRequest.tap {
-            ext.prebid.trace = TraceLevel.VERBOSE
-        }
+        def bidRequest = getBidRequestWithTrace()
 
         and: "Flush metrics"
         flushMetrics(ortbModulePbsService)
 
         and: "Save account with ab test config"
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB_STAGES).tap {
-            abTest = AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
+            abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
                 percentActive = MIN_PERCENT_AB
                 it.logAnalyticsTag = logAnalyticsTag
                 it.logAnalyticsTagSnakeCase = logAnalyticsTagSnakeCase
-            }
+            }]
         }
         def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(executionPlan: executionPlan))
         def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
@@ -542,20 +516,18 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
     def "PBS shouldn't include analytics tags when a/b test config when logAnalyticsTag is disabled and is non-applied by percentage"() {
         given: "Default bid request with verbose trace"
-        def bidRequest = defaultBidRequest.tap {
-            ext.prebid.trace = TraceLevel.VERBOSE
-        }
+        def bidRequest = getBidRequestWithTrace()
 
         and: "Flush metrics"
         flushMetrics(ortbModulePbsService)
 
         and: "Save account with ab test config"
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB_STAGES).tap {
-            abTest = AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
+            abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
                 percentActive = MAX_PERCENT_AB
                 it.logAnalyticsTag = logAnalyticsTag
                 it.logAnalyticsTagSnakeCase = logAnalyticsTagSnakeCase
-            }
+            }]
         }
         def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(executionPlan: executionPlan))
         def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
@@ -566,8 +538,6 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         then: "PBS response should include trace information about called modules"
         def invocationResults = response?.ext?.prebid?.modules?.trace?.stages?.outcomes?.groups?.invocationResults?.flatten() as List<InvocationResult>
-
-        and: "PBS shouldn't apply ab test config for ortb module"
         verifyAll(invocationResults) {
             it.status == [SUCCESS, SUCCESS]
             it.action == [NO_ACTION, NO_ACTION]
@@ -594,18 +564,16 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
     def "PBS shouldn't apply analytics tags for all module stages when module contain multiple stages"() {
         given: "Default bid request with verbose trace"
-        def bidRequest = defaultBidRequest.tap {
-            ext.prebid.trace = TraceLevel.VERBOSE
-        }
+        def bidRequest = getBidRequestWithTrace()
 
         and: "Flush metrics"
         flushMetrics(ortbModulePbsService)
 
         and: "Save account with ab test config"
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB_STAGES).tap {
-            abTest = AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
+            abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
                 percentActive = PBSUtils.getRandomNumber(MIN_PERCENT_AB, MAX_PERCENT_AB)
-            }
+            }]
         }
         def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(executionPlan: executionPlan))
         def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
@@ -635,17 +603,15 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
     def "PBS should apply a/b test config from host config when accounts is not specified when account config and default account doesn't include a/b test config"() {
         given: "PBS service with specific ab test config"
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, MODULES_STAGES).tap {
-            abTest = AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code, accouns).tap {
+            abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code, accouns).tap {
                 percentActive = MIN_PERCENT_AB
-            }
+            }]
         }
         def pbsConfig = MULTI_MODULE_CONFIG + ['hooks.host-execution-plan': encode(executionPlan)]
         def pbsServiceWithMultipleModules = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request with verbose trace"
-        def bidRequest = defaultBidRequest.tap {
-            ext.prebid.trace = TraceLevel.VERBOSE
-        }
+        def bidRequest = getBidRequestWithTrace()
 
         and: "Flush metrics"
         flushMetrics(pbsServiceWithMultipleModules)
@@ -697,11 +663,11 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
     def "PBS should apply a/b test config from host config for specific accounts and only specified module when account config and default account doesn't include a/b test config"() {
         given: "PBS service with specific ab test config"
-        def accountId = PBSUtils.randomNumber.toString()
+        def accountId = PBSUtils.randomNumber
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, MODULES_STAGES).tap {
-            abTest = AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code, [PBSUtils.randomString, accountId]).tap {
+            abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code, [PBSUtils.randomNumber, accountId]).tap {
                 percentActive = MIN_PERCENT_AB
-            }
+            }]
         }
         def pbsConfig = MULTI_MODULE_CONFIG + ['hooks.host-execution-plan': encode(executionPlan)]
         def pbsServiceWithMultipleModules = pbsServiceFactory.getService(pbsConfig)
@@ -709,7 +675,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         and: "Default bid request with verbose trace"
         def bidRequest = defaultBidRequest.tap {
             ext.prebid.trace = TraceLevel.VERBOSE
-            setAccountId(accountId)
+            setAccountId(accountId as String)
         }
 
         and: "Flush metrics"
@@ -760,17 +726,15 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
     def "PBS shouldn't apply a/b test config from host config for non specified accounts when account config and default account doesn't include a/b test config"() {
         given: "PBS service with specific ab test config"
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, MODULES_STAGES).tap {
-            abTest = AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code, [PBSUtils.randomString]).tap {
+            abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code, [PBSUtils.randomNumber]).tap {
                 percentActive = MIN_PERCENT_AB
-            }
+            }]
         }
         def pbsConfig = MULTI_MODULE_CONFIG + ['hooks.host-execution-plan': encode(executionPlan)]
         def pbsServiceWithMultipleModules = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request with verbose trace"
-        def bidRequest = defaultBidRequest.tap {
-            ext.prebid.trace = TraceLevel.VERBOSE
-        }
+        def bidRequest = getBidRequestWithTrace()
 
         and: "Flush metrics"
         flushMetrics(pbsServiceWithMultipleModules)
@@ -826,25 +790,23 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
     def "PBS should prioritise a/b test config from default account and only specified module when host and default account contains a/b test configs"() {
         given: "PBS service with specific ab test config"
         def accountExecutionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, MODULES_STAGES).tap {
-            abTest = AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
+            abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
                 percentActive = MIN_PERCENT_AB
-            }
+            }]
         }
         def defaultAccountConfigSettings = AccountConfig.defaultAccountConfig.tap {
             hooks = new AccountHooksConfiguration(executionPlan: accountExecutionPlan)
         }
 
         def hostExecutionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, MODULES_STAGES).tap {
-            abTest = AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code)
+            abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code)]
         }
         def pbsConfig = MULTI_MODULE_CONFIG + ['hooks.host-execution-plan': encode(hostExecutionPlan)] + ["settings.default-account-config": encode(defaultAccountConfigSettings)]
 
         def pbsServiceWithMultipleModules = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request with verbose trace"
-        def bidRequest = defaultBidRequest.tap {
-            ext.prebid.trace = TraceLevel.VERBOSE
-        }
+        def bidRequest = getBidRequestWithTrace()
 
         and: "Flush metrics"
         flushMetrics(pbsServiceWithMultipleModules)
@@ -893,7 +855,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
     def "PBS should prioritise a/b test config from account over default account and only specified module when specific account and default account contains a/b test configs"() {
         given: "PBS service with specific ab test config"
-        def accountExecutionPlan = new ExecutionPlan(abTest: AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code))
+        def accountExecutionPlan = new ExecutionPlan(abTests: [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code)])
         def defaultAccountConfigSettings = AccountConfig.defaultAccountConfig.tap {
             hooks = new AccountHooksConfiguration(executionPlan: accountExecutionPlan)
         }
@@ -903,18 +865,16 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         def pbsServiceWithMultipleModules = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request with verbose trace"
-        def bidRequest = defaultBidRequest.tap {
-            ext.prebid.trace = TraceLevel.VERBOSE
-        }
+        def bidRequest = getBidRequestWithTrace()
 
         and: "Flush metrics"
         flushMetrics(pbsServiceWithMultipleModules)
 
         and: "Save account with ab test config"
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, MODULES_STAGES).tap {
-            abTest = AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
+            abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
                 percentActive = MIN_PERCENT_AB
-            }
+            }]
         }
         def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(executionPlan: executionPlan))
         def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
@@ -964,5 +924,11 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
     private static List<InvocationResult> filterInvocationResultsByModule(List<InvocationResult> invocationResults, ModuleName moduleName) {
         invocationResults.findAll { it.hookId.moduleCode == moduleName.code }
+    }
+
+    private static BidRequest getBidRequestWithTrace() {
+        defaultBidRequest.tap {
+            ext.prebid.trace = TraceLevel.VERBOSE
+        }
     }
 }
