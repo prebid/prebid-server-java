@@ -1,9 +1,12 @@
 package org.prebid.server.functional.model.request.auction
 
 import com.fasterxml.jackson.annotation.JsonProperty
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.annotation.JsonNaming
 import groovy.transform.ToString
 
 @ToString(includeNames = true, ignoreNulls = true)
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy)
 class UserExt {
 
     String consent
@@ -12,8 +15,9 @@ class UserExt {
     UserTime time
     UserExtData data
     UserExtPrebid prebid
-    @JsonProperty("consented_providers_settings")
     ConsentedProvidersSettings consentedProvidersSettings
+    @JsonProperty("ConsentedProvidersSettings")
+    ConsentedProvidersSettings consentedProvidersSettingsKebabCase
 
     static UserExt getFPDUserExt() {
         new UserExt(data: UserExtData.FPDUserExtData)

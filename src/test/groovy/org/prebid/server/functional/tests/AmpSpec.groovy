@@ -4,9 +4,12 @@ import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.db.StoredResponse
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
+import org.prebid.server.functional.model.request.auction.ConsentedProvidersSettings
 import org.prebid.server.functional.model.request.auction.DistributionChannel
 import org.prebid.server.functional.model.request.auction.Site
 import org.prebid.server.functional.model.request.auction.StoredAuctionResponse
+import org.prebid.server.functional.model.request.auction.User
+import org.prebid.server.functional.model.request.auction.UserExt
 import org.prebid.server.functional.model.response.auction.SeatBid
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
@@ -56,7 +59,7 @@ class AmpSpec extends BaseSpec {
         assert exception.responseBody == "Invalid request format: request.${channel.value.toLowerCase()} must not exist in AMP stored requests."
 
         where:
-        channel  << [DistributionChannel.APP, DistributionChannel.DOOH]
+        channel << [DistributionChannel.APP, DistributionChannel.DOOH]
     }
 
     def "PBS should return info from the stored response when it's defined in the stored request"() {
@@ -189,7 +192,11 @@ class AmpSpec extends BaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def ampStoredRequest = BidRequest.defaultBidRequest
+        def ampStoredRequest = BidRequest.defaultBidRequest.tap {
+            user = new User(ext: new UserExt(
+                    consentedProvidersSettingsKebabCase: new ConsentedProvidersSettings(consentedProviders: PBSUtils.randomString),
+                    consentedProvidersSettings: new ConsentedProvidersSettings(consentedProviders: PBSUtils.randomString)))
+        }
         def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
@@ -198,6 +205,32 @@ class AmpSpec extends BaseSpec {
 
         then: "Bidder request should contain addtl consent"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
+        assert bidderRequest.user.ext.consentedProvidersSettingsKebabCase.consentedProviders == randomAddtlConsent
+        assert bidderRequest.user.ext.consentedProvidersSettings.consentedProviders == randomAddtlConsent
+    }
+
+    def "PBS should pass addtl_consent to user.ext.ConsentedProvidersSettings.consented_providers"() {
+        given: "Default amp request with addtlConsent"
+        def randomAddtlConsent = PBSUtils.randomString
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            addtlConsent = randomAddtlConsent
+        }
+
+        and: "Save storedRequest into DB"
+        def ampStoredRequest = BidRequest.defaultBidRequest.tap {
+            user = new User(ext: new UserExt(
+                    consentedProvidersSettingsKebabCase: new ConsentedProvidersSettings(consentedProviders: PBSUtils.randomString),
+                    consentedProvidersSettings: new ConsentedProvidersSettings(consentedProviders: PBSUtils.randomString)))
+        }
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        defaultPbsService.sendAmpRequest(ampRequest)
+
+        then: "Bidder request should contain addtl consent"
+        def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
+        assert bidderRequest.user.ext.consentedProvidersSettingsKebabCase.consentedProviders == randomAddtlConsent
         assert bidderRequest.user.ext.consentedProvidersSettings.consentedProviders == randomAddtlConsent
     }
 
@@ -208,7 +241,11 @@ class AmpSpec extends BaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def ampStoredRequest = BidRequest.defaultBidRequest
+        def ampStoredRequest = BidRequest.defaultBidRequest.tap {
+            user = new User(ext: new UserExt(
+                    consentedProvidersSettingsKebabCase: new ConsentedProvidersSettings(consentedProviders: PBSUtils.randomString),
+                    consentedProvidersSettings: new ConsentedProvidersSettings(consentedProviders: PBSUtils.randomString)))
+        }
         def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
@@ -218,5 +255,30 @@ class AmpSpec extends BaseSpec {
         then: "Bidder request shouldn't contain addtl consent"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
         assert !bidderRequest.user.ext.consentedProvidersSettings.consentedProviders
+        assert !bidderRequest.user.ext.consentedProvidersSettingsKebabCase.consentedProviders
+    }
+
+    def "PBS shouldn't pass addtl_consent to user.ext.ConsentedProvidersSettings.consented_providers when addtl_consent not specified"() {
+        given: "Default amp request without addtl_consent"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            addtlConsent = null
+        }
+
+        and: "Save storedRequest into DB"
+        def ampStoredRequest = BidRequest.defaultBidRequest.tap {
+            user = new User(ext: new UserExt(
+                    consentedProvidersSettingsKebabCase: new ConsentedProvidersSettings(consentedProviders: PBSUtils.randomString),
+                    consentedProvidersSettings: new ConsentedProvidersSettings(consentedProviders: PBSUtils.randomString)))
+        }
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        defaultPbsService.sendAmpRequest(ampRequest)
+
+        then: "Bidder request shouldn't contain addtl consent"
+        def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
+        assert !bidderRequest.user.ext.consentedProvidersSettings.consentedProviders
+        assert !bidderRequest.user.ext.consentedProvidersSettingsKebabCase.consentedProviders
     }
 }
