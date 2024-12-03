@@ -34,7 +34,7 @@ public class GothamAdsBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, GothamAdsImpExt>> TYPE_REFERENCE = new TypeReference<>() {
     };
-    private static final String ACCOUNT_ID_MACRO = "{{AccountId}}";
+    private static final String ACCOUNT_ID_MACRO = "{{AccountID}}";
     private static final String X_OPENRTB_VERSION = "2.5";
 
     private final String endpointUrl;

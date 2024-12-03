@@ -33,9 +33,7 @@
   },
   "at": 1,
   "tmax": "${json-unit.any-number}",
-  "cur": [
-    "USD"
-  ],
+  "cur": ["USD"],
   "source": {
     "tid": "${json-unit.any-string}",
     "ext": {
@@ -44,9 +42,7 @@
     }
   },
   "regs": {
-    "ext": {
-      "gdpr": 0
-    }
+    "gdpr": 0
   },
   "ext": {
     "prebid": {

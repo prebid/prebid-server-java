@@ -15,6 +15,7 @@
         "h": 250
       },
       "ext": {
+        "ae": 1,
         "tid": "${json-unit.any-string}",
         "bidder": {
           "siteId": "10002"

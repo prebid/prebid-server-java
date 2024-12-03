@@ -2977,6 +2977,8 @@ public class ExchangeServiceTest extends VertxTest {
         target.holdAuction(givenRequestContext(bidRequest));
 
         // then
+        verify(metrics).updateDebugRequestMetrics(false);
+        verify(metrics).updateAccountDebugRequestMetrics(any(), eq(false));
         verify(metrics).updateRequestBidderCardinalityMetric(1);
         verify(metrics).updateAccountRequestMetrics(any(), eq(MetricName.openrtb2web));
         verify(metrics).updateAdapterRequestTypeAndNoCookieMetrics(

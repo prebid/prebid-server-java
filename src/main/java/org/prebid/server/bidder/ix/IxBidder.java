@@ -409,11 +409,14 @@ public class IxBidder implements Bidder<BidRequest> {
     private List<FledgeAuctionConfig> extractFledge(IxBidResponse bidResponse) {
         return Optional.ofNullable(bidResponse)
                 .map(IxBidResponse::getExt)
-                .map(IxExtBidResponse::getFledgeAuctionConfigs)
-                .orElse(Collections.emptyMap())
-                .entrySet()
+                .map(IxExtBidResponse::getProtectedAudienceAuctionConfigs)
+                .orElse(Collections.emptyList())
                 .stream()
-                .map(e -> FledgeAuctionConfig.builder().impId(e.getKey()).config(e.getValue()).build())
+                .filter(Objects::nonNull)
+                .map(ixAuctionConfig -> FledgeAuctionConfig.builder()
+                        .impId(ixAuctionConfig.getBidId())
+                        .config(ixAuctionConfig.getConfig())
+                        .build())
                 .toList();
     }
 }
