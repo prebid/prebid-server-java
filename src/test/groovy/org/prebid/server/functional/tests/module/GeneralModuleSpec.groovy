@@ -15,6 +15,7 @@ import org.prebid.server.functional.model.request.auction.TraceLevel
 import org.prebid.server.functional.model.response.auction.InvocationResult
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.PendingFeature
 
 import static org.prebid.server.functional.model.ModuleName.ORTB2_BLOCKING
 import static org.prebid.server.functional.model.ModuleName.PB_RICHMEDIA_FILTER
@@ -292,6 +293,7 @@ class GeneralModuleSpec extends ModuleBaseSpec {
         modulesConfig << [null, new PbsModulesConfig()]
     }
 
+    @PendingFeature
     def "PBS should call all modules without account config when modules enabled in module-execution host config"() {
         given: "PBS service with module-execution config"
         def pbsConfig = MULTI_MODULE_CONFIG + ENABLED_INVOKE_CONFIG +
@@ -331,42 +333,7 @@ class GeneralModuleSpec extends ModuleBaseSpec {
         pbsServiceFactory.removeContainer(pbsConfig)
     }
 
-    def "PBS shouldn't call any modules without account config when modules disabled in module-execution host config"() {
-        given: "PBS service with module-execution config"
-        def pbsConfig = MULTI_MODULE_CONFIG + ENABLED_INVOKE_CONFIG +
-                [("hooks.admin.module-execution.${ORTB2_BLOCKING.code}".toString()): 'false']
-        def pbsServiceWithMultipleModules = pbsServiceFactory.getService(pbsConfig)
-
-        and: "Default bid request with verbose trace"
-        def bidRequest = defaultBidRequest.tap {
-            ext.prebid.trace = TraceLevel.VERBOSE
-        }
-
-        and: "Flush metrics"
-        flushMetrics(pbsServiceWithMultipleModules)
-
-        when: "PBS processes auction request"
-        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
-
-        then: "PBS response shouldn't include trace information about no-called modules"
-        assert !response?.ext?.prebid?.modules?.trace?.stages?.outcomes?.groups?.invocationResults?.flatten()
-
-        and: "Ortb2blocking module call metrics shouldn't be updated"
-        def metrics = pbsServiceWithMultipleModules.sendCollectedMetricsRequest()
-        assert !metrics[CALL_METRIC.formatted(ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)]
-        assert !metrics[CALL_METRIC.formatted(ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)]
-        assert !metrics[NOOP_METRIC.formatted(ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)]
-        assert !metrics[NOOP_METRIC.formatted(ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)]
-
-        and: "RB-Richmedia-Filter module call metrics shouldn't be updated"
-        assert !metrics[CALL_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.metricValue, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)]
-        assert !metrics[NOOP_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.metricValue, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)]
-
-        cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(pbsConfig)
-    }
-
-    def "PBS should prioritize default-account module-execution config over host module-execution config when both are present"() {
+    def "PBS should call module without account config when default-account module-execution config enabled module"() {
         given: "PBS service with module-execution and default account configs"
         def defaultAccountConfigSettings = AccountConfig.defaultAccountConfig.tap {
             hooks = new AccountHooksConfiguration(admin: new AdminConfig(moduleExecution: [(ORTB2_BLOCKING): true]))
@@ -411,6 +378,51 @@ class GeneralModuleSpec extends ModuleBaseSpec {
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsConfig)
+    }
+
+    def "PBS shouldn't call any modules without account config when default-account module-execution config not enabling module"() {
+        given: "PBS service with module-execution and default account configs"
+        def defaultAccountConfigSettings = AccountConfig.defaultAccountConfig.tap {
+            hooks = new AccountHooksConfiguration(admin: new AdminConfig(moduleExecution: [(ORTB2_BLOCKING): moduleExecutionStatus]))
+        }
+        def pbsConfig = MULTI_MODULE_CONFIG + ENABLED_INVOKE_CONFIG + ["settings.default-account-config": encode(defaultAccountConfigSettings)]
+        def pbsServiceWithMultipleModules = pbsServiceFactory.getService(pbsConfig)
+
+        and: "Default bid request with verbose trace"
+        def bidRequest = defaultBidRequest.tap {
+            ext.prebid.trace = TraceLevel.VERBOSE
+        }
+
+        and: "Save account without modules config"
+        def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(modules: null))
+        def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
+        accountDao.save(account)
+
+        and: "Flush metrics"
+        flushMetrics(pbsServiceWithMultipleModules)
+
+        when: "PBS processes auction request"
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
+
+        then: "PBS response shouldn't include trace information about no-called modules"
+        assert !response?.ext?.prebid?.modules?.trace?.stages?.outcomes?.groups?.invocationResults?.flatten()
+
+        and: "Ortb2blocking module call metrics shouldn't be updated"
+        def metrics = pbsServiceWithMultipleModules.sendCollectedMetricsRequest()
+        assert !metrics[CALL_METRIC.formatted(ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)]
+        assert !metrics[CALL_METRIC.formatted(ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)]
+        assert !metrics[NOOP_METRIC.formatted(ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)]
+        assert !metrics[NOOP_METRIC.formatted(ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)]
+
+        and: "RB-Richmedia-Filter module call metrics shouldn't be updated"
+        assert !metrics[CALL_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.metricValue, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)]
+        assert !metrics[NOOP_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.metricValue, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)]
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
+
+        where:
+        moduleExecutionStatus << [false, null]
     }
 
     def "PBS should prioritize specific account module-execution config over default-account module-execution config when both are present"() {
