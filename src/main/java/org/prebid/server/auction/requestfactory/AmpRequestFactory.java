@@ -274,6 +274,7 @@ public class AmpRequestFactory {
 
         final ExtUser extUser = consentedProvidersSettings != null
                 ? ExtUser.builder()
+                .deprecatedConsentedProvidersSettings(consentedProvidersSettings)
                 .consentedProvidersSettings(consentedProvidersSettings)
                 .build()
                 : null;
