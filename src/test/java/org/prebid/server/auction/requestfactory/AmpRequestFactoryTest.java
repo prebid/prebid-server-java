@@ -1277,10 +1277,12 @@ public class AmpRequestFactoryTest extends VertxTest {
         final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
+        final ConsentedProvidersSettings settings = ConsentedProvidersSettings.of("someConsent");
         assertThat(result.getUser())
                 .isEqualTo(User.builder()
                         .ext(ExtUser.builder()
-                                .deprecatedConsentedProvidersSettings(ConsentedProvidersSettings.of("someConsent"))
+                                .deprecatedConsentedProvidersSettings(settings)
+                                .consentedProvidersSettings(settings)
                                 .build())
                         .build());
     }
