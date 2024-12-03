@@ -823,8 +823,9 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         }
 
         and: "Save account config without eea countries into DB"
-        accountDao.save(getAccountWithGdpr(bidRequest.accountId,
-                new AccountGdprConfig(enabled: true, eeaCountries: PBSUtils.getRandomEnum(Country.class, [BULGARIA]))))
+        def accountGdprConfig = new AccountGdprConfig(enabled: true, eeaCountries: PBSUtils.getRandomEnum(Country.class, [BULGARIA]))
+        def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig)
+        accountDao.save(account)
 
         and: "Flush metrics"
         flushMetrics(privacyPbsService)
@@ -832,7 +833,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         when: "PBS processes auction request"
         privacyPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Bidder should be called"
+        then: "Bidder shouldn't be called"
         assert !bidder.getBidderRequests(bidRequest.id)
 
         then: "Metrics processed across activities should be updated"
@@ -898,8 +899,9 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         }
 
         and: "Save account config without eea countries into DB"
-        accountDao.save(getAccountWithGdpr(bidRequest.accountId,
-                new AccountGdprConfig(enabled: true, eeaCountries: accountCountry)))
+        def accountGdprConfig = new AccountGdprConfig(enabled: true, eeaCountries: accountCountry)
+        def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig)
+        accountDao.save(account)
 
         and: "Flush metrics"
         flushMetrics(privacyPbsService)
@@ -907,7 +909,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         when: "PBS processes auction request"
         privacyPbsService.sendAuctionRequest(bidRequest, header)
 
-        then: "Bidder should be called"
+        then: "Bidder shouldn't be called"
         assert !bidder.getBidderRequests(bidRequest.id)
 
         then: "Metrics processed across activities should be updated"

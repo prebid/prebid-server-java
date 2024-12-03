@@ -710,8 +710,9 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         }
 
         and: "Save account config without eea countries into DB"
-        accountDao.save(getAccountWithGdpr(ampRequest.account,
-                new AccountGdprConfig(enabled: true, eeaCountries: PBSUtils.getRandomEnum(Country.class, [BULGARIA]))))
+        def accountGdprConfig = new AccountGdprConfig(enabled: true, eeaCountries: PBSUtils.getRandomEnum(Country.class, [BULGARIA]))
+        def account = getAccountWithGdpr(ampRequest.account, accountGdprConfig)
+        accountDao.save(account)
 
         and: "Stored request in DB"
         def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
@@ -720,10 +721,10 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         and: "Flush metrics"
         flushMetrics(privacyPbsService)
 
-        when: "PBS processes auction request"
+        when: "PBS processes amp request"
         privacyPbsService.sendAmpRequest(ampRequest)
 
-        then: "Bidder should be called"
+        then: "Bidder shouldn't be called"
         assert !bidder.getBidderRequests(ampStoredRequest.id)
 
         then: "Metrics processed across activities should be updated"
@@ -792,8 +793,9 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         }
 
         and: "Save account config without eea countries into DB"
-        accountDao.save(getAccountWithGdpr(ampRequest.account,
-                new AccountGdprConfig(enabled: true, eeaCountries: PBSUtils.getRandomEnum(Country.class, [BULGARIA]))))
+        def accountGdprConfig = new AccountGdprConfig(enabled: true, eeaCountries: accountCountry)
+        def account = getAccountWithGdpr(ampRequest.account, accountGdprConfig)
+        accountDao.save(account)
 
         and: "Stored request in DB"
         def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
@@ -802,10 +804,10 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         and: "Flush metrics"
         flushMetrics(privacyPbsService)
 
-        when: "PBS processes auction request"
-        privacyPbsService.sendAmpRequest(ampRequest)
+        when: "PBS processes amp request"
+        privacyPbsService.sendAmpRequest(ampRequest, header)
 
-        then: "Bidder should be called"
+        then: "Bidder shouldn't be called"
         assert !bidder.getBidderRequests(ampStoredRequest.id)
 
         then: "Metrics processed across activities should be updated"
