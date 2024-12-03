@@ -55,8 +55,13 @@ public class ExtUser extends FlexibleExtension {
 
     /**
      * Defines the contract for bidrequest.user.ext.ConsentedProvidersSettings
+     * <p>
+     * TODO: Remove after PBS 4.0
      */
+    @Deprecated(forRemoval = true)
     @JsonProperty("ConsentedProvidersSettings")
+    ConsentedProvidersSettings deprecatedConsentedProvidersSettings;
+
     ConsentedProvidersSettings consentedProvidersSettings;
 
     @JsonIgnore
