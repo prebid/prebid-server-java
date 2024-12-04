@@ -2916,7 +2916,8 @@ public class HookStageExecutorTest extends VertxTest {
                                         ABTest.builder().enabled(false).accounts(singleton("4")).build(),
                                         ABTest.builder().enabled(true).build()),
                                 emptyMap()),
-                        emptyMap()))
+                        emptyMap(),
+                        null))
                 .build();
 
         // when
