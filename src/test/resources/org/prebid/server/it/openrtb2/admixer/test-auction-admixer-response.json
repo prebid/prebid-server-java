@@ -16,6 +16,7 @@
           },
           "id": "bid_id",
           "impid": "imp_id",
+          "exp": 300,
           "price": 0.01
         }
       ],

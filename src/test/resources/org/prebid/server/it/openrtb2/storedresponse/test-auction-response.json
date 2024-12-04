@@ -6,6 +6,7 @@
         {
           "id": "466223845",
           "impid": "impStoredBidResponse",
+          "exp": 300,
           "price": 0.8,
           "adm": "adm1",
           "crid": "crid1",

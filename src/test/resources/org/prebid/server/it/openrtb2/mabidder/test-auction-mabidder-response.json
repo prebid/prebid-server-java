@@ -6,6 +6,7 @@
         {
           "id": "test-imp-id",
           "impid": "test-imp-id",
+          "exp": 300,
           "price": 2.734,
           "adm": "<script type='text/javascript' src='https://adsvr.ecdrsvc.com/js?6002677'></script>",
           "adomain": [

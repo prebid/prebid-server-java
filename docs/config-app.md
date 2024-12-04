@@ -278,6 +278,7 @@ See [metrics documentation](metrics.md) for complete list of metrics submitted a
 for particular publisher account. Overrides `cache.banner-ttl-seconds` property.
 - `cache.account.<ACCOUNT>.video-ttl-seconds` - how long (in seconds) video creative will be available in Cache Service 
 for particular publisher account. Overrides `cache.video-ttl-seconds` property.
+- `cache.default-ttl-seconds.{banner, video, audio, native}` - a default value how long (in seconds) a creative of the specific type will be available in Cache Service
 
 ## Application settings (account configuration, stored ad unit configurations, stored requests)
 Preconfigured application settings can be obtained from multiple data sources consequently: 

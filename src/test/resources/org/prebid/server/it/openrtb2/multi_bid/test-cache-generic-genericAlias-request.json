@@ -32,7 +32,8 @@
         },
         "wurl": "http://localhost:8080/event?t=win&b=21521324&a=5001&aid=tid&ts=1000&bidder=generic&f=i&int="
       },
-      "aid": "tid"
+      "aid": "tid",
+      "ttlseconds": 1500
     },
     {
       "type": "json",
@@ -68,7 +69,8 @@
         },
         "wurl": "http://localhost:8080/event?t=win&b=7706636740145184841&a=5001&aid=tid&ts=1000&bidder=genericAlias&f=i&int="
       },
-      "aid": "tid"
+      "aid": "tid",
+      "ttlseconds": 1500
     },
     {
       "type": "json",
@@ -102,7 +104,8 @@
         },
         "wurl": "http://localhost:8080/event?t=win&b=880290288&a=5001&aid=tid&ts=1000&bidder=generic&f=i&int="
       },
-      "aid": "tid"
+      "aid": "tid",
+      "ttlseconds": 1500
     },
     {
       "type": "json",
@@ -138,7 +141,8 @@
         },
         "wurl": "http://localhost:8080/event?t=win&b=222214214214&a=5001&aid=tid&ts=1000&bidder=genericAlias&f=i&int="
       },
-      "aid": "tid"
+      "aid": "tid",
+      "ttlseconds": 1500
     },
     {
       "type": "xml",

@@ -29,6 +29,7 @@
           "h": 250,
           "id": "test-imp-id",
           "impid": "test-imp-id",
+          "exp": 300,
           "price": 0.404,
           "w": 300,
           "nurl":""
