@@ -1,4 +1,4 @@
-package org.prebid.server.hooks.modules.greenbids.real.time.data.v1.model;
+package org.prebid.server.hooks.execution.v1;
 
 import lombok.Builder;
 import lombok.Value;

@@ -1,10 +1,13 @@
 package org.prebid.server.hooks.execution;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.collections4.map.DefaultedMap;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -14,6 +17,7 @@ import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.execution.timeout.TimeoutFactory;
+import org.prebid.server.hooks.execution.model.ABTest;
 import org.prebid.server.hooks.execution.model.EndpointExecutionPlan;
 import org.prebid.server.hooks.execution.model.ExecutionGroup;
 import org.prebid.server.hooks.execution.model.ExecutionPlan;
@@ -23,6 +27,8 @@ import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
 import org.prebid.server.hooks.execution.model.Stage;
 import org.prebid.server.hooks.execution.model.StageExecutionPlan;
 import org.prebid.server.hooks.execution.model.StageWithHookType;
+import org.prebid.server.hooks.execution.provider.HookProvider;
+import org.prebid.server.hooks.execution.provider.abtest.ABTestHookProvider;
 import org.prebid.server.hooks.execution.v1.InvocationContextImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionInvocationContextImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
@@ -47,8 +53,8 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.settings.model.Account;
-import org.prebid.server.settings.model.HooksAdminConfig;
 import org.prebid.server.settings.model.AccountHooksConfiguration;
+import org.prebid.server.settings.model.HooksAdminConfig;
 
 import java.time.Clock;
 import java.util.Collection;
@@ -58,6 +64,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Stream;
 
 public class HookStageExecutor {
@@ -74,6 +81,7 @@ public class HookStageExecutor {
     private final TimeoutFactory timeoutFactory;
     private final Vertx vertx;
     private final Clock clock;
+    private final ObjectMapper mapper;
     private final boolean isConfigToInvokeRequired;
 
     private HookStageExecutor(ExecutionPlan hostExecutionPlan,
@@ -82,6 +90,7 @@ public class HookStageExecutor {
                               TimeoutFactory timeoutFactory,
                               Vertx vertx,
                               Clock clock,
+                              ObjectMapper mapper,
                               boolean isConfigToInvokeRequired) {
 
         this.hostExecutionPlan = hostExecutionPlan;
@@ -90,6 +99,7 @@ public class HookStageExecutor {
         this.timeoutFactory = timeoutFactory;
         this.vertx = vertx;
         this.clock = clock;
+        this.mapper = mapper;
         this.isConfigToInvokeRequired = isConfigToInvokeRequired;
     }
 
@@ -102,17 +112,60 @@ public class HookStageExecutor {
                                            JacksonMapper mapper,
                                            boolean isConfigToInvokeRequired) {
 
+        Objects.requireNonNull(hookCatalog);
+        Objects.requireNonNull(mapper);
+
         return new HookStageExecutor(
-                parseAndValidateExecutionPlan(
-                        hostExecutionPlan,
-                        Objects.requireNonNull(mapper),
-                        Objects.requireNonNull(hookCatalog)),
+                parseAndValidateExecutionPlan(hostExecutionPlan, mapper, hookCatalog),
                 parseAndValidateExecutionPlan(defaultAccountExecutionPlan, mapper, hookCatalog),
                 hookCatalog,
                 Objects.requireNonNull(timeoutFactory),
                 Objects.requireNonNull(vertx),
                 Objects.requireNonNull(clock),
+                mapper.mapper(),
                 isConfigToInvokeRequired);
+    }
+
+    private static ExecutionPlan parseAndValidateExecutionPlan(String executionPlan,
+                                                               JacksonMapper mapper,
+                                                               HookCatalog hookCatalog) {
+
+        return validateExecutionPlan(parseExecutionPlan(executionPlan, mapper), hookCatalog);
+    }
+
+    private static ExecutionPlan parseExecutionPlan(String executionPlan, JacksonMapper mapper) {
+        if (StringUtils.isBlank(executionPlan)) {
+            return ExecutionPlan.empty();
+        }
+
+        try {
+            return mapper.decodeValue(executionPlan, ExecutionPlan.class);
+        } catch (DecodeException e) {
+            throw new IllegalArgumentException("Hooks execution plan could not be parsed", e);
+        }
+    }
+
+    private static ExecutionPlan validateExecutionPlan(ExecutionPlan plan, HookCatalog hookCatalog) {
+        plan.getEndpoints().values().stream()
+                .map(EndpointExecutionPlan::getStages)
+                .map(Map::entrySet)
+                .flatMap(Collection::stream)
+                .forEach(stageToPlan -> stageToPlan.getValue().getGroups().stream()
+                        .map(ExecutionGroup::getHookSequence)
+                        .flatMap(Collection::stream)
+                        .forEach(hookId -> validateHookId(stageToPlan.getKey(), hookId, hookCatalog)));
+
+        return plan;
+    }
+
+    private static void validateHookId(Stage stage, HookId hookId, HookCatalog hookCatalog) {
+        try {
+            hookCatalog.hookById(hookId, StageWithHookType.forStage(stage));
+        } catch (Throwable e) {
+            throw new IllegalArgumentException(
+                    "Hooks execution plan contains unknown or disabled hook: stage=%s, hookId=%s"
+                            .formatted(stage, hookId));
+        }
     }
 
     public Future<HookStageExecutionResult<EntrypointPayload>> executeEntrypointStage(
@@ -125,6 +178,7 @@ public class HookStageExecutor {
 
         return stageExecutor(StageWithHookType.ENTRYPOINT, ENTITY_HTTP_REQUEST, context)
                 .withExecutionPlan(planForEntrypointStage(endpoint))
+                .withHookProvider(hookProviderForEntrypointStage(context))
                 .withInitialPayload(EntrypointPayloadImpl.of(queryParams, headers, body))
                 .withInvocationContextProvider(invocationContextProvider(endpoint))
                 .withModulesExecution(Collections.emptyMap())
@@ -264,7 +318,7 @@ public class HookStageExecutor {
             String entity,
             HookExecutionContext context) {
 
-        return StageExecutor.<PAYLOAD, CONTEXT>create(hookCatalog, vertx, clock)
+        return StageExecutor.<PAYLOAD, CONTEXT>create(vertx, clock)
                 .withStage(stage)
                 .withEntity(entity)
                 .withHookExecutionContext(context);
@@ -279,7 +333,8 @@ public class HookStageExecutor {
 
         return stageExecutor(stage, entity, context)
                 .withModulesExecution(modulesExecutionForAccount(account))
-                .withExecutionPlan(planForStage(account, endpoint, stage.stage()));
+                .withExecutionPlan(planForStage(account, endpoint, stage.stage()))
+                .withHookProvider(hookProvider(stage, account, context));
     }
 
     private Map<String, Boolean> modulesExecutionForAccount(Account account) {
@@ -300,52 +355,6 @@ public class HookStageExecutor {
         }
 
         return DefaultedMap.defaultedMap(resultModulesExecution, !isConfigToInvokeRequired);
-    }
-
-    private static ExecutionPlan parseAndValidateExecutionPlan(
-            String executionPlan,
-            JacksonMapper mapper,
-            HookCatalog hookCatalog) {
-
-        return validateExecutionPlan(parseExecutionPlan(executionPlan, mapper), hookCatalog);
-    }
-
-    private static ExecutionPlan validateExecutionPlan(ExecutionPlan plan, HookCatalog hookCatalog) {
-        plan.getEndpoints().values().stream()
-                .map(EndpointExecutionPlan::getStages)
-                .map(Map::entrySet)
-                .flatMap(Collection::stream)
-                .forEach(stageToPlan -> stageToPlan.getValue().getGroups().stream()
-                        .map(ExecutionGroup::getHookSequence)
-                        .flatMap(Collection::stream)
-                        .forEach(hookId -> validateHookId(stageToPlan.getKey(), hookId, hookCatalog)));
-
-        return plan;
-    }
-
-    private static void validateHookId(Stage stage, HookId hookId, HookCatalog hookCatalog) {
-        final Hook<?, ? extends InvocationContext> hook = hookCatalog.hookById(
-                hookId.getModuleCode(),
-                hookId.getHookImplCode(),
-                StageWithHookType.forStage(stage));
-
-        if (hook == null) {
-            throw new IllegalArgumentException(
-                    "Hooks execution plan contains unknown or disabled hook: stage=%s, hookId=%s"
-                            .formatted(stage, hookId));
-        }
-    }
-
-    private static ExecutionPlan parseExecutionPlan(String executionPlan, JacksonMapper mapper) {
-        if (StringUtils.isBlank(executionPlan)) {
-            return ExecutionPlan.empty();
-        }
-
-        try {
-            return mapper.decodeValue(executionPlan, ExecutionPlan.class);
-        } catch (DecodeException e) {
-            throw new IllegalArgumentException("Hooks execution plan could not be parsed", e);
-        }
     }
 
     private StageExecutionPlan planForEntrypointStage(Endpoint endpoint) {
@@ -392,6 +401,34 @@ public class HookStageExecutor {
         return accountExecutionPlan != null ? accountExecutionPlan : defaultAccountExecutionPlan;
     }
 
+    private HookProvider<EntrypointPayload, InvocationContext> hookProviderForEntrypointStage(
+            HookExecutionContext context) {
+
+        return new ABTestHookProvider<>(
+                defaultHookProvider(StageWithHookType.ENTRYPOINT),
+                abTestsForEntrypointStage(),
+                context,
+                mapper);
+    }
+
+    private <PAYLOAD, CONTEXT extends InvocationContext> HookProvider<PAYLOAD, CONTEXT> hookProvider(
+            StageWithHookType<? extends Hook<PAYLOAD, CONTEXT>> stage,
+            Account account,
+            HookExecutionContext context) {
+
+        return new ABTestHookProvider<>(
+                defaultHookProvider(stage),
+                abTests(account),
+                context,
+                mapper);
+    }
+
+    private <PAYLOAD, CONTEXT extends InvocationContext> HookProvider<PAYLOAD, CONTEXT> defaultHookProvider(
+            StageWithHookType<? extends Hook<PAYLOAD, CONTEXT>> stage) {
+
+        return hookId -> hookCatalog.hookById(hookId, stage);
+    }
+
     private InvocationContextProvider<InvocationContext> invocationContextProvider(Endpoint endpoint) {
         return (timeout, hookId, moduleContext) -> invocationContext(endpoint, timeout);
     }
@@ -428,7 +465,8 @@ public class HookStageExecutor {
             String bidder) {
 
         return (timeout, hookId, moduleContext) -> BidderInvocationContextImpl.of(
-                auctionInvocationContext(endpoint, timeout, auctionContext, hookId, moduleContext), bidder);
+                auctionInvocationContext(endpoint, timeout, auctionContext, hookId, moduleContext),
+                bidder);
     }
 
     private Timeout createTimeout(Long timeout) {
@@ -441,5 +479,42 @@ public class HookStageExecutor {
                 accountHooksConfiguration != null ? accountHooksConfiguration.getModules() : Collections.emptyMap();
 
         return modulesConfiguration != null ? modulesConfiguration.get(hookId.getModuleCode()) : null;
+    }
+
+    protected List<ABTest> abTestsForEntrypointStage() {
+        return ListUtils.emptyIfNull(hostExecutionPlan.getAbTests()).stream()
+                .filter(HookStageExecutor::isABTestEnabled)
+                .toList();
+    }
+
+    private static boolean isABTestEnabled(ABTest abTest) {
+        return abTest != null && abTest.isEnabled();
+    }
+
+    protected List<ABTest> abTests(Account account) {
+        return abTestsFromAccount(account)
+                .or(() -> abTestsFromHostConfig(account.getId()))
+                .orElse(Collections.emptyList());
+    }
+
+    private Optional<List<ABTest>> abTestsFromAccount(Account account) {
+        return Optional.of(effectiveExecutionPlanFor(account))
+                .map(ExecutionPlan::getAbTests)
+                .map(abTests -> abTests.stream()
+                        .filter(HookStageExecutor::isABTestEnabled)
+                        .toList());
+    }
+
+    private Optional<List<ABTest>> abTestsFromHostConfig(String accountId) {
+        return Optional.ofNullable(hostExecutionPlan.getAbTests())
+                .map(abTests -> abTests.stream()
+                        .filter(HookStageExecutor::isABTestEnabled)
+                        .filter(abTest -> isABTestApplicable(abTest, accountId))
+                        .toList());
+    }
+
+    private static boolean isABTestApplicable(ABTest abTest, String account) {
+        final Set<String> accounts = abTest.getAccounts();
+        return CollectionUtils.isEmpty(accounts) || accounts.contains(account);
     }
 }

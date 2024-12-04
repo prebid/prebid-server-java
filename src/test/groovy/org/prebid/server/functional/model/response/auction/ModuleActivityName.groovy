@@ -5,7 +5,8 @@ import com.fasterxml.jackson.annotation.JsonValue
 enum ModuleActivityName {
 
     ORTB2_BLOCKING('enforce-blocking'),
-    REJECT_RICHMEDIA('reject-richmedia')
+    REJECT_RICHMEDIA('reject-richmedia'),
+    AB_TESTING('core-module-abtests')
 
     @JsonValue
     final String value

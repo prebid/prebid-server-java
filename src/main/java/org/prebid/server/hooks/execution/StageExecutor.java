@@ -7,6 +7,7 @@ import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
 import org.prebid.server.hooks.execution.model.StageExecutionPlan;
 import org.prebid.server.hooks.execution.model.StageWithHookType;
+import org.prebid.server.hooks.execution.provider.HookProvider;
 import org.prebid.server.hooks.v1.Hook;
 import org.prebid.server.hooks.v1.InvocationContext;
 
@@ -16,31 +17,29 @@ import java.util.Map;
 
 class StageExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
 
-    private final HookCatalog hookCatalog;
     private final Vertx vertx;
     private final Clock clock;
 
     private StageWithHookType<? extends Hook<PAYLOAD, CONTEXT>> stage;
     private String entity;
     private StageExecutionPlan executionPlan;
+    private HookProvider<PAYLOAD, CONTEXT> hookProvider;
     private PAYLOAD initialPayload;
     private InvocationContextProvider<CONTEXT> invocationContextProvider;
     private HookExecutionContext hookExecutionContext;
     private boolean rejectAllowed;
     private Map<String, Boolean> modulesExecution;
 
-    private StageExecutor(HookCatalog hookCatalog, Vertx vertx, Clock clock) {
-        this.hookCatalog = hookCatalog;
+    private StageExecutor(Vertx vertx, Clock clock) {
         this.vertx = vertx;
         this.clock = clock;
     }
 
     public static <PAYLOAD, CONTEXT extends InvocationContext> StageExecutor<PAYLOAD, CONTEXT> create(
-            HookCatalog hookCatalog,
             Vertx vertx,
             Clock clock) {
 
-        return new StageExecutor<>(hookCatalog, vertx, clock);
+        return new StageExecutor<>(vertx, clock);
     }
 
     public StageExecutor<PAYLOAD, CONTEXT> withStage(StageWithHookType<? extends Hook<PAYLOAD, CONTEXT>> stage) {
@@ -55,6 +54,11 @@ class StageExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
 
     public StageExecutor<PAYLOAD, CONTEXT> withExecutionPlan(StageExecutionPlan executionPlan) {
         this.executionPlan = executionPlan;
+        return this;
+    }
+
+    public StageExecutor<PAYLOAD, CONTEXT> withHookProvider(HookProvider<PAYLOAD, CONTEXT> hookProvider) {
+        this.hookProvider = hookProvider;
         return this;
     }
 
@@ -104,8 +108,7 @@ class StageExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
         return GroupExecutor.<PAYLOAD, CONTEXT>create(vertx, clock, modulesExecution)
                 .withGroup(group)
                 .withInitialPayload(initialPayload)
-                .withHookProvider(
-                        hookId -> hookCatalog.hookById(hookId.getModuleCode(), hookId.getHookImplCode(), stage))
+                .withHookProvider(hookProvider)
                 .withInvocationContextProvider(invocationContextProvider)
                 .withHookExecutionContext(hookExecutionContext)
                 .withRejectAllowed(rejectAllowed)
