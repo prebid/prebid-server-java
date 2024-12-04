@@ -370,6 +370,9 @@ contain 'WHERE last_updated > ?' for MySQL and 'WHERE last_updated > $1' for Pos
 For targeting available next options:
 - `settings.targeting.truncate-attr-chars` - set the max length for names of targeting keywords (0 means no truncation).
 
+For modules:
+- `settings.modules.require-config-to-invoke` - when enabled it requires a runtime config to exist for a module.
+
 ## Host Cookie
 - `host-cookie.optout-cookie.name` - set the cookie name for optout checking.
 - `host-cookie.optout-cookie.value` - set the cookie value for optout checking.
