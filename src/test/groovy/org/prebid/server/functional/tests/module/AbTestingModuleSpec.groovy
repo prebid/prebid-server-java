@@ -181,7 +181,143 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         moduleName << [ModuleName.ORTB2_BLOCKING.code.toUpperCase(), PBSUtils.randomString]
     }
 
-    def "PBS should apply a/b test config for each module when multiple config are presents"() {
+    def "PBS should apply a/b test config for each module when multiple config are presents and set to allow modules"() {
+        given: "PBS service with multiple modules"
+        def pbsConfig = MULTI_MODULE_CONFIG
+        def pbsServiceWithMultipleModules = pbsServiceFactory.getService(pbsConfig)
+
+        and: "Default bid request with verbose trace"
+        def bidRequest = getBidRequestWithTrace()
+
+        and: "Flush metrics"
+        flushMetrics(pbsServiceWithMultipleModules)
+
+        and: "Save account with ab test config"
+        def ortb2AbTestConfig = AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
+            it.percentActive = MAX_PERCENT_AB
+        }
+        def richMediaAbTestConfig = AbTest.getDefault(PB_RESPONSE_CORRECTION.code).tap {
+            it.percentActive = MAX_PERCENT_AB
+        }
+        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, MODULES_STAGES).tap {
+            abTests = [ortb2AbTestConfig, richMediaAbTestConfig]
+        }
+        def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(executionPlan: executionPlan))
+        def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
+
+        then: "PBS should apply ab test config for specified module"
+        def invocationResults = response?.ext?.prebid?.modules?.trace?.stages?.outcomes?.groups?.invocationResults?.flatten() as List<InvocationResult>
+        def ortbBlockingInvocationResults = filterInvocationResultsByModule(invocationResults, ModuleName.ORTB2_BLOCKING)
+        verifyAll(ortbBlockingInvocationResults) {
+            it.status == [SUCCESS, SUCCESS]
+            it.action == [NO_ACTION, NO_ACTION]
+            it.analyticsTags.activities.name.flatten().sort() == [ORTB2_BLOCKING, AB_TESTING, AB_TESTING].value.sort()
+            it.analyticsTags.activities.status.flatten().sort() == [FetchStatus.SUCCESS, FetchStatus.SUCCESS, FetchStatus.SUCCESS].sort()
+            it.analyticsTags.activities.results.status.flatten().sort() == [FetchStatus.SUCCESS_ALLOW, FetchStatus.RUN, FetchStatus.RUN].value.sort()
+            it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.ORTB2_BLOCKING, ModuleName.ORTB2_BLOCKING]
+        }
+
+        and: "PBS should not apply ab test config for other module"
+        def responseCorrectionInvocationResults = filterInvocationResultsByModule(invocationResults, PB_RESPONSE_CORRECTION)
+        verifyAll(responseCorrectionInvocationResults) {
+            it.status == [SUCCESS]
+            it.action == [NO_ACTION]
+            it.analyticsTags.activities.name.flatten() == [AB_TESTING].value
+            it.analyticsTags.activities.status.flatten() == [FetchStatus.SUCCESS]
+            it.analyticsTags.activities.results.status.flatten() == [FetchStatus.RUN].value
+            it.analyticsTags.activities.results.values.module.flatten() == [PB_RESPONSE_CORRECTION]
+        }
+
+        and: "Metric for allowed to run ortb2blocking module should be updated based on ab test config"
+        def metrics = pbsServiceWithMultipleModules.sendCollectedMetricsRequest()
+        assert metrics[CALL_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)] == 1
+        assert metrics[CALL_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)] == 1
+        assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)]
+        assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)]
+
+        and: "Metric for allowed to run response-correction module should be updated based on ab test config"
+        assert metrics[CALL_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)] == 1
+        assert metrics[CALL_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)] == 1
+        assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)]
+        assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)]
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
+    }
+
+    def "PBS should apply a/b test config for each module when multiple config are presents and set to skip modules"() {
+        given: "PBS service with multiple modules"
+        def pbsConfig = MULTI_MODULE_CONFIG
+        def pbsServiceWithMultipleModules = pbsServiceFactory.getService(pbsConfig)
+
+        and: "Default bid request with verbose trace"
+        def bidRequest = getBidRequestWithTrace()
+
+        and: "Flush metrics"
+        flushMetrics(pbsServiceWithMultipleModules)
+
+        and: "Save account with ab test config"
+        def ortb2AbTestConfig = AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
+            it.percentActive = MIN_PERCENT_AB
+        }
+        def richMediaAbTestConfig = AbTest.getDefault(PB_RESPONSE_CORRECTION.code).tap {
+            it.percentActive = MIN_PERCENT_AB
+        }
+        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, MODULES_STAGES).tap {
+            abTests = [ortb2AbTestConfig, richMediaAbTestConfig]
+        }
+        def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(executionPlan: executionPlan))
+        def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
+
+        then: "PBS should apply ab test config for ortb2blocking module"
+        def invocationResults = response?.ext?.prebid?.modules?.trace?.stages?.outcomes?.groups?.invocationResults?.flatten() as List<InvocationResult>
+        def ortbBlockingInvocationResults = filterInvocationResultsByModule(invocationResults, ModuleName.ORTB2_BLOCKING)
+        verifyAll(ortbBlockingInvocationResults) {
+            it.status == [SUCCESS, SUCCESS]
+            it.action == [NO_INVOCATION, NO_INVOCATION]
+            it.analyticsTags.activities.name.flatten() == [AB_TESTING, AB_TESTING].value
+            it.analyticsTags.activities.status.flatten() == [FetchStatus.SUCCESS, FetchStatus.SUCCESS]
+            it.analyticsTags.activities.results.status.flatten() == [FetchStatus.SKIPPED, FetchStatus.SKIPPED].value
+            it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.ORTB2_BLOCKING, ModuleName.ORTB2_BLOCKING]
+        }
+
+        and: "PBS should apply ab test config for response-correction module"
+        def responseCorrectionInvocationResults = filterInvocationResultsByModule(invocationResults, PB_RESPONSE_CORRECTION)
+        verifyAll(responseCorrectionInvocationResults) {
+            it.status == [SUCCESS]
+            it.action == [NO_INVOCATION]
+            it.analyticsTags.activities.name.flatten() == [AB_TESTING].value
+            it.analyticsTags.activities.status.flatten() == [FetchStatus.SUCCESS]
+            it.analyticsTags.activities.results.status.flatten() == [FetchStatus.SKIPPED].value
+            it.analyticsTags.activities.results.values.module.flatten() == [PB_RESPONSE_CORRECTION]
+        }
+
+        and: "Metric for skipped ortb2blocking module should be updated based on ab test config"
+        def metrics = pbsServiceWithMultipleModules.sendCollectedMetricsRequest()
+        assert !metrics[CALL_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)]
+        assert !metrics[CALL_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)]
+        assert metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)] == 1
+        assert metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)] == 1
+
+        and: "Metric for skipped response-correction module should be updated based on ab test config"
+        assert !metrics[CALL_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)]
+        assert !metrics[CALL_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)]
+        assert metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)] == 1
+        assert metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)] == 1
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
+    }
+
+    def "PBS should apply a/b test config for each module when multiple config are presents with different percentage"() {
         given: "PBS service with multiple modules"
         def pbsConfig = MULTI_MODULE_CONFIG
         def pbsServiceWithMultipleModules = pbsServiceFactory.getService(pbsConfig)
@@ -209,7 +345,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         when: "PBS processes auction request"
         def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
-        then: "PBS should apply ab test config for specified module"
+        then: "PBS should apply ab test config for ortb2blocking module"
         def invocationResults = response?.ext?.prebid?.modules?.trace?.stages?.outcomes?.groups?.invocationResults?.flatten() as List<InvocationResult>
         def ortbBlockingInvocationResults = filterInvocationResultsByModule(invocationResults, ModuleName.ORTB2_BLOCKING)
         verifyAll(ortbBlockingInvocationResults) {
@@ -221,7 +357,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.ORTB2_BLOCKING, ModuleName.ORTB2_BLOCKING]
         }
 
-        and: "PBS should not apply ab test config for other module"
+        and: "PBS should not apply ab test config for response-correction module"
         def responseCorrectionInvocationResults = filterInvocationResultsByModule(invocationResults, PB_RESPONSE_CORRECTION)
         verifyAll(responseCorrectionInvocationResults) {
             it.status == [SUCCESS]
@@ -762,6 +898,73 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)]
         assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)]
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
+    }
+
+    def "PBS should apply a/b test config from host config for specific account and general config when account config and default account doesn't include a/b test config"() {
+        given: "PBS service with specific ab test config"
+        def accountId = PBSUtils.randomNumber
+        def ortb2AbTestConfig = AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code, []).tap {
+            it.percentActive = MIN_PERCENT_AB
+        }
+        def richMediaAbTestConfig = AbTest.getDefault(PB_RESPONSE_CORRECTION.code, [accountId]).tap {
+            it.percentActive = MIN_PERCENT_AB
+        }
+        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, MODULES_STAGES).tap {
+            abTests = [ortb2AbTestConfig, richMediaAbTestConfig]
+        }
+        def pbsConfig = MULTI_MODULE_CONFIG + ['hooks.host-execution-plan': encode(executionPlan)]
+        def pbsServiceWithMultipleModules = pbsServiceFactory.getService(pbsConfig)
+
+        and: "Default bid request with verbose trace"
+        def bidRequest = defaultBidRequest.tap {
+            ext.prebid.trace = TraceLevel.VERBOSE
+            setAccountId(accountId as String)
+        }
+
+        and: "Flush metrics"
+        flushMetrics(pbsServiceWithMultipleModules)
+
+        when: "PBS processes auction request"
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
+
+        then: "PBS should apply ab test config for ortb2blocking module"
+        def invocationResults = response?.ext?.prebid?.modules?.trace?.stages?.outcomes?.groups?.invocationResults?.flatten() as List<InvocationResult>
+        def ortbBlockingInvocationResults = filterInvocationResultsByModule(invocationResults, ModuleName.ORTB2_BLOCKING)
+        verifyAll(ortbBlockingInvocationResults) {
+            it.status == [SUCCESS, SUCCESS]
+            it.action == [NO_INVOCATION, NO_INVOCATION]
+            it.analyticsTags.activities.name.flatten() == [AB_TESTING, AB_TESTING].value
+            it.analyticsTags.activities.status.flatten() == [FetchStatus.SUCCESS, FetchStatus.SUCCESS]
+            it.analyticsTags.activities.results.status.flatten() == [FetchStatus.SKIPPED, FetchStatus.SKIPPED].value
+            it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.ORTB2_BLOCKING, ModuleName.ORTB2_BLOCKING]
+        }
+
+        and: "PBS should apply ab test config for response-correction module"
+        def responseCorrectionInvocationResults = filterInvocationResultsByModule(invocationResults, PB_RESPONSE_CORRECTION)
+        verifyAll(responseCorrectionInvocationResults) {
+            it.status == [SUCCESS]
+            it.action == [NO_INVOCATION]
+            it.analyticsTags.activities.name.flatten() == [AB_TESTING].value
+            it.analyticsTags.activities.status.flatten() == [FetchStatus.SUCCESS]
+            it.analyticsTags.activities.results.status.flatten() == [FetchStatus.SKIPPED].value
+            it.analyticsTags.activities.results.values.module.flatten() == [PB_RESPONSE_CORRECTION]
+        }
+
+        and: "Metric for skipped ortb2blocking module should be updated based on ab test config"
+        def metrics = pbsServiceWithMultipleModules.sendCollectedMetricsRequest()
+        assert !metrics[CALL_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)]
+        assert !metrics[CALL_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)]
+        assert metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)] == 1
+        assert metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)] == 1
+
+        and: "Metric for skipped response-correction module should be updated based on ab test config"
+        assert !metrics[CALL_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)]
+        assert !metrics[CALL_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)]
+        assert metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)] == 1
+        assert metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)] == 1
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsConfig)
