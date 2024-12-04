@@ -3,6 +3,7 @@
   "imp" : [ {
     "id": "impId001",
     "video": {
+      "placement": 1,
       "mimes": [
         "mimes"
       ],

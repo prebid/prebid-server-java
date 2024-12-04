@@ -12,6 +12,8 @@ import org.prebid.server.functional.model.request.auction.BidAdjustmentFactors
 import org.prebid.server.functional.model.request.auction.BidAdjustmentRule
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Imp
+import org.prebid.server.functional.model.request.auction.VideoPlacementSubtypes
+import org.prebid.server.functional.model.request.auction.VideoPlcmtSubtype
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
@@ -40,8 +42,8 @@ import static org.prebid.server.functional.model.request.auction.BidAdjustmentMe
 import static org.prebid.server.functional.model.request.auction.BidAdjustmentMediaType.VIDEO_IN_STREAM
 import static org.prebid.server.functional.model.request.auction.BidAdjustmentMediaType.VIDEO_OUT_STREAM
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
-import static org.prebid.server.functional.model.request.auction.VideoPlacementSubtypes.IN_ARTICLE
-import static org.prebid.server.functional.model.request.auction.VideoPlacementSubtypes.IN_STREAM
+import static org.prebid.server.functional.model.request.auction.VideoPlacementSubtypes.IN_STREAM as IN_PLACEMENT_STREAM
+import static org.prebid.server.functional.model.request.auction.VideoPlcmtSubtype.IN_STREAM as IN_PLCMT_STREAM
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 import static org.prebid.server.functional.util.PBSUtils.getRandomDecimal
@@ -56,6 +58,8 @@ class BidAdjustmentSpec extends BaseSpec {
     private static final Currency DEFAULT_CURRENCY = USD
     private static final int BID_ADJUST_PRECISION = 4
     private static final int PRICE_PRECISION = 3
+    private static final VideoPlacementSubtypes RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM = PBSUtils.getRandomEnum(VideoPlacementSubtypes, [IN_PLACEMENT_STREAM])
+    private static final VideoPlcmtSubtype RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM = PBSUtils.getRandomEnum(VideoPlcmtSubtype, [IN_PLCMT_STREAM])
     private static final Map<Currency, Map<Currency, BigDecimal>> DEFAULT_CURRENCY_RATES = [(USD): [(EUR): 0.9124920156948626,
                                                                                                     (GBP): 0.793776804452961],
                                                                                             (GBP): [(USD): 1.2597999770088517,
@@ -220,22 +224,43 @@ class BidAdjustmentSpec extends BaseSpec {
         where:
         adjustmentType | ruleValue                                                       | mediaType        | bidRequest
         MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | BANNER           | BidRequest.defaultBidRequest
-        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlacement(IN_PLACEMENT_STREAM)
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmt(IN_PLCMT_STREAM)
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(IN_PLCMT_STREAM, IN_PLACEMENT_STREAM)
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM, IN_PLACEMENT_STREAM)
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(IN_PLCMT_STREAM, RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmtAndPlacement(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM, RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmtAndPlacement(null, null)
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlacement(RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmt(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM)
         MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | AUDIO            | BidRequest.defaultAudioRequest
         MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | NATIVE           | BidRequest.defaultNativeRequest
         MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | ANY              | BidRequest.defaultBidRequest
 
         CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | BANNER           | BidRequest.defaultBidRequest
-        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlacement(IN_PLACEMENT_STREAM)
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmt(IN_PLCMT_STREAM)
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(IN_PLCMT_STREAM, IN_PLACEMENT_STREAM)
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM, IN_PLACEMENT_STREAM)
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(IN_PLCMT_STREAM, RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmtAndPlacement(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM, RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmtAndPlacement(null, null)
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlacement(RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmt(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM)
         CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | AUDIO            | BidRequest.defaultAudioRequest
         CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | NATIVE           | BidRequest.defaultNativeRequest
         CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | ANY              | BidRequest.defaultBidRequest
 
         STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | BANNER           | BidRequest.defaultBidRequest
-        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlacement(IN_PLACEMENT_STREAM)
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmt(IN_PLCMT_STREAM)
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(IN_PLCMT_STREAM, IN_PLACEMENT_STREAM)
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM, IN_PLACEMENT_STREAM)
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(IN_PLCMT_STREAM, RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmtAndPlacement(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM, RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmtAndPlacement(null, null)
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlacement(RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmt(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM)
         STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | AUDIO            | BidRequest.defaultAudioRequest
         STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | NATIVE           | BidRequest.defaultNativeRequest
         STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | ANY              | BidRequest.defaultBidRequest
@@ -284,22 +309,43 @@ class BidAdjustmentSpec extends BaseSpec {
         where:
         adjustmentType | ruleValue                                                       | mediaType        | bidRequest
         MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | BANNER           | BidRequest.defaultBidRequest
-        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlacement(IN_PLACEMENT_STREAM)
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmt(IN_PLCMT_STREAM)
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(IN_PLCMT_STREAM, IN_PLACEMENT_STREAM)
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM, IN_PLACEMENT_STREAM)
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(IN_PLCMT_STREAM, RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmtAndPlacement(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM, RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmtAndPlacement(null, null)
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlacement(RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmt(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM)
         MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | AUDIO            | BidRequest.defaultAudioRequest
         MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | NATIVE           | BidRequest.defaultNativeRequest
         MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | ANY              | BidRequest.defaultBidRequest
 
         CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | BANNER           | BidRequest.defaultBidRequest
-        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlacement(IN_PLACEMENT_STREAM)
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmt(IN_PLCMT_STREAM)
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(IN_PLCMT_STREAM, IN_PLACEMENT_STREAM)
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM, IN_PLACEMENT_STREAM)
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(IN_PLCMT_STREAM, RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmtAndPlacement(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM, RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmtAndPlacement(null, null)
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlacement(RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmt(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM)
         CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | AUDIO            | BidRequest.defaultAudioRequest
         CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | NATIVE           | BidRequest.defaultNativeRequest
         CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | ANY              | BidRequest.defaultBidRequest
 
         STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | BANNER           | BidRequest.defaultBidRequest
-        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlacement(IN_PLACEMENT_STREAM)
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmt(IN_PLCMT_STREAM)
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(IN_PLCMT_STREAM, IN_PLACEMENT_STREAM)
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM, IN_PLACEMENT_STREAM)
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(IN_PLCMT_STREAM, RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmtAndPlacement(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM, RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmtAndPlacement(null, null)
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlacement(RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmt(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM)
         STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | AUDIO            | BidRequest.defaultAudioRequest
         STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | NATIVE           | BidRequest.defaultNativeRequest
         STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | ANY              | BidRequest.defaultBidRequest
@@ -341,22 +387,43 @@ class BidAdjustmentSpec extends BaseSpec {
         where:
         adjustmentType | ruleValue                                                       | mediaType        | bidRequest
         MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | BANNER           | BidRequest.defaultBidRequest
-        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlacement(IN_PLACEMENT_STREAM)
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmt(IN_PLCMT_STREAM)
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(IN_PLCMT_STREAM, IN_PLACEMENT_STREAM)
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM, IN_PLACEMENT_STREAM)
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(IN_PLCMT_STREAM, RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmtAndPlacement(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM, RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmtAndPlacement(null, null)
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlacement(RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmt(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM)
         MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | AUDIO            | BidRequest.defaultAudioRequest
         MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | NATIVE           | BidRequest.defaultNativeRequest
         MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | ANY              | BidRequest.defaultBidRequest
 
         CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | BANNER           | BidRequest.defaultBidRequest
-        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlacement(IN_PLACEMENT_STREAM)
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmt(IN_PLCMT_STREAM)
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(IN_PLCMT_STREAM, IN_PLACEMENT_STREAM)
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM, IN_PLACEMENT_STREAM)
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(IN_PLCMT_STREAM, RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmtAndPlacement(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM, RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmtAndPlacement(null, null)
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlacement(RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmt(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM)
         CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | AUDIO            | BidRequest.defaultAudioRequest
         CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | NATIVE           | BidRequest.defaultNativeRequest
         CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | ANY              | BidRequest.defaultBidRequest
 
         STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | BANNER           | BidRequest.defaultBidRequest
-        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlacement(IN_PLACEMENT_STREAM)
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmt(IN_PLCMT_STREAM)
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(IN_PLCMT_STREAM, IN_PLACEMENT_STREAM)
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM, IN_PLACEMENT_STREAM)
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(IN_PLCMT_STREAM, RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmtAndPlacement(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM, RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmtAndPlacement(null, null)
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlacement(RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmt(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM)
         STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | AUDIO            | BidRequest.defaultAudioRequest
         STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | NATIVE           | BidRequest.defaultNativeRequest
         STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | ANY              | BidRequest.defaultBidRequest
@@ -403,22 +470,43 @@ class BidAdjustmentSpec extends BaseSpec {
         where:
         adjustmentType | ruleValue                                                       | mediaType        | bidRequest
         MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | BANNER           | BidRequest.defaultBidRequest
-        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlacement(IN_PLACEMENT_STREAM)
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmt(IN_PLCMT_STREAM)
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(IN_PLCMT_STREAM, IN_PLACEMENT_STREAM)
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM, IN_PLACEMENT_STREAM)
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(IN_PLCMT_STREAM, RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmtAndPlacement(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM, RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmtAndPlacement(null, null)
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlacement(RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmt(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM)
         MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | AUDIO            | BidRequest.defaultAudioRequest
         MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | NATIVE           | BidRequest.defaultNativeRequest
         MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | ANY              | BidRequest.defaultBidRequest
 
         CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | BANNER           | BidRequest.defaultBidRequest
-        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlacement(IN_PLACEMENT_STREAM)
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmt(IN_PLCMT_STREAM)
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(IN_PLCMT_STREAM, IN_PLACEMENT_STREAM)
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM, IN_PLACEMENT_STREAM)
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(IN_PLCMT_STREAM, RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmtAndPlacement(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM, RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmtAndPlacement(null, null)
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlacement(RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmt(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM)
         CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | AUDIO            | BidRequest.defaultAudioRequest
         CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | NATIVE           | BidRequest.defaultNativeRequest
         CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | ANY              | BidRequest.defaultBidRequest
 
         STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | BANNER           | BidRequest.defaultBidRequest
-        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlacement(IN_PLACEMENT_STREAM)
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmt(IN_PLCMT_STREAM)
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(IN_PLCMT_STREAM, IN_PLACEMENT_STREAM)
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM, IN_PLACEMENT_STREAM)
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(IN_PLCMT_STREAM, RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmtAndPlacement(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM, RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmtAndPlacement(null, null)
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlacement(RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmt(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM)
         STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | AUDIO            | BidRequest.defaultAudioRequest
         STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | NATIVE           | BidRequest.defaultNativeRequest
         STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | ANY              | BidRequest.defaultBidRequest
@@ -673,40 +761,82 @@ class BidAdjustmentSpec extends BaseSpec {
         where:
         adjustmentType | ruleValue                       | mediaType        | bidRequest
         MULTIPLIER     | MIN_ADJUST_VALUE - 1            | BANNER           | BidRequest.defaultBidRequest
-        MULTIPLIER     | MIN_ADJUST_VALUE - 1            | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        MULTIPLIER     | MIN_ADJUST_VALUE - 1            | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
+        MULTIPLIER     | MIN_ADJUST_VALUE - 1            | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlacement(IN_PLACEMENT_STREAM)
+        MULTIPLIER     | MIN_ADJUST_VALUE - 1            | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmt(IN_PLCMT_STREAM)
+        MULTIPLIER     | MIN_ADJUST_VALUE - 1            | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(IN_PLCMT_STREAM, IN_PLACEMENT_STREAM)
+        MULTIPLIER     | MIN_ADJUST_VALUE - 1            | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM, IN_PLACEMENT_STREAM)
+        MULTIPLIER     | MIN_ADJUST_VALUE - 1            | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(IN_PLCMT_STREAM, RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        MULTIPLIER     | MIN_ADJUST_VALUE - 1            | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmtAndPlacement(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM, RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        MULTIPLIER     | MIN_ADJUST_VALUE - 1            | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmtAndPlacement(null, null)
+        MULTIPLIER     | MIN_ADJUST_VALUE - 1            | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlacement(RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        MULTIPLIER     | MIN_ADJUST_VALUE - 1            | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmt(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM)
         MULTIPLIER     | MIN_ADJUST_VALUE - 1            | AUDIO            | BidRequest.defaultAudioRequest
         MULTIPLIER     | MIN_ADJUST_VALUE - 1            | NATIVE           | BidRequest.defaultNativeRequest
         MULTIPLIER     | MIN_ADJUST_VALUE - 1            | ANY              | BidRequest.defaultNativeRequest
         MULTIPLIER     | MAX_MULTIPLIER_ADJUST_VALUE + 1 | BANNER           | BidRequest.defaultBidRequest
-        MULTIPLIER     | MAX_MULTIPLIER_ADJUST_VALUE + 1 | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        MULTIPLIER     | MAX_MULTIPLIER_ADJUST_VALUE + 1 | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
+        MULTIPLIER     | MAX_MULTIPLIER_ADJUST_VALUE + 1 | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlacement(IN_PLACEMENT_STREAM)
+        MULTIPLIER     | MAX_MULTIPLIER_ADJUST_VALUE + 1 | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmt(IN_PLCMT_STREAM)
+        MULTIPLIER     | MAX_MULTIPLIER_ADJUST_VALUE + 1 | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(IN_PLCMT_STREAM, IN_PLACEMENT_STREAM)
+        MULTIPLIER     | MAX_MULTIPLIER_ADJUST_VALUE + 1 | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM, IN_PLACEMENT_STREAM)
+        MULTIPLIER     | MAX_MULTIPLIER_ADJUST_VALUE + 1 | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(IN_PLCMT_STREAM, RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        MULTIPLIER     | MAX_MULTIPLIER_ADJUST_VALUE + 1 | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmtAndPlacement(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM, RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        MULTIPLIER     | MAX_MULTIPLIER_ADJUST_VALUE + 1 | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmtAndPlacement(null, null)
+        MULTIPLIER     | MAX_MULTIPLIER_ADJUST_VALUE + 1 | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlacement(RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        MULTIPLIER     | MAX_MULTIPLIER_ADJUST_VALUE + 1 | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmt(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM)
         MULTIPLIER     | MAX_MULTIPLIER_ADJUST_VALUE + 1 | AUDIO            | BidRequest.defaultAudioRequest
         MULTIPLIER     | MAX_MULTIPLIER_ADJUST_VALUE + 1 | NATIVE           | BidRequest.defaultNativeRequest
         MULTIPLIER     | MAX_MULTIPLIER_ADJUST_VALUE + 1 | ANY              | BidRequest.defaultNativeRequest
 
         CPM            | MIN_ADJUST_VALUE - 1            | BANNER           | BidRequest.defaultBidRequest
-        CPM            | MIN_ADJUST_VALUE - 1            | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        CPM            | MIN_ADJUST_VALUE - 1            | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
+        CPM            | MIN_ADJUST_VALUE - 1            | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlacement(IN_PLACEMENT_STREAM)
+        CPM            | MIN_ADJUST_VALUE - 1            | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmt(IN_PLCMT_STREAM)
+        CPM            | MIN_ADJUST_VALUE - 1            | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(IN_PLCMT_STREAM, IN_PLACEMENT_STREAM)
+        CPM            | MIN_ADJUST_VALUE - 1            | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM, IN_PLACEMENT_STREAM)
+        CPM            | MIN_ADJUST_VALUE - 1            | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(IN_PLCMT_STREAM, RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        CPM            | MIN_ADJUST_VALUE - 1            | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmtAndPlacement(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM, RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        CPM            | MIN_ADJUST_VALUE - 1            | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmtAndPlacement(null, null)
+        CPM            | MIN_ADJUST_VALUE - 1            | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlacement(RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        CPM            | MIN_ADJUST_VALUE - 1            | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmt(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM)
         CPM            | MIN_ADJUST_VALUE - 1            | AUDIO            | BidRequest.defaultAudioRequest
         CPM            | MIN_ADJUST_VALUE - 1            | NATIVE           | BidRequest.defaultNativeRequest
         CPM            | MIN_ADJUST_VALUE - 1            | ANY              | BidRequest.defaultNativeRequest
         CPM            | MAX_CPM_ADJUST_VALUE + 1        | BANNER           | BidRequest.defaultBidRequest
-        CPM            | MAX_CPM_ADJUST_VALUE + 1        | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        CPM            | MAX_CPM_ADJUST_VALUE + 1        | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
+        CPM            | MAX_CPM_ADJUST_VALUE + 1        | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlacement(IN_PLACEMENT_STREAM)
+        CPM            | MAX_CPM_ADJUST_VALUE + 1        | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmt(IN_PLCMT_STREAM)
+        CPM            | MAX_CPM_ADJUST_VALUE + 1        | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(IN_PLCMT_STREAM, IN_PLACEMENT_STREAM)
+        CPM            | MAX_CPM_ADJUST_VALUE + 1        | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM, IN_PLACEMENT_STREAM)
+        CPM            | MAX_CPM_ADJUST_VALUE + 1        | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(IN_PLCMT_STREAM, RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        CPM            | MAX_CPM_ADJUST_VALUE + 1        | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmtAndPlacement(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM, RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        CPM            | MAX_CPM_ADJUST_VALUE + 1        | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmtAndPlacement(null, null)
+        CPM            | MAX_CPM_ADJUST_VALUE + 1        | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlacement(RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        CPM            | MAX_CPM_ADJUST_VALUE + 1        | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmt(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM)
         CPM            | MAX_CPM_ADJUST_VALUE + 1        | AUDIO            | BidRequest.defaultAudioRequest
         CPM            | MAX_CPM_ADJUST_VALUE + 1        | NATIVE           | BidRequest.defaultNativeRequest
         CPM            | MAX_CPM_ADJUST_VALUE + 1        | ANY              | BidRequest.defaultNativeRequest
 
         STATIC         | MIN_ADJUST_VALUE - 1            | BANNER           | BidRequest.defaultBidRequest
-        STATIC         | MIN_ADJUST_VALUE - 1            | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        STATIC         | MIN_ADJUST_VALUE - 1            | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
+        STATIC         | MIN_ADJUST_VALUE - 1            | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlacement(IN_PLACEMENT_STREAM)
+        STATIC         | MIN_ADJUST_VALUE - 1            | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmt(IN_PLCMT_STREAM)
+        STATIC         | MIN_ADJUST_VALUE - 1            | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(IN_PLCMT_STREAM, IN_PLACEMENT_STREAM)
+        STATIC         | MIN_ADJUST_VALUE - 1            | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM, IN_PLACEMENT_STREAM)
+        STATIC         | MIN_ADJUST_VALUE - 1            | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(IN_PLCMT_STREAM, RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        STATIC         | MIN_ADJUST_VALUE - 1            | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmtAndPlacement(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM, RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        STATIC         | MIN_ADJUST_VALUE - 1            | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmtAndPlacement(null, null)
+        STATIC         | MIN_ADJUST_VALUE - 1            | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlacement(RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        STATIC         | MIN_ADJUST_VALUE - 1            | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmt(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM)
         STATIC         | MIN_ADJUST_VALUE - 1            | AUDIO            | BidRequest.defaultAudioRequest
         STATIC         | MIN_ADJUST_VALUE - 1            | NATIVE           | BidRequest.defaultNativeRequest
         STATIC         | MIN_ADJUST_VALUE - 1            | ANY              | BidRequest.defaultNativeRequest
         STATIC         | MAX_STATIC_ADJUST_VALUE + 1     | BANNER           | BidRequest.defaultBidRequest
-        STATIC         | MAX_STATIC_ADJUST_VALUE + 1     | VIDEO_IN_STREAM  | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_STREAM }
-        STATIC         | MAX_STATIC_ADJUST_VALUE + 1     | VIDEO_OUT_STREAM | BidRequest.defaultVideoRequest.tap { imp.first.video.placement = IN_ARTICLE }
+        STATIC         | MAX_STATIC_ADJUST_VALUE + 1     | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlacement(IN_PLACEMENT_STREAM)
+        STATIC         | MAX_STATIC_ADJUST_VALUE + 1     | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmt(IN_PLCMT_STREAM)
+        STATIC         | MAX_STATIC_ADJUST_VALUE + 1     | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(IN_PLCMT_STREAM, IN_PLACEMENT_STREAM)
+        STATIC         | MAX_STATIC_ADJUST_VALUE + 1     | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM, IN_PLACEMENT_STREAM)
+        STATIC         | MAX_STATIC_ADJUST_VALUE + 1     | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(IN_PLCMT_STREAM, RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        STATIC         | MAX_STATIC_ADJUST_VALUE + 1     | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmtAndPlacement(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM, RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        STATIC         | MAX_STATIC_ADJUST_VALUE + 1     | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmtAndPlacement(null, null)
+        STATIC         | MAX_STATIC_ADJUST_VALUE + 1     | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlacement(RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        STATIC         | MAX_STATIC_ADJUST_VALUE + 1     | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmt(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM)
         STATIC         | MAX_STATIC_ADJUST_VALUE + 1     | AUDIO            | BidRequest.defaultAudioRequest
         STATIC         | MAX_STATIC_ADJUST_VALUE + 1     | NATIVE           | BidRequest.defaultNativeRequest
         STATIC         | MAX_STATIC_ADJUST_VALUE + 1     | ANY              | BidRequest.defaultNativeRequest
@@ -995,6 +1125,32 @@ class BidAdjustmentSpec extends BaseSpec {
                 return adjustedValue
             default:
                 return originalPrice
+        }
+    }
+
+    private static BidRequest getDefaultVideoRequestWithPlacement(VideoPlacementSubtypes videoPlacementSubtypes) {
+        BidRequest.defaultVideoRequest.tap {
+            imp.first.video.tap {
+                placement = videoPlacementSubtypes
+            }
+        }
+    }
+
+    private static BidRequest getDefaultVideoRequestWithPlcmt(VideoPlcmtSubtype videoPlcmtSubtype) {
+        BidRequest.defaultVideoRequest.tap {
+            imp.first.video.tap {
+                plcmt = videoPlcmtSubtype
+            }
+        }
+    }
+
+    private static BidRequest getDefaultVideoRequestWithPlcmtAndPlacement(VideoPlcmtSubtype videoPlcmtSubtype,
+                                                                          VideoPlacementSubtypes videoPlacementSubtypes) {
+        BidRequest.defaultVideoRequest.tap {
+            imp.first.video.tap {
+                plcmt = videoPlcmtSubtype
+                placement = videoPlacementSubtypes
+            }
         }
     }
 }
