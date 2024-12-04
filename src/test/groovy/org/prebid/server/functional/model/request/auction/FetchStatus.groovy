@@ -6,7 +6,7 @@ import groovy.transform.ToString
 @ToString
 enum FetchStatus {
 
-    NONE, SUCCESS, TIMEOUT, INPROGRESS, ERROR, SUCCESS_ALLOW, SUCCESS_BLOCK
+    NONE, SUCCESS, TIMEOUT, INPROGRESS, ERROR, SUCCESS_ALLOW, SUCCESS_BLOCK, SKIPPED, RUN
 
     @JsonValue
     String getValue() {

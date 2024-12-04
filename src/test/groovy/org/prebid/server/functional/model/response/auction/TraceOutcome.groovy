@@ -9,7 +9,7 @@ import org.prebid.server.functional.model.config.Stage
 @JsonNaming(PropertyNamingStrategies.LowerCaseStrategy)
 class TraceOutcome {
 
-    Stage entity
+    String entity
     Long executionTimeMillis
     List<TraceGroup> groups
 }

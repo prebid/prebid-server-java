@@ -14,4 +14,5 @@ class InvocationResult {
     ResponseAction action
     HookId hookId
     AnalyticsPrebidTag analyticsTags
+    String message
 }
