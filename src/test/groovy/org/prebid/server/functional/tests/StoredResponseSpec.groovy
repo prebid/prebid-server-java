@@ -10,12 +10,15 @@ import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.model.response.auction.SeatBid
 import org.prebid.server.functional.service.PrebidServerException
+import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.PendingFeature
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 
 class StoredResponseSpec extends BaseSpec {
+
+    private final PrebidServerService pbsService = pbsServiceFactory.getService(["cache.default-ttl-seconds.banner": ""])
 
     @PendingFeature
     def "PBS should not fail auction with storedAuctionResponse when request bidder params doesn't satisfy json-schema"() {
@@ -33,7 +36,7 @@ class StoredResponseSpec extends BaseSpec {
         storedResponseDao.save(storedResponse)
 
         when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should not contain errors and warnings"
         assert !response.ext?.errors
@@ -56,7 +59,7 @@ class StoredResponseSpec extends BaseSpec {
         storedResponseDao.save(storedResponse)
 
         when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should contain information from stored auction response"
         assert response.id == bidRequest.id
@@ -82,7 +85,7 @@ class StoredResponseSpec extends BaseSpec {
         storedResponseDao.save(storedResponse)
 
         when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should contain information from stored bid response"
         assert response.id == bidRequest.id
@@ -111,7 +114,7 @@ class StoredResponseSpec extends BaseSpec {
         storedResponseDao.save(storedResponse)
 
         when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should contain information from stored bid response and change bid.impId on imp.id"
         assert response.id == bidRequest.id
@@ -140,7 +143,7 @@ class StoredResponseSpec extends BaseSpec {
         storedResponseDao.save(storedResponse)
 
         when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should contain warning information"
         assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
@@ -161,7 +164,7 @@ class StoredResponseSpec extends BaseSpec {
         }
 
         when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should contain same stored auction response as requested"
         assert response.seatbid == [storedAuctionResponse]
@@ -190,7 +193,7 @@ class StoredResponseSpec extends BaseSpec {
         storedResponseDao.save(storedResponse)
 
         when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should contain same stored auction response as requested"
         assert response.seatbid == [storedAuctionResponse]
@@ -214,7 +217,7 @@ class StoredResponseSpec extends BaseSpec {
         storedResponseDao.save(storedResponse)
 
         when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should contain same stored auction response as requested"
         assert response.seatbid
@@ -244,7 +247,7 @@ class StoredResponseSpec extends BaseSpec {
         storedResponseDao.save(storedResponse)
 
         when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should contain warning information"
         assert response.ext?.warnings[ErrorType.PREBID]*.message.contains('SeatBid can\'t be null in stored response')
@@ -257,10 +260,10 @@ class StoredResponseSpec extends BaseSpec {
         given: "Default basic BidRequest with stored response"
         def bidRequest = BidRequest.defaultBidRequest
         def storedAuctionResponse = SeatBid.getStoredResponse(bidRequest)
-        bidRequest.imp[0].ext.prebid.storedAuctionResponse = new StoredAuctionResponse(seatBidObject:  storedAuctionResponse)
+        bidRequest.imp[0].ext.prebid.storedAuctionResponse = new StoredAuctionResponse(seatBidObject: storedAuctionResponse)
 
         when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should contain same stored auction response as requested"
         assert convertToComparableSeatBid(response.seatbid) == [storedAuctionResponse]
@@ -272,10 +275,10 @@ class StoredResponseSpec extends BaseSpec {
     def "PBS should throw error when imp.ext.prebid.storedBidResponse.seatbidobj is with empty seatbid"() {
         given: "Default basic BidRequest with empty stored response"
         def bidRequest = BidRequest.defaultBidRequest
-        bidRequest.imp[0].ext.prebid.storedAuctionResponse = new StoredAuctionResponse(seatBidObject:  new SeatBid())
+        bidRequest.imp[0].ext.prebid.storedAuctionResponse = new StoredAuctionResponse(seatBidObject: new SeatBid())
 
         when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
+        pbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS throws an exception"
         def exception = thrown(PrebidServerException)
@@ -289,10 +292,10 @@ class StoredResponseSpec extends BaseSpec {
     def "PBS should throw error when imp.ext.prebid.storedBidResponse.seatbidobj is with empty bids"() {
         given: "Default basic BidRequest with empty bids for stored response"
         def bidRequest = BidRequest.defaultBidRequest
-        bidRequest.imp[0].ext.prebid.storedAuctionResponse = new StoredAuctionResponse(seatBidObject:  new SeatBid(bid: [], seat: GENERIC))
+        bidRequest.imp[0].ext.prebid.storedAuctionResponse = new StoredAuctionResponse(seatBidObject: new SeatBid(bid: [], seat: GENERIC))
 
         when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
+        pbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS throws an exception"
         def exception = thrown(PrebidServerException)
@@ -313,7 +316,7 @@ class StoredResponseSpec extends BaseSpec {
         }
 
         when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should contain same stored auction response as requested"
         assert convertToComparableSeatBid(response.seatbid) == [storedAuctionResponse]
@@ -329,7 +332,7 @@ class StoredResponseSpec extends BaseSpec {
         }
 
         when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should contain same stored auction response bids as requested"
         assert convertToComparableSeatBid(response.seatbid).bid.flatten().sort() ==
@@ -343,7 +346,7 @@ class StoredResponseSpec extends BaseSpec {
         given: "Default basic BidRequest with stored response"
         def bidRequest = BidRequest.defaultBidRequest
         def storedAuctionResponse = SeatBid.getStoredResponse(bidRequest)
-        bidRequest.tap{
+        bidRequest.tap {
             imp[0].ext.prebid.storedAuctionResponse = new StoredAuctionResponse().tap {
                 seatBidObject = SeatBid.getStoredResponse(bidRequest)
             }
@@ -351,7 +354,7 @@ class StoredResponseSpec extends BaseSpec {
         }
 
         when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should contain same stored auction response as requested"
         assert response.seatbid == [storedAuctionResponse]

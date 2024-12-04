@@ -2,6 +2,8 @@ package org.prebid.server.hooks.execution;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.Future;
@@ -81,6 +83,7 @@ import org.prebid.server.model.Endpoint;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountHooksConfiguration;
+import org.prebid.server.settings.model.HooksAdminConfig;
 
 import java.time.Clock;
 import java.time.ZoneOffset;
@@ -1178,7 +1181,7 @@ public class HookStageExecutorTest extends VertxTest {
                         execPlanOneGroupOneHook("module-beta", "hook-b")))));
         final Account account = Account.builder()
                 .id("accountId")
-                .hooks(AccountHooksConfiguration.of(accountPlan, null))
+                .hooks(AccountHooksConfiguration.of(accountPlan, null, null))
                 .build();
         final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
 
@@ -1234,7 +1237,7 @@ public class HookStageExecutorTest extends VertxTest {
                                                 HookId.of("module-beta", "hook-a")))))))));
         final Account account = Account.builder()
                 .id("accountId")
-                .hooks(AccountHooksConfiguration.of(accountPlan, null))
+                .hooks(AccountHooksConfiguration.of(accountPlan, null, null))
                 .build();
         final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
 
@@ -1290,7 +1293,7 @@ public class HookStageExecutorTest extends VertxTest {
     }
 
     @Test
-    public void shouldNotExecuteRawAuctionRequestHooksWhenAccountConfigIsRequiredButAbsent(VertxTestContext context) {
+    public void shouldNotExecuteRawAuctionRequestHooksWhenAccountConfigIsNotRequired(VertxTestContext context) {
         // given
         givenRawAuctionRequestHook(
                 "module-alpha",
@@ -1299,10 +1302,115 @@ public class HookStageExecutorTest extends VertxTest {
                         payload.bidRequest().toBuilder().at(1).build()))));
 
         givenRawAuctionRequestHook(
-                "module-alpha",
+                "module-beta",
+                "hook-a",
+                immediateHook(InvocationResultUtils.succeeded(payload -> AuctionRequestPayloadImpl.of(
+                        payload.bidRequest().toBuilder().test(1).build()))));
+
+        givenRawAuctionRequestHook(
+                "module-gamma",
                 "hook-b",
                 immediateHook(InvocationResultUtils.succeeded(payload -> AuctionRequestPayloadImpl.of(
                         payload.bidRequest().toBuilder().id("id").build()))));
+
+        givenRawAuctionRequestHook(
+                "module-delta",
+                "hook-b",
+                immediateHook(InvocationResultUtils.succeeded(payload -> AuctionRequestPayloadImpl.of(
+                        payload.bidRequest().toBuilder().tmax(1000L).build()))));
+
+        givenRawAuctionRequestHook(
+                "module-epsilon",
+                "hook-a",
+                immediateHook(InvocationResultUtils.succeeded(payload -> AuctionRequestPayloadImpl.of(
+                        payload.bidRequest().toBuilder().site(Site.builder().build()).build()))));
+
+        givenRawAuctionRequestHook(
+                "module-zeta",
+                "hook-b",
+                immediateHook(InvocationResultUtils.succeeded(payload -> AuctionRequestPayloadImpl.of(
+                        payload.bidRequest().toBuilder().user(User.builder().build()).build()))));
+
+        final StageExecutionPlan stageExecutionPlan = StageExecutionPlan.of(asList(
+                ExecutionGroup.of(
+                        200L,
+                        asList(
+                                HookId.of("module-alpha", "hook-a"),
+                                HookId.of("module-beta", "hook-a"))),
+                ExecutionGroup.of(
+                        200L,
+                        asList(
+                                HookId.of("module-gamma", "hook-b"),
+                                HookId.of("module-delta", "hook-b")))));
+
+        final String hostExecutionPlan = executionPlan(singletonMap(
+                Endpoint.openrtb2_auction,
+                EndpointExecutionPlan.of(singletonMap(Stage.raw_auction_request, stageExecutionPlan))));
+
+        final HookStageExecutor executor = HookStageExecutor.create(
+                hostExecutionPlan,
+                null,
+                hookCatalog,
+                timeoutFactory,
+                vertx,
+                clock,
+                jacksonMapper,
+                false);
+
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+
+        // when
+        final BidRequest givenBidRequest = BidRequest.builder().build();
+        final Future<HookStageExecutionResult<AuctionRequestPayload>> future = executor.executeRawAuctionRequestStage(
+                AuctionContext.builder()
+                        .bidRequest(givenBidRequest)
+                        .account(Account.builder()
+                                .id("accountId")
+                                .hooks(AccountHooksConfiguration.of(
+                                        null,
+                                        Map.of("module-alpha", mapper.createObjectNode(),
+                                                "module-beta", mapper.createObjectNode(),
+                                                "module-gamma", mapper.createObjectNode()),
+                                        HooksAdminConfig.builder()
+                                                .moduleExecution(Map.of(
+                                                        "module-alpha", true,
+                                                        "module-beta", false))
+                                                .build()))
+                                .build())
+                        .hookExecutionContext(hookExecutionContext)
+                        .debugContext(DebugContext.empty())
+                        .build());
+
+        // then
+        future.onComplete(context.succeeding(result -> {
+            assertThat(result).isNotNull();
+            assertThat(result.getPayload()).isNotNull().satisfies(payload ->
+                    assertThat(payload.bidRequest()).isEqualTo(BidRequest.builder()
+                            .at(1)
+                            .id("id")
+                            .tmax(1000L)
+                            .build()));
+
+            assertThat(hookExecutionContext.getStageOutcomes())
+                    .hasEntrySatisfying(
+                            Stage.raw_auction_request,
+                            stageOutcomes -> assertThat(stageOutcomes)
+                                    .hasSize(1)
+                                    .extracting(StageExecutionOutcome::getEntity)
+                                    .containsOnly("auction-request"));
+
+            context.completeNow();
+        }));
+    }
+
+    @Test
+    public void shouldExecuteRawAuctionRequestHooksWhenAccountConfigIsRequired(VertxTestContext context) {
+        // given
+        givenRawAuctionRequestHook(
+                "module-alpha",
+                "hook-a",
+                immediateHook(InvocationResultUtils.succeeded(payload -> AuctionRequestPayloadImpl.of(
+                        payload.bidRequest().toBuilder().at(1).build()))));
 
         givenRawAuctionRequestHook(
                 "module-beta",
@@ -1311,16 +1419,46 @@ public class HookStageExecutorTest extends VertxTest {
                         payload.bidRequest().toBuilder().test(1).build()))));
 
         givenRawAuctionRequestHook(
-                "module-beta",
+                "module-gamma",
+                "hook-b",
+                immediateHook(InvocationResultUtils.succeeded(payload -> AuctionRequestPayloadImpl.of(
+                        payload.bidRequest().toBuilder().id("id").build()))));
+
+        givenRawAuctionRequestHook(
+                "module-delta",
                 "hook-b",
                 immediateHook(InvocationResultUtils.succeeded(payload -> AuctionRequestPayloadImpl.of(
                         payload.bidRequest().toBuilder().tmax(1000L).build()))));
 
+        givenRawAuctionRequestHook(
+                "module-epsilon",
+                "hook-a",
+                immediateHook(InvocationResultUtils.succeeded(payload -> AuctionRequestPayloadImpl.of(
+                        payload.bidRequest().toBuilder().site(Site.builder().build()).build()))));
+
+        givenRawAuctionRequestHook(
+                "module-zeta",
+                "hook-b",
+                immediateHook(InvocationResultUtils.succeeded(payload -> AuctionRequestPayloadImpl.of(
+                        payload.bidRequest().toBuilder().user(User.builder().build()).build()))));
+
+        final StageExecutionPlan stageExecutionPlan = StageExecutionPlan.of(asList(
+                ExecutionGroup.of(
+                        200L,
+                        asList(
+                                HookId.of("module-alpha", "hook-a"),
+                                HookId.of("module-beta", "hook-a"),
+                                HookId.of("module-epsilon", "hook-a"))),
+                ExecutionGroup.of(
+                        200L,
+                        asList(
+                                HookId.of("module-gamma", "hook-b"),
+                                HookId.of("module-delta", "hook-b"),
+                                HookId.of("module-zeta", "hook-b")))));
+
         final String hostExecutionPlan = executionPlan(singletonMap(
                 Endpoint.openrtb2_auction,
-                EndpointExecutionPlan.of(singletonMap(
-                        Stage.raw_auction_request,
-                        execPlanTwoGroupsTwoHooksEach()))));
+                EndpointExecutionPlan.of(singletonMap(Stage.raw_auction_request, stageExecutionPlan))));
 
         final HookStageExecutor executor = HookStageExecutor.create(
                 hostExecutionPlan,
@@ -1339,7 +1477,19 @@ public class HookStageExecutorTest extends VertxTest {
         final Future<HookStageExecutionResult<AuctionRequestPayload>> future = executor.executeRawAuctionRequestStage(
                 AuctionContext.builder()
                         .bidRequest(givenBidRequest)
-                        .account(Account.empty("accountId"))
+                        .account(Account.builder()
+                                .id("accountId")
+                                .hooks(AccountHooksConfiguration.of(
+                                        null,
+                                        Map.of("module-alpha", mapper.createObjectNode(),
+                                                "module-beta", mapper.createObjectNode(),
+                                                "module-gamma", mapper.createObjectNode()),
+                                        HooksAdminConfig.builder()
+                                                .moduleExecution(Map.of(
+                                                        "module-alpha", true,
+                                                        "module-beta", false))
+                                                .build()))
+                                .build())
                         .hookExecutionContext(hookExecutionContext)
                         .debugContext(DebugContext.empty())
                         .build());
@@ -1347,9 +1497,11 @@ public class HookStageExecutorTest extends VertxTest {
         // then
         future.onComplete(context.succeeding(result -> {
             assertThat(result).isNotNull();
-            assertThat(result.getPayload()).isNotNull()
-                    .extracting(AuctionRequestPayload::bidRequest)
-                    .isEqualTo(givenBidRequest);
+            assertThat(result.getPayload()).isNotNull().satisfies(payload ->
+                    assertThat(payload.bidRequest()).isEqualTo(BidRequest.builder()
+                            .at(1)
+                            .id("id")
+                            .build()));
 
             assertThat(hookExecutionContext.getStageOutcomes())
                     .hasEntrySatisfying(
@@ -1465,7 +1617,7 @@ public class HookStageExecutorTest extends VertxTest {
                 AuctionContext.builder()
                         .bidRequest(BidRequest.builder().build())
                         .account(Account.builder()
-                                .hooks(AccountHooksConfiguration.of(null, accountModulesConfiguration))
+                                .hooks(AccountHooksConfiguration.of(null, accountModulesConfiguration, null))
                                 .build())
                         .hookExecutionContext(hookExecutionContext)
                         .debugContext(DebugContext.empty())
@@ -1739,7 +1891,7 @@ public class HookStageExecutorTest extends VertxTest {
                         AuctionContext.builder()
                                 .bidRequest(BidRequest.builder().build())
                                 .account(Account.builder()
-                                        .hooks(AccountHooksConfiguration.of(null, accountModulesConfiguration))
+                                        .hooks(AccountHooksConfiguration.of(null, accountModulesConfiguration, null))
                                         .build())
                                 .hookExecutionContext(hookExecutionContext)
                                 .debugContext(DebugContext.empty())
@@ -2026,7 +2178,7 @@ public class HookStageExecutorTest extends VertxTest {
                         .bidRequest(BidRequest.builder().build())
                         .account(Account.builder()
                                 .hooks(AccountHooksConfiguration.of(
-                                        null, singletonMap("module-alpha", mapper.createObjectNode())))
+                                        null, singletonMap("module-alpha", mapper.createObjectNode()), null))
                                 .build())
                         .hookExecutionContext(hookExecutionContext)
                         .debugContext(DebugContext.empty())
@@ -2181,7 +2333,7 @@ public class HookStageExecutorTest extends VertxTest {
                         .bidRequest(BidRequest.builder().build())
                         .account(Account.builder()
                                 .hooks(AccountHooksConfiguration.of(
-                                        null, singletonMap("module-alpha", mapper.createObjectNode())))
+                                        null, singletonMap("module-alpha", mapper.createObjectNode()), null))
                                 .build())
                         .hookExecutionContext(hookExecutionContext)
                         .debugContext(DebugContext.empty())
@@ -2342,7 +2494,7 @@ public class HookStageExecutorTest extends VertxTest {
                                 .bidRequest(BidRequest.builder().build())
                                 .account(Account.builder()
                                         .hooks(AccountHooksConfiguration.of(
-                                                null, singletonMap("module-alpha", mapper.createObjectNode())))
+                                                null, singletonMap("module-alpha", mapper.createObjectNode()), null))
                                         .build())
                                 .hookExecutionContext(hookExecutionContext)
                                 .debugContext(DebugContext.empty())
@@ -2507,7 +2659,7 @@ public class HookStageExecutorTest extends VertxTest {
                                 .bidRequest(BidRequest.builder().build())
                                 .account(Account.builder()
                                         .hooks(AccountHooksConfiguration.of(
-                                                null, singletonMap("module-alpha", mapper.createObjectNode())))
+                                                null, singletonMap("module-alpha", mapper.createObjectNode()), null))
                                         .build())
                                 .hookExecutionContext(hookExecutionContext)
                                 .debugContext(DebugContext.empty())
@@ -2649,7 +2801,7 @@ public class HookStageExecutorTest extends VertxTest {
                         .bidRequest(BidRequest.builder().build())
                         .account(Account.builder()
                                 .hooks(AccountHooksConfiguration.of(
-                                        null, singletonMap("module-alpha", mapper.createObjectNode())))
+                                        null, singletonMap("module-alpha", mapper.createObjectNode()), null))
                                 .build())
                         .hookExecutionContext(hookExecutionContext)
                         .debugContext(DebugContext.empty())

@@ -10,6 +10,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.adjustment.BidAdjustmentFactorResolver;
 import org.prebid.server.auction.model.AuctionParticipation;
@@ -47,7 +49,6 @@ import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -57,13 +58,14 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class BidAdjustmentsProcessorTest extends VertxTest {
 
-    @Mock(strictness = LENIENT)
+    @Mock
     private CurrencyConversionService currencyService;
-    @Mock(strictness = LENIENT)
+    @Mock
     private BidAdjustmentFactorResolver bidAdjustmentFactorResolver;
-    @Mock(strictness = LENIENT)
+    @Mock
     private BidAdjustmentsResolver bidAdjustmentsResolver;
 
     private BidAdjustmentsProcessor target;
@@ -469,7 +471,7 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnBidsWithAdjustedPricesWithVideoInstreamMediaTypeIfVideoPlacementIsMissing() {
+    public void shouldReturnBidsWithAdjustedPricesWithVideoInstreamMediaTypeIfVideoPlcmtEqualsOne() {
         // given
         final BidderResponse bidderResponse = BidderResponse.of(
                 "bidder",
@@ -489,6 +491,58 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
                         singletonMap("bidder", BigDecimal.valueOf(3.456)))))
                 .build();
         given(bidAdjustmentFactorResolver.resolve(ImpMediaType.video, givenAdjustments, "bidder"))
+                .willReturn(BigDecimal.valueOf(3.456));
+
+        final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), impBuilder ->
+                        impBuilder.id("123").video(Video.builder().plcmt(1).build()))),
+                builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .aliases(emptyMap())
+                        .bidadjustmentfactors(givenAdjustments)
+                        .auctiontimestamp(1000L)
+                        .build())));
+
+        final AuctionParticipation auctionParticipation = givenAuctionParticipation(bidderResponse, bidRequest);
+
+        // when
+        final AuctionParticipation result = target.enrichWithAdjustedBids(
+                auctionParticipation, bidRequest, givenBidAdjustments());
+
+        // then
+        assertThat(result.getBidderResponse().getSeatBid().getBids())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getPrice)
+                .containsExactly(BigDecimal.valueOf(6.912));
+
+        verify(bidAdjustmentsResolver).resolve(
+                eq(Price.of("USD", BigDecimal.valueOf(6.912))),
+                eq(bidRequest),
+                eq(givenBidAdjustments()),
+                eq(ImpMediaType.video_instream),
+                eq("bidder"),
+                eq("dealId"));
+    }
+
+    @Test
+    public void shouldReturnBidsWithAdjustedPricesWithVideoOutstreamMediaTypeIfVideoPlacementAndPlcmtIsMissing() {
+        // given
+        final BidderResponse bidderResponse = BidderResponse.of(
+                "bidder",
+                BidderSeatBid.builder()
+                        .bids(List.of(
+                                givenBidderBid(Bid.builder()
+                                                .impid("123")
+                                                .price(BigDecimal.valueOf(2))
+                                                .dealid("dealId")
+                                                .build(),
+                                        "USD", video)))
+                        .build(),
+                1);
+
+        final ExtRequestBidAdjustmentFactors givenAdjustments = ExtRequestBidAdjustmentFactors.builder()
+                .mediatypes(new EnumMap<>(singletonMap(ImpMediaType.video,
+                        singletonMap("bidder", BigDecimal.valueOf(3.456)))))
+                .build();
+        given(bidAdjustmentFactorResolver.resolve(ImpMediaType.video_outstream, givenAdjustments, "bidder"))
                 .willReturn(BigDecimal.valueOf(3.456));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), impBuilder ->
@@ -514,13 +568,13 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
                 eq(Price.of("USD", BigDecimal.valueOf(6.912))),
                 eq(bidRequest),
                 eq(givenBidAdjustments()),
-                eq(ImpMediaType.video_instream),
+                eq(ImpMediaType.video_outstream),
                 eq("bidder"),
                 eq("dealId"));
     }
 
     @Test
-    public void shouldReturnBidAdjustmentMediaTypeNullIfImpIdNotEqualBidImpId() {
+    public void shouldReturnBidAdjustmentMediaTypeVideoOutstreamIfImpIdNotEqualBidImpId() {
         // given
         final BidderResponse bidderResponse = BidderResponse.of(
                 "bidder",
@@ -560,11 +614,12 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
                 .extracting(Bid::getPrice)
                 .containsExactly(BigDecimal.valueOf(2));
 
+        verify(bidAdjustmentFactorResolver).resolve(ImpMediaType.video_outstream, givenAdjustments, "bidder");
         verify(bidAdjustmentsResolver).resolve(
                 eq(Price.of("USD", BigDecimal.valueOf(2))),
                 eq(bidRequest),
                 eq(givenBidAdjustments()),
-                eq(ImpMediaType.video_instream),
+                eq(ImpMediaType.video_outstream),
                 eq("bidder"),
                 eq("dealId"));
     }

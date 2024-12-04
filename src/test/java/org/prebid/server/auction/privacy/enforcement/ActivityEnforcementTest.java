@@ -9,6 +9,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
+import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
@@ -31,6 +32,9 @@ public class ActivityEnforcementTest {
 
     @Mock
     private ActivityInfrastructure activityInfrastructure;
+
+    @Mock
+    private BidderAliases bidderAliases;
 
     @BeforeEach
     public void setUp() {
@@ -58,7 +62,8 @@ public class ActivityEnforcementTest {
         final AuctionContext context = givenAuctionContext();
 
         // when
-        final List<BidderPrivacyResult> result = target.enforce(singletonList(bidderPrivacyResult), context).result();
+        final List<BidderPrivacyResult> result =
+                target.enforce(context, bidderAliases, singletonList(bidderPrivacyResult)).result();
 
         //then
         assertThat(result).allSatisfy(privacyResult -> {
