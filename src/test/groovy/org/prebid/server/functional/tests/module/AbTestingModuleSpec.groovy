@@ -49,6 +49,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             ['hooks.host-execution-plan': null]
 
     private final static PrebidServerService ortbModulePbsService = pbsServiceFactory.getService(getOrtb2BlockingSettings())
+    private final static PrebidServerService pbsServiceWithMultipleModules = pbsServiceFactory.getService(MULTI_MODULE_CONFIG)
 
     def "PBS shouldn't apply a/b test config when config of ab test is disabled"() {
         given: "Default bid request with verbose trace"
@@ -182,11 +183,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
     }
 
     def "PBS should apply a/b test config for each module when multiple config are presents and set to allow modules"() {
-        given: "PBS service with multiple modules"
-        def pbsConfig = MULTI_MODULE_CONFIG
-        def pbsServiceWithMultipleModules = pbsServiceFactory.getService(pbsConfig)
-
-        and: "Default bid request with verbose trace"
+        given: "Default bid request with verbose trace"
         def bidRequest = getBidRequestWithTrace()
 
         and: "Flush metrics"
@@ -244,17 +241,10 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         assert metrics[CALL_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)] == 1
         assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)]
         assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)]
-
-        cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS should apply a/b test config for each module when multiple config are presents and set to skip modules"() {
-        given: "PBS service with multiple modules"
-        def pbsConfig = MULTI_MODULE_CONFIG
-        def pbsServiceWithMultipleModules = pbsServiceFactory.getService(pbsConfig)
-
-        and: "Default bid request with verbose trace"
+        given: "Default bid request with verbose trace"
         def bidRequest = getBidRequestWithTrace()
 
         and: "Flush metrics"
@@ -312,17 +302,10 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         assert !metrics[CALL_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)]
         assert metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)] == 1
         assert metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)] == 1
-
-        cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS should apply a/b test config for each module when multiple config are presents with different percentage"() {
-        given: "PBS service with multiple modules"
-        def pbsConfig = MULTI_MODULE_CONFIG
-        def pbsServiceWithMultipleModules = pbsServiceFactory.getService(pbsConfig)
-
-        and: "Default bid request with verbose trace"
+        given: "Default bid request with verbose trace"
         def bidRequest = getBidRequestWithTrace()
 
         and: "Flush metrics"
@@ -378,9 +361,6 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         assert metrics[CALL_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)] == 1
         assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)]
         assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)]
-
-        cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS should ignore accounts property for a/b test config when ab test config specialize for specific account"() {
