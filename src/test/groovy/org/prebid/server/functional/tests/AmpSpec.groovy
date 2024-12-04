@@ -194,7 +194,7 @@ class AmpSpec extends BaseSpec {
         and: "Save storedRequest into DB"
         def ampStoredRequest = BidRequest.defaultBidRequest.tap {
             user = new User(ext: new UserExt(
-                    consentedProvidersSettingsKebabCase: new ConsentedProvidersSettings(consentedProviders: PBSUtils.randomString),
+                    consentedProvidersSettingsCamelCase: new ConsentedProvidersSettings(consentedProviders: PBSUtils.randomString),
                     consentedProvidersSettings: new ConsentedProvidersSettings(consentedProviders: PBSUtils.randomString)))
         }
         def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
@@ -205,11 +205,11 @@ class AmpSpec extends BaseSpec {
 
         then: "Bidder request should contain addtl consent"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
-        assert bidderRequest.user.ext.consentedProvidersSettingsKebabCase.consentedProviders == randomAddtlConsent
+        assert bidderRequest.user.ext.consentedProvidersSettingsCamelCase.consentedProviders == randomAddtlConsent
         assert bidderRequest.user.ext.consentedProvidersSettings.consentedProviders == randomAddtlConsent
     }
 
-    def "PBS should leave requested user.ext.{consented_providers_settings/ConsentedProvidersSettings}.consented_providers as is"() {
+    def "PBS should process original user.ext.{consented_providers_settings/ConsentedProvidersSettings}.consented_providers when ampRequest doesn't contain addtl_consent"() {
         given: "Default amp request with addtlConsent"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             addtlConsent = null
@@ -220,7 +220,7 @@ class AmpSpec extends BaseSpec {
         def consentProviders = PBSUtils.randomString
         def ampStoredRequest = BidRequest.defaultBidRequest.tap {
             user = new User(ext: new UserExt(
-                    consentedProvidersSettingsKebabCase: new ConsentedProvidersSettings(consentedProviders: consentProvidersKebabCase),
+                    consentedProvidersSettingsCamelCase: new ConsentedProvidersSettings(consentedProviders: consentProvidersKebabCase),
                     consentedProvidersSettings: new ConsentedProvidersSettings(consentedProviders: consentProviders)))
         }
         def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
@@ -231,11 +231,11 @@ class AmpSpec extends BaseSpec {
 
         then: "Bidder request should contain requested consent"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
-        assert bidderRequest.user.ext.consentedProvidersSettingsKebabCase.consentedProviders == consentProvidersKebabCase
+        assert bidderRequest.user.ext.consentedProvidersSettingsCamelCase.consentedProviders == consentProvidersKebabCase
         assert bidderRequest.user.ext.consentedProvidersSettings.consentedProviders == consentProviders
     }
 
-    def "PBS shouldn't pass addtl_consent to user.ext.{consented_providers_settings/ConsentedProvidersSettings}.consented_providers"() {
+    def "PBS should left user.ext.{consented_providers_settings/ConsentedProvidersSettings}.consented_providers empty when addtl_consent and original fields are empty"() {
         given: "Default amp request with addtlConsent"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             addtlConsent = null
@@ -244,7 +244,7 @@ class AmpSpec extends BaseSpec {
         and: "Save storedRequest into DB"
         def ampStoredRequest = BidRequest.defaultBidRequest.tap {
             user = new User(ext: new UserExt(
-                    consentedProvidersSettingsKebabCase: new ConsentedProvidersSettings(consentedProviders: null),
+                    consentedProvidersSettingsCamelCase: new ConsentedProvidersSettings(consentedProviders: null),
                     consentedProvidersSettings: new ConsentedProvidersSettings(consentedProviders: null)))
         }
         def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
@@ -255,7 +255,7 @@ class AmpSpec extends BaseSpec {
 
         then: "Bidder request shouldn't contain consent"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
-        assert !bidderRequest.user.ext.consentedProvidersSettingsKebabCase.consentedProviders
+        assert !bidderRequest.user.ext.consentedProvidersSettingsCamelCase.consentedProviders
         assert !bidderRequest.user.ext.consentedProvidersSettings.consentedProviders
     }
 }

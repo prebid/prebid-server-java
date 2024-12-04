@@ -17,7 +17,7 @@ class UserExt {
     UserExtPrebid prebid
     ConsentedProvidersSettings consentedProvidersSettings
     @JsonProperty("ConsentedProvidersSettings")
-    ConsentedProvidersSettings consentedProvidersSettingsKebabCase
+    ConsentedProvidersSettings consentedProvidersSettingsCamelCase
 
     static UserExt getFPDUserExt() {
         new UserExt(data: UserExtData.FPDUserExtData)
