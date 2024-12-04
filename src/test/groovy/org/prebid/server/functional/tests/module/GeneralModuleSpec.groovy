@@ -18,7 +18,6 @@ import org.prebid.server.functional.util.PBSUtils
 import spock.lang.PendingFeature
 
 import static org.prebid.server.functional.model.ModuleName.ORTB2_BLOCKING
-import static org.prebid.server.functional.model.ModuleName.PB_RESPONSE_CORRECTION
 import static org.prebid.server.functional.model.ModuleName.PB_RICHMEDIA_FILTER
 import static org.prebid.server.functional.model.config.Endpoint.OPENRTB2_AUCTION
 import static org.prebid.server.functional.model.config.ModuleHookImplementation.ORTB2_BLOCKING_BIDDER_REQUEST
@@ -41,11 +40,10 @@ class GeneralModuleSpec extends ModuleBaseSpec {
 
     private final static Map<Stage, List<ModuleName>> ORTB_STAGES = [(BIDDER_REQUEST)     : [ORTB2_BLOCKING],
                                                                      (RAW_BIDDER_RESPONSE): [ORTB2_BLOCKING]]
-    private final static Map<Stage, List<ModuleName>> RESPONSE_STAGES = [(ALL_PROCESSED_BID_RESPONSES): [PB_RICHMEDIA_FILTER, PB_RESPONSE_CORRECTION]]
+    private final static Map<Stage, List<ModuleName>> RESPONSE_STAGES = [(ALL_PROCESSED_BID_RESPONSES): [PB_RICHMEDIA_FILTER]]
     private final static Map<Stage, List<ModuleName>> MODULES_STAGES = ORTB_STAGES + RESPONSE_STAGES
     private final static Map<String, String> MULTI_MODULE_CONFIG = getRichMediaFilterSettings(PBSUtils.randomString) +
             getOrtb2BlockingSettings() +
-            getResponseCorrectionConfig() +
             ['hooks.host-execution-plan': encode(ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, MODULES_STAGES))]
 
     private final static PrebidServerService pbsServiceWithMultipleModule = pbsServiceFactory.getService(MULTI_MODULE_CONFIG + DISABLED_INVOKE_CONFIG)
