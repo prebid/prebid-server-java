@@ -10,6 +10,7 @@ class RegsExt {
 
     @Deprecated(since = "enabling support of ortb 2.6")
     Integer gdpr
+    Integer coppa
     @Deprecated(since = "enabling support of ortb 2.6")
     String usPrivacy
     String gpc

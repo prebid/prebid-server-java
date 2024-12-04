@@ -30,7 +30,6 @@ import org.prebid.server.spring.config.bidder.model.Ortb;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.function.UnaryOperator;
 
@@ -89,16 +88,17 @@ public class CcpaEnforcementTest {
     }
 
     @Test
-    public void enforceShouldReturnEmptyListWhenCcpaNotEnforced() {
+    public void enforceShouldNotModifyListWhenCcpaIsNotEnforced() {
         // given
         final AuctionContext auctionContext = givenAuctionContext(context -> context
                 .privacyContext(PrivacyContext.of(Privacy.builder().ccpa(Ccpa.of("1YN-")).build(), null, null)));
+        final List<BidderPrivacyResult> initialResults = givenPrivacyResults(givenUser(), givenDevice());
 
         // when
-        final List<BidderPrivacyResult> result = target.enforce(auctionContext, null, aliases).result();
+        final List<BidderPrivacyResult> result = target.enforce(auctionContext, aliases, initialResults).result();
 
         // then
-        assertThat(result).isEmpty();
+        assertThat(result).containsExactlyInAnyOrderElementsOf(initialResults);
         verify(metrics).updatePrivacyCcpaMetrics(
                 eq(activityInfrastructure),
                 eq(true),
@@ -112,13 +112,15 @@ public class CcpaEnforcementTest {
         // given
         final AuctionContext auctionContext = givenAuctionContext(context -> context.account(Account.empty("id")));
 
+        final List<BidderPrivacyResult> initialResults = givenPrivacyResults(givenUser(), givenDevice());
+
         target = new CcpaEnforcement(userFpdCcpaMask, bidderCatalog, metrics, false);
 
         // when
-        final List<BidderPrivacyResult> result = target.enforce(auctionContext, null, aliases).result();
+        final List<BidderPrivacyResult> result = target.enforce(auctionContext, aliases, initialResults).result();
 
         // then
-        assertThat(result).isEmpty();
+        assertThat(result).containsExactlyInAnyOrderElementsOf(initialResults);
         verify(metrics).updatePrivacyCcpaMetrics(
                 eq(activityInfrastructure),
                 eq(true),
@@ -136,12 +138,13 @@ public class CcpaEnforcementTest {
                                 .ccpa(AccountCcpaConfig.builder().enabled(false).build())
                                 .build())
                         .build()));
+        final List<BidderPrivacyResult> initialResults = givenPrivacyResults(givenUser(), givenDevice());
 
         // when
-        final List<BidderPrivacyResult> result = target.enforce(auctionContext, null, aliases).result();
+        final List<BidderPrivacyResult> result = target.enforce(auctionContext, aliases, initialResults).result();
 
         // then
-        assertThat(result).isEmpty();
+        assertThat(result).containsExactlyInAnyOrderElementsOf(initialResults);
         verify(metrics).updatePrivacyCcpaMetrics(
                 eq(activityInfrastructure),
                 eq(true),
@@ -155,12 +158,13 @@ public class CcpaEnforcementTest {
         // given
         final AuctionContext auctionContext = givenAuctionContext(context -> context
                 .requestTypeMetric(MetricName.openrtb2app));
+        final List<BidderPrivacyResult> initialResults = givenPrivacyResults(givenUser(), givenDevice());
 
         // when
-        final List<BidderPrivacyResult> result = target.enforce(auctionContext, null, aliases).result();
+        final List<BidderPrivacyResult> result = target.enforce(auctionContext, aliases, initialResults).result();
 
         // then
-        assertThat(result).isEmpty();
+        assertThat(result).containsExactlyInAnyOrderElementsOf(initialResults);
         verify(metrics).updatePrivacyCcpaMetrics(
                 eq(activityInfrastructure),
                 eq(true),
@@ -174,21 +178,21 @@ public class CcpaEnforcementTest {
         // given
         final AuctionContext auctionContext = givenAuctionContext(context -> context
                 .bidRequest(BidRequest.builder()
-                        .device(Device.builder().ip("originalDevice").build())
+                        .device(givenDevice())
                         .ext(ExtRequest.of(ExtRequestPrebid.builder()
                                 .nosale(singletonList("*"))
                                 .build()))
                         .build()));
 
-        final Map<String, User> bidderToUser = Map.of(
-                "bidder", User.builder().id("originalUser").build(),
-                "noSale", User.builder().id("originalUser").build());
+        final List<BidderPrivacyResult> initialResults = List.of(
+                BidderPrivacyResult.builder().requestBidder("bidder").user(givenUser()).device(givenDevice()).build(),
+                BidderPrivacyResult.builder().requestBidder("noSale").user(givenUser()).device(givenDevice()).build());
 
         // when
-        final List<BidderPrivacyResult> result = target.enforce(auctionContext, bidderToUser, aliases).result();
+        final List<BidderPrivacyResult> result = target.enforce(auctionContext, aliases, initialResults).result();
 
         // then
-        assertThat(result).isEmpty();
+        assertThat(result).containsExactlyInAnyOrderElementsOf(initialResults);
         verify(metrics).updatePrivacyCcpaMetrics(
                 eq(activityInfrastructure),
                 eq(true),
@@ -222,15 +226,23 @@ public class CcpaEnforcementTest {
 
         final AuctionContext auctionContext = givenAuctionContext(identity());
 
-        final Map<String, User> bidderToUser = Map.of(
-                "bidderAlias", User.builder().id("originalUser").build(),
-                "noSale", User.builder().id("originalUser").build());
+        final List<BidderPrivacyResult> initialResults = List.of(
+                BidderPrivacyResult.builder()
+                        .requestBidder("bidderAlias")
+                        .user(givenUser())
+                        .device(givenDevice())
+                        .build(),
+                BidderPrivacyResult.builder()
+                        .requestBidder("noSale")
+                        .user(givenUser())
+                        .device(givenDevice())
+                        .build());
 
         // when
-        final List<BidderPrivacyResult> result = target.enforce(auctionContext, bidderToUser, aliases).result();
+        final List<BidderPrivacyResult> result = target.enforce(auctionContext, aliases, initialResults).result();
 
         // then
-        assertThat(result).isEmpty();
+        assertThat(result).containsExactlyInAnyOrderElementsOf(initialResults);
         verify(metrics).updatePrivacyCcpaMetrics(
                 eq(activityInfrastructure),
                 eq(true),
@@ -250,20 +262,18 @@ public class CcpaEnforcementTest {
 
         final AuctionContext auctionContext = givenAuctionContext(identity());
 
-        final Map<String, User> bidderToUser = Map.of(
-                "bidder", User.builder().id("originalUser").build(),
-                "noSale", User.builder().id("originalUser").build());
+        final List<BidderPrivacyResult> initialResults = List.of(
+                BidderPrivacyResult.builder().requestBidder("bidder").user(givenUser()).device(givenDevice()).build(),
+                BidderPrivacyResult.builder().requestBidder("noSale").user(givenUser()).device(givenDevice()).build());
 
         // when
-        final List<BidderPrivacyResult> result = target.enforce(auctionContext, bidderToUser, aliases).result();
+        final List<BidderPrivacyResult> result = target.enforce(auctionContext, aliases, initialResults).result();
 
         // then
-        assertThat(result)
-                .hasSize(1)
-                .allSatisfy(privacyResult -> {
-                    assertThat(privacyResult.getUser()).isSameAs(maskedUser);
-                    assertThat(privacyResult.getDevice()).isSameAs(maskedDevice);
-                });
+        assertThat(result).containsExactlyInAnyOrder(
+                BidderPrivacyResult.builder().requestBidder("bidder").user(maskedUser).device(maskedDevice).build(),
+                BidderPrivacyResult.builder().requestBidder("noSale").user(givenUser()).device(givenDevice()).build());
+
         verify(metrics).updatePrivacyCcpaMetrics(
                 eq(activityInfrastructure),
                 eq(true),
@@ -278,7 +288,7 @@ public class CcpaEnforcementTest {
         final AuctionContext.AuctionContextBuilder initialContext = AuctionContext.builder()
                 .activityInfrastructure(activityInfrastructure)
                 .bidRequest(BidRequest.builder()
-                        .device(Device.builder().ip("originalDevice").build())
+                        .device(givenDevice())
                         .ext(ExtRequest.of(ExtRequestPrebid.builder()
                                 .nosale(singletonList("noSale"))
                                 .build()))
@@ -300,5 +310,17 @@ public class CcpaEnforcementTest {
                 .privacyContext(PrivacyContext.of(Privacy.builder().ccpa(Ccpa.of("1YY-")).build(), null, null));
 
         return auctionContextCustomizer.apply(initialContext).build();
+    }
+
+    private static List<BidderPrivacyResult> givenPrivacyResults(User user, Device device) {
+        return singletonList(BidderPrivacyResult.builder().requestBidder("bidder").user(user).device(device).build());
+    }
+
+    private static User givenUser() {
+        return User.builder().id("originalUser").build();
+    }
+
+    private static Device givenDevice() {
+        return Device.builder().ip("originalDevice").build();
     }
 }
