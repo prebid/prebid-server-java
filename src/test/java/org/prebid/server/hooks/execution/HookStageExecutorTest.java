@@ -2961,7 +2961,7 @@ public class HookStageExecutorTest extends VertxTest {
         // given
         final ExitpointHookImpl hookImpl = spy(
                 ExitpointHookImpl.of(immediateHook(InvocationResultUtils.succeeded(identity()))));
-        given(hookCatalog.hookById(eq("module-alpha"), eq("hook-a"), eq(StageWithHookType.EXITPOINT)))
+        given(hookCatalog.hookById(eqHook("module-alpha", "hook-a"), eq(StageWithHookType.EXITPOINT)))
                 .willReturn(hookImpl);
 
         final HookStageExecutor executor = createExecutor(
@@ -2980,7 +2980,7 @@ public class HookStageExecutorTest extends VertxTest {
                         .bidRequest(BidRequest.builder().build())
                         .account(Account.builder()
                                 .hooks(AccountHooksConfiguration.of(
-                                        null, singletonMap("module-alpha", mapper.createObjectNode())))
+                                        null, singletonMap("module-alpha", mapper.createObjectNode()), null))
                                 .build())
                         .hookExecutionContext(hookExecutionContext)
                         .debugContext(DebugContext.empty())
@@ -3257,28 +3257,16 @@ public class HookStageExecutorTest extends VertxTest {
                 .willReturn(AuctionResponseHookImpl.of(delegate));
     }
 
-    @Value(staticConstructor = "of")
-    @NonFinal
-    private static class ExitpointHookImpl implements ExitpointHook {
+    private void givenExitpointHook(
+            String moduleCode,
+            String hookImplCode,
+            BiFunction<
+                    ExitpointPayload,
+                    AuctionInvocationContext,
+                    Future<InvocationResult<ExitpointPayload>>> delegate) {
 
-        String code = "hook-code";
-
-        BiFunction<
-                ExitpointPayload,
-                AuctionInvocationContext,
-                Future<InvocationResult<ExitpointPayload>>> delegate;
-
-        @Override
-        public Future<InvocationResult<ExitpointPayload>> call(ExitpointPayload payload,
-                                                               AuctionInvocationContext invocationContext) {
-
-            return delegate.apply(payload, invocationContext);
-        }
-
-        @Override
-        public String code() {
-            return code;
-        }
+        given(hookCatalog.hookById(eqHook(moduleCode, hookImplCode), eq(StageWithHookType.EXITPOINT)))
+                .willReturn(ExitpointHookImpl.of(delegate));
     }
 
     private <PAYLOAD, CONTEXT> BiFunction<PAYLOAD, CONTEXT, Future<InvocationResult<PAYLOAD>>> delayedHook(
@@ -3508,15 +3496,27 @@ public class HookStageExecutorTest extends VertxTest {
         }
     }
 
-    private void givenExitpointHook(
-            String moduleCode,
-            String hookImplCode,
-            BiFunction<
-                    ExitpointPayload,
-                    AuctionInvocationContext,
-                    Future<InvocationResult<ExitpointPayload>>> delegate) {
+    @Value(staticConstructor = "of")
+    @NonFinal
+    private static class ExitpointHookImpl implements ExitpointHook {
 
-        given(hookCatalog.hookById(eq(moduleCode), eq(hookImplCode), eq(StageWithHookType.EXITPOINT)))
-                .willReturn(ExitpointHookImpl.of(delegate));
+        String code = "hook-code";
+
+        BiFunction<
+                ExitpointPayload,
+                AuctionInvocationContext,
+                Future<InvocationResult<ExitpointPayload>>> delegate;
+
+        @Override
+        public Future<InvocationResult<ExitpointPayload>> call(ExitpointPayload payload,
+                                                               AuctionInvocationContext invocationContext) {
+
+            return delegate.apply(payload, invocationContext);
+        }
+
+        @Override
+        public String code() {
+            return code;
+        }
     }
 }
