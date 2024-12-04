@@ -7,6 +7,7 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.Future;
+import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.junit5.Checkpoint;
@@ -57,6 +58,7 @@ import org.prebid.server.hooks.execution.v1.bidder.AllProcessedBidResponsesPaylo
 import org.prebid.server.hooks.execution.v1.bidder.BidderRequestPayloadImpl;
 import org.prebid.server.hooks.execution.v1.bidder.BidderResponsePayloadImpl;
 import org.prebid.server.hooks.execution.v1.entrypoint.EntrypointPayloadImpl;
+import org.prebid.server.hooks.execution.v1.exitpoint.ExitpointPayloadImpl;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationContext;
 import org.prebid.server.hooks.v1.InvocationResult;
@@ -78,6 +80,8 @@ import org.prebid.server.hooks.v1.bidder.ProcessedBidderResponseHook;
 import org.prebid.server.hooks.v1.bidder.RawBidderResponseHook;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointHook;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointPayload;
+import org.prebid.server.hooks.v1.exitpoint.ExitpointHook;
+import org.prebid.server.hooks.v1.exitpoint.ExitpointPayload;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -103,6 +107,7 @@ import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.entry;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -2880,6 +2885,183 @@ public class HookStageExecutorTest extends VertxTest {
     }
 
     @Test
+    public void shouldExecuteExitpointHooksHappyPath(VertxTestContext context) {
+        // given
+        givenExitpointHook(
+                "module-alpha",
+                "hook-a",
+                immediateHook(InvocationResultUtils.succeeded(payload -> ExitpointPayloadImpl.of(
+                        payload.responseHeaders().add("Header-alpha-a", "alpha-a"),
+                        "{\"execution1\":\"alpha-a\""))));
+
+        givenExitpointHook(
+                "module-alpha",
+                "hook-b",
+                immediateHook(InvocationResultUtils.succeeded(payload -> ExitpointPayloadImpl.of(
+                        payload.responseHeaders().add("Header-alpha-b", "alpha-b"),
+                        payload.responseBody() + ",\"execution4\":\"alpha-b\"}"))));
+
+        givenExitpointHook(
+                "module-beta",
+                "hook-a",
+                immediateHook(InvocationResultUtils.succeeded(payload -> ExitpointPayloadImpl.of(
+                        payload.responseHeaders().add("Header-beta-a", "beta-a"),
+                        payload.responseBody() + ",\"execution2\":\"beta-a\""))));
+
+        givenExitpointHook(
+                "module-beta",
+                "hook-b",
+                immediateHook(InvocationResultUtils.succeeded(payload -> ExitpointPayloadImpl.of(
+                        payload.responseHeaders().add("Header-beta-b", "beta-b"),
+                        payload.responseBody() + ",\"execution3\":\"beta-b\""))));
+
+        final HookStageExecutor executor = createExecutor(
+                executionPlan(singletonMap(
+                        Endpoint.openrtb2_auction,
+                        EndpointExecutionPlan.of(singletonMap(
+                                Stage.exitpoint,
+                                execPlanTwoGroupsTwoHooksEach())))));
+
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+
+        // when
+        final Future<HookStageExecutionResult<ExitpointPayload>> future = executor.executeExitpointStage(
+                MultiMap.caseInsensitiveMultiMap().add("Header-Name", "Header-Value"),
+                "{}",
+                AuctionContext.builder()
+                        .bidRequest(BidRequest.builder().build())
+                        .account(Account.empty("accountId"))
+                        .hookExecutionContext(hookExecutionContext)
+                        .debugContext(DebugContext.empty())
+                        .build());
+
+        // then
+        future.onComplete(context.succeeding(result -> {
+            assertThat(result).isNotNull();
+            assertThat(result.getPayload()).isNotNull().satisfies(payload -> {
+                assertThat(payload.responseBody())
+                        .isEqualTo("{\"execution1\":\"alpha-a\",\"execution2\":\"beta-a\","
+                                + "\"execution3\":\"beta-b\",\"execution4\":\"alpha-b\"}");
+                assertThat(payload.responseHeaders()).hasSize(5)
+                        .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                        .containsOnly(
+                                tuple("Header-Name", "Header-Value"),
+                                tuple("Header-alpha-a", "alpha-a"),
+                                tuple("Header-alpha-b", "alpha-b"),
+                                tuple("Header-beta-a", "beta-a"),
+                                tuple("Header-beta-b", "beta-b"));
+            });
+
+            context.completeNow();
+        }));
+    }
+
+    @Test
+    public void shouldExecuteExitpointHooksAndPassAuctionInvocationContext(VertxTestContext context) {
+        // given
+        final ExitpointHookImpl hookImpl = spy(
+                ExitpointHookImpl.of(immediateHook(InvocationResultUtils.succeeded(identity()))));
+        given(hookCatalog.hookById(eqHook("module-alpha", "hook-a"), eq(StageWithHookType.EXITPOINT)))
+                .willReturn(hookImpl);
+
+        final HookStageExecutor executor = createExecutor(
+                executionPlan(singletonMap(
+                        Endpoint.openrtb2_auction,
+                        EndpointExecutionPlan.of(singletonMap(
+                                Stage.exitpoint, execPlanOneGroupOneHook("module-alpha", "hook-a"))))));
+
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+
+        // when
+        final Future<HookStageExecutionResult<ExitpointPayload>> future = executor.executeExitpointStage(
+                MultiMap.caseInsensitiveMultiMap().add("Header-Name", "Header-Value"),
+                "{}",
+                AuctionContext.builder()
+                        .bidRequest(BidRequest.builder().build())
+                        .account(Account.builder()
+                                .hooks(AccountHooksConfiguration.of(
+                                        null, singletonMap("module-alpha", mapper.createObjectNode()), null))
+                                .build())
+                        .hookExecutionContext(hookExecutionContext)
+                        .debugContext(DebugContext.empty())
+                        .build());
+
+        // then
+        future.onComplete(context.succeeding(result -> {
+            final ArgumentCaptor<AuctionInvocationContext> invocationContextCaptor =
+                    ArgumentCaptor.forClass(AuctionInvocationContext.class);
+            verify(hookImpl).call(any(), invocationContextCaptor.capture());
+
+            assertThat(invocationContextCaptor.getValue()).satisfies(invocationContext -> {
+                assertThat(invocationContext.endpoint()).isNotNull();
+                assertThat(invocationContext.timeout()).isNotNull();
+                assertThat(invocationContext.accountConfig()).isNotNull();
+            });
+
+            context.completeNow();
+        }));
+    }
+
+    @Test
+    public void shouldExecuteExitpointHooksAndIgnoreRejection(VertxTestContext context) {
+        // given
+        givenExitpointHook(
+                "module-alpha",
+                "hook-a",
+                immediateHook(InvocationResultUtils.rejected("Will not apply")));
+
+        final HookStageExecutor executor = createExecutor(
+                executionPlan(singletonMap(
+                        Endpoint.openrtb2_auction,
+                        EndpointExecutionPlan.of(singletonMap(
+                                Stage.exitpoint, execPlanOneGroupOneHook("module-alpha", "hook-a"))))));
+
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+
+        // when
+        final Future<HookStageExecutionResult<ExitpointPayload>> future = executor.executeExitpointStage(
+                MultiMap.caseInsensitiveMultiMap().add("Header-Name", "Header-Value"),
+                "{}",
+                AuctionContext.builder()
+                        .account(Account.empty("accountId"))
+                        .hookExecutionContext(hookExecutionContext)
+                        .debugContext(DebugContext.empty())
+                        .build());
+
+        // then
+        future.onComplete(context.succeeding(result -> {
+            assertThat(result.isShouldReject()).isFalse();
+            assertThat(result.getPayload()).isNotNull().satisfies(payload -> {
+                assertThat(payload.responseBody()).isNotNull();
+                assertThat(payload.responseBody()).isNotEmpty();
+            });
+
+            assertThat(hookExecutionContext.getStageOutcomes())
+                    .hasEntrySatisfying(
+                            Stage.exitpoint,
+                            stageOutcomes -> assertThat(stageOutcomes)
+                                    .hasSize(1)
+                                    .allSatisfy(stageOutcome -> {
+                                        assertThat(stageOutcome.getEntity()).isEqualTo("http-response");
+
+                                        final List<GroupExecutionOutcome> groups = stageOutcome.getGroups();
+
+                                        final List<HookExecutionOutcome> group0Hooks = groups.getFirst().getHooks();
+                                        assertThat(group0Hooks.getFirst()).satisfies(hookOutcome -> {
+                                            assertThat(hookOutcome.getHookId())
+                                                    .isEqualTo(HookId.of("module-alpha", "hook-a"));
+                                            assertThat(hookOutcome.getStatus())
+                                                    .isEqualTo(ExecutionStatus.execution_failure);
+                                            assertThat(hookOutcome.getMessage())
+                                                    .isEqualTo("Rejection is not supported during this stage");
+                                        });
+                                    }));
+
+            context.completeNow();
+        }));
+    }
+
+    @Test
     public void abTestsForEntrypointStageShouldReturnEnabledTests() {
         // given
         final HookStageExecutor executor = createExecutor(executionPlan(asList(
@@ -3073,6 +3255,18 @@ public class HookStageExecutorTest extends VertxTest {
 
         given(hookCatalog.hookById(eqHook(moduleCode, hookImplCode), eq(StageWithHookType.AUCTION_RESPONSE)))
                 .willReturn(AuctionResponseHookImpl.of(delegate));
+    }
+
+    private void givenExitpointHook(
+            String moduleCode,
+            String hookImplCode,
+            BiFunction<
+                    ExitpointPayload,
+                    AuctionInvocationContext,
+                    Future<InvocationResult<ExitpointPayload>>> delegate) {
+
+        given(hookCatalog.hookById(eqHook(moduleCode, hookImplCode), eq(StageWithHookType.EXITPOINT)))
+                .willReturn(ExitpointHookImpl.of(delegate));
     }
 
     private <PAYLOAD, CONTEXT> BiFunction<PAYLOAD, CONTEXT, Future<InvocationResult<PAYLOAD>>> delayedHook(
@@ -3292,6 +3486,30 @@ public class HookStageExecutorTest extends VertxTest {
         @Override
         public Future<InvocationResult<AuctionResponsePayload>> call(AuctionResponsePayload payload,
                                                                      AuctionInvocationContext invocationContext) {
+
+            return delegate.apply(payload, invocationContext);
+        }
+
+        @Override
+        public String code() {
+            return code;
+        }
+    }
+
+    @Value(staticConstructor = "of")
+    @NonFinal
+    private static class ExitpointHookImpl implements ExitpointHook {
+
+        String code = "hook-code";
+
+        BiFunction<
+                ExitpointPayload,
+                AuctionInvocationContext,
+                Future<InvocationResult<ExitpointPayload>>> delegate;
+
+        @Override
+        public Future<InvocationResult<ExitpointPayload>> call(ExitpointPayload payload,
+                                                               AuctionInvocationContext invocationContext) {
 
             return delegate.apply(payload, invocationContext);
         }
