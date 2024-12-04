@@ -2829,6 +2829,48 @@ public class HookStageExecutorTest extends VertxTest {
     }
 
     @Test
+    public void shouldExecuteAuctionResponseHooksAndTolerateNullAccount(VertxTestContext context) {
+        // given
+        final AuctionResponseHookImpl hookImpl = spy(
+                AuctionResponseHookImpl.of(immediateHook(InvocationResultUtils.succeeded(identity()))));
+        given(hookCatalog.hookById(eqHook("module-alpha", "hook-a"), eq(StageWithHookType.AUCTION_RESPONSE)))
+                .willReturn(hookImpl);
+
+        final HookStageExecutor executor = createExecutor(
+                executionPlan(singletonMap(
+                        Endpoint.openrtb2_auction,
+                        EndpointExecutionPlan.of(singletonMap(
+                                Stage.auction_response, execPlanOneGroupOneHook("module-alpha", "hook-a"))))));
+
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+
+        // when
+        final Future<HookStageExecutionResult<AuctionResponsePayload>> future = executor.executeAuctionResponseStage(
+                BidResponse.builder().build(),
+                AuctionContext.builder()
+                        .bidRequest(BidRequest.builder().build())
+                        .account(null)
+                        .hookExecutionContext(hookExecutionContext)
+                        .debugContext(DebugContext.empty())
+                        .build());
+
+        // then
+        future.onComplete(context.succeeding(result -> {
+            final ArgumentCaptor<AuctionInvocationContext> invocationContextCaptor =
+                    ArgumentCaptor.forClass(AuctionInvocationContext.class);
+            verify(hookImpl).call(any(), invocationContextCaptor.capture());
+
+            assertThat(invocationContextCaptor.getValue()).satisfies(invocationContext -> {
+                assertThat(invocationContext.endpoint()).isNotNull();
+                assertThat(invocationContext.timeout()).isNotNull();
+                assertThat(invocationContext.accountConfig()).isNull();
+            });
+
+            context.completeNow();
+        }));
+    }
+
+    @Test
     public void shouldExecuteAuctionResponseHooksAndIgnoreRejection(VertxTestContext context) {
         // given
         givenAuctionResponseHook(
