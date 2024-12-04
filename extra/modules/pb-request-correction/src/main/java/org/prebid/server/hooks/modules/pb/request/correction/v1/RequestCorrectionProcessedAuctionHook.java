@@ -6,11 +6,11 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Future;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
+import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.pb.request.correction.core.RequestCorrectionProvider;
 import org.prebid.server.hooks.modules.pb.request.correction.core.config.model.Config;
 import org.prebid.server.hooks.modules.pb.request.correction.core.correction.Correction;
-import org.prebid.server.hooks.modules.pb.request.correction.v1.model.AuctionRequestPayloadImpl;
-import org.prebid.server.hooks.modules.pb.request.correction.v1.model.InvocationResultImpl;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
@@ -55,12 +55,13 @@ public class RequestCorrectionProcessedAuctionHook implements ProcessedAuctionRe
             return noAction();
         }
 
-        final InvocationResult<AuctionRequestPayload> invocationResult = InvocationResultImpl.builder()
-                .status(InvocationStatus.success)
-                .action(InvocationAction.update)
-                .payloadUpdate(initialPayload ->
-                        AuctionRequestPayloadImpl.of(applyCorrections(initialPayload.bidRequest(), corrections)))
-                .build();
+        final InvocationResult<AuctionRequestPayload> invocationResult =
+                InvocationResultImpl.<AuctionRequestPayload>builder()
+                        .status(InvocationStatus.success)
+                        .action(InvocationAction.update)
+                        .payloadUpdate(initialPayload -> AuctionRequestPayloadImpl.of(
+                                applyCorrections(initialPayload.bidRequest(), corrections)))
+                        .build();
 
         return Future.succeededFuture(invocationResult);
     }
@@ -82,7 +83,7 @@ public class RequestCorrectionProcessedAuctionHook implements ProcessedAuctionRe
     }
 
     private Future<InvocationResult<AuctionRequestPayload>> failure(String message) {
-        return Future.succeededFuture(InvocationResultImpl.builder()
+        return Future.succeededFuture(InvocationResultImpl.<AuctionRequestPayload>builder()
                 .status(InvocationStatus.failure)
                 .message(message)
                 .action(InvocationAction.no_action)
@@ -90,7 +91,7 @@ public class RequestCorrectionProcessedAuctionHook implements ProcessedAuctionRe
     }
 
     private static Future<InvocationResult<AuctionRequestPayload>> noAction() {
-        return Future.succeededFuture(InvocationResultImpl.builder()
+        return Future.succeededFuture(InvocationResultImpl.<AuctionRequestPayload>builder()
                 .status(InvocationStatus.success)
                 .action(InvocationAction.no_action)
                 .build());

@@ -33,7 +33,7 @@ public class BidInfo {
 
     Integer ttl;
 
-    Integer videoTtl;
+    Integer vastTtl;
 
     public String getBidId() {
         final ObjectNode extNode = bid != null ? bid.getExt() : null;

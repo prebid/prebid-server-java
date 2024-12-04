@@ -6,6 +6,7 @@
         {
           "id": "22e26bd9a702bc1",
           "impid": "22e26bd9a702bc",
+          "exp": 300,
           "price": 1.090,
           "adm": "<script src=\"AdqLib_Example\"></script>Tag_Example",
           "adomain": [

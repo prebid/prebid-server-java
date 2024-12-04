@@ -11,7 +11,7 @@
           "crid": "crid1",
           "w": 300,
           "h": 250,
-          "exp": 120,
+          "exp": 1500,
           "ext": {
             "prebid": {
               "type": "video",
@@ -68,7 +68,7 @@
           "crid": "crid1",
           "w": 300,
           "h": 250,
-          "exp": 120,
+          "exp": 1500,
           "ext": {
             "prebid": {
               "type": "video",
@@ -128,7 +128,7 @@
           "iurl": "http://nym1-ib.adnxs.com/cr?id=29681110",
           "cid": "958",
           "crid": "29681110",
-          "exp": 120,
+          "exp": 1500,
           "ext": {
             "prebid": {
               "type": "video",
@@ -179,7 +179,7 @@
           "iurl": "http://nym1-ib.adnxs.com/cr?id=69595837",
           "cid": "958",
           "crid": "69595837",
-          "exp": 120,
+          "exp": 1500,
           "ext": {
             "prebid": {
               "type": "video",

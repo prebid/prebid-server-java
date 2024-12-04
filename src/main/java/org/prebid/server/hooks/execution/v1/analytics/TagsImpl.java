@@ -1,4 +1,4 @@
-package org.prebid.server.hooks.modules.com.confiant.adquality.v1.model.analytics;
+package org.prebid.server.hooks.execution.v1.analytics;
 
 import lombok.Value;
 import lombok.experimental.Accessors;

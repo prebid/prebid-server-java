@@ -6,6 +6,7 @@
         {
           "id": "183599115",
           "impid": "imp_id",
+          "exp": 300,
           "price": 12.34,
           "adm": "creativeContent",
           "crid": "81325690",

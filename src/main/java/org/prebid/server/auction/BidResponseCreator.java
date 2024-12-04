@@ -95,6 +95,7 @@ import org.prebid.server.settings.model.AccountAuctionEventConfig;
 import org.prebid.server.settings.model.AccountEventsConfig;
 import org.prebid.server.settings.model.AccountTargetingConfig;
 import org.prebid.server.settings.model.VideoStoredDataResult;
+import org.prebid.server.spring.config.model.CacheDefaultTtlProperties;
 import org.prebid.server.util.StreamUtil;
 import org.prebid.server.vast.VastModifier;
 
@@ -139,6 +140,7 @@ public class BidResponseCreator {
     private final Clock clock;
     private final JacksonMapper mapper;
     private final CacheTtl mediaTypeCacheTtl;
+    private final CacheDefaultTtlProperties cacheDefaultProperties;
 
     private final String cacheHost;
     private final String cachePath;
@@ -156,7 +158,8 @@ public class BidResponseCreator {
                               int truncateAttrChars,
                               Clock clock,
                               JacksonMapper mapper,
-                              CacheTtl mediaTypeCacheTtl) {
+                              CacheTtl mediaTypeCacheTtl,
+                              CacheDefaultTtlProperties cacheDefaultProperties) {
 
         this.coreCacheService = Objects.requireNonNull(coreCacheService);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
@@ -171,6 +174,7 @@ public class BidResponseCreator {
         this.clock = Objects.requireNonNull(clock);
         this.mapper = Objects.requireNonNull(mapper);
         this.mediaTypeCacheTtl = Objects.requireNonNull(mediaTypeCacheTtl);
+        this.cacheDefaultProperties = Objects.requireNonNull(cacheDefaultProperties);
 
         cacheHost = Objects.requireNonNull(coreCacheService.getEndpointHost());
         cachePath = Objects.requireNonNull(coreCacheService.getEndpointPath());
@@ -436,8 +440,8 @@ public class BidResponseCreator {
                 .bidType(type)
                 .bidder(bidder)
                 .correspondingImp(correspondingImp)
-                .ttl(resolveBannerTtl(bid, correspondingImp, cacheInfo, account))
-                .videoTtl(type == BidType.video ? resolveVideoTtl(bid, correspondingImp, cacheInfo, account) : null)
+                .ttl(resolveTtl(bid, type, correspondingImp, cacheInfo, account))
+                .vastTtl(type == BidType.video ? resolveVastTtl(bid, correspondingImp, cacheInfo, account) : null)
                 .category(categoryMappingResult.getCategory(bid))
                 .satisfiedPriority(categoryMappingResult.isBidSatisfiesPriority(bid))
                 .build();
@@ -457,31 +461,43 @@ public class BidResponseCreator {
                 .findFirst();
     }
 
-    private Integer resolveBannerTtl(Bid bid, Imp imp, BidRequestCacheInfo cacheInfo, Account account) {
-        final AccountAuctionConfig accountAuctionConfig = account.getAuction();
+    private Integer resolveTtl(Bid bid, BidType type, Imp imp, BidRequestCacheInfo cacheInfo, Account account) {
         final Integer bidTtl = bid.getExp();
         final Integer impTtl = imp != null ? imp.getExp() : null;
+        final Integer requestTtl = cacheInfo.getCacheBidsTtl();
 
-        return ObjectUtils.firstNonNull(
-                bidTtl,
-                impTtl,
-                cacheInfo.getCacheBidsTtl(),
-                accountAuctionConfig != null ? accountAuctionConfig.getBannerCacheTtl() : null,
-                mediaTypeCacheTtl.getBannerCacheTtl());
+        final AccountAuctionConfig accountAuctionConfig = account.getAuction();
+        final Integer accountTtl = accountAuctionConfig != null ? switch (type) {
+            case banner -> accountAuctionConfig.getBannerCacheTtl();
+            case video -> accountAuctionConfig.getVideoCacheTtl();
+            case audio, xNative -> null;
+        } : null;
 
+        final Integer mediaTypeTtl = switch (type) {
+            case banner -> mediaTypeCacheTtl.getBannerCacheTtl();
+            case video -> mediaTypeCacheTtl.getVideoCacheTtl();
+            case audio, xNative -> null;
+        };
+
+        final Integer defaultTtl = switch (type) {
+            case banner -> cacheDefaultProperties.getBannerTtl();
+            case video -> cacheDefaultProperties.getVideoTtl();
+            case audio -> cacheDefaultProperties.getAudioTtl();
+            case xNative -> cacheDefaultProperties.getNativeTtl();
+        };
+
+        return ObjectUtils.firstNonNull(bidTtl, impTtl, requestTtl, accountTtl, mediaTypeTtl, defaultTtl);
     }
 
-    private Integer resolveVideoTtl(Bid bid, Imp imp, BidRequestCacheInfo cacheInfo, Account account) {
+    private Integer resolveVastTtl(Bid bid, Imp imp, BidRequestCacheInfo cacheInfo, Account account) {
         final AccountAuctionConfig accountAuctionConfig = account.getAuction();
-        final Integer bidTtl = bid.getExp();
-        final Integer impTtl = imp != null ? imp.getExp() : null;
-
         return ObjectUtils.firstNonNull(
-                bidTtl,
-                impTtl,
+                bid.getExp(),
+                imp != null ? imp.getExp() : null,
                 cacheInfo.getCacheVideoBidsTtl(),
                 accountAuctionConfig != null ? accountAuctionConfig.getVideoCacheTtl() : null,
-                mediaTypeCacheTtl.getVideoCacheTtl());
+                mediaTypeCacheTtl.getVideoCacheTtl(),
+                cacheDefaultProperties.getVideoTtl());
     }
 
     private Future<List<BidderResponse>> invokeProcessedBidderResponseHooks(List<BidderResponse> bidderResponses,
@@ -1369,7 +1385,7 @@ public class BidResponseCreator {
 
         final Integer ttl = Optional.ofNullable(cacheInfo)
                 .map(info -> ObjectUtils.max(cacheInfo.getTtl(), cacheInfo.getVideoTtl()))
-                .orElseGet(() -> ObjectUtils.max(bidInfo.getTtl(), bidInfo.getVideoTtl()));
+                .orElseGet(() -> ObjectUtils.max(bidInfo.getTtl(), bidInfo.getVastTtl()));
 
         return bid.toBuilder()
                 .ext(updatedBidExt)
