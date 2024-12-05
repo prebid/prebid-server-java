@@ -24,4 +24,10 @@ public class GreenbidsRealTimeDataProperties {
     Long timeoutMs;
 
     Integer maxRedirects;
+
+    String pbuid;
+
+    Double targetTpr;
+
+    Double explorationRate;
 }
