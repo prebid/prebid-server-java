@@ -37,6 +37,7 @@ import org.prebid.server.hooks.modules.greenbids.real.time.data.core.OnnxModelRu
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.OnnxModelRunnerWithThresholds;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThresholdCache;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingThresholdsFactory;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.model.data.Partner;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.filter.ThrottlingThresholds;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.result.AnalyticsResult;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider;
@@ -120,12 +121,14 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 databaseReaderFactory,
                 TestBidRequestProvider.MAPPER);
         final GreenbidsInvocationService greenbidsInvocationService = new GreenbidsInvocationService();
+        final Partner partner = Partner.of("test-pbuid", 0.60, 0.0001);
         target = new GreenbidsRealTimeDataProcessedAuctionRequestHook(
                 TestBidRequestProvider.MAPPER,
                 filterService,
                 onnxModelRunnerWithThresholds,
                 greenbidsInferenceDataService,
-                greenbidsInvocationService);
+                greenbidsInvocationService,
+                partner);
     }
 
     @Test

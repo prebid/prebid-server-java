@@ -47,25 +47,27 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
     private static final String CODE = "greenbids-real-time-data-processed-auction-request";
     private static final String ACTIVITY = "greenbids-filter";
     private static final String SUCCESS_STATUS = "success";
-    private static final String BID_REQUEST_ANALYTICS_EXTENSION_NAME = "greenbids-rtd";
 
     private final ObjectMapper mapper;
     private final FilterService filterService;
     private final OnnxModelRunnerWithThresholds onnxModelRunnerWithThresholds;
     private final GreenbidsInferenceDataService greenbidsInferenceDataService;
     private final GreenbidsInvocationService greenbidsInvocationService;
+    private final Partner partner;
 
     public GreenbidsRealTimeDataProcessedAuctionRequestHook(
             ObjectMapper mapper,
             FilterService filterService,
             OnnxModelRunnerWithThresholds onnxModelRunnerWithThresholds,
             GreenbidsInferenceDataService greenbidsInferenceDataService,
-            GreenbidsInvocationService greenbidsInvocationService) {
+            GreenbidsInvocationService greenbidsInvocationService,
+            Partner partner) {
         this.mapper = Objects.requireNonNull(mapper);
         this.filterService = Objects.requireNonNull(filterService);
         this.onnxModelRunnerWithThresholds = Objects.requireNonNull(onnxModelRunnerWithThresholds);
         this.greenbidsInferenceDataService = Objects.requireNonNull(greenbidsInferenceDataService);
         this.greenbidsInvocationService = Objects.requireNonNull(greenbidsInvocationService);
+        this.partner = Objects.requireNonNull(partner);
     }
 
     @Override
@@ -75,12 +77,6 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
 
         final AuctionContext auctionContext = invocationContext.auctionContext();
         final BidRequest bidRequest = auctionContext.getBidRequest();
-        final Partner partner = parseBidRequestExt(bidRequest);
-
-        if (partner == null) {
-            return Future.succeededFuture(toInvocationResult(
-                    bidRequest, null, InvocationAction.no_action));
-        }
 
         return Future.all(
                         onnxModelRunnerWithThresholds.retrieveOnnxModelRunner(partner),
@@ -92,29 +88,6 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                         compositeFuture.resultAt(1)))
                 .recover(throwable -> Future.succeededFuture(toInvocationResult(
                         bidRequest, null, InvocationAction.no_action)));
-    }
-
-    private Partner parseBidRequestExt(BidRequest bidRequest) {
-        return Optional.ofNullable(bidRequest)
-                .map(BidRequest::getExt)
-                .map(ExtRequest::getPrebid)
-                .map(ExtRequestPrebid::getAnalytics)
-                .filter(this::isNotEmptyObjectNode)
-                .map(analytics -> (ObjectNode) analytics.get(BID_REQUEST_ANALYTICS_EXTENSION_NAME))
-                .map(this::toPartner)
-                .orElse(null);
-    }
-
-    private boolean isNotEmptyObjectNode(JsonNode analytics) {
-        return analytics != null && analytics.isObject() && !analytics.isEmpty();
-    }
-
-    private Partner toPartner(ObjectNode adapterNode) {
-        try {
-            return mapper.treeToValue(adapterNode, Partner.class);
-        } catch (JsonProcessingException e) {
-            return null;
-        }
     }
 
     private Future<InvocationResult<AuctionRequestPayload>> toInvocationResult(
