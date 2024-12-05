@@ -81,7 +81,7 @@ class GroupExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
         Future<GroupResult<PAYLOAD>> groupFuture = Future.succeededFuture(initialGroupResult);
 
         for (final HookId hookId : group.getHookSequence()) {
-            if (!modulesExecution.getOrDefault(hookId.getModuleCode(), true)) {
+            if (!modulesExecution.get(hookId.getModuleCode())) {
                 continue;
             }
 
