@@ -500,7 +500,7 @@ public class HookStageExecutor {
     }
 
     private static ObjectNode accountConfigFor(Account account, HookId hookId) {
-        final AccountHooksConfiguration accountHooksConfiguration = account.getHooks();
+        final AccountHooksConfiguration accountHooksConfiguration = account != null ? account.getHooks() : null;
         final Map<String, ObjectNode> modulesConfiguration =
                 accountHooksConfiguration != null ? accountHooksConfiguration.getModules() : Collections.emptyMap();
 
