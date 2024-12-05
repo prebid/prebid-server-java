@@ -91,6 +91,7 @@ import org.prebid.server.settings.model.HooksAdminConfig;
 
 import java.time.Clock;
 import java.time.ZoneOffset;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -406,6 +407,70 @@ public class HookStageExecutorTest extends VertxTest {
                     .containsEntry(
                             Stage.entrypoint,
                             singletonList(StageExecutionOutcome.of("http-request", emptyList())));
+
+            context.completeNow();
+        }));
+    }
+
+    @Test
+    public void shouldBypassEntrypointHooksThatAreDisabled(VertxTestContext context) {
+        // given
+        givenEntrypointHook(
+                "module-alpha",
+                "hook-a",
+                immediateHook(InvocationResultUtils.succeeded(
+                        payload -> EntrypointPayloadImpl.of(
+                                payload.queryParams(), payload.headers(), payload.body() + "-abc"),
+                        "moduleAlphaContext")));
+
+        givenEntrypointHook(
+                "module-alpha",
+                "hook-b",
+                delayedHook(InvocationResultUtils.succeeded(payload -> EntrypointPayloadImpl.of(
+                        payload.queryParams(), payload.headers(), payload.body() + "-def")), 40));
+
+        givenEntrypointHook(
+                "module-beta",
+                "hook-a",
+                delayedHook(InvocationResultUtils.succeeded(payload -> EntrypointPayloadImpl.of(
+                        payload.queryParams(), payload.headers(), payload.body() + "-ghi")), 80));
+
+        givenEntrypointHook(
+                "module-beta",
+                "hook-b",
+                immediateHook(InvocationResultUtils.succeeded(
+                        payload -> EntrypointPayloadImpl.of(
+                                payload.queryParams(), payload.headers(), payload.body() + "-jkl"),
+                        "moduleBetaContext")));
+
+        final HookStageExecutor executor = HookStageExecutor.create(
+                executionPlan(singletonMap(
+                        Endpoint.openrtb2_auction,
+                        EndpointExecutionPlan.of(singletonMap(Stage.entrypoint, execPlanTwoGroupsTwoHooksEach())))),
+                null,
+                Map.of("module-alpha", false),
+                hookCatalog,
+                timeoutFactory,
+                vertx,
+                clock,
+                jacksonMapper,
+                false);
+
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+
+        // when
+        final Future<HookStageExecutionResult<EntrypointPayload>> future = executor.executeEntrypointStage(
+                CaseInsensitiveMultiMap.empty(),
+                CaseInsensitiveMultiMap.empty(),
+                "body",
+                hookExecutionContext);
+
+        // then
+        future.onComplete(context.succeeding(result -> {
+            assertThat(result).isNotNull();
+            assertThat(result.isShouldReject()).isFalse();
+            assertThat(result.getPayload()).isNotNull().satisfies(payload ->
+                    assertThat(payload.body()).isEqualTo("body-ghi-jkl"));
 
             context.completeNow();
         }));
@@ -1341,12 +1406,14 @@ public class HookStageExecutorTest extends VertxTest {
                         200L,
                         asList(
                                 HookId.of("module-alpha", "hook-a"),
-                                HookId.of("module-beta", "hook-a"))),
+                                HookId.of("module-beta", "hook-a"),
+                                HookId.of("module-epsilon", "hook-a"))),
                 ExecutionGroup.of(
                         200L,
                         asList(
                                 HookId.of("module-gamma", "hook-b"),
-                                HookId.of("module-delta", "hook-b")))));
+                                HookId.of("module-delta", "hook-b"),
+                                HookId.of("module-zeta", "hook-b")))));
 
         final String hostExecutionPlan = executionPlan(singletonMap(
                 Endpoint.openrtb2_auction,
@@ -1355,6 +1422,7 @@ public class HookStageExecutorTest extends VertxTest {
         final HookStageExecutor executor = HookStageExecutor.create(
                 hostExecutionPlan,
                 null,
+                Map.of("module-epsilon", true, "module-zeta", false),
                 hookCatalog,
                 timeoutFactory,
                 vertx,
@@ -1375,11 +1443,13 @@ public class HookStageExecutorTest extends VertxTest {
                                         null,
                                         Map.of("module-alpha", mapper.createObjectNode(),
                                                 "module-beta", mapper.createObjectNode(),
-                                                "module-gamma", mapper.createObjectNode()),
+                                                "module-gamma", mapper.createObjectNode(),
+                                                "module-zeta", mapper.createObjectNode()),
                                         HooksAdminConfig.builder()
                                                 .moduleExecution(Map.of(
                                                         "module-alpha", true,
-                                                        "module-beta", false))
+                                                        "module-beta", false,
+                                                        "module-epsilon", false))
                                                 .build()))
                                 .build())
                         .hookExecutionContext(hookExecutionContext)
@@ -1394,6 +1464,7 @@ public class HookStageExecutorTest extends VertxTest {
                             .at(1)
                             .id("id")
                             .tmax(1000L)
+                            .site(Site.builder().build())
                             .build()));
 
             assertThat(hookExecutionContext.getStageOutcomes())
@@ -1468,6 +1539,7 @@ public class HookStageExecutorTest extends VertxTest {
         final HookStageExecutor executor = HookStageExecutor.create(
                 hostExecutionPlan,
                 null,
+                Map.of("module-epsilon", true, "module-zeta", false),
                 hookCatalog,
                 timeoutFactory,
                 vertx,
@@ -1488,11 +1560,13 @@ public class HookStageExecutorTest extends VertxTest {
                                         null,
                                         Map.of("module-alpha", mapper.createObjectNode(),
                                                 "module-beta", mapper.createObjectNode(),
-                                                "module-gamma", mapper.createObjectNode()),
+                                                "module-gamma", mapper.createObjectNode(),
+                                                "module-zeta", mapper.createObjectNode()),
                                         HooksAdminConfig.builder()
                                                 .moduleExecution(Map.of(
                                                         "module-alpha", true,
-                                                        "module-beta", false))
+                                                        "module-beta", false,
+                                                        "module-epsilon", false))
                                                 .build()))
                                 .build())
                         .hookExecutionContext(hookExecutionContext)
@@ -1506,6 +1580,7 @@ public class HookStageExecutorTest extends VertxTest {
                     assertThat(payload.bidRequest()).isEqualTo(BidRequest.builder()
                             .at(1)
                             .id("id")
+                            .site(Site.builder().build())
                             .build()));
 
             assertThat(hookExecutionContext.getStageOutcomes())
@@ -3298,6 +3373,7 @@ public class HookStageExecutorTest extends VertxTest {
         return HookStageExecutor.create(
                 hostExecutionPlan,
                 defaultAccountExecutionPlan,
+                Collections.emptyMap(),
                 hookCatalog,
                 timeoutFactory,
                 vertx,

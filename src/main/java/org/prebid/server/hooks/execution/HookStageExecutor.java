@@ -81,6 +81,7 @@ public class HookStageExecutor {
 
     private final ExecutionPlan hostExecutionPlan;
     private final ExecutionPlan defaultAccountExecutionPlan;
+    private final Map<String, Boolean> hostModuleExecution;
     private final HookCatalog hookCatalog;
     private final TimeoutFactory timeoutFactory;
     private final Vertx vertx;
@@ -90,6 +91,7 @@ public class HookStageExecutor {
 
     private HookStageExecutor(ExecutionPlan hostExecutionPlan,
                               ExecutionPlan defaultAccountExecutionPlan,
+                              Map<String, Boolean> hostModuleExecution,
                               HookCatalog hookCatalog,
                               TimeoutFactory timeoutFactory,
                               Vertx vertx,
@@ -105,10 +107,12 @@ public class HookStageExecutor {
         this.clock = clock;
         this.mapper = mapper;
         this.isConfigToInvokeRequired = isConfigToInvokeRequired;
+        this.hostModuleExecution = hostModuleExecution;
     }
 
     public static HookStageExecutor create(String hostExecutionPlan,
                                            String defaultAccountExecutionPlan,
+                                           Map<String, Boolean> hostModuleExecution,
                                            HookCatalog hookCatalog,
                                            TimeoutFactory timeoutFactory,
                                            Vertx vertx,
@@ -122,6 +126,7 @@ public class HookStageExecutor {
         return new HookStageExecutor(
                 parseAndValidateExecutionPlan(hostExecutionPlan, mapper, hookCatalog),
                 parseAndValidateExecutionPlan(defaultAccountExecutionPlan, mapper, hookCatalog),
+                hostModuleExecution,
                 hookCatalog,
                 Objects.requireNonNull(timeoutFactory),
                 Objects.requireNonNull(vertx),
@@ -185,7 +190,7 @@ public class HookStageExecutor {
                 .withHookProvider(hookProviderForEntrypointStage(context))
                 .withInitialPayload(EntrypointPayloadImpl.of(queryParams, headers, body))
                 .withInvocationContextProvider(invocationContextProvider(endpoint))
-                .withModulesExecution(Collections.emptyMap())
+                .withModulesExecution(DefaultedMap.defaultedMap(hostModuleExecution, true))
                 .withRejectAllowed(true)
                 .execute();
     }
@@ -374,6 +379,7 @@ public class HookStageExecutor {
                     .forEach(module -> resultModulesExecution.computeIfAbsent(module, key -> true));
         }
 
+        resultModulesExecution.putAll(hostModuleExecution);
         return DefaultedMap.defaultedMap(resultModulesExecution, !isConfigToInvokeRequired);
     }
 
