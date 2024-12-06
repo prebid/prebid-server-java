@@ -152,7 +152,8 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
     }
 
     @Test
-    public void callShouldExitEarlyWhenPartnerNotActivatedInBidRequest() {
+    public void callShouldFilterBiddersAndFallbackToAccountLevelConfigWhenPartnerNotActivatedInBidRequest()
+            throws IOException, OrtException {
         // given
         final Banner banner = givenBanner();
 
@@ -162,24 +163,54 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 .banner(banner)
                 .build();
 
+        final Double explorationRate = 0.0001;
         final Device device = givenDevice(identity());
         final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device, null);
         final AuctionContext auctionContext = givenAuctionContext(bidRequest, context -> context);
         final AuctionInvocationContext invocationContext = givenAuctionInvocationContext(auctionContext);
         when(invocationContext.auctionContext()).thenReturn(auctionContext);
+        when(modelCacheWithExpiration.getIfPresent("onnxModelRunner_test-pbuid"))
+                .thenReturn(givenOnnxModelRunner());
+        when(thresholdsCacheWithExpiration.getIfPresent("throttlingThresholds_test-pbuid"))
+                .thenReturn(givenThrottlingThresholds());
+
+        final BidRequest expectedBidRequest = expectedUpdatedBidRequest(
+                request -> request, explorationRate, device, false);
+        final AnalyticsResult expectedAnalyticsResult = expectedAnalyticsResult(false, false);
 
         // when
         final Future<InvocationResult<AuctionRequestPayload>> future = target
                 .call(null, invocationContext);
         final InvocationResult<AuctionRequestPayload> result = future.result();
+        final BidRequest resultBidRequest = result
+                .payloadUpdate()
+                .apply(AuctionRequestPayloadImpl.of(bidRequest))
+                .bidRequest();
 
         // then
+        final ActivityImpl activityImpl = (ActivityImpl) result.analyticsTags().activities().getFirst();
+        final ResultImpl resultImpl = (ResultImpl) activityImpl.results().getFirst();
+        final String fingerprint = resultImpl.values()
+                .get("adunitcodevalue")
+                .get("greenbids")
+                .get("fingerprint").asText();
+
         assertThat(future).isNotNull();
         assertThat(future.succeeded()).isTrue();
         assertThat(result).isNotNull();
         assertThat(result.status()).isEqualTo(InvocationStatus.success);
-        assertThat(result.action()).isEqualTo(InvocationAction.no_action);
-        assertThat(result.analyticsTags()).isNull();
+        assertThat(result.action()).isEqualTo(InvocationAction.update);
+        assertThat(result.analyticsTags()).isNotNull();
+        assertThat(result.analyticsTags()).usingRecursiveComparison()
+                .ignoringFields(
+                        "activities.results"
+                                + ".values._children"
+                                + ".adunitcodevalue._children"
+                                + ".greenbids._children.fingerprint")
+                .isEqualTo(toAnalyticsTags(List.of(expectedAnalyticsResult))); // NOK
+        assertThat(fingerprint).isNotNull();
+        assertThat(resultBidRequest).usingRecursiveComparison()
+                .isEqualTo(expectedBidRequest);
     }
 
     @Test
@@ -259,7 +290,8 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         when(thresholdsCacheWithExpiration.getIfPresent("throttlingThresholds_test-pbuid"))
                 .thenReturn(givenThrottlingThresholds());
 
-        final BidRequest expectedBidRequest = expectedUpdatedBidRequest(request -> request, explorationRate, device);
+        final BidRequest expectedBidRequest = expectedUpdatedBidRequest(
+                request -> request, explorationRate, device, true);
         final AnalyticsResult expectedAnalyticsResult = expectedAnalyticsResult(false, false);
 
         // when
@@ -320,7 +352,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 .thenReturn(givenThrottlingThresholds());
 
         final BidRequest expectedBidRequest = expectedUpdatedBidRequest(
-                request -> request, explorationRate, device);
+                request -> request, explorationRate, device, true);
         final AnalyticsResult expectedAnalyticsResult = expectedAnalyticsResult(false, false);
 
         // when
@@ -407,7 +439,8 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
     private BidRequest expectedUpdatedBidRequest(
             UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
             Double explorationRate,
-            Device device) {
+            Device device,
+            Boolean addExtRequest) {
 
         final Banner banner = givenBanner();
 
@@ -425,12 +458,17 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 .banner(banner)
                 .build();
 
-        return bidRequestCustomizer.apply(BidRequest.builder()
+        final BidRequest.BidRequestBuilder bidRequestBuilder = BidRequest.builder()
                 .id("request")
                 .imp(List.of(imp))
                 .site(givenSite(site -> site))
-                .device(device)
-                .ext(givenExtRequest(explorationRate))).build();
+                .device(device);
+
+        if (addExtRequest) {
+            bidRequestBuilder.ext(givenExtRequest(explorationRate));
+        }
+
+        return bidRequestCustomizer.apply(bidRequestBuilder).build();
     }
 
     private AnalyticsResult expectedAnalyticsResult(Boolean isExploration, Boolean isKeptInAuction) {

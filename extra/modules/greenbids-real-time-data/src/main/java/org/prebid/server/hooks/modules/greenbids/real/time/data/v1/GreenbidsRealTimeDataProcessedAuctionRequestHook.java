@@ -47,6 +47,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
     private static final String CODE = "greenbids-real-time-data-processed-auction-request";
     private static final String ACTIVITY = "greenbids-filter";
     private static final String SUCCESS_STATUS = "success";
+    private static final String BID_REQUEST_ANALYTICS_EXTENSION_NAME = "greenbids-rtd";
 
     private final ObjectMapper mapper;
     private final FilterService filterService;
@@ -77,17 +78,42 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
 
         final AuctionContext auctionContext = invocationContext.auctionContext();
         final BidRequest bidRequest = auctionContext.getBidRequest();
+        final Partner appliedPartner = Optional.ofNullable(parseBidRequestExt(bidRequest))
+                .orElse(partner);
 
         return Future.all(
-                        onnxModelRunnerWithThresholds.retrieveOnnxModelRunner(partner),
-                        onnxModelRunnerWithThresholds.retrieveThreshold(partner))
+                        onnxModelRunnerWithThresholds.retrieveOnnxModelRunner(appliedPartner),
+                        onnxModelRunnerWithThresholds.retrieveThreshold(appliedPartner))
                 .compose(compositeFuture -> toInvocationResult(
                         bidRequest,
-                        partner,
+                        appliedPartner,
                         compositeFuture.resultAt(0),
                         compositeFuture.resultAt(1)))
                 .recover(throwable -> Future.succeededFuture(toInvocationResult(
                         bidRequest, null, InvocationAction.no_action)));
+    }
+
+    private Partner parseBidRequestExt(BidRequest bidRequest) {
+        return Optional.ofNullable(bidRequest)
+                .map(BidRequest::getExt)
+                .map(ExtRequest::getPrebid)
+                .map(ExtRequestPrebid::getAnalytics)
+                .filter(this::isNotEmptyObjectNode)
+                .map(analytics -> (ObjectNode) analytics.get(BID_REQUEST_ANALYTICS_EXTENSION_NAME))
+                .map(this::toPartner)
+                .orElse(null);
+    }
+
+    private boolean isNotEmptyObjectNode(JsonNode analytics) {
+        return analytics != null && analytics.isObject() && !analytics.isEmpty();
+    }
+
+    private Partner toPartner(ObjectNode adapterNode) {
+        try {
+            return mapper.treeToValue(adapterNode, Partner.class);
+        } catch (JsonProcessingException e) {
+            return null;
+        }
     }
 
     private Future<InvocationResult<AuctionRequestPayload>> toInvocationResult(
