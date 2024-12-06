@@ -156,7 +156,7 @@ public class HttpBidderRequester {
 
         bidderErrors.stream()
                 .filter(error -> CollectionUtils.isNotEmpty(error.getImpIds()))
-                .forEach(error -> bidRejectionTracker.reject(error.getImpIds(), reason));
+                .forEach(error -> bidRejectionTracker.rejectImps(error.getImpIds(), reason));
     }
 
     private <T> boolean isStoredResponse(List<HttpRequest<T>> httpRequests, String storedResponse, String bidder) {
@@ -397,7 +397,7 @@ public class HttpBidderRequester {
                     .orElse(null);
 
             if (statusCode != null && statusCode == HttpResponseStatus.SERVICE_UNAVAILABLE.code()) {
-                bidRejectionTracker.reject(requestedImpIds, BidRejectionReason.ERROR_BIDDER_UNREACHABLE);
+                bidRejectionTracker.rejectImps(requestedImpIds, BidRejectionReason.ERROR_BIDDER_UNREACHABLE);
                 return;
             }
 
@@ -405,7 +405,7 @@ public class HttpBidderRequester {
                     && (statusCode < HttpResponseStatus.OK.code()
                     || statusCode >= HttpResponseStatus.BAD_REQUEST.code())) {
 
-                bidRejectionTracker.reject(requestedImpIds, BidRejectionReason.ERROR_INVALID_BID_RESPONSE);
+                bidRejectionTracker.rejectImps(requestedImpIds, BidRejectionReason.ERROR_INVALID_BID_RESPONSE);
                 return;
             }
 
@@ -417,9 +417,9 @@ public class HttpBidderRequester {
             }
 
             if (callErrorType == BidderError.Type.timeout) {
-                bidRejectionTracker.reject(requestedImpIds, BidRejectionReason.ERROR_TIMED_OUT);
+                bidRejectionTracker.rejectImps(requestedImpIds, BidRejectionReason.ERROR_TIMED_OUT);
             } else {
-                bidRejectionTracker.reject(requestedImpIds, BidRejectionReason.ERROR_GENERAL);
+                bidRejectionTracker.rejectImps(requestedImpIds, BidRejectionReason.ERROR_GENERAL);
             }
         }
 

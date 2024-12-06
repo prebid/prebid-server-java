@@ -57,7 +57,7 @@ public class BidResponsesMraidFilter {
                 analyticsResults.add(analyticsResult);
 
                 bidRejectionTrackers.get(bidder)
-                        .reject(rejectedImps, BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE);
+                        .rejectBids(invalidBids, BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE);
 
                 final List<BidderError> errors = new ArrayList<>(seatBid.getErrors());
                 errors.add(BidderError.of("Invalid bid", BidderError.Type.invalid_bid, new HashSet<>(rejectedImps)));
