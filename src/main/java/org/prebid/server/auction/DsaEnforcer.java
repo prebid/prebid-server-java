@@ -72,7 +72,7 @@ public class DsaEnforcer {
                 }
             } catch (PreBidException e) {
                 warnings.add(BidderError.invalidBid("Bid \"%s\": %s".formatted(bid.getId(), e.getMessage())));
-                rejectionTracker.reject(bid.getImpid(), BidRejectionReason.RESPONSE_REJECTED_DSA_PRIVACY);
+                rejectionTracker.rejectBid(bidderBid, BidRejectionReason.RESPONSE_REJECTED_DSA_PRIVACY);
                 updatedBidderBids.remove(bidderBid);
             }
         }

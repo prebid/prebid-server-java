@@ -701,7 +701,7 @@ public class ExchangeService {
         if (blockedRequestByTcf) {
             context.getBidRejectionTrackers()
                     .get(bidder)
-                    .rejectAll(BidRejectionReason.REQUEST_BLOCKED_PRIVACY);
+                    .rejectAllImps(BidRejectionReason.REQUEST_BLOCKED_PRIVACY);
 
             return AuctionParticipation.builder()
                     .bidder(bidder)
@@ -1154,7 +1154,7 @@ public class ExchangeService {
 
         auctionContext.getBidRejectionTrackers()
                 .get(bidderName)
-                .rejectAll(bidRejectionReason);
+                .rejectAllImps(bidRejectionReason);
         final BidderSeatBid bidderSeatBid = BidderSeatBid.builder()
                 .warnings(warnings)
                 .build();
@@ -1193,7 +1193,7 @@ public class ExchangeService {
         if (hookStageResult.isShouldReject()) {
             auctionContext.getBidRejectionTrackers()
                     .get(bidderRequest.getBidder())
-                    .rejectAll(BidRejectionReason.REQUEST_BLOCKED_GENERAL);
+                    .rejectAllImps(BidRejectionReason.REQUEST_BLOCKED_GENERAL);
 
             return Future.succeededFuture(BidderResponse.of(bidderRequest.getBidder(), BidderSeatBid.empty(), 0));
         }

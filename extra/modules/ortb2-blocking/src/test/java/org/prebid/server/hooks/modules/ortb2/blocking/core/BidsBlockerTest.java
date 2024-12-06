@@ -197,13 +197,13 @@ public class BidsBlockerTest {
                 .build()));
 
         // when
-        final List<BidderBid> bids = singletonList(bid(bid -> bid.adomain(singletonList("domain1.com"))));
+        final BidderBid bid = bid(bidBuilder -> bidBuilder.adomain(singletonList("domain1.com")));
         final BlockedAttributes blockedAttributes = attributesWithBadv(singletonList("domain1.com"));
-        final BidsBlocker blocker = BidsBlocker.create(bids, "bidder1", ORTB_VERSION, accountConfig, blockedAttributes, bidRejectionTracker, false);
+        final BidsBlocker blocker = BidsBlocker.create(singletonList(bid), "bidder1", ORTB_VERSION, accountConfig, blockedAttributes, bidRejectionTracker, false);
 
         // when and then
         assertThat(blocker.block()).satisfies(result -> hasValue(result, 0));
-        verify(bidRejectionTracker).reject("impId1", BidRejectionReason.RESPONSE_REJECTED_ADVERTISER_BLOCKED);
+        verify(bidRejectionTracker).rejectBid(bid, BidRejectionReason.RESPONSE_REJECTED_ADVERTISER_BLOCKED);
     }
 
     @Test
@@ -304,9 +304,9 @@ public class BidsBlockerTest {
                 .build()));
 
         // when
-        final List<BidderBid> bids = singletonList(bid(bid -> bid.adomain(singletonList("domain1.com"))));
+        final BidderBid bid = bid(bidBuilder -> bidBuilder.adomain(singletonList("domain1.com")));
         final BlockedAttributes blockedAttributes = attributesWithBadv(singletonList("domain1.com"));
-        final BidsBlocker blocker = BidsBlocker.create(bids, "bidder1", ORTB_VERSION, accountConfig, blockedAttributes, bidRejectionTracker, true);
+        final BidsBlocker blocker = BidsBlocker.create(singletonList(bid), "bidder1", ORTB_VERSION, accountConfig, blockedAttributes, bidRejectionTracker, true);
 
         // when and then
         assertThat(blocker.block()).satisfies(BidsBlockerTest::isEmpty);
@@ -324,13 +324,13 @@ public class BidsBlockerTest {
                 .build()));
 
         // when
-        final List<BidderBid> bids = singletonList(bid(bid -> bid.adomain(singletonList("domain1.com"))));
+        final BidderBid bid = bid(bidBuilder -> bidBuilder.adomain(singletonList("domain1.com")));
         final BlockedAttributes blockedAttributes = attributesWithBadv(singletonList("domain1.com"));
-        final BidsBlocker blocker = BidsBlocker.create(bids, "bidder1", ORTB_VERSION, accountConfig, blockedAttributes, bidRejectionTracker, false);
+        final BidsBlocker blocker = BidsBlocker.create(singletonList(bid), "bidder1", ORTB_VERSION, accountConfig, blockedAttributes, bidRejectionTracker, false);
 
         // when and then
         assertThat(blocker.block()).satisfies(result -> hasValue(result, 0));
-        verify(bidRejectionTracker).reject("impId1", BidRejectionReason.RESPONSE_REJECTED_ADVERTISER_BLOCKED);
+        verify(bidRejectionTracker).rejectBid(bid, BidRejectionReason.RESPONSE_REJECTED_ADVERTISER_BLOCKED);
     }
 
     @Test
@@ -344,8 +344,8 @@ public class BidsBlockerTest {
                 .build()));
 
         // when
-        final List<BidderBid> bids = singletonList(bid());
-        final BidsBlocker blocker = BidsBlocker.create(bids, "bidder1", ORTB_VERSION, accountConfig, null, bidRejectionTracker, true);
+        final BidderBid bid = bid();
+        final BidsBlocker blocker = BidsBlocker.create(singletonList(bid), "bidder1", ORTB_VERSION, accountConfig, null, bidRejectionTracker, true);
 
         // when and then
         assertThat(blocker.block()).satisfies(result -> {
@@ -353,7 +353,7 @@ public class BidsBlockerTest {
             assertThat(result.getDebugMessages()).containsOnly(
                     "Bid 0 from bidder bidder1 has been rejected, failed checks: [bcat]");
         });
-        verify(bidRejectionTracker).reject("impId1", BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE);
+        verify(bidRejectionTracker).rejectBid(bid, BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE);
     }
 
     @Test
@@ -367,12 +367,12 @@ public class BidsBlockerTest {
                 .build()));
 
         // when
-        final List<BidderBid> bids = singletonList(bid());
-        final BidsBlocker blocker = BidsBlocker.create(bids, "bidder1", ORTB_VERSION, accountConfig, null, bidRejectionTracker, false);
+        final BidderBid bid = bid();
+        final BidsBlocker blocker = BidsBlocker.create(singletonList(bid), "bidder1", ORTB_VERSION, accountConfig, null, bidRejectionTracker, false);
 
         // when and then
         assertThat(blocker.block()).satisfies(result -> hasValue(result, 0));
-        verify(bidRejectionTracker).reject("impId1", BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE);
+        verify(bidRejectionTracker).rejectBid(bid, BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE);
     }
 
     @Test
@@ -393,22 +393,23 @@ public class BidsBlockerTest {
                         .build())
                 .build()));
 
+        final BidderBid bid1 = bid(bid -> bid
+                .impid("impId1")
+                .adomain(asList("domain2.com", "domain3.com", "domain4.com"))
+                .bundle("app2"));
+        final BidderBid bid2 = bid(bid -> bid
+                .impid("impId2")
+                .cat(asList("cat2", "cat3", "cat4"))
+                .attr(asList(2, 3, 4)));
+        final BidderBid bid3 = bid(bid -> bid
+                .impid("impId1")
+                .adomain(singletonList("domain5.com"))
+                .cat(singletonList("cat5"))
+                .bundle("app5")
+                .attr(singletonList(5)));
+
         // when
-        final List<BidderBid> bids = asList(
-                bid(bid -> bid
-                        .impid("impId1")
-                        .adomain(asList("domain2.com", "domain3.com", "domain4.com"))
-                        .bundle("app2")),
-                bid(bid -> bid
-                        .impid("impId2")
-                        .cat(asList("cat2", "cat3", "cat4"))
-                        .attr(asList(2, 3, 4))),
-                bid(bid -> bid
-                        .impid("impId1")
-                        .adomain(singletonList("domain5.com"))
-                        .cat(singletonList("cat5"))
-                        .bundle("app5")
-                        .attr(singletonList(5))));
+        final List<BidderBid> bids = asList(bid1, bid2, bid3);
         final BlockedAttributes blockedAttributes = BlockedAttributes.builder()
                 .badv(asList("domain1.com", "domain2.com", "domain3.com"))
                 .bcat(asList("cat1", "cat2", "cat3"))
@@ -436,9 +437,9 @@ public class BidsBlockerTest {
                     AnalyticsResult.of("success-allow", null, "bidder1", "impId1"));
         });
 
-        verify(bidRejectionTracker).reject("impId1", BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE);
-        verify(bidRejectionTracker).reject("impId2", BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE);
-        verify(bidRejectionTracker).reject("impId1", BidRejectionReason.RESPONSE_REJECTED_ADVERTISER_BLOCKED);
+        verify(bidRejectionTracker).rejectBid(bid1, BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE);
+        verify(bidRejectionTracker).rejectBid(bid2, BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE);
+        verify(bidRejectionTracker).rejectBid(bid1, BidRejectionReason.RESPONSE_REJECTED_ADVERTISER_BLOCKED);
         verifyNoMoreInteractions(bidRejectionTracker);
     }
 
@@ -467,23 +468,30 @@ public class BidsBlockerTest {
                 .build()));
 
         // when
-        final List<BidderBid> bids = asList(
-                bid(bid -> bid.adomain(singletonList("domain1.com"))),
-                bid(bid -> bid.adomain(singletonList("domain2.com")).cat(singletonList("cat1"))),
-                bid(bid -> bid.adomain(singletonList("domain2.com")).cat(singletonList("cat2"))),
-                bid(bid -> bid.adomain(singletonList("domain2.com")).cat(singletonList("cat2")).bundle("app1")),
-                bid(bid -> bid.adomain(singletonList("domain2.com")).cat(singletonList("cat2")).bundle("app2")),
-                bid(bid -> bid
-                        .adomain(singletonList("domain2.com"))
-                        .cat(singletonList("cat2"))
-                        .bundle("app2")
-                        .attr(singletonList(1))),
-                bid(bid -> bid
-                        .adomain(singletonList("domain2.com"))
-                        .cat(singletonList("cat2"))
-                        .bundle("app2")
-                        .attr(singletonList(2))),
-                bid());
+        final BidderBid bid1 = bid(bid -> bid.adomain(singletonList("domain1.com")));
+        final BidderBid bid2 = bid(bid -> bid.adomain(singletonList("domain2.com")).cat(singletonList("cat1")));
+        final BidderBid bid3 = bid(bid -> bid.adomain(singletonList("domain2.com")).cat(singletonList("cat2")));
+        final BidderBid bid4 = bid(bid -> bid
+                .adomain(singletonList("domain2.com"))
+                .cat(singletonList("cat2"))
+                .bundle("app1"));
+        final BidderBid bid5 = bid(bid -> bid
+                .adomain(singletonList("domain2.com"))
+                .cat(singletonList("cat2"))
+                .bundle("app2"));
+        final BidderBid bid6 = bid(bid -> bid
+                .adomain(singletonList("domain2.com"))
+                .cat(singletonList("cat2"))
+                .bundle("app2")
+                .attr(singletonList(1)));
+        final BidderBid bid7 = bid(bid -> bid
+                .adomain(singletonList("domain2.com"))
+                .cat(singletonList("cat2"))
+                .bundle("app2")
+                .attr(singletonList(2)));
+        final BidderBid bid8 = bid();
+
+        final List<BidderBid> bids = asList(bid1, bid2, bid3, bid4, bid5, bid6, bid7, bid8);
         final BlockedAttributes blockedAttributes = BlockedAttributes.builder()
                 .badv(asList("domain1.com", "domain2.com"))
                 .bcat(asList("cat1", "cat2"))
@@ -503,8 +511,13 @@ public class BidsBlockerTest {
                     "Bid 7 from bidder bidder1 has been rejected, failed checks: [badv, bcat]");
         });
 
-        verify(bidRejectionTracker, times(5)).reject("impId1", BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE);
-        verify(bidRejectionTracker, times(2)).reject("impId1", BidRejectionReason.RESPONSE_REJECTED_ADVERTISER_BLOCKED);
+        verify(bidRejectionTracker).rejectBid(bid1, BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE);
+        verify(bidRejectionTracker).rejectBid(bid1, BidRejectionReason.RESPONSE_REJECTED_ADVERTISER_BLOCKED);
+        verify(bidRejectionTracker).rejectBid(bid2, BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE);
+        verify(bidRejectionTracker).rejectBid(bid4, BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE);
+        verify(bidRejectionTracker).rejectBid(bid6, BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE);
+        verify(bidRejectionTracker).rejectBid(bid8, BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE);
+        verify(bidRejectionTracker).rejectBid(bid8, BidRejectionReason.RESPONSE_REJECTED_ADVERTISER_BLOCKED);
         verifyNoMoreInteractions(bidRejectionTracker);
     }
 
