@@ -30,8 +30,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-public class TcfEnforcement {
+public class TcfEnforcement implements PrivacyEnforcement {
 
     private static final Logger logger = LoggerFactory.getLogger(TcfEnforcement.class);
 
@@ -59,30 +60,25 @@ public class TcfEnforcement {
                 .map(TcfResponse::getActions);
     }
 
+    @Override
     public Future<List<BidderPrivacyResult>> enforce(AuctionContext auctionContext,
-                                                     Map<String, User> bidderToUser,
-                                                     Set<String> bidders,
-                                                     BidderAliases aliases) {
+                                                     BidderAliases aliases,
+                                                     List<BidderPrivacyResult> results) {
 
-        final Device device = auctionContext.getBidRequest().getDevice();
-        final AccountGdprConfig accountGdprConfig = accountGdprConfig(auctionContext.getAccount());
         final MetricName requestType = auctionContext.getRequestTypeMetric();
         final ActivityInfrastructure activityInfrastructure = auctionContext.getActivityInfrastructure();
+        final Set<String> bidders = results.stream()
+                .map(BidderPrivacyResult::getRequestBidder)
+                .collect(Collectors.toSet());
 
         return tcfDefinerService.resultForBidderNames(
                         bidders,
                         VendorIdResolver.of(aliases, bidderCatalog),
                         auctionContext.getPrivacyContext().getTcfContext(),
-                        accountGdprConfig)
+                        accountGdprConfig(auctionContext.getAccount()))
                 .map(TcfResponse::getActions)
-                .map(enforcements -> updateMetrics(
-                        activityInfrastructure,
-                        enforcements,
-                        aliases,
-                        requestType,
-                        bidderToUser,
-                        device))
-                .map(enforcements -> bidderToPrivacyResult(enforcements, bidders, bidderToUser, device));
+                .map(enforcements -> updateMetrics(activityInfrastructure, enforcements, aliases, requestType, results))
+                .map(enforcements -> applyEnforcements(enforcements, results));
     }
 
     private static AccountGdprConfig accountGdprConfig(Account account) {
@@ -94,22 +90,21 @@ public class TcfEnforcement {
                                                                 Map<String, PrivacyEnforcementAction> enforcements,
                                                                 BidderAliases aliases,
                                                                 MetricName requestType,
-                                                                Map<String, User> bidderToUser,
-                                                                Device device) {
-
-        final boolean isLmtEnforcedAndEnabled = isLmtEnforcedAndEnabled(device);
+                                                                List<BidderPrivacyResult> results) {
 
         // Metrics should represent real picture of the bidding process, so if bidder request is blocked
         // by privacy then no reason to increment another metrics, like geo masked, etc.
-        for (final Map.Entry<String, PrivacyEnforcementAction> bidderEnforcement : enforcements.entrySet()) {
-            final String bidder = bidderEnforcement.getKey();
-            final PrivacyEnforcementAction enforcement = bidderEnforcement.getValue();
-            final User user = bidderToUser.get(bidder);
+        for (BidderPrivacyResult result : results) {
+            final String bidder = result.getRequestBidder();
+            final User user = result.getUser();
+            final Device device = result.getDevice();
+            final PrivacyEnforcementAction enforcement = enforcements.get(bidder);
 
             final boolean requestBlocked = enforcement.isBlockBidderRequest();
             final boolean ufpdRemoved = !requestBlocked
                     && ((enforcement.isRemoveUserFpd() && shouldRemoveUserData(user))
                     || (enforcement.isMaskDeviceInfo() && shouldRemoveDeviceData(device)));
+            final boolean isLmtEnforcedAndEnabled = isLmtEnforcedAndEnabled(device);
             final boolean uidsRemoved = !requestBlocked && enforcement.isRemoveUserIds() && shouldRemoveUids(user);
             final boolean geoMasked = !requestBlocked && enforcement.isMaskGeo() && shouldMaskGeo(user, device);
             final boolean analyticsBlocked = !requestBlocked && enforcement.isBlockAnalyticsReport();
@@ -165,32 +160,19 @@ public class TcfEnforcement {
         return lmtEnforce && device != null && Objects.equals(device.getLmt(), 1);
     }
 
-    private List<BidderPrivacyResult> bidderToPrivacyResult(Map<String, PrivacyEnforcementAction> bidderToEnforcement,
-                                                            Set<String> bidders,
-                                                            Map<String, User> bidderToUser,
-                                                            Device device) {
+    private List<BidderPrivacyResult> applyEnforcements(Map<String, PrivacyEnforcementAction> enforcements,
+                                                        List<BidderPrivacyResult> results) {
 
-        final boolean isLmtEnabled = isLmtEnforcedAndEnabled(device);
-
-        return bidders.stream()
-                .map(bidder -> createBidderPrivacyResult(
-                        bidder,
-                        bidderToUser.get(bidder),
-                        device,
-                        bidderToEnforcement,
-                        isLmtEnabled))
+        return results.stream()
+                .map(result -> applyEnforcement(enforcements.get(result.getRequestBidder()), result))
                 .toList();
     }
 
-    private BidderPrivacyResult createBidderPrivacyResult(String bidder,
-                                                          User user,
-                                                          Device device,
-                                                          Map<String, PrivacyEnforcementAction> bidderToEnforcement,
-                                                          boolean isLmtEnabled) {
+    private BidderPrivacyResult applyEnforcement(PrivacyEnforcementAction enforcement, BidderPrivacyResult result) {
+        final String bidder = result.getRequestBidder();
 
-        final PrivacyEnforcementAction privacyEnforcementAction = bidderToEnforcement.get(bidder);
-        final boolean blockBidderRequest = privacyEnforcementAction.isBlockBidderRequest();
-        final boolean blockAnalyticsReport = privacyEnforcementAction.isBlockAnalyticsReport();
+        final boolean blockBidderRequest = enforcement.isBlockBidderRequest();
+        final boolean blockAnalyticsReport = enforcement.isBlockAnalyticsReport();
 
         if (blockBidderRequest) {
             return BidderPrivacyResult.builder()
@@ -200,14 +182,18 @@ public class TcfEnforcement {
                     .build();
         }
 
-        final boolean maskUserFpd = privacyEnforcementAction.isRemoveUserFpd() || isLmtEnabled;
-        final boolean maskUserIds = privacyEnforcementAction.isRemoveUserIds() || isLmtEnabled;
-        final boolean maskGeo = privacyEnforcementAction.isMaskGeo() || isLmtEnabled;
-        final Set<String> eidExceptions = privacyEnforcementAction.getEidExceptions();
+        final User user = result.getUser();
+        final Device device = result.getDevice();
+
+        final boolean isLmtEnabled = isLmtEnforcedAndEnabled(device);
+        final boolean maskUserFpd = enforcement.isRemoveUserFpd() || isLmtEnabled;
+        final boolean maskUserIds = enforcement.isRemoveUserIds() || isLmtEnabled;
+        final boolean maskGeo = enforcement.isMaskGeo() || isLmtEnabled;
+        final Set<String> eidExceptions = enforcement.getEidExceptions();
         final User maskedUser = userFpdTcfMask.maskUser(user, maskUserFpd, maskUserIds, eidExceptions);
 
-        final boolean maskIp = privacyEnforcementAction.isMaskDeviceIp() || isLmtEnabled;
-        final boolean maskDeviceInfo = privacyEnforcementAction.isMaskDeviceInfo() || isLmtEnabled;
+        final boolean maskIp = enforcement.isMaskDeviceIp() || isLmtEnabled;
+        final boolean maskDeviceInfo = enforcement.isMaskDeviceInfo() || isLmtEnabled;
         final Device maskedDevice = userFpdTcfMask.maskDevice(device, maskIp, maskGeo, maskDeviceInfo);
 
         return BidderPrivacyResult.builder()

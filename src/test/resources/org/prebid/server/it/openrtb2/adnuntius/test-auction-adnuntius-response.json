@@ -6,6 +6,7 @@
         {
           "id": "some_ad_id",
           "impid": "imp_id",
+          "exp": 300,
           "price": 42420.00,
           "adm": "some_html",
           "adid": "some_ad_id",

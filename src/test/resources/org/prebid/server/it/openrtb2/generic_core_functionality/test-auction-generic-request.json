@@ -8,7 +8,8 @@
           "mimes"
         ],
         "w": 300,
-        "h": 250
+        "h": 250,
+        "placement": 1
       },
       "ext": {
         "prebid": {

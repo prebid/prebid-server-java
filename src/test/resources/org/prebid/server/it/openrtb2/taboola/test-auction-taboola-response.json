@@ -6,6 +6,7 @@
         {
           "id": "bid_id",
           "impid": "1",
+          "exp": 300,
           "price": 8.43,
           "crid": "crid14",
           "adm": "some-test-ad",
@@ -21,6 +22,7 @@
         {
           "id": "bid_id",
           "impid": "2",
+          "exp": 300,
           "price": 8.43,
           "crid": "crid14",
           "adm": "{\"assets\":[{\"id\":0,\"title\":{\"text\":\"This is an example Prebid Native creative\"}}]}",

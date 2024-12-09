@@ -6,6 +6,7 @@
         {
           "id": "bid_id",
           "impid": "imp_id",
+          "exp": 300,
           "price": 0.5,
           "adm": "{\"assets\":[{\"id\":0,\"title\":{\"text\":\"This is an example Prebid Native creative\"}}]}",
           "adid": "adid",

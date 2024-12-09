@@ -291,6 +291,7 @@ For `JVM` metrics
 for particular publisher account. Overrides `cache.banner-ttl-seconds` property.
 - `cache.account.<ACCOUNT>.video-ttl-seconds` - how long (in seconds) video creative will be available in Cache Service 
 for particular publisher account. Overrides `cache.video-ttl-seconds` property.
+- `cache.default-ttl-seconds.{banner, video, audio, native}` - a default value how long (in seconds) a creative of the specific type will be available in Cache Service
 
 ## Application settings (account configuration, stored ad unit configurations, stored requests)
 Preconfigured application settings can be obtained from multiple data sources consequently: 
@@ -506,6 +507,10 @@ For the `agma` analytics adapter
 - `analytics.agma.accounts[].code` - an account code to send with an event
 - `analytics.agma.accounts[].publisher-id` - a publisher id to match an event to send
 - `analytics.agma.accounts[].site-app-id` - a site or app id to match an event to send
+
+## Modules
+- `hooks.admin.module-execution` - a key-value map, where a key is a module name and a value is a boolean, that defines whether modules hooks should/should not be always executed; if the module is not specified it is executed by default when it's present in the execution plan
+- `settings.modules.require-config-to-invoke` - when enabled it requires a runtime config to exist for a module.
 
 ## Debugging
 - `debug.override-token` - special string token for overriding Prebid Server account and/or adapter debug information presence in the auction response.

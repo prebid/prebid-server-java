@@ -13,4 +13,5 @@ class AccountHooksConfiguration {
     @JsonProperty("execution_plan")
     ExecutionPlan executionPlanSnakeCase
     PbsModulesConfig modules
+    AdminConfig admin
 }

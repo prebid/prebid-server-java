@@ -13,7 +13,7 @@ import org.prebid.server.hooks.modules.pb.response.correction.core.config.model.
 import org.prebid.server.hooks.modules.pb.response.correction.core.correction.Correction;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
-import org.prebid.server.hooks.v1.InvocationResultImpl;
+import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.v1.InvocationStatus;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.bidder.AllProcessedBidResponsesHook;

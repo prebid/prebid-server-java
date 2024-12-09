@@ -14,4 +14,6 @@ public class AccountHooksConfiguration {
     ExecutionPlan executionPlan;
 
     Map<String, ObjectNode> modules;
+
+    HooksAdminConfig admin;
 }

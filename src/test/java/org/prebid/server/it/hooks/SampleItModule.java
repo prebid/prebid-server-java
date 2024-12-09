@@ -31,7 +31,8 @@ public class SampleItModule implements Module {
                 new SampleItRejectingProcessedAuctionRequestHook(),
                 new SampleItRejectingBidderRequestHook(),
                 new SampleItRejectingRawBidderResponseHook(),
-                new SampleItRejectingProcessedBidderResponseHook());
+                new SampleItRejectingProcessedBidderResponseHook(),
+                new SampleItExitpointHook(mapper));
     }
 
     @Override
