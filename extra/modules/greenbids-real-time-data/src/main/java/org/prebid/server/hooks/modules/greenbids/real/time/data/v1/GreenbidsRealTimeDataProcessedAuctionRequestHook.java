@@ -54,18 +54,21 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
     private final OnnxModelRunnerWithThresholds onnxModelRunnerWithThresholds;
     private final GreenbidsInferenceDataService greenbidsInferenceDataService;
     private final GreenbidsInvocationService greenbidsInvocationService;
+    private final Partner partner;
 
     public GreenbidsRealTimeDataProcessedAuctionRequestHook(
             ObjectMapper mapper,
             FilterService filterService,
             OnnxModelRunnerWithThresholds onnxModelRunnerWithThresholds,
             GreenbidsInferenceDataService greenbidsInferenceDataService,
-            GreenbidsInvocationService greenbidsInvocationService) {
+            GreenbidsInvocationService greenbidsInvocationService,
+            Partner partner) {
         this.mapper = Objects.requireNonNull(mapper);
         this.filterService = Objects.requireNonNull(filterService);
         this.onnxModelRunnerWithThresholds = Objects.requireNonNull(onnxModelRunnerWithThresholds);
         this.greenbidsInferenceDataService = Objects.requireNonNull(greenbidsInferenceDataService);
         this.greenbidsInvocationService = Objects.requireNonNull(greenbidsInvocationService);
+        this.partner = Objects.requireNonNull(partner);
     }
 
     @Override
@@ -75,19 +78,15 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
 
         final AuctionContext auctionContext = invocationContext.auctionContext();
         final BidRequest bidRequest = auctionContext.getBidRequest();
-        final Partner partner = parseBidRequestExt(bidRequest);
-
-        if (partner == null) {
-            return Future.succeededFuture(toInvocationResult(
-                    bidRequest, null, InvocationAction.no_action));
-        }
+        final Partner appliedPartner = Optional.ofNullable(parseBidRequestExt(bidRequest))
+                .orElse(partner);
 
         return Future.all(
-                        onnxModelRunnerWithThresholds.retrieveOnnxModelRunner(partner),
-                        onnxModelRunnerWithThresholds.retrieveThreshold(partner))
+                        onnxModelRunnerWithThresholds.retrieveOnnxModelRunner(appliedPartner),
+                        onnxModelRunnerWithThresholds.retrieveThreshold(appliedPartner))
                 .compose(compositeFuture -> toInvocationResult(
                         bidRequest,
-                        partner,
+                        appliedPartner,
                         compositeFuture.resultAt(0),
                         compositeFuture.resultAt(1)))
                 .recover(throwable -> Future.succeededFuture(toInvocationResult(
