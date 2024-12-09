@@ -27,6 +27,8 @@ class ImpExt {
     String all
     String skadn
     String general
+    @JsonProperty("adunitcode")
+    String adUnitCode
     AnyUnsupportedBidder anyUnsupportedBidder
 
     static ImpExt getDefaultImpExt() {

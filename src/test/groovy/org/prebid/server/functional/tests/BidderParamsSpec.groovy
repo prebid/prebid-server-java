@@ -789,15 +789,22 @@ class BidderParamsSpec extends BaseSpec {
             gpid = PBSUtils.randomString
             skadn = PBSUtils.randomString
             tid = PBSUtils.randomString
+            adUnitCode = PBSUtils.randomString
         }
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].ext = impExt
         }
 
         when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Bidder request should contain same field as requested"
+        then: "Response shouldn't contain error"
+        assert !response.ext?.errors
+
+        and: "Response shouldn't contain warning"
+        assert !response.ext?.warnings
+
+        and: "Bidder request should contain same field as requested"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         verifyAll(bidderRequest.imp[0].ext) {
             bidder == impExt.generic
@@ -809,7 +816,39 @@ class BidderParamsSpec extends BaseSpec {
             gpid == impExt.gpid
             skadn == impExt.skadn
             tid == impExt.tid
+            adUnitCode == impExt.adUnitCode
         }
+    }
+
+    def "PBS shouldn't emit warning and proceed auction when all ext.prebid.bidderParams fields known for PBS"() {
+        given: "Default bid request with populated ext.prebid.bidderParams"
+        def genericBidderParams = PBSUtils.randomString
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.bidderParams = [ae             : PBSUtils.randomString,
+                                       all            : PBSUtils.randomString,
+                                       context        : PBSUtils.randomString,
+                                       data           : PBSUtils.randomString,
+                                       general        : PBSUtils.randomString,
+                                       gpid           : PBSUtils.randomString,
+                                       skadn          : PBSUtils.randomString,
+                                       tid            : PBSUtils.randomString,
+                                       adunitcode     : PBSUtils.randomString,
+                                       (GENERIC.value): genericBidderParams
+            ]
+        }
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response shouldn't contain error"
+        assert !response.ext?.errors
+
+        and: "Response shouldn't contain warning"
+        assert !response.ext?.warnings
+
+        "Bidder request should bidderParams only for bidder"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.ext.prebid.bidderParams == [(GENERIC.value): genericBidderParams]
     }
 
     def "PBS should send request to bidder when adapters.bidder.meta-info.currency-accepted not specified"() {
@@ -847,7 +886,7 @@ class BidderParamsSpec extends BaseSpec {
     def "PBS should send request to bidder when adapters.bidder.aliases.bidder.meta-info.currency-accepted not specified"() {
         given: "PBS with adapter configuration"
         def pbsService = pbsServiceFactory.getService(
-                "adapters.generic.aliases.alias.enabled" : "true",
+                "adapters.generic.aliases.alias.enabled": "true",
                 "adapters.generic.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString(),
                 "adapters.generic.aliases.alias.meta-info.currency-accepted": "")
 
@@ -955,7 +994,7 @@ class BidderParamsSpec extends BaseSpec {
     def "PBS should send request to bidder when adapters.bidder.aliases.bidder.meta-info.currency-accepted intersect with requested currency"() {
         given: "PBS with adapter configuration"
         def pbsService = pbsServiceFactory.getService(
-                "adapters.generic.aliases.alias.enabled" : "true",
+                "adapters.generic.aliases.alias.enabled": "true",
                 "adapters.generic.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString(),
                 "adapters.generic.aliases.alias.meta-info.currency-accepted": "${USD},${EUR}".toString())
 
@@ -996,7 +1035,7 @@ class BidderParamsSpec extends BaseSpec {
     def "PBS shouldn't send request to bidder and emit warning when adapters.bidder.aliases.bidder.meta-info.currency-accepted not intersect with requested currency"() {
         given: "PBS with adapter configuration"
         def pbsService = pbsServiceFactory.getService(
-                "adapters.generic.aliases.alias.enabled" : "true",
+                "adapters.generic.aliases.alias.enabled": "true",
                 "adapters.generic.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString(),
                 "adapters.generic.aliases.alias.meta-info.currency-accepted": "${JPY},${CHF}".toString())
 
