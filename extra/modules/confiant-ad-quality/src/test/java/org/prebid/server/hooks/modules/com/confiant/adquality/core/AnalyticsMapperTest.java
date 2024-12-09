@@ -2,10 +2,10 @@ package org.prebid.server.hooks.modules.com.confiant.adquality.core;
 
 import org.junit.jupiter.api.Test;
 import org.prebid.server.auction.model.BidderResponse;
+import org.prebid.server.hooks.execution.v1.analytics.ActivityImpl;
+import org.prebid.server.hooks.execution.v1.analytics.AppliedToImpl;
+import org.prebid.server.hooks.execution.v1.analytics.ResultImpl;
 import org.prebid.server.hooks.modules.com.confiant.adquality.util.AdQualityModuleTestUtils;
-import org.prebid.server.hooks.modules.com.confiant.adquality.v1.model.analytics.ActivityImpl;
-import org.prebid.server.hooks.modules.com.confiant.adquality.v1.model.analytics.AppliedToImpl;
-import org.prebid.server.hooks.modules.com.confiant.adquality.v1.model.analytics.ResultImpl;
 import org.prebid.server.hooks.v1.analytics.Tags;
 
 import java.util.List;

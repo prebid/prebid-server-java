@@ -4,19 +4,22 @@
       "type": "xml",
       "value": "some-test-ad-3",
       "aid": "bid_id",
-      "key": "2.0_IAB10-1_0s_{{uuid}}"
+      "key": "2.0_IAB10-1_0s_{{uuid}}",
+      "ttlseconds": 1500
     },
     {
       "type": "xml",
       "value": "some-test-ad",
       "aid": "bid_id",
-      "key": "5.5_IAB20-3_0s_{{uuid}}"
+      "key": "5.5_IAB20-3_0s_{{uuid}}",
+      "ttlseconds": 1500
     },
     {
       "type": "xml",
       "value": "some-test-ad-2",
       "aid": "bid_id",
-      "key": "2.5_IAB18-5_0s_{{uuid}}"
+      "key": "2.5_IAB18-5_0s_{{uuid}}",
+      "ttlseconds": 1500
     }
   ]
 }

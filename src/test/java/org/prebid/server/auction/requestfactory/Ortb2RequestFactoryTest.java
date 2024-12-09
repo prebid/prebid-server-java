@@ -14,6 +14,7 @@ import com.iab.openrtb.request.Uid;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.net.impl.SocketAddressImpl;
 import io.vertx.ext.web.RoutingContext;
@@ -1079,6 +1080,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         given(httpServerRequest.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
         given(httpServerRequest.absoluteURI()).willReturn("absoluteUri");
+        given(httpServerRequest.method()).willReturn(HttpMethod.POST);
         given(httpServerRequest.scheme()).willReturn("https");
         given(httpServerRequest.remoteAddress()).willReturn(new SocketAddressImpl(1234, "host"));
 
@@ -1107,6 +1109,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         // then
         final HttpRequestContext httpRequest = result.result();
         assertThat(httpRequest.getAbsoluteUri()).isEqualTo("absoluteUri");
+        assertThat(httpRequest.getHttpMethod()).isEqualTo(HttpMethod.POST);
         assertThat(httpRequest.getQueryParams()).isSameAs(updatedQueryParam);
         assertThat(httpRequest.getHeaders()).isSameAs(headerParams);
         assertThat(httpRequest.getBody()).isEqualTo("{\"app\":{\"bundle\":\"org.company.application\"}}");

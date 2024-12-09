@@ -1,5 +1,6 @@
 package org.prebid.server.spring.config.metrics;
 
+import org.prebid.server.auction.HooksMetricsService;
 import org.slf4j.LoggerFactory;
 import com.codahale.metrics.Slf4jReporter;
 import com.codahale.metrics.ConsoleReporter;
@@ -132,6 +133,11 @@ public class MetricsConfiguration {
                 accountsProperties.getDefaultVerbosity(),
                 accountsProperties.getBasicVerbosity(),
                 accountsProperties.getDetailedVerbosity());
+    }
+
+    @Bean
+    HooksMetricsService hooksMetricsService(Metrics metrics) {
+        return new HooksMetricsService(metrics);
     }
 
     @Component

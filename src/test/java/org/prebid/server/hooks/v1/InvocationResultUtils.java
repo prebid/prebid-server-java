@@ -1,5 +1,7 @@
 package org.prebid.server.hooks.v1;
 
+import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
+
 public class InvocationResultUtils {
 
     private InvocationResultUtils() {

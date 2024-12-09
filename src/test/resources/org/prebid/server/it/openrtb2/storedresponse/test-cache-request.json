@@ -17,7 +17,8 @@
           "origbidcpm": 0.8
         }
       },
-      "aid": "tid"
+      "aid": "tid",
+      "ttlseconds": 300
     }
   ]
 }

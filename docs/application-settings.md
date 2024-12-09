@@ -101,6 +101,7 @@ Keep in mind following restrictions:
 - `cookie-sync.pri` - a list of prioritized bidder codes
 - `cookie-sync.coop-sync.default` - if the "coopSync" value isn't specified in the `/cookie_sync` request, use this
 - `hooks` - configuration for Prebid Server Modules. For further details, see: https://docs.prebid.org/prebid-server/pbs-modules/index.html#2-define-an-execution-plan
+- `hooks.admin.module-execution` - a key-value map, where a key is a module name and a value is a boolean, that defines whether modules hooks should/should not be always executed; if the module is not specified it is executed by default when it's present in the execution plan
 - `settings.geo-lookup` - enables geo lookup for account if true. Defaults to false.
 
 Here are the definitions of the "purposes" that can be defined in the GDPR setting configurations:
