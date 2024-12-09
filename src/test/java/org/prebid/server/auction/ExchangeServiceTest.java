@@ -3801,7 +3801,7 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(result.result())
                 .extracting(AuctionContext::getBidRejectionTrackers)
                 .extracting(rejectionTrackers -> rejectionTrackers.get("bidder1"))
-                .extracting(BidRejectionTracker::getRejectionReasons)
+                .extracting(BidRejectionTracker::getRejectedImps)
                 .isEqualTo(Map.of("impId1", BidRejectionReason.REQUEST_BLOCKED_UNACCEPTABLE_CURRENCY));
 
     }

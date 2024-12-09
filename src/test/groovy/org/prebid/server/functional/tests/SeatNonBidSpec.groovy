@@ -172,6 +172,9 @@ class SeatNonBidSpec extends BaseSpec {
         assert seatNonBid.seat == GENERIC.value
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == RESPONSE_REJECTED_INVALID_CREATIVE_NOT_SECURE
+
+        and: "PBS response shouldn't contain seatBid"
+        assert !response.seatbid
     }
 
     def "PBS shouldn't populate seatNonBid when returnAllBidStatus=true and bidder successfully bids"() {

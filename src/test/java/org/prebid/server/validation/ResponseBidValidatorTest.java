@@ -141,8 +141,8 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldFailIfBannerBidHasNoWidthAndHeight() {
         // when
-        final ValidationResult result = target.validate(
-                givenBid(builder -> builder.w(null).h(null)), BIDDER_NAME, givenAuctionContext(), bidderAliases);
+        final BidderBid givenBid = givenBid(builder -> builder.w(null).h(null));
+        final ValidationResult result = target.validate(givenBid, BIDDER_NAME, givenAuctionContext(), bidderAliases);
 
         // then
         assertThat(result.getErrors())
@@ -151,14 +151,14 @@ public class ResponseBidValidatorTest extends VertxTest {
                         creative size validation for bid bidId1, account=account, referrer=unknown, \
                         max imp size='100x200', bid response size='nullxnull'""");
         verify(bidRejectionTracker)
-                .reject("impId1", BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_SIZE_NOT_ALLOWED);
+                .rejectBid(givenBid, BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_SIZE_NOT_ALLOWED);
     }
 
     @Test
     public void validateShouldFailIfBannerBidWidthIsGreaterThanImposedByImp() {
         // when
-        final ValidationResult result = target.validate(
-                givenBid(builder -> builder.w(150).h(150)), BIDDER_NAME, givenAuctionContext(), bidderAliases);
+        final BidderBid givenBid = givenBid(builder -> builder.w(150).h(150));
+        final ValidationResult result = target.validate(givenBid, BIDDER_NAME, givenAuctionContext(), bidderAliases);
 
         // then
         assertThat(result.getErrors())
@@ -167,17 +167,14 @@ public class ResponseBidValidatorTest extends VertxTest {
                         creative size validation for bid bidId1, account=account, referrer=unknown, \
                         max imp size='100x200', bid response size='150x150'""");
         verify(bidRejectionTracker)
-                .reject("impId1", BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_SIZE_NOT_ALLOWED);
+                .rejectBid(givenBid, BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_SIZE_NOT_ALLOWED);
     }
 
     @Test
     public void validateShouldFailIfBannerBidHeightIsGreaterThanImposedByImp() {
         // when
-        final ValidationResult result = target.validate(
-                givenBid(builder -> builder.w(50).h(250)),
-                BIDDER_NAME,
-                givenAuctionContext(),
-                bidderAliases);
+        final BidderBid givenBid = givenBid(builder -> builder.w(50).h(250));
+        final ValidationResult result = target.validate(givenBid, BIDDER_NAME, givenAuctionContext(), bidderAliases);
 
         // then
         assertThat(result.getErrors())
@@ -186,7 +183,7 @@ public class ResponseBidValidatorTest extends VertxTest {
                         creative size validation for bid bidId1, account=account, referrer=unknown, \
                         max imp size='100x200', bid response size='50x250'""");
         verify(bidRejectionTracker)
-                .reject("impId1", BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_SIZE_NOT_ALLOWED);
+                .rejectBid(givenBid, BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_SIZE_NOT_ALLOWED);
     }
 
     @Test
@@ -256,8 +253,9 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldFailIfBidHasInsecureMarkerInCreativeInSecureContext() {
         // when
+        final BidderBid givenBid = givenBid(builder -> builder.adm("<tag>http://site.com/creative.jpg</tag>"));
         final ValidationResult result = target.validate(
-                givenBid(builder -> builder.adm("<tag>http://site.com/creative.jpg</tag>")),
+                givenBid,
                 BIDDER_NAME,
                 givenAuctionContext(givenBidRequest(builder -> builder.secure(1))),
                 bidderAliases);
@@ -269,14 +267,15 @@ public class ResponseBidValidatorTest extends VertxTest {
                         secure creative validation for bid bidId1, account=account, referrer=unknown, \
                         adm=<tag>http://site.com/creative.jpg</tag>""");
         verify(bidRejectionTracker)
-                .reject("impId1", BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_NOT_SECURE);
+                .rejectBid(givenBid, BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_NOT_SECURE);
     }
 
     @Test
     public void validateShouldFailIfBidHasInsecureEncodedMarkerInCreativeInSecureContext() {
         // when
+        final BidderBid givenBid = givenBid(builder -> builder.adm("<tag>http%3A//site.com/creative.jpg</tag>"));
         final ValidationResult result = target.validate(
-                givenBid(builder -> builder.adm("<tag>http%3A//site.com/creative.jpg</tag>")),
+                givenBid,
                 BIDDER_NAME,
                 givenAuctionContext(givenBidRequest(builder -> builder.secure(1))),
                 bidderAliases);
@@ -288,14 +287,15 @@ public class ResponseBidValidatorTest extends VertxTest {
                         secure creative validation for bid bidId1, account=account, referrer=unknown, \
                         adm=<tag>http%3A//site.com/creative.jpg</tag>""");
         verify(bidRejectionTracker)
-                .reject("impId1", BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_NOT_SECURE);
+                .rejectBid(givenBid, BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_NOT_SECURE);
     }
 
     @Test
     public void validateShouldFailIfBidHasNoSecureMarkersInCreativeInSecureContext() {
         // when
+        final BidderBid givenBid = givenBid(builder -> builder.adm("<tag>//site.com/creative.jpg</tag>"));
         final ValidationResult result = target.validate(
-                givenBid(builder -> builder.adm("<tag>//site.com/creative.jpg</tag>")),
+                givenBid,
                 BIDDER_NAME,
                 givenAuctionContext(givenBidRequest(builder -> builder.secure(1))),
                 bidderAliases);
@@ -307,7 +307,7 @@ public class ResponseBidValidatorTest extends VertxTest {
                         secure creative validation for bid bidId1, account=account, referrer=unknown, \
                         adm=<tag>//site.com/creative.jpg</tag>""");
         verify(bidRejectionTracker)
-                .reject("impId1", BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_NOT_SECURE);
+                .rejectBid(givenBid, BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_NOT_SECURE);
     }
 
     @Test
@@ -405,8 +405,9 @@ public class ResponseBidValidatorTest extends VertxTest {
         target = new ResponseBidValidator(warn, enforce, metrics, 0.01);
 
         // when
+        final BidderBid givenBid = givenBid(builder -> builder.w(null).h(null));
         final ValidationResult result = target.validate(
-                givenBid(builder -> builder.w(null).h(null)),
+                givenBid,
                 BIDDER_NAME,
                 givenAuctionContext(),
                 bidderAliases);
@@ -418,8 +419,7 @@ public class ResponseBidValidatorTest extends VertxTest {
                         BidResponse validation `warn`: bidder `bidder` response triggers \
                         creative size validation for bid bidId1, account=account, referrer=unknown, \
                         max imp size='100x200', bid response size='nullxnull'""");
-        verify(bidRejectionTracker)
-                .reject("impId1", BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_SIZE_NOT_ALLOWED);
+        verifyNoInteractions(bidRejectionTracker);
     }
 
     @Test
@@ -445,8 +445,9 @@ public class ResponseBidValidatorTest extends VertxTest {
         target = new ResponseBidValidator(enforce, warn, metrics, 0.01);
 
         // when
+        final BidderBid givenBid = givenBid(builder -> builder.adm("<tag>http://site.com/creative.jpg</tag>"));
         final ValidationResult result = target.validate(
-                givenBid(builder -> builder.adm("<tag>http://site.com/creative.jpg</tag>")),
+                givenBid,
                 BIDDER_NAME,
                 givenAuctionContext(givenBidRequest(builder -> builder.secure(1))),
                 bidderAliases);
@@ -458,23 +459,19 @@ public class ResponseBidValidatorTest extends VertxTest {
                         BidResponse validation `warn`: bidder `bidder` response triggers \
                         secure creative validation for bid bidId1, account=account, referrer=unknown, \
                         adm=<tag>http://site.com/creative.jpg</tag>""");
-        verify(bidRejectionTracker)
-                .reject("impId1", BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_NOT_SECURE);
+        verifyNoInteractions(bidRejectionTracker);
     }
 
     @Test
     public void validateShouldIncrementSizeValidationErrMetrics() {
         // when
-        target.validate(
-                givenBid(builder -> builder.w(150).h(200)),
-                BIDDER_NAME,
-                givenAuctionContext(),
-                bidderAliases);
+        final BidderBid givenBid = givenBid(builder -> builder.w(150).h(200));
+        target.validate(givenBid, BIDDER_NAME, givenAuctionContext(), bidderAliases);
 
         // then
         verify(metrics).updateSizeValidationMetrics(BIDDER_NAME, ACCOUNT_ID, MetricName.err);
         verify(bidRejectionTracker)
-                .reject("impId1", BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_SIZE_NOT_ALLOWED);
+                .rejectBid(givenBid, BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_SIZE_NOT_ALLOWED);
     }
 
     @Test
@@ -483,23 +480,20 @@ public class ResponseBidValidatorTest extends VertxTest {
         target = new ResponseBidValidator(warn, warn, metrics, 0.01);
 
         // when
-        target.validate(
-                givenBid(builder -> builder.w(150).h(200)),
-                BIDDER_NAME,
-                givenAuctionContext(),
-                bidderAliases);
+        final BidderBid givenBid = givenBid(builder -> builder.w(150).h(200));
+        target.validate(givenBid, BIDDER_NAME, givenAuctionContext(), bidderAliases);
 
         // then
         verify(metrics).updateSizeValidationMetrics(BIDDER_NAME, ACCOUNT_ID, MetricName.warn);
-        verify(bidRejectionTracker)
-                .reject("impId1", BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_SIZE_NOT_ALLOWED);
+        verifyNoInteractions(bidRejectionTracker);
     }
 
     @Test
     public void validateShouldIncrementSecureValidationErrMetrics() {
         // when
+        final BidderBid givenBid = givenBid(builder -> builder.adm("<tag>http://site.com/creative.jpg</tag>"));
         target.validate(
-                givenBid(builder -> builder.adm("<tag>http://site.com/creative.jpg</tag>")),
+                givenBid,
                 BIDDER_NAME,
                 givenAuctionContext(givenBidRequest(builder -> builder.secure(1))),
                 bidderAliases);
@@ -507,7 +501,7 @@ public class ResponseBidValidatorTest extends VertxTest {
         // then
         verify(metrics).updateSecureValidationMetrics(BIDDER_NAME, ACCOUNT_ID, MetricName.err);
         verify(bidRejectionTracker)
-                .reject("impId1", BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_NOT_SECURE);
+                .rejectBid(givenBid, BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_NOT_SECURE);
     }
 
     @Test
@@ -516,16 +510,16 @@ public class ResponseBidValidatorTest extends VertxTest {
         target = new ResponseBidValidator(warn, warn, metrics, 0.01);
 
         // when
+        final BidderBid givenBid = givenBid(builder -> builder.adm("<tag>http://site.com/creative.jpg</tag>"));
         target.validate(
-                givenBid(builder -> builder.adm("<tag>http://site.com/creative.jpg</tag>")),
+                givenBid,
                 BIDDER_NAME,
                 givenAuctionContext(givenBidRequest(builder -> builder.secure(1))),
                 bidderAliases);
 
         // then
         verify(metrics).updateSecureValidationMetrics(BIDDER_NAME, ACCOUNT_ID, MetricName.warn);
-        verify(bidRejectionTracker)
-                .reject("impId1", BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_NOT_SECURE);
+        verifyNoInteractions(bidRejectionTracker);
     }
 
     private BidRequest givenRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {

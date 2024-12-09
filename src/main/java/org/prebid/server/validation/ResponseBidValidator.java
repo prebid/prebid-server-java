@@ -85,7 +85,7 @@ public class ResponseBidValidator {
             final Imp correspondingImp = findCorrespondingImp(bid, bidRequest);
             if (bidderBid.getType() == BidType.banner) {
                 warnings.addAll(validateBannerFields(
-                        bid,
+                        bidderBid,
                         bidder,
                         bidRequest,
                         account,
@@ -95,7 +95,7 @@ public class ResponseBidValidator {
             }
 
             warnings.addAll(validateSecureMarkup(
-                    bid,
+                    bidderBid,
                     bidder,
                     bidRequest,
                     account,
@@ -161,7 +161,7 @@ public class ResponseBidValidator {
         return new ValidationException(message);
     }
 
-    private List<String> validateBannerFields(Bid bid,
+    private List<String> validateBannerFields(BidderBid bidderBid,
                                               String bidder,
                                               BidRequest bidRequest,
                                               Account account,
@@ -172,7 +172,7 @@ public class ResponseBidValidator {
         final BidValidationEnforcement bannerMaxSizeEnforcement = effectiveBannerMaxSizeEnforcement(account);
         if (bannerMaxSizeEnforcement != BidValidationEnforcement.skip) {
             final Format maxSize = maxSizeForBanner(correspondingImp);
-
+            final Bid bid = bidderBid.getBid();
             if (bannerSizeIsNotValid(bid, maxSize)) {
                 final String accountId = account.getId();
                 final String message = """
@@ -189,15 +189,15 @@ public class ResponseBidValidator {
                         bid.getW(),
                         bid.getH());
 
-                bidRejectionTracker.reject(
-                        correspondingImp.getId(),
-                        BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_SIZE_NOT_ALLOWED);
-
                 return singleWarningOrValidationException(
                         bannerMaxSizeEnforcement,
                         metricName -> metrics.updateSizeValidationMetrics(
                                 aliases.resolveBidder(bidder), accountId, metricName),
-                        CREATIVE_SIZE_LOGGER, message);
+                        CREATIVE_SIZE_LOGGER,
+                        message,
+                        bidRejectionTracker,
+                        bidderBid,
+                        BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_SIZE_NOT_ALLOWED);
             }
         }
         return Collections.emptyList();
@@ -236,7 +236,7 @@ public class ResponseBidValidator {
                 || bidH == null || bidH > maxSize.getH();
     }
 
-    private List<String> validateSecureMarkup(Bid bid,
+    private List<String> validateSecureMarkup(BidderBid bidderBid,
                                               String bidder,
                                               BidRequest bidRequest,
                                               Account account,
@@ -250,6 +250,7 @@ public class ResponseBidValidator {
 
         final String accountId = account.getId();
         final String referer = getReferer(bidRequest);
+        final Bid bid = bidderBid.getBid();
         final String adm = bid.getAdm();
 
         if (isImpSecure(correspondingImp) && markupIsNotSecure(adm)) {
@@ -258,15 +259,15 @@ public class ResponseBidValidator {
                     creative validation for bid %s, account=%s, referrer=%s, adm=%s"""
                     .formatted(secureMarkupEnforcement, bidder, bid.getId(), accountId, referer, adm);
 
-            bidRejectionTracker.reject(
-                    correspondingImp.getId(),
-                    BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_NOT_SECURE);
-
             return singleWarningOrValidationException(
                     secureMarkupEnforcement,
                     metricName -> metrics.updateSecureValidationMetrics(
                             aliases.resolveBidder(bidder), accountId, metricName),
-                    SECURE_CREATIVE_LOGGER, message);
+                    SECURE_CREATIVE_LOGGER,
+                    message,
+                    bidRejectionTracker,
+                    bidderBid,
+                    BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_NOT_SECURE);
         }
 
         return Collections.emptyList();
@@ -281,12 +282,18 @@ public class ResponseBidValidator {
                 || !StringUtils.containsAny(adm, SECURE_MARKUP_MARKERS);
     }
 
-    private List<String> singleWarningOrValidationException(BidValidationEnforcement enforcement,
-                                                            Consumer<MetricName> metricsRecorder,
-                                                            ConditionalLogger conditionalLogger,
-                                                            String message) throws ValidationException {
+    private List<String> singleWarningOrValidationException(
+            BidValidationEnforcement enforcement,
+            Consumer<MetricName> metricsRecorder,
+            ConditionalLogger conditionalLogger,
+            String message,
+            BidRejectionTracker bidRejectionTracker,
+            BidderBid bidderBid,
+            BidRejectionReason bidRejectionReason) throws ValidationException {
+
         return switch (enforcement) {
             case enforce -> {
+                bidRejectionTracker.rejectBid(bidderBid, bidRejectionReason);
                 metricsRecorder.accept(MetricName.err);
                 conditionalLogger.warn(message, logSamplingRate);
                 throw new ValidationException(message);

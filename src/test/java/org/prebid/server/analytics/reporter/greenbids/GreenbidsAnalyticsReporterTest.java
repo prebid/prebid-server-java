@@ -773,7 +773,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 "seat3",
                 Set.of("adunitcodevalue"),
                 1.0);
-        bidRejectionTracker.reject("imp1", BidRejectionReason.NO_BID);
+        bidRejectionTracker.rejectImp("imp1", BidRejectionReason.NO_BID);
         return bidRejectionTracker;
     }
 
