@@ -21,10 +21,10 @@ settings:
   enforce-valid-account: false
   generate-storedrequest-bidrequest-id: true
   filesystem:
-    settings-filename: sample/sample-app-settings.yaml
-    stored-requests-dir: sample/stored
-    stored-imps-dir: sample/stored
-    stored-responses-dir: sample/stored
+    settings-filename: sample/configs/sample-app-settings.yaml
+    stored-requests-dir: sample
+    stored-imps-dir: sample
+    stored-responses-dir: sample
     categories-dir:
 gdpr:
   default-value: 1
