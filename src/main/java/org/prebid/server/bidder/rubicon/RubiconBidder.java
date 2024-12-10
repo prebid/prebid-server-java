@@ -1617,19 +1617,27 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private RubiconSeatBid updateSeatBids(RubiconSeatBid seatBid, List<BidderError> errors) {
-        final String buyer = seatBid.getBuyer();
-        final int networkId = NumberUtils.toInt(buyer, 0);
-        if (networkId <= 0) {
+        final Integer networkId = resolveNetworkId(seatBid);
+        final String seat = seatBid.getSeat();
+
+        if (networkId == null && seat == null) {
             return seatBid;
         }
+
         final List<RubiconBid> updatedBids = seatBid.getBid().stream()
-                .map(bid -> insertNetworkIdToMeta(bid, networkId, errors))
+                .map(bid -> prepareBidMeta(bid, seat, networkId, errors))
                 .filter(Objects::nonNull)
                 .toList();
         return seatBid.toBuilder().bid(updatedBids).build();
     }
 
-    private RubiconBid insertNetworkIdToMeta(RubiconBid bid, int networkId, List<BidderError> errors) {
+    private static Integer resolveNetworkId(RubiconSeatBid seatBid) {
+        final String buyer = seatBid.getBuyer();
+        final int networkId = NumberUtils.toInt(buyer, 0);
+        return networkId <= 0 ? null : networkId;
+    }
+
+    private RubiconBid prepareBidMeta(RubiconBid bid, String seat, Integer networkId, List<BidderError> errors) {
         final ObjectNode bidExt = bid.getExt();
         final ExtPrebid<ExtBidPrebid, ObjectNode> extPrebid;
         try {
@@ -1640,9 +1648,13 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
         final ExtBidPrebid extBidPrebid = extPrebid != null ? extPrebid.getPrebid() : null;
         final ExtBidPrebidMeta meta = extBidPrebid != null ? extBidPrebid.getMeta() : null;
-        final ExtBidPrebidMeta updatedMeta = meta != null
-                ? meta.toBuilder().networkId(networkId).build()
-                : ExtBidPrebidMeta.builder().networkId(networkId).build();
+
+        final ExtBidPrebidMeta updatedMeta = Optional.ofNullable(meta)
+                .map(ExtBidPrebidMeta::toBuilder)
+                .orElseGet(ExtBidPrebidMeta::builder)
+                .networkId(networkId)
+                .seat(seat)
+                .build();
 
         final ExtBidPrebid modifiedExtBidPrebid = extBidPrebid != null
                 ? extBidPrebid.toBuilder().meta(updatedMeta).build()
