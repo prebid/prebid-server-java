@@ -35,6 +35,8 @@ import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.ProcessedAuctionRequestHook;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountHooksConfiguration;
 
 import java.util.Collections;
 import java.util.List;
@@ -54,21 +56,18 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
     private final OnnxModelRunnerWithThresholds onnxModelRunnerWithThresholds;
     private final GreenbidsInferenceDataService greenbidsInferenceDataService;
     private final GreenbidsInvocationService greenbidsInvocationService;
-    private final Partner partner;
 
     public GreenbidsRealTimeDataProcessedAuctionRequestHook(
             ObjectMapper mapper,
             FilterService filterService,
             OnnxModelRunnerWithThresholds onnxModelRunnerWithThresholds,
             GreenbidsInferenceDataService greenbidsInferenceDataService,
-            GreenbidsInvocationService greenbidsInvocationService,
-            Partner partner) {
+            GreenbidsInvocationService greenbidsInvocationService) {
         this.mapper = Objects.requireNonNull(mapper);
         this.filterService = Objects.requireNonNull(filterService);
         this.onnxModelRunnerWithThresholds = Objects.requireNonNull(onnxModelRunnerWithThresholds);
         this.greenbidsInferenceDataService = Objects.requireNonNull(greenbidsInferenceDataService);
         this.greenbidsInvocationService = Objects.requireNonNull(greenbidsInvocationService);
-        this.partner = Objects.requireNonNull(partner);
     }
 
     @Override
@@ -79,7 +78,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
         final AuctionContext auctionContext = invocationContext.auctionContext();
         final BidRequest bidRequest = auctionContext.getBidRequest();
         final Partner appliedPartner = Optional.ofNullable(parseBidRequestExt(bidRequest))
-                .orElse(partner);
+                .orElse(parseAccountConfig(auctionContext));
 
         return Future.all(
                         onnxModelRunnerWithThresholds.retrieveOnnxModelRunner(appliedPartner),
@@ -102,6 +101,22 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                 .map(analytics -> (ObjectNode) analytics.get(BID_REQUEST_ANALYTICS_EXTENSION_NAME))
                 .map(this::toPartner)
                 .orElse(null);
+    }
+
+    private Partner parseAccountConfig(AuctionContext auctionContext) {
+        final Map<String, ObjectNode> modules = Optional.ofNullable(auctionContext)
+                .map(AuctionContext::getAccount)
+                .map(Account::getHooks)
+                .map(AccountHooksConfiguration::getModules)
+                .orElse(null);
+
+        Partner partner = null;
+        if (modules != null && modules.containsKey("greenbids")) {
+            final ObjectNode moduleConfig = modules.get("greenbids");
+            partner = toPartner(moduleConfig);
+        }
+
+        return partner;
     }
 
     private boolean isNotEmptyObjectNode(JsonNode analytics) {

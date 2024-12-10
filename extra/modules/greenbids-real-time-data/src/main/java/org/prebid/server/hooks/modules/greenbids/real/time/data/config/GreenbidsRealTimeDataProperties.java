@@ -18,10 +18,4 @@ public class GreenbidsRealTimeDataProperties {
     String onnxModelCacheKeyPrefix;
 
     String thresholdsCacheKeyPrefix;
-
-    String pbuid;
-
-    Double targetTpr;
-
-    Double explorationRate;
 }
