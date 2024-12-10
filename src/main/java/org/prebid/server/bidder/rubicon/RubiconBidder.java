@@ -1616,12 +1616,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .toList();
     }
 
-    private static Integer resolveNetworkId(RubiconSeatBid seatBid) {
-        final String buyer = seatBid.getBuyer();
-        final int networkId = NumberUtils.toInt(buyer, 0);
-        return networkId <= 0 ? null : networkId;
-    }
-
     private RubiconSeatBid updateSeatBids(RubiconSeatBid seatBid, List<BidderError> errors) {
         final Integer networkId = resolveNetworkId(seatBid);
         final String seat = seatBid.getSeat();
@@ -1635,6 +1629,12 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .toList();
         return seatBid.toBuilder().bid(updatedBids).build();
+    }
+
+    private static Integer resolveNetworkId(RubiconSeatBid seatBid) {
+        final String buyer = seatBid.getBuyer();
+        final int networkId = NumberUtils.toInt(buyer, 0);
+        return networkId <= 0 ? null : networkId;
     }
 
     private RubiconBid prepareBidMeta(RubiconBid bid, String seat, Integer networkId, List<BidderError> errors) {
