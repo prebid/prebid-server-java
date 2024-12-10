@@ -780,6 +780,7 @@ class BidderParamsSpec extends BaseSpec {
         given: "Default bid request with populated imp.ext"
         def impExt = ImpExt.getDefaultImpExt().tap {
             prebid.bidder.generic = null
+            prebid.adUnitCode = PBSUtils.randomString
             generic = new Generic()
             ae = PBSUtils.randomNumber
             all = PBSUtils.randomNumber
@@ -789,7 +790,6 @@ class BidderParamsSpec extends BaseSpec {
             gpid = PBSUtils.randomString
             skadn = PBSUtils.randomString
             tid = PBSUtils.randomString
-            prebid.adUnitCode = PBSUtils.randomString
         }
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].ext = impExt
