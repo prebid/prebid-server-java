@@ -19,6 +19,8 @@ class ImpExtPrebid {
     ImpExtPrebidFloors floors
     Map passThrough
     Map<BidderName, Imp> imp
+    @JsonProperty("adunitcode")
+    String adUnitCode
 
     static ImpExtPrebid getDefaultImpExtPrebid() {
         new ImpExtPrebid().tap {

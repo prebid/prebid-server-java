@@ -789,7 +789,7 @@ class BidderParamsSpec extends BaseSpec {
             gpid = PBSUtils.randomString
             skadn = PBSUtils.randomString
             tid = PBSUtils.randomString
-            adUnitCode = PBSUtils.randomString
+            prebid.adUnitCode = PBSUtils.randomString
         }
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].ext = impExt
@@ -816,7 +816,7 @@ class BidderParamsSpec extends BaseSpec {
             gpid == impExt.gpid
             skadn == impExt.skadn
             tid == impExt.tid
-            adUnitCode == impExt.adUnitCode
+            prebid.adUnitCode == impExt.prebid.adUnitCode
         }
     }
 
@@ -846,7 +846,7 @@ class BidderParamsSpec extends BaseSpec {
         and: "Response shouldn't contain warning"
         assert !response.ext?.warnings
 
-        "Bidder request should bidderParams only for bidder"
+        and: "Bidder request should bidderParams only for bidder"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.ext.prebid.bidderParams == [(GENERIC.value): genericBidderParams]
     }
