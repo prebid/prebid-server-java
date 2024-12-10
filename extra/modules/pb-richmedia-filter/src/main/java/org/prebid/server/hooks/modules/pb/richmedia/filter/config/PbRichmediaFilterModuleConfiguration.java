@@ -20,8 +20,8 @@ public class PbRichmediaFilterModuleConfiguration {
 
     @Bean
     PbRichmediaFilterModule pbRichmediaFilterModule(
-            @Value("${hooks.modules.pb-richmedia-filter.filter-mraid}") Boolean filterMraid,
-            @Value("${hooks.modules.pb-richmedia-filter.mraid-script-pattern}") String mraidScriptPattern) {
+            @Value("${hooks.modules.pb-richmedia-filter.filter-mraid:#{null}") Boolean filterMraid,
+            @Value("${hooks.modules.pb-richmedia-filter.mraid-script-pattern:#{null}}") String mraidScriptPattern) {
 
         final ObjectMapper mapper = ObjectMapperProvider.mapper();
         final PbRichMediaFilterProperties globalProperties = PbRichMediaFilterProperties.of(
