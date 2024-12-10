@@ -54,6 +54,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredRequest;
 import org.prebid.server.proto.openrtb.ext.response.seatnonbid.NonBid;
 import org.prebid.server.proto.openrtb.ext.response.seatnonbid.SeatNonBid;
+import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.version.PrebidVersionProvider;
 import org.prebid.server.vertx.httpclient.HttpClient;
@@ -118,7 +120,9 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
             return Future.failedFuture(new PreBidException("Bid response or auction context cannot be null"));
         }
 
-        final GreenbidsPrebidExt greenbidsBidRequestExt = parseBidRequestExt(auctionContext.getBidRequest());
+        final GreenbidsPrebidExt greenbidsBidRequestExt = Optional.ofNullable(
+                parseBidRequestExt(auctionContext.getBidRequest()))
+                .orElse(parseAccountConfig(auctionContext));
 
         if (greenbidsBidRequestExt == null) {
             return Future.succeededFuture();
@@ -179,6 +183,22 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 .map(analytics -> (ObjectNode) analytics.get(BID_REQUEST_ANALYTICS_EXTENSION_NAME))
                 .map(this::toGreenbidsPrebidExt)
                 .orElse(null);
+    }
+
+    private GreenbidsPrebidExt parseAccountConfig(AuctionContext auctionContext) {
+        final Map<String, ObjectNode> modules = Optional.ofNullable(auctionContext)
+                .map(AuctionContext::getAccount)
+                .map(Account::getAnalytics)
+                .map(AccountAnalyticsConfig::getModules)
+                .orElse(null);
+
+        GreenbidsPrebidExt greenbidsPrebidExt = null;
+        if (modules != null && modules.containsKey("greenbids")) {
+            final ObjectNode moduleConfig = modules.get("greenbids");
+            greenbidsPrebidExt = toGreenbidsPrebidExt(moduleConfig);
+        }
+
+        return greenbidsPrebidExt;
     }
 
     private boolean isNotEmptyObjectNode(JsonNode analytics) {

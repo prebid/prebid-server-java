@@ -6,7 +6,6 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import io.vertx.core.Vertx;
 import org.prebid.server.geolocation.CountryCodeMapper;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.model.data.Partner;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.filter.ThrottlingThresholds;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingThresholdsFactory;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.GreenbidsInferenceDataService;
@@ -50,8 +49,7 @@ public class GreenbidsRealTimeDataConfiguration {
             FilterService filterService,
             OnnxModelRunnerWithThresholds onnxModelRunnerWithThresholds,
             GreenbidsInferenceDataService greenbidsInferenceDataService,
-            GreenbidsInvocationService greenbidsInvocationService,
-            Partner partner) {
+            GreenbidsInvocationService greenbidsInvocationService) {
 
         return new GreenbidsRealTimeDataModule(List.of(
                 new GreenbidsRealTimeDataProcessedAuctionRequestHook(
@@ -59,8 +57,7 @@ public class GreenbidsRealTimeDataConfiguration {
                         filterService,
                         onnxModelRunnerWithThresholds,
                         greenbidsInferenceDataService,
-                        greenbidsInvocationService,
-                        partner)));
+                        greenbidsInvocationService)));
     }
 
     @Bean
@@ -72,11 +69,6 @@ public class GreenbidsRealTimeDataConfiguration {
     Storage storage(GreenbidsRealTimeDataProperties properties) {
         return StorageOptions.newBuilder()
                 .setProjectId(properties.getGoogleCloudGreenbidsProject()).build().getService();
-    }
-
-    @Bean
-    Partner partner(GreenbidsRealTimeDataProperties properties) {
-        return Partner.of(properties.getPbuid(), properties.getTargetTpr(), properties.getExplorationRate());
     }
 
     @Bean

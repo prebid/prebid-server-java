@@ -41,7 +41,6 @@ import org.prebid.server.hooks.modules.greenbids.real.time.data.core.OnnxModelRu
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.OnnxModelRunnerWithThresholds;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThresholdCache;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingThresholdsFactory;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.model.data.Partner;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.filter.ThrottlingThresholds;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.result.AnalyticsResult;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider;
@@ -55,6 +54,8 @@ import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountHooksConfiguration;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -141,14 +142,12 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 TestBidRequestProvider.MAPPER,
                 countryCodeMapper);
         final GreenbidsInvocationService greenbidsInvocationService = new GreenbidsInvocationService();
-        final Partner partner = Partner.of("test-pbuid", 0.60, 0.0001);
         target = new GreenbidsRealTimeDataProcessedAuctionRequestHook(
                 TestBidRequestProvider.MAPPER,
                 filterService,
                 onnxModelRunnerWithThresholds,
                 greenbidsInferenceDataService,
-                greenbidsInvocationService,
-                partner);
+                greenbidsInvocationService);
     }
 
     @Test
@@ -411,7 +410,8 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
 
         final AuctionContext.AuctionContextBuilder auctionContextBuilder = AuctionContext.builder()
                 .httpRequest(HttpRequestContext.builder().build())
-                .bidRequest(bidRequest);
+                .bidRequest(bidRequest)
+                .account(givenAccount());
 
         return auctionContextCustomizer.apply(auctionContextBuilder).build();
     }
@@ -420,6 +420,22 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final AuctionInvocationContext invocationContext = mock(AuctionInvocationContext.class);
         when(invocationContext.auctionContext()).thenReturn(auctionContext);
         return invocationContext;
+    }
+
+    private Account givenAccount() {
+        return Account.builder()
+                .id("test-account")
+                .hooks(givenAccountHooksConfiguration())
+                .build();
+    }
+
+    private AccountHooksConfiguration givenAccountHooksConfiguration() {
+        final ObjectNode greenbidsNode = TestBidRequestProvider.MAPPER.createObjectNode();
+        greenbidsNode.put("pbuid", "test-pbuid");
+        greenbidsNode.put("targetTpr", 0.60);
+        greenbidsNode.put("explorationRate", 0.0001);
+        final Map<String, ObjectNode> modules = Map.of("greenbids", greenbidsNode);
+        return AccountHooksConfiguration.of(null, modules, null);
     }
 
     private OnnxModelRunner givenOnnxModelRunner() throws OrtException, IOException {
