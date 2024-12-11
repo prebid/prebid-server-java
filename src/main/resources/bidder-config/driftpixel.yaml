@@ -13,3 +13,8 @@ adapters:
         - native
       supported-vendors:
       vendor-id: 0
+    userSync:
+      cookie-family-name: driftpixel
+      redirect:
+        url: "https://sync.driftpixel.live/psync?t=s&e=0&gdpr={{.GDPR}}&consent={{.GDPRConsent}}&us_privacy={{.USPrivacy}}&cb={{.RedirectURL}}"
+        userMacro: "%USER_ID%"
