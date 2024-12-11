@@ -40,6 +40,8 @@ public class BidderInfo {
 
     Ortb ortb;
 
+    long tmaxDeductionMs;
+
     public static BidderInfo create(boolean enabled,
                                     OrtbVersion ortbVersion,
                                     boolean debugAllowed,
@@ -55,7 +57,8 @@ public class BidderInfo {
                                     boolean ccpaEnforced,
                                     boolean modifyingVastXmlAllowed,
                                     CompressionType compressionType,
-                                    org.prebid.server.spring.config.bidder.model.Ortb ortb) {
+                                    org.prebid.server.spring.config.bidder.model.Ortb ortb,
+                                    long tmaxDeductionMs) {
 
         return of(
                 enabled,
@@ -74,7 +77,8 @@ public class BidderInfo {
                 ccpaEnforced,
                 modifyingVastXmlAllowed,
                 compressionType,
-                Ortb.of(ortb.getMultiFormatSupported()));
+                Ortb.of(ortb.getMultiFormatSupported()),
+                tmaxDeductionMs);
     }
 
     private static PlatformInfo platformInfo(List<MediaType> mediaTypes) {
