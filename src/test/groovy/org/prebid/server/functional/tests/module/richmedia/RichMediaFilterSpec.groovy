@@ -35,6 +35,50 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
                     .collectEntries { key, value -> [(key.toString()): value.toString()] })
     private final PrebidServerService pbsServiceWithDisabledMediaFilter = pbsServiceFactory.getService(getRichMediaFilterSettings(PATTERN_NAME, false))
 
+    def "PBS should process request without analytics when host config have empty settings"() {
+        given: "Prebid server with empty settings for module"
+        def prebidServerService = pbsServiceFactory.getService(pbsConfig)
+
+        and: "BidRequest with stored response"
+        def storedResponseId = PBSUtils.randomNumber
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.returnAllBidStatus = true
+            it.ext.prebid.trace = VERBOSE
+            it.imp.first().ext.prebid.storedBidResponse = [new StoredBidResponse(id: storedResponseId, bidder: GENERIC)]
+        }
+
+        and: "Stored bid response in DB"
+        def storedBidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            it.seatbid[0].bid[0].adm = PBSUtils.randomString
+        }
+        def storedResponse = new StoredResponse(responseId: storedResponseId, storedBidResponse: storedBidResponse)
+        storedResponseDao.save(storedResponse)
+
+        and: "Account in the DB"
+        def account = new Account(uuid: bidRequest.getAccountId())
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        def response = prebidServerService.sendAuctionRequest(bidRequest)
+
+        then: "Response header should contain seatbid"
+        assert response.seatbid.size() == 1
+
+        and: "Response shouldn't contain errors of invalid creation"
+        assert !response.ext.errors
+
+        and: "Response shouldn't contain analytics"
+        assert !getAnalyticResults(response)
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
+
+        where:
+        pbsConfig << [getRichMediaFilterSettings(null),
+                      getRichMediaFilterSettings(PBSUtils.randomString, null),
+                      getRichMediaFilterSettings(null, null)]
+    }
+
     def "PBS should process request without analytics when adm matches with pattern name and filter set to disabled in host config"() {
         given: "BidRequest with stored response"
         def storedResponseId = PBSUtils.randomNumber
