@@ -33,13 +33,14 @@ class ModuleBaseSpec extends BaseSpec {
     }
 
     protected static Map<String, String> getRichMediaFilterSettings(String scriptPattern,
-                                                                    boolean filterMraidEnabled = true,
+                                                                    Boolean filterMraidEnabled = true,
                                                                     Endpoint endpoint = OPENRTB2_AUCTION) {
 
         ["hooks.${PB_RICHMEDIA_FILTER.code}.enabled"                     : true,
          "hooks.modules.${PB_RICHMEDIA_FILTER.code}.mraid-script-pattern": scriptPattern,
          "hooks.modules.${PB_RICHMEDIA_FILTER.code}.filter-mraid"        : filterMraidEnabled,
          "hooks.host-execution-plan"                                     : encode(ExecutionPlan.getSingleEndpointExecutionPlan(endpoint, [(ALL_PROCESSED_BID_RESPONSES): [PB_RICHMEDIA_FILTER]]))]
+                .findAll { it.value != null }
                 .collectEntries { key, value -> [(key.toString()): value.toString()] }
     }
 
