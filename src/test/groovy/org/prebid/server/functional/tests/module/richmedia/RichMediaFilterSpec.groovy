@@ -35,7 +35,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
                     .collectEntries { key, value -> [(key.toString()): value.toString()] })
     private final PrebidServerService pbsServiceWithDisabledMediaFilter = pbsServiceFactory.getService(getRichMediaFilterSettings(PATTERN_NAME, false))
 
-    def "PBS should process request without analytics when host config have empty settings"() {
+    def "PBS should process request without rich media module when host config have empty settings"() {
         given: "Prebid server with empty settings for module"
         def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
@@ -74,8 +74,9 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         pbsServiceFactory.removeContainer(pbsConfig)
 
         where:
-        pbsConfig << [getRichMediaFilterSettings(null),
-                      getRichMediaFilterSettings(PBSUtils.randomString, null),
+        pbsConfig << [getRichMediaFilterSettings(PBSUtils.randomString, null),
+                      getRichMediaFilterSettings(null, true),
+                      getRichMediaFilterSettings(null, false),
                       getRichMediaFilterSettings(null, null)]
     }
 
