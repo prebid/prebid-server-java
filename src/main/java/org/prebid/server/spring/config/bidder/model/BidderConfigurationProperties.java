@@ -51,6 +51,8 @@ public class BidderConfigurationProperties {
 
     private Ortb ortb;
 
+    private Long tmaxDeductionMs;
+
     private final Class<? extends BidderConfigurationProperties> selfClass;
 
     public BidderConfigurationProperties() {
@@ -72,6 +74,7 @@ public class BidderConfigurationProperties {
         ortb = ortb != null && ortb.getMultiFormatSupported() != null
                 ? ortb
                 : defaultProperties.getOrtb();
+        tmaxDeductionMs = ObjectUtils.defaultIfNull(tmaxDeductionMs, 0L);
 
         if (usersync != null && usersync.getEnabled() == null) {
             usersync.setEnabled(true);
