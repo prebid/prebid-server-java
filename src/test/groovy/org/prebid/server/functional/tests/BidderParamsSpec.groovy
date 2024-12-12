@@ -6,6 +6,7 @@ import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredImp
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
+import org.prebid.server.functional.model.request.auction.AuctionEnvironment
 import org.prebid.server.functional.model.request.auction.Banner
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Device
@@ -15,6 +16,7 @@ import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.ImpExt
 import org.prebid.server.functional.model.request.auction.ImpExtContext
 import org.prebid.server.functional.model.request.auction.ImpExtContextData
+import org.prebid.server.functional.model.request.auction.InterestGroupAuctionSupport
 import org.prebid.server.functional.model.request.auction.Native
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
 import org.prebid.server.functional.model.request.auction.Site
@@ -34,6 +36,10 @@ import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.model.bidder.CompressionType.GZIP
 import static org.prebid.server.functional.model.bidder.CompressionType.NONE
 import static org.prebid.server.functional.model.request.auction.Asset.titleAsset
+import static org.prebid.server.functional.model.request.auction.AuctionEnvironment.DEVICE_ORCHESTRATED
+import static org.prebid.server.functional.model.request.auction.AuctionEnvironment.NOT_SUPPORTED
+import static org.prebid.server.functional.model.request.auction.AuctionEnvironment.SERVER_ORCHESTRATED
+import static org.prebid.server.functional.model.request.auction.AuctionEnvironment.UNKNOWN
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.DOOH
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
@@ -847,7 +853,7 @@ class BidderParamsSpec extends BaseSpec {
     def "PBS should send request to bidder when adapters.bidder.aliases.bidder.meta-info.currency-accepted not specified"() {
         given: "PBS with adapter configuration"
         def pbsService = pbsServiceFactory.getService(
-                "adapters.generic.aliases.alias.enabled" : "true",
+                "adapters.generic.aliases.alias.enabled": "true",
                 "adapters.generic.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString(),
                 "adapters.generic.aliases.alias.meta-info.currency-accepted": "")
 
@@ -955,7 +961,7 @@ class BidderParamsSpec extends BaseSpec {
     def "PBS should send request to bidder when adapters.bidder.aliases.bidder.meta-info.currency-accepted intersect with requested currency"() {
         given: "PBS with adapter configuration"
         def pbsService = pbsServiceFactory.getService(
-                "adapters.generic.aliases.alias.enabled" : "true",
+                "adapters.generic.aliases.alias.enabled": "true",
                 "adapters.generic.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString(),
                 "adapters.generic.aliases.alias.meta-info.currency-accepted": "${USD},${EUR}".toString())
 
@@ -996,7 +1002,7 @@ class BidderParamsSpec extends BaseSpec {
     def "PBS shouldn't send request to bidder and emit warning when adapters.bidder.aliases.bidder.meta-info.currency-accepted not intersect with requested currency"() {
         given: "PBS with adapter configuration"
         def pbsService = pbsServiceFactory.getService(
-                "adapters.generic.aliases.alias.enabled" : "true",
+                "adapters.generic.aliases.alias.enabled": "true",
                 "adapters.generic.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString(),
                 "adapters.generic.aliases.alias.meta-info.currency-accepted": "${JPY},${CHF}".toString())
 
@@ -1039,5 +1045,67 @@ class BidderParamsSpec extends BaseSpec {
         assert seatNonBid.seat == BidderName.ALIAS.value
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == REQUEST_BLOCKED_UNACCEPTABLE_CURRENCY
+    }
+
+    def "PBS should pass imp.ext.ae to imp.ext.igs.ae when imp.ext.ae specified and imp.ext.igs.ae doesn't specified"() {
+        given: "Default bid request with populated imp.ext"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.tap {
+                ae = auctionEnvironment
+                interestGroupAuctionSupport = new InterestGroupAuctionSupport(auctionEnvironment: null)
+            }
+        }
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should imp[].{ae/ext.igs.ae} same value as requested"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.imp[0].ext.ae == auctionEnvironment
+        assert bidderRequest.imp[0].ext.interestGroupAuctionSupport.auctionEnvironment == auctionEnvironment
+
+        where:
+        auctionEnvironment << [NOT_SUPPORTED, DEVICE_ORCHESTRATED]
+    }
+
+    def "PBS shouldn't pass imp.ext.ae to imp.ext.igs.ae when imp.ext.ae specified and contain not a 0 or 1"() {
+        given: "Default bid request with populated imp.ext"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.tap {
+                ae = auctionEnvironment
+                interestGroupAuctionSupport = new InterestGroupAuctionSupport(auctionEnvironment: null)
+            }
+        }
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should imp[].ae same value as requested"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.imp[0].ext.ae == auctionEnvironment
+        assert !bidderRequest.imp[0].ext.interestGroupAuctionSupport.auctionEnvironment
+
+        where:
+        auctionEnvironment << [SERVER_ORCHESTRATED, UNKNOWN]
+    }
+
+    def "PBS shouldn't pass imp.ext.ae to imp.ext.igs.ae when imp.ext.ae and imp.ext.igs.ae specified"() {
+        given: "Default bid request with populated imp.ext"
+        def extAuctionEnv = PBSUtils.getRandomEnum(AuctionEnvironment)
+        def extIgsAuctionEnv = PBSUtils.getRandomEnum(AuctionEnvironment)
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.tap {
+                ae = extAuctionEnv
+                interestGroupAuctionSupport = new InterestGroupAuctionSupport(auctionEnvironment: extIgsAuctionEnv)
+            }
+        }
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should imp[].{ae/ext.igs.ae} same value as requested"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.imp[0].ext.ae == extAuctionEnv
+        assert bidderRequest.imp[0].ext.interestGroupAuctionSupport.auctionEnvironment == extIgsAuctionEnv
     }
 }

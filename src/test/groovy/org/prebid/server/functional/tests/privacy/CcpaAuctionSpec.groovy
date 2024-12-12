@@ -6,6 +6,7 @@ import org.prebid.server.functional.model.request.auction.DistributionChannel
 import org.prebid.server.functional.util.privacy.BogusConsent
 import org.prebid.server.functional.util.privacy.CcpaConsent
 import spock.lang.PendingFeature
+import spock.lang.RepeatUntilFailure
 
 import static org.prebid.server.functional.model.ChannelType.PBJS
 import static org.prebid.server.functional.model.ChannelType.WEB
@@ -273,6 +274,7 @@ class CcpaAuctionSpec extends PrivacyBaseSpec {
                        new AccountCcpaConfig(enabled: false)]
     }
 
+    @RepeatUntilFailure
     def "PBS should recognise 'web' and 'pbjs' as the same channel when privacy.ccpa config is defined in account"() {
         given: "BidRequest with channel: #requestChannel, ccpa"
         def validCcpa = new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)
