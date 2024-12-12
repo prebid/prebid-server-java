@@ -45,7 +45,7 @@ public class GreenbidsInvocationServiceTest {
                 .banner(banner)
                 .build();
         final Device device = givenDevice(identity());
-        final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device, null);
+        final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device);
         final Map<String, Map<String, Boolean>> impsBiddersFilterMap = givenImpsBiddersFilterMap();
         final Partner partner = givenPartner(0.0);
 
@@ -82,7 +82,7 @@ public class GreenbidsInvocationServiceTest {
                 .banner(banner)
                 .build();
         final Device device = givenDevice(identity());
-        final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device, null);
+        final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device);
         final Map<String, Map<String, Boolean>> impsBiddersFilterMap = givenImpsBiddersFilterMap();
         final Partner partner = givenPartner(1.0);
 
@@ -121,6 +121,6 @@ public class GreenbidsInvocationServiceTest {
     }
 
     private Partner givenPartner(Double explorationRate) {
-        return Partner.of("test-pbuid", 0.60, explorationRate);
+        return Partner.of(true, "test-pbuid", 0.60, explorationRate);
     }
 }
