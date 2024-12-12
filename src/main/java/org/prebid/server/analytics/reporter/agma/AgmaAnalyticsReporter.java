@@ -116,6 +116,11 @@ public class AgmaAnalyticsReporter implements AnalyticsReporter, Initializable {
         }
 
         final AuctionContext auctionContext = contextAndType.getLeft();
+        final String eventType = contextAndType.getRight();
+        if (auctionContext == null) {
+            return Future.succeededFuture();
+        }
+
         final BidRequest bidRequest = auctionContext.getBidRequest();
         final TimeoutContext timeoutContext = auctionContext.getTimeoutContext();
         final PrivacyContext privacyContext = auctionContext.getPrivacyContext();
@@ -134,7 +139,7 @@ public class AgmaAnalyticsReporter implements AnalyticsReporter, Initializable {
         }
 
         final AgmaEvent agmaEvent = AgmaEvent.builder()
-                .eventType(contextAndType.getRight())
+                .eventType(eventType)
                 .accountCode(accountCode)
                 .requestId(bidRequest.getId())
                 .app(bidRequest.getApp())
