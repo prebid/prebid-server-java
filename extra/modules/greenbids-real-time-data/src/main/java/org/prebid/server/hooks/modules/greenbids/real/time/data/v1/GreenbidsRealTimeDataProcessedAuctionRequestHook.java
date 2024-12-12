@@ -1,7 +1,6 @@
 package org.prebid.server.hooks.modules.greenbids.real.time.data.v1;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
@@ -33,8 +32,8 @@ import org.prebid.server.hooks.v1.analytics.Tags;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.ProcessedAuctionRequestHook;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountHooksConfiguration;
 
 import java.util.Collections;
 import java.util.List;
@@ -47,7 +46,6 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
     private static final String CODE = "greenbids-real-time-data-processed-auction-request";
     private static final String ACTIVITY = "greenbids-filter";
     private static final String SUCCESS_STATUS = "success";
-    private static final String BID_REQUEST_ANALYTICS_EXTENSION_NAME = "greenbids-rtd";
 
     private final ObjectMapper mapper;
     private final FilterService filterService;
@@ -75,38 +73,39 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
 
         final AuctionContext auctionContext = invocationContext.auctionContext();
         final BidRequest bidRequest = auctionContext.getBidRequest();
-        final Partner partner = parseBidRequestExt(bidRequest);
+        final Partner appliedPartner = parseAccountConfig(auctionContext);
 
-        if (partner == null) {
+        if (!appliedPartner.getEnabled()) {
             return Future.succeededFuture(toInvocationResult(
                     bidRequest, null, InvocationAction.no_action));
         }
 
         return Future.all(
-                        onnxModelRunnerWithThresholds.retrieveOnnxModelRunner(partner),
-                        onnxModelRunnerWithThresholds.retrieveThreshold(partner))
+                        onnxModelRunnerWithThresholds.retrieveOnnxModelRunner(appliedPartner),
+                        onnxModelRunnerWithThresholds.retrieveThreshold(appliedPartner))
                 .compose(compositeFuture -> toInvocationResult(
                         bidRequest,
-                        partner,
+                        appliedPartner,
                         compositeFuture.resultAt(0),
                         compositeFuture.resultAt(1)))
                 .recover(throwable -> Future.succeededFuture(toInvocationResult(
                         bidRequest, null, InvocationAction.no_action)));
     }
 
-    private Partner parseBidRequestExt(BidRequest bidRequest) {
-        return Optional.ofNullable(bidRequest)
-                .map(BidRequest::getExt)
-                .map(ExtRequest::getPrebid)
-                .map(ExtRequestPrebid::getAnalytics)
-                .filter(this::isNotEmptyObjectNode)
-                .map(analytics -> (ObjectNode) analytics.get(BID_REQUEST_ANALYTICS_EXTENSION_NAME))
-                .map(this::toPartner)
+    private Partner parseAccountConfig(AuctionContext auctionContext) {
+        final Map<String, ObjectNode> modules = Optional.ofNullable(auctionContext)
+                .map(AuctionContext::getAccount)
+                .map(Account::getHooks)
+                .map(AccountHooksConfiguration::getModules)
                 .orElse(null);
-    }
 
-    private boolean isNotEmptyObjectNode(JsonNode analytics) {
-        return analytics != null && analytics.isObject() && !analytics.isEmpty();
+        Partner partner = null;
+        if (modules != null && modules.containsKey("greenbids")) {
+            final ObjectNode moduleConfig = modules.get("greenbids");
+            partner = toPartner(moduleConfig);
+        }
+
+        return partner;
     }
 
     private Partner toPartner(ObjectNode adapterNode) {

@@ -10,7 +10,6 @@ import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import org.prebid.server.json.ObjectMapperProvider;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 
 import java.util.Collections;
 import java.util.List;
@@ -25,15 +24,13 @@ public class TestBidRequestProvider {
     public static BidRequest givenBidRequest(
             UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
             List<Imp> imps,
-            Device device,
-            ExtRequest extRequest) {
+            Device device) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
                 .id("request")
                 .imp(imps)
                 .site(givenSite(site -> site))
-                .device(device)
-                .ext(extRequest)).build();
+                .device(device)).build();
     }
 
     public static Site givenSite(UnaryOperator<Site.SiteBuilder> siteCustomizer) {

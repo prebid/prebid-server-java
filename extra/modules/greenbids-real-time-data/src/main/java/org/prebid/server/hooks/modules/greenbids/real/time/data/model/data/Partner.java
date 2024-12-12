@@ -11,6 +11,9 @@ import java.util.stream.IntStream;
 @Value(staticConstructor = "of")
 public class Partner {
 
+    @JsonProperty(required = true)
+    Boolean enabled;
+
     String pbuid;
 
     @JsonProperty("targetTpr")
