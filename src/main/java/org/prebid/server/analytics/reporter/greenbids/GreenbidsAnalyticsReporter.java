@@ -53,6 +53,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredRequest;
 import org.prebid.server.proto.openrtb.ext.response.seatnonbid.NonBid;
 import org.prebid.server.proto.openrtb.ext.response.seatnonbid.SeatNonBid;
+import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.version.PrebidVersionProvider;
 import org.prebid.server.vertx.httpclient.HttpClient;
@@ -73,7 +75,6 @@ import java.util.stream.Stream;
 
 public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
 
-    private static final String BID_REQUEST_ANALYTICS_EXTENSION_NAME = "greenbids";
     private static final int RANGE_16_BIT_INTEGER_DIVISION_BASIS = 0x10000;
     private static final String ANALYTICS_REQUEST_ORIGIN_HEADER = "X-Request-Origin";
     private static final String PREBID_SERVER_HEADER_VALUE = "Prebid Server";
@@ -117,7 +118,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
             return Future.failedFuture(new PreBidException("Bid response or auction context cannot be null"));
         }
 
-        final GreenbidsPrebidExt greenbidsBidRequestExt = parseBidRequestExt(auctionContext.getBidRequest());
+        final GreenbidsPrebidExt greenbidsBidRequestExt = parseAccountConfig(auctionContext);
 
         if (greenbidsBidRequestExt == null) {
             return Future.succeededFuture();
@@ -160,6 +161,12 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 .map(Device::getUa)
                 .ifPresent(userAgent -> headers.add(HttpUtil.USER_AGENT_HEADER, userAgent));
 
+        System.out.println(
+                "GreenbidsAnalyticsReporter/ processEvent \n" +
+                        "   commonMessageJson: " + commonMessageJson + "\n" +
+                        "   headers: " + headers
+        );
+
         final Future<HttpClientResponse> responseFuture = httpClient.post(
                 greenbidsAnalyticsProperties.getAnalyticsServerUrl(),
                 headers,
@@ -169,15 +176,26 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
         return responseFuture.compose(this::processAnalyticServerResponse);
     }
 
-    private GreenbidsPrebidExt parseBidRequestExt(BidRequest bidRequest) {
-        return Optional.ofNullable(bidRequest)
-                .map(BidRequest::getExt)
-                .map(ExtRequest::getPrebid)
-                .map(ExtRequestPrebid::getAnalytics)
-                .filter(this::isNotEmptyObjectNode)
-                .map(analytics -> (ObjectNode) analytics.get(BID_REQUEST_ANALYTICS_EXTENSION_NAME))
-                .map(this::toGreenbidsPrebidExt)
+    private GreenbidsPrebidExt parseAccountConfig(AuctionContext auctionContext) {
+        final Map<String, ObjectNode> modules = Optional.ofNullable(auctionContext)
+                .map(AuctionContext::getAccount)
+                .map(Account::getAnalytics)
+                .map(AccountAnalyticsConfig::getModules)
                 .orElse(null);
+
+        GreenbidsPrebidExt greenbidsPrebidExt = null;
+        if (modules != null && modules.containsKey("greenbids")) {
+            final ObjectNode moduleConfig = modules.get("greenbids");
+            greenbidsPrebidExt = toGreenbidsPrebidExt(moduleConfig);
+
+            System.out.println(
+                    "GreenbidsAnalyticsReporter/ parseAccountConfig \n" +
+                            "   moduleConfig: " + moduleConfig + "\n" +
+                            "   greenbidsPrebidExt: " + greenbidsPrebidExt
+            );
+        }
+
+        return greenbidsPrebidExt;
     }
 
     private boolean isNotEmptyObjectNode(JsonNode analytics) {
