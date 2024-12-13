@@ -12,13 +12,16 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.maxmind.geoip2.DatabaseReader;
+import com.maxmind.geoip2.exception.GeoIp2Exception;
+import com.maxmind.geoip2.model.CountryResponse;
+import com.maxmind.geoip2.record.Country;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.analytics.reporter.greenbids.model.ExplorationResult;
 import org.prebid.server.analytics.reporter.greenbids.model.Ortb2ImpExtResult;
@@ -52,12 +55,9 @@ import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
+import java.net.InetAddress;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
@@ -88,15 +88,27 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
     @Mock(strictness = LENIENT)
     private DatabaseReaderFactory databaseReaderFactory;
 
-    @Mock
-    private DatabaseReader dbReader;
+    @Mock(strictness = LENIENT)
+    private DatabaseReader databaseReader;
+
+    @Mock(strictness = LENIENT)
+    private CountryResponse countryResponse;
+
+    @Mock(strictness = LENIENT)
+    private Country country;
 
     private GreenbidsRealTimeDataProcessedAuctionRequestHook target;
 
     @BeforeEach
-    public void setUp() throws IOException {
+    public void setUp() throws IOException, GeoIp2Exception {
         final Storage storage = StorageOptions.newBuilder()
                 .setProjectId("test_project").build().getService();
+
+        Mockito.when(country.getName()).thenReturn("United States");
+        Mockito.when(countryResponse.getCountry()).thenReturn(country);
+        Mockito.when(databaseReader.country(Mockito.any(InetAddress.class))).thenReturn(countryResponse);
+        Mockito.when(databaseReaderFactory.getDatabaseReader()).thenReturn(databaseReader);
+
         final FilterService filterService = new FilterService();
         final OnnxModelRunnerFactory onnxModelRunnerFactory = new OnnxModelRunnerFactory();
         final ThrottlingThresholdsFactory throttlingThresholdsFactory = new ThrottlingThresholdsFactory();
@@ -118,7 +130,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final OnnxModelRunnerWithThresholds onnxModelRunnerWithThresholds = new OnnxModelRunnerWithThresholds(
                 modelCache,
                 thresholdCache);
-        when(databaseReaderFactory.getDatabaseReader()).thenReturn(dbReader);
+
         final GreenbidsInferenceDataService greenbidsInferenceDataService = new GreenbidsInferenceDataService(
                 databaseReaderFactory,
                 TestBidRequestProvider.MAPPER);
@@ -162,7 +174,6 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         assertThat(result.analyticsTags()).isNull();
     }
 
-    @Disabled("Broken until dbReader is mocked")
     @Test
     public void callShouldNotFilterBiddersAndReturnAnalyticsTagWhenExploration() throws OrtException, IOException {
         // given
@@ -217,7 +228,6 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         assertThat(fingerprint).isNotNull();
     }
 
-    @Disabled("Broken until dbReader is mocked")
     @Test
     public void callShouldFilterBiddersBasedOnModelWhenAnyFeatureNotAvailable() throws OrtException, IOException {
         // given
@@ -278,7 +288,6 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         assertThat(resultBidRequest).usingRecursiveComparison().isEqualTo(expectedBidRequest);
     }
 
-    @Disabled("Broken until dbReader is mocked")
     @Test
     public void callShouldFilterBiddersBasedOnModelResults() throws OrtException, IOException {
         // given
