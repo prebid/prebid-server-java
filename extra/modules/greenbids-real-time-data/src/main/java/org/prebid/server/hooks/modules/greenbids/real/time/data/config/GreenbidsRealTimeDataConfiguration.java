@@ -31,8 +31,9 @@ import java.util.concurrent.TimeUnit;
 public class GreenbidsRealTimeDataConfiguration {
 
     @Bean
-    DatabaseReaderFactory databaseReaderFactory(GreenbidsRealTimeDataProperties properties, Vertx vertx) {
-        return new DatabaseReaderFactory(properties.getGeoLiteCountryPath(), vertx);
+    DatabaseReaderFactory databaseReaderFactory(
+            GreenbidsRealTimeDataProperties properties, Vertx vertx, Storage storage) {
+        return new DatabaseReaderFactory(properties.gcsBucketName, properties.getGeoLiteCountryPath(), vertx, storage);
     }
 
     @Bean
