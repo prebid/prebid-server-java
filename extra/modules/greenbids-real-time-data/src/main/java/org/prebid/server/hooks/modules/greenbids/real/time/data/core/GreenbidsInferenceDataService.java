@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Imp;
 import com.maxmind.geoip2.DatabaseReader;
 import com.maxmind.geoip2.exception.GeoIp2Exception;
@@ -86,12 +87,16 @@ public class GreenbidsInferenceDataService {
         final String ip = Optional.ofNullable(bidRequest.getDevice())
                 .map(Device::getIp)
                 .orElse(null);
-        final String countryFromIp = getCountry(ip);
+        final String country = Optional.ofNullable(bidRequest.getDevice())
+                .map(Device::getGeo)
+                .map(Geo::getCountry)
+                .orElse(getCountry(ip));
+
         return createThrottlingMessages(
                 bidderNode,
                 impId,
                 greenbidsUserAgent,
-                countryFromIp,
+                country,
                 hostname,
                 hourBucket,
                 minuteQuadrant);
