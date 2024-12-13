@@ -6,6 +6,8 @@ import lombok.Value;
 @Value(staticConstructor = "of")
 public class GreenbidsPrebidExt {
 
+    Boolean enabled;
+
     String pbuid;
 
     @JsonProperty("greenbidsSampling")
