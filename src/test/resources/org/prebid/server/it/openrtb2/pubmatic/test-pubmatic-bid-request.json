@@ -12,7 +12,7 @@
         "h": 600
       },
       "tagid": "slot9",
-      "bidfloor" : 0.12,
+      "bidfloor": 0.12,
       "ext": {
         "ae": 1,
         "pmZoneId": "Zone1,Zone2",
@@ -45,9 +45,7 @@
     "USD"
   ],
   "regs": {
-    "ext": {
-      "gdpr": 0
-    }
+    "gdpr": 0
   },
   "ext": {
     "prebid": {
