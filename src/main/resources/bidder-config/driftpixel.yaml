@@ -18,4 +18,4 @@ adapters:
       redirect:
         url: "https://sync.driftpixel.live/psync?t=s&e=0&gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&cb={{redirect_url}}"
         support-cors: false
-        userMacro: "%USER_ID%"
+        uid-macro: "%USER_ID%"
