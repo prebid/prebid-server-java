@@ -21,7 +21,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.analytics.reporter.greenbids.model.ExplorationResult;
 import org.prebid.server.analytics.reporter.greenbids.model.Ortb2ImpExtResult;
@@ -66,6 +65,7 @@ import java.util.function.UnaryOperator;
 
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -104,10 +104,10 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final Storage storage = StorageOptions.newBuilder()
                 .setProjectId("test_project").build().getService();
 
-        Mockito.when(country.getName()).thenReturn("United States");
-        Mockito.when(countryResponse.getCountry()).thenReturn(country);
-        Mockito.when(databaseReader.country(Mockito.any(InetAddress.class))).thenReturn(countryResponse);
-        Mockito.when(databaseReaderFactory.getDatabaseReader()).thenReturn(databaseReader);
+        when(country.getName()).thenReturn("United States");
+        when(countryResponse.getCountry()).thenReturn(country);
+        when(databaseReader.country(any(InetAddress.class))).thenReturn(countryResponse);
+        when(databaseReaderFactory.getDatabaseReader()).thenReturn(databaseReader);
 
         final FilterService filterService = new FilterService();
         final OnnxModelRunnerFactory onnxModelRunnerFactory = new OnnxModelRunnerFactory();
