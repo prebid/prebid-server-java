@@ -90,7 +90,7 @@ public class GreenbidsInferenceDataService {
         final String country = Optional.ofNullable(bidRequest.getDevice())
                 .map(Device::getGeo)
                 .map(Geo::getCountry)
-                .orElse(getCountry(ip));
+                .orElseGet(() -> getCountry(ip));
 
         return createThrottlingMessages(
                 bidderNode,

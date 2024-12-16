@@ -2,6 +2,7 @@ package org.prebid.server.hooks.modules.greenbids.real.time.data.config;
 
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageException;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import com.maxmind.geoip2.DatabaseReader;
@@ -38,7 +39,7 @@ public class DatabaseReaderFactory implements Initializable {
     public void initialize(Promise<Void> initializePromise) {
         vertx.executeBlocking(() -> {
             try {
-                final Blob blob = getBlob(geoLiteCountryPath);
+                final Blob blob = getBlob();
                 final Path databasePath = Files.createTempFile("GeoLite2-Country", ".mmdb");
 
                 try (FileOutputStream outputStream = new FileOutputStream(databasePath.toFile())) {
@@ -54,10 +55,14 @@ public class DatabaseReaderFactory implements Initializable {
         .onComplete(initializePromise);
     }
 
-    private Blob getBlob(String geoLiteCountryPath) {
-        return Optional.ofNullable(storage.get(gcsBucketName))
-                .map(bucket -> bucket.get(geoLiteCountryPath))
-                .orElseThrow(() -> new PreBidException("Bucket not found: " + gcsBucketName));
+    private Blob getBlob() {
+        try {
+            return Optional.ofNullable(storage.get(gcsBucketName))
+                    .map(bucket -> bucket.get(geoLiteCountryPath))
+                    .orElseThrow(() -> new PreBidException("Bucket not found: " + gcsBucketName));
+        } catch (StorageException e) {
+            throw new PreBidException("Error accessing GCS artefact for model: ", e);
+        }
     }
 
     public DatabaseReader getDatabaseReader() {
