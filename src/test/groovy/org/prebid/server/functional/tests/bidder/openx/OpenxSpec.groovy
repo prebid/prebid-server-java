@@ -234,7 +234,6 @@ class OpenxSpec extends BaseSpec {
 
         and: "Default bid response with igs config"
         def impId = bidRequest.imp[0].id
-        def igsConfig = [(PBSUtils.randomString): PBSUtils.randomString]
         def igbConfig = [(PBSUtils.randomString): PBSUtils.randomString]
         def igbOrigin = PBSUtils.randomString
         def bidResponse = OpenxBidResponse.getDefaultBidResponse(bidRequest).tap {
