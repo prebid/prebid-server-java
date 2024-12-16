@@ -15,7 +15,6 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.floors.model.PriceFloorData;
 import org.prebid.server.floors.model.PriceFloorDebugProperties;
-import org.prebid.server.floors.model.PriceFloorField;
 import org.prebid.server.floors.model.PriceFloorModelGroup;
 import org.prebid.server.floors.model.PriceFloorRules;
 import org.prebid.server.floors.model.PriceFloorSchema;
@@ -31,6 +30,7 @@ import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.concurrent.TimeoutException;
 import java.util.function.UnaryOperator;
 
@@ -45,6 +45,9 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.prebid.server.floors.model.PriceFloorField.domain;
+import static org.prebid.server.floors.model.PriceFloorField.mediaType;
+import static org.prebid.server.floors.model.PriceFloorField.siteDomain;
 
 @ExtendWith(MockitoExtension.class)
 public class PriceFloorFetcherTest extends VertxTest {
@@ -497,6 +500,34 @@ public class PriceFloorFetcherTest extends VertxTest {
         verifyNoMoreInteractions(vertx);
     }
 
+    @Test
+    public void fetchShouldReturnNullAndCreatePeriodicTimerWhenResponseExceededDimensionsNumber() {
+        // given
+        given(httpClient.get(anyString(), anyLong(), anyLong()))
+                .willReturn(Future.succeededFuture(HttpClientResponse.of(200,
+                        MultiMap.caseInsensitiveMultiMap(),
+                        jacksonMapper.encodeToString(PriceFloorData.builder()
+                                .modelGroups(singletonList(PriceFloorModelGroup.builder()
+                                        .schema(PriceFloorSchema.of("|", List.of(siteDomain, domain)))
+                                        .build()))
+                                .build()))));
+
+        // when
+        final FetchResult firstInvocationResult =
+                priceFloorFetcher.fetch(givenAccount(account -> account.maxSchemaDimensions(1L)));
+
+        // then
+        verify(httpClient).get(anyString(), anyLong(), anyLong());
+        assertThat(firstInvocationResult.getRulesData()).isNull();
+        assertThat(firstInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
+        verify(vertx).setTimer(eq(1200000L), any());
+        verify(vertx).setTimer(eq(1500000L), any());
+        final FetchResult secondInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
+        assertThat(secondInvocationResult.getRulesData()).isNull();
+        assertThat(secondInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.error);
+        verifyNoMoreInteractions(vertx);
+    }
+
     private Account givenAccount(UnaryOperator<
             AccountPriceFloorsFetchConfig.AccountPriceFloorsFetchConfigBuilder> configCustomizer) {
 
@@ -516,6 +547,7 @@ public class PriceFloorFetcherTest extends VertxTest {
                         .enabled(true)
                         .url("http://test.host.com")
                         .maxRules(10L)
+                        .maxSchemaDimensions(10L)
                         .maxFileSizeKb(10L)
                         .timeoutMs(1300L)
                         .maxAgeSec(1500L)
@@ -528,7 +560,7 @@ public class PriceFloorFetcherTest extends VertxTest {
                 .currency("USD")
                 .modelGroups(singletonList(PriceFloorModelGroup.builder()
                         .modelVersion("model version 1.0")
-                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.mediaType)))
+                        .schema(PriceFloorSchema.of("|", singletonList(mediaType)))
                         .value("banner", BigDecimal.TEN)
                         .currency("EUR").build()))
                 .build();

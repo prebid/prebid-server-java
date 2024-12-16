@@ -23,13 +23,15 @@ public class PriceFloorsConfigResolver {
     private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
 
     private static final int MIN_MAX_AGE_SEC_VALUE = 600;
+    private static final int MAX_AGE_SEC_VALUE = Integer.MAX_VALUE;
     private static final int MIN_PERIODIC_SEC_VALUE = 300;
     private static final int MIN_TIMEOUT_MS_VALUE = 10;
     private static final int MAX_TIMEOUT_MS_VALUE = 10_000;
     private static final int MIN_RULES_VALUE = 0;
-    private static final int MIN_FILE_SIZE_VALUE = 0;
-    private static final int MAX_AGE_SEC_VALUE = Integer.MAX_VALUE;
     private static final int MAX_RULES_VALUE = Integer.MAX_VALUE;
+    private static final int MIN_DIMENSIONS_VALUE = 0;
+    private static final int MAX_DIMENSIONS_VALUE = 19;
+    private static final int MIN_FILE_SIZE_VALUE = 0;
     private static final int MAX_FILE_SIZE_VALUE = Integer.MAX_VALUE;
     private static final int MIN_ENFORCE_RATE_VALUE = 0;
     private static final int MAX_ENFORCE_RATE_VALUE = 100;
@@ -71,6 +73,16 @@ public class PriceFloorsConfigResolver {
             throw new PreBidException(invalidPriceFloorsPropertyMessage("enforce-floors-rate", enforceRate));
         }
 
+        final Long maxRules = floorsConfig.getMaxRules();
+        if (maxRules != null && isNotInRange(maxRules, MIN_RULES_VALUE, MAX_RULES_VALUE)) {
+            throw new PreBidException(invalidPriceFloorsPropertyMessage("max-rules", maxRules));
+        }
+
+        final Long maxDimensions = floorsConfig.getMaxSchemaDimensions();
+        if (maxDimensions != null && isNotInRange(maxDimensions, MIN_DIMENSIONS_VALUE, MAX_DIMENSIONS_VALUE)) {
+            throw new PreBidException(invalidPriceFloorsPropertyMessage("max-schema-dimensions", maxDimensions));
+        }
+
         final AccountPriceFloorsFetchConfig fetchConfig =
                 ObjectUtil.getIfNotNull(floorsConfig, AccountPriceFloorsConfig::getFetch);
 
@@ -108,6 +120,11 @@ public class PriceFloorsConfigResolver {
             throw new PreBidException(invalidPriceFloorsPropertyMessage("max-rules", maxRules));
         }
 
+        final Long maxDimensions = fetchConfig.getMaxSchemaDimensions();
+        if (maxDimensions != null && isNotInRange(maxDimensions, MIN_DIMENSIONS_VALUE, MAX_DIMENSIONS_VALUE)) {
+            throw new PreBidException(invalidPriceFloorsPropertyMessage("max-schema-dimensions", maxDimensions));
+        }
+
         final Long maxFileSize = fetchConfig.getMaxFileSizeKb();
         if (maxFileSize != null && isNotInRange(maxFileSize, MIN_FILE_SIZE_VALUE, MAX_FILE_SIZE_VALUE)) {
             throw new PreBidException(invalidPriceFloorsPropertyMessage("max-file-size-kb", maxFileSize));
@@ -120,5 +137,9 @@ public class PriceFloorsConfigResolver {
 
     private static String invalidPriceFloorsPropertyMessage(String property, Object value) {
         return "Invalid price-floors property '%s', value passed: %s".formatted(property, value);
+    }
+
+    public static int resolveMaxValue(Long value) {
+        return value != null && !value.equals(0L) ? Math.toIntExact(value) : Integer.MAX_VALUE;
     }
 }
