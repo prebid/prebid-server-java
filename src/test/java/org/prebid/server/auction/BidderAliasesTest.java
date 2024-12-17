@@ -1,5 +1,6 @@
 package org.prebid.server.auction;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -10,12 +11,21 @@ import java.util.Map;
 
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 
 @ExtendWith(MockitoExtension.class)
 public class BidderAliasesTest {
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private BidderCatalog bidderCatalog;
+
+    @BeforeEach
+    public void before() {
+        given(bidderCatalog.isValidName(any())).willReturn(false);
+        given(bidderCatalog.isActive(any())).willReturn(false);
+    }
 
     @Test
     public void isAliasDefinedShouldReturnFalseWhenNoAliasesInRequest() {
@@ -27,12 +37,32 @@ public class BidderAliasesTest {
     }
 
     @Test
+    public void isAliasDefinedShouldReturnTrueWhenNoAliasesInRequestButAliasIsValidInBidderCatalog() {
+        // given
+        given(bidderCatalog.isValidName("alias")).willReturn(true);
+        final BidderAliases aliases = BidderAliases.of(null, null, bidderCatalog);
+
+        // when and then
+        assertThat(aliases.isAliasDefined("alias")).isTrue();
+    }
+
+    @Test
     public void isAliasDefinedShouldReturnFalseWhenAliasIsNotDefinedInRequest() {
         // given
         final BidderAliases aliases = BidderAliases.of(singletonMap("anotherAlias", "bidder"), null, bidderCatalog);
 
         // when and then
         assertThat(aliases.isAliasDefined("alias")).isFalse();
+    }
+
+    @Test
+    public void isAliasDefinedShouldReturnTrueWhenAliasIsNotDefinedInRequestButAliasIsValidInBidderCatalog() {
+        // given
+        given(bidderCatalog.isValidName("alias")).willReturn(true);
+        final BidderAliases aliases = BidderAliases.of(singletonMap("anotherAlias", "bidder"), null, bidderCatalog);
+
+        // when and then
+        assertThat(aliases.isAliasDefined("alias")).isTrue();
     }
 
     @Test
@@ -54,8 +84,28 @@ public class BidderAliasesTest {
     }
 
     @Test
+    public void resolveBidderShouldReturnInputWhenNoAliasesInRequestButAliasIsValidInBidderCatalog() {
+        // given
+        given(bidderCatalog.isValidName("alias")).willReturn(true);
+        final BidderAliases aliases = BidderAliases.of(null, null, bidderCatalog);
+
+        // when and then
+        assertThat(aliases.resolveBidder("alias")).isEqualTo("alias");
+    }
+
+    @Test
     public void resolveBidderShouldReturnInputWhenAliasIsNotDefinedInRequest() {
         // given
+        final BidderAliases aliases = BidderAliases.of(singletonMap("anotherAlias", "bidder"), null, bidderCatalog);
+
+        // when and then
+        assertThat(aliases.resolveBidder("alias")).isEqualTo("alias");
+    }
+
+    @Test
+    public void resolveBidderShouldReturnInputWhenAliasIsNotDefinedInRequestButAliasIsValidInBidderCatalog() {
+        // given
+        given(bidderCatalog.isValidName("alias")).willReturn(true);
         final BidderAliases aliases = BidderAliases.of(singletonMap("anotherAlias", "bidder"), null, bidderCatalog);
 
         // when and then
@@ -69,6 +119,16 @@ public class BidderAliasesTest {
 
         // when and then
         assertThat(aliases.resolveBidder("alias")).isEqualTo("bidder");
+    }
+
+    @Test
+    public void resolveBidderShouldDetectInBidderCatalogWhenItIsValid() {
+        // given
+        given(bidderCatalog.isValidName("alias")).willReturn(true);
+        final BidderAliases aliases = BidderAliases.of(singletonMap("alias", "bidder"), null, bidderCatalog);
+
+        // when and then
+        assertThat(aliases.resolveBidder("alias")).isEqualTo("alias");
     }
 
     @Test
@@ -111,6 +171,17 @@ public class BidderAliasesTest {
     }
 
     @Test
+    public void resolveAliasVendorIdShouldReturnVendorIdFromBidderCatalogWhenNoVendorIdsInRequest() {
+        // given
+        given(bidderCatalog.isActive("alias")).willReturn(true);
+        given(bidderCatalog.vendorIdByName("alias")).willReturn(3);
+        final BidderAliases aliases = BidderAliases.of(null, null, bidderCatalog);
+
+        // when and then
+        assertThat(aliases.resolveAliasVendorId("alias")).isEqualTo(3);
+    }
+
+    @Test
     public void resolveAliasVendorIdShouldReturnNullWhenVendorIdIsNotDefinedInRequest() {
         // given
         final BidderAliases aliases = BidderAliases.of(null, singletonMap("anotherAlias", 2), bidderCatalog);
@@ -120,11 +191,24 @@ public class BidderAliasesTest {
     }
 
     @Test
-    public void resolveAliasVendorIdShouldDetectVendorIdInRequest() {
+    public void resolveAliasVendorIdShouldReturnVendorIdFromBidderCatalogWhenVendorIdIsNotDefinedInRequest() {
         // given
+        given(bidderCatalog.isActive("alias")).willReturn(true);
+        given(bidderCatalog.vendorIdByName("alias")).willReturn(3);
+        final BidderAliases aliases = BidderAliases.of(null, singletonMap("anotherAlias", 2), bidderCatalog);
+
+        // when and then
+        assertThat(aliases.resolveAliasVendorId("alias")).isEqualTo(3);
+    }
+
+    @Test
+    public void resolveAliasVendorIdShouldReturnVendorIdFromBidderCatalogWhenVendorIdIsInRequest() {
+        // given
+        given(bidderCatalog.isActive("alias")).willReturn(true);
+        given(bidderCatalog.vendorIdByName("alias")).willReturn(3);
         final BidderAliases aliases = BidderAliases.of(null, singletonMap("alias", 2), bidderCatalog);
 
         // when and then
-        assertThat(aliases.resolveAliasVendorId("alias")).isEqualTo(2);
+        assertThat(aliases.resolveAliasVendorId("alias")).isEqualTo(3);
     }
 }
