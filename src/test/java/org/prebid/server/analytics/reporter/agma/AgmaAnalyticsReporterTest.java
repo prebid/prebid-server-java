@@ -110,6 +110,21 @@ public class AgmaAnalyticsReporterTest extends VertxTest {
     }
 
     @Test
+    public void processEventShouldNotSendAnythingWhenAuctionContextIsNull() {
+        // given
+        final AuctionEvent auctionEvent = AuctionEvent.builder()
+                .auctionContext(null)
+                .build();
+
+        // when
+        final Future<Void> result = target.processEvent(auctionEvent);
+
+        // then
+        verifyNoInteractions(httpClient);
+        assertThat(result.succeeded()).isTrue();
+    }
+
+    @Test
     public void processEventShouldSendEventWhenEventIsAuctionEvent() {
         // given
         final Site givenSite = Site.builder().publisher(Publisher.builder().id("publisherId").build()).build();
