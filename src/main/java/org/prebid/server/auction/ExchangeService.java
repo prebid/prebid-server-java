@@ -455,16 +455,12 @@ public class ExchangeService {
     private Set<String> bidderNamesFromImpExt(Imp imp, BidderAliases aliases) {
         return Optional.ofNullable(bidderParamsFromImpExt(imp.getExt())).stream()
                 .flatMap(paramsNode -> StreamUtil.asStream(paramsNode.fieldNames()))
-                .filter(bidder -> isValidBidder(bidder, aliases))
+                .filter(aliases::isAliasDefined)
                 .collect(Collectors.toSet());
     }
 
     private static JsonNode bidderParamsFromImpExt(ObjectNode ext) {
         return ext.get(PREBID_EXT).get(BIDDER_EXT);
-    }
-
-    private boolean isValidBidder(String bidder, BidderAliases aliases) {
-        return bidderCatalog.isValidName(bidder) || aliases.isAliasDefined(bidder);
     }
 
     private static boolean isBidderCallActivityAllowed(String bidder, AuctionContext auctionContext) {
