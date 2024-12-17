@@ -820,7 +820,7 @@ class BidderParamsSpec extends BaseSpec {
         }
     }
 
-    def "PBS should proceed with auction without warning when all ext.prebid.bidderParams fields are known"() {
+    def "PBS should proceed auction without warning when all ext.prebid.bidderParams fields are known"() {
         given: "Default bid request with populated ext.prebid.bidderParams"
         def genericBidderParams = PBSUtils.randomString
         def bidRequest = BidRequest.defaultBidRequest.tap {
