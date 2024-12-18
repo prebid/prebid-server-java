@@ -1250,7 +1250,7 @@ public class ExchangeService {
 
         final long tmax = timeoutResolver.limitToMax(bidRequest.getTmax());
         final long adjustedTmax = timeoutResolver.adjustForBidder(
-                tmax, adjustmentFactor, currentTime - startTime - bidderTmaxDeductionMs);
+                tmax, adjustmentFactor, currentTime - startTime, bidderTmaxDeductionMs);
 
         return tmax != adjustedTmax
                 ? bidRequest.toBuilder().tmax(adjustedTmax).build()
