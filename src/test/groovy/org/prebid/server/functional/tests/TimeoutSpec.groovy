@@ -8,6 +8,7 @@ import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
 import org.prebid.server.functional.util.PBSUtils
 import org.testcontainers.utility.MountableFile
+import spock.lang.IgnoreRest
 import spock.lang.Shared
 
 import static org.prebid.server.functional.testcontainers.container.PrebidServerContainer.APP_WORKDIR
@@ -16,8 +17,8 @@ class TimeoutSpec extends BaseSpec {
 
     private static final int DEFAULT_TIMEOUT = getRandomTimeout()
     private static final int MIN_TIMEOUT = PBSUtils.getRandomNumber(50, 150)
-    private static final Map PBS_CONFIG = ["auction.biddertmax.max"    : MAX_TIMEOUT as String,
-                                           "auction.biddertmax.min"    : MIN_TIMEOUT as String]
+    private static final Map PBS_CONFIG = ["auction.biddertmax.max": 3000 as String,
+                                           "auction.biddertmax.min": 1000 as String]
 
     @Shared
     PrebidServerService prebidServerService = pbsServiceFactory.getService(PBS_CONFIG)
@@ -136,9 +137,10 @@ class TimeoutSpec extends BaseSpec {
 
         and: "Pbs config with default request"
         def pbsContainer = new PrebidServerContainer(
-                ["default-request.file.path" : APP_WORKDIR + defaultRequest.fileName,
-                 "auction.biddertmax.max"    : MAX_TIMEOUT as String]).tap {
-            withCopyFileToContainer(MountableFile.forHostPath(defaultRequest), APP_WORKDIR) }
+                ["default-request.file.path": APP_WORKDIR + defaultRequest.fileName,
+                 "auction.biddertmax.max"   : MAX_TIMEOUT as String]).tap {
+            withCopyFileToContainer(MountableFile.forHostPath(defaultRequest), APP_WORKDIR)
+        }
         pbsContainer.start()
         def pbsService = new PrebidServerService(pbsContainer)
 
@@ -284,8 +286,8 @@ class TimeoutSpec extends BaseSpec {
     def "PBS should choose min timeout form config for bidder request when in request value lowest that in auction.biddertmax.min"() {
         given: "PBS config with percent"
         def minBidderTmax = PBSUtils.getRandomNumber(MIN_TIMEOUT, MAX_TIMEOUT)
-        def prebidServerService = pbsServiceFactory.getService(["auction.biddertmax.min"    : minBidderTmax as String,
-                                                                                "auction.biddertmax.max"    : MAX_TIMEOUT as String])
+        def prebidServerService = pbsServiceFactory.getService(["auction.biddertmax.min": minBidderTmax as String,
+                                                                "auction.biddertmax.max": MAX_TIMEOUT as String])
 
         and: "Default basic BidRequest"
         def timeout = PBSUtils.getRandomNumber(0, minBidderTmax)
@@ -307,11 +309,10 @@ class TimeoutSpec extends BaseSpec {
     def "PBS should change timeout for bidder due to percent in auction.biddertmax.percent"() {
         given: "PBS config with percent"
         def percent = PBSUtils.getRandomNumber(2, 98)
-        def prebidServerService = pbsServiceFactory.getService(["auction.biddertmax.percent": percent as String]
-                + PBS_CONFIG)
+        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG)
 
         and: "Default basic BidRequest with generic bidder"
-        def timeout = getRandomTimeout()
+        def timeout = PBSUtils.getRandomNumber()
         def bidRequest = BidRequest.defaultBidRequest.tap {
             tmax = timeout
         }
@@ -321,7 +322,32 @@ class TimeoutSpec extends BaseSpec {
 
         then: "Bidder request should contain percent of request value"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert isInternalProcessingTime(bidderRequest.tmax, getPercentOfValue(percent,timeout))
+        assert isInternalProcessingTime(bidderRequest.tmax, getPercentOfValue(percent, timeout))
+
+        and: "PBS response should contain tmax from request"
+        assert bidResponse?.ext?.tmaxrequest == timeout as Long
+    }
+
+    @IgnoreRest
+    def "adapters.generic.tmax-deduction-ms"() {
+        given: "PBS config with percent"
+        def timeout = PBSUtils.getRandomNumber()
+        def deduction = timeout + 1
+        def randomNumber = PBSUtils.getRandomNumber()
+        def prebidServerService = pbsServiceFactory.getService(["adapters.generic.tmax-deduction-ms": randomNumber as String]
+                + PBS_CONFIG)
+
+        and: "Default basic BidRequest with generic bidder"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            tmax = timeout
+        }
+
+        when: "PBS processes auction request with warmup"
+        def bidResponse = prebidServerService.withWarmup().sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain percent of request value"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert isInternalProcessingTime(bidderRequest.tmax, getPercentOfValue(deduction, timeout))
 
         and: "PBS response should contain tmax from request"
         assert bidResponse?.ext?.tmaxrequest == timeout as Long
@@ -331,7 +357,7 @@ class TimeoutSpec extends BaseSpec {
         (percent * value) / 100.0 as Long
     }
 
-    private static boolean isInternalProcessingTime(long bidderRequestTimeout, long requestTimeout){
+    private static boolean isInternalProcessingTime(long bidderRequestTimeout, long requestTimeout) {
         0 < requestTimeout - bidderRequestTimeout
     }
 }
