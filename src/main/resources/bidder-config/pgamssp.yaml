@@ -1,6 +1,7 @@
 adapters:
   pgamssp:
     endpoint: http://us-east.pgammedia.com/pserver
+    gvlVendorID: 1353
     meta-info:
       maintainer-email: info@pgammedia.com
       app-media-types:
