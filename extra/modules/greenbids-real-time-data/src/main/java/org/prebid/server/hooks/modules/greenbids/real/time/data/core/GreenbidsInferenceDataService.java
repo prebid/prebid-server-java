@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -90,6 +91,7 @@ public class GreenbidsInferenceDataService {
         final String country = Optional.ofNullable(bidRequest.getDevice())
                 .map(Device::getGeo)
                 .map(Geo::getCountry)
+                .map(GreenbidsInferenceDataService::getCountryNameFromAlpha3)
                 .orElseGet(() -> getCountry(ip));
 
         return createThrottlingMessages(
@@ -100,6 +102,11 @@ public class GreenbidsInferenceDataService {
                 hostname,
                 hourBucket,
                 minuteQuadrant);
+    }
+
+    private static String getCountryNameFromAlpha3(String isoCode) {
+        final Locale local = new Locale("", isoCode);
+        return local.getDisplayCountry();
     }
 
     private String getCountry(String ip) {
