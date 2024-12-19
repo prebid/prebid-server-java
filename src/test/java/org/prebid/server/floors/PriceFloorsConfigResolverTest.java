@@ -189,6 +189,32 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
     }
 
     @Test
+    public void resolveShouldReturnGivenAccountIfMaxDimensionsLessThanMinimumValue() {
+        // given
+        final Account givenAccount = accountWithFloorsFetchConfig(config -> config.maxSchemaDims(-1L));
+
+        // when
+        final Account actualAccount = target.resolve(givenAccount, defaultPriceConfig());
+
+        // then
+        assertThat(actualAccount).isEqualTo(fallbackAccount());
+        verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
+    }
+
+    @Test
+    public void resolveShouldReturnGivenAccountIfMaxDimensionsMoreThanMaximumValue() {
+        // given
+        final Account givenAccount = accountWithFloorsFetchConfig(config -> config.maxSchemaDims(20L));
+
+        // when
+        final Account actualAccount = target.resolve(givenAccount, defaultPriceConfig());
+
+        // then
+        assertThat(actualAccount).isEqualTo(fallbackAccount());
+        verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
+    }
+
+    @Test
     public void resolveShouldReturnGivenAccountIfMaxFileSizeLessThanMinimumValue() {
         // given
         final Account givenAccount = accountWithFloorsFetchConfig(config -> config.maxFileSizeKb(-1L));
