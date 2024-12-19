@@ -23,10 +23,12 @@ class ImpExt {
     String tid
     String gpid
     String sid
-    Integer ae
+    AuctionEnvironment ae
     String all
     String skadn
     String general
+    @JsonProperty("igs")
+    InterestGroupAuctionSupport interestGroupAuctionSupport
     AnyUnsupportedBidder anyUnsupportedBidder
 
     static ImpExt getDefaultImpExt() {
