@@ -13,8 +13,6 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.DistributionChannel
 import org.prebid.server.functional.model.request.auction.Regs
 import org.prebid.server.functional.model.request.auction.RegsExt
-import org.prebid.server.functional.service.PrebidServerService
-import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.BogusConsent
 import org.prebid.server.functional.util.privacy.CcpaConsent
@@ -320,10 +318,8 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         def startTime = Instant.now()
 
         and: "Create new container"
-        def serverContainer = new PrebidServerContainer(GDPR_VENDOR_LIST_CONFIG +
-                ["adapters.generic.meta-info.vendor-id": GENERIC_VENDOR_ID as String])
-        serverContainer.start()
-        def privacyPbsService = new PrebidServerService(serverContainer)
+        def config = GDPR_VENDOR_LIST_CONFIG + ["adapters.generic.meta-info.vendor-id": GENERIC_VENDOR_ID as String]
+        def defaultPrivacyPbsService = pbsServiceFactory.getService(config)
 
         and: "Prepare tcf consent string"
         def tcfConsent = new TcfConsent.Builder()
@@ -347,21 +343,21 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         vendorListResponse.setResponse(tcfPolicyVersion)
 
         when: "PBS processes amp request"
-        privacyPbsService.sendAmpRequest(ampRequest)
+        defaultPrivacyPbsService.sendAmpRequest(ampRequest)
 
         then: "Used vendor list have proper specification version of GVL"
         def properVendorListPath = VENDOR_LIST_PATH.replace("{VendorVersion}", tcfPolicyVersion.vendorListVersion.toString())
-        PBSUtils.waitUntil { privacyPbsService.isFileExist(properVendorListPath) }
-        def vendorList = privacyPbsService.getValueFromContainer(properVendorListPath, VendorListConsent.class)
+        PBSUtils.waitUntil { defaultPrivacyPbsService.isFileExist(properVendorListPath) }
+        def vendorList = defaultPrivacyPbsService.getValueFromContainer(properVendorListPath, VendorListConsent.class)
         assert vendorList.tcfPolicyVersion == tcfPolicyVersion.vendorListVersion
 
         and: "Logs should contain proper vendor list version"
-        def logs = privacyPbsService.getLogsByTime(startTime)
+        def logs = defaultPrivacyPbsService.getLogsByTime(startTime)
         assert getLogsByText(logs, "Created new TCF 2 vendor list for version " +
                 "v${tcfPolicyVersion.vendorListVersion}.${tcfPolicyVersion.vendorListVersion}")
 
-        cleanup: "Stop container with default request"
-        serverContainer.stop()
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(config)
 
         where:
         tcfPolicyVersion << [TCF_POLICY_V2, TCF_POLICY_V4, TCF_POLICY_V5]
@@ -410,7 +406,10 @@ class GdprAmpSpec extends PrivacyBaseSpec {
     }
 
     def "PBS amp should emit the same error without a second GVL list request if a retry is too soon for the exponential-backoff"() {
-        given: "Test start time"
+        given: "Prebid server with privacy settings"
+        def defaultPrivacyPbsService = pbsServiceFactory.getService(GENERAL_PRIVACY_CONFIG)
+
+        and: "Test start time"
         def startTime = Instant.now()
 
         and: "Prepare tcf consent string"
@@ -438,14 +437,14 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         vendorListResponse.setResponse(tcfPolicyVersion, Delay.seconds(EXPONENTIAL_BACKOFF_MAX_DELAY + 3))
 
         when: "PBS processes amp request"
-        privacyPbsService.sendAmpRequest(ampRequest)
+        defaultPrivacyPbsService.sendAmpRequest(ampRequest)
 
         then: "PBS shouldn't fetch vendor list"
         def vendorListPath = VENDOR_LIST_PATH.replace("{VendorVersion}", tcfPolicyVersion.vendorListVersion.toString())
-        assert !privacyPbsService.isFileExist(vendorListPath)
+        assert !defaultPrivacyPbsService.isFileExist(vendorListPath)
 
         and: "Logs should contain proper vendor list version"
-        def logs = privacyPbsService.getLogsByTime(startTime)
+        def logs = defaultPrivacyPbsService.getLogsByTime(startTime)
         def tcfError = "TCF 2 vendor list for version v${tcfPolicyVersion.vendorListVersion}.${tcfPolicyVersion.vendorListVersion} not found, started downloading."
         assert getLogsByText(logs, tcfError)
 
@@ -453,17 +452,20 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         def secondStartTime = Instant.now()
 
         when: "PBS processes amp request"
-        privacyPbsService.sendAmpRequest(ampRequest)
+        defaultPrivacyPbsService.sendAmpRequest(ampRequest)
 
         then: "PBS shouldn't fetch vendor list"
-        assert !privacyPbsService.isFileExist(vendorListPath)
+        assert !defaultPrivacyPbsService.isFileExist(vendorListPath)
 
         and: "Logs should contain proper vendor list version"
-        def logsSecond = privacyPbsService.getLogsByTime(secondStartTime)
+        def logsSecond = defaultPrivacyPbsService.getLogsByTime(secondStartTime)
         assert getLogsByText(logsSecond, tcfError)
 
         and: "Reset vendor list response"
         vendorListResponse.reset()
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(GENERAL_PRIVACY_CONFIG)
 
         where:
         tcfPolicyVersion << [TCF_POLICY_V2, TCF_POLICY_V4, TCF_POLICY_V5]
@@ -659,7 +661,10 @@ class GdprAmpSpec extends PrivacyBaseSpec {
     }
 
     def "PBS amp should set 3 for tcfPolicyVersion when tcfPolicyVersion is #tcfPolicyVersion"() {
-        given: "Tcf consent setup"
+        given: "Prebid server with privacy settings"
+        def defaultPrivacyPbsService = pbsServiceFactory.getService(GENERAL_PRIVACY_CONFIG)
+
+        and: "Tcf consent setup"
         def tcfConsent = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
                 .setTcfPolicyVersion(tcfPolicyVersion.value)
@@ -681,13 +686,16 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         vendorListResponse.setResponse(tcfPolicyVersion)
 
         when: "PBS processes amp request"
-        privacyPbsService.sendAmpRequest(ampRequest)
+        defaultPrivacyPbsService.sendAmpRequest(ampRequest)
 
         then: "Used vendor list have proper specification version of GVL"
         def properVendorListPath = VENDOR_LIST_PATH.replace("{VendorVersion}", tcfPolicyVersion.vendorListVersion.toString())
-        PBSUtils.waitUntil { privacyPbsService.isFileExist(properVendorListPath) }
-        def vendorList = privacyPbsService.getValueFromContainer(properVendorListPath, VendorListConsent.class)
+        PBSUtils.waitUntil { defaultPrivacyPbsService.isFileExist(properVendorListPath) }
+        def vendorList = defaultPrivacyPbsService.getValueFromContainer(properVendorListPath, VendorListConsent.class)
         assert vendorList.gvlSpecificationVersion == V3
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(GENERAL_PRIVACY_CONFIG)
 
         where:
         tcfPolicyVersion << [TCF_POLICY_V4, TCF_POLICY_V5]

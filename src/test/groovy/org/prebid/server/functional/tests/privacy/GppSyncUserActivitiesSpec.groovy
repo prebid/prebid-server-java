@@ -1778,7 +1778,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
     def "PBS cookie sync should process rule when geo doesn't intersection"() {
         given: "Pbs config with geo location"
-        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG + GEO_LOCATION +
+        def prebidServerService = pbsServiceFactory.getService(GENERAL_PRIVACY_CONFIG + GEO_LOCATION +
                 ["geolocation.configurations.geo-info.[0].country": countyConfig,
                  "geolocation.configurations.geo-info.[0].region" : regionConfig])
 
@@ -1830,7 +1830,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
     def "PBS setuid should process rule when geo doesn't intersection"() {
         given: "Pbs config with geo location"
-        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG + GEO_LOCATION +
+        def prebidServerService = pbsServiceFactory.getService(GENERAL_PRIVACY_CONFIG + GEO_LOCATION +
                 ["geolocation.configurations.[0].geo-info.country": countyConfig,
                  "geolocation.configurations.[0].geo-info.region" : regionConfig])
 
@@ -1885,7 +1885,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
     def "PBS cookie sync should disallowed rule when device.geo intersection"() {
         given: "Pbs config with geo location"
-        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG + GEO_LOCATION +
+        def prebidServerService = pbsServiceFactory.getService(GENERAL_PRIVACY_CONFIG + GEO_LOCATION +
                 ["geolocation.configurations.[0].geo-info.country": countyConfig,
                  "geolocation.configurations.[0].geo-info.region" : regionConfig])
 
@@ -1936,7 +1936,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
     def "PBS setuid should disallowed rule when device.geo intersection"() {
         given: "Pbs config with geo location"
-        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG + GEO_LOCATION +
+        def prebidServerService = pbsServiceFactory.getService(GENERAL_PRIVACY_CONFIG + GEO_LOCATION +
                 ["geolocation.configurations.[0].geo-info.country": countyConfig,
                  "geolocation.configurations.[0].geo-info.region" : regionConfig])
 
@@ -1986,7 +1986,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
     def "PBS cookie sync should fetch geo once when gpp sync user and account require geo look up"() {
         given: "Pbs config with geo location"
-        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG + GEO_LOCATION +
+        def prebidServerService = pbsServiceFactory.getService(GENERAL_PRIVACY_CONFIG + GEO_LOCATION +
                 ["geolocation.configurations.[0].geo-info.country": USA.ISOAlpha3,
                  "geolocation.configurations.[0].geo-info.region" : ALABAMA.abbreviation])
 

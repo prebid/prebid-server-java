@@ -25,7 +25,7 @@ class TcfFullTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
     private static PrebidServerService privacyPbsServiceWithMultipleGvl
 
     def setupSpec() {
-        privacyPbsContainerWithMultipleGvl = new PrebidServerContainer(PBS_CONFIG)
+        privacyPbsContainerWithMultipleGvl = new PrebidServerContainer(GENERAL_PRIVACY_CONFIG)
         def prepareEncodeResponseBodyWithPurposesOnly = getVendorListContent(true, false, false)
         def prepareEncodeResponseBodyWithLegIntPurposes = getVendorListContent(false, true, false)
         def prepareEncodeResponseBodyWithLegIntAndFlexiblePurposes = getVendorListContent(false, true, true)

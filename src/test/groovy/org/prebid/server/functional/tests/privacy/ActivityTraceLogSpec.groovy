@@ -121,7 +121,7 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        def bidResponse = pbsServiceFactory.getService(PBS_CONFIG).sendAuctionRequest(bidRequest)
+        def bidResponse = activityPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain basic info in debug"
         def infrastructure = bidResponse.ext.debug.trace.activityInfrastructure

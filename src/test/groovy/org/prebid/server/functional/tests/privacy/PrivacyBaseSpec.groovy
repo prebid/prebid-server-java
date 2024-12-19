@@ -106,15 +106,14 @@ abstract class PrivacyBaseSpec extends BaseSpec {
     protected static final Integer MAX_INVALID_TCF_POLICY_VERSION = 63
     protected static final Integer MIN_INVALID_TCF_POLICY_VERSION = 6
 
-    @Shared
-    protected final PrebidServerService privacyPbsService = pbsServiceFactory.getService(GDPR_VENDOR_LIST_CONFIG +
-            GENERIC_CONFIG + GENERIC_VENDOR_CONFIG + RETRY_POLICY_EXPONENTIAL_CONFIG + GDPR_EEA_COUNTRY)
-
-    protected static final Map<String, String> PBS_CONFIG = OPENX_CONFIG +
-            GENERIC_CONFIG + GDPR_VENDOR_LIST_CONFIG + SETTING_CONFIG + GENERIC_VENDOR_CONFIG
+    protected static final Map<String, String> GENERAL_PRIVACY_CONFIG =
+            GENERIC_CONFIG + GDPR_VENDOR_LIST_CONFIG + GENERIC_VENDOR_CONFIG + RETRY_POLICY_EXPONENTIAL_CONFIG
 
     @Shared
-    protected final PrebidServerService activityPbsService = pbsServiceFactory.getService(PBS_CONFIG)
+    protected final PrebidServerService privacyPbsService = pbsServiceFactory.getService(GENERAL_PRIVACY_CONFIG + GDPR_EEA_COUNTRY)
+
+    @Shared
+    protected final PrebidServerService activityPbsService = pbsServiceFactory.getService(OPENX_CONFIG + SETTING_CONFIG + GENERAL_PRIVACY_CONFIG)
 
     def setupSpec() {
         vendorListResponse.setResponse()
