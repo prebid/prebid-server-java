@@ -78,7 +78,7 @@ public class PriceFloorsConfigResolver {
             throw new PreBidException(invalidPriceFloorsPropertyMessage("max-rules", maxRules));
         }
 
-        final Long maxDimensions = floorsConfig.getMaxSchemaDimensions();
+        final Long maxDimensions = floorsConfig.getMaxSchemaDims();
         if (maxDimensions != null && isNotInRange(maxDimensions, MIN_DIMENSIONS_VALUE, MAX_DIMENSIONS_VALUE)) {
             throw new PreBidException(invalidPriceFloorsPropertyMessage("max-schema-dimensions", maxDimensions));
         }
@@ -120,7 +120,7 @@ public class PriceFloorsConfigResolver {
             throw new PreBidException(invalidPriceFloorsPropertyMessage("max-rules", maxRules));
         }
 
-        final Long maxDimensions = fetchConfig.getMaxSchemaDimensions();
+        final Long maxDimensions = fetchConfig.getMaxSchemaDims();
         if (maxDimensions != null && isNotInRange(maxDimensions, MIN_DIMENSIONS_VALUE, MAX_DIMENSIONS_VALUE)) {
             throw new PreBidException(invalidPriceFloorsPropertyMessage("max-schema-dimensions", maxDimensions));
         }

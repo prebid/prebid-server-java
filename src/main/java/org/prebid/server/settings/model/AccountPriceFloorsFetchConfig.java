@@ -22,7 +22,7 @@ public class AccountPriceFloorsFetchConfig {
     Long maxRules;
 
     @JsonAlias("max-schema-dims")
-    Long maxSchemaDimensions;
+    Long maxSchemaDims;
 
     @JsonAlias("max-age-sec")
     Long maxAgeSec;

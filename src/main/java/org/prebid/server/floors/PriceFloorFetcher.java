@@ -179,7 +179,7 @@ public class PriceFloorFetcher {
         PriceFloorRulesValidator.validateRulesData(
                 priceFloorData,
                 PriceFloorsConfigResolver.resolveMaxValue(fetchConfig.getMaxRules()),
-                PriceFloorsConfigResolver.resolveMaxValue(fetchConfig.getMaxSchemaDimensions()));
+                PriceFloorsConfigResolver.resolveMaxValue(fetchConfig.getMaxSchemaDims()));
 
         return ResponseCacheInfo.of(priceFloorData,
                 FetchStatus.success,

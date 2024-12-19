@@ -434,7 +434,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                                         .build()))
                                 .build())
                 )),
-                givenAccount(floorConfigBuilder -> floorConfigBuilder.maxSchemaDimensions(1L)),
+                givenAccount(floorConfigBuilder -> floorConfigBuilder.maxSchemaDims(1L)),
                 "bidder",
                 errors,
                 new ArrayList<>());

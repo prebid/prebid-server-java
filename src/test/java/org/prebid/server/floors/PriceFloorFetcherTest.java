@@ -514,7 +514,7 @@ public class PriceFloorFetcherTest extends VertxTest {
 
         // when
         final FetchResult firstInvocationResult =
-                priceFloorFetcher.fetch(givenAccount(account -> account.maxSchemaDimensions(1L)));
+                priceFloorFetcher.fetch(givenAccount(account -> account.maxSchemaDims(1L)));
 
         // then
         verify(httpClient).get(anyString(), anyLong(), anyLong());
@@ -547,7 +547,7 @@ public class PriceFloorFetcherTest extends VertxTest {
                         .enabled(true)
                         .url("http://test.host.com")
                         .maxRules(10L)
-                        .maxSchemaDimensions(10L)
+                        .maxSchemaDims(10L)
                         .maxFileSizeKb(10L)
                         .timeoutMs(1300L)
                         .maxAgeSec(1500L)

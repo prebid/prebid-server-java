@@ -28,5 +28,5 @@ public class AccountPriceFloorsConfig {
     Long maxRules;
 
     @JsonAlias("max-schema-dims")
-    Long maxSchemaDimensions;
+    Long maxSchemaDims;
 }

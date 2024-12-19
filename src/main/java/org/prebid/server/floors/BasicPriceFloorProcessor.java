@@ -141,7 +141,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
 
                 final Long maxRules = priceFloorsConfig.map(AccountPriceFloorsConfig::getMaxRules)
                         .orElse(null);
-                final Long maxDimensions = priceFloorsConfig.map(AccountPriceFloorsConfig::getMaxSchemaDimensions)
+                final Long maxDimensions = priceFloorsConfig.map(AccountPriceFloorsConfig::getMaxSchemaDims)
                         .orElse(null);
 
                 PriceFloorRulesValidator.validateRules(

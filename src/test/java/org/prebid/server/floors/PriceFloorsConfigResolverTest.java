@@ -191,7 +191,7 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
     @Test
     public void resolveShouldReturnGivenAccountIfMaxDimensionsLessThanMinimumValue() {
         // given
-        final Account givenAccount = accountWithFloorsFetchConfig(config -> config.maxSchemaDimensions(-1L));
+        final Account givenAccount = accountWithFloorsFetchConfig(config -> config.maxSchemaDims(-1L));
 
         // when
         final Account actualAccount = target.resolve(givenAccount, defaultPriceConfig());
@@ -204,7 +204,7 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
     @Test
     public void resolveShouldReturnGivenAccountIfMaxDimensionsMoreThanMaximumValue() {
         // given
-        final Account givenAccount = accountWithFloorsFetchConfig(config -> config.maxSchemaDimensions(20L));
+        final Account givenAccount = accountWithFloorsFetchConfig(config -> config.maxSchemaDims(20L));
 
         // when
         final Account actualAccount = target.resolve(givenAccount, defaultPriceConfig());
