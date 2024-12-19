@@ -64,14 +64,13 @@ public class SmaatoBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpSmaato>> SMAATO_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
-    private static final String CLIENT_VERSION = "prebid_server_1.1";
+    private static final String CLIENT_VERSION = "prebid_server_1.2";
     private static final String SMT_ADTYPE_HEADER = "X-Smt-Adtype";
     private static final String SMT_EXPIRES_HEADER = "X-Smt-Expires";
     private static final String SMT_AD_TYPE_IMG = "Img";
     private static final String SMT_ADTYPE_RICHMEDIA = "Richmedia";
     private static final String SMT_ADTYPE_VIDEO = "Video";
     private static final String SMT_ADTYPE_NATIVE = "Native";
-    private static final String IMP_EXT_SKADN_FIELD = "skadn";
 
     private static final int DEFAULT_TTL = 300;
 
@@ -204,7 +203,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
             final String adBreakId = getIfNotNullOrThrow(extImpSmaato, ExtImpSmaato::getAdbreakId, "adbreakId");
 
             return modifyBidRequest(bidRequest, publisherId, () ->
-                    modifyImpsForAdBreak(imps, adBreakId, resolveImpExtSkadn(impExt)));
+                    modifyImpsForAdBreak(imps, adBreakId, removeBidderNodeFromImpExt(impExt)));
         } catch (PreBidException | IllegalArgumentException e) {
             errors.add(BidderError.badInput(e.getMessage()));
             return null;
@@ -231,14 +230,14 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         return bidRequestBuilder.imp(impSupplier.get()).build();
     }
 
-    private List<Imp> modifyImpsForAdBreak(List<Imp> imps, String adBreakId, ObjectNode impExtSkadn) {
+    private List<Imp> modifyImpsForAdBreak(List<Imp> imps, String adBreakId, ObjectNode impExt) {
         return IntStream.range(0, imps.size())
                 .mapToObj(idx ->
-                        modifyImpForAdBreak(imps.get(idx), idx + 1, adBreakId, idx == 0 ? impExtSkadn : null))
+                        modifyImpForAdBreak(imps.get(idx), idx + 1, adBreakId, idx == 0 ? impExt : null))
                 .toList();
     }
 
-    private Imp modifyImpForAdBreak(Imp imp, Integer sequence, String adBreakId, ObjectNode impExtSkadn) {
+    private Imp modifyImpForAdBreak(Imp imp, Integer sequence, String adBreakId, ObjectNode impExt) {
         final Video modifiedVideo = imp.getVideo().toBuilder()
                 .sequence(sequence)
                 .ext(mapper.mapper().createObjectNode().set("context", TextNode.valueOf("adpod")))
@@ -246,7 +245,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         return imp.toBuilder()
                 .tagid(adBreakId)
                 .video(modifiedVideo)
-                .ext(impExtSkadn)
+                .ext(impExt)
                 .build();
     }
 
@@ -293,27 +292,28 @@ public class SmaatoBidder implements Bidder<BidRequest> {
             final String adSpaceId = getIfNotNullOrThrow(extImpSmaato, ExtImpSmaato::getAdspaceId, "adspaceId");
 
             return modifyBidRequest(bidRequest, publisherId, () ->
-                    modifyImpForAdSpace(imp, adSpaceId, resolveImpExtSkadn(impExt)));
+                    modifyImpForAdSpace(imp, adSpaceId, removeBidderNodeFromImpExt(impExt)));
         } catch (PreBidException | IllegalArgumentException e) {
             errors.add(BidderError.badInput(e.getMessage()));
             return null;
         }
     }
 
-    private ObjectNode resolveImpExtSkadn(ObjectNode impExt) {
-        if (!impExt.has(IMP_EXT_SKADN_FIELD)) {
+    private ObjectNode removeBidderNodeFromImpExt(ObjectNode impExt) {
+        if (impExt == null) {
             return null;
-        } else if (impExt.get(IMP_EXT_SKADN_FIELD).isEmpty() || !impExt.get(IMP_EXT_SKADN_FIELD).isObject()) {
-            throw new PreBidException("Invalid imp.ext.skadn");
-        } else {
-            return mapper.mapper().createObjectNode().set(IMP_EXT_SKADN_FIELD, impExt.get(IMP_EXT_SKADN_FIELD));
         }
+
+        final ObjectNode impExtCopy = impExt.deepCopy();
+
+        impExtCopy.remove("bidder");
+        return impExtCopy.isEmpty() ? null : impExtCopy;
     }
 
-    private List<Imp> modifyImpForAdSpace(Imp imp, String adSpaceId, ObjectNode impExtSkadn) {
+    private List<Imp> modifyImpForAdSpace(Imp imp, String adSpaceId, ObjectNode impExt) {
         final Imp modifiedImp = imp.toBuilder()
                 .tagid(adSpaceId)
-                .ext(impExtSkadn)
+                .ext(impExt)
                 .build();
 
         return Collections.singletonList(modifiedImp);
