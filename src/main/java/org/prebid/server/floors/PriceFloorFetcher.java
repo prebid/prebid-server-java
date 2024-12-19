@@ -176,7 +176,10 @@ public class PriceFloorFetcher {
         }
 
         final PriceFloorData priceFloorData = parsePriceFloorData(body, accountId);
-        PriceFloorRulesValidator.validateRulesData(priceFloorData, resolveMaxRules(fetchConfig.getMaxRules()));
+        PriceFloorRulesValidator.validateRulesData(
+                priceFloorData,
+                PriceFloorsConfigResolver.resolveMaxValue(fetchConfig.getMaxRules()),
+                PriceFloorsConfigResolver.resolveMaxValue(fetchConfig.getMaxSchemaDims()));
 
         return ResponseCacheInfo.of(priceFloorData,
                 FetchStatus.success,
@@ -192,12 +195,6 @@ public class PriceFloorFetcher {
                     .formatted(accountId, ExceptionUtils.getMessage(e)));
         }
         return priceFloorData;
-    }
-
-    private static int resolveMaxRules(Long accountMaxRules) {
-        return accountMaxRules != null && !accountMaxRules.equals(0L)
-                ? Math.toIntExact(accountMaxRules)
-                : Integer.MAX_VALUE;
     }
 
     private Long cacheTtlFromResponse(HttpClientResponse httpClientResponse, String fetchUrl) {

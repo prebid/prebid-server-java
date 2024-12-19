@@ -135,12 +135,25 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
 
         if (requestFloors != null) {
             try {
-                PriceFloorRulesValidator.validateRules(requestFloors, Integer.MAX_VALUE);
+                final Optional<AccountPriceFloorsConfig> priceFloorsConfig = Optional.ofNullable(account)
+                        .map(Account::getAuction)
+                        .map(AccountAuctionConfig::getPriceFloors);
+
+                final Long maxRules = priceFloorsConfig.map(AccountPriceFloorsConfig::getMaxRules)
+                        .orElse(null);
+                final Long maxDimensions = priceFloorsConfig.map(AccountPriceFloorsConfig::getMaxSchemaDims)
+                        .orElse(null);
+
+                PriceFloorRulesValidator.validateRules(
+                        requestFloors,
+                        PriceFloorsConfigResolver.resolveMaxValue(maxRules),
+                        PriceFloorsConfigResolver.resolveMaxValue(maxDimensions));
+
                 return createFloorsFrom(requestFloors, fetchStatus, PriceFloorLocation.request);
             } catch (PreBidException e) {
-                errors.add("Failed to parse price floors from request, with a reason : %s ".formatted(e.getMessage()));
+                errors.add("Failed to parse price floors from request, with a reason: %s".formatted(e.getMessage()));
                 conditionalLogger.error(
-                        "Failed to parse price floors from request with id: '%s', with a reason : %s "
+                        "Failed to parse price floors from request with id: '%s', with a reason: %s"
                                 .formatted(bidRequest.getId(), e.getMessage()),
                         0.01d);
             }
