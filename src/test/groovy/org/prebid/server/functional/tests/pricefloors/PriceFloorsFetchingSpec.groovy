@@ -2050,7 +2050,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         given: "Default BidRequest"
         def bidRequest = BidRequest.getDefaultBidRequest(APP)
 
-        and: "Account with enabled fetch, fetch.url, maxSchemaDims in the DB"
+        and: "Account with enabled fetch, maxSchemaDims in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.accountId).tap {
             config.auction.priceFloors.fetch.maxSchemaDims = maxSchemaDims
             config.auction.priceFloors.fetch.maxSchemaDimsSnakeCase = maxSchemaDimsSnakeCase
@@ -2079,7 +2079,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         given: "Default BidRequest"
         def bidRequest = BidRequest.getDefaultBidRequest(APP)
 
-        and: "Account with enabled fetch, fetch.url, maxSchemaDims in the DB"
+        and: "Account with enabled fetch, maxRules in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.accountId).tap {
             config.auction.priceFloors.maxRules = maxRules
             config.auction.priceFloors.maxRulesSnakeCase = maxRulesSnakeCase
@@ -2106,7 +2106,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         given: "Default BidRequest"
         def bidRequest = BidRequest.getDefaultBidRequest(APP)
 
-        and: "Account with enabled fetch, fetch.url, maxSchemaDims in the DB"
+        and: "Account with enabled fetch, maxSchemaDims in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.accountId).tap {
             config.auction.priceFloors.maxSchemaDims = maxSchemaDims
             config.auction.priceFloors.maxSchemaDimsSnakeCase = maxSchemaDimsSnakeCase
