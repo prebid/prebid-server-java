@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.smaato;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
@@ -136,7 +137,7 @@ public class SmaatoBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getExt)
                 .containsExactly(jacksonMapper.fillExtension(ExtRequest.empty(),
-                        SmaatoBidRequestExt.of("prebid_server_1.1")));
+                        SmaatoBidRequestExt.of("prebid_server_1.2")));
     }
 
     @Test
@@ -352,7 +353,7 @@ public class SmaatoBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpShouldPassthouthImpExtSkadnWhenIsPresent() {
+    public void makeHttpShouldPassthouthImpExt() {
         // given
         final ObjectNode impExt = mapper.createObjectNode()
                 .set("bidder", mapper.createObjectNode()
@@ -364,6 +365,8 @@ public class SmaatoBidderTest extends VertxTest {
                 .put("fieldOne", "123")
                 .put("fieldTwo", "321"));
 
+        impExt.set("gpid", IntNode.valueOf(1));
+
         // and
         final BidRequest bidRequest = givenBidRequest(identity(), impBuilder -> impBuilder.ext(impExt));
 
@@ -371,34 +374,16 @@ public class SmaatoBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
+        final ObjectNode expectedImpExt = mapper.createObjectNode();
+        expectedImpExt.set("gpid", IntNode.valueOf(1));
+        expectedImpExt.set("skadn", impExt.get("skadn").deepCopy());
+
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
-                .containsExactly(mapper.createObjectNode().set("skadn", impExt.get("skadn").deepCopy()));
-    }
-
-    @Test
-    public void makeHttpShouldReturnErrorWhenImpExtSkadnInvalidPresent() {
-        // given
-        final ObjectNode impExt = mapper.createObjectNode()
-                .set("bidder", mapper.createObjectNode()
-                        .put("publisherId", "publisherId")
-                        .put("adspaceId", "adspaceId")
-                        .put("adbreakId", "adbreakId"));
-
-        impExt.put("skadn", "invalidValue");
-
-        // and
-        final BidRequest bidRequest = givenBidRequest(identity(), impBuilder -> impBuilder.ext(impExt));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).containsExactly(BidderError.badInput("Invalid imp.ext.skadn"));
+                .containsExactly(expectedImpExt);
     }
 
     @Test
