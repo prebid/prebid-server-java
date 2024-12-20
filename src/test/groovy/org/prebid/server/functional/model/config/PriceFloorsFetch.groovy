@@ -26,4 +26,7 @@ class PriceFloorsFetch {
     Integer periodSec
     @JsonProperty("period_sec")
     Integer periodSecSnakeCase
+    Integer maxSchemaDims
+    @JsonProperty("max_schema_dims")
+    Integer maxSchemaDimsSnakeCase
 }

@@ -277,10 +277,8 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
         where:
         bidRequest                       | bothFloorValue            | bannerFloorValue          | videoFloorValue
-        bidRequestWithMultipleMediaTypes | 0.6                       | PBSUtils.randomFloorValue |
-                PBSUtils.randomFloorValue
-        BidRequest.defaultBidRequest     | PBSUtils.randomFloorValue | 0.6                       |
-                PBSUtils.randomFloorValue
+        bidRequestWithMultipleMediaTypes | 0.6                       | PBSUtils.randomFloorValue | PBSUtils.randomFloorValue
+        BidRequest.defaultBidRequest     | PBSUtils.randomFloorValue | 0.6                       | PBSUtils.randomFloorValue
         BidRequest.defaultVideoRequest   | PBSUtils.randomFloorValue | PBSUtils.randomFloorValue | 0.6
     }
 
