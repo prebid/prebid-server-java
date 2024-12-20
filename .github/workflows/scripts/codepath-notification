@@ -1,1 +1,19 @@
-/ix|Ix: pdu-supply-prebid@indexexchange.com
+# when a changed file paths matches the regex, send an alert email
+# structure of the file is:
+#
+# javascriptRegex : email address
+#
+# For example, in PBS Java, there are many paths that can belong to bid adapter:
+#
+# /src/main/java/org/prebid/server/bidder/BIDDER
+# /src/main/resources/static/bidder-params/BIDDER.json
+# /src/main/resources/bidder-config/BIDDER.yaml
+# /src//main/java/org/prebid/server/proto/openrtb/ext/request/BIDDER
+# /src/test/resources/org/prebid/server/it/openrtb2/BIDDER
+# /src/test/java/org/prebid/server/it/BIDDERTest.java
+# /src/test/java/org/prebid/server/bidder/BIDDER
+# /src/main/java/org/prebid/server/spring/config/bidder/BIDDERConfiguration.java
+#
+# The aim is to find a minimal set of regex patterns that matches any file in these paths
+
+/ix|Ix|ix.json|ix.yaml: pdu-supply-prebid@indexexchange.com
