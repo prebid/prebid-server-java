@@ -48,7 +48,7 @@ async function getAccessToken(clientId, clientSecret, refreshToken) {
     const configFileContent = fs.readFileSync(configFilePath, 'utf-8');
     const configRules = configFileContent
       .split('\n')
-      .filter(line => line.trim() !== '') // Filter out empty lines
+      .filter(line => line.trim() !== '' && !line.trim().startsWith('#')) // Ignore empty lines and comments
       .map(line => {
         const [regex, email] = line.split(':').map(part => part.trim());
         return { regex: new RegExp(regex), email };
