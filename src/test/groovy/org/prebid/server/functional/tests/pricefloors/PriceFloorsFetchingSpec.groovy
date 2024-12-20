@@ -1299,8 +1299,8 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         and: "Response should contain error"
         assert response.ext?.errors[PREBID]*.code == [999]
         assert response.ext?.errors[PREBID]*.message ==
-                ["Failed to parse price floors from request, with a reason : Price floor floorMin " +
-                         "must be positive float, but was $invalidFloorMin "]
+                ["Failed to parse price floors from request, with a reason: Price floor floorMin " +
+                         "must be positive float, but was $invalidFloorMin"]
     }
 
     def "PBS should validate rules from request when request doesn't contain modelGroups"() {
@@ -1327,8 +1327,8 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         and: "Response should contain error"
         assert response.ext?.errors[PREBID]*.code == [999]
         assert response.ext?.errors[PREBID]*.message ==
-                ["Failed to parse price floors from request, with a reason : Price floor rules " +
-                         "should contain at least one model group "]
+                ["Failed to parse price floors from request, with a reason: Price floor rules " +
+                         "should contain at least one model group"]
     }
 
     def "PBS should validate rules from request when request doesn't contain values"() {
@@ -1355,8 +1355,8 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         and: "Response should contain error"
         assert response.ext?.errors[PREBID]*.code == [999]
         assert response.ext?.errors[PREBID]*.message ==
-                ["Failed to parse price floors from request, with a reason : Price floor rules values " +
-                         "can't be null or empty, but were null "]
+                ["Failed to parse price floors from request, with a reason: Price floor rules values " +
+                         "can't be null or empty, but were null"]
     }
 
     def "PBS should validate rules from request when modelWeight from request is invalid"() {
@@ -1387,8 +1387,8 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         and: "Response should contain error"
         assert response.ext?.errors[PREBID]*.code == [999]
         assert response.ext?.errors[PREBID]*.message ==
-                ["Failed to parse price floors from request, with a reason : Price floor modelGroup modelWeight " +
-                         "must be in range(1-100), but was $invalidModelWeight "]
+                ["Failed to parse price floors from request, with a reason: Price floor modelGroup modelWeight " +
+                         "must be in range(1-100), but was $invalidModelWeight"]
         where:
         invalidModelWeight << [0, MAX_MODEL_WEIGHT + 1]
     }
@@ -1426,8 +1426,8 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         and: "Response should contain error"
         assert response.ext?.errors[PREBID]*.code == [999]
         assert response.ext?.errors[PREBID]*.message ==
-                ["Failed to parse price floors from request, with a reason : Price floor modelGroup modelWeight " +
-                         "must be in range(1-100), but was $invalidModelWeight "]
+                ["Failed to parse price floors from request, with a reason: Price floor modelGroup modelWeight " +
+                         "must be in range(1-100), but was $invalidModelWeight"]
 
         where:
         invalidModelWeight << [0, MAX_MODEL_WEIGHT + 1]
@@ -1466,8 +1466,8 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         and: "Response should contain error"
         assert response.ext?.errors[PREBID]*.code == [999]
         assert response.ext?.errors[PREBID]*.message ==
-                ["Failed to parse price floors from request, with a reason : Price floor root skipRate " +
-                         "must be in range(0-100), but was $invalidSkipRate "]
+                ["Failed to parse price floors from request, with a reason: Price floor root skipRate " +
+                         "must be in range(0-100), but was $invalidSkipRate"]
 
         where:
         invalidSkipRate << [SKIP_RATE_MIN - 1, SKIP_RATE_MAX + 1]
@@ -1506,8 +1506,8 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         and: "Response should contain error"
         assert response.ext?.errors[PREBID]*.code == [999]
         assert response.ext?.errors[PREBID]*.message ==
-                ["Failed to parse price floors from request, with a reason : Price floor data skipRate " +
-                         "must be in range(0-100), but was $invalidSkipRate "]
+                ["Failed to parse price floors from request, with a reason: Price floor data skipRate " +
+                         "must be in range(0-100), but was $invalidSkipRate"]
 
         where:
         invalidSkipRate << [SKIP_RATE_MIN - 1, SKIP_RATE_MAX + 1]
@@ -1546,8 +1546,8 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         and: "Response should contain error"
         assert response.ext?.errors[PREBID]*.code == [999]
         assert response.ext?.errors[PREBID]*.message ==
-                ["Failed to parse price floors from request, with a reason : Price floor modelGroup skipRate " +
-                         "must be in range(0-100), but was $invalidSkipRate "]
+                ["Failed to parse price floors from request, with a reason: Price floor modelGroup skipRate " +
+                         "must be in range(0-100), but was $invalidSkipRate"]
 
         where:
         invalidSkipRate << [SKIP_RATE_MIN - 1, SKIP_RATE_MAX + 1]
@@ -1582,8 +1582,8 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         and: "Response should contain error"
         assert response.ext?.errors[PREBID]*.code == [999]
         assert response.ext?.errors[PREBID]*.message ==
-                ["Failed to parse price floors from request, with a reason : Price floor modelGroup default " +
-                         "must be positive float, but was $invalidDefaultFloorValue "]
+                ["Failed to parse price floors from request, with a reason: Price floor modelGroup default " +
+                         "must be positive float, but was $invalidDefaultFloorValue"]
     }
 
     def "PBS should not invalidate previously good fetched data when floors provider return invalid data"() {
@@ -2044,6 +2044,91 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
             !bidderRequest.ext.prebid.floors?.fetchStatus
             !bidderRequest.ext.prebid.floors?.location
         }
+    }
+
+    def "PBS should validate fetch.max-schema-dims from account config"() {
+        given: "Default BidRequest"
+        def bidRequest = BidRequest.getDefaultBidRequest(APP)
+
+        and: "Account with enabled fetch, fetch.url, maxSchemaDims in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.accountId).tap {
+            config.auction.priceFloors.fetch.maxSchemaDims = maxSchemaDims
+            config.auction.priceFloors.fetch.maxSchemaDimsSnakeCase = maxSchemaDimsSnakeCase
+        }
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        def response = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Metric alerts.account_config.ACCOUNT.price-floors should be update"
+        def metrics = floorsPbsService.sendCollectedMetricsRequest()
+        assert metrics[INVALID_CONFIG_METRIC(bidRequest.accountId) as String] == 1
+
+        and: "PBS floors validation failure should not reject the entire auction"
+        assert !response.seatbid?.isEmpty()
+
+        where:
+        maxSchemaDims                 | maxSchemaDimsSnakeCase
+        null                          | PBSUtils.randomNegativeNumber
+        null                          | PBSUtils.getRandomNumber(20)
+        PBSUtils.randomNegativeNumber | null
+        PBSUtils.getRandomNumber(20)  | null
+    }
+
+    def "PBS should validate price-floor.max-rules from account config"() {
+        given: "Default BidRequest"
+        def bidRequest = BidRequest.getDefaultBidRequest(APP)
+
+        and: "Account with enabled fetch, fetch.url, maxSchemaDims in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.accountId).tap {
+            config.auction.priceFloors.maxRules = maxRules
+            config.auction.priceFloors.maxRulesSnakeCase = maxRulesSnakeCase
+        }
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        def response = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Metric alerts.account_config.ACCOUNT.price-floors should be update"
+        def metrics = floorsPbsService.sendCollectedMetricsRequest()
+        assert metrics[INVALID_CONFIG_METRIC(bidRequest.accountId) as String] == 1
+
+        and: "PBS floors validation failure should not reject the entire auction"
+        assert !response.seatbid?.isEmpty()
+
+        where:
+        maxRules                      | maxRulesSnakeCase
+        null                          | PBSUtils.randomNegativeNumber
+        PBSUtils.randomNegativeNumber | null
+    }
+
+    def "PBS should validate price-floor.max-schema-dims from account config"() {
+        given: "Default BidRequest"
+        def bidRequest = BidRequest.getDefaultBidRequest(APP)
+
+        and: "Account with enabled fetch, fetch.url, maxSchemaDims in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.accountId).tap {
+            config.auction.priceFloors.maxSchemaDims = maxSchemaDims
+            config.auction.priceFloors.maxSchemaDimsSnakeCase = maxSchemaDimsSnakeCase
+        }
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        def response = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Metric alerts.account_config.ACCOUNT.price-floors should be update"
+        def metrics = floorsPbsService.sendCollectedMetricsRequest()
+        assert metrics[INVALID_CONFIG_METRIC(bidRequest.accountId) as String] == 1
+
+        and: "PBS floors validation failure should not reject the entire auction"
+        assert !response.seatbid?.isEmpty()
+
+        where:
+        maxSchemaDims                 | maxSchemaDimsSnakeCase
+        null                          | PBSUtils.randomNegativeNumber
+        null                          | PBSUtils.getRandomNumber(20)
+        PBSUtils.randomNegativeNumber | null
+        PBSUtils.getRandomNumber(20)  | null
     }
 
     static int convertKilobyteSizeToByte(int kilobyteSize) {

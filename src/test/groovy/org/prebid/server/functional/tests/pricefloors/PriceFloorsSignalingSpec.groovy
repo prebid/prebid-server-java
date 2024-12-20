@@ -27,6 +27,7 @@ import static org.prebid.server.functional.model.pricefloors.MediaType.VIDEO
 import static org.prebid.server.functional.model.pricefloors.PriceFloorField.MEDIA_TYPE
 import static org.prebid.server.functional.model.pricefloors.PriceFloorField.SITE_DOMAIN
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
+import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 
 class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
@@ -510,5 +511,142 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         assert bidderRequest.imp.first().bidFloor == bannerFloorValue
         assert bidderRequest.imp.last().bidFloor == videoFloorValue
+    }
+
+    def "PBS should emit warning when request has more rules than price-floor.max-rules"() {
+        given: "BidRequest with 2 rules"
+        def requestFloorValue = PBSUtils.randomFloorValue
+        def bidRequest = bidRequestWithFloors.tap {
+            ext.prebid.floors.data.modelGroups[0].values =
+                    [(rule)                                                       : requestFloorValue + 0.1,
+                     (new Rule(mediaType: BANNER, country: Country.MULTIPLE).rule): requestFloorValue]
+        }
+
+        and: "Account with maxRules in the DB"
+        def accountId = bidRequest.site.publisher.id
+        def account = getAccountWithEnabledFetch(accountId).tap {
+            config.auction.priceFloors.maxRules = maxRules
+            config.auction.priceFloors.maxRulesSnakeCase = maxRulesSnakeCase
+        }
+        accountDao.save(account)
+
+        and: "Set bidder response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidResponse.seatbid.first().bid.first().price = requestFloorValue
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS should log a warning"
+        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.message ==
+                ["Failed to parse price floors from request, with a reason: " +
+                         "Price floor rules number 2 exceeded its maximum number 1"]
+
+        where:
+        maxRules | maxRulesSnakeCase
+        1        | null
+        null     | 1
+    }
+
+    def "PBS should emit warning when request has more schema.fields than floor-config.max-schema-dims"() {
+        given: "BidRequest with schema 2 fields"
+        def bidRequest = bidRequestWithFloors
+
+        and: "Account with maxSchemaDims in the DB"
+        def accountId = bidRequest.site.publisher.id
+        def account = getAccountWithEnabledFetch(accountId).tap {
+            config.auction.priceFloors.maxSchemaDims = maxSchemaDims
+            config.auction.priceFloors.maxSchemaDimsSnakeCase = maxSchemaDimsSnakeCase
+        }
+        accountDao.save(account)
+
+        and: "Set bidder response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS should log a warning"
+        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.message ==
+                ["Failed to parse price floors from request, with a reason: " +
+                         "Price floor schema dimensions 2 exceeded its maximum number 1"]
+
+        where:
+        maxSchemaDims | maxSchemaDimsSnakeCase
+        1             | null
+        null          | 1
+    }
+
+    def "PBS should emit warning when request has more schema.fields than fetch.max-schema-dims"() {
+        given: "Default BidRequest with floorMin"
+        def bidRequest = bidRequestWithFloors
+
+        and: "Account with disabled fetch in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.accountId).tap {
+            config.auction.priceFloors.fetch.enabled = false
+            config.auction.priceFloors.maxSchemaDims = maxSchemaDims
+            config.auction.priceFloors.maxSchemaDimsSnakeCase = maxSchemaDimsSnakeCase
+        }
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        def response = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS should log a warning"
+        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.message ==
+                ["Failed to parse price floors from request, with a reason: " +
+                         "Price floor schema dimensions 2 exceeded its maximum number 1"]
+
+        where:
+        maxSchemaDims | maxSchemaDimsSnakeCase
+        1             | null
+        null          | 1
+    }
+
+    def "PBS should emit warning when stored request has more rules than price-floor.max-rules for amp request"() {
+        given: "Default AmpRequest"
+        def ampRequest = AmpRequest.defaultAmpRequest
+
+        and: "Default stored request with 2 rules "
+        def requestFloorValue = PBSUtils.randomFloorValue
+        def ampStoredRequest = BidRequest.defaultStoredRequest.tap {
+            ext.prebid.floors = ExtPrebidFloors.extPrebidFloors
+            ext.prebid.floors.data.modelGroups[0].values =
+                    [(rule)                                                       : requestFloorValue + 0.1,
+                     (new Rule(mediaType: BANNER, country: Country.MULTIPLE).rule): requestFloorValue]
+        }
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        and: "Account with maxRules in the DB"
+        def account = getAccountWithEnabledFetch(ampRequest.account as String).tap {
+            config.auction.priceFloors.maxRules = maxRules
+            config.auction.priceFloors.maxRulesSnakeCase = maxRulesSnakeCase
+        }
+        accountDao.save(account)
+
+        and: "Set bidder response"
+        def bidResponse = BidResponse.getDefaultBidResponse(ampStoredRequest)
+        bidResponse.seatbid.first().bid.first().price = requestFloorValue
+        bidder.setResponse(ampStoredRequest.id, bidResponse)
+
+        when: "PBS processes amp request"
+        def response = floorsPbsService.sendAmpRequest(ampRequest)
+
+        then: "PBS should log a warning"
+        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.message ==
+                ["Failed to parse price floors from request, with a reason: " +
+                         "Price floor schema dimensions 2 exceeded its maximum number 1"]
+
+        where:
+        maxRules | maxRulesSnakeCase
+        1        | null
+        null     | 1
     }
 }
