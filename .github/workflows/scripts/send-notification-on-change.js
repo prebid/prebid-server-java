@@ -32,15 +32,17 @@ async function getAccessToken(clientId, clientSecret, refreshToken) {
   const token = process.env.GITHUB_TOKEN;
 
   // Generate OAuth2 access token
-  const CLIENT_ID = process.env.OAUTH2_CLIENT_ID;
-  const CLIENT_SECRET = process.env.OAUTH2_CLIENT_SECRET;
-  const REFRESH_TOKEN = process.env.OAUTH2_REFRESH_TOKEN;
+  const clientId = process.env.OAUTH2_CLIENT_ID;
+  const clientSecret = process.env.OAUTH2_CLIENT_SECRET;
+  const refreshToken = process.env.OAUTH2_REFRESH_TOKEN;
 
-  if (!repo || !prNumber || !token || !CLIENT_ID || !CLIENT_SECRET | !REFRESH_TOKEN) {
+  // validate params
+  if (!repo || !prNumber || !token || !clientId || !clientSecret | !refreshToken) {
     console.error('Missing required environment variables.');
     process.exit(1);
   }
 
+  // the whole process is in a big try/catch. e.g. if the config file doesn't exist, github is down, etc.
   try {
     // Read and process the configuration file
     const configFileContent = fs.readFileSync(configFilePath, 'utf-8');
@@ -52,10 +54,9 @@ async function getAccessToken(clientId, clientSecret, refreshToken) {
         return { regex: new RegExp(regex), email };
       });
 
-    // Fetch changed files
+    // Fetch changed files from github
     const [owner, repoName] = repo.split('/');
     const apiUrl = `https://api.github.com/repos/${owner}/${repoName}/pulls/${prNumber}/files`;
-
     const response = await axios.get(apiUrl, {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -66,7 +67,7 @@ async function getAccessToken(clientId, clientSecret, refreshToken) {
     const changedFiles = response.data.map(file => file.filename);
     console.log('Changed files:', changedFiles);
 
-    // Group matched files by email address
+    // match file pathnames that are in the config and group them by email address
     const matchesByEmail = {};
     changedFiles.forEach(file => {
       configRules.forEach(rule => {
@@ -79,7 +80,7 @@ async function getAccessToken(clientId, clientSecret, refreshToken) {
       });
     });
 
-    // Exit successfully if no matches are found
+    // Exit successfully if no matches were found
     if (Object.keys(matchesByEmail).length === 0) {
       console.log('No matches found. Exiting successfully.');
       process.exit(0);
@@ -87,7 +88,8 @@ async function getAccessToken(clientId, clientSecret, refreshToken) {
 
     console.log('Grouped matches by email:', matchesByEmail);
 
-    const accessToken = await getAccessToken(CLIENT_ID, CLIENT_SECRET, REFRESH_TOKEN);
+    // get ready to email the changes
+    const accessToken = await getAccessToken(clientId, clientSecret, refreshToken);
 
     // Configure Nodemailer with OAuth2
     //  service: 'Gmail',
@@ -98,9 +100,9 @@ async function getAccessToken(clientId, clientSecret, refreshToken) {
       auth: {
         type: 'OAuth2',
         user: 'info@prebid.org',
-        clientId: CLIENT_ID,
-        clientSecret: CLIENT_SECRET,
-        refreshToken: REFRESH_TOKEN,
+        clientId: clientId,
+        clientSecret: clientSecret,
+        refreshToken: refreshToken,
         accessToken: accessToken
       },
     });
@@ -135,4 +137,3 @@ async function getAccessToken(clientId, clientSecret, refreshToken) {
     process.exit(1);
   }
 })();
-
