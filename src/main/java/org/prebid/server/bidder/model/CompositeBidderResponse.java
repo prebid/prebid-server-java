@@ -34,15 +34,6 @@ public class CompositeBidderResponse {
         return builder().build();
     }
 
-    public static CompositeBidderResponse withBids(List<BidderBid> bids,
-                                                   List<FledgeAuctionConfig> fledgeAuctionConfigs) {
-
-        return builder()
-                .bids(bids)
-                .fledgeAuctionConfigs(fledgeAuctionConfigs)
-                .build();
-    }
-
     public static CompositeBidderResponse withError(BidderError error) {
         return builder().errors(Collections.singletonList(error)).build();
     }

@@ -82,6 +82,9 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidResponsePrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
 import org.prebid.server.proto.openrtb.ext.response.ExtDebugTrace;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
+import org.prebid.server.proto.openrtb.ext.response.ExtIgi;
+import org.prebid.server.proto.openrtb.ext.response.ExtIgiIgs;
+import org.prebid.server.proto.openrtb.ext.response.ExtIgiIgsExt;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseCache;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 import org.prebid.server.proto.openrtb.ext.response.ExtTraceActivityInfrastructure;
@@ -414,7 +417,8 @@ public class BidResponseCreator {
                     seatBid.getHttpCalls(),
                     seatBid.getErrors(),
                     seatBid.getWarnings(),
-                    seatBid.getFledgeAuctionConfigs());
+                    seatBid.getFledgeAuctionConfigs(),
+                    seatBid.getIgi());
 
             result.add(BidderResponseInfo.of(bidder, bidderSeatBidInfo, bidderResponse.getResponseTime()));
         }
@@ -762,6 +766,7 @@ public class BidResponseCreator {
 
         final Map<String, Integer> responseTimeMillis = toResponseTimes(bidderResponseInfos, cacheResult);
 
+        final List<ExtIgi> extIgi = toExtBidResponseIgi(bidderResponseInfos);
         final ExtBidResponseFledge extBidResponseFledge = toExtBidResponseFledge(bidderResponseInfos, auctionContext);
         final ExtBidResponsePrebid prebid = toExtBidResponsePrebid(
                 auctionTimestamp, auctionContext.getBidRequest(), extBidResponseFledge);
@@ -772,6 +777,7 @@ public class BidResponseCreator {
                 .warnings(warnings)
                 .responsetimemillis(responseTimeMillis)
                 .tmaxrequest(auctionContext.getBidRequest().getTmax())
+                .igi(extIgi)
                 .prebid(prebid)
                 .build();
     }
@@ -825,6 +831,25 @@ public class BidResponseCreator {
                 .bidder(bidderName)
                 .adapter(bidderName)
                 .build();
+    }
+
+    private static List<ExtIgi> toExtBidResponseIgi(List<BidderResponseInfo> bidderResponseInfos) {
+        return bidderResponseInfos.stream()
+                .flatMap(responseInfo -> responseInfo.getSeatBid().getIgi().stream()
+                        .map(igi -> extIgiWithBidder(igi, responseInfo.getBidder())))
+                .toList();
+    }
+
+    private static ExtIgi extIgiWithBidder(ExtIgi extIgi, String bidderName) {
+        final List<ExtIgiIgs> extIgiIgs = CollectionUtils.emptyIfNull(extIgi.getIgs()).stream()
+                .map(igs -> Optional.ofNullable(igs)
+                        .map(ExtIgiIgs::toBuilder)
+                        .orElseGet(ExtIgiIgs::builder)
+                        .ext(ExtIgiIgsExt.of(bidderName, bidderName))
+                        .build())
+                .toList();
+
+        return extIgi.toBuilder().igs(extIgiIgs).build();
     }
 
     private static ExtResponseDebug toExtResponseDebug(List<BidderResponseInfo> bidderResponseInfos,

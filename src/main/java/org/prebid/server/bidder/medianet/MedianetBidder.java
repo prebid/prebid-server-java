@@ -19,7 +19,8 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
-import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
+import org.prebid.server.proto.openrtb.ext.response.ExtIgi;
+import org.prebid.server.proto.openrtb.ext.response.ExtIgiIgs;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
@@ -64,12 +65,9 @@ public class MedianetBidder implements Bidder<BidRequest> {
         }
 
         final List<BidderError> errors = new ArrayList<>();
-        final List<BidderBid> bids = extractBids(httpCall.getRequest().getPayload(), bidResponse, errors);
-        final List<FledgeAuctionConfig> fledgeAuctionConfigs = extractFledge(bidResponse);
-
         return CompositeBidderResponse.builder()
-                .bids(bids)
-                .fledgeAuctionConfigs(fledgeAuctionConfigs)
+                .bids(extractBids(httpCall.getRequest().getPayload(), bidResponse, errors))
+                .igi(extractIgi(bidResponse))
                 .errors(errors)
                 .build();
     }
@@ -138,15 +136,17 @@ public class MedianetBidder implements Bidder<BidRequest> {
         return BidType.banner;
     }
 
-    private static List<FledgeAuctionConfig> extractFledge(MedianetBidResponse bidResponse) {
-        return Optional.ofNullable(bidResponse)
+    private static List<ExtIgi> extractIgi(MedianetBidResponse bidResponse) {
+        final List<ExtIgiIgs> igs = Optional.ofNullable(bidResponse)
                 .map(MedianetBidResponse::getExt)
                 .map(MedianetBidResponseExt::getIgi)
                 .orElse(Collections.emptyList())
                 .stream()
                 .map(InterestGroupAuctionIntent::getIgs)
                 .flatMap(Collection::stream)
-                .map(e -> FledgeAuctionConfig.builder().impId(e.getImpId()).config(e.getConfig()).build())
+                .map(e -> ExtIgiIgs.builder().impId(e.getImpId()).config(e.getConfig()).build())
                 .toList();
+
+        return Collections.singletonList(ExtIgi.builder().igs(igs).build());
     }
 }

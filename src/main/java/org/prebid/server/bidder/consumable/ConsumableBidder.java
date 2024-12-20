@@ -121,9 +121,12 @@ public class ConsumableBidder implements Bidder<BidRequest> {
     public CompositeBidderResponse makeBidderResponse(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            final List<BidderError> bidderErrors = new ArrayList<>();
-            return CompositeBidderResponse.builder().bids(extractConsumableBids(bidRequest, bidResponse, bidderErrors))
-                    .errors(bidderErrors).build();
+            final List<BidderError> errors = new ArrayList<>();
+
+            return CompositeBidderResponse.builder()
+                    .bids(extractConsumableBids(bidRequest, bidResponse, errors))
+                    .errors(errors)
+                    .build();
         } catch (DecodeException e) {
             return CompositeBidderResponse.withError(BidderError.badServerResponse(e.getMessage()));
         }

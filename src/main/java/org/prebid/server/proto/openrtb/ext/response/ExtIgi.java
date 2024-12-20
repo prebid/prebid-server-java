@@ -9,7 +9,7 @@ import java.util.List;
  * Defines the contract for bidresponse.ext.igi
  */
 @Value
-@Builder
+@Builder(toBuilder = true)
 public class ExtIgi {
 
     String impid;
