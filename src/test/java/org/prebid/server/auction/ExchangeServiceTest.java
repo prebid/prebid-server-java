@@ -310,7 +310,8 @@ public class ExchangeServiceTest extends VertxTest {
                 false,
                 false,
                 CompressionType.NONE,
-                Ortb.of(false)));
+                Ortb.of(false),
+                0L));
 
         given(privacyEnforcementService.mask(any(), argThat(MapUtils::isNotEmpty), any()))
                 .willAnswer(inv ->
@@ -381,7 +382,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(criteriaLogManager.traceResponse(any(), any(), any(), anyBoolean()))
                 .willAnswer(inv -> inv.getArgument(1));
 
-        given(timeoutResolver.adjustForBidder(anyLong(), anyInt(), anyLong()))
+        given(timeoutResolver.adjustForBidder(anyLong(), anyInt(), anyLong(), anyLong()))
                 .willAnswer(invocation -> invocation.getArgument(0));
 
         given(timeoutResolver.adjustForRequest(anyLong(), anyLong()))
@@ -3774,7 +3775,9 @@ public class ExchangeServiceTest extends VertxTest {
                 false,
                 false,
                 CompressionType.NONE,
-                Ortb.of(false)));
+                Ortb.of(false),
+                0L));
+
         given(bidResponseCreator.create(
                 argThat(argument -> argument.getAuctionParticipations().getFirst()
                         .getBidderResponse()
@@ -3837,17 +3840,35 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldPassAdjustedTimeoutToAdapterAndToBidResponseCreator() {
         // given
-        given(timeoutResolver.adjustForBidder(anyLong(), eq(90), anyLong()))
-                .willReturn(400L);
-        given(timeoutResolver.adjustForRequest(anyLong(), anyLong()))
-                .willReturn(450L);
+        given(bidderCatalog.bidderInfoByName(anyString())).willReturn(BidderInfo.create(
+                true,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                0,
+                null,
+                false,
+                false,
+                CompressionType.NONE,
+                Ortb.of(false),
+                100L));
+
+        given(timeoutResolver.adjustForBidder(anyLong(), eq(90), eq(200L), eq(100L))).willReturn(400L);
+        given(timeoutResolver.adjustForRequest(anyLong(), eq(200L))).willReturn(450L);
 
         final BidRequest bidRequest = givenBidRequest(
                 givenSingleImp(singletonMap("bidderName", 1)),
                 request -> request.source(Source.builder().tid("uniqTid").build()));
 
         // when
-        target.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest).toBuilder()
+                .timeoutContext(TimeoutContext.of(clock.millis() - 200L, timeout, 90)).build());
 
         // then
         final ArgumentCaptor<BidderRequest> bidderRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
