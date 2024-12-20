@@ -27,6 +27,7 @@ jobs:
         with:
           distribution: 'temurin'
           cache: 'maven'
+          cache-dependency-path: extra/pom.xml
           java-version: ${{ matrix.java }}
 
       - name: Build with Maven
