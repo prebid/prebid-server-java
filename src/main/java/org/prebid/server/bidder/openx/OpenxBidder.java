@@ -295,7 +295,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
                 .orElse(Collections.emptyMap())
                 .entrySet()
                 .stream()
-                .map(e -> ExtIgiIgs.builder().impId(e.getKey()).config(e.getValue()).build())
+                .map(ext -> ExtIgiIgs.builder().impId(ext.getKey()).config(ext.getValue()).build())
                 .toList();
 
         return Collections.singletonList(ExtIgi.builder().igs(igs).build());
