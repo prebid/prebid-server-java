@@ -51,10 +51,10 @@ public class HostVendorTcfDefinerService {
         return HostVendorTcfResponse.of(
                 tcfResponse.getUserInGdprScope(),
                 tcfResponse.getCountry(),
-                isCookieSyncAllowed(tcfResponse));
+                isVendorAllowed(tcfResponse));
     }
 
-    private boolean isCookieSyncAllowed(TcfResponse<Integer> hostTcfResponse) {
+    private boolean isVendorAllowed(TcfResponse<Integer> hostTcfResponse) {
         return Optional.ofNullable(hostTcfResponse.getActions())
                 .map(vendorIdToAction -> vendorIdToAction.get(gdprHostVendorId))
                 .map(hostActions -> !hostActions.isBlockPixelSync())
