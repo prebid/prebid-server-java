@@ -20,5 +20,7 @@ public class RubiconImpExt {
 
     ObjectNode skadn;
 
+    String tid;
+
     RubiconImpExtPrebid prebid;
 }

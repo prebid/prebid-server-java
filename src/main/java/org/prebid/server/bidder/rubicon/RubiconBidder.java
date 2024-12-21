@@ -154,6 +154,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final String FPD_KEYWORDS_FIELD = "keywords";
     private static final String DFP_ADUNIT_CODE_FIELD = "dfp_ad_unit_code";
     private static final String STYPE_FIELD = "stype";
+    private static final String TID_FIELD = "tid";
     private static final String PREBID_EXT = "prebid";
     private static final String PBS_LOGIN = "pbs_login";
     private static final String PBS_VERSION = "pbs_version";
@@ -700,6 +701,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .maxbids(getMaxBids(extRequest))
                 .gpid(getGpid(imp.getExt()))
                 .skadn(getSkadn(imp.getExt()))
+                .tid(getTid(imp.getExt()))
                 .prebid(rubiconImpExtPrebid)
                 .build();
     }
@@ -945,6 +947,11 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private ObjectNode getSkadn(ObjectNode impExt) {
         final JsonNode skadnNode = impExt.get(FPD_SKADN_FIELD);
         return skadnNode != null && skadnNode.isObject() ? (ObjectNode) skadnNode : null;
+    }
+
+    private String getTid(ObjectNode impExt) {
+        final JsonNode tidNode = impExt.get(TID_FIELD);
+        return tidNode != null && tidNode.isTextual() ? tidNode.asText() : null;
     }
 
     private String getAdSlot(Imp imp) {
