@@ -17,7 +17,6 @@ import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThresholdCa
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.GreenbidsInvocationService;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.GreenbidsRealTimeDataProcessedAuctionRequestHook;
 import org.prebid.server.json.ObjectMapperProvider;
-import org.prebid.server.vertx.httpclient.HttpClient;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -33,8 +32,8 @@ public class GreenbidsRealTimeDataConfiguration {
 
     @Bean
     DatabaseReaderFactory databaseReaderFactory(
-            GreenbidsRealTimeDataProperties properties, Vertx vertx, HttpClient httpClient) {
-        return new DatabaseReaderFactory(properties, vertx, httpClient);
+            GreenbidsRealTimeDataProperties properties, Vertx vertx) {
+        return new DatabaseReaderFactory(properties, vertx);
     }
 
     @Bean

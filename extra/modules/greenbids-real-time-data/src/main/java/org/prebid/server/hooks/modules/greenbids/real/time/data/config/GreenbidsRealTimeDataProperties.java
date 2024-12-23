@@ -11,10 +11,6 @@ public class GreenbidsRealTimeDataProperties {
 
     String geoLiteCountryPath;
 
-    String maxMindAccountId;
-
-    String maxMindLicenseKey;
-
     String gcsBucketName;
 
     Integer cacheExpirationMinutes;
