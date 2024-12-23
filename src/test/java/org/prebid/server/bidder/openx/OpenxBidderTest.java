@@ -7,7 +7,6 @@ import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
@@ -91,30 +90,10 @@ public class OpenxBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(2)
                 .containsExactly(
-                        BidderError.badInput("OpenX only supports banner and video imps. Ignoring imp id=impId1"),
                         BidderError.badInput(
-                                "OpenX only supports banner and video imps. Ignoring imp id=impId2"));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnResultWithErrorWhenNativeImpsPresent() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(asList(
-                        Imp.builder().id("impId1").xNative(Native.builder().build()).build(),
-                        Imp.builder().id("impId2").xNative(Native.builder().build()).build()))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(2)
-                .containsExactly(
-                        BidderError.badInput("OpenX only supports banner and video imps. Ignoring imp id=impId1"),
+                                "OpenX only supports banner, video and native imps. Ignoring imp id=impId1"),
                         BidderError.badInput(
-                                "OpenX only supports banner and video imps. Ignoring imp id=impId2"));
+                                "OpenX only supports banner, video and native imps. Ignoring imp id=impId2"));
     }
 
     @Test
@@ -254,7 +233,7 @@ public class OpenxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsExactly(BidderError.badInput(
-                        "OpenX only supports banner and video imps. Ignoring imp id=impId1"));
+                        "OpenX only supports banner, video and native imps. Ignoring imp id=impId1"));
 
         assertThat(result.getValue()).hasSize(3)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))

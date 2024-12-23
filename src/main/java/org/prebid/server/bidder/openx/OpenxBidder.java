@@ -72,9 +72,12 @@ public class OpenxBidder implements Bidder<BidRequest> {
                 .collect(Collectors.groupingBy(OpenxBidder::resolveImpType));
 
         final List<BidderError> processingErrors = new ArrayList<>();
-        final List<BidRequest> outgoingRequests = makeRequests(bidRequest,
+        final List<BidRequest> outgoingRequests = makeRequests(
+                bidRequest,
                 differentiatedImps.get(OpenxImpType.banner),
-                differentiatedImps.get(OpenxImpType.video), processingErrors);
+                differentiatedImps.get(OpenxImpType.video),
+                differentiatedImps.get(OpenxImpType.xNative),
+                processingErrors);
 
         final List<BidderError> errors = errors(differentiatedImps.get(OpenxImpType.other), processingErrors);
 
@@ -101,8 +104,12 @@ public class OpenxBidder implements Bidder<BidRequest> {
         return Result.withError(BidderError.generic("Deprecated adapter method invoked"));
     }
 
-    private List<BidRequest> makeRequests(BidRequest bidRequest, List<Imp> bannerImps, List<Imp> videoImps,
-                                          List<BidderError> errors) {
+    private List<BidRequest> makeRequests(
+            BidRequest bidRequest,
+            List<Imp> bannerImps,
+            List<Imp> videoImps,
+            List<Imp> nativeImps,
+            List<BidderError> errors) {
         final List<BidRequest> bidRequests = new ArrayList<>();
         // single request for all banner imps
         final BidRequest bannerRequest = createSingleRequest(bannerImps, bidRequest, errors);
@@ -118,6 +125,12 @@ public class OpenxBidder implements Bidder<BidRequest> {
                     .filter(Objects::nonNull)
                     .toList());
         }
+
+        // single request for all native imps
+        final BidRequest nativeRequest = createSingleRequest(nativeImps, bidRequest, errors);
+        if (nativeRequest != null) {
+            bidRequests.add(nativeRequest);
+        }
         return bidRequests;
     }
 
@@ -128,7 +141,23 @@ public class OpenxBidder implements Bidder<BidRequest> {
         if (imp.getVideo() != null) {
             return OpenxImpType.video;
         }
+        if (imp.getXNative() != null) {
+            return OpenxImpType.xNative;
+        }
         return OpenxImpType.other;
+    }
+
+    private static BidType resolveBidType(Imp imp) {
+        if (imp.getBanner() != null) {
+            return BidType.banner;
+        }
+        if (imp.getVideo() != null) {
+            return BidType.video;
+        }
+        if (imp.getXNative() != null) {
+            return BidType.xNative;
+        }
+        return BidType.banner;
     }
 
     private List<BidderError> errors(List<Imp> notSupportedImps, List<BidderError> processingErrors) {
@@ -137,7 +166,8 @@ public class OpenxBidder implements Bidder<BidRequest> {
         if (CollectionUtils.isNotEmpty(notSupportedImps)) {
             errors.addAll(
                     notSupportedImps.stream()
-                            .map(imp -> "OpenX only supports banner and video imps. Ignoring imp id=" + imp.getId())
+                            .map(imp ->
+                                    "OpenX only supports banner, video and native imps. Ignoring imp id=" + imp.getId())
                             .map(BidderError::badInput)
                             .toList());
         }
@@ -276,7 +306,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
 
     private static Map<String, BidType> impIdToBidType(BidRequest bidRequest) {
         return bidRequest.getImp().stream()
-                .collect(Collectors.toMap(Imp::getId, imp -> imp.getBanner() != null ? BidType.banner : BidType.video));
+                .collect(Collectors.toMap(Imp::getId, OpenxBidder::resolveBidType));
     }
 
     private static BidType getBidType(Bid bid, Map<String, BidType> impIdToBidType) {
