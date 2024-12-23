@@ -370,7 +370,7 @@ public class OpenxBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .containsExactly(
-                        // check if all native imps are part of single bidRequest
+                        // check if all native and banner imps are part of single bidRequest
                         BidRequest.builder()
                                 .id("bidRequestId")
                                 .imp(asList(
