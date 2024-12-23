@@ -33,6 +33,7 @@ import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisherPrebid;
+import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
 
@@ -120,6 +121,7 @@ public class VideoRequestFactory {
                 .map(auctionContext -> auctionContext.with(debugResolver.debugContextFrom(auctionContext)))
 
                 .compose(auctionContext -> ortb2RequestFactory.validateRequest(
+                                auctionContext.getAccount(),
                                 auctionContext.getBidRequest(),
                                 auctionContext.getHttpRequest(),
                                 auctionContext.getDebugContext(),

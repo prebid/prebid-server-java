@@ -336,6 +336,22 @@ public class Metrics extends UpdatableMetrics {
         forAdapter(bidder).request().incCounter(errorMetric);
     }
 
+    public void updateAdapterRequestDisabledBidderMetric(String bidder, Account account) {
+        forAdapter(bidder).request().incCounter(MetricName.disabled_bidder);
+        if (accountMetricsVerbosityResolver.forAccount(account)
+                .isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
+            forAccount(account.getId()).adapter().forAdapter(bidder).request().incCounter(MetricName.disabled_bidder);
+        }
+    }
+
+    public void updateAdapterRequestUnknownBidderMetric(String bidder, Account account) {
+        forAdapter(bidder).request().incCounter(MetricName.unknown_bidder);
+        if (accountMetricsVerbosityResolver.forAccount(account)
+                .isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
+            forAccount(account.getId()).adapter().forAdapter(bidder).request().incCounter(MetricName.unknown_bidder);
+        }
+    }
+
     public void updateAnalyticEventMetric(String analyticCode, MetricName eventType, MetricName result) {
         forAnalyticReporter(analyticCode).forEventType(eventType).incCounter(result);
     }

@@ -615,6 +615,40 @@ public class MetricsTest {
     }
 
     @Test
+    public void updateAdapterRequestUnknownBidderMetricsShouldIncrementMetrics() {
+        // when
+        metrics.updateAdapterRequestUnknownBidderMetric(RUBICON, Account.empty(ACCOUNT_ID));
+        metrics.updateAdapterRequestUnknownBidderMetric(CONVERSANT, Account.empty(ACCOUNT_ID));
+        metrics.updateAdapterRequestUnknownBidderMetric(CONVERSANT, Account.empty(ACCOUNT_ID));
+
+        // then
+        assertThat(metricRegistry.counter("adapter.rubicon.requests.unknown_bidder").getCount()).isOne();
+        assertThat(metricRegistry.counter(
+                "account.accountId.adapter.rubicon.requests.unknown_bidder").getCount()).isOne();
+        assertThat(metricRegistry.counter(
+                "adapter.conversant.requests.unknown_bidder").getCount()).isEqualTo(2);
+        assertThat(metricRegistry.counter(
+                "account.accountId.adapter.conversant.requests.unknown_bidder").getCount()).isEqualTo(2);
+    }
+
+    @Test
+    public void updateAdapterRequestDisabledBidderMetricsShouldIncrementMetrics() {
+        // when
+        metrics.updateAdapterRequestDisabledBidderMetric(RUBICON, Account.empty(ACCOUNT_ID));
+        metrics.updateAdapterRequestDisabledBidderMetric(CONVERSANT, Account.empty(ACCOUNT_ID));
+        metrics.updateAdapterRequestDisabledBidderMetric(CONVERSANT, Account.empty(ACCOUNT_ID));
+
+        // then
+        assertThat(metricRegistry.counter("adapter.rubicon.requests.disabled_bidder").getCount()).isOne();
+        assertThat(metricRegistry.counter(
+                "account.accountId.adapter.rubicon.requests.disabled_bidder").getCount()).isOne();
+        assertThat(metricRegistry.counter(
+                "adapter.conversant.requests.disabled_bidder").getCount()).isEqualTo(2);
+        assertThat(metricRegistry.counter(
+                "account.accountId.adapter.conversant.requests.disabled_bidder").getCount()).isEqualTo(2);
+    }
+
+    @Test
     public void updateAdapterRequestErrorMetricShouldIncrementMetrics() {
         // when
         metrics.updateAdapterRequestErrorMetric(RUBICON, MetricName.badinput);
@@ -965,16 +999,22 @@ public class MetricsTest {
         metrics.updateAdapterRequestNobidMetrics(RUBICON, Account.empty(ACCOUNT_ID));
         metrics.updateAdapterRequestGotbidsMetrics(RUBICON, Account.empty(ACCOUNT_ID));
         metrics.updateAdapterBidMetrics(RUBICON, Account.empty(ACCOUNT_ID), 1234L, true, "banner");
+        metrics.updateAdapterRequestDisabledBidderMetric(RUBICON, Account.empty(ACCOUNT_ID));
+        metrics.updateAdapterRequestUnknownBidderMetric(RUBICON, Account.empty(ACCOUNT_ID));
 
         // then
         assertThat(metricRegistry.counter("account.accountId.requests").getCount()).isZero();
         assertThat(metricRegistry.counter("account.accountId.debug_requests").getCount()).isZero();
         assertThat(metricRegistry.counter("account.accountId.requests.type.openrtb2-web").getCount()).isZero();
-        assertThat(metricRegistry.timer("account.accountId.rubicon.request_time").getCount()).isZero();
-        assertThat(metricRegistry.counter("account.accountId.rubicon.requests.nobid").getCount()).isZero();
-        assertThat(metricRegistry.counter("account.accountId.rubicon.requests.gotbids").getCount()).isZero();
-        assertThat(metricRegistry.histogram("account.accountId.rubicon.prices").getCount()).isZero();
-        assertThat(metricRegistry.counter("account.accountId.rubicon.bids_received").getCount()).isZero();
+        assertThat(metricRegistry.timer("account.accountId.adapter.rubicon.request_time").getCount()).isZero();
+        assertThat(metricRegistry.counter("account.accountId.adapter.rubicon.requests.nobid").getCount()).isZero();
+        assertThat(metricRegistry.counter("account.accountId.adapter.rubicon.requests.gotbids").getCount()).isZero();
+        assertThat(metricRegistry.histogram("account.accountId.adapter.rubicon.prices").getCount()).isZero();
+        assertThat(metricRegistry.counter("account.accountId.adapter.rubicon.bids_received").getCount()).isZero();
+        assertThat(metricRegistry.counter(
+                "account.accountId.adapter.rubicon.requests.unknown_bidder").getCount()).isZero();
+        assertThat(metricRegistry.counter(
+                "account.accountId.adapter.rubicon.requests.disabled_bidder").getCount()).isZero();
     }
 
     @Test
@@ -990,16 +1030,58 @@ public class MetricsTest {
         metrics.updateAdapterRequestNobidMetrics(RUBICON, Account.empty(ACCOUNT_ID));
         metrics.updateAdapterRequestGotbidsMetrics(RUBICON, Account.empty(ACCOUNT_ID));
         metrics.updateAdapterBidMetrics(RUBICON, Account.empty(ACCOUNT_ID), 1234L, true, "banner");
+        metrics.updateAdapterRequestDisabledBidderMetric(RUBICON, Account.empty(ACCOUNT_ID));
+        metrics.updateAdapterRequestUnknownBidderMetric(RUBICON, Account.empty(ACCOUNT_ID));
 
         // then
         assertThat(metricRegistry.counter("account.accountId.requests").getCount()).isOne();
         assertThat(metricRegistry.counter("account.accountId.debug_requests").getCount()).isZero();
         assertThat(metricRegistry.counter("account.accountId.requests.type.openrtb2-web").getCount()).isZero();
         assertThat(metricRegistry.timer("account.accountId.rubicon.request_time").getCount()).isZero();
-        assertThat(metricRegistry.counter("account.accountId.rubicon.requests.nobid").getCount()).isZero();
-        assertThat(metricRegistry.counter("account.accountId.rubicon.requests.gotbids").getCount()).isZero();
-        assertThat(metricRegistry.histogram("account.accountId.rubicon.prices").getCount()).isZero();
-        assertThat(metricRegistry.counter("account.accountId.rubicon.bids_received").getCount()).isZero();
+        assertThat(metricRegistry.counter("account.accountId.adapter.rubicon.requests.nobid").getCount()).isZero();
+        assertThat(metricRegistry.counter("account.accountId.adapter.rubicon.requests.gotbids").getCount()).isZero();
+        assertThat(metricRegistry.histogram("account.accountId.adapter.rubicon.prices").getCount()).isZero();
+        assertThat(metricRegistry.counter("account.accountId.adapter.rubicon.bids_received").getCount()).isZero();
+        assertThat(metricRegistry.counter(
+                "account.accountId.adapter.rubicon.requests.unknown_bidder").getCount()).isZero();
+        assertThat(metricRegistry.counter(
+                "account.accountId.adapter.rubicon.requests.disabled_bidder").getCount()).isZero();
+    }
+
+    @Test
+    public void shouldUpdateAccountRequestsMetricOnlyIfVerbosityIsDetailed() {
+        // given
+        given(accountMetricsVerbosityResolver.forAccount(any())).willReturn(AccountMetricsVerbosityLevel.detailed);
+
+        // when
+        metrics.updateAccountRequestMetrics(Account.empty(ACCOUNT_ID), MetricName.openrtb2web);
+        metrics.updateAccountDebugRequestMetrics(Account.empty(ACCOUNT_ID), false);
+        metrics.updateAccountDebugRequestMetrics(Account.empty(ACCOUNT_ID), true);
+        metrics.updateAdapterResponseTime(RUBICON, Account.empty(ACCOUNT_ID), 500);
+        metrics.updateAdapterRequestNobidMetrics(RUBICON, Account.empty(ACCOUNT_ID));
+        metrics.updateAdapterRequestGotbidsMetrics(RUBICON, Account.empty(ACCOUNT_ID));
+        metrics.updateAdapterBidMetrics(RUBICON, Account.empty(ACCOUNT_ID), 1234L, true, "banner");
+        metrics.updateAdapterRequestDisabledBidderMetric(RUBICON, Account.empty(ACCOUNT_ID));
+        metrics.updateAdapterRequestUnknownBidderMetric(RUBICON, Account.empty(ACCOUNT_ID));
+
+        // then
+        assertThat(metricRegistry.counter("account.accountId.requests").getCount()).isOne();
+        assertThat(metricRegistry.counter("account.accountId.debug_requests").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.counter("account.accountId.requests.type.openrtb2-web").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.counter("account.accountId.adapter.rubicon.requests.nobid").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.counter("account.accountId.adapter.rubicon.requests.gotbids").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.histogram("account.accountId.adapter.rubicon.prices").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.counter("account.accountId.adapter.rubicon.bids_received").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.counter(
+                "account.accountId.adapter.rubicon.requests.unknown_bidder").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter(
+                "account.accountId.adapter.rubicon.requests.disabled_bidder").getCount()).isEqualTo(1);
     }
 
     @Test
