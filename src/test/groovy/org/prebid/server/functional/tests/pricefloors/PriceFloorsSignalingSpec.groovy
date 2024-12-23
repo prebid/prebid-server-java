@@ -513,7 +513,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         assert bidderRequest.imp.last().bidFloor == videoFloorValue
     }
 
-    def "PBS should emit warning when request has more rules than price-floor.max-rules"() {
+    def "PBS should emit errors when request has more rules than price-floor.max-rules"() {
         given: "BidRequest with 2 rules"
         def requestFloorValue = PBSUtils.randomFloorValue
         def bidRequest = bidRequestWithFloors.tap {
@@ -538,9 +538,9 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         when: "PBS processes auction request"
         def response = floorsPbsService.sendAuctionRequest(bidRequest)
 
-        then: "PBS should log a warning"
-        assert response.ext?.warnings[PREBID]*.code == [999]
-        assert response.ext?.warnings[PREBID]*.message ==
+        then: "PBS should log a errors"
+        assert response.ext?.errors[PREBID]*.code == [999]
+        assert response.ext?.errors[PREBID]*.message ==
                 ["Failed to parse price floors from request, with a reason: " +
                          "Price floor rules number 2 exceeded its maximum number 1"]
 
@@ -550,7 +550,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         null     | 1
     }
 
-    def "PBS should emit warning when request has more schema.fields than floor-config.max-schema-dims"() {
+    def "PBS should emit errors when request has more schema.fields than floor-config.max-schema-dims"() {
         given: "BidRequest with schema 2 fields"
         def bidRequest = bidRequestWithFloors
 
@@ -569,9 +569,9 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         when: "PBS processes auction request"
         def response = floorsPbsService.sendAuctionRequest(bidRequest)
 
-        then: "PBS should log a warning"
-        assert response.ext?.warnings[PREBID]*.code == [999]
-        assert response.ext?.warnings[PREBID]*.message ==
+        then: "PBS should log a errors"
+        assert response.ext?.errors[PREBID]*.code == [999]
+        assert response.ext?.errors[PREBID]*.message ==
                 ["Failed to parse price floors from request, with a reason: " +
                          "Price floor schema dimensions 2 exceeded its maximum number 1"]
 
@@ -581,7 +581,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         null          | 1
     }
 
-    def "PBS should emit warning when request has more schema.fields than fetch.max-schema-dims"() {
+    def "PBS should emit errors when request has more schema.fields than fetch.max-schema-dims"() {
         given: "Default BidRequest with floorMin"
         def bidRequest = bidRequestWithFloors
 
@@ -596,9 +596,9 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         when: "PBS processes auction request"
         def response = floorsPbsService.sendAuctionRequest(bidRequest)
 
-        then: "PBS should log a warning"
-        assert response.ext?.warnings[PREBID]*.code == [999]
-        assert response.ext?.warnings[PREBID]*.message ==
+        then: "PBS should log a errors"
+        assert response.ext?.errors[PREBID]*.code == [999]
+        assert response.ext?.errors[PREBID]*.message ==
                 ["Failed to parse price floors from request, with a reason: " +
                          "Price floor schema dimensions 2 exceeded its maximum number 1"]
 
@@ -608,7 +608,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         null          | 1
     }
 
-    def "PBS should emit warning when stored request has more rules than price-floor.max-rules for amp request"() {
+    def "PBS should emit errors when stored request has more rules than price-floor.max-rules for amp request"() {
         given: "Default AmpRequest"
         def ampRequest = AmpRequest.defaultAmpRequest
 
@@ -638,11 +638,11 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         when: "PBS processes amp request"
         def response = floorsPbsService.sendAmpRequest(ampRequest)
 
-        then: "PBS should log a warning"
-        assert response.ext?.warnings[PREBID]*.code == [999]
-        assert response.ext?.warnings[PREBID]*.message ==
+        then: "PBS should log a errors"
+        assert response.ext?.errors[PREBID]*.code == [999]
+        assert response.ext?.errors[PREBID]*.message ==
                 ["Failed to parse price floors from request, with a reason: " +
-                         "Price floor schema dimensions 2 exceeded its maximum number 1"]
+                         "Price floor rules number 2 exceeded its maximum number 1"]
 
         where:
         maxRules | maxRulesSnakeCase
