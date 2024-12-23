@@ -382,7 +382,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(criteriaLogManager.traceResponse(any(), any(), any(), anyBoolean()))
                 .willAnswer(inv -> inv.getArgument(1));
 
-        given(timeoutResolver.adjustForBidder(anyLong(), anyInt(), anyLong()))
+        given(timeoutResolver.adjustForBidder(anyLong(), anyInt(), anyLong(), anyLong()))
                 .willAnswer(invocation -> invocation.getArgument(0));
 
         given(timeoutResolver.adjustForRequest(anyLong(), anyLong()))
@@ -3859,7 +3859,7 @@ public class ExchangeServiceTest extends VertxTest {
                 Ortb.of(false),
                 100L));
 
-        given(timeoutResolver.adjustForBidder(anyLong(), eq(90), eq(100L))).willReturn(400L);
+        given(timeoutResolver.adjustForBidder(anyLong(), eq(90), eq(200L), eq(100L))).willReturn(400L);
         given(timeoutResolver.adjustForRequest(anyLong(), eq(200L))).willReturn(450L);
 
         final BidRequest bidRequest = givenBidRequest(
