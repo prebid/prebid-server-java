@@ -1,21 +1,21 @@
 package org.prebid.server.hooks.modules.greenbids.real.time.data.config;
 
+import io.netty.handler.codec.http.HttpResponseStatus;
+import io.vertx.core.http.HttpClientResponse;
+
 import com.maxmind.db.Reader;
 import io.vertx.core.Future;
-import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import com.maxmind.geoip2.DatabaseReader;
-import io.vertx.core.buffer.Buffer;
+import io.vertx.core.file.OpenOptions;
+import io.vertx.core.http.HttpMethod;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.vertx.Initializable;
-import org.prebid.server.vertx.httpclient.HttpClient;
-import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicReference;
@@ -27,57 +27,112 @@ public class DatabaseReaderFactory implements Initializable {
 
     private final Vertx vertx;
 
-    private final HttpClient httpClient;
-
     private final AtomicReference<DatabaseReader> databaseReaderRef = new AtomicReference<>();
 
-    public DatabaseReaderFactory(GreenbidsRealTimeDataProperties properties, Vertx vertx, HttpClient httpClient) {
+    public DatabaseReaderFactory(
+            GreenbidsRealTimeDataProperties properties, Vertx vertx) {
         this.properties = properties;
         this.vertx = vertx;
-        this.httpClient = httpClient;
     }
 
     @Override
     public void initialize(Promise<Void> initializePromise) {
-        vertx.executeBlocking(promise -> downloadFile(properties)
-                .onSuccess(tarGzPath -> {
-                    try {
-                        databaseReaderRef.set(extractMMDB(tarGzPath));
+
+        System.out.println(
+                "DatabaseReaderFactory/initialize/ \n" +
+                        "properties: " + properties + "\n" +
+                        "vertx: " + vertx + "\n"
+        );
+
+        vertx.executeBlocking(promise -> {
+            downloadAndExtract()
+                    .onSuccess(databaseReader -> {
+                        databaseReaderRef.set(databaseReader);
                         promise.complete();
-                    } catch (IOException e) {
-                        promise.fail(new PreBidException("Failed to extract MMDB file", e));
-                    }
-                }).onFailure(promise::fail));
+                    })
+                    .onFailure(promise::fail);
+        });
     }
 
-    private Future<Path> downloadFile(GreenbidsRealTimeDataProperties properties) {
-        final String downloadUrl = properties.geoLiteCountryPath + "&account_id=" + properties.maxMindAccountId
-                + "&license_key=" + properties.maxMindLicenseKey;
+    private Future<DatabaseReader> downloadAndExtract() {
+        final String downloadUrl = properties.geoLiteCountryPath;
 
-        final Future<HttpClientResponse> responseFuture = httpClient.get(downloadUrl,
-                        MultiMap.caseInsensitiveMultiMap(),
-                        properties.getTimeoutMs());
+        System.out.println(
+                "DatabaseReaderFactory/downloadAndExtract/ \n" +
+                        "downloadUrl: " + downloadUrl + "\n"
+        );
 
-        return responseFuture
-                .compose(response -> {
-                    if (response.getStatusCode() != 200) {
-                        return Future.failedFuture(
-                                new PreBidException("Failed to download DB from URL: " + downloadUrl
-                                        + " Status: " + response.getStatusCode()));
-                    }
+        final Path tmpPath = Path.of("geolite2.tar.gz");
 
-                    return vertx.fileSystem()
-                            .createTempFile("geolite2", ".tar.gz");
+        return downloadFile(downloadUrl, tmpPath)
+                    .compose(v -> {
+                        try {
+                            return Future.succeededFuture(extractMMDB(tmpPath));
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+    }
+
+    private Future<Void> downloadFile(String downloadUrl, Path tmpPath) {
+
+        System.out.println(
+                "DatabaseReaderFactory/downloadFile \n" +
+                        "tmpPath: " + tmpPath + "\n"
+        );
+
+        return vertx.fileSystem().open(tmpPath.toString(), new OpenOptions())
+                .compose(tmpFile -> sendHttpRequest(downloadUrl)
+                        .compose(response -> response.pipeTo(tmpFile))
+                        .onComplete(result -> tmpFile.close()));
+
+    }
+
+    private Future<HttpClientResponse> sendHttpRequest(String url) {
+        return vertx.createHttpClient().request(HttpMethod.GET, url)
+                .compose(request -> {
+                    System.out.println(
+                            "DatabaseReaderFactory/sendHttpRequest/ before send \n" +
+                                    "request: " + request + "\n"
+                    );
+
+                    Future<HttpClientResponse> responseFuture = request.send();
+
+                    System.out.println(
+                            "DatabaseReaderFactory/sendHttpRequest/ after sent \n" +
+                                    "response: " + responseFuture + "\n"
+                    );
+
+                    return responseFuture;
                 })
-                .compose(tempFilePath -> vertx.fileSystem()
-                        .writeFile(tempFilePath, Buffer.buffer(
-                                responseFuture.result().getBody().getBytes(StandardCharsets.ISO_8859_1)))
-                        .map(v -> Path.of(tempFilePath)));
+                .map(this::validateResponse);
+    }
+
+    private HttpClientResponse validateResponse(HttpClientResponse response) {
+
+        System.out.println(
+                "DatabaseReaderFactory/validateResponse/ \n" +
+                        "response: " + response + "\n"
+        );
+
+        final int statusCode = response.statusCode();
+        if (statusCode != HttpResponseStatus.OK.code()) {
+            throw new PreBidException("Got unexpected response from server with status code %s and message %s"
+                    .formatted(statusCode, response.statusMessage()));
+        }
+        return response;
     }
 
     private DatabaseReader extractMMDB(Path tarGzPath) throws IOException {
         try (GZIPInputStream gis = new GZIPInputStream(Files.newInputStream(tarGzPath));
                 TarArchiveInputStream tarInput = new TarArchiveInputStream(gis)) {
+
+            System.out.println(
+                    "DatabaseReaderFactory/extractMMDB/ \n" +
+                            "tarGzPath: " + tarGzPath + "\n" +
+                            "gis: " + gis + "\n" +
+                            "tarInput: " + tarInput + "\n"
+            );
 
             TarArchiveEntry currentEntry;
             boolean hasDatabaseFile = false;
