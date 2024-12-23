@@ -7,6 +7,7 @@ import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
@@ -221,6 +222,24 @@ public class OpenxBidderTest extends VertxTest {
                                                         .customParams(givenCustomParams("foo4", "bar4"))
                                                         .platform("PLATFORM")
                                                         .unit("555555").build()))).build(),
+                        Imp.builder()
+                                .id("impId5")
+                                .xNative(Native.builder().build())
+                                .ext(mapper.valueToTree(
+                                        ExtPrebid.of(null,
+                                                ExtImpOpenx.builder()
+                                                        .customParams(givenCustomParams("foo5", "bar5"))
+                                                        .delDomain("se-demo-d.openx.net")
+                                                        .unit("5").build()))).build(),
+                        Imp.builder()
+                                .id("impId6")
+                                .xNative(Native.builder().build())
+                                .ext(mapper.valueToTree(
+                                        ExtPrebid.of(null,
+                                                ExtImpOpenx.builder()
+                                                        .customParams(givenCustomParams("foo6", "bar6"))
+                                                        .delDomain("se-demo-d.openx.net")
+                                                        .unit("6").build()))).build(),
 
                         Imp.builder().id("impId1").audio(Audio.builder().build()).build()))
                 .user(User.builder().ext(ExtUser.builder().consent("consent").build()).build())
@@ -235,7 +254,7 @@ public class OpenxBidderTest extends VertxTest {
                 .containsExactly(BidderError.badInput(
                         "OpenX only supports banner, video and native imps. Ignoring imp id=impId1"));
 
-        assertThat(result.getValue()).hasSize(3)
+        assertThat(result.getValue()).hasSize(4)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .containsExactly(
                         // check if all banner imps are part of single bidRequest
@@ -316,6 +335,38 @@ public class OpenxBidderTest extends VertxTest {
                                                 .build()))
                                 .ext(jacksonMapper.fillExtension(
                                         ExtRequest.empty(), OpenxRequestExt.of(null, "PLATFORM", "hb_pbs_1.0.0")))
+                                .user(User.builder()
+                                        .ext(ExtUser.builder().consent("consent").build())
+                                        .build())
+                                .regs(Regs.builder().coppa(0).ext(ExtRegs.of(1, null, null, null)).build())
+                                .build(),
+                        // check if all native imps are part of single bidRequest
+                        BidRequest.builder()
+                                .id("bidRequestId")
+                                .imp(asList(
+                                        Imp.builder()
+                                                .id("impId5")
+                                                .tagid("5")
+                                                .xNative(Native.builder().build())
+                                                .ext(mapper.valueToTree(
+                                                        ExtImpOpenx.builder()
+                                                                .customParams(
+                                                                        givenCustomParams("foo5", "bar5"))
+                                                                .build()))
+                                                .build(),
+                                        Imp.builder()
+                                                .id("impId6")
+                                                .tagid("6")
+                                                .xNative(Native.builder().build())
+                                                .ext(mapper.valueToTree(
+                                                        ExtImpOpenx.builder()
+                                                                .customParams(
+                                                                        givenCustomParams("foo6", "bar6"))
+                                                                .build()))
+                                                .build()))
+                                .ext(jacksonMapper.fillExtension(
+                                        ExtRequest.empty(),
+                                        OpenxRequestExt.of("se-demo-d.openx.net", null, "hb_pbs_1.0.0")))
                                 .user(User.builder()
                                         .ext(ExtUser.builder().consent("consent").build())
                                         .build())
