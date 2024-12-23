@@ -230,7 +230,7 @@ public class OpenxBidderTest extends VertxTest {
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
-        // then
+        // then 2
         assertThat(result.getErrors()).hasSize(1)
                 .containsExactly(BidderError.badInput(
                         "OpenX only supports banner, video and native imps. Ignoring imp id=impId1"));
