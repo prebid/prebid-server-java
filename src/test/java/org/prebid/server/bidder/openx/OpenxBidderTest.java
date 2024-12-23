@@ -222,24 +222,6 @@ public class OpenxBidderTest extends VertxTest {
                                                         .customParams(givenCustomParams("foo4", "bar4"))
                                                         .platform("PLATFORM")
                                                         .unit("555555").build()))).build(),
-                        Imp.builder()
-                                .id("impId5")
-                                .xNative(Native.builder().request("{\"testreq\":1}").build())
-                                .ext(mapper.valueToTree(
-                                        ExtPrebid.of(null,
-                                                ExtImpOpenx.builder()
-                                                        .customParams(givenCustomParams("foo5", "bar5"))
-                                                        .delDomain("se-demo-d.openx.net")
-                                                        .unit("5").build()))).build(),
-                        Imp.builder()
-                                .id("impId6")
-                                .xNative(Native.builder().build())
-                                .ext(mapper.valueToTree(
-                                        ExtPrebid.of(null,
-                                                ExtImpOpenx.builder()
-                                                        .customParams(givenCustomParams("foo6", "bar6"))
-                                                        .delDomain("se-demo-d.openx.net")
-                                                        .unit("6").build()))).build(),
 
                         Imp.builder().id("impId1").audio(Audio.builder().build()).build()))
                 .user(User.builder().ext(ExtUser.builder().consent("consent").build()).build())
@@ -249,12 +231,12 @@ public class OpenxBidderTest extends VertxTest {
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
-        // then 2
+        // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsExactly(BidderError.badInput(
                         "OpenX only supports banner, video and native imps. Ignoring imp id=impId1"));
 
-        assertThat(result.getValue()).hasSize(4)
+        assertThat(result.getValue()).hasSize(3)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .containsExactly(
                         // check if all banner imps are part of single bidRequest
@@ -339,7 +321,46 @@ public class OpenxBidderTest extends VertxTest {
                                         .ext(ExtUser.builder().consent("consent").build())
                                         .build())
                                 .regs(Regs.builder().coppa(0).ext(ExtRegs.of(1, null, null, null)).build())
-                                .build(),
+                                .build());
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnResultWithSingleBidRequestForMultipleNativeImps() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .id("bidRequestId")
+                .imp(asList(
+                        Imp.builder()
+                                .id("impId5")
+                                .xNative(Native.builder().request("{\"testreq\":1}").build())
+                                .ext(mapper.valueToTree(
+                                        ExtPrebid.of(null,
+                                                ExtImpOpenx.builder()
+                                                        .customParams(givenCustomParams("foo5", "bar5"))
+                                                        .delDomain("se-demo-d.openx.net")
+                                                        .unit("5").build()))).build(),
+                        Imp.builder()
+                                .id("impId6")
+                                .xNative(Native.builder().build())
+                                .ext(mapper.valueToTree(
+                                        ExtPrebid.of(null,
+                                                ExtImpOpenx.builder()
+                                                        .customParams(givenCustomParams("foo6", "bar6"))
+                                                        .delDomain("se-demo-d.openx.net")
+                                                        .unit("6").build()))).build()))
+                .user(User.builder().ext(ExtUser.builder().consent("consent").build()).build())
+                .regs(Regs.builder().coppa(0).ext(ExtRegs.of(1, null, null, null)).build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .containsExactly(
                         // check if all native imps are part of single bidRequest
                         BidRequest.builder()
                                 .id("bidRequestId")
