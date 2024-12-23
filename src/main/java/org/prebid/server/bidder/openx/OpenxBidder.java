@@ -44,6 +44,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class OpenxBidder implements Bidder<BidRequest> {
 
@@ -111,10 +112,14 @@ public class OpenxBidder implements Bidder<BidRequest> {
             List<Imp> nativeImps,
             List<BidderError> errors) {
         final List<BidRequest> bidRequests = new ArrayList<>();
-        // single request for all banner imps
-        final BidRequest bannerRequest = createSingleRequest(bannerImps, bidRequest, errors);
-        if (bannerRequest != null) {
-            bidRequests.add(bannerRequest);
+        // single request for all banner and native imps
+        var bannerAndNativeImps = Stream.of(bannerImps, nativeImps)
+                .filter(Objects::nonNull)
+                .flatMap(Collection::stream)
+                .toList();
+        final BidRequest bannerAndNativeImpsRequest = createSingleRequest(bannerAndNativeImps, bidRequest, errors);
+        if (bannerAndNativeImpsRequest != null) {
+            bidRequests.add(bannerAndNativeImpsRequest);
         }
 
         if (CollectionUtils.isNotEmpty(videoImps)) {
@@ -124,12 +129,6 @@ public class OpenxBidder implements Bidder<BidRequest> {
                     .map(imps -> createSingleRequest(imps, bidRequest, errors))
                     .filter(Objects::nonNull)
                     .toList());
-        }
-
-        // single request for all native imps
-        final BidRequest nativeRequest = createSingleRequest(nativeImps, bidRequest, errors);
-        if (nativeRequest != null) {
-            bidRequests.add(nativeRequest);
         }
         return bidRequests;
     }

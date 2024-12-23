@@ -325,11 +325,20 @@ public class OpenxBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnResultWithSingleBidRequestForMultipleNativeImps() {
+    public void makeHttpRequestsShouldReturnResultWithSingleBidRequestForMultipleBannerAndNativeImps() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .id("bidRequestId")
                 .imp(asList(
+                        Imp.builder()
+                                .id("impId4")
+                                .banner(Banner.builder().build())
+                                .ext(mapper.valueToTree(
+                                        ExtPrebid.of(null,
+                                                ExtImpOpenx.builder()
+                                                        .customParams(givenCustomParams("foo4", "bar4"))
+                                                        .delDomain("se-demo-d.openx.net")
+                                                        .unit("4").build()))).build(),
                         Imp.builder()
                                 .id("impId5")
                                 .xNative(Native.builder().request("{\"testreq\":1}").build())
@@ -365,6 +374,16 @@ public class OpenxBidderTest extends VertxTest {
                         BidRequest.builder()
                                 .id("bidRequestId")
                                 .imp(asList(
+                                        Imp.builder()
+                                                .id("impId4")
+                                                .tagid("4")
+                                                .banner(Banner.builder().build())
+                                                .ext(mapper.valueToTree(
+                                                        ExtImpOpenx.builder()
+                                                                .customParams(
+                                                                        givenCustomParams("foo4", "bar4"))
+                                                                .build()))
+                                                .build(),
                                         Imp.builder()
                                                 .id("impId5")
                                                 .tagid("5")
