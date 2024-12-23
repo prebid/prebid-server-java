@@ -91,30 +91,10 @@ public class OpenxBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(2)
                 .containsExactly(
-                        BidderError.badInput("OpenX only supports banner and video imps. Ignoring imp id=impId1"),
                         BidderError.badInput(
-                                "OpenX only supports banner and video imps. Ignoring imp id=impId2"));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnResultWithErrorWhenNativeImpsPresent() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(asList(
-                        Imp.builder().id("impId1").xNative(Native.builder().build()).build(),
-                        Imp.builder().id("impId2").xNative(Native.builder().build()).build()))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(2)
-                .containsExactly(
-                        BidderError.badInput("OpenX only supports banner and video imps. Ignoring imp id=impId1"),
+                                "OpenX only supports banner, video and native imps. Ignoring imp id=impId1"),
                         BidderError.badInput(
-                                "OpenX only supports banner and video imps. Ignoring imp id=impId2"));
+                                "OpenX only supports banner, video and native imps. Ignoring imp id=impId2"));
     }
 
     @Test
@@ -254,7 +234,7 @@ public class OpenxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsExactly(BidderError.badInput(
-                        "OpenX only supports banner and video imps. Ignoring imp id=impId1"));
+                        "OpenX only supports banner, video and native imps. Ignoring imp id=impId1"));
 
         assertThat(result.getValue()).hasSize(3)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
@@ -337,6 +317,96 @@ public class OpenxBidderTest extends VertxTest {
                                                 .build()))
                                 .ext(jacksonMapper.fillExtension(
                                         ExtRequest.empty(), OpenxRequestExt.of(null, "PLATFORM", "hb_pbs_1.0.0")))
+                                .user(User.builder()
+                                        .ext(ExtUser.builder().consent("consent").build())
+                                        .build())
+                                .regs(Regs.builder().coppa(0).ext(ExtRegs.of(1, null, null, null)).build())
+                                .build());
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnResultWithSingleBidRequestForMultipleBannerAndNativeImps() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .id("bidRequestId")
+                .imp(asList(
+                        Imp.builder()
+                                .id("impId4")
+                                .banner(Banner.builder().build())
+                                .ext(mapper.valueToTree(
+                                        ExtPrebid.of(null,
+                                                ExtImpOpenx.builder()
+                                                        .customParams(givenCustomParams("foo4", "bar4"))
+                                                        .delDomain("se-demo-d.openx.net")
+                                                        .unit("4").build()))).build(),
+                        Imp.builder()
+                                .id("impId5")
+                                .xNative(Native.builder().request("{\"testreq\":1}").build())
+                                .ext(mapper.valueToTree(
+                                        ExtPrebid.of(null,
+                                                ExtImpOpenx.builder()
+                                                        .customParams(givenCustomParams("foo5", "bar5"))
+                                                        .delDomain("se-demo-d.openx.net")
+                                                        .unit("5").build()))).build(),
+                        Imp.builder()
+                                .id("impId6")
+                                .xNative(Native.builder().build())
+                                .ext(mapper.valueToTree(
+                                        ExtPrebid.of(null,
+                                                ExtImpOpenx.builder()
+                                                        .customParams(givenCustomParams("foo6", "bar6"))
+                                                        .delDomain("se-demo-d.openx.net")
+                                                        .unit("6").build()))).build()))
+                .user(User.builder().ext(ExtUser.builder().consent("consent").build()).build())
+                .regs(Regs.builder().coppa(0).ext(ExtRegs.of(1, null, null, null)).build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .containsExactly(
+                        // check if all native and banner imps are part of single bidRequest
+                        BidRequest.builder()
+                                .id("bidRequestId")
+                                .imp(asList(
+                                        Imp.builder()
+                                                .id("impId4")
+                                                .tagid("4")
+                                                .banner(Banner.builder().build())
+                                                .ext(mapper.valueToTree(
+                                                        ExtImpOpenx.builder()
+                                                                .customParams(
+                                                                        givenCustomParams("foo4", "bar4"))
+                                                                .build()))
+                                                .build(),
+                                        Imp.builder()
+                                                .id("impId5")
+                                                .tagid("5")
+                                                .xNative(Native.builder().request("{\"testreq\":1}").build())
+                                                .ext(mapper.valueToTree(
+                                                        ExtImpOpenx.builder()
+                                                                .customParams(
+                                                                        givenCustomParams("foo5", "bar5"))
+                                                                .build()))
+                                                .build(),
+                                        Imp.builder()
+                                                .id("impId6")
+                                                .tagid("6")
+                                                .xNative(Native.builder().build())
+                                                .ext(mapper.valueToTree(
+                                                        ExtImpOpenx.builder()
+                                                                .customParams(
+                                                                        givenCustomParams("foo6", "bar6"))
+                                                                .build()))
+                                                .build()))
+                                .ext(jacksonMapper.fillExtension(
+                                        ExtRequest.empty(),
+                                        OpenxRequestExt.of("se-demo-d.openx.net", null, "hb_pbs_1.0.0")))
                                 .user(User.builder()
                                         .ext(ExtUser.builder().consent("consent").build())
                                         .build())
