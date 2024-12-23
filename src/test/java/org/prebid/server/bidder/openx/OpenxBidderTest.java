@@ -224,7 +224,7 @@ public class OpenxBidderTest extends VertxTest {
                                                         .unit("555555").build()))).build(),
                         Imp.builder()
                                 .id("impId5")
-                                .xNative(Native.builder().build())
+                                .xNative(Native.builder().request("{\"testreq\":1}").build())
                                 .ext(mapper.valueToTree(
                                         ExtPrebid.of(null,
                                                 ExtImpOpenx.builder()
@@ -347,7 +347,7 @@ public class OpenxBidderTest extends VertxTest {
                                         Imp.builder()
                                                 .id("impId5")
                                                 .tagid("5")
-                                                .xNative(Native.builder().build())
+                                                .xNative(Native.builder().request("{\"testreq\":1}").build())
                                                 .ext(mapper.valueToTree(
                                                         ExtImpOpenx.builder()
                                                                 .customParams(
