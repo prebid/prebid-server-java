@@ -26,6 +26,45 @@ settings:
     stored-imps-dir: sample
     stored-responses-dir: sample
     categories-dir:
+  default-account-config: >
+    {
+      "auction": {
+        "price-floors": {
+          "enabled": true,
+          "fetch": {
+            "enabled": false,
+            "timeout-ms": 5000,
+            "max-rules": 0,
+            "max-file-size-kb": 200,
+            "max-age-sec": 86400,
+            "period-sec": 3600
+          },
+          "enforce-floors-rate": 100,
+          "adjust-for-bid-adjustment": true,
+          "enforce-deal-floors": true,
+          "use-dynamic-data": true
+        }
+      },
+      "hooks": {
+          "modules": {
+              "greenbids": {
+                  "enabled": true,
+                  "pbuid": "PBUID_FROM_GREENBIDS",
+                  "targetTpr": 0.95,
+                  "explorationRate": 0.001
+              }
+          }
+      },
+      "analytics": {
+          "modules": {
+              "greenbids": {
+                  "enabled": true,
+                  "pbuid": "PBUID_FROM_GREENBIDS",
+                  "greenbidsSampling": 0.001
+                }
+            }
+        }
+    }
 gdpr:
   default-value: 1
   vendorlist:
@@ -40,6 +79,8 @@ admin-endpoints:
     on-application-port: true
     protected: false
 hooks:
+  greenbids-real-time-data:
+    enabled: true
   confiant-ad-quality:
     enabled: true
   host-execution-plan: >
@@ -47,6 +88,19 @@ hooks:
       "endpoints": {
         "/openrtb2/auction": {
           "stages": {
+            "processed-auction-request": {
+              "groups": [
+                {
+                  "timeout": 100,
+                  "hook-sequence": [
+                    {
+                      "module-code": "greenbids-real-time-data",
+                      "hook-impl-code": "greenbids-real-time-data-processed-auction-request"
+                    }
+                  ]
+                }
+              ]
+            },
             "all-processed-bid-responses": {
               "groups": [
                 {
@@ -83,3 +137,11 @@ hooks:
         long-interval: 1800000
       scan-state-check-interval: 2900
       bidders-to-exclude-from-scan:
+    greenbids-real-time-data:
+      google-cloud-greenbids-project: "greenbids-357713"
+      gcs-bucket-name: "greenbids-europe-west1-prebid-server-staging"
+      cache-expiration-minutes: 15
+      geo-lite-country-path: "TOREPLACEWITHURL"
+      onnx-model-cache-key-prefix: "onnxModelRunner_"
+      thresholds-cache-key-prefix: "throttlingThresholds_"
+      timeout-ms: 10000
