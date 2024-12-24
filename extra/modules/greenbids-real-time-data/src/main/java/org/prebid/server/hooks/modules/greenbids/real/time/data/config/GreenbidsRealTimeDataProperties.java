@@ -18,4 +18,6 @@ public class GreenbidsRealTimeDataProperties {
     String onnxModelCacheKeyPrefix;
 
     String thresholdsCacheKeyPrefix;
+
+    Long timeoutMs;
 }

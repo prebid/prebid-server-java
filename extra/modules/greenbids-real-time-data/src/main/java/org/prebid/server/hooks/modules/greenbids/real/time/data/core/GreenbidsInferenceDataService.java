@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Imp;
 import com.maxmind.geoip2.DatabaseReader;
 import com.maxmind.geoip2.exception.GeoIp2Exception;
@@ -25,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -86,15 +88,25 @@ public class GreenbidsInferenceDataService {
         final String ip = Optional.ofNullable(bidRequest.getDevice())
                 .map(Device::getIp)
                 .orElse(null);
-        final String countryFromIp = getCountry(ip);
+        final String country = Optional.ofNullable(bidRequest.getDevice())
+                .map(Device::getGeo)
+                .map(Geo::getCountry)
+                .map(GreenbidsInferenceDataService::getCountryNameFromAlpha3)
+                .orElseGet(() -> getCountry(ip));
+
         return createThrottlingMessages(
                 bidderNode,
                 impId,
                 greenbidsUserAgent,
-                countryFromIp,
+                country,
                 hostname,
                 hourBucket,
                 minuteQuadrant);
+    }
+
+    private static String getCountryNameFromAlpha3(String isoCode) {
+        final Locale local = new Locale("", isoCode);
+        return local.getDisplayCountry();
     }
 
     private String getCountry(String ip) {
@@ -103,6 +115,13 @@ public class GreenbidsInferenceDataService {
         }
 
         final DatabaseReader databaseReader = databaseReaderFactory.getDatabaseReader();
+
+
+        System.out.println(
+                "GreenbidsInferenceDataService/getCountry/ \n" +
+                        "databaseReader: " + databaseReader
+        );
+
         try {
             final InetAddress inetAddress = InetAddress.getByName(ip);
             final CountryResponse response = databaseReader.country(inetAddress);
