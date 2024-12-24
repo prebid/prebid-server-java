@@ -77,7 +77,21 @@ public class DatabaseReaderFactory implements Initializable {
                 .setAbsoluteURI(url);
 
         return vertx.createHttpClient().request(options)
-                .compose(HttpClientRequest::send)
+                .compose(request -> {
+                    System.out.println(
+                            "DatabaseReaderFactory/sendHttpRequest/ before send \n" +
+                                    "request: " + request + "\n"
+                    );
+
+                    Future<HttpClientResponse> responseFuture = request.send();
+
+                    System.out.println(
+                            "DatabaseReaderFactory/sendHttpRequest/ after sent \n" +
+                                    "response: " + responseFuture + "\n"
+                    );
+
+                    return responseFuture;
+                })
                 .map(this::validateResponse);
     }
 
