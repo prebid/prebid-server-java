@@ -4,7 +4,7 @@ spring:
 vertx:
   worker-pool-size: 20
   uploads-dir: file-uploads
-  init-timeout-ms: 20000
+  init-timeout-ms: 5000
   enable-per-client-endpoint-metrics: false
 server:
   max-initial-line-length: 8092
