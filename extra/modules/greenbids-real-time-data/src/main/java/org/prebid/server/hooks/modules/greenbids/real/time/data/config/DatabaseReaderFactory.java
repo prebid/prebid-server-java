@@ -62,7 +62,7 @@ public class DatabaseReaderFactory implements Initializable {
                         "downloadUrl: " + downloadUrl + "\n"
         );
 
-        final Path tmpPath = Path.of("geolite2.tar.gz");
+        final Path tmpPath = Path.of("/var/tmp/prebid/tmp/GeoLite2-Country.tar.gz");
 
         return downloadFile(downloadUrl, tmpPath)
                     .compose(v -> {
@@ -78,7 +78,8 @@ public class DatabaseReaderFactory implements Initializable {
 
         System.out.println(
                 "DatabaseReaderFactory/downloadFile \n" +
-                        "tmpPath: " + tmpPath + "\n"
+                        "tmpPath: " + tmpPath + "\n" +
+                        "tmpPath.toString(): " + tmpPath.toString() + "\n"
         );
 
         return vertx.fileSystem().open(tmpPath.toString(), new OpenOptions())
