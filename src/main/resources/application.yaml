@@ -4,7 +4,7 @@ spring:
 vertx:
   worker-pool-size: 20
   uploads-dir: file-uploads
-  init-timeout-ms: 5000
+  init-timeout-ms: 20000
   enable-per-client-endpoint-metrics: false
 server:
   max-initial-line-length: 8092
@@ -296,6 +296,7 @@ analytics:
       count: 100
       report-ttl-ms: 900000
   greenbids:
+    enabled: true
     analytics-server-version: "2.2.0"
     analytics-server: http://localhost:8090
     exploratory-sampling-split: 0.9
