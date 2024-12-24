@@ -133,7 +133,7 @@ public class OrtbTypesResolverTest extends VertxTest {
     }
 
     @Test
-    public void normalizeTargetingShouldNormalizeFieldsForAppExceptId() {
+    public void normalizeTargetingShouldNormalizeFieldsForApp() {
         // given
         final ObjectNode app = mapper.createObjectNode();
         app.set("id", array("id1", "id2"));
@@ -149,16 +149,16 @@ public class OrtbTypesResolverTest extends VertxTest {
 
         // then
         assertThat(containerNode).isEqualTo(mapper.createObjectNode().set("app", mapper.createObjectNode()
+                .put("id", "id1")
                 .put("name", "name1")
                 .put("bundle", "bundle1")
                 .put("storeurl", "storeurl1")
                 .put("domain", "domain1")
-                .put("keywords", "keyword1,keyword2")
-                .set("id", array("id1", "id2"))));
+                .put("keywords", "keyword1,keyword2")));
     }
 
     @Test
-    public void normalizeTargetingShouldNormalizeFieldsForSiteExceptId() {
+    public void normalizeTargetingShouldNormalizeFieldsForSite() {
         // given
         final ObjectNode site = mapper.createObjectNode();
         site.set("id", array("id1", "id2"));
@@ -175,14 +175,13 @@ public class OrtbTypesResolverTest extends VertxTest {
 
         // then
         assertThat(containerNode).isEqualTo(mapper.createObjectNode().set("site", mapper.createObjectNode()
+                .put("id", "id1")
                 .put("name", "name1")
                 .put("page", "page1")
                 .put("ref", "ref1")
                 .put("domain", "domain1")
                 .put("search", "search1")
-                .put("keywords", "keyword1,keyword2")
-                .set("id", array("id1", "id2")))
-        );
+                .put("keywords", "keyword1,keyword2")));
     }
 
     @Test
@@ -409,22 +408,22 @@ public class OrtbTypesResolverTest extends VertxTest {
 
         assertThat(ortb2.path("site"))
                 .isEqualTo(mapper.createObjectNode()
+                        .put("id", "id1")
                         .put("name", "name1")
                         .put("domain", "domain1")
                         .put("page", "page1")
                         .put("ref", "ref1")
                         .put("search", "search1")
-                        .put("keywords", "keyword1,keyword2")
-                        .set("id", array("id1", "id2")));
+                        .put("keywords", "keyword1,keyword2"));
 
         assertThat(ortb2.path("app"))
                 .isEqualTo(mapper.createObjectNode()
+                        .put("id", "id1")
                         .put("name", "name1")
                         .put("bundle", "bundle1")
                         .put("storeurl", "storeurl1")
                         .put("domain", "domain1")
-                        .put("keywords", "keyword1,keyword2")
-                        .set("id", array("id1", "id2")));
+                        .put("keywords", "keyword1,keyword2"));
 
         assertThat(ortb2.path("user"))
                 .isEqualTo(mapper.createObjectNode()
@@ -472,12 +471,12 @@ public class OrtbTypesResolverTest extends VertxTest {
                 .put("fpdData", "data_value");
 
         final ObjectNode expectedOrtb = mapper.createObjectNode()
-                .put("name", "name1")
-                .put("domain", "domain1")
-                .put("page", "page1")
-                .put("ref", "ortb_ref1")
-                .put("keywords", "ortb_keyword1,ortb_keyword2");
-        expectedOrtb.set("id", array("id1", "id2"));
+                 .put("id", "ortb_id")
+                 .put("name", "name1")
+                 .put("domain", "ortb_domain1")
+                 .put("page", "ortb_page1")
+                 .put("ref", "ortb_ref1")
+                 .put("keywords", "ortb_keyword1,ortb_keyword2");
         expectedOrtb.set("ext", obj("data", expectedOrtbExtData));
 
         assertThat(ortb2.path("site")).isEqualTo(expectedOrtb);
@@ -518,7 +517,7 @@ public class OrtbTypesResolverTest extends VertxTest {
 
         assertThat(ortb2.path("user"))
                 .isEqualTo(mapper.createObjectNode()
-                        .put("gender", "gender1")
+                        .put("gender", "ortb_gender1")
                         .put("keywords", "ortb_keyword1,ortb_keyword2")
                         .set("ext", obj("data", expectedOrtbExtData)));
 

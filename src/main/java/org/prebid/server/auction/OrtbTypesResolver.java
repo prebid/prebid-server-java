@@ -136,7 +136,6 @@ public class OrtbTypesResolver {
                         nodePrefix));
     }
 
-
     private static void updateWithNormalizedNode(ObjectNode containerNode,
                                                  String fieldName,
                                                  JsonNode normalizedNode) {
