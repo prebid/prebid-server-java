@@ -34,6 +34,8 @@ import org.prebid.server.bidder.pubmatic.model.response.PubmaticBidResponse;
 import org.prebid.server.bidder.pubmatic.model.response.PubmaticExtBidResponse;
 import org.prebid.server.bidder.pubmatic.model.response.VideoCreativeInfo;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtApp;
+import org.prebid.server.proto.openrtb.ext.request.ExtAppPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.pubmatic.ExtImpPubmatic;
@@ -198,9 +200,7 @@ public class PubmaticBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        final ExtRequest expectedExtRequest = ExtRequest.of(ExtRequestPrebid.builder()
-                .bidderparams(pubmaticNode)
-                .build());
+        final ExtRequest expectedExtRequest = ExtRequest.empty();
         expectedExtRequest.addProperty("acat",
                 mapper.createArrayNode().add("te st Value").add("test Value").add("Value"));
 
@@ -885,6 +885,54 @@ public class PubmaticBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldSetDisplayManagerFieldsFromAppExtPrebid() {
+        // given
+        final ExtApp extApp = ExtApp.of(ExtAppPrebid.of("ext-prebid-source", "ext-prebid-version"), null);
+        extApp.addProperty("source", TextNode.valueOf("ext-source"));
+        extApp.addProperty("version", TextNode.valueOf("ext-version"));
+
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.app(App.builder().ext(extApp).build()),
+                identity(),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getDisplaymanager, Imp::getDisplaymanagerver)
+                .containsExactly(tuple("ext-prebid-source", "ext-prebid-version"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetDisplayManagerFieldsFromAppExt() {
+        // given
+        final ExtApp extApp = ExtApp.of(ExtAppPrebid.of("ext-prebid-source", null), null);
+        extApp.addProperty("source", TextNode.valueOf("ext-source"));
+        extApp.addProperty("version", TextNode.valueOf("ext-version"));
+
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.app(App.builder().ext(extApp).build()),
+                identity(),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getDisplaymanager, Imp::getDisplaymanagerver)
+                .containsExactly(tuple("ext-source", "ext-version"));
+    }
+
+    @Test
     public void makeHttpRequestsShouldSUpdateAppPublisherIdExtPublisherIdIsPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
@@ -1279,7 +1327,11 @@ public class PubmaticBidderTest extends VertxTest {
         final ObjectNode wrapperNode = mapper.createObjectNode()
                 .set("wrapper", mapper.valueToTree(PubmaticWrapper.of(wrapperProfile, wrapperVersion)));
 
-        return jacksonMapper.fillExtension(originalExtRequest, wrapperNode);
+        final ExtRequest extRequestWithoutPrebid = jacksonMapper.fillExtension(
+                ExtRequest.empty(),
+                originalExtRequest.getProperties());
+
+        return jacksonMapper.fillExtension(extRequestWithoutPrebid, wrapperNode);
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
