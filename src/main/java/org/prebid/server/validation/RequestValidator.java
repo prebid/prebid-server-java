@@ -40,6 +40,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -96,7 +97,7 @@ public class RequestValidator {
      * Validates the {@link BidRequest} against a list of validation checks, however, reports only one problem
      * at a time.
      */
-    public ValidationResult validate(BidRequest bidRequest, HttpRequestContext httpRequestContext) {
+    public ValidationResult validate(Account account, BidRequest bidRequest, HttpRequestContext httpRequestContext) {
         final List<String> warnings = new ArrayList<>();
         try {
             if (StringUtils.isBlank(bidRequest.getId())) {
@@ -121,7 +122,7 @@ public class RequestValidator {
                     validateTargeting(targeting);
                 }
                 aliases = ObjectUtils.defaultIfNull(extRequestPrebid.getAliases(), Collections.emptyMap());
-                validateAliases(aliases);
+                validateAliases(aliases, warnings, metrics, account);
                 validateAliasesGvlIds(extRequestPrebid, aliases);
                 validateBidAdjustmentFactors(extRequestPrebid.getBidadjustmentfactors(), aliases);
                 validateExtBidPrebidData(extRequestPrebid.getData(), aliases);
@@ -491,18 +492,22 @@ public class RequestValidator {
      * Validates aliases. Throws {@link ValidationException} in cases when alias points to invalid bidder or when alias
      * is equals to itself.
      */
-    private void validateAliases(Map<String, String> aliases) throws ValidationException {
+    private void validateAliases(Map<String, String> aliases, List<String> warnings,
+                                 Metrics metrics, Account account) throws ValidationException {
+
         for (final Map.Entry<String, String> aliasToBidder : aliases.entrySet()) {
             final String alias = aliasToBidder.getKey();
             final String coreBidder = aliasToBidder.getValue();
             if (!bidderCatalog.isValidName(coreBidder)) {
-                throw new ValidationException(
+                warnings.add(
                         "request.ext.prebid.aliases.%s refers to unknown bidder: %s".formatted(alias, coreBidder));
-            }
-            if (!bidderCatalog.isActive(coreBidder)) {
-                throw new ValidationException(
+                metrics.updateAdapterRequestUnknownBidderMetric(coreBidder, account);
+            } else if (!bidderCatalog.isActive(coreBidder)) {
+                warnings.add(
                         "request.ext.prebid.aliases.%s refers to disabled bidder: %s".formatted(alias, coreBidder));
+                metrics.updateAdapterRequestDisabledBidderMetric(coreBidder, account);
             }
+
             if (alias.equals(coreBidder)) {
                 throw new ValidationException("""
                         request.ext.prebid.aliases.%s defines a no-op alias. \

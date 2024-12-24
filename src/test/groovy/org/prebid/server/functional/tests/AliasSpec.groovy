@@ -10,6 +10,7 @@ import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.BOGUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.CompressionType.GZIP
+import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 import static org.prebid.server.functional.util.HttpUtil.CONTENT_ENCODING_HEADER
 
@@ -111,7 +112,7 @@ class AliasSpec extends BaseSpec {
         invalidId << [PBSUtils.randomNegativeNumber, 0]
     }
 
-    def "PBS should emit error when alias didn't participate in request"() {
+    def "PBS should emit warning when alias didn't participate in request"() {
         given: "Default bid request with alias"
         def randomString = PBSUtils.randomString
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -119,13 +120,20 @@ class AliasSpec extends BaseSpec {
         }
 
         when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Request should fail with an error"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == BAD_REQUEST.code()
-        assert exception.responseBody == "Invalid request format: request.ext.prebid.aliases.$randomString " +
-                "refers to unknown bidder: $BOGUS.value"
+        then: "Request shouldn't fail with an error"
+        def bidderRequests = bidder.getBidderRequests(bidRequest.id)
+        assert bidderRequests.size() == 1
+
+        and: "Bid response shouldn't contain errors"
+        assert !response.ext.errors
+
+        and: "Response should contain warnings"
+        def auctionWarnings = response.ext?.warnings?.get(PREBID)
+        assert auctionWarnings.size() == 1
+        assert auctionWarnings[0].code == 999
+        assert auctionWarnings[0].message == "request.ext.prebid.aliases.$randomString refers to unknown bidder: bogus"
     }
 
     def "PBS aliased bidder config should be independently from parent"() {

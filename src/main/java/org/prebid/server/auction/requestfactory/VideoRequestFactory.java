@@ -33,6 +33,7 @@ import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisherPrebid;
+import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
 
@@ -111,6 +112,7 @@ public class VideoRequestFactory {
                 .compose(httpRequest -> createBidRequest(httpRequest)
                         .map(bidRequest -> removeEmptyEids(bidRequest, initialAuctionContext.getDebugWarnings()))
                         .compose(bidRequest -> validateRequest(
+                                initialAuctionContext.getAccount(),
                                 bidRequest,
                                 httpRequest,
                                 initialAuctionContext.getDebugWarnings()))
@@ -324,11 +326,13 @@ public class VideoRequestFactory {
         return WithPodErrors.of(updatedWithDebugBidRequest, bidRequestToErrors.getPodErrors());
     }
 
-    private Future<WithPodErrors<BidRequest>> validateRequest(WithPodErrors<BidRequest> requestWithPodErrors,
+    private Future<WithPodErrors<BidRequest>> validateRequest(Account account,
+                                                              WithPodErrors<BidRequest> requestWithPodErrors,
                                                               HttpRequestContext httpRequestContext,
                                                               List<String> warnings) {
 
-        return ortb2RequestFactory.validateRequest(requestWithPodErrors.getData(), httpRequestContext, warnings)
+        return ortb2RequestFactory.validateRequest(
+                account, requestWithPodErrors.getData(), httpRequestContext, warnings)
                 .map(bidRequest -> requestWithPodErrors);
     }
 }
