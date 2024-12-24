@@ -115,6 +115,13 @@ public class GreenbidsInferenceDataService {
         }
 
         final DatabaseReader databaseReader = databaseReaderFactory.getDatabaseReader();
+
+
+        System.out.println(
+                "GreenbidsInferenceDataService/getCountry/ \n" +
+                        "databaseReader: " + databaseReader
+        );
+
         try {
             final InetAddress inetAddress = InetAddress.getByName(ip);
             final CountryResponse response = databaseReader.country(inetAddress);
