@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
 import lombok.Value;
+import org.prebid.server.auction.model.PaaFormat;
 import org.prebid.server.spring.config.bidder.model.MediaType;
 
 import java.util.Map;
@@ -49,4 +50,7 @@ public class AccountAuctionConfig {
 
     @JsonProperty("privacysandbox")
     AccountPrivacySandboxConfig privacySandbox;
+
+    @JsonProperty("paaformat")
+    PaaFormat paaFormat;
 }

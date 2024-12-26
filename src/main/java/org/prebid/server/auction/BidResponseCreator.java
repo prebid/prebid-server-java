@@ -34,6 +34,7 @@ import org.prebid.server.auction.model.BidderResponseInfo;
 import org.prebid.server.auction.model.CachedDebugLog;
 import org.prebid.server.auction.model.CategoryMappingResult;
 import org.prebid.server.auction.model.MultiBidConfig;
+import org.prebid.server.auction.model.PaaFormat;
 import org.prebid.server.auction.model.TargetingInfo;
 import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.auction.requestfactory.Ortb2ImplicitParametersResolver;
@@ -766,10 +767,12 @@ public class BidResponseCreator {
 
         final Map<String, Integer> responseTimeMillis = toResponseTimes(bidderResponseInfos, cacheResult);
 
-        final List<ExtIgi> extIgi = toExtBidResponseIgi(bidderResponseInfos);
-        final ExtBidResponseFledge extBidResponseFledge = toExtBidResponseFledge(bidderResponseInfos, auctionContext);
+        final PaaResult paaResult = toPaaOutput(bidderResponseInfos, auctionContext);
+        final List<ExtIgi> igi = paaResult.igis();
+        final ExtBidResponseFledge fledge = paaResult.fledge();
+
         final ExtBidResponsePrebid prebid = toExtBidResponsePrebid(
-                auctionTimestamp, auctionContext.getBidRequest(), extBidResponseFledge);
+                auctionTimestamp, auctionContext.getBidRequest(), fledge);
 
         return ExtBidResponse.builder()
                 .debug(extResponseDebug)
@@ -777,10 +780,11 @@ public class BidResponseCreator {
                 .warnings(warnings)
                 .responsetimemillis(responseTimeMillis)
                 .tmaxrequest(auctionContext.getBidRequest().getTmax())
-                .igi(extIgi)
+                .igi(igi)
                 .prebid(prebid)
                 .build();
     }
+
 
     private ExtBidResponsePrebid toExtBidResponsePrebid(long auctionTimestamp,
                                                         BidRequest bidRequest,
@@ -799,17 +803,52 @@ public class BidResponseCreator {
                 .build();
     }
 
-    private ExtBidResponseFledge toExtBidResponseFledge(List<BidderResponseInfo> bidderResponseInfos,
-                                                        AuctionContext auctionContext) {
+    private PaaResult toPaaOutput(List<BidderResponseInfo> bidderResponseInfos, AuctionContext auctionContext) {
+        final PaaFormat paaFormat = resolvePaaFormat(auctionContext);
+        final List<ExtIgi> extIgi = paaFormat == PaaFormat.IAB ? toExtBidResponseIgi(bidderResponseInfos) : null;
 
         final List<Imp> imps = auctionContext.getBidRequest().getImp();
-        final List<FledgeAuctionConfig> fledgeConfigs = bidderResponseInfos.stream()
-                .flatMap(bidderResponseInfo -> fledgeConfigsForBidder(bidderResponseInfo, imps))
+
+        // TODO: Remove after transition period
+        final Stream<FledgeAuctionConfig> deprecatedFledgeConfigs = bidderResponseInfos.stream()
+                .flatMap(bidderResponseInfo -> toDeprecatedFledgeConfigs(bidderResponseInfo, imps));
+
+        final Stream<FledgeAuctionConfig> fledgeConfigs = paaFormat == PaaFormat.ORIGINAL
+                ? bidderResponseInfos.stream().flatMap(BidResponseCreator::toOriginalFledgeFormat)
+                : Stream.empty();
+
+        final List<FledgeAuctionConfig> combinedFledgeConfigs = Stream.concat(deprecatedFledgeConfigs, fledgeConfigs)
                 .toList();
-        return !fledgeConfigs.isEmpty() ? ExtBidResponseFledge.of(fledgeConfigs) : null;
+
+        final ExtBidResponseFledge extBidResponseFledge = combinedFledgeConfigs.isEmpty()
+                ? null
+                : ExtBidResponseFledge.of(combinedFledgeConfigs);
+
+        return new PaaResult(extIgi, extBidResponseFledge);
     }
 
-    private Stream<FledgeAuctionConfig> fledgeConfigsForBidder(BidderResponseInfo bidderResponseInfo, List<Imp> imps) {
+    private static Stream<FledgeAuctionConfig> toOriginalFledgeFormat(BidderResponseInfo bidderResponseInfo) {
+        return Optional.ofNullable(bidderResponseInfo.getSeatBid().getIgi()).stream()
+                .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
+                .map(ExtIgi::getIgs)
+                .filter(Objects::nonNull)
+                .flatMap(Collection::stream)
+                .map(extIgiIgs -> extIgiIgsToFledgeConfig(extIgiIgs, bidderResponseInfo.getBidder()));
+    }
+
+    private static FledgeAuctionConfig extIgiIgsToFledgeConfig(ExtIgiIgs extIgiIgs, String bidder) {
+        return FledgeAuctionConfig.builder()
+                .bidder(bidder)
+                .adapter(bidder)
+                .impId(extIgiIgs.getImpId())
+                .config(extIgiIgs.getConfig())
+                .build();
+    }
+
+    private Stream<FledgeAuctionConfig> toDeprecatedFledgeConfigs(BidderResponseInfo bidderResponseInfo,
+                                                                  List<Imp> imps) {
+
         return Optional.ofNullable(bidderResponseInfo.getSeatBid().getFledgeAuctionConfigs())
                 .stream()
                 .flatMap(Collection::stream)
@@ -849,7 +888,9 @@ public class BidResponseCreator {
                         .build())
                 .toList();
 
-        return extIgi.toBuilder().igs(extIgiIgs).build();
+        return extIgiIgs.isEmpty()
+                ? extIgi
+                : extIgi.toBuilder().igs(extIgiIgs).build();
     }
 
     private static ExtResponseDebug toExtResponseDebug(List<BidderResponseInfo> bidderResponseInfos,
@@ -1161,6 +1202,17 @@ public class BidResponseCreator {
             responseTimeMillis.put(CACHE, cacheResponseTime);
         }
         return responseTimeMillis;
+    }
+
+    private static PaaFormat resolvePaaFormat(AuctionContext auctionContext) {
+        return Optional.of(auctionContext.getBidRequest())
+                .map(BidRequest::getExt)
+                .map(ExtRequest::getPrebid)
+                .map(ExtRequestPrebid::getPaaFormat)
+                .or(() -> Optional.ofNullable(auctionContext.getAccount())
+                        .map(Account::getAuction)
+                        .map(AccountAuctionConfig::getPaaFormat))
+                .orElse(PaaFormat.IAB); // TODO: Decide what default value to use
     }
 
     /**
@@ -1808,5 +1860,8 @@ public class BidResponseCreator {
         } catch (IllegalArgumentException ignored) {
             return null;
         }
+    }
+
+    private record PaaResult(List<ExtIgi> igis, ExtBidResponseFledge fledge) {
     }
 }
