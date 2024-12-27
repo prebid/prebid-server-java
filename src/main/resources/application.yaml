@@ -296,7 +296,6 @@ analytics:
       count: 100
       report-ttl-ms: 900000
   greenbids:
-    enabled: true
     analytics-server-version: "2.2.0"
     analytics-server: http://localhost:8090
     exploratory-sampling-split: 0.9
