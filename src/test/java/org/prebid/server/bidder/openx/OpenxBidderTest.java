@@ -593,6 +593,49 @@ public class OpenxBidderTest extends VertxTest {
                         .build());
     }
 
+
+    @Test
+    public void makeBidsShouldReturnResultForNativeBidsWithExpectedFields() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(OpenxBidResponse.builder()
+                .seatbid(singletonList(SeatBid.builder()
+                        .bid(singletonList(Bid.builder()
+                                .w(200)
+                                .h(150)
+                                .price(BigDecimal.ONE)
+                                .impid("impId1")
+                                .adm("{\"ver\":\"1.2\"}")
+                                .build()))
+                        .build()))
+                .cur("UAH")
+                .ext(OpenxBidResponseExt.of(Map.of("impId1", mapper.createObjectNode().put("somevalue", 1))))
+                .build()));
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .id("bidRequestId")
+                .imp(singletonList(Imp.builder()
+                        .id("impId1")
+                        .xNative(Native.builder().request("{\"ver\":\"1.2\",\"plcmttype\":3}").build())
+                        .build()))
+                .build();
+
+        // when
+        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getBids()).hasSize(1)
+                .containsOnly(BidderBid.of(
+                        Bid.builder()
+                                .impid("impId1")
+                                .price(BigDecimal.ONE)
+                                .w(200)
+                                .h(150)
+                                .adm("{\"ver\":\"1.2\"}")
+                                .build(),
+                        BidType.xNative, "UAH"));
+    }
+
     @Test
     public void makeBidsShouldReturnVideoInfoWhenAvailable() throws JsonProcessingException {
         // given
