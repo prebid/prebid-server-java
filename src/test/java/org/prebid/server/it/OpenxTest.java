@@ -19,14 +19,14 @@ public class OpenxTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromOpenx() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/openx-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/openx/test-openx-bid-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/openx/test-openx-bid-response.json"))));
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/openx/test-native-request.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/openx/test-native-response.json"))));
 
         // when
-        final Response response = responseFor("openrtb2/openx/test-auction-openx-request.json",
+        final Response response = responseFor("openrtb2/openx/test-native-response.json",
                 Endpoint.openrtb2_auction);
 
         // then
-        assertJsonEquals("openrtb2/openx/test-auction-openx-response.json", response, singletonList("openx"));
+        assertJsonEquals("openrtb2/openx/test-native-response.json", response, singletonList("openx"));
     }
 }

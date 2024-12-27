@@ -1,0 +1,23 @@
+{
+  "id": "bidRequestId",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bidId1",
+          "impid": "impId1",
+          "price": 1.5,
+          "adm": "{\"native\":{\"ver\":\"1.2\",\"assets\":[{\"id\":1,\"title\":{\"text\":\"Native Ad Title\"}},{\"id\":2,\"img\":{\"url\":\"https://example.com/image.jpg\",\"w\":200,\"h\":200}}],\"link\":{\"url\":\"https://example.com/click\"},\"imptrackers\":[\"https://example.com/impression\"]}}",
+          "adomain": ["example.com"],
+          "iurl": "https://example.com/image.jpg",
+          "cid": "campaignId1",
+          "crid": "creativeId1",
+          "dealid": "dealId1",
+          "w": 200,
+          "h": 200
+        }
+      ]
+    }
+  ],
+  "cur": "USD"
+}
