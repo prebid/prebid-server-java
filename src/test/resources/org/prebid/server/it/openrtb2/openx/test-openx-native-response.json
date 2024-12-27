@@ -7,7 +7,7 @@
           "id": "bid_id",
           "impid": "imp_id",
           "price": 5.78,
-          "adm": "{\"native\":{\"ver\":\"1.2\",\"assets\":[{\"id\":1,\"title\":{\"text\":\"Native Ad Title\"}},{\"id\":2,\"img\":{\"url\":\"https://example.com/image.jpg\",\"w\":200,\"h\":200}}],\"link\":{\"url\":\"https://example.com/click\"},\"imptrackers\":[\"https://example.com/impression\"]}}",
+          "adm": "{\n  \"ver\": \"1.2\",\n  \"assets\": [\n    {\n      \"id\": 1,\n      \"title\": {\n        \"text\": \"Native Ad Title\"\n      }\n    },\n    {\n      \"id\": 2,\n      \"img\": {\n        \"url\": \"https://example.com/image.jpg\",\n        \"w\": 200,\n        \"h\": 200\n      }\n    }\n  ],\n  \"link\": {\n    \"url\": \"https://example.com/click\"\n  },\n  \"imptrackers\": [\n    \"https://example.com/impression\"\n  ]\n}",
           "crid": "crid00",
           "w": 300,
           "h": 250

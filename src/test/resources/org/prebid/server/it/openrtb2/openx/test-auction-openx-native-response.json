@@ -8,7 +8,7 @@
           "impid": "imp_id",
           "exp": 300,
           "price": 5.78,
-          "adm": "{\"native\":{\"ver\":\"1.2\",\"assets\":[{\"id\":1,\"title\":{\"text\":\"Native Ad Title\"}},{\"id\":2,\"img\":{\"url\":\"https://example.com/image.jpg\",\"w\":200,\"h\":200}}],\"link\":{\"url\":\"https://example.com/click\"},\"imptrackers\":[\"https://example.com/impression\"]}}",
+          "adm" : "{\"ver\":\"1.2\",\"assets\":[{\"id\":1,\"title\":{\"text\":\"Native Ad Title\"}},{\"id\":2,\"img\":{\"type\":3,\"url\":\"https://example.com/image.jpg\",\"w\":200,\"h\":200}}],\"link\":{\"url\":\"https://example.com/click\"},\"imptrackers\":[\"https://example.com/impression\"]}",
           "crid": "crid00",
           "w": 300,
           "h": 250,
