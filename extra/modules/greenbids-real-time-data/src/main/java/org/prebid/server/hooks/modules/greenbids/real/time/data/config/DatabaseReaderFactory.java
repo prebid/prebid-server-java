@@ -3,7 +3,6 @@ package org.prebid.server.hooks.modules.greenbids.real.time.data.config;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
-
 import com.maxmind.db.Reader;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
@@ -53,7 +52,7 @@ public class DatabaseReaderFactory implements Initializable {
         final String tmpPath = properties.tmpPath;
         return downloadFile(downloadUrl, tmpPath)
                 .compose(unused -> {
-                    DatabaseReader databaseReader;
+                    final DatabaseReader databaseReader;
                     try {
                         databaseReader = extractMMDB(tmpPath);
                     } catch (RuntimeException e) {
