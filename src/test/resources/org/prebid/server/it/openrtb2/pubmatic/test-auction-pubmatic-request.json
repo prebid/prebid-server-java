@@ -49,9 +49,7 @@
   ],
   "tmax": 5000,
   "regs": {
-    "ext": {
-      "gdpr": 0
-    }
+    "gdpr": 0
   },
   "ext": {
     "prebid": {
