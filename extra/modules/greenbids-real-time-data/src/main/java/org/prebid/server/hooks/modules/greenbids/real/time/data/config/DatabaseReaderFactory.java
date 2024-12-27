@@ -1,6 +1,7 @@
 package org.prebid.server.hooks.modules.greenbids.real.time.data.config;
 
 import io.netty.handler.codec.http.HttpResponseStatus;
+import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 
 import com.maxmind.db.Reader;
@@ -42,13 +43,6 @@ public class DatabaseReaderFactory implements Initializable {
 
     @Override
     public void initialize(Promise<Void> initializePromise) {
-
-        System.out.println(
-                "DatabaseReaderFactory/initialize/ \n" +
-                        "properties: " + properties + "\n" +
-                        "vertx: " + vertx + "\n"
-        );
-
         vertx.executeBlocking(() -> downloadAndExtract().onSuccess(databaseReaderRef::set))
                 .<Void>mapEmpty()
                 .onComplete(initializePromise);
@@ -56,55 +50,45 @@ public class DatabaseReaderFactory implements Initializable {
 
     private Future<DatabaseReader> downloadAndExtract() {
         final String downloadUrl = properties.geoLiteCountryPath;
-        final String tmpPath = "/var/tmp/prebid/tmp/GeoLite2-Country.tar.gz";
+        final String tmpPath = properties.tmpPath;
         return downloadFile(downloadUrl, tmpPath)
-                .map(v -> extractMMDB(tmpPath));
+                .compose(unused -> {
+                    DatabaseReader databaseReader;
+                    try {
+                        databaseReader = extractMMDB(tmpPath);
+                    } catch (RuntimeException e) {
+                        removeFile(tmpPath);
+                        throw new PreBidException("Failed to extract MMDB file. Removed file.", e);
+                    }
+                    removeFile(tmpPath);
+                    return Future.succeededFuture(databaseReader);
+                });
     }
 
     private Future<Void> downloadFile(String downloadUrl, String tmpPath) {
-        logger.info("downloadFile(): URL={}, tmpPath={}", downloadUrl, tmpPath);
-
-        // Open the file for writing
-        return vertx.fileSystem().mkdirs("/var/tmp/prebid/tmp")
+        return vertx.fileSystem().mkdirs(properties.tmpDir)
                 .compose(v -> vertx.fileSystem().open(tmpPath, new OpenOptions()))
                 .compose(tmpFile -> sendHttpRequest(downloadUrl)
                         .compose(response -> response.pipeTo(tmpFile))
+                        .eventually(v -> tmpFile.close())
                         .onSuccess(ignored -> logger.info("File downloaded successfully to {}", tmpPath))
-                        .onFailure(error -> logger.error("Failed to download file from {} to {}.", downloadUrl, tmpPath, error)));
+                        .onFailure(error -> logger.error(
+                                "Failed to download file from {} to {}.", downloadUrl, tmpPath, error)));
     }
 
     private Future<HttpClientResponse> sendHttpRequest(String url) {
         final RequestOptions options = new RequestOptions()
                 .setFollowRedirects(true)
                 .setMethod(HttpMethod.GET)
+                .setTimeout(properties.timeoutMs)
                 .setAbsoluteURI(url);
 
         return vertx.createHttpClient().request(options)
-                .compose(request -> {
-                    System.out.println(
-                            "DatabaseReaderFactory/sendHttpRequest/ before send \n" +
-                                    "request: " + request + "\n"
-                    );
-
-                    Future<HttpClientResponse> responseFuture = request.send();
-
-                    System.out.println(
-                            "DatabaseReaderFactory/sendHttpRequest/ after sent \n" +
-                                    "response: " + responseFuture + "\n"
-                    );
-
-                    return responseFuture;
-                })
+                .compose(HttpClientRequest::send)
                 .map(this::validateResponse);
     }
 
     private HttpClientResponse validateResponse(HttpClientResponse response) {
-
-        System.out.println(
-                "DatabaseReaderFactory/validateResponse/ \n" +
-                        "response: " + response + "\n"
-        );
-
         final int statusCode = response.statusCode();
         if (statusCode != HttpResponseStatus.OK.code()) {
             throw new PreBidException("Got unexpected response from server with status code %s and message %s"
@@ -116,13 +100,6 @@ public class DatabaseReaderFactory implements Initializable {
     private DatabaseReader extractMMDB(String tarGzPath) {
         try (GZIPInputStream gis = new GZIPInputStream(Files.newInputStream(Path.of(tarGzPath)));
                 TarArchiveInputStream tarInput = new TarArchiveInputStream(gis)) {
-
-            System.out.println(
-                    "DatabaseReaderFactory/extractMMDB/ \n" +
-                            "tarGzPath: " + tarGzPath + "\n" +
-                            "gis: " + gis + "\n" +
-                            "tarInput: " + tarInput + "\n"
-            );
 
             TarArchiveEntry currentEntry;
             boolean hasDatabaseFile = false;
@@ -137,18 +114,17 @@ public class DatabaseReaderFactory implements Initializable {
                 throw new RuntimeException("GeoLite2-Country.mmdb not found in the archive");
             }
 
-            final DatabaseReader databaseReader = new DatabaseReader.Builder(tarInput)
+            return new DatabaseReader.Builder(tarInput)
                     .fileMode(Reader.FileMode.MEMORY).build();
-
-            System.out.println(
-                    "DatabaseReaderFactory/extractMMDB/ \n" +
-                            "databaseReader: " + databaseReader + "\n"
-            );
-
-            return databaseReader;
         } catch (IOException e) {
             throw new RuntimeException("Failed to extract MMDB file", e);
         }
+    }
+
+    private Future<Void> removeFile(String filePath) {
+        return vertx.fileSystem().delete(filePath)
+                .onSuccess(ignored -> logger.info("File {} removed successfully", filePath))
+                .onFailure(err -> logger.error("Failed to remove file {}", filePath, err));
     }
 
     public DatabaseReader getDatabaseReader() {
