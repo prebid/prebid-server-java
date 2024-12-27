@@ -132,6 +132,7 @@ public class RiseBidder implements Bidder<BidRequest> {
         return switch (markupType) {
             case 1 -> BidType.banner;
             case 2 -> BidType.video;
+            case 4 -> BidType.xNative;
             default ->
                     throw new PreBidException("Unsupported MType: %s, for bid: %s".formatted(markupType, bid.getId()));
         };
