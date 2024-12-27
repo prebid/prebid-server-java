@@ -593,7 +593,6 @@ public class OpenxBidderTest extends VertxTest {
                         .build());
     }
 
-
     @Test
     public void makeBidsShouldReturnResultForNativeBidsWithExpectedFields() throws JsonProcessingException {
         // given
