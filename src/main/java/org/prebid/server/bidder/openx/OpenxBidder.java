@@ -113,7 +113,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
             List<BidderError> errors) {
         final List<BidRequest> bidRequests = new ArrayList<>();
         // single request for all banner and native imps
-        final var bannerAndNativeImps = Stream.of(bannerImps, nativeImps)
+        final List<Imp> bannerAndNativeImps = Stream.of(bannerImps, nativeImps)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .toList();
