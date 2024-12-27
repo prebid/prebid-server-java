@@ -1,8 +1,6 @@
 package org.prebid.server.hooks.modules.greenbids.real.time.data.config;
 
-import com.iab.openrtb.request.Request;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 
 import com.maxmind.db.Reader;
@@ -16,6 +14,8 @@ import io.vertx.core.http.RequestOptions;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.vertx.Initializable;
 
 import java.io.IOException;
@@ -31,6 +31,8 @@ public class DatabaseReaderFactory implements Initializable {
     private final Vertx vertx;
 
     private final AtomicReference<DatabaseReader> databaseReaderRef = new AtomicReference<>();
+
+    private static final Logger logger = LoggerFactory.getLogger(DatabaseReaderFactory.class);
 
     public DatabaseReaderFactory(
             GreenbidsRealTimeDataProperties properties, Vertx vertx) {
@@ -55,19 +57,20 @@ public class DatabaseReaderFactory implements Initializable {
     private Future<DatabaseReader> downloadAndExtract() {
         final String downloadUrl = properties.geoLiteCountryPath;
         final String tmpPath = "/var/tmp/prebid/tmp/GeoLite2-Country.tar.gz";
-
-        //final String downloadUrl = "https://github.com/prebid/prebid-server-java/blob/master/checkstyle.xml";
-        //final String tmpPath = "/var/tmp/prebid/tmp/checkstyle.xml";
-
         return downloadFile(downloadUrl, tmpPath)
                 .map(v -> extractMMDB(tmpPath));
     }
 
     private Future<Void> downloadFile(String downloadUrl, String tmpPath) {
-        return vertx.fileSystem().open(tmpPath, new OpenOptions())
+        logger.info("downloadFile(): URL={}, tmpPath={}", downloadUrl, tmpPath);
+
+        // Open the file for writing
+        return vertx.fileSystem().mkdirs("/var/tmp/prebid/tmp")
+                .compose(v -> vertx.fileSystem().open(tmpPath, new OpenOptions()))
                 .compose(tmpFile -> sendHttpRequest(downloadUrl)
                         .compose(response -> response.pipeTo(tmpFile))
-                        .onComplete(result -> tmpFile.close()));
+                        .onSuccess(ignored -> logger.info("File downloaded successfully to {}", tmpPath))
+                        .onFailure(error -> logger.error("Failed to download file from {} to {}.", downloadUrl, tmpPath, error)));
     }
 
     private Future<HttpClientResponse> sendHttpRequest(String url) {
@@ -136,6 +139,12 @@ public class DatabaseReaderFactory implements Initializable {
 
             final DatabaseReader databaseReader = new DatabaseReader.Builder(tarInput)
                     .fileMode(Reader.FileMode.MEMORY).build();
+
+            System.out.println(
+                    "DatabaseReaderFactory/extractMMDB/ \n" +
+                            "databaseReader: " + databaseReader + "\n"
+            );
+
             return databaseReader;
         } catch (IOException e) {
             throw new RuntimeException("Failed to extract MMDB file", e);
