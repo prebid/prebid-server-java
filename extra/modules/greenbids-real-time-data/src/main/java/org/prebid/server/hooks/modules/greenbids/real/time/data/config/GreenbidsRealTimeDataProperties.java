@@ -11,8 +11,6 @@ public class GreenbidsRealTimeDataProperties {
 
     String geoLiteCountryPath;
 
-    String tmpDir;
-
     String tmpPath;
 
     String gcsBucketName;

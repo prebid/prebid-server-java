@@ -51,26 +51,15 @@ public class DatabaseReaderFactory implements Initializable {
         final String downloadUrl = properties.geoLiteCountryPath;
         final String tmpPath = properties.tmpPath;
         return downloadFile(downloadUrl, tmpPath)
-                .compose(unused -> {
-                    final DatabaseReader databaseReader;
-                    try {
-                        databaseReader = extractMMDB(tmpPath);
-                    } catch (RuntimeException e) {
-                        removeFile(tmpPath);
-                        throw new PreBidException("Failed to extract MMDB file. Removed file.", e);
-                    }
-                    removeFile(tmpPath);
-                    return Future.succeededFuture(databaseReader);
-                });
+                .flatMap(unused -> Future.succeededFuture(extractMMDB(tmpPath)))
+                .onComplete(ar -> removeFile(tmpPath));
     }
 
     private Future<Void> downloadFile(String downloadUrl, String tmpPath) {
-        return vertx.fileSystem().mkdirs(properties.tmpDir)
-                .compose(v -> vertx.fileSystem().open(tmpPath, new OpenOptions()))
+        return vertx.fileSystem().open(tmpPath, new OpenOptions())
                 .compose(tmpFile -> sendHttpRequest(downloadUrl)
                         .compose(response -> response.pipeTo(tmpFile))
                         .eventually(v -> tmpFile.close())
-                        .onSuccess(ignored -> logger.info("File downloaded successfully to {}", tmpPath))
                         .onFailure(error -> logger.error(
                                 "Failed to download file from {} to {}.", downloadUrl, tmpPath, error)));
     }
@@ -110,19 +99,18 @@ public class DatabaseReaderFactory implements Initializable {
             }
 
             if (!hasDatabaseFile) {
-                throw new RuntimeException("GeoLite2-Country.mmdb not found in the archive");
+                throw new PreBidException("GeoLite2-Country.mmdb not found in the archive");
             }
 
             return new DatabaseReader.Builder(tarInput)
                     .fileMode(Reader.FileMode.MEMORY).build();
         } catch (IOException e) {
-            throw new RuntimeException("Failed to extract MMDB file", e);
+            throw new PreBidException("Failed to extract MMDB file", e);
         }
     }
 
     private Future<Void> removeFile(String filePath) {
         return vertx.fileSystem().delete(filePath)
-                .onSuccess(ignored -> logger.info("File {} removed successfully", filePath))
                 .onFailure(err -> logger.error("Failed to remove file {}", filePath, err));
     }
 
