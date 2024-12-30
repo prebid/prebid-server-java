@@ -104,11 +104,11 @@ class ImpRequestSpec extends BaseSpec {
                 pmp = Pmp.defaultPmp
                 ext.prebid.imp = [(aliasName): new Imp(pmp: extPmp)]
             }
-            ext.prebid.aliases = [(aliasName.value): GENERIC]
+            ext.prebid.aliases = [(aliasName.value): bidderName]
         }
 
         when: "Requesting PBS auction"
-        defaultPbsServiceWithAlias.sendAuctionRequest(bidRequest)
+        defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "BidderRequest should update imp information based on imp.ext.prebid.imp value"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
