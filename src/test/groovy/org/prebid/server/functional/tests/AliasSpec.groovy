@@ -1,6 +1,7 @@
 package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.model.bidder.Generic
+import org.prebid.server.functional.model.bidder.Openx
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
@@ -9,6 +10,8 @@ import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.BOGUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.bidder.BidderName.GENER_X
+import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.bidder.CompressionType.GZIP
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 import static org.prebid.server.functional.util.HttpUtil.CONTENT_ENCODING_HEADER
@@ -143,5 +146,91 @@ class AliasSpec extends BaseSpec {
         then: "Bidder request should contain request per-alies"
         def bidderRequests = bidder.getBidderRequests(bidRequest.id)
         assert bidderRequests.size() == 2
+    }
+
+    def "PBS shouldn't invoking alias of openX when generic config take precedence"() {
+        given: "PBs config"
+        def pbsService = pbsServiceFactory.getService(
+                ["adapters.generic.aliases.alias.enabled" : "true",
+                 "adapters.generic.aliases.alias.endpoint": "$networkServiceContainer.rootUri/alias/auction".toString(),
+                 "adapters.openx.enabled"                 : "true",
+                 "adapters.openx.endpoint"                : "$networkServiceContainer.rootUri/openx/auction".toString()])
+
+        and: "Default bid request with openx and alias bidder"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.prebid.bidder.alias = new Generic()
+            imp[0].ext.prebid.bidder.generic = new Generic()
+            imp[0].ext.prebid.bidder.openx = new Openx()
+            ext.prebid.aliases = [(ALIAS.value): OPENX]
+        }
+
+        when: "PBS processes auction request"
+        def bidResponse = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS should call only generic bidder"
+        def responseDebug = bidResponse.ext.debug
+        assert responseDebug.httpcalls[GENERIC.value]
+
+        and: "PBS should call only generic bidder"
+        assert bidder.getBidderRequest(bidRequest.id)
+    }
+
+    def "PBS should ignore aliases that have a base adapter"() {
+        given: "PBs config"
+        def pbsService = pbsServiceFactory.getService(
+                ["adapters.openx.enabled" : "true",
+                 "adapters.openx.endpoint": "$networkServiceContainer.rootUri/openx/auction".toString()])
+
+        and: "Default bid request with openx and alias bidder"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.prebid.bidder.openx = Openx.defaultOpenx
+            imp[0].ext.prebid.bidder.generic = new Generic()
+            ext.prebid.aliases = [(OPENX.value): GENERIC]
+        }
+
+        when: "PBS processes auction request"
+        def bidResponse = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS contain two http calls and the different url for both"
+        def responseDebug = bidResponse.ext.debug
+        assert responseDebug.httpcalls.size() == 2
+        assert responseDebug.httpcalls[OPENX.value]*.uri != responseDebug.httpcalls[GENERIC.value]*.uri
+    }
+
+    def "PBS should invoke as aliases when aliases isn't known and core bidder is specified"() {
+        given: "Default bid request with generic and alias bidder"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.prebid.bidder.generX = new Generic()
+            ext.prebid.aliases = [("gener_x"): GENERIC]
+        }
+
+        when: "PBS processes auction request"
+        def bidResponse = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS contain two http calls and the same url for both"
+        def responseDebug = bidResponse.ext.debug
+        assert responseDebug.httpcalls.size() == 2
+        assert responseDebug.httpcalls[GENER_X.value]*.uri == responseDebug.httpcalls[GENERIC.value]*.uri
+
+        and: "Bidder request should contain request per-alies"
+        def bidderRequests = bidder.getBidderRequests(bidRequest.id)
+        assert bidderRequests.size() == 2
+    }
+
+    def "PBS should invoke as aliases when aliases isn't known and core bidder isn't specified"() {
+        given: "Default bid request with generic and alias bidder"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.prebid.bidder.generX = new Generic()
+            imp[0].ext.prebid.bidder.generic = null
+            ext.prebid.aliases = [("gener_x"): GENERIC]
+        }
+
+        when: "PBS processes auction request"
+        def bidResponse = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS contain two http calls and the same url for both"
+        def responseDebug = bidResponse.ext.debug
+        assert responseDebug.httpcalls.size() == 1
+        assert responseDebug.httpcalls[GENER_X.value]
     }
 }
