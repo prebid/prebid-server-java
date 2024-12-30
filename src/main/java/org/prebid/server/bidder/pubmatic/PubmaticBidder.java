@@ -35,6 +35,7 @@ import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
+import org.prebid.server.proto.openrtb.ext.request.ExtAppPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.pubmatic.ExtImpPubmatic;
@@ -98,7 +99,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         try {
             acat = extractAcat(request);
             wrapper = extractWrapper(request);
-            displayManagerFields = extractDisplayManagerFields(request);
+            displayManagerFields = extractDisplayManagerFields(request.getApp());
         } catch (IllegalArgumentException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
@@ -130,30 +131,6 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         return Result.of(Collections.singletonList(makeHttpRequest(modifiedBidRequest)), errors);
     }
 
-    private Pair<String, String> extractDisplayManagerFields(BidRequest request) {
-        final Optional<ExtApp> optionalExtApp = Optional.ofNullable(request.getApp())
-                .map(App::getExt);
-
-        return optionalExtApp.map(ExtApp::getPrebid)
-                .filter(extAppPrebid -> StringUtils.isNoneBlank(extAppPrebid.getSource(), extAppPrebid.getVersion()))
-                .map(extAppPrebid -> Pair.of(extAppPrebid.getSource(), extAppPrebid.getVersion()))
-                .or(() -> optionalExtApp
-                        .filter(extApp -> StringUtils.isNoneBlank(
-                                getPropertyValue(extApp, "source"),
-                                getPropertyValue(extApp, "version")))
-                        .map(extApp -> Pair.of(
-                                extApp.getProperty("source").asText(),
-                                extApp.getProperty("version").asText())))
-                .orElse(Pair.of(null, null));
-    }
-
-    private static String getPropertyValue(FlexibleExtension flexibleExtension, String propertyName) {
-        return Optional.ofNullable(flexibleExtension.getProperty(propertyName))
-                .filter(JsonNode::isValueNode)
-                .map(JsonNode::asText)
-                .orElse(null);
-    }
-
     private List<String> extractAcat(BidRequest request) {
         final JsonNode bidderParams = getExtRequestPrebidBidderparams(request);
         final JsonNode acatNode = bidderParams != null ? bidderParams.get(ACAT_EXT_REQUEST) : null;
@@ -179,6 +156,34 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         final ExtRequestPrebid extRequestPrebid = extRequest != null ? extRequest.getPrebid() : null;
         final ObjectNode bidderParams = extRequestPrebid != null ? extRequestPrebid.getBidderparams() : null;
         return bidderParams != null ? bidderParams.get(BIDDER_NAME) : null;
+    }
+
+    private Pair<String, String> extractDisplayManagerFields(App app) {
+        String source;
+        String version;
+
+        final ExtApp extApp = app != null ? app.getExt() : null;
+        final ExtAppPrebid extAppPrebid = extApp != null ? extApp.getPrebid() : null;
+
+        source = extAppPrebid != null ? extAppPrebid.getSource() : null;
+        version = extAppPrebid != null ? extAppPrebid.getVersion() : null;
+        if (StringUtils.isNoneBlank(source, version)) {
+            return Pair.of(source, version);
+        }
+
+        source = getPropertyValue(extApp, "source");
+        version = getPropertyValue(extApp, "version");
+        return StringUtils.isNoneBlank(source, version)
+                ? Pair.of(source, version)
+                : Pair.of(null, null);
+    }
+
+    private static String getPropertyValue(FlexibleExtension flexibleExtension, String propertyName) {
+        return Optional.ofNullable(flexibleExtension)
+                .map(ext -> ext.getProperty(propertyName))
+                .filter(JsonNode::isValueNode)
+                .map(JsonNode::asText)
+                .orElse(null);
     }
 
     private static void validateMediaType(Imp imp) {
@@ -231,12 +236,8 @@ public class PubmaticBidder implements Bidder<BidRequest> {
                 .banner(banner != null ? assignSizesIfMissing(banner) : null)
                 .audio(null)
                 .bidfloor(resolveBidFloor(impExtBidder.getKadfloor(), imp.getBidfloor()))
-                .displaymanager(StringUtils.isBlank(imp.getDisplaymanager())
-                        ? displayManager
-                        : imp.getDisplaymanager())
-                .displaymanagerver(StringUtils.isBlank(imp.getDisplaymanagerver())
-                        ? displayManagerVersion
-                        : imp.getDisplaymanagerver())
+                .displaymanager(StringUtils.firstNonBlank(imp.getDisplaymanager(), displayManager))
+                .displaymanagerver(StringUtils.firstNonBlank(imp.getDisplaymanagerver(), displayManagerVersion))
                 .ext(!newExt.isEmpty() ? newExt : null);
 
         enrichWithAdSlotParameters(impBuilder, impExtBidder.getAdSlot(), banner);
@@ -436,7 +437,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
                 .imp(imps)
                 .site(modifySite(request.getSite(), publisherId))
                 .app(modifyApp(request.getApp(), publisherId))
-                .ext(modifyExtRequest(request.getExt(), wrapper, acat))
+                .ext(modifyExtRequest(wrapper, acat))
                 .build();
     }
 
@@ -462,7 +463,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
                 : Publisher.builder().id(publisherId).build();
     }
 
-    private ExtRequest modifyExtRequest(ExtRequest extRequest, PubmaticWrapper wrapper, List<String> acat) {
+    private ExtRequest modifyExtRequest(PubmaticWrapper wrapper, List<String> acat) {
         final ObjectNode extNode = mapper.mapper().createObjectNode();
 
         if (wrapper != null) {
@@ -473,13 +474,10 @@ public class PubmaticBidder implements Bidder<BidRequest> {
             extNode.putPOJO(ACAT_EXT_REQUEST, acat);
         }
 
-        final ExtRequest extRequestWithoutPrebid = extRequest != null
-                ? mapper.fillExtension(ExtRequest.empty(), extRequest.getProperties())
-                : ExtRequest.empty();
-
+        final ExtRequest newExtRequest = ExtRequest.empty();
         return extNode.isEmpty()
-                ? extRequestWithoutPrebid
-                : mapper.fillExtension(extRequestWithoutPrebid, extNode);
+                ? newExtRequest
+                : mapper.fillExtension(newExtRequest, extNode);
     }
 
     private HttpRequest<BidRequest> makeHttpRequest(BidRequest request) {
