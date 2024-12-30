@@ -329,6 +329,7 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
         return Optional.ofNullable(data)
                 .map(Data::getCustomData)
                 .map(customData -> customData.get(startCompact ? "compactHeight" : "standardHeight"))
+                .filter(JsonNode::isNumber)
                 .map(JsonNode::asInt)
                 .orElse(startCompact ? DEFAULT_COMPACT_HEIGHT : DEFAULT_STANDARD_HEIGHT);
     }
