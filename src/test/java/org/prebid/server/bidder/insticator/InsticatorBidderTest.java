@@ -367,6 +367,35 @@ public class InsticatorBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldAddsToExtRequestInsticatorDefaultCallerWhenExistingInsticatorCanNotBeParsed() {
+        // given
+        final ExtRequest givenExtRequest = ExtRequest.empty();
+        givenExtRequest.addProperty("insticator", mapper.createArrayNode());
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.id("givenImp"))
+                .toBuilder()
+                .ext(givenExtRequest)
+                .build();
+
+        //when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        //then
+        assertThat(result.getErrors()).isEmpty();
+
+        final ExtRequest expectedExtRequest = ExtRequest.empty();
+        expectedExtRequest.addProperty("insticator",
+                mapper.createObjectNode().set("caller",
+                        mapper.createArrayNode().add(mapper.createObjectNode()
+                                .put("name", "Prebid-Server")
+                                .put("version", "n/a"))));
+
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getExt)
+                .containsExactly(expectedExtRequest);
+    }
+
+    @Test
     public void makeHttpRequestsShouldModifyAppWithPublisherIdOfTheFirstImp() {
         // given
         final BidRequest bidRequest = givenBidRequest(

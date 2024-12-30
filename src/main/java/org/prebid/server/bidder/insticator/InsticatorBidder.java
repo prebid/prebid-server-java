@@ -88,7 +88,7 @@ public class InsticatorBidder implements Bidder<BidRequest> {
             }
         }
 
-        final BidRequest modifiedRequest = modifyRequest(request, publisherId, errors);
+        final BidRequest modifiedRequest = modifyRequest(request, publisherId);
         final List<HttpRequest<BidRequest>> requests = groupedImps.values().stream()
                 .map(imps -> modifiedRequest.toBuilder().imp(imps).build())
                 .map(finalRequest -> BidderUtil.defaultRequest(
@@ -153,11 +153,11 @@ public class InsticatorBidder implements Bidder<BidRequest> {
         return Price.of(DEFAULT_BIDDER_CURRENCY, BidderUtil.roundFloor(convertedPrice));
     }
 
-    private BidRequest modifyRequest(BidRequest request, String publisherId, List<BidderError> errors) {
+    private BidRequest modifyRequest(BidRequest request, String publisherId) {
         return request.toBuilder()
                 .site(modifySite(request.getSite(), publisherId))
                 .app(modifyApp(request.getApp(), publisherId))
-                .ext(modifyExtRequest(request.getExt(), errors))
+                .ext(modifyExtRequest(request.getExt()))
                 .build();
     }
 
@@ -185,24 +185,25 @@ public class InsticatorBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private ExtRequest modifyExtRequest(ExtRequest extRequest, List<BidderError> errors) {
+    private ExtRequest modifyExtRequest(ExtRequest extRequest) {
         final ExtRequest modifiedExtRequest = extRequest == null ? ExtRequest.empty() : extRequest;
-        final InsticatorExtRequest existingInsticator;
-
-        try {
-            existingInsticator = mapper.mapper().convertValue(
-                    modifiedExtRequest.getProperty(INSTICATOR_FIELD),
-                    InsticatorExtRequest.class);
-        } catch (IllegalArgumentException e) {
-            errors.add(BidderError.badInput(e.getMessage()));
-            return modifiedExtRequest;
-        }
+        final InsticatorExtRequest existingInsticator = getInsticatorExtRequest(modifiedExtRequest);
 
         modifiedExtRequest.addProperty(
                 INSTICATOR_FIELD,
                 mapper.mapper().valueToTree(buildInsticator(existingInsticator)));
 
         return modifiedExtRequest;
+    }
+
+    private InsticatorExtRequest getInsticatorExtRequest(ExtRequest modifiedExtRequest) {
+        try {
+            return mapper.mapper().convertValue(
+                    modifiedExtRequest.getProperty(INSTICATOR_FIELD),
+                    InsticatorExtRequest.class);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
     private static InsticatorExtRequest buildInsticator(InsticatorExtRequest existingInsticator) {
@@ -212,7 +213,7 @@ public class InsticatorBidder implements Bidder<BidRequest> {
 
         final List<InsticatorExtRequestCaller> callers = new ArrayList<>(existingInsticator.getCaller());
         callers.add(DEFAULT_INSTICATOR_CALLER);
-        return InsticatorExtRequest.of(callers);
+        return InsticatorExtRequest.of(Collections.unmodifiableList(callers));
     }
 
     private static MultiMap makeHeaders(Device device) {
