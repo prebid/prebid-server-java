@@ -48,8 +48,8 @@ public class DatabaseReaderFactory implements Initializable {
     }
 
     private Future<DatabaseReader> downloadAndExtract() {
-        final String downloadUrl = properties.geoLiteCountryPath;
-        final String tmpPath = properties.tmpPath;
+        final String downloadUrl = properties.getGeoLiteCountryPath();
+        final String tmpPath = properties.getTmpPath();
         return downloadFile(downloadUrl, tmpPath)
                 .flatMap(unused -> Future.succeededFuture(extractMMDB(tmpPath)))
                 .onComplete(ar -> removeFile(tmpPath));
