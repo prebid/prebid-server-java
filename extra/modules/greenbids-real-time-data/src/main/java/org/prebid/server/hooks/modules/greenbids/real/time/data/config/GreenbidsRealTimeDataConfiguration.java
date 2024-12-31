@@ -5,6 +5,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import io.vertx.core.Vertx;
+import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.filter.ThrottlingThresholds;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingThresholdsFactory;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.GreenbidsInferenceDataService;
@@ -37,9 +38,11 @@ public class GreenbidsRealTimeDataConfiguration {
     }
 
     @Bean
-    GreenbidsInferenceDataService greenbidsInferenceDataService(DatabaseReaderFactory databaseReaderFactory) {
+    GreenbidsInferenceDataService greenbidsInferenceDataService(
+            DatabaseReaderFactory databaseReaderFactory,
+            CountryCodeMapper countryCodeMapper) {
         return new GreenbidsInferenceDataService(
-                databaseReaderFactory, ObjectMapperProvider.mapper());
+                databaseReaderFactory, ObjectMapperProvider.mapper(), countryCodeMapper);
     }
 
     @Bean
