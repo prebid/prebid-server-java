@@ -84,7 +84,7 @@ public class GreenbidsInferenceDataServiceTest {
 
         when(databaseReader.country(any(InetAddress.class))).thenReturn(countryResponse);
         when(countryResponse.getCountry()).thenReturn(country);
-        when(country.getName()).thenReturn("US");
+        when(country.getName()).thenReturn("United States");
 
         // when
         final List<ThrottlingMessage> throttlingMessages = target.extractThrottlingMessagesFromBidRequest(bidRequest);
@@ -97,7 +97,7 @@ public class GreenbidsInferenceDataServiceTest {
 
         throttlingMessages.forEach(message -> {
             assertThat(message.getAdUnitCode()).isEqualTo("adunitcodevalue");
-            assertThat(message.getCountry()).isEqualTo("US");
+            assertThat(message.getCountry()).isEqualTo("United States");
             assertThat(message.getHostname()).isEqualTo("www.leparisien.fr");
             assertThat(message.getDevice()).isEqualTo("PC");
             assertThat(message.getHourBucket()).isEqualTo(String.valueOf(expectedHourBucket));
