@@ -25,6 +25,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.analytics.reporter.greenbids.model.ExplorationResult;
 import org.prebid.server.analytics.reporter.greenbids.model.Ortb2ImpExtResult;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.hooks.execution.v1.analytics.ActivityImpl;
 import org.prebid.server.hooks.execution.v1.analytics.AppliedToImpl;
 import org.prebid.server.hooks.execution.v1.analytics.ResultImpl;
@@ -97,6 +98,9 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
     @Mock(strictness = LENIENT)
     private Country country;
 
+    @Mock
+    private CountryCodeMapper countryCodeMapper;
+
     private GreenbidsRealTimeDataProcessedAuctionRequestHook target;
 
     @BeforeEach
@@ -133,7 +137,8 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
 
         final GreenbidsInferenceDataService greenbidsInferenceDataService = new GreenbidsInferenceDataService(
                 databaseReaderFactory,
-                TestBidRequestProvider.MAPPER);
+                TestBidRequestProvider.MAPPER,
+                countryCodeMapper);
         final GreenbidsInvocationService greenbidsInvocationService = new GreenbidsInvocationService();
         target = new GreenbidsRealTimeDataProcessedAuctionRequestHook(
                 TestBidRequestProvider.MAPPER,
@@ -154,7 +159,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 .banner(banner)
                 .build();
 
-        final Device device = givenDevice(identity());
+        final Device device = givenDevice(identity(), null);
         final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device, null);
         final AuctionContext auctionContext = givenAuctionContext(bidRequest, context -> context);
         final AuctionInvocationContext invocationContext = givenAuctionInvocationContext(auctionContext);
@@ -186,7 +191,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 .build();
 
         final Double explorationRate = 1.0;
-        final Device device = givenDevice(identity());
+        final Device device = givenDevice(identity(), null);
         final ExtRequest extRequest = givenExtRequest(explorationRate);
         final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device, extRequest);
         final AuctionContext auctionContext = givenAuctionContext(bidRequest, context -> context);
@@ -300,7 +305,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 .build();
 
         final Double explorationRate = 0.0001;
-        final Device device = givenDevice(identity());
+        final Device device = givenDevice(identity(), null);
         final ExtRequest extRequest = givenExtRequest(explorationRate);
         final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device, extRequest);
         final AuctionContext auctionContext = givenAuctionContext(bidRequest, context -> context);

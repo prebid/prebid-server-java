@@ -44,7 +44,7 @@ public class GreenbidsInvocationServiceTest {
                 .ext(givenImpExt())
                 .banner(banner)
                 .build();
-        final Device device = givenDevice(identity());
+        final Device device = givenDevice(identity(), null);
         final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device, null);
         final Map<String, Map<String, Boolean>> impsBiddersFilterMap = givenImpsBiddersFilterMap();
         final Partner partner = givenPartner(0.0);
@@ -81,7 +81,7 @@ public class GreenbidsInvocationServiceTest {
                 .ext(givenImpExt())
                 .banner(banner)
                 .build();
-        final Device device = givenDevice(identity());
+        final Device device = givenDevice(identity(), null);
         final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device, null);
         final Map<String, Map<String, Boolean>> impsBiddersFilterMap = givenImpsBiddersFilterMap();
         final Partner partner = givenPartner(1.0);
