@@ -1,6 +1,7 @@
 package org.prebid.server.hooks.modules.greenbids.real.time.data.config;
 
 import io.netty.handler.codec.http.HttpResponseStatus;
+import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import com.maxmind.db.Reader;
@@ -26,18 +27,21 @@ import java.util.zip.GZIPInputStream;
 
 public class DatabaseReaderFactory implements Initializable {
 
+    private static final Logger logger = LoggerFactory.getLogger(DatabaseReaderFactory.class);
+
     private final GreenbidsRealTimeDataProperties properties;
 
     private final Vertx vertx;
 
     private final AtomicReference<DatabaseReader> databaseReaderRef = new AtomicReference<>();
 
-    private static final Logger logger = LoggerFactory.getLogger(DatabaseReaderFactory.class);
+    private final FileSystem fileSystem;
 
     public DatabaseReaderFactory(
             GreenbidsRealTimeDataProperties properties, Vertx vertx) {
         this.properties = properties;
         this.vertx = vertx;
+        this.fileSystem = vertx.fileSystem();
     }
 
     @Override
@@ -56,10 +60,9 @@ public class DatabaseReaderFactory implements Initializable {
     }
 
     private Future<Void> downloadFile(String downloadUrl, String tmpPath) {
-        return vertx.fileSystem().open(tmpPath, new OpenOptions())
+        return fileSystem.open(tmpPath, new OpenOptions())
                 .compose(tmpFile -> sendHttpRequest(downloadUrl)
                         .compose(response -> response.pipeTo(tmpFile))
-                        .eventually(v -> tmpFile.close())
                         .onFailure(error -> logger.error(
                                 "Failed to download file from {} to {}.", downloadUrl, tmpPath, error)));
     }
@@ -68,7 +71,7 @@ public class DatabaseReaderFactory implements Initializable {
         final RequestOptions options = new RequestOptions()
                 .setFollowRedirects(true)
                 .setMethod(HttpMethod.GET)
-                .setTimeout(properties.timeoutMs)
+                .setTimeout(properties.getTimeoutMs())
                 .setAbsoluteURI(url);
 
         return vertx.createHttpClient().request(options)
@@ -109,8 +112,8 @@ public class DatabaseReaderFactory implements Initializable {
         }
     }
 
-    private Future<Void> removeFile(String filePath) {
-        return vertx.fileSystem().delete(filePath)
+    private void removeFile(String filePath) {
+        fileSystem.delete(filePath)
                 .onFailure(err -> logger.error("Failed to remove file {}", filePath, err));
     }
 
