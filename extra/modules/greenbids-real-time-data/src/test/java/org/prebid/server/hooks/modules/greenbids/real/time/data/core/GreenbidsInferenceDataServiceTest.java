@@ -73,7 +73,7 @@ public class GreenbidsInferenceDataServiceTest {
                 .ext(givenImpExt())
                 .banner(banner)
                 .build();
-        final Device device = givenDevice(identity(), null);
+        final Device device = givenDevice(identity());
         final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device, null);
 
         final CountryResponse countryResponse = mock(CountryResponse.class);
@@ -91,9 +91,9 @@ public class GreenbidsInferenceDataServiceTest {
 
         // then
         assertThat(throttlingMessages).isNotEmpty();
-        assertThat(throttlingMessages.getFirst().getBidder()).isEqualTo("rubicon");
-        assertThat(throttlingMessages.get(1).getBidder()).isEqualTo("appnexus");
-        assertThat(throttlingMessages.getLast().getBidder()).isEqualTo("pubmatic");
+        assertThat(throttlingMessages)
+                .extracting(ThrottlingMessage::getBidder)
+                .containsExactly("rubicon", "appnexus", "pubmatic");
 
         throttlingMessages.forEach(message -> {
             assertThat(message.getAdUnitCode()).isEqualTo("adunitcodevalue");
@@ -128,9 +128,9 @@ public class GreenbidsInferenceDataServiceTest {
 
         // then
         assertThat(throttlingMessages).isNotEmpty();
-        assertThat(throttlingMessages.getFirst().getBidder()).isEqualTo("rubicon");
-        assertThat(throttlingMessages.get(1).getBidder()).isEqualTo("appnexus");
-        assertThat(throttlingMessages.getLast().getBidder()).isEqualTo("pubmatic");
+        assertThat(throttlingMessages)
+                .extracting(ThrottlingMessage::getBidder)
+                .containsExactly("rubicon", "appnexus", "pubmatic");
 
         throttlingMessages.forEach(message -> {
             assertThat(message.getAdUnitCode()).isEqualTo("adunitcodevalue");
@@ -163,10 +163,9 @@ public class GreenbidsInferenceDataServiceTest {
 
         // then
         assertThat(throttlingMessages).isNotEmpty();
-
-        assertThat(throttlingMessages.getFirst().getBidder()).isEqualTo("rubicon");
-        assertThat(throttlingMessages.get(1).getBidder()).isEqualTo("appnexus");
-        assertThat(throttlingMessages.getLast().getBidder()).isEqualTo("pubmatic");
+        assertThat(throttlingMessages)
+                .extracting(ThrottlingMessage::getBidder)
+                .containsExactly("rubicon", "appnexus", "pubmatic");
 
         throttlingMessages.forEach(message -> {
             assertThat(message.getAdUnitCode()).isEqualTo("adunitcodevalue");
@@ -188,7 +187,7 @@ public class GreenbidsInferenceDataServiceTest {
                 .ext(givenImpExt())
                 .banner(banner)
                 .build();
-        final Device device = givenDevice(identity(), null);
+        final Device device = givenDevice(identity());
         final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device, null);
 
         when(databaseReader.country(any(InetAddress.class))).thenThrow(new GeoIp2Exception("GeoIP failure"));

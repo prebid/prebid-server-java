@@ -76,6 +76,12 @@ public class TestBidRequestProvider {
         return deviceCustomizer.apply(Device.builder().ua(userAgent).ip("151.101.194.216").geo(geo)).build();
     }
 
+    public static Device givenDevice(UnaryOperator<Device.DeviceBuilder> deviceCustomizer) {
+        final String userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36"
+                + " (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36";
+        return deviceCustomizer.apply(Device.builder().ua(userAgent).ip("151.101.194.216")).build();
+    }
+
     public static Geo givenGeoWithCountry(String countryAlpha3) {
         return Geo.builder().country(countryAlpha3).build();
     }
