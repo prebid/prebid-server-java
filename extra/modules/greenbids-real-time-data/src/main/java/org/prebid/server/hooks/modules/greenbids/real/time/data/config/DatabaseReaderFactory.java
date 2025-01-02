@@ -55,7 +55,7 @@ public class DatabaseReaderFactory implements Initializable {
         final String downloadUrl = properties.getGeoLiteCountryPath();
         final String tmpPath = properties.getTmpPath();
         return downloadFile(downloadUrl, tmpPath)
-                .flatMap(unused -> Future.succeededFuture(extractMMDB(tmpPath)))
+                .map(unused -> extractMMDB(tmpPath))
                 .onComplete(ar -> removeFile(tmpPath));
     }
 

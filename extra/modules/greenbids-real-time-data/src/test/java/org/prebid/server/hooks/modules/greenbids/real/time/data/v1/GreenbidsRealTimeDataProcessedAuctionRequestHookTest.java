@@ -159,7 +159,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 .banner(banner)
                 .build();
 
-        final Device device = givenDevice(identity(), null);
+        final Device device = givenDevice(identity());
         final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device, null);
         final AuctionContext auctionContext = givenAuctionContext(bidRequest, context -> context);
         final AuctionInvocationContext invocationContext = givenAuctionInvocationContext(auctionContext);
@@ -191,7 +191,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 .build();
 
         final Double explorationRate = 1.0;
-        final Device device = givenDevice(identity(), null);
+        final Device device = givenDevice(identity());
         final ExtRequest extRequest = givenExtRequest(explorationRate);
         final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device, extRequest);
         final AuctionContext auctionContext = givenAuctionContext(bidRequest, context -> context);
@@ -305,7 +305,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 .build();
 
         final Double explorationRate = 0.0001;
-        final Device device = givenDevice(identity(), null);
+        final Device device = givenDevice(identity());
         final ExtRequest extRequest = givenExtRequest(explorationRate);
         final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device, extRequest);
         final AuctionContext auctionContext = givenAuctionContext(bidRequest, context -> context);
