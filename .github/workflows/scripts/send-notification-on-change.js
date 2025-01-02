@@ -37,7 +37,7 @@ async function getAccessToken(clientId, clientSecret, refreshToken) {
   const refreshToken = process.env.OAUTH2_REFRESH_TOKEN;
 
   // validate params
-  if (!repo || !prNumber || !token || !clientId || !clientSecret | !refreshToken) {
+  if (!repo || !prNumber || !token || !clientId || !clientSecret || !refreshToken) {
     console.error('Missing required environment variables.');
     process.exit(1);
   }
