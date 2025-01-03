@@ -88,7 +88,7 @@ public class InsticatorBidder implements Bidder<BidRequest> {
             }
         }
 
-        final BidRequest modifiedRequest = modifyRequest(request, publisherId);
+        final BidRequest modifiedRequest = modifyRequest(request, publisherId, errors);
         final List<HttpRequest<BidRequest>> requests = groupedImps.values().stream()
                 .map(imps -> modifiedRequest.toBuilder().imp(imps).build())
                 .map(finalRequest -> BidderUtil.defaultRequest(
@@ -153,11 +153,11 @@ public class InsticatorBidder implements Bidder<BidRequest> {
         return Price.of(DEFAULT_BIDDER_CURRENCY, BidderUtil.roundFloor(convertedPrice));
     }
 
-    private BidRequest modifyRequest(BidRequest request, String publisherId) {
+    private BidRequest modifyRequest(BidRequest request, String publisherId, List<BidderError> errors) {
         return request.toBuilder()
                 .site(modifySite(request.getSite(), publisherId))
                 .app(modifyApp(request.getApp(), publisherId))
-                .ext(modifyExtRequest(request.getExt()))
+                .ext(modifyExtRequest(request.getExt(), errors))
                 .build();
     }
 
@@ -185,9 +185,9 @@ public class InsticatorBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private ExtRequest modifyExtRequest(ExtRequest extRequest) {
+    private ExtRequest modifyExtRequest(ExtRequest extRequest, List<BidderError> errors) {
         final ExtRequest modifiedExtRequest = extRequest == null ? ExtRequest.empty() : extRequest;
-        final InsticatorExtRequest existingInsticator = getInsticatorExtRequest(modifiedExtRequest);
+        final InsticatorExtRequest existingInsticator = getInsticatorExtRequest(modifiedExtRequest, errors);
 
         modifiedExtRequest.addProperty(
                 INSTICATOR_FIELD,
@@ -196,12 +196,13 @@ public class InsticatorBidder implements Bidder<BidRequest> {
         return modifiedExtRequest;
     }
 
-    private InsticatorExtRequest getInsticatorExtRequest(ExtRequest modifiedExtRequest) {
+    private InsticatorExtRequest getInsticatorExtRequest(ExtRequest modifiedExtRequest, List<BidderError> errors) {
         try {
             return mapper.mapper().convertValue(
                     modifiedExtRequest.getProperty(INSTICATOR_FIELD),
                     InsticatorExtRequest.class);
         } catch (IllegalArgumentException e) {
+            errors.add(BidderError.badInput(e.getMessage()));
             return null;
         }
     }

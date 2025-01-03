@@ -380,7 +380,11 @@ public class InsticatorBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         //then
-        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getErrors()).hasSize(1).allSatisfy(bidderError -> {
+            assertThat(bidderError.getType()).isEqualTo(BidderError.Type.bad_input);
+            assertThat(bidderError.getMessage()).startsWith("Cannot deserialize value of type "
+                    + "`org.prebid.server.bidder.insticator.InsticatorExtRequest`");
+        });
 
         final ExtRequest expectedExtRequest = ExtRequest.empty();
         expectedExtRequest.addProperty("insticator",
