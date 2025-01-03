@@ -35,6 +35,7 @@ import org.prebid.server.analytics.reporter.greenbids.model.Ortb2ImpResult;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.hooks.execution.model.ExecutionStatus;
 import org.prebid.server.hooks.execution.model.GroupExecutionOutcome;
 import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.hooks.execution.model.HookExecutionOutcome;
@@ -205,6 +206,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 .map(GroupExecutionOutcome::getHooks)
                 .flatMap(Collection::stream)
                 .filter(hook -> "greenbids-real-time-data".equals(hook.getHookId().getModuleCode()))
+                .filter(hook -> hook.getStatus() == ExecutionStatus.success)
                 .map(HookExecutionOutcome::getAnalyticsTags)
                 .map(Tags::activities)
                 .flatMap(Collection::stream)

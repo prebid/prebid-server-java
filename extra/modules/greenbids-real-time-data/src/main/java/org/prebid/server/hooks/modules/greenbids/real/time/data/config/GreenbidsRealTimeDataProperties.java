@@ -11,6 +11,8 @@ public class GreenbidsRealTimeDataProperties {
 
     String geoLiteCountryPath;
 
+    String tmpPath;
+
     String gcsBucketName;
 
     Integer cacheExpirationMinutes;
@@ -18,4 +20,6 @@ public class GreenbidsRealTimeDataProperties {
     String onnxModelCacheKeyPrefix;
 
     String thresholdsCacheKeyPrefix;
+
+    Long timeoutMs;
 }

@@ -29,7 +29,7 @@ public class OnnxModelRunnerTest {
     public void runModelShouldReturnProbabilitiesWhenValidThrottlingInferenceRow() throws OrtException {
         // given
         final String[][] throttlingInferenceRow = {{
-                "Chrome 59", "rubicon", "adunitcodevalue", "US", "www.leparisien.fr", "PC", "10", "1"}};
+                        "Chrome 59", "rubicon", "adunitcodevalue", "US", "www.leparisien.fr", "PC", "10", "1"}};
 
         // when
         final OrtSession.Result actualResult = target.runModel(throttlingInferenceRow);
@@ -58,7 +58,7 @@ public class OnnxModelRunnerTest {
     public void runModelShouldThrowOrtExceptionWhenNonValidThrottlingInferenceRow() {
         // given
         final String[][] throttlingInferenceRowWithMissingColumn = {{
-                "Chrome 59", "adunitcodevalue", "US", "www.leparisien.fr", "PC", "10", "1"}};
+                        "Chrome 59", "adunitcodevalue", "US", "www.leparisien.fr", "PC", "10", "1"}};
 
         // when & then
         assertThatThrownBy(() -> target.runModel(throttlingInferenceRowWithMissingColumn))
