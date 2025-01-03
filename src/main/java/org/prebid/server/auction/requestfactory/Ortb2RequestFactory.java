@@ -192,11 +192,11 @@ public class Ortb2RequestFactory {
                 auctionContext.getDebugContext().getTraceLevel()));
     }
 
-    public Future<BidRequest> validateRequest(BidRequest bidRequest,
+    public Future<BidRequest> validateRequest(Account account, BidRequest bidRequest,
                                               HttpRequestContext httpRequestContext,
                                               List<String> warnings) {
 
-        final ValidationResult validationResult = requestValidator.validate(bidRequest, httpRequestContext);
+        final ValidationResult validationResult = requestValidator.validate(account, bidRequest, httpRequestContext);
 
         if (validationResult.hasWarnings()) {
             warnings.addAll(validationResult.getWarnings());
