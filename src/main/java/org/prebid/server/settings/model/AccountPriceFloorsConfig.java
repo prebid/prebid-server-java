@@ -23,4 +23,10 @@ public class AccountPriceFloorsConfig {
 
     @JsonAlias("use-dynamic-data")
     Boolean useDynamicData;
+
+    @JsonAlias("max-rules")
+    Long maxRules;
+
+    @JsonAlias("max-schema-dims")
+    Long maxSchemaDims;
 }
