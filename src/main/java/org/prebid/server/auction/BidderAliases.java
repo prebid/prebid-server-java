@@ -35,10 +35,14 @@ public class BidderAliases {
     }
 
     public boolean isAliasDefined(String alias) {
-        return aliasToBidder.containsKey(alias);
+        return bidderCatalog.isValidName(alias) || aliasToBidder.containsKey(alias);
     }
 
     public String resolveBidder(String aliasOrBidder) {
+        if (bidderCatalog.isValidName(aliasOrBidder)) {
+            return aliasOrBidder;
+        }
+
         return aliasToBidder.getOrDefault(aliasOrBidder, aliasOrBidder);
     }
 
@@ -47,9 +51,8 @@ public class BidderAliases {
     }
 
     public Integer resolveAliasVendorId(String alias) {
-        return aliasToVendorId.containsKey(alias)
-                ? aliasToVendorId.get(alias)
-                : resolveAliasVendorIdViaCatalog(alias);
+        final Integer vendorId = resolveAliasVendorIdViaCatalog(alias);
+        return vendorId == null ? aliasToVendorId.get(alias) : vendorId;
     }
 
     private Integer resolveAliasVendorIdViaCatalog(String alias) {
