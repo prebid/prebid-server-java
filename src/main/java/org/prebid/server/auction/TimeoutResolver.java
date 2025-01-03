@@ -32,16 +32,16 @@ public class TimeoutResolver {
                 : Math.min(timeout, maxTimeout);
     }
 
-    public long adjustForBidder(long timeout, int adjustFactor, long spentTime) {
-        return adjustWithFactor(timeout, adjustFactor / 100.0, spentTime);
+    public long adjustForBidder(long timeout, int adjustFactor, long spentTime, long bidderTmaxDeductionMs) {
+        return adjustWithFactor(timeout, adjustFactor / 100.0, spentTime, bidderTmaxDeductionMs);
     }
 
     public long adjustForRequest(long timeout, long spentTime) {
-        return adjustWithFactor(timeout, 1.0, spentTime);
+        return adjustWithFactor(timeout, 1.0, spentTime, 0L);
     }
 
-    private long adjustWithFactor(long timeout, double adjustFactor, long spentTime) {
-        return limitToMin((long) (timeout * adjustFactor) - spentTime - upstreamResponseTime);
+    private long adjustWithFactor(long timeout, double adjustFactor, long spentTime, long deductionTime) {
+        return limitToMin((long) (timeout * adjustFactor) - spentTime - deductionTime - upstreamResponseTime);
     }
 
     private long limitToMin(long timeout) {
