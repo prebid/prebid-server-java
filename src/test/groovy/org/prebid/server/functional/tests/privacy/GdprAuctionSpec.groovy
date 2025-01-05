@@ -768,7 +768,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
             bidderRequest.user.data == bidRequest.user.data
             bidderRequest.user.geo.lat == bidRequest.user.geo.lat
             bidderRequest.user.geo.lon == bidRequest.user.geo.lon
-            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == bidRequest.user.ext.data.buyerUid
         }
 
         and: "Metrics processed across activities shouldn't be updated"

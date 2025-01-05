@@ -3,16 +3,12 @@ package org.prebid.server.functional.tests.module.ortb2blocking
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.config.AccountAuctionConfig
-import org.prebid.server.functional.model.config.AccountConfig
-import org.prebid.server.functional.model.config.AccountHooksConfiguration
-import org.prebid.server.functional.model.config.ExecutionPlan
 import org.prebid.server.functional.model.config.Ortb2BlockingActionOverride
 import org.prebid.server.functional.model.config.Ortb2BlockingAttributeConfig
 import org.prebid.server.functional.model.config.Ortb2BlockingAttribute
 import org.prebid.server.functional.model.config.Ortb2BlockingConditions
 import org.prebid.server.functional.model.config.Ortb2BlockingConfig
 import org.prebid.server.functional.model.config.Ortb2BlockingOverride
-import org.prebid.server.functional.model.config.PbsModulesConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.Asset
 import org.prebid.server.functional.model.request.auction.Audio
@@ -30,15 +26,14 @@ import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.model.response.auction.MediaType
 import org.prebid.server.functional.model.response.auction.SeatBid
-import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.tests.module.ModuleBaseSpec
 import org.prebid.server.functional.util.PBSUtils
 
-import static org.prebid.server.functional.model.ModuleName.ORTB2_BLOCKING
+import static org.prebid.server.functional.model.config.ModuleHookImplementation.ORTB2_BLOCKING_BIDDER_REQUEST
+import static org.prebid.server.functional.model.config.ModuleHookImplementation.ORTB2_BLOCKING_RAW_BIDDER_RESPONSE
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.IX
-import static org.prebid.server.functional.model.config.Endpoint.OPENRTB2_AUCTION
 import static org.prebid.server.functional.model.config.Ortb2BlockingAttribute.AUDIO_BATTR
 import static org.prebid.server.functional.model.config.Ortb2BlockingAttribute.BADV
 import static org.prebid.server.functional.model.config.Ortb2BlockingAttribute.BAPP
@@ -46,22 +41,12 @@ import static org.prebid.server.functional.model.config.Ortb2BlockingAttribute.B
 import static org.prebid.server.functional.model.config.Ortb2BlockingAttribute.BCAT
 import static org.prebid.server.functional.model.config.Ortb2BlockingAttribute.BTYPE
 import static org.prebid.server.functional.model.config.Ortb2BlockingAttribute.VIDEO_BATTR
-import static org.prebid.server.functional.model.config.Stage.BIDDER_REQUEST
-import static org.prebid.server.functional.model.config.Stage.RAW_BIDDER_RESPONSE
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.RESPONSE_REJECTED_ADVERTISER_BLOCKED
 import static org.prebid.server.functional.model.response.auction.MediaType.AUDIO
 import static org.prebid.server.functional.model.response.auction.MediaType.BANNER
 import static org.prebid.server.functional.model.response.auction.MediaType.VIDEO
-import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 
 class Ortb2BlockingSpec extends ModuleBaseSpec {
-
-    private static final String WILDCARD = '*'
-    private static final Map IX_CONFIG = ["adapters.ix.enabled" : "true",
-                                          "adapters.ix.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
-
-    private final PrebidServerService pbsServiceWithEnabledOrtb2Blocking = pbsServiceFactory.getService(ortb2BlockingSettings + IX_CONFIG +
-            ['adapter-defaults.ortb.multiformat-supported': 'false'])
 
     def "PBS should send original array ortb2 attribute to bidder when enforce blocking is disabled"() {
         given: "Default bid request with proper ortb attribute"
@@ -78,7 +63,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes the auction request"
-        def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS request should contain proper ortb2 attributes from account config"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -117,7 +102,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes the auction request"
-        pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
+        pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS request should contain proper ortb2 attributes from account config"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -147,7 +132,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes the auction request"
-        def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS request shouldn't contain ortb2 attributes from account config for any media-type"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -192,7 +177,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes the auction request"
-        def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS request shouldn't contain ortb2 attributes from account config for any media-type"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -238,7 +223,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes the auction request"
-        def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS request shouldn't contain ortb2 attributes from account config for any media-type"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -277,7 +262,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes the auction request"
-        def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS response should contain seatNonBid for the called bidder"
         assert response.ext.prebid.modules.errors.ortb2Blocking["ortb2-blocking-bidder-request"].first
@@ -310,7 +295,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes the auction request"
-        def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS response should contain seatNonBid for the called bidder"
         assert response.ext.prebid.modules.errors.ortb2Blocking["ortb2-blocking-bidder-request"].first
@@ -352,7 +337,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes the auction request"
-        def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS response shouldn't contain any seatbid"
         assert !response.seatbid
@@ -392,7 +377,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes the auction request"
-        def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS response should contain only allowed seatbid"
         assert response.seatbid.bid.flatten().size() == 1
@@ -458,7 +443,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes the auction request"
-        def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS response should contain only allowed seatbid"
         assert response.seatbid.bid.flatten().size() == 1
@@ -496,7 +481,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes the auction request"
-        def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS response should contain proper seatbid"
         assert getOrtb2Attributes(response.seatbid.first.bid.first, attributeName) == [ortb2Attributes]*.toString()
@@ -543,7 +528,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes the auction request"
-        def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS response should contain only allowed seatbid"
         assert response.seatbid.bid.flatten().size() == 1
@@ -574,7 +559,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes the auction request"
-        def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS response should contain only allowed seatbid"
         assert response.seatbid.bid.flatten().size() == 1
@@ -617,7 +602,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes the auction request"
-        def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS response should contain only allowed seatbid"
         assert response.seatbid.bid.flatten().size() == 1
@@ -648,7 +633,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes the auction request"
-        def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS response should contain only allowed seatbid"
         assert response.seatbid.bid.flatten().size() == 1
@@ -684,7 +669,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes the auction request"
-        def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS response should contain only allowed seatbid"
         assert response.seatbid.bid.flatten().size() == 1
@@ -725,7 +710,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes the auction request"
-        def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS response shouldn't contain any seatbid"
         assert !response.seatbid.bid.flatten().size()
@@ -769,7 +754,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes the auction request"
-        def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS response should contain only openx seatbid"
         assert response.seatbid.size() == 1
@@ -817,7 +802,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes the auction request"
-        def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS response should contain only banner seatbid"
         assert response.seatbid.bid.flatten().size() == 1
@@ -867,7 +852,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes the auction request"
-        def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS response should contain banner seatbid"
         assert response.seatbid.bid.flatten().size() == 1
@@ -921,7 +906,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes the auction request"
-        def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS response shouldn't contain any seatbid"
         assert !response.seatbid.bid.flatten().size()
@@ -964,7 +949,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes the auction request"
-        def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS response should contain only seatbid with proper deal id"
         assert response.seatbid.bid.flatten().size() == 1
@@ -1013,7 +998,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes the auction request"
-        def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS request should override blocked ortb2 attribute"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -1056,7 +1041,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes the auction request"
-        def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS request should override blocked ortb2 attribute"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -1105,7 +1090,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes the auction request"
-        def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS response should contain only ix seatbid"
         assert response.seatbid.bid.flatten().size() == 1
@@ -1142,7 +1127,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes the auction request"
-        def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS response should contain banner seatbid"
         assert response.seatbid.bid.flatten().size() == 1
@@ -1181,7 +1166,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes the auction request"
-        def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS response should contain only ix seatbid"
         assert response.seatbid.bid.flatten().size() == 1
@@ -1216,7 +1201,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes the auction request"
-        def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS response should contain banner seatbid"
         assert response.seatbid.bid.flatten().size() == 1
@@ -1251,7 +1236,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes the auction request"
-        def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS response should contain only seatbid with proper deal id"
         assert response.seatbid.bid.flatten().size() == 1
@@ -1294,7 +1279,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes the auction request"
-        def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS request should override blocked ortb2 attribute"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -1344,7 +1329,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes the auction request"
-        def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS request should override blocked ortb2 attribute"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -1387,7 +1372,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes the auction request"
-        def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS request should override blocked ortb2 attribute"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -1432,7 +1417,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes the auction request"
-        def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS response should contain only seatbid with proper deal id"
         assert response.seatbid.bid.flatten().size() == 1
@@ -1468,7 +1453,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes the auction request"
-        def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS request should contain original ortb2 attribute"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -1510,7 +1495,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes the auction request"
-        def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS response should contain seatNonBid for the called bidder"
         assert response.ext.seatnonbid.size() == 1
@@ -1526,12 +1511,9 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
     }
 
     private static Account getAccountWithOrtb2BlockingConfig(String accountId, Map<Ortb2BlockingAttribute, Ortb2BlockingAttributeConfig> attributes) {
-        def blockingConfig = new Ortb2BlockingConfig(attributes: attributes)
-        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB2_BLOCKING, [BIDDER_REQUEST, RAW_BIDDER_RESPONSE])
-        def moduleConfig = new PbsModulesConfig(ortb2Blocking: blockingConfig)
-        def accountHooksConfig = new AccountHooksConfiguration(executionPlan: executionPlan, modules: moduleConfig)
-        def accountConfig = new AccountConfig(hooks: accountHooksConfig)
-        new Account(uuid: accountId, config: accountConfig)
+        getAccountWithModuleConfig(accountId, [ORTB2_BLOCKING_BIDDER_REQUEST, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE]).tap {
+            it.config.hooks.modules.ortb2Blocking = new Ortb2BlockingConfig(attributes: attributes)
+        }
     }
 
     private static BidRequest getBidRequestForOrtbAttribute(Ortb2BlockingAttribute attribute, List<Object> attributeValue = null) {

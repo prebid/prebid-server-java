@@ -172,7 +172,7 @@ abstract class PrivacyBaseSpec extends BaseSpec {
                 yob = PBSUtils.randomNumber
                 gender = PBSUtils.randomString
                 geo = Geo.FPDGeo
-                ext = new UserExt(data: new UserExtData(buyeruid: PBSUtils.randomString))
+                ext = new UserExt(data: new UserExtData(buyerUid: PBSUtils.randomString))
             }
         }
     }

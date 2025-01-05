@@ -29,16 +29,9 @@ class BidExpResponseSpec extends BaseSpec {
                                                                          "cache.default-ttl-seconds.video" : VIDEO_TTL_DEFAULT_CACHE as String,
                                                                          "cache.default-ttl-seconds.native": NATIVE_TTL_DEFAULT_CACHE as String,
                                                                          "cache.default-ttl-seconds.audio" : AUDIO_TTL_DEFAULT_CACHE as String]
-    private static final Map<String, String> EMPTY_CACHE_TTL_CONFIG = ["cache.default-ttl-seconds.banner": "",
-                                                                       "cache.default-ttl-seconds.video" : "",
-                                                                       "cache.default-ttl-seconds.native": "",
-                                                                       "cache.default-ttl-seconds.audio" : ""]
-    private static final Map<String, String> EMPTY_CACHE_TTL_HOST_CONFIG = ["cache.banner-ttl-seconds": "",
-                                                                            "cache.video-ttl-seconds" : ""]
     private static def pbsOnlyHostCacheTtlService = pbsServiceFactory.getService(CACHE_TTL_HOST_CONFIG + EMPTY_CACHE_TTL_CONFIG)
     private static def pbsEmptyTtlService = pbsServiceFactory.getService(EMPTY_CACHE_TTL_CONFIG + EMPTY_CACHE_TTL_HOST_CONFIG)
     private static def pbsHostAndDefaultCacheTtlService = pbsServiceFactory.getService(CACHE_TTL_HOST_CONFIG + DEFAULT_CACHE_TTL_CONFIG)
-
 
     def "PBS auction should resolve bid.exp from response that is set by the bidder’s adapter"() {
         given: "Default basicResponse with exp"

@@ -122,17 +122,17 @@ class PrometheusSpec extends BaseSpec {
                 serviceFailedToStartTimeoutMs)
     }
 
-    private Map<String, String> getBasePrometheusConfig() {
+    private static Map<String, String> getBasePrometheusConfig() {
         ["metrics.prometheus.enabled": "true",
          "metrics.prometheus.port"   : PROMETHEUS_PORT as String]
     }
 
-    private Map<String, String> getNamespaceSubsystemConfig(String namespace, String subsystem) {
+    private static Map<String, String> getNamespaceSubsystemConfig(String namespace, String subsystem) {
         ["metrics.prometheus.namespace": namespace,
          "metrics.prometheus.subsystem": subsystem]
     }
 
-    private String normalizeMetricName(String metricName) {
+    private static String normalizeMetricName(String metricName) {
         metricName.replace(".", "_")
                   .replace("-", "_")
     }

@@ -51,6 +51,5 @@ class StorageBaseSpec extends BaseSpec {
              'settings.database.stored-responses-query'   : null
             ].asImmutable() as Map<String, String>
 
-
     protected PrebidServerService s3StoragePbsService = PbsServiceFactory.getService(s3StorageConfig + mySqlDisabledConfig)
 }

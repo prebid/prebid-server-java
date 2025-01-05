@@ -476,7 +476,7 @@ class TargetingSpec extends BaseSpec {
 
         and: "Create and save stored response into DB"
         def storedBidResponse = BidResponse.getDefaultBidResponse(ampStoredRequest).tap {
-            seatbid[0].bid[0].price = max.plus(1)
+            seatbid[0].bid[0].price = max + 1
         }
         def storedResponse = new StoredResponse(responseId: storedBidResponseId, storedBidResponse: storedBidResponse)
         storedResponseDao.save(storedResponse)
@@ -509,7 +509,7 @@ class TargetingSpec extends BaseSpec {
 
         and: "Create and save stored response into DB"
         def storedBidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            seatbid[0].bid[0].price = max.plus(1)
+            seatbid[0].bid[0].price = max + 1
         }
         def storedResponse = new StoredResponse(responseId: storedBidResponseId, storedBidResponse: storedBidResponse)
         storedResponseDao.save(storedResponse)
@@ -1300,7 +1300,6 @@ class TargetingSpec extends BaseSpec {
         and: "Create and save stored request into DB"
         def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
-
 
         and: "Account in the DB"
         def account = createAccountWithPriceGranularity(ampRequest.account, PBSUtils.getRandomEnum(PriceGranularityType))

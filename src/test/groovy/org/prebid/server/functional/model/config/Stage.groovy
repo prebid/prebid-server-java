@@ -24,6 +24,10 @@ enum Stage {
         this.metricValue = metricValue
     }
 
+    static Stage forValue(ModuleHookImplementation moduleHook) {
+        values().find { moduleHook.code.contains(it.value) }
+    }
+
     @Override
     String toString() {
         value

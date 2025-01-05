@@ -74,8 +74,8 @@ class AmpFpdSpec extends BaseSpec {
             ampStoredRequest.user.geo.zip == user.geo.zip
             ampStoredRequest.user.geo.country == user.geo.country
             ampStoredRequest.user.ext.data.keywords == user.ext.data.keywords
-            ampStoredRequest.user.ext.data.buyeruid == user.ext.data.buyeruid
-            ampStoredRequest.user.ext.data.buyeruids == user.ext.data.buyeruids
+            ampStoredRequest.user.ext.data.buyerUid == user.ext.data.buyerUid
+            ampStoredRequest.user.ext.data.buyerUids == user.ext.data.buyerUids
         }
 
         and: "Bidder request shouldn't contain imp[0].ext.rp"
@@ -195,8 +195,8 @@ class AmpFpdSpec extends BaseSpec {
             ortb2.user.gender == user.gender
             ortb2.user.keywords == user.keywords
             ortb2.user.ext.data.keywords == user.ext.data.keywords
-            ortb2.user.ext.data.buyeruid == user.ext.data.buyeruid
-            ortb2.user.ext.data.buyeruids == user.ext.data.buyeruids
+            ortb2.user.ext.data.buyerUid == user.ext.data.buyerUid
+            ortb2.user.ext.data.buyerUids == user.ext.data.buyerUids
         }
 
         and: "Bidder request shouldn't contain imp[0].ext.rp"
@@ -289,8 +289,8 @@ class AmpFpdSpec extends BaseSpec {
                 ampStoredRequest.user.geo.zip == user.geo.zip
                 ampStoredRequest.user.geo.country == user.geo.country
                 ampStoredRequest.user.ext.data.keywords == user.ext.data.keywords
-                ampStoredRequest.user.ext.data.buyeruid == user.ext.data.buyeruid
-                ampStoredRequest.user.ext.data.buyeruids == user.ext.data.buyeruids
+                ampStoredRequest.user.ext.data.buyerUid == user.ext.data.buyerUid
+                ampStoredRequest.user.ext.data.buyerUids == user.ext.data.buyerUids
             }
         }
 
@@ -367,8 +367,8 @@ class AmpFpdSpec extends BaseSpec {
             ortb2.user.gender == user.gender
             ortb2.user.keywords == user.keywords
             ortb2.user.ext.data.keywords == user.ext.data.keywords
-            ortb2.user.ext.data.buyeruid == user.ext.data.buyeruid
-            ortb2.user.ext.data.buyeruids == user.ext.data.buyeruids
+            ortb2.user.ext.data.buyerUid == user.ext.data.buyerUid
+            ortb2.user.ext.data.buyerUids == user.ext.data.buyerUids
         }
 
         and: "Bidder request shouldn't contain imp[0].ext.rp"

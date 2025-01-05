@@ -1,7 +1,6 @@
 package org.prebid.server.functional.model.config
 
 import groovy.transform.ToString
-import org.prebid.server.functional.model.ModuleName
 
 @ToString(includeNames = true, ignoreNulls = true)
 class EndpointExecutionPlan {
@@ -9,8 +8,9 @@ class EndpointExecutionPlan {
     Map<Stage, StageExecutionPlan> stages
 
     static EndpointExecutionPlan getModuleEndpointExecutionPlan(ModuleName name, List<Stage> stages) {
-        new EndpointExecutionPlan(stages:  stages.collectEntries {
-            it -> [(it): StageExecutionPlan.getModuleStageExecutionPlan(name, it)] } as Map<Stage, StageExecutionPlan>)
+        new EndpointExecutionPlan(stages: stages.collectEntries {
+            it -> [(it): StageExecutionPlan.getModuleStageExecutionPlan(name, it)]
+        } as Map<Stage, StageExecutionPlan>)
     }
 
     static EndpointExecutionPlan getModulesEndpointExecutionPlan(Map<Stage, List<ModuleName>> modulesStages) {
@@ -23,5 +23,18 @@ class EndpointExecutionPlan {
                     )]
                 } as Map<Stage, StageExecutionPlan>
         )
+    }
+
+    static EndpointExecutionPlan getModuleEndpointExecutionPlan(List<ModuleHookImplementation> modulesHooks) {
+        Map<Stage, StageExecutionPlan> stages = [:]
+        modulesHooks.each { moduleHook ->
+            def stage = Stage.forValue(moduleHook)
+            if (!stages.containsKey(stage)) {
+                stages[stage] = StageExecutionPlan.getModuleStageExecutionPlan([moduleHook])
+            } else {
+                stages[stage].addGroup(moduleHook)
+            }
+        }
+        new EndpointExecutionPlan(stages: stages)
     }
 }

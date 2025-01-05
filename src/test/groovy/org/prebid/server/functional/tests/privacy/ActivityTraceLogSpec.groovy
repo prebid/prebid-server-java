@@ -398,8 +398,8 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
         allow << [false, true]
     }
 
-    private List<ActivityInfrastructure> getActivityByName(List<ActivityInfrastructure> activityInfrastructures,
-                                                           ActivityType activity) {
+    private static List<ActivityInfrastructure> getActivityByName(List<ActivityInfrastructure> activityInfrastructures,
+                                                                  ActivityType activity) {
         def firstIndex = activityInfrastructures.findLastIndexOf { it -> it.activity == activity }
         def lastIndex = activityInfrastructures.findIndexOf { it -> it.activity == activity }
         activityInfrastructures[new IntRange(true, firstIndex, lastIndex)]

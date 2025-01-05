@@ -78,12 +78,6 @@ class AmpS3Spec extends StorageBaseSpec {
             account = PBSUtils.randomNumber as String
         }
 
-        and: "Default stored request"
-        def ampStoredRequest = BidRequest.defaultStoredRequest.tap {
-            site = Site.defaultSite
-            setAccountId(ampRequest.account)
-        }
-
         and: "Stored request in S3 service"
         s3Service.uploadFile(DEFAULT_BUCKET, INVALID_FILE_BODY, "${S3Service.DEFAULT_REQUEST_DIR}/${ampRequest.tagId}.json")
 
