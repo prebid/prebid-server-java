@@ -1,11 +1,14 @@
 package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.model.UidsCookie
+import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountGdprConfig
 import org.prebid.server.functional.model.config.AccountPrivacyConfig
+import org.prebid.server.functional.model.config.Purpose
 import org.prebid.server.functional.model.config.PurposeConfig
+import org.prebid.server.functional.model.config.PurposeEnforcement
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.setuid.SetuidRequest
 import org.prebid.server.functional.model.response.cookiesync.UserSyncInfo
@@ -24,6 +27,7 @@ import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.bidder.BidderName.RUBICON
+import static org.prebid.server.functional.model.config.Purpose.P1
 import static org.prebid.server.functional.model.config.PurposeEnforcement.FULL
 import static org.prebid.server.functional.model.config.PurposeEnforcement.NO
 import static org.prebid.server.functional.model.request.setuid.UidWithExpiry.defaultUidWithExpiry
@@ -49,6 +53,13 @@ class SetUidSpec extends BaseSpec {
              "adapters.${APPNEXUS.value}.usersync.cookie-family-name"                 : APPNEXUS.value,
              "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url"         : USER_SYNC_URL,
              "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.support-cors": CORS_SUPPORT.toString()]
+    private static final Map<String, String> VENDOR_GENERIC_PBS_CONFIG =
+            PBS_CONFIG +
+                    ["gdpr.host-vendor-id"                         : GENERIC_VENDOR_ID as String,
+                     "gdpr.purposes.p1.enforce-purpose"            : NO.value,
+                     "adapters.generic.usersync.cookie-family-name": GENERIC.value,
+                     "adapters.generic.meta-info.vendor-id"        : GENERIC_VENDOR_ID as String]
+    private static final String TCF_ERROR_MESSAGE = "The gdpr_consent param prevents cookies from being saved"
 
     @Shared
     PrebidServerService prebidServerService = pbsServiceFactory.getService(PBS_CONFIG)
@@ -212,7 +223,7 @@ class SetUidSpec extends BaseSpec {
         then: "Request should fail with error"
         def exception = thrown(PrebidServerException)
         assert exception.statusCode == 451
-        assert exception.responseBody == "The gdpr_consent param prevents cookies from being saved"
+        assert exception.responseBody == TCF_ERROR_MESSAGE
 
         and: "usersync.FAMILY.tcf.blocked metric should be updated"
         def metric = prebidServerService.sendCollectedMetricsRequest()
@@ -295,11 +306,7 @@ class SetUidSpec extends BaseSpec {
 
     def "PBS setuid shouldn't failed with tcf when purpose access device not enforced"() {
         given: "PBS config"
-        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG +
-                ["gdpr.host-vendor-id"                         : GENERIC_VENDOR_ID as String,
-                 "gdpr.purposes.p1.enforce-purpose"            : NO.value,
-                 "adapters.generic.usersync.cookie-family-name": GENERIC.value,
-                 "adapters.generic.meta-info.vendor-id"        : GENERIC_VENDOR_ID as String])
+        def prebidServerService = pbsServiceFactory.getService(VENDOR_GENERIC_PBS_CONFIG)
 
         and: "Default setuid request with account"
         def setuidRequest = SetuidRequest.defaultSetuidRequest.tap {
@@ -333,15 +340,14 @@ class SetUidSpec extends BaseSpec {
         assert response.uidsCookie.tempUIDs[GENERIC].uid == setuidRequest.uid
         assert response.responseBody ==
                 ResourceUtil.readByteArrayFromClassPath("org/prebid/server/functional/tracking-pixel.png")
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(VENDOR_GENERIC_PBS_CONFIG)
     }
 
     def "PBS setuid should failed with tcf when purpose access device enforced for account"() {
         given: "PBS config"
-        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG +
-                ["gdpr.host-vendor-id"                         : GENERIC_VENDOR_ID as String,
-                 "gdpr.purposes.p1.enforce-purpose"            : NO.value,
-                 "adapters.generic.usersync.cookie-family-name": GENERIC.value,
-                 "adapters.generic.meta-info.vendor-id"        : GENERIC_VENDOR_ID as String])
+        def prebidServerService = pbsServiceFactory.getService(VENDOR_GENERIC_PBS_CONFIG)
 
         and: "Default setuid request with account"
         def setuidRequest = SetuidRequest.defaultSetuidRequest.tap {
@@ -373,20 +379,24 @@ class SetUidSpec extends BaseSpec {
         then: "Request should fail with error"
         def exception = thrown(PrebidServerException)
         assert exception.statusCode == 451
-        assert exception.responseBody == "The gdpr_consent param prevents cookies from being saved"
+        assert exception.responseBody == TCF_ERROR_MESSAGE
 
         and: "Metric should be increased usersync.FAMILY.tcf.blocked"
         def metric = prebidServerService.sendCollectedMetricsRequest()
         assert metric["usersync.${GENERIC.value}.tcf.blocked"] == 1
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(VENDOR_GENERIC_PBS_CONFIG)
     }
 
     def "PBS setuid should failed with tcf when purpose access device enforced for host"() {
         given: "PBS config"
-        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG +
+        def pbsConfig = PBS_CONFIG +
                 ["gdpr.host-vendor-id"                         : GENERIC_VENDOR_ID as String,
                  "gdpr.purposes.p1.enforce-purpose"            : FULL.value,
                  "adapters.generic.usersync.cookie-family-name": GENERIC.value,
-                 "adapters.generic.meta-info.vendor-id"        : GENERIC_VENDOR_ID as String])
+                 "adapters.generic.meta-info.vendor-id"        : GENERIC_VENDOR_ID as String]
+        def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default setuid request with account"
         def setuidRequest = SetuidRequest.defaultSetuidRequest.tap {
@@ -418,10 +428,13 @@ class SetUidSpec extends BaseSpec {
         then: "Request should fail with error"
         def exception = thrown(PrebidServerException)
         assert exception.statusCode == 451
-        assert exception.responseBody == "The gdpr_consent param prevents cookies from being saved"
+        assert exception.responseBody == TCF_ERROR_MESSAGE
 
         and: "Metric should be increased usersync.FAMILY.tcf.blocked"
         def metric = prebidServerService.sendCollectedMetricsRequest()
         assert metric["usersync.${GENERIC.value}.tcf.blocked"] == 1
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
     }
 }
