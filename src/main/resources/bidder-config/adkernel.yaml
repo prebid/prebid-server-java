@@ -2,6 +2,8 @@ adapters:
   adkernel:
     endpoint: http://pbs.adksrv.com/hb?zone=%s
     endpoint-compression: gzip
+    aliases:
+      rxnetwork: ~
     meta-info:
       maintainer-email: prebid-dev@adkernel.com
       app-media-types:
