@@ -7,7 +7,7 @@ import com.iab.openrtb.request.Imp;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.analytics.reporter.greenbids.model.ExplorationResult;
 import org.prebid.server.analytics.reporter.greenbids.model.Ortb2ImpExtResult;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.model.data.Partner;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.model.data.GreenbidsConfig;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.result.AnalyticsResult;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.result.GreenbidsInvocationResult;
 import org.prebid.server.hooks.v1.InvocationAction;
@@ -23,12 +23,12 @@ public class GreenbidsInvocationService {
     private static final int RANGE_16_BIT_INTEGER_DIVISION_BASIS = 0x10000;
 
     public GreenbidsInvocationResult createGreenbidsInvocationResult(
-            Partner partner,
+            GreenbidsConfig greenbidsConfig,
             BidRequest bidRequest,
             Map<String, Map<String, Boolean>> impsBiddersFilterMap) {
 
         final String greenbidsId = UUID.randomUUID().toString();
-        final boolean isExploration = isExploration(partner, greenbidsId);
+        final boolean isExploration = isExploration(greenbidsConfig, greenbidsId);
 
         final BidRequest updatedBidRequest = isExploration
                 ? bidRequest
@@ -49,10 +49,10 @@ public class GreenbidsInvocationService {
         return GreenbidsInvocationResult.of(updatedBidRequest, invocationAction, analyticsResult);
     }
 
-    private Boolean isExploration(Partner partner, String greenbidsId) {
+    private Boolean isExploration(GreenbidsConfig greenbidsConfig, String greenbidsId) {
         final int hashInt = Integer.parseInt(
                 greenbidsId.substring(greenbidsId.length() - 4), 16);
-        return hashInt < partner.getExplorationRate() * RANGE_16_BIT_INTEGER_DIVISION_BASIS;
+        return hashInt < greenbidsConfig.getExplorationRate() * RANGE_16_BIT_INTEGER_DIVISION_BASIS;
     }
 
     private List<Imp> updateImps(BidRequest bidRequest, Map<String, Map<String, Boolean>> impsBiddersFilterMap) {
