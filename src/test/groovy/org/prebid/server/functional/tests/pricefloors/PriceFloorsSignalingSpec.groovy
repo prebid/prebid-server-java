@@ -21,6 +21,7 @@ import org.prebid.server.functional.util.PBSUtils
 import static org.mockserver.model.HttpStatusCode.BAD_REQUEST_400
 import static org.prebid.server.functional.model.Currency.USD
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.pricefloors.DeviceType.PHONE
 import static org.prebid.server.functional.model.pricefloors.MediaType.BANNER
 import static org.prebid.server.functional.model.pricefloors.MediaType.MULTIPLE
 import static org.prebid.server.functional.model.pricefloors.MediaType.VIDEO
@@ -513,6 +514,28 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         assert bidderRequest.imp.last().bidFloor == videoFloorValue
     }
 
+    def "PBS shouldn't emit errors when request schema.fields than floor-config.max-schema-dims"() {
+        given: "Bid request with schema 2 fields"
+        def bidRequest = bidRequestWithFloors.tap {
+            ext.prebid.floors.maxSchemaDims = PBSUtils.randomNumber
+        }
+
+        and: "Account with maxSchemaDims in the DB"
+        def accountId = bidRequest.site.publisher.id
+        def account = getAccountWithEnabledFetch(accountId)
+        accountDao.save(account)
+
+        and: "Set bidder response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS shouldn't log a errors"
+        assert !response.ext?.errors
+    }
+
     def "PBS should emit errors when request has more rules than price-floor.max-rules"() {
         given: "BidRequest with 2 rules"
         def requestFloorValue = PBSUtils.randomFloorValue
@@ -587,7 +610,6 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
         and: "Account with disabled fetch in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.accountId).tap {
-            config.auction.priceFloors.fetch.enabled = false
             config.auction.priceFloors.maxSchemaDims = maxSchemaDims
             config.auction.priceFloors.maxSchemaDimsSnakeCase = maxSchemaDimsSnakeCase
         }
@@ -606,6 +628,84 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         maxSchemaDims | maxSchemaDimsSnakeCase
         1             | null
         null          | 1
+    }
+
+    def "PBS should fail with error and maxSchemaDims take precede over fetch.maxSchemaDims when requested both"() {
+        given: "BidRequest with schema 2 fields"
+        def bidRequest = bidRequestWithFloors
+
+        and: "Account with maxSchemaDims in the DB"
+        def accountId = bidRequest.site.publisher.id
+        def account = getAccountWithEnabledFetch(accountId).tap {
+            config.auction.priceFloors.maxSchemaDims = 1
+            config.auction.priceFloors.fetch.maxSchemaDims = 2
+        }
+        accountDao.save(account)
+
+        and: "Set bidder response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS should log a errors"
+        assert response.ext?.errors[PREBID]*.code == [999]
+        assert response.ext?.errors[PREBID]*.message ==
+                ["Failed to parse price floors from request, with a reason: " +
+                         "Price floor schema dimensions 2 exceeded its maximum number 1"]
+    }
+
+    def "PBS shouldn't fail with error and maxSchemaDims take precede over fetch.maxSchemaDims when requested both"() {
+        given: "BidRequest with schema 2 fields"
+        def bidRequest = bidRequestWithFloors
+
+        and: "Account with maxSchemaDims in the DB"
+        def accountId = bidRequest.site.publisher.id
+        def account = getAccountWithEnabledFetch(accountId).tap {
+            config.auction.priceFloors.maxSchemaDims = 2
+            config.auction.priceFloors.fetch.maxSchemaDims = 1
+        }
+        accountDao.save(account)
+
+        and: "Set bidder response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS shouldn't log a errors"
+        assert !response.ext?.errors
+    }
+
+    def "PBS should fail by default with error when schema dimensions more than 3"() {
+        given: "BidRequest with schema 4 fields"
+        def bidRequest = bidRequestWithFloors.tap {
+            ext.prebid.floors.data.modelGroups[0].values = [(new Rule(
+                    mediaType: MULTIPLE,
+                    country: Country.MULTIPLE,
+                    deviceType: PHONE,
+                    pubDomain: PBSUtils.randomString).rule): PBSUtils.randomFloorValue]
+        }
+
+        and: "Account with maxSchemaDims in the DB"
+        def accountId = bidRequest.site.publisher.id
+        def account = getAccountWithEnabledFetch(accountId)
+        accountDao.save(account)
+
+        and: "Set bidder response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS should log a errors"
+        assert response.ext?.errors[PREBID]*.code == [999]
+        assert response.ext?.errors[PREBID]*.message ==
+                ["Failed to parse price floors from request, with a reason: " +
+                         "Price floor schema dimensions 4 exceeded its maximum number 3"]
     }
 
     def "PBS should emit errors when stored request has more rules than price-floor.max-rules for amp request"() {

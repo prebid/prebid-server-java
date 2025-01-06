@@ -2048,7 +2048,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
     def "PBS should validate fetch.max-schema-dims from account config"() {
         given: "Default BidRequest"
-        def bidRequest = BidRequest.getDefaultBidRequest(APP)
+        def bidRequest = BidRequest.defaultBidRequest
 
         and: "Account with enabled fetch, maxSchemaDims in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.accountId).tap {
@@ -2077,7 +2077,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
     def "PBS should validate price-floor.max-rules from account config"() {
         given: "Default BidRequest"
-        def bidRequest = BidRequest.getDefaultBidRequest(APP)
+        def bidRequest = BidRequest.defaultBidRequest
 
         and: "Account with enabled fetch, maxRules in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.accountId).tap {
@@ -2104,7 +2104,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
     def "PBS should validate price-floor.max-schema-dims from account config"() {
         given: "Default BidRequest"
-        def bidRequest = BidRequest.getDefaultBidRequest(APP)
+        def bidRequest = BidRequest.defaultBidRequest
 
         and: "Account with enabled fetch, maxSchemaDims in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.accountId).tap {
