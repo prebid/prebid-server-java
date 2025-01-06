@@ -1,10 +1,17 @@
 package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.model.UidsCookie
+import org.prebid.server.functional.model.config.AccountAuctionConfig
+import org.prebid.server.functional.model.config.AccountConfig
+import org.prebid.server.functional.model.config.AccountGdprConfig
+import org.prebid.server.functional.model.config.AccountPrivacyConfig
+import org.prebid.server.functional.model.config.PurposeConfig
+import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.setuid.SetuidRequest
 import org.prebid.server.functional.model.response.cookiesync.UserSyncInfo
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.TcfConsent
 import org.prebid.server.util.ResourceUtil
 import spock.lang.Shared
@@ -12,13 +19,18 @@ import spock.lang.Shared
 import java.time.Clock
 import java.time.ZonedDateTime
 
+import static org.prebid.server.functional.model.AccountStatus.ACTIVE
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.bidder.BidderName.RUBICON
+import static org.prebid.server.functional.model.config.PurposeEnforcement.FULL
+import static org.prebid.server.functional.model.config.PurposeEnforcement.NO
 import static org.prebid.server.functional.model.request.setuid.UidWithExpiry.defaultUidWithExpiry
 import static org.prebid.server.functional.model.response.cookiesync.UserSyncInfo.Type.REDIRECT
 import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
+import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
+import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.DEVICE_ACCESS
 import static org.prebid.server.functional.util.privacy.TcfConsent.RUBICON_VENDOR_ID
 
 class SetUidSpec extends BaseSpec {
@@ -279,5 +291,137 @@ class SetUidSpec extends BaseSpec {
 
         and: "usersync.FAMILY.sets metric should be updated"
         assert metricsRequest["usersync.${OPENX.value}.sets"] == 1
+    }
+
+    def "PBS setuid shouldn't failed with tcf when purpose access device not enforced"() {
+        given: "PBS config"
+        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG +
+                ["gdpr.host-vendor-id"                         : GENERIC_VENDOR_ID as String,
+                 "gdpr.purposes.p1.enforce-purpose"            : NO.value,
+                 "adapters.generic.usersync.cookie-family-name": GENERIC.value,
+                 "adapters.generic.meta-info.vendor-id"        : GENERIC_VENDOR_ID as String])
+
+        and: "Default setuid request with account"
+        def setuidRequest = SetuidRequest.defaultSetuidRequest.tap {
+            it.account = PBSUtils.randomNumber.toString()
+            it.uid = UUID.randomUUID().toString()
+            it.bidder = GENERIC
+            it.gdpr = "1"
+            it.gdprConsent = new TcfConsent.Builder()
+                    .setPurposesLITransparency(DEVICE_ACCESS)
+                    .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                    .build()
+        }
+
+        and: "Default uids cookie with rubicon bidder"
+        def uidsCookie = UidsCookie.defaultUidsCookie.tap {
+            it.tempUIDs = [(GENERIC): defaultUidWithExpiry]
+        }
+
+        and: "Save account config with purpose into DB"
+        def accountConfig = new AccountConfig(
+                auction: new AccountAuctionConfig(debugAllow: true),
+                privacy: new AccountPrivacyConfig(gdpr: new AccountGdprConfig(purposes: [(P1): new PurposeConfig(enforcePurpose: NO)], enabled: true)))
+        def account = new Account(status: ACTIVE, uuid: setuidRequest.account, config: accountConfig)
+        accountDao.save(account)
+
+        when: "PBS processes setuid request"
+        def response = prebidServerService.sendSetUidRequest(setuidRequest, uidsCookie)
+
+        then: "Response should contain tempUids cookie and headers"
+        assert response.headers.size() == 7
+        assert response.uidsCookie.tempUIDs[GENERIC].uid == setuidRequest.uid
+        assert response.responseBody ==
+                ResourceUtil.readByteArrayFromClassPath("org/prebid/server/functional/tracking-pixel.png")
+    }
+
+    def "PBS setuid should failed with tcf when purpose access device enforced for account"() {
+        given: "PBS config"
+        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG +
+                ["gdpr.host-vendor-id"                         : GENERIC_VENDOR_ID as String,
+                 "gdpr.purposes.p1.enforce-purpose"            : NO.value,
+                 "adapters.generic.usersync.cookie-family-name": GENERIC.value,
+                 "adapters.generic.meta-info.vendor-id"        : GENERIC_VENDOR_ID as String])
+
+        and: "Default setuid request with account"
+        def setuidRequest = SetuidRequest.defaultSetuidRequest.tap {
+            it.account = PBSUtils.randomNumber.toString()
+            it.uid = UUID.randomUUID().toString()
+            it.bidder = GENERIC
+            it.gdpr = "1"
+            it.gdprConsent = new TcfConsent.Builder()
+                    .setPurposesLITransparency(DEVICE_ACCESS)
+                    .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                    .build()
+        }
+
+        and: "Default uids cookie with rubicon bidder"
+        def uidsCookie = UidsCookie.defaultUidsCookie.tap {
+            it.tempUIDs = [(GENERIC): defaultUidWithExpiry]
+        }
+
+        and: "Save account config with purpose into DB"
+        def accountConfig = new AccountConfig(
+                auction: new AccountAuctionConfig(debugAllow: true),
+                privacy: new AccountPrivacyConfig(gdpr: new AccountGdprConfig(purposes: [(P1): new PurposeConfig(enforcePurpose: FULL)], enabled: true)))
+        def account = new Account(status: ACTIVE, uuid: setuidRequest.account, config: accountConfig)
+        accountDao.save(account)
+
+        when: "PBS processes setuid request"
+        prebidServerService.sendSetUidRequest(setuidRequest, uidsCookie)
+
+        then: "Request should fail with error"
+        def exception = thrown(PrebidServerException)
+        assert exception.statusCode == 451
+        assert exception.responseBody == "The gdpr_consent param prevents cookies from being saved"
+
+        and: "Metric should be increased usersync.FAMILY.tcf.blocked"
+        def metric = prebidServerService.sendCollectedMetricsRequest()
+        assert metric["usersync.${GENERIC.value}.tcf.blocked"] == 1
+    }
+
+    def "PBS setuid should failed with tcf when purpose access device enforced for host"() {
+        given: "PBS config"
+        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG +
+                ["gdpr.host-vendor-id"                         : GENERIC_VENDOR_ID as String,
+                 "gdpr.purposes.p1.enforce-purpose"            : FULL.value,
+                 "adapters.generic.usersync.cookie-family-name": GENERIC.value,
+                 "adapters.generic.meta-info.vendor-id"        : GENERIC_VENDOR_ID as String])
+
+        and: "Default setuid request with account"
+        def setuidRequest = SetuidRequest.defaultSetuidRequest.tap {
+            it.account = PBSUtils.randomNumber.toString()
+            it.uid = UUID.randomUUID().toString()
+            it.bidder = GENERIC
+            it.gdpr = "1"
+            it.gdprConsent = new TcfConsent.Builder()
+                    .setPurposesLITransparency(DEVICE_ACCESS)
+                    .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                    .build()
+        }
+
+        and: "Default uids cookie with rubicon bidder"
+        def uidsCookie = UidsCookie.defaultUidsCookie.tap {
+            it.tempUIDs = [(GENERIC): defaultUidWithExpiry]
+        }
+
+        and: "Save account config with purpose into DB"
+        def accountConfig = new AccountConfig(
+                auction: new AccountAuctionConfig(debugAllow: true),
+                privacy: new AccountPrivacyConfig(gdpr: new AccountGdprConfig(purposes: [(P1): new PurposeConfig(enforcePurpose: NO)], enabled: true)))
+        def account = new Account(status: ACTIVE, uuid: setuidRequest.account, config: accountConfig)
+        accountDao.save(account)
+
+        when: "PBS processes setuid request"
+        prebidServerService.sendSetUidRequest(setuidRequest, uidsCookie)
+
+        then: "Request should fail with error"
+        def exception = thrown(PrebidServerException)
+        assert exception.statusCode == 451
+        assert exception.responseBody == "The gdpr_consent param prevents cookies from being saved"
+
+        and: "Metric should be increased usersync.FAMILY.tcf.blocked"
+        def metric = prebidServerService.sendCollectedMetricsRequest()
+        assert metric["usersync.${GENERIC.value}.tcf.blocked"] == 1
     }
 }
