@@ -72,8 +72,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider.givenBanner;
 import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider.givenBidRequest;
+import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider.givenBidRequestWithExtension;
 import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider.givenDevice;
 import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider.givenDeviceWithoutUserAgent;
+import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider.givenExtRequest;
 import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider.givenImpExt;
 import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider.givenSite;
 
@@ -149,7 +151,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
     }
 
     @Test
-    public void callShouldFilterBiddersAndFallbackToAccountLevelConfigWhenPartnerNotActivatedInBidRequest()
+    public void callShouldFilterBiddersWhenPartnerActivatedInBidRequest()
             throws IOException, OrtException {
         // given
         final Banner banner = givenBanner();
@@ -162,8 +164,11 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
 
         final Double explorationRate = 0.0001;
         final Device device = givenDevice(identity());
-        final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device);
-        final AuctionContext auctionContext = givenAuctionContext(bidRequest, context -> context, explorationRate);
+        final BidRequest bidRequest = givenBidRequestWithExtension(identity(), List.of(imp));
+        final AuctionContext auctionContext = givenAuctionContext(
+                bidRequest,
+                context -> context,
+                explorationRate);
         final AuctionInvocationContext invocationContext = givenAuctionInvocationContext(auctionContext);
         when(invocationContext.auctionContext()).thenReturn(auctionContext);
         when(modelCacheWithExpiration.getIfPresent("onnxModelRunner_test-pbuid"))
@@ -172,7 +177,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 .thenReturn(givenThrottlingThresholds());
 
         final BidRequest expectedBidRequest = expectedUpdatedBidRequest(
-                request -> request, device);
+                request -> request, device, true);
         final AnalyticsResult expectedAnalyticsResult = expectedAnalyticsResult(false, false);
 
         // when
@@ -204,7 +209,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                                 + ".values._children"
                                 + ".adunitcodevalue._children"
                                 + ".greenbids._children.fingerprint")
-                .isEqualTo(toAnalyticsTags(List.of(expectedAnalyticsResult))); // NOK
+                .isEqualTo(toAnalyticsTags(List.of(expectedAnalyticsResult)));
         assertThat(fingerprint).isNotNull();
         assertThat(resultBidRequest).usingRecursiveComparison()
                 .isEqualTo(expectedBidRequest);
@@ -286,7 +291,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 .thenReturn(givenThrottlingThresholds());
 
         final BidRequest expectedBidRequest = expectedUpdatedBidRequest(
-                request -> request, device);
+                request -> request, device, false);
         final AnalyticsResult expectedAnalyticsResult = expectedAnalyticsResult(false, false);
 
         // when
@@ -346,7 +351,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 .thenReturn(givenThrottlingThresholds());
 
         final BidRequest expectedBidRequest = expectedUpdatedBidRequest(
-                request -> request, device);
+                request -> request, device, false);
         final AnalyticsResult expectedAnalyticsResult = expectedAnalyticsResult(false, false);
 
         // when
@@ -464,7 +469,8 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
 
     private BidRequest expectedUpdatedBidRequest(
             UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
-            Device device) {
+            Device device,
+            Boolean isExtRequest) {
 
         final Banner banner = givenBanner();
 
@@ -487,6 +493,10 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 .imp(List.of(imp))
                 .site(givenSite(site -> site))
                 .device(device);
+
+        if (isExtRequest) {
+            bidRequestBuilder.ext(givenExtRequest());
+        }
 
         return bidRequestCustomizer.apply(bidRequestBuilder).build();
     }

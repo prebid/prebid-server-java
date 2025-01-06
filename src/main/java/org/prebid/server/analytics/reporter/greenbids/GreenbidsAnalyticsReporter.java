@@ -76,6 +76,7 @@ import java.util.stream.Stream;
 
 public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
 
+    private static final String BID_REQUEST_ANALYTICS_EXTENSION_NAME = "greenbids";
     private static final int RANGE_16_BIT_INTEGER_DIVISION_BASIS = 0x10000;
     private static final String ANALYTICS_REQUEST_ORIGIN_HEADER = "X-Request-Origin";
     private static final String PREBID_SERVER_HEADER_VALUE = "Prebid Server";
@@ -119,9 +120,10 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
             return Future.failedFuture(new PreBidException("Bid response or auction context cannot be null"));
         }
 
-        final GreenbidsPrebidExt greenbidsBidRequestExt = parseAccountConfig(auctionContext);
+        final GreenbidsPrebidExt greenbidsPrebidExt = Optional.ofNullable(parseBidRequestExt(auctionContext))
+                .orElse(parseAccountConfig(auctionContext));
 
-        if (greenbidsBidRequestExt == null) {
+        if (greenbidsPrebidExt == null) {
             return Future.succeededFuture();
         }
 
@@ -132,7 +134,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
 
         final String greenbidsId = greenbidsId(analyticsResultFromAnalyticsTag);
 
-        if (!isSampled(greenbidsBidRequestExt.getGreenbidsSampling(), greenbidsId)) {
+        if (!isSampled(greenbidsPrebidExt.getGreenbidsSampling(), greenbidsId)) {
             return Future.succeededFuture();
         }
 
@@ -143,7 +145,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                     bidResponse,
                     greenbidsId,
                     billingId,
-                    greenbidsBidRequestExt,
+                    greenbidsPrebidExt,
                     analyticsResultFromAnalyticsTag);
             commonMessageJson = jacksonMapper.encodeToString(commonMessage);
         } catch (PreBidException e) {
@@ -162,12 +164,6 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 .map(Device::getUa)
                 .ifPresent(userAgent -> headers.add(HttpUtil.USER_AGENT_HEADER, userAgent));
 
-        System.out.println(
-                "GreenbidsAnalyticsReporter/ processEvent \n" +
-                        "   commonMessageJson: " + commonMessageJson + "\n" +
-                        "   headers: " + headers
-        );
-
         final Future<HttpClientResponse> responseFuture = httpClient.post(
                 greenbidsAnalyticsProperties.getAnalyticsServerUrl(),
                 headers,
@@ -175,6 +171,22 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 greenbidsAnalyticsProperties.getTimeoutMs());
 
         return responseFuture.compose(this::processAnalyticServerResponse);
+    }
+
+    private GreenbidsPrebidExt parseBidRequestExt(AuctionContext auctionContext) {
+        return Optional.ofNullable(auctionContext)
+                .map(AuctionContext::getBidRequest)
+                .map(BidRequest::getExt)
+                .map(ExtRequest::getPrebid)
+                .map(ExtRequestPrebid::getAnalytics)
+                .filter(this::isNotEmptyObjectNode)
+                .map(analytics -> (ObjectNode) analytics.get(BID_REQUEST_ANALYTICS_EXTENSION_NAME))
+                .map(this::toGreenbidsPrebidExt)
+                .orElse(null);
+    }
+
+    private boolean isNotEmptyObjectNode(JsonNode analytics) {
+        return analytics != null && analytics.isObject() && !analytics.isEmpty();
     }
 
     private GreenbidsPrebidExt parseAccountConfig(AuctionContext auctionContext) {
@@ -185,22 +197,12 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 .orElse(null);
 
         GreenbidsPrebidExt greenbidsPrebidExt = null;
-        if (modules != null && modules.containsKey("greenbids")) {
-            final ObjectNode moduleConfig = modules.get("greenbids");
+        if (modules != null && modules.containsKey(BID_REQUEST_ANALYTICS_EXTENSION_NAME)) {
+            final ObjectNode moduleConfig = modules.get(BID_REQUEST_ANALYTICS_EXTENSION_NAME);
             greenbidsPrebidExt = toGreenbidsPrebidExt(moduleConfig);
-
-            System.out.println(
-                    "GreenbidsAnalyticsReporter/ parseAccountConfig \n" +
-                            "   moduleConfig: " + moduleConfig + "\n" +
-                            "   greenbidsPrebidExt: " + greenbidsPrebidExt
-            );
         }
 
         return greenbidsPrebidExt;
-    }
-
-    private boolean isNotEmptyObjectNode(JsonNode analytics) {
-        return analytics != null && analytics.isObject() && !analytics.isEmpty();
     }
 
     private GreenbidsPrebidExt toGreenbidsPrebidExt(ObjectNode adapterNode) {

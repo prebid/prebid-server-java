@@ -1,6 +1,7 @@
 package org.prebid.server.hooks.modules.greenbids.real.time.data.v1;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
@@ -32,6 +33,8 @@ import org.prebid.server.hooks.v1.analytics.Tags;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.ProcessedAuctionRequestHook;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountHooksConfiguration;
 
@@ -43,6 +46,7 @@ import java.util.Optional;
 
 public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements ProcessedAuctionRequestHook {
 
+    private static final String BID_REQUEST_ANALYTICS_EXTENSION_NAME = "greenbids-rtd";
     private static final String CODE = "greenbids-real-time-data-processed-auction-request";
     private static final String ACTIVITY = "greenbids-filter";
     private static final String SUCCESS_STATUS = "success";
@@ -73,7 +77,8 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
 
         final AuctionContext auctionContext = invocationContext.auctionContext();
         final BidRequest bidRequest = auctionContext.getBidRequest();
-        final Partner appliedPartner = parseAccountConfig(auctionContext);
+        final Partner appliedPartner = Optional.ofNullable(parseBidRequestExt(auctionContext))
+                .orElse(parseAccountConfig(auctionContext));
 
         if (!appliedPartner.getEnabled()) {
             return Future.succeededFuture(toInvocationResult(
@@ -90,6 +95,22 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                         compositeFuture.resultAt(1)))
                 .recover(throwable -> Future.succeededFuture(toInvocationResult(
                         bidRequest, null, InvocationAction.no_action)));
+    }
+
+    private Partner parseBidRequestExt(AuctionContext auctionContext) {
+        return Optional.ofNullable(auctionContext)
+                .map(AuctionContext::getBidRequest)
+                .map(BidRequest::getExt)
+                .map(ExtRequest::getPrebid)
+                .map(ExtRequestPrebid::getAnalytics)
+                .filter(this::isNotEmptyObjectNode)
+                .map(analytics -> (ObjectNode) analytics.get(BID_REQUEST_ANALYTICS_EXTENSION_NAME))
+                .map(this::toPartner)
+                .orElse(null);
+    }
+
+    private boolean isNotEmptyObjectNode(JsonNode analytics) {
+        return analytics != null && analytics.isObject() && !analytics.isEmpty();
     }
 
     private Partner parseAccountConfig(AuctionContext auctionContext) {

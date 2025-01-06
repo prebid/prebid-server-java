@@ -11,6 +11,8 @@ import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import org.prebid.server.json.ObjectMapperProvider;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 
 import java.util.Collections;
 import java.util.List;
@@ -32,6 +34,34 @@ public class TestBidRequestProvider {
                 .imp(imps)
                 .site(givenSite(site -> site))
                 .device(device)).build();
+    }
+
+    public static BidRequest givenBidRequestWithExtension(
+            UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
+            List<Imp> imps) {
+        final BidRequest.BidRequestBuilder bidRequestBuilder = BidRequest.builder()
+                .id("request")
+                .imp(imps)
+                .site(givenSite(site -> site))
+                .device(givenDevice(device -> device))
+                .ext(givenExtRequest());
+
+        return bidRequestCustomizer.apply(bidRequestBuilder).build();
+    }
+
+    public static ExtRequest givenExtRequest() {
+        final ObjectNode greenbidsNode = new ObjectMapper().createObjectNode();
+        greenbidsNode.put("pbuid", "leparisien");
+        greenbidsNode.put("greenbidsSampling", 1.0);
+
+        final ObjectNode analyticsNode = new ObjectMapper().createObjectNode();
+        analyticsNode.set("greenbids", greenbidsNode);
+
+        return ExtRequest.of(
+                ExtRequestPrebid
+                        .builder()
+                        .analytics(analyticsNode)
+                        .build());
     }
 
     public static Site givenSite(UnaryOperator<Site.SiteBuilder> siteCustomizer) {
