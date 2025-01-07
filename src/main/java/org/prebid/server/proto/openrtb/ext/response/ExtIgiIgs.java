@@ -5,8 +5,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
 import lombok.Value;
 
-@Value
 @Builder(toBuilder = true)
+@Value(staticConstructor = "of")
 public class ExtIgiIgs {
 
     @JsonProperty("impid")

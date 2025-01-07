@@ -144,7 +144,7 @@ public class MedianetBidder implements Bidder<BidRequest> {
                 .stream()
                 .map(InterestGroupAuctionIntent::getIgs)
                 .flatMap(Collection::stream)
-                .map(e -> ExtIgiIgs.builder().impId(e.getImpId()).config(e.getConfig()).build())
+                .map(igiIgs -> ExtIgiIgs.builder().impId(igiIgs.getImpId()).config(igiIgs.getConfig()).build())
                 .toList();
 
         return Collections.singletonList(ExtIgi.builder().igs(igs).build());

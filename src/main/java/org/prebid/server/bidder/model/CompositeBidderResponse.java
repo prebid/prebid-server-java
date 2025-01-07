@@ -27,7 +27,6 @@ public class CompositeBidderResponse {
      */
     List<FledgeAuctionConfig> fledgeAuctionConfigs;
 
-
     List<ExtIgi> igi;
 
     public static CompositeBidderResponse empty() {

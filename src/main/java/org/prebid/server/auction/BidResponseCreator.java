@@ -785,7 +785,6 @@ public class BidResponseCreator {
                 .build();
     }
 
-
     private ExtBidResponsePrebid toExtBidResponsePrebid(long auctionTimestamp,
                                                         BidRequest bidRequest,
                                                         ExtBidResponseFledge extBidResponseFledge) {
@@ -814,7 +813,7 @@ public class BidResponseCreator {
                 .flatMap(bidderResponseInfo -> toDeprecatedFledgeConfigs(bidderResponseInfo, imps));
 
         final Stream<FledgeAuctionConfig> fledgeConfigs = paaFormat == PaaFormat.ORIGINAL
-                ? bidderResponseInfos.stream().flatMap(BidResponseCreator::toOriginalFledgeFormat)
+                ? bidderResponseInfos.stream().flatMap(this::toOriginalFledgeFormat)
                 : Stream.empty();
 
         final List<FledgeAuctionConfig> combinedFledgeConfigs = Stream.concat(deprecatedFledgeConfigs, fledgeConfigs)
@@ -827,7 +826,7 @@ public class BidResponseCreator {
         return new PaaResult(extIgi, extBidResponseFledge);
     }
 
-    private static Stream<FledgeAuctionConfig> toOriginalFledgeFormat(BidderResponseInfo bidderResponseInfo) {
+    private Stream<FledgeAuctionConfig> toOriginalFledgeFormat(BidderResponseInfo bidderResponseInfo) {
         return Optional.ofNullable(bidderResponseInfo.getSeatBid().getIgi()).stream()
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
@@ -837,10 +836,10 @@ public class BidResponseCreator {
                 .map(extIgiIgs -> extIgiIgsToFledgeConfig(extIgiIgs, bidderResponseInfo.getBidder()));
     }
 
-    private static FledgeAuctionConfig extIgiIgsToFledgeConfig(ExtIgiIgs extIgiIgs, String bidder) {
+    private FledgeAuctionConfig extIgiIgsToFledgeConfig(ExtIgiIgs extIgiIgs, String bidder) {
         return FledgeAuctionConfig.builder()
                 .bidder(bidder)
-                .adapter(bidder)
+                .adapter(bidderCatalog.resolveBaseBidder(bidder))
                 .impId(extIgiIgs.getImpId())
                 .config(extIgiIgs.getConfig())
                 .build();
@@ -865,26 +864,28 @@ public class BidResponseCreator {
         return fledgeEnabled == ExtImpAuctionEnvironment.ON_DEVICE_IG_AUCTION_FLEDGE;
     }
 
-    private static FledgeAuctionConfig fledgeConfigWithBidder(FledgeAuctionConfig fledgeConfig, String bidderName) {
+    private FledgeAuctionConfig fledgeConfigWithBidder(FledgeAuctionConfig fledgeConfig, String bidder) {
         return fledgeConfig.toBuilder()
-                .bidder(bidderName)
-                .adapter(bidderName)
+                .bidder(bidder)
+                .adapter(bidderCatalog.resolveBaseBidder(bidder))
                 .build();
     }
 
-    private static List<ExtIgi> toExtBidResponseIgi(List<BidderResponseInfo> bidderResponseInfos) {
-        return bidderResponseInfos.stream()
+    private List<ExtIgi> toExtBidResponseIgi(List<BidderResponseInfo> bidderResponseInfos) {
+        final List<ExtIgi> extIgi = bidderResponseInfos.stream()
                 .flatMap(responseInfo -> responseInfo.getSeatBid().getIgi().stream()
                         .map(igi -> extIgiWithBidder(igi, responseInfo.getBidder())))
                 .toList();
+
+        return extIgi.isEmpty() ? null : extIgi;
     }
 
-    private static ExtIgi extIgiWithBidder(ExtIgi extIgi, String bidderName) {
+    private ExtIgi extIgiWithBidder(ExtIgi extIgi, String bidder) {
         final List<ExtIgiIgs> extIgiIgs = CollectionUtils.emptyIfNull(extIgi.getIgs()).stream()
                 .map(igs -> Optional.ofNullable(igs)
                         .map(ExtIgiIgs::toBuilder)
                         .orElseGet(ExtIgiIgs::builder)
-                        .ext(ExtIgiIgsExt.of(bidderName, bidderName))
+                        .ext(ExtIgiIgsExt.of(bidder, bidderCatalog.resolveBaseBidder(bidder)))
                         .build())
                 .toList();
 

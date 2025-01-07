@@ -8,8 +8,8 @@ import java.util.List;
 /**
  * Defines the contract for bidresponse.ext.igi
  */
-@Value
 @Builder(toBuilder = true)
+@Value(staticConstructor = "of")
 public class ExtIgi {
 
     String impid;

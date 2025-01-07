@@ -582,7 +582,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
                 .orElse(Collections.emptyMap())
                 .entrySet()
                 .stream()
-                .map(e -> ExtIgiIgs.builder().impId(e.getKey()).config(e.getValue()).build())
+                .map(config -> ExtIgiIgs.builder().impId(config.getKey()).config(config.getValue()).build())
                 .toList();
 
         return Collections.singletonList(ExtIgi.builder().igs(igs).build());

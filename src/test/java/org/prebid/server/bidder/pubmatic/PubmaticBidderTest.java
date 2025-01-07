@@ -40,7 +40,8 @@ import org.prebid.server.proto.openrtb.ext.request.pubmatic.ExtImpPubmatic;
 import org.prebid.server.proto.openrtb.ext.request.pubmatic.ExtImpPubmaticKeyVal;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
-import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
+import org.prebid.server.proto.openrtb.ext.response.ExtIgi;
+import org.prebid.server.proto.openrtb.ext.response.ExtIgiIgs;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
@@ -1225,11 +1226,11 @@ public class PubmaticBidderTest extends VertxTest {
     public void makeBidderResponseShouldReturnFledgeAuctionConfig() throws JsonProcessingException {
         // given
         final BidResponse bidResponse = givenBidResponse(bidBuilder -> bidBuilder.impid("imp_id"));
-        final ObjectNode fledgeAuctionConfig = mapper.createObjectNode();
+        final ObjectNode auctionConfig = mapper.createObjectNode();
         final PubmaticBidResponse bidResponseWithFledge = PubmaticBidResponse.builder()
                 .cur(bidResponse.getCur())
                 .seatbid(bidResponse.getSeatbid())
-                .ext(PubmaticExtBidResponse.of(Map.of("imp_id", fledgeAuctionConfig)))
+                .ext(PubmaticExtBidResponse.of(Map.of("imp_id", auctionConfig)))
                 .build();
         final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(bidResponseWithFledge));
 
@@ -1241,11 +1242,11 @@ public class PubmaticBidderTest extends VertxTest {
         assertThat(result.getBids())
                 .containsExactly(BidderBid.of(Bid.builder().impid("imp_id").build(), banner, "USD"));
 
-        final FledgeAuctionConfig expectedFledge = FledgeAuctionConfig.builder()
-                .impId("imp_id")
-                .config(fledgeAuctionConfig)
+        final ExtIgi igi = ExtIgi.builder()
+                .igs(singletonList(ExtIgiIgs.builder().impId("imp_id").config(auctionConfig).build()))
                 .build();
-        assertThat(result.getFledgeAuctionConfigs()).containsExactly(expectedFledge);
+
+        assertThat(result.getIgi()).containsExactly(igi);
     }
 
     @Test
