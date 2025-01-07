@@ -344,7 +344,6 @@ public class MetaxBidderTest extends VertxTest {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(
                 givenBid(bid -> bid.dur(1).mtype(2))));
-        System.out.println("HTTP Response Body: " + httpCall.getResponse().getBody());
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -409,7 +408,7 @@ public class MetaxBidderTest extends VertxTest {
                 .build());
     }
 
-    private static Bid givenBid(UnaryOperator<Bid.BidBuilder> bidCustomizer){
+    private static Bid givenBid(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
         return bidCustomizer.apply(Bid.builder()).build();
     }
 }
