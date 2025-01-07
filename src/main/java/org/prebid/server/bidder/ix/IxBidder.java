@@ -418,6 +418,6 @@ public class IxBidder implements Bidder<BidRequest> {
                 .map(config -> ExtIgiIgs.builder().impId(config.getBidId()).config(config.getConfig()).build())
                 .toList();
 
-        return Collections.singletonList(ExtIgi.builder().igs(igs).build());
+        return igs.isEmpty() ? null : Collections.singletonList(ExtIgi.builder().igs(igs).build());
     }
 }

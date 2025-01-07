@@ -46,7 +46,8 @@ import org.prebid.server.proto.openrtb.ext.request.ix.ExtImpIx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
-import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
+import org.prebid.server.proto.openrtb.ext.response.ExtIgi;
+import org.prebid.server.proto.openrtb.ext.response.ExtIgiIgs;
 import org.prebid.server.version.PrebidVersionProvider;
 
 import java.util.List;
@@ -771,14 +772,14 @@ public class IxBidderTest extends VertxTest {
         // given
         final String impId = "imp_id";
         final BidResponse bidResponse = givenBidResponse(bidBuilder -> bidBuilder.impid(impId).mtype(1));
-        final ObjectNode fledgeAuctionConfig = mapper.createObjectNode();
+        final ObjectNode auctionConfig = mapper.createObjectNode();
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(List.of(Imp.builder().id(impId).build()))
                 .build();
         final IxBidResponse bidResponseWithFledge = IxBidResponse.builder()
                 .cur(bidResponse.getCur())
                 .seatbid(bidResponse.getSeatbid())
-                .ext(IxExtBidResponse.of(List.of(AuctionConfigExtBidResponse.of(impId, fledgeAuctionConfig))))
+                .ext(IxExtBidResponse.of(List.of(AuctionConfigExtBidResponse.of(impId, auctionConfig))))
                 .build();
         final BidderCall<BidRequest> httpCall =
                 givenHttpCall(bidRequest, mapper.writeValueAsString(bidResponseWithFledge));
@@ -787,14 +788,15 @@ public class IxBidderTest extends VertxTest {
         final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
 
         // then
+        final ExtIgiIgs igs = ExtIgiIgs.builder()
+                .impId(impId)
+                .config(auctionConfig)
+                .build();
+
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getBids())
                 .containsOnly(BidderBid.of(Bid.builder().impid(impId).mtype(1).build(), banner, bidResponse.getCur()));
-        final FledgeAuctionConfig expectedFledge = FledgeAuctionConfig.builder()
-                .impId(impId)
-                .config(fledgeAuctionConfig)
-                .build();
-        assertThat(result.getFledgeAuctionConfigs()).containsExactly(expectedFledge);
+        assertThat(result.getIgi()).containsExactly(ExtIgi.builder().igs(singletonList(igs)).build());
     }
 
     private static ExtRequest givenExtRequest(String pbjsv) {

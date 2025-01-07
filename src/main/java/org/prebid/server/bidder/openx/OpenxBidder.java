@@ -298,6 +298,6 @@ public class OpenxBidder implements Bidder<BidRequest> {
                 .map(ext -> ExtIgiIgs.builder().impId(ext.getKey()).config(ext.getValue()).build())
                 .toList();
 
-        return Collections.singletonList(ExtIgi.builder().igs(igs).build());
+        return igs.isEmpty() ? null : Collections.singletonList(ExtIgi.builder().igs(igs).build());
     }
 }

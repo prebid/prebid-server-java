@@ -147,6 +147,6 @@ public class MedianetBidder implements Bidder<BidRequest> {
                 .map(igiIgs -> ExtIgiIgs.builder().impId(igiIgs.getImpId()).config(igiIgs.getConfig()).build())
                 .toList();
 
-        return Collections.singletonList(ExtIgi.builder().igs(igs).build());
+        return igs.isEmpty() ? null : Collections.singletonList(ExtIgi.builder().igs(igs).build());
     }
 }
