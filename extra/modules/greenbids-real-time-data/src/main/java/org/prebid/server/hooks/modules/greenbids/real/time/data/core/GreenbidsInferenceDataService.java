@@ -123,8 +123,12 @@ public class GreenbidsInferenceDataService {
             return null;
         }
 
-        final DatabaseReader databaseReader = databaseReaderFactory.getDatabaseReader();
+        return Optional.ofNullable(databaseReaderFactory.getDatabaseReader())
+                .map(dbReader -> getCountryFromIpUsingDatabase(dbReader, ip))
+                .orElse(null);
+    }
 
+    private String getCountryFromIpUsingDatabase(DatabaseReader databaseReader, String ip) {
         try {
             final InetAddress inetAddress = InetAddress.getByName(ip);
             final CountryResponse response = databaseReader.country(inetAddress);
