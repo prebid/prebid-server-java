@@ -10,6 +10,7 @@ import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.setuid.SetuidRequest
 import org.prebid.server.functional.model.response.cookiesync.UserSyncInfo
 import org.prebid.server.functional.service.PrebidServerException
+import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.TcfConsent
 import org.prebid.server.util.ResourceUtil
@@ -35,12 +36,12 @@ class GdprSetUidSpec extends PrivacyBaseSpec {
              "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url"         : USER_SYNC_URL,
              "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.support-cors": CORS_SUPPORT.toString()]
     private static final String TCF_ERROR_MESSAGE = "The gdpr_consent param prevents cookies from being saved"
+    private static final int UNAVAILABLE_FOR_LEGAL_REASONS_CODE = 451
+
+    private static final PrebidServerService prebidServerService = pbsServiceFactory.getService(VENDOR_GENERIC_PBS_CONFIG)
 
     def "PBS setuid shouldn't failed with tcf when purpose access device not enforced"() {
-        given: "PBS config"
-        def prebidServerService = pbsServiceFactory.getService(VENDOR_GENERIC_PBS_CONFIG)
-
-        and: "Default setuid request with account"
+        given: "Default setuid request with account"
         def setuidRequest = SetuidRequest.defaultSetuidRequest.tap {
             it.account = PBSUtils.randomNumber.toString()
             it.uid = UUID.randomUUID().toString()
@@ -72,16 +73,10 @@ class GdprSetUidSpec extends PrivacyBaseSpec {
         assert response.uidsCookie.tempUIDs[GENERIC].uid == setuidRequest.uid
         assert response.responseBody ==
                 ResourceUtil.readByteArrayFromClassPath("org/prebid/server/functional/tracking-pixel.png")
-
-        cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(VENDOR_GENERIC_PBS_CONFIG)
     }
 
     def "PBS setuid should failed with tcf when purpose access device enforced for account"() {
-        given: "PBS config"
-        def prebidServerService = pbsServiceFactory.getService(VENDOR_GENERIC_PBS_CONFIG)
-
-        and: "Default setuid request with account"
+        given: "Default setuid request with account"
         def setuidRequest = SetuidRequest.defaultSetuidRequest.tap {
             it.account = PBSUtils.randomNumber.toString()
             it.uid = UUID.randomUUID().toString()
@@ -110,15 +105,12 @@ class GdprSetUidSpec extends PrivacyBaseSpec {
 
         then: "Request should fail with error"
         def exception = thrown(PrebidServerException)
-        assert exception.statusCode == 451
+        assert exception.statusCode == UNAVAILABLE_FOR_LEGAL_REASONS_CODE
         assert exception.responseBody == TCF_ERROR_MESSAGE
 
         and: "Metric should be increased usersync.FAMILY.tcf.blocked"
         def metric = prebidServerService.sendCollectedMetricsRequest()
         assert metric["usersync.${GENERIC.value}.tcf.blocked"] == 1
-
-        cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(VENDOR_GENERIC_PBS_CONFIG)
     }
 
     def "PBS setuid should failed with tcf when purpose access device enforced for host"() {
@@ -155,7 +147,7 @@ class GdprSetUidSpec extends PrivacyBaseSpec {
 
         then: "Request should fail with error"
         def exception = thrown(PrebidServerException)
-        assert exception.statusCode == 451
+        assert exception.statusCode == UNAVAILABLE_FOR_LEGAL_REASONS_CODE
         assert exception.responseBody == TCF_ERROR_MESSAGE
 
         and: "Metric should be increased usersync.FAMILY.tcf.blocked"

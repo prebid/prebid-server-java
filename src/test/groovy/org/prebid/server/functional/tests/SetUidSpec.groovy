@@ -1,20 +1,10 @@
 package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.model.UidsCookie
-import org.prebid.server.functional.model.bidder.BidderName
-import org.prebid.server.functional.model.config.AccountAuctionConfig
-import org.prebid.server.functional.model.config.AccountConfig
-import org.prebid.server.functional.model.config.AccountGdprConfig
-import org.prebid.server.functional.model.config.AccountPrivacyConfig
-import org.prebid.server.functional.model.config.Purpose
-import org.prebid.server.functional.model.config.PurposeConfig
-import org.prebid.server.functional.model.config.PurposeEnforcement
-import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.setuid.SetuidRequest
 import org.prebid.server.functional.model.response.cookiesync.UserSyncInfo
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
-import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.TcfConsent
 import org.prebid.server.util.ResourceUtil
 import spock.lang.Shared
@@ -22,19 +12,13 @@ import spock.lang.Shared
 import java.time.Clock
 import java.time.ZonedDateTime
 
-import static org.prebid.server.functional.model.AccountStatus.ACTIVE
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.bidder.BidderName.RUBICON
-import static org.prebid.server.functional.model.config.Purpose.P1
-import static org.prebid.server.functional.model.config.PurposeEnforcement.FULL
-import static org.prebid.server.functional.model.config.PurposeEnforcement.NO
 import static org.prebid.server.functional.model.request.setuid.UidWithExpiry.defaultUidWithExpiry
 import static org.prebid.server.functional.model.response.cookiesync.UserSyncInfo.Type.REDIRECT
 import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
-import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
-import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.DEVICE_ACCESS
 import static org.prebid.server.functional.util.privacy.TcfConsent.RUBICON_VENDOR_ID
 
 class SetUidSpec extends BaseSpec {
@@ -53,13 +37,8 @@ class SetUidSpec extends BaseSpec {
              "adapters.${APPNEXUS.value}.usersync.cookie-family-name"                 : APPNEXUS.value,
              "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url"         : USER_SYNC_URL,
              "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.support-cors": CORS_SUPPORT.toString()]
-    private static final Map<String, String> VENDOR_GENERIC_PBS_CONFIG =
-            PBS_CONFIG +
-                    ["gdpr.host-vendor-id"                         : GENERIC_VENDOR_ID as String,
-                     "gdpr.purposes.p1.enforce-purpose"            : NO.value,
-                     "adapters.generic.usersync.cookie-family-name": GENERIC.value,
-                     "adapters.generic.meta-info.vendor-id"        : GENERIC_VENDOR_ID as String]
     private static final String TCF_ERROR_MESSAGE = "The gdpr_consent param prevents cookies from being saved"
+    private static final int UNAVAILABLE_FOR_LEGAL_REASONS_CODE = 451
 
     @Shared
     PrebidServerService prebidServerService = pbsServiceFactory.getService(PBS_CONFIG)
@@ -222,7 +201,7 @@ class SetUidSpec extends BaseSpec {
 
         then: "Request should fail with error"
         def exception = thrown(PrebidServerException)
-        assert exception.statusCode == 451
+        assert exception.statusCode == UNAVAILABLE_FOR_LEGAL_REASONS_CODE
         assert exception.responseBody == TCF_ERROR_MESSAGE
 
         and: "usersync.FAMILY.tcf.blocked metric should be updated"
