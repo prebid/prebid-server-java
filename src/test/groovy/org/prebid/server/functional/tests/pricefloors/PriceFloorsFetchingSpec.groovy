@@ -2046,7 +2046,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         }
     }
 
-    def "PBS should validate fetch.max-schema-dims from account config"() {
+    def "PBS should validate fetch.max-schema-dims from account config and not reject entire auction"() {
         given: "Default BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
 
@@ -2075,7 +2075,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         PBSUtils.getRandomNumber(20)  | null
     }
 
-    def "PBS should validate price-floor.max-rules from account config"() {
+    def "PBS should validate price-floor.max-rules from account config and not reject entire auction"() {
         given: "Default BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
 
@@ -2102,7 +2102,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         PBSUtils.randomNegativeNumber | null
     }
 
-    def "PBS should validate price-floor.max-schema-dims from account config"() {
+    def "PBS should validate price-floor.max-schema-dims from account config and not reject entire auction"() {
         given: "Default BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
 
