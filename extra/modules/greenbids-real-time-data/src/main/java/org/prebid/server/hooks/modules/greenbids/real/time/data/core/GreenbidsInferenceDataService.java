@@ -115,9 +115,9 @@ public class GreenbidsInferenceDataService {
     private static String getCountryNameFromAlpha2(String isoCode) {
         return Optional.ofNullable(isoCode)
                 .filter(code -> !code.isBlank())
-                .map(code -> new Locale("", code))
+                .map(code -> new Locale(StringUtils.EMPTY, code))
                 .map(Locale::getDisplayCountry)
-                .orElse("");
+                .orElse(StringUtils.EMPTY);
     }
 
     private String getCountry(String ip) {
