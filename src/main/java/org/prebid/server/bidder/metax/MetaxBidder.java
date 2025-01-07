@@ -22,6 +22,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.metax.ExtImpMetax;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
@@ -136,7 +137,13 @@ public class MetaxBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid).filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(bid, getBidType(bid), bidResponse.getCur()))
+                .map(bid -> BidderBid.builder()
+                        .bid(bid)
+                        .type(getBidType(bid))
+                        .bidCurrency(bidResponse.getCur())
+                        .videoInfo(videoInfo(bid))
+                        .build())
+
                 .toList();
     }
 
@@ -154,5 +161,18 @@ public class MetaxBidder implements Bidder<BidRequest> {
             default -> throw new PreBidException("Unsupported MType: %s"
                     .formatted(bid.getImpid()));
         };
+    }
+
+    private static ExtBidPrebidVideo videoInfo(Bid bid) {
+        final List<String> cat = bid.getCat();
+        final Integer duration = bid.getDur();
+
+        final boolean catNotEmpty = CollectionUtils.isNotEmpty(cat);
+        final boolean durationValid = duration != null && duration > 0;
+        return catNotEmpty || durationValid
+                ? ExtBidPrebidVideo.of(
+                durationValid ? duration : null,
+                catNotEmpty ? cat.getFirst() : null)
+                : null;
     }
 }

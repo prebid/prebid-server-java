@@ -22,6 +22,7 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.metax.ExtImpMetax;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 
 import java.util.Collections;
 import java.util.List;
@@ -338,6 +339,39 @@ public class MetaxBidderTest extends VertxTest {
                 });
     }
 
+    @Test
+    public void makeBidsShouldReturnVideoInfoWithDuration() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(
+                givenBid(bid -> bid.dur(1).mtype(2))));
+        System.out.println("HTTP Response Body: " + httpCall.getResponse().getBody());
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(BidderBid::getVideoInfo)
+                .containsExactly(ExtBidPrebidVideo.of(1, null));
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnVideoInfoWithPrimaryCategory() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(
+                givenBid(bid -> bid.cat(asList("1", "2")).mtype(2))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(BidderBid::getVideoInfo)
+                .containsExactly(ExtBidPrebidVideo.of(null, "1"));
+        assertThat(result.getErrors()).isEmpty();
+    }
+
     private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
 
         return BidRequest.builder()
@@ -367,5 +401,15 @@ public class MetaxBidderTest extends VertxTest {
                 HttpRequest.<BidRequest>builder().payload(null).build(),
                 HttpResponse.of(200, null, body),
                 null);
+    }
+
+    private static String givenBidResponse(Bid... bids) throws JsonProcessingException {
+        return mapper.writeValueAsString(BidResponse.builder()
+                .seatbid(singletonList(SeatBid.builder().bid(asList(bids)).build()))
+                .build());
+    }
+
+    private static Bid givenBid(UnaryOperator<Bid.BidBuilder> bidCustomizer){
+        return bidCustomizer.apply(Bid.builder()).build();
     }
 }
