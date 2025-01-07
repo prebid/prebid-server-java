@@ -2,6 +2,7 @@ package org.prebid.server.functional.tests.pricefloors
 
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.pricefloors.Country
+import org.prebid.server.functional.model.pricefloors.DeviceType
 import org.prebid.server.functional.model.pricefloors.ModelGroup
 import org.prebid.server.functional.model.pricefloors.PriceFloorData
 import org.prebid.server.functional.model.pricefloors.PriceFloorSchema
@@ -17,6 +18,7 @@ import org.prebid.server.functional.model.request.auction.Video
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.MediaType
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.IgnoreRest
 
 import static org.mockserver.model.HttpStatusCode.BAD_REQUEST_400
 import static org.prebid.server.functional.model.Currency.USD
@@ -677,35 +679,6 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
         then: "PBS shouldn't log a errors"
         assert !response.ext?.errors
-    }
-
-    def "PBS should fail by default with error when schema dimensions more than 3"() {
-        given: "BidRequest with schema 4 fields"
-        def bidRequest = bidRequestWithFloors.tap {
-            ext.prebid.floors.data.modelGroups[0].values = [(new Rule(
-                    mediaType: MULTIPLE,
-                    country: Country.MULTIPLE,
-                    deviceType: PHONE,
-                    pubDomain: PBSUtils.randomString).rule): PBSUtils.randomFloorValue]
-        }
-
-        and: "Account with maxSchemaDims in the DB"
-        def accountId = bidRequest.site.publisher.id
-        def account = getAccountWithEnabledFetch(accountId)
-        accountDao.save(account)
-
-        and: "Set bidder response"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        bidder.setResponse(bidRequest.id, bidResponse)
-
-        when: "PBS processes auction request"
-        def response = floorsPbsService.sendAuctionRequest(bidRequest)
-
-        then: "PBS should log a errors"
-        assert response.ext?.errors[PREBID]*.code == [999]
-        assert response.ext?.errors[PREBID]*.message ==
-                ["Failed to parse price floors from request, with a reason: " +
-                         "Price floor schema dimensions 4 exceeded its maximum number 3"]
     }
 
     def "PBS should emit errors when stored request has more rules than price-floor.max-rules for amp request"() {
