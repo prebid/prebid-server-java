@@ -37,6 +37,8 @@ class SetUidSpec extends BaseSpec {
              "adapters.${APPNEXUS.value}.usersync.cookie-family-name"                 : APPNEXUS.value,
              "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url"         : USER_SYNC_URL,
              "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.support-cors": CORS_SUPPORT.toString()]
+    private static final String TCF_ERROR_MESSAGE = "The gdpr_consent param prevents cookies from being saved"
+    private static final int UNAVAILABLE_FOR_LEGAL_REASONS_CODE = 451
 
     @Shared
     PrebidServerService prebidServerService = pbsServiceFactory.getService(PBS_CONFIG)
@@ -199,8 +201,8 @@ class SetUidSpec extends BaseSpec {
 
         then: "Request should fail with error"
         def exception = thrown(PrebidServerException)
-        assert exception.statusCode == 451
-        assert exception.responseBody == "The gdpr_consent param prevents cookies from being saved"
+        assert exception.statusCode == UNAVAILABLE_FOR_LEGAL_REASONS_CODE
+        assert exception.responseBody == TCF_ERROR_MESSAGE
 
         and: "usersync.FAMILY.tcf.blocked metric should be updated"
         def metric = prebidServerService.sendCollectedMetricsRequest()
