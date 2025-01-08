@@ -37,6 +37,8 @@ import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
+import org.prebid.server.proto.openrtb.ext.response.ExtIgi;
+import org.prebid.server.proto.openrtb.ext.response.ExtIgiIgs;
 import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.httpclient.HttpClient;
@@ -443,6 +445,53 @@ public class HttpBidderRequesterTest extends VertxTest {
         // then
         assertThat(bidderSeatBid.getBids()).hasSameElementsAs(bids);
         assertThat(bidderSeatBid.getFledgeAuctionConfigs()).hasSameElementsAs(fledgeAuctionConfigs);
+
+        verify(bidRejectionTracker, never()).reject(anyString(), any());
+        verify(bidRejectionTracker, never()).reject(anyList(), any());
+    }
+
+    @Test
+    public void shouldReturnExtIgiCreatedByBidder() {
+        // given
+        givenSuccessfulBidderMakeHttpRequests();
+
+        final List<ExtIgi> igi = List.of(
+                ExtIgi.builder()
+                        .impid("impId")
+                        .igs(singletonList(ExtIgiIgs.builder()
+                                .config(mapper.createObjectNode())
+                                .build()))
+                        .build());
+
+        final List<BidderBid> bids = emptyList();
+
+        given(bidder.makeBidderResponse(any(), any())).willReturn(
+                CompositeBidderResponse.builder()
+                        .bids(bids)
+                        .igi(igi)
+                        .build());
+
+        final BidderRequest bidderRequest = BidderRequest.builder()
+                .bidder("bidder")
+                .bidRequest(BidRequest.builder().build())
+                .build();
+
+        // when
+        final BidderSeatBid bidderSeatBid =
+                target
+                        .requestBids(
+                                bidder,
+                                bidderRequest,
+                                bidRejectionTracker,
+                                timeout,
+                                CaseInsensitiveMultiMap.empty(),
+                                bidderAliases,
+                                false)
+                        .result();
+
+        // then
+        assertThat(bidderSeatBid.getBids()).hasSameElementsAs(bids);
+        assertThat(bidderSeatBid.getIgi()).containsExactlyElementsOf(igi);
 
         verify(bidRejectionTracker, never()).reject(anyString(), any());
         verify(bidRejectionTracker, never()).reject(anyList(), any());
