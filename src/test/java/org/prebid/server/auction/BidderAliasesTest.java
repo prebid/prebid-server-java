@@ -37,32 +37,12 @@ public class BidderAliasesTest {
     }
 
     @Test
-    public void isAliasDefinedShouldReturnTrueWhenNoAliasesInRequestButAliasIsValidInBidderCatalog() {
-        // given
-        given(bidderCatalog.isValidName("alias")).willReturn(true);
-        final BidderAliases aliases = BidderAliases.of(null, null, bidderCatalog);
-
-        // when and then
-        assertThat(aliases.isAliasDefined("alias")).isTrue();
-    }
-
-    @Test
     public void isAliasDefinedShouldReturnFalseWhenAliasIsNotDefinedInRequest() {
         // given
         final BidderAliases aliases = BidderAliases.of(singletonMap("anotherAlias", "bidder"), null, bidderCatalog);
 
         // when and then
         assertThat(aliases.isAliasDefined("alias")).isFalse();
-    }
-
-    @Test
-    public void isAliasDefinedShouldReturnTrueWhenAliasIsNotDefinedInRequestButAliasIsValidInBidderCatalog() {
-        // given
-        given(bidderCatalog.isValidName("alias")).willReturn(true);
-        final BidderAliases aliases = BidderAliases.of(singletonMap("anotherAlias", "bidder"), null, bidderCatalog);
-
-        // when and then
-        assertThat(aliases.isAliasDefined("alias")).isTrue();
     }
 
     @Test

@@ -35,15 +35,13 @@ public class BidderAliases {
     }
 
     public boolean isAliasDefined(String alias) {
-        return bidderCatalog.isValidName(alias) || aliasToBidder.containsKey(alias);
+        return aliasToBidder.containsKey(alias);
     }
 
     public String resolveBidder(String aliasOrBidder) {
-        if (bidderCatalog.isValidName(aliasOrBidder)) {
-            return aliasOrBidder;
-        }
-
-        return aliasToBidder.getOrDefault(aliasOrBidder, aliasOrBidder);
+        return bidderCatalog.isValidName(aliasOrBidder)
+                ? aliasOrBidder
+                : aliasToBidder.getOrDefault(aliasOrBidder, aliasOrBidder);
     }
 
     public boolean isSame(String bidder1, String bidder2) {
