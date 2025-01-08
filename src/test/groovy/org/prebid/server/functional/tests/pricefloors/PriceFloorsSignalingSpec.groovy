@@ -34,6 +34,8 @@ import static org.prebid.server.functional.model.response.auction.ErrorType.PREB
 class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
     private static final Closure<String> INVALID_CONFIG_METRIC = { account -> "alerts.account_config.${account}.price-floors" }
+    private static final int MAX_SCHEMA_DIMENSIONS_SIZE = 1
+    private static final int MAX_RULES_SIZE = 1
 
     def "PBS should skip signalling for request with rules when ext.prebid.floors.enabled = false in request"() {
         given: "Default BidRequest with disabled floors"
@@ -568,12 +570,12 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         assert response.ext?.errors[PREBID]*.code == [999]
         assert response.ext?.errors[PREBID]*.message ==
                 ["Failed to parse price floors from request, with a reason: " +
-                         "Price floor rules number ${getRuleSize(bidRequest)} exceeded its maximum number 1"]
+                         "Price floor rules number ${getRuleSize(bidRequest)} exceeded its maximum number ${MAX_RULES_SIZE}"]
 
         where:
-        maxRules | maxRulesSnakeCase
-        1        | null
-        null     | 1
+        maxRules       | maxRulesSnakeCase
+        MAX_RULES_SIZE | null
+        null           | MAX_RULES_SIZE
     }
 
     def "PBS should emit errors when request has more schema.fields than floor-config.max-schema-dims"() {
@@ -599,19 +601,18 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         assert response.ext?.errors[PREBID]*.code == [999]
         assert response.ext?.errors[PREBID]*.message ==
                 ["Failed to parse price floors from request, with a reason: " +
-                         "Price floor schema dimensions ${getSchemaSize(bidRequest)} exceeded its maximum number 1"]
+                         "Price floor schema dimensions ${getSchemaSize(bidRequest)} exceeded its maximum number ${MAX_SCHEMA_DIMENSIONS_SIZE}"]
 
         where:
-        maxSchemaDims | maxSchemaDimsSnakeCase
-        1             | null
-        null          | 1
+        maxSchemaDims              | maxSchemaDimsSnakeCase
+        MAX_SCHEMA_DIMENSIONS_SIZE | null
+        null                       | MAX_SCHEMA_DIMENSIONS_SIZE
     }
 
     def "PBS should emit errors when request has more schema.fields than default-account.max-schema-dims"() {
         given: "Floor config with default account"
-        def maxSchemaDimension = 1
         def accountConfig = getDefaultAccountConfigSettings().tap {
-            auction.priceFloors.maxSchemaDims = maxSchemaDimension
+            auction.priceFloors.maxSchemaDims = MAX_SCHEMA_DIMENSIONS_SIZE
         }
         def pbsFloorConfig = GENERIC_ALIAS_CONFIG + ["price-floors.enabled"           : "true",
                                                      "settings.default-account-config": encode(accountConfig)]
@@ -641,7 +642,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         assert response.ext?.errors[PREBID]*.message ==
                 ["Failed to parse price floors from request, with a reason: " +
                          "Price floor schema dimensions ${getSchemaSize(bidRequest)} " +
-                         "exceeded its maximum number ${maxSchemaDimension}"]
+                         "exceeded its maximum number ${MAX_SCHEMA_DIMENSIONS_SIZE}"]
 
         and: "Metric alerts.account_config.ACCOUNT.price-floors should be update"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
@@ -662,7 +663,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         def accountConfig = getDefaultAccountConfigSettings().tap {
             auction.priceFloors.fetch.enabled = true
             auction.priceFloors.fetch.url = BASIC_FETCH_URL + bidRequest.site.publisher.id
-            auction.priceFloors.fetch.maxSchemaDims = 1
+            auction.priceFloors.fetch.maxSchemaDims = MAX_SCHEMA_DIMENSIONS_SIZE
             auction.priceFloors.maxSchemaDims = null
         }
         def pbsFloorConfig = GENERIC_ALIAS_CONFIG + ["price-floors.enabled"           : "true",
@@ -693,8 +694,8 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         def floorsLogs = getLogsByText(logs, BASIC_FETCH_URL + accountId)
         assert floorsLogs.size() == 1
         assert floorsLogs[0].contains("Failed to fetch price floor from provider for fetch.url: " +
-                "'$BASIC_FETCH_URL$accountId', account = $accountId with a reason : Price floor schema dimensions 2 " +
-                "exceeded its maximum number 1")
+                "'$BASIC_FETCH_URL$accountId', account = $accountId with a reason : Price floor schema dimensions ${getSchemaSize(bidRequest)} " +
+                "exceeded its maximum number ${MAX_SCHEMA_DIMENSIONS_SIZE}")
 
         and: "Metric alerts.account_config.ACCOUNT.price-floors should be update"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
@@ -722,12 +723,12 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         assert response.ext?.errors[PREBID]*.code == [999]
         assert response.ext?.errors[PREBID]*.message ==
                 ["Failed to parse price floors from request, with a reason: " +
-                         "Price floor schema dimensions ${getSchemaSize(bidRequest)} exceeded its maximum number 1"]
+                         "Price floor schema dimensions ${getSchemaSize(bidRequest)} exceeded its maximum number ${MAX_SCHEMA_DIMENSIONS_SIZE}"]
 
         where:
-        maxSchemaDims | maxSchemaDimsSnakeCase
-        1             | null
-        null          | 1
+        maxSchemaDims              | maxSchemaDimsSnakeCase
+        MAX_SCHEMA_DIMENSIONS_SIZE | null
+        null                       | MAX_SCHEMA_DIMENSIONS_SIZE
     }
 
     def "PBS should fail with error and maxSchemaDims take precede over fetch.maxSchemaDims when requested both"() {
@@ -755,7 +756,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         assert response.ext?.errors[PREBID]*.message ==
                 ["Failed to parse price floors from request, with a reason: " +
                          "Price floor schema dimensions ${floorSchemaFilesSize} " +
-                         "exceeded its maximum number ${floorSchemaFilesSize - 1}"]
+                         "exceeded its maximum number ${MAX_SCHEMA_DIMENSIONS_SIZE}"]
     }
 
     def "PBS shouldn't fail with error and maxSchemaDims take precede over fetch.maxSchemaDims when requested both"() {
@@ -765,8 +766,8 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         and: "Account with maxSchemaDims in the DB"
         def accountId = bidRequest.site.publisher.id
         def account = getAccountWithEnabledFetch(accountId).tap {
-            config.auction.priceFloors.maxSchemaDims = 2
-            config.auction.priceFloors.fetch.maxSchemaDims = 1
+            config.auction.priceFloors.maxSchemaDims = getSchemaSize(bidRequest)
+            config.auction.priceFloors.fetch.maxSchemaDims = getSchemaSize(bidRequest) - 1
         }
         accountDao.save(account)
 
@@ -816,12 +817,12 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         assert response.ext?.errors[PREBID]*.message ==
                 ["Failed to parse price floors from request, with a reason: " +
                          "Price floor rules number ${getRuleSize(ampStoredRequest)} " +
-                         "exceeded its maximum number 1"]
+                         "exceeded its maximum number ${MAX_RULES_SIZE}"]
 
         where:
-        maxRules | maxRulesSnakeCase
-        1        | null
-        null     | 1
+        maxRules       | maxRulesSnakeCase
+        MAX_RULES_SIZE | null
+        null           | MAX_RULES_SIZE
     }
 
     private static int getSchemaSize(BidRequest bidRequest) {
