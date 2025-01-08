@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests
 
+import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.bidder.Openx
 import org.prebid.server.functional.model.db.StoredImp
 import org.prebid.server.functional.model.request.auction.BidRequest
@@ -103,12 +104,14 @@ class ImpRequestSpec extends BaseSpec {
             imp.first.tap {
                 pmp = Pmp.defaultPmp
                 ext.prebid.imp = [(aliasName): new Imp(pmp: extPmp)]
+                ext.prebid.bidder.generic = null
+                ext.prebid.bidder.alias = new Generic()
             }
             ext.prebid.aliases = [(aliasName.value): bidderName]
         }
 
         when: "Requesting PBS auction"
-        defaultPbsService.sendAuctionRequest(bidRequest)
+        defaultPbsServiceWithAlias.sendAuctionRequest(bidRequest)
 
         then: "BidderRequest should update imp information based on imp.ext.prebid.imp value"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
