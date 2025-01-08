@@ -4,6 +4,7 @@ import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.bidder.Openx
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.service.PrebidServerException
+import org.prebid.server.functional.testcontainers.Dependencies
 import org.prebid.server.functional.util.PBSUtils
 
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
@@ -13,7 +14,7 @@ import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.GENER_X
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.bidder.CompressionType.GZIP
-import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
+import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
 import static org.prebid.server.functional.util.HttpUtil.CONTENT_ENCODING_HEADER
 
 class AliasSpec extends BaseSpec {
@@ -172,8 +173,8 @@ class AliasSpec extends BaseSpec {
         assert responseDebug.httpcalls[GENERIC.value]
 
         and: "PBS shouldn't call only opexn,alias bidder"
-        assert responseDebug.httpcalls[OPENX.value]
-        assert responseDebug.httpcalls[ALIAS.value]
+        assert !responseDebug.httpcalls[OPENX.value]
+        assert !responseDebug.httpcalls[ALIAS.value]
 
         and: "PBS should call only generic bidder"
         assert bidder.getBidderRequest(bidRequest.id)
@@ -201,7 +202,8 @@ class AliasSpec extends BaseSpec {
         then: "PBS contain two http calls and the different url for both"
         def responseDebug = bidResponse.ext.debug
         assert responseDebug.httpcalls.size() == 2
-        assert responseDebug.httpcalls[OPENX.value]*.uri != responseDebug.httpcalls[GENERIC.value]*.uri
+        assert responseDebug.httpcalls[OPENX.value]*.uri == ["$networkServiceContainer.rootUri/openx/auction"]
+        assert responseDebug.httpcalls[GENERIC.value]*.uri == ["$networkServiceContainer.rootUri/auction"]
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsConfig)
@@ -220,8 +222,7 @@ class AliasSpec extends BaseSpec {
         then: "PBS contain two http calls and the same url for both"
         def responseDebug = bidResponse.ext.debug
         assert responseDebug.httpcalls.size() == 2
-        assert responseDebug.httpcalls[OPENX.value]*.uri == ["$networkServiceContainer.rootUri/openx/auction" as String]
-        assert responseDebug.httpcalls[GENERIC.value]*.uri == ["$networkServiceContainer.rootUri/auction" as String]
+        assert responseDebug.httpcalls[GENER_X.value]*.uri == responseDebug.httpcalls[GENERIC.value]*.uri
 
         and: "Bidder request should contain request per-alies"
         def bidderRequests = bidder.getBidderRequests(bidRequest.id)
