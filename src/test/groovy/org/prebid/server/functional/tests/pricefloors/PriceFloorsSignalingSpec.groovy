@@ -739,7 +739,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         def accountId = bidRequest.site.publisher.id
         def floorSchemaFilesSize = getSchemaSize(bidRequest)
         def account = getAccountWithEnabledFetch(accountId).tap {
-            config.auction.priceFloors.maxSchemaDims = floorSchemaFilesSize - 1
+            config.auction.priceFloors.maxSchemaDims = MAX_SCHEMA_DIMENSIONS_SIZE
             config.auction.priceFloors.fetch.maxSchemaDims = floorSchemaFilesSize
         }
         accountDao.save(account)
