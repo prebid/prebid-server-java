@@ -520,7 +520,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
     def "PBS shouldn't emit errors when request schema.fields than floor-config.max-schema-dims"() {
         given: "Bid request with schema 2 fields"
         def bidRequest = bidRequestWithFloors.tap {
-            ext.prebid.floors.maxSchemaDims = PBSUtils.randomNumber
+            ext.prebid.floors.maxSchemaDims = PBSUtils.getRandomNumber(2)
         }
 
         and: "Account with maxSchemaDims in the DB"
@@ -568,7 +568,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         assert response.ext?.errors[PREBID]*.code == [999]
         assert response.ext?.errors[PREBID]*.message ==
                 ["Failed to parse price floors from request, with a reason: " +
-                         "Price floor rules number ${bidRequest.ext.prebid.floors.data.modelGroups[0].values.keySet().size()} exceeded its maximum number 1"]
+                         "Price floor rules number ${getRuleSize(bidRequest)} exceeded its maximum number 1"]
 
         where:
         maxRules | maxRulesSnakeCase
@@ -599,7 +599,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         assert response.ext?.errors[PREBID]*.code == [999]
         assert response.ext?.errors[PREBID]*.message ==
                 ["Failed to parse price floors from request, with a reason: " +
-                         "Price floor schema dimensions ${bidRequest.ext.prebid.floors.data.modelGroups[0].schema.fields.size()} exceeded its maximum number 1"]
+                         "Price floor schema dimensions ${getSchemaSize(bidRequest)} exceeded its maximum number 1"]
 
         where:
         maxSchemaDims | maxSchemaDimsSnakeCase
@@ -640,7 +640,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         assert response.ext?.errors[PREBID]*.code == [999]
         assert response.ext?.errors[PREBID]*.message ==
                 ["Failed to parse price floors from request, with a reason: " +
-                         "Price floor schema dimensions ${bidRequest.ext.prebid.floors.data.modelGroups[0].schema.fields.size()} " +
+                         "Price floor schema dimensions ${getSchemaSize(bidRequest)} " +
                          "exceeded its maximum number ${maxSchemaDimension}"]
 
         and: "Metric alerts.account_config.ACCOUNT.price-floors should be update"
@@ -722,7 +722,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         assert response.ext?.errors[PREBID]*.code == [999]
         assert response.ext?.errors[PREBID]*.message ==
                 ["Failed to parse price floors from request, with a reason: " +
-                         "Price floor schema dimensions ${bidRequest.ext.prebid.floors.data.modelGroups[0].schema.fields.size()} exceeded its maximum number 1"]
+                         "Price floor schema dimensions ${getSchemaSize(bidRequest)} exceeded its maximum number 1"]
 
         where:
         maxSchemaDims | maxSchemaDimsSnakeCase
@@ -736,7 +736,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
         and: "Account with maxSchemaDims in the DB"
         def accountId = bidRequest.site.publisher.id
-        def floorSchemaFilesSize = bidRequest.ext.prebid.floors.data.modelGroups[0].schema.fields.size()
+        def floorSchemaFilesSize = getSchemaSize(bidRequest)
         def account = getAccountWithEnabledFetch(accountId).tap {
             config.auction.priceFloors.maxSchemaDims = floorSchemaFilesSize - 1
             config.auction.priceFloors.fetch.maxSchemaDims = floorSchemaFilesSize
@@ -815,12 +815,20 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         assert response.ext?.errors[PREBID]*.code == [999]
         assert response.ext?.errors[PREBID]*.message ==
                 ["Failed to parse price floors from request, with a reason: " +
-                         "Price floor rules number ${ampStoredRequest.ext.prebid.floors.data.modelGroups[0].values.keySet().size()} " +
+                         "Price floor rules number ${getRuleSize(ampStoredRequest)} " +
                          "exceeded its maximum number 1"]
 
         where:
         maxRules | maxRulesSnakeCase
         1        | null
         null     | 1
+    }
+
+    private static int getSchemaSize(BidRequest bidRequest) {
+        bidRequest?.ext?.prebid?.floors?.data?.modelGroups[0].schema.fields.size()
+    }
+
+    private static int getRuleSize(BidRequest bidRequest) {
+        bidRequest?.ext?.prebid?.floors?.data?.modelGroups[0].values.size()
     }
 }
