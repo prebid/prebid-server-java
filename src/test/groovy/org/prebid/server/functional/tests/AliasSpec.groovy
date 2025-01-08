@@ -220,7 +220,8 @@ class AliasSpec extends BaseSpec {
         then: "PBS contain two http calls and the same url for both"
         def responseDebug = bidResponse.ext.debug
         assert responseDebug.httpcalls.size() == 2
-        assert responseDebug.httpcalls[GENER_X.value]*.uri == responseDebug.httpcalls[GENERIC.value]*.uri
+        assert responseDebug.httpcalls[OPENX.value]*.uri == ["$networkServiceContainer.rootUri/openx/auction" as String]
+        assert responseDebug.httpcalls[GENERIC.value]*.uri == ["$networkServiceContainer.rootUri/auction" as String]
 
         and: "Bidder request should contain request per-alies"
         def bidderRequests = bidder.getBidderRequests(bidRequest.id)
