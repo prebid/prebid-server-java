@@ -192,14 +192,14 @@ public class SilvermobBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBidIfBannerIsPresentInRequestImp() throws JsonProcessingException {
+    public void makeBidsShouldReturnBannerBidIfMTypeIsBanner() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
                         .build(),
                 mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123").mtype(1))));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -207,14 +207,32 @@ public class SilvermobBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").mtype(1).build(), banner, "USD"));
     }
 
     @Test
-    public void makeBidsShouldReturnVideoBidIfVideoIsPresentInRequestImp() throws JsonProcessingException {
+    public void makeBidsShouldReturnVideoBidIfMTypeIsVideo() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").video(Video.builder().build()).build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123").mtype(2))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").mtype(2).build(), video, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldThrowErrorWhenMediaTypeIsMissing() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").build()))
                         .build(),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
@@ -223,9 +241,12 @@ public class SilvermobBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getMessage()).startsWith("Missing MType for bid: null");
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                });
     }
 
     @Test
@@ -254,14 +275,14 @@ public class SilvermobBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnNativeBidIfNativeIsPresentInRequestImp() throws JsonProcessingException {
+    public void makeBidsShouldReturnNativeBidIfMTypeIsNative() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").xNative(Native.builder().build()).build()))
                         .build(),
                 mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123").mtype(4))));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -269,7 +290,7 @@ public class SilvermobBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), xNative, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").mtype(4).build(), xNative, "USD"));
     }
 
     private static BidRequest givenBidRequest(
