@@ -11,7 +11,8 @@
         "silvermob": {
           "zoneid": "testZoneId",
           "host": "eu"
-        }
+        },
+        "mtype": 1
       },
       "tagid": "tag_id"
     }

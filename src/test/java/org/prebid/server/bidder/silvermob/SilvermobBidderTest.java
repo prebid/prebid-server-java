@@ -272,6 +272,27 @@ public class SilvermobBidderTest extends VertxTest {
                 .containsOnly(BidderBid.of(Bid.builder().impid("123").mtype(4).build(), xNative, "USD"));
     }
 
+    @Test
+    public void makeBidsShouldThrowErrorWhenMediaTypeIsMissing() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getMessage()).startsWith("Missing MType for bid: null");
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                });
+    }
+
     private static BidRequest givenBidRequest(
             UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
             UnaryOperator<Imp.ImpBuilder> impCustomizer) {
