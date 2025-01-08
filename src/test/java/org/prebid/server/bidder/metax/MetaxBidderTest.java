@@ -342,8 +342,8 @@ public class MetaxBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnVideoInfoWithDuration() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(
-                givenBid(bid -> bid.dur(1).mtype(2))));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidResponse(bid -> bid.dur(1).mtype(2)));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -358,8 +358,8 @@ public class MetaxBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnVideoInfoWithPrimaryCategory() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(
-                givenBid(bid -> bid.cat(asList("1", "2")).mtype(2))));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidResponse(bid -> bid.cat(List.of("1", "2")).mtype(2)));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -395,20 +395,10 @@ public class MetaxBidderTest extends VertxTest {
                 .build());
     }
 
-    private static String givenBidResponse(Bid... bids) throws JsonProcessingException {
-        return mapper.writeValueAsString(BidResponse.builder()
-                .seatbid(singletonList(SeatBid.builder().bid(asList(bids)).build()))
-                .build());
-    }
-
     private static BidderCall<BidRequest> givenHttpCall(String body) {
         return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(null).build(),
                 HttpResponse.of(200, null, body),
                 null);
-    }
-
-    private static Bid givenBid(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
-        return bidCustomizer.apply(Bid.builder()).build();
     }
 }
