@@ -276,7 +276,8 @@ public class Ortb2BlockingBidderRequestHookTest {
                 false,
                 false,
                 null,
-                Ortb.of(false));
+                Ortb.of(false),
+                0L);
     }
 
     private static BidRequest emptyRequest() {

@@ -79,7 +79,8 @@ public class CcpaEnforcementTest {
                         true,
                         false,
                         null,
-                        Ortb.of(false)));
+                        Ortb.of(false),
+                        0L));
 
         target = new CcpaEnforcement(userFpdCcpaMask, bidderCatalog, metrics, true);
 
@@ -222,7 +223,8 @@ public class CcpaEnforcementTest {
                         false,
                         false,
                         null,
-                        Ortb.of(false)));
+                        Ortb.of(false),
+                        0L));
 
         final AuctionContext auctionContext = givenAuctionContext(identity());
 
