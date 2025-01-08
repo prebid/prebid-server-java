@@ -2678,12 +2678,12 @@ public class ExchangeServiceTest extends VertxTest {
 
         final ObjectNode siteWithPage = mapper.valueToTree(Site.builder().page("testPage").build());
         final ExtBidderConfig extBidderConfig = ExtBidderConfig.of(
-                null, ExtBidderConfigOrtb.of(siteWithPage, null, null, null));
+                ExtBidderConfigOrtb.of(siteWithPage, null, null, null));
         final ExtRequestPrebidBidderConfig concreteFpdConfig = ExtRequestPrebidBidderConfig.of(
                 singletonList("SoMeBiDdEr"), extBidderConfig);
         final ObjectNode siteWithDomain = mapper.valueToTree(Site.builder().domain("notUsed").build());
         final ExtBidderConfig allExtBidderConfig = ExtBidderConfig.of(
-                null, ExtBidderConfigOrtb.of(siteWithDomain, null, null, null));
+                ExtBidderConfigOrtb.of(siteWithDomain, null, null, null));
         final ExtRequestPrebidBidderConfig allFpdConfig = ExtRequestPrebidBidderConfig.of(singletonList("*"),
                 allExtBidderConfig);
 
@@ -2725,12 +2725,12 @@ public class ExchangeServiceTest extends VertxTest {
 
         final ObjectNode doohWithVenueType = mapper.valueToTree(Dooh.builder().venuetype(List.of("venuetype")).build());
         final ExtBidderConfig extBidderConfig = ExtBidderConfig.of(
-                null, ExtBidderConfigOrtb.of(null, null, doohWithVenueType, null));
+                ExtBidderConfigOrtb.of(null, null, doohWithVenueType, null));
         final ExtRequestPrebidBidderConfig concreteFpdConfig = ExtRequestPrebidBidderConfig.of(
                 singletonList("someBidder"), extBidderConfig);
         final ObjectNode doohWithDomain = mapper.valueToTree(Dooh.builder().domain("notUsed").build());
         final ExtBidderConfig allExtBidderConfig = ExtBidderConfig.of(
-                null, ExtBidderConfigOrtb.of(null, null, doohWithDomain, null));
+                ExtBidderConfigOrtb.of(null, null, doohWithDomain, null));
         final ExtRequestPrebidBidderConfig allFpdConfig = ExtRequestPrebidBidderConfig.of(
                 singletonList("*"),
                 allExtBidderConfig);
@@ -2774,7 +2774,7 @@ public class ExchangeServiceTest extends VertxTest {
         final Publisher publisherWithId = Publisher.builder().id("testId").build();
         final ObjectNode appWithPublisherId = mapper.valueToTree(App.builder().publisher(publisherWithId).build());
         final ExtBidderConfig extBidderConfig = ExtBidderConfig.of(
-                null, ExtBidderConfigOrtb.of(null, appWithPublisherId, null, null));
+                ExtBidderConfigOrtb.of(null, appWithPublisherId, null, null));
         final ExtRequestPrebidBidderConfig concreteFpdConfig = ExtRequestPrebidBidderConfig.of(
                 singletonList("SoMeBiDdEr"), extBidderConfig);
 
@@ -2782,7 +2782,7 @@ public class ExchangeServiceTest extends VertxTest {
         final ObjectNode appWithUpdatedPublisher = mapper.valueToTree(
                 App.builder().publisher(publisherWithIdAndDomain).build());
         final ExtBidderConfig allExtBidderConfig = ExtBidderConfig.of(
-                null, ExtBidderConfigOrtb.of(null, appWithUpdatedPublisher, null, null));
+                ExtBidderConfigOrtb.of(null, appWithUpdatedPublisher, null, null));
         final ExtRequestPrebidBidderConfig allFpdConfig = ExtRequestPrebidBidderConfig.of(singletonList("*"),
                 allExtBidderConfig);
 
@@ -2821,13 +2821,13 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder("someBidder", bidder, givenEmptySeatBid());
         final ObjectNode bidderConfigUser = mapper.valueToTree(User.builder().id("userFromConfig").build());
         final ExtBidderConfig extBidderConfig = ExtBidderConfig.of(
-                null, ExtBidderConfigOrtb.of(null, null, null, bidderConfigUser));
+                ExtBidderConfigOrtb.of(null, null, null, bidderConfigUser));
         final ExtRequestPrebidBidderConfig concreteFpdConfig = ExtRequestPrebidBidderConfig.of(
                 singletonList("SomMeBiDdEr"), extBidderConfig);
 
         final ObjectNode emptyUser = mapper.valueToTree(User.builder().build());
         final ExtBidderConfig allExtBidderConfig = ExtBidderConfig.of(
-                null, ExtBidderConfigOrtb.of(null, null, null, emptyUser));
+                ExtBidderConfigOrtb.of(null, null, null, emptyUser));
         final ExtRequestPrebidBidderConfig allFpdConfig = ExtRequestPrebidBidderConfig.of(singletonList("*"),
                 allExtBidderConfig);
         final User requestUser = User.builder().id("erased").buyeruid("testBuyerId").build();
