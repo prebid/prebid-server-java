@@ -80,7 +80,7 @@ public class ImpAdjuster {
                 .map(JsonNode::asInt)
                 .orElse(-1);
 
-        boolean extIgsEaPresent = Optional.ofNullable(ext)
+        final boolean extIgsEaPresent = Optional.ofNullable(ext)
                 .map(extNode -> extNode.get(EXT_IGS))
                 .filter(JsonNode::isArray)
                 .map(extNode -> StreamSupport.stream(extNode.spliterator(), false).toList())
