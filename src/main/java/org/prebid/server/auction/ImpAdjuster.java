@@ -1,20 +1,26 @@
 package org.prebid.server.auction;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Imp;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.validation.ImpValidator;
 
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.StreamSupport;
 
 public class ImpAdjuster {
 
     private static final String IMP_EXT = "ext";
+    private static final String EXT_AE = "ae";
+    private static final String EXT_IGS = "igs";
     private static final String EXT_PREBID = "prebid";
     private static final String EXT_PREBID_BIDDER = "bidder";
     private static final String EXT_PREBID_IMP = "imp";
@@ -33,6 +39,8 @@ public class ImpAdjuster {
     }
 
     public Imp adjust(Imp originalImp, String bidder, BidderAliases bidderAliases, List<String> debugMessages) {
+        setEaParams(originalImp.getExt());
+
         final JsonNode impExtPrebidImp = bidderParamsFromImpExtPrebidImp(originalImp.getExt());
         if (impExtPrebidImp == null) {
             return originalImp;
@@ -62,6 +70,29 @@ public class ImpAdjuster {
                     .formatted(bidder, originalImp.getId(), e.getMessage()));
             removeImpExtPrebidImp(originalImp.getExt());
             return originalImp;
+        }
+    }
+
+    private void setEaParams(ObjectNode ext) {
+        final int extEa = Optional.ofNullable(ext)
+                .map(extNode -> extNode.get(EXT_AE))
+                .filter(JsonNode::isInt)
+                .map(JsonNode::asInt)
+                .orElse(-1);
+
+        boolean extIgsEaPresent = Optional.ofNullable(ext)
+                .map(extNode -> extNode.get(EXT_IGS))
+                .filter(JsonNode::isArray)
+                .map(extNode -> StreamSupport.stream(extNode.spliterator(), false).toList())
+                .stream()
+                .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
+                .anyMatch(igsElementNode -> igsElementNode.has(EXT_AE));
+
+        if (!extIgsEaPresent && (extEa == 0 || extEa == 1)) {
+            final ArrayNode extIgs = jacksonMapper.mapper().createArrayNode();
+            extIgs.add(jacksonMapper.mapper().createObjectNode().set(EXT_AE, IntNode.valueOf(extEa)));
+            ext.set(EXT_IGS, extIgs);
         }
     }
 
