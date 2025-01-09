@@ -3,18 +3,20 @@ package org.prebid.server.cookie.model;
 import lombok.Value;
 import org.prebid.server.cookie.UidsCookie;
 
+import java.util.Map;
+
 @Value(staticConstructor = "of")
 public class UidsCookieUpdateResult {
 
     boolean successfullyUpdated;
 
-    UidsCookie uidsCookie;
+    Map<String, UidsCookie> uidsCookies;
 
-    public static UidsCookieUpdateResult updated(UidsCookie uidsCookie) {
-        return of(true, uidsCookie);
+    public static UidsCookieUpdateResult success(Map<String, UidsCookie> uidsCookies) {
+        return of(true, uidsCookies);
     }
 
-    public static UidsCookieUpdateResult unaltered(UidsCookie uidsCookie) {
-        return of(false, uidsCookie);
+    public static UidsCookieUpdateResult failure(Map<String, UidsCookie> uidsCookies) {
+        return of(false, uidsCookies);
     }
 }

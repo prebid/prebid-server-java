@@ -310,10 +310,12 @@ public class SetuidHandler implements ApplicationResource {
         final String uid = routingContext.request().getParam(UID_PARAM);
         final String bidder = setuidContext.getCookieName();
 
-        final UidsCookieUpdateResult uidsCookieUpdateResult =
-                uidsCookieService.updateUidsCookie(setuidContext.getUidsCookie(), bidder, uid);
-        final Cookie updatedUidsCookie = uidsCookieService.toCookie(uidsCookieUpdateResult.getUidsCookie());
-        addCookie(routingContext, updatedUidsCookie);
+        final UidsCookieUpdateResult uidsCookieUpdateResult = uidsCookieService.updateUidsCookie(
+                setuidContext.getUidsCookie(), bidder, uid);
+
+        uidsCookieUpdateResult.getUidsCookies().entrySet().stream()
+                .map(e -> uidsCookieService.toCookie(e.getKey(), e.getValue()))
+                .forEach(uidsCookie -> addCookie(routingContext, uidsCookie));
 
         if (uidsCookieUpdateResult.isSuccessfullyUpdated()) {
             metrics.updateUserSyncSetsMetric(bidder);

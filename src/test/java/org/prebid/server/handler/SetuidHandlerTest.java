@@ -55,6 +55,7 @@ import java.util.Base64;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
@@ -138,7 +139,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(httpResponse.putHeader(any(CharSequence.class), any(CharSequence.class))).willReturn(httpResponse);
         given(httpResponse.closed()).willReturn(false);
 
-        given(uidsCookieService.toCookie(any())).willReturn(Cookie.cookie("test", "test"));
+        given(uidsCookieService.toCookie(any(), any())).willReturn(Cookie.cookie("test", "test"));
 
         given(bidderCatalog.names()).willReturn(new HashSet<>(asList("rubicon", "audienceNetwork")));
         given(bidderCatalog.isActive(any())).willReturn(true);
@@ -294,7 +295,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(uidsCookie);
         given(uidsCookieService.updateUidsCookie(uidsCookie, RUBICON, null))
-                .willReturn(UidsCookieUpdateResult.unaltered(uidsCookie));
+                .willReturn(UidsCookieUpdateResult.failure(Map.of("uids", uidsCookie)));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
 
@@ -388,7 +389,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(uidsCookie);
         given(uidsCookieService.updateUidsCookie(uidsCookie, RUBICON, null))
-                .willReturn(UidsCookieUpdateResult.updated(uidsCookie));
+                .willReturn(UidsCookieUpdateResult.success(Map.of("uids", uidsCookie)));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
         given(httpRequest.getParam("account")).willReturn("accId");
@@ -417,7 +418,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(uidsCookie);
         given(uidsCookieService.updateUidsCookie(uidsCookie, RUBICON, null))
-                .willReturn(UidsCookieUpdateResult.updated(uidsCookie));
+                .willReturn(UidsCookieUpdateResult.success(Map.of("uids", uidsCookie)));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
         given(httpRequest.getParam("account")).willReturn("accId");
@@ -439,10 +440,10 @@ public class SetuidHandlerTest extends VertxTest {
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(uidsCookie);
         given(uidsCookieService.updateUidsCookie(uidsCookie, RUBICON, "J5VLCWQP-26-CWFT"))
-                .willReturn(UidsCookieUpdateResult.updated(uidsCookie));
+                .willReturn(UidsCookieUpdateResult.success(Map.of("uids", uidsCookie)));
 
         // {"tempUIDs":{"rubicon":{"uid":"J5VLCWQP-26-CWFT"}}}
-        given(uidsCookieService.toCookie(any())).willReturn(Cookie
+        given(uidsCookieService.toCookie(any(), any())).willReturn(Cookie
                 .cookie("uids", "eyJ0ZW1wVUlEcyI6eyJydWJpY29uIjp7InVpZCI6Iko1VkxDV1FQLTI2LUNXRlQifX19"));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
@@ -466,10 +467,10 @@ public class SetuidHandlerTest extends VertxTest {
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
         // {"tempUIDs":{"rubicon":{"uid":"J5VLCWQP-26-CWFT"}}}
-        given(uidsCookieService.toCookie(any())).willReturn(Cookie
+        given(uidsCookieService.toCookie(any(), any())).willReturn(Cookie
                 .cookie("uids", "eyJ0ZW1wVUlEcyI6eyJydWJpY29uIjp7InVpZCI6Iko1VkxDV1FQLTI2LUNXRlQifX19"));
         given(uidsCookieService.updateUidsCookie(any(), any(), any()))
-                .willReturn(UidsCookieUpdateResult.updated(emptyUidsCookie()));
+                .willReturn(UidsCookieUpdateResult.success(Map.of("uids", emptyUidsCookie())));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
         given(httpRequest.getParam("f")).willReturn("i");
@@ -492,10 +493,10 @@ public class SetuidHandlerTest extends VertxTest {
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(uidsCookie);
         given(uidsCookieService.updateUidsCookie(uidsCookie, RUBICON, "J5VLCWQP-26-CWFT"))
-                .willReturn(UidsCookieUpdateResult.updated(uidsCookie));
+                .willReturn(UidsCookieUpdateResult.success(Map.of("uids", uidsCookie)));
 
         // {"tempUIDs":{"rubicon":{"uid":"J5VLCWQP-26-CWFT"}}}
-        given(uidsCookieService.toCookie(any())).willReturn(Cookie
+        given(uidsCookieService.toCookie(any(), any())).willReturn(Cookie
                 .cookie("uids", "eyJ0ZW1wVUlEcyI6eyJydWJpY29uIjp7InVpZCI6Iko1VkxDV1FQLTI2LUNXRlQifX19"));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
@@ -537,10 +538,10 @@ public class SetuidHandlerTest extends VertxTest {
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(uidsCookie);
         given(uidsCookieService.updateUidsCookie(uidsCookie, RUBICON, "J5VLCWQP-26-CWFT"))
-                .willReturn(UidsCookieUpdateResult.updated(uidsCookie));
+                .willReturn(UidsCookieUpdateResult.success(Map.of("uids", uidsCookie)));
 
         // {"tempUIDs":{"rubicon":{"uid":"J5VLCWQP-26-CWFT"}}}
-        given(uidsCookieService.toCookie(any())).willReturn(Cookie
+        given(uidsCookieService.toCookie(any(), any())).willReturn(Cookie
                 .cookie("uids", "eyJ0ZW1wVUlEcyI6eyJydWJpY29uIjp7InVpZCI6Iko1VkxDV1FQLTI2LUNXRlQifX19"));
 
         given(bidderCatalog.usersyncerByName(eq(RUBICON))).willReturn(
@@ -581,10 +582,10 @@ public class SetuidHandlerTest extends VertxTest {
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(uidsCookie);
         given(uidsCookieService.updateUidsCookie(uidsCookie, RUBICON, "J5VLCWQP-26-CWFT"))
-                .willReturn(UidsCookieUpdateResult.updated(uidsCookie));
+                .willReturn(UidsCookieUpdateResult.success(Map.of("uids", uidsCookie)));
 
         // {"tempUIDs":{"rubicon":{"uid":"J5VLCWQP-26-CWFT"}}}
-        given(uidsCookieService.toCookie(any())).willReturn(Cookie
+        given(uidsCookieService.toCookie(any(), any())).willReturn(Cookie
                 .cookie("uids", "eyJ0ZW1wVUlEcyI6eyJydWJpY29uIjp7InVpZCI6Iko1VkxDV1FQLTI2LUNXRlQifX19"));
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
         given(bidderCatalog.names()).willReturn(singleton(RUBICON));
@@ -624,13 +625,14 @@ public class SetuidHandlerTest extends VertxTest {
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(uidsCookie);
         given(uidsCookieService.updateUidsCookie(uidsCookie, RUBICON, "updatedUid"))
-                .willReturn(UidsCookieUpdateResult.updated(uidsCookie.updateUid(RUBICON, "updatedUid")));
+                .willReturn(UidsCookieUpdateResult.success(
+                        Map.of("uids", uidsCookie.updateUid(RUBICON, "updatedUid"))));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
         given(httpRequest.getParam("uid")).willReturn("updatedUid");
 
         // {"tempUIDs":{"adnxs":{"uid":"12345"}, "rubicon":{"uid":"updatedUid"}}}
-        given(uidsCookieService.toCookie(any()))
+        given(uidsCookieService.toCookie(any(), any()))
                 .willReturn(Cookie.cookie("uids",
                         "eyJ0ZW1wVUlEcyI6eyJhZG54cyI6eyJ1aWQiOiIxMjM0NSJ9LCAicnViaWNvbiI6eyJ1aWQiOiJ1cGRhdGVkVW"
                                 + "lkIn19fQ=="));
@@ -650,6 +652,53 @@ public class SetuidHandlerTest extends VertxTest {
     }
 
     @Test
+    public void shouldReturnMultipleCookies() throws IOException {
+        // given
+        final Map<String, UidWithExpiry> uids = Map.of(
+                RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"),
+                ADNXS, UidWithExpiry.live("12345"));
+        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(uids).build(), jacksonMapper);
+
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
+                .willReturn(uidsCookie);
+        given(uidsCookieService.updateUidsCookie(uidsCookie, RUBICON, "updatedUid"))
+                .willReturn(UidsCookieUpdateResult.success(Map.of(
+                        "uids", uidsCookie.updateUid(RUBICON, "updatedUid"),
+                        "uids2", uidsCookie.updateUid(ADNXS, "12345"))));
+
+        given(httpRequest.getParam("bidder")).willReturn(RUBICON);
+        given(httpRequest.getParam("uid")).willReturn("updatedUid");
+
+        // {"tempUIDs":{"adnxs":{"uid":"12345"}, "rubicon":{"uid":"updatedUid"}}}
+        given(uidsCookieService.toCookie(eq("uids"), any()))
+                .willReturn(Cookie.cookie("uids", "eyJ0ZW1wVUlEcyI6eyJydWJpY29uIjp7InVpZCI6InVwZGF0ZWRVaWQifX19"));
+        given(uidsCookieService.toCookie(eq("uids2"), any()))
+                .willReturn(Cookie.cookie("uids2", "eyJ0ZW1wVUlEcyI6eyJhZG54cyI6eyJ1aWQiOiIxMjM0NSJ9fX0"));
+
+        // when
+        setuidHandler.handle(routingContext);
+
+        // then
+        verify(httpResponse).sendFile(any());
+        verify(routingContext, never()).addCookie(any(Cookie.class));
+
+        final Map<String, String> encodedUidsCookie = httpResponse.headers().getAll("Set-Cookie").stream()
+                .collect(Collectors.toMap(value -> value.split("=")[0], value -> value.split("=")[1]));
+
+        assertThat(encodedUidsCookie).hasSize(2);
+        final Uids decodedUids1 = mapper.readValue(Base64.getUrlDecoder()
+                .decode(encodedUidsCookie.get("uids")), Uids.class);
+        final Uids decodedUids2 = mapper.readValue(Base64.getUrlDecoder()
+                .decode(encodedUidsCookie.get("uids2")), Uids.class);
+
+        assertThat(decodedUids1.getUids()).hasSize(1);
+        assertThat(decodedUids1.getUids().get(RUBICON).getUid()).isEqualTo("updatedUid");
+
+        assertThat(decodedUids2.getUids()).hasSize(1);
+        assertThat(decodedUids2.getUids().get(ADNXS).getUid()).isEqualTo("12345");
+    }
+
+    @Test
     public void shouldRespondWithCookieIfUserIsNotInGdprScope() throws IOException {
         // given
         given(tcfDefinerService.resultForVendorIds(anySet(), any()))
@@ -659,10 +708,10 @@ public class SetuidHandlerTest extends VertxTest {
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(uidsCookie);
         given(uidsCookieService.updateUidsCookie(uidsCookie, RUBICON, "J5VLCWQP-26-CWFT"))
-                .willReturn(UidsCookieUpdateResult.updated(uidsCookie));
+                .willReturn(UidsCookieUpdateResult.success(Map.of("uids", uidsCookie)));
 
         // {"tempUIDs":{"rubicon":{"uid":"J5VLCWQP-26-CWFT"}}}
-        given(uidsCookieService.toCookie(any())).willReturn(Cookie
+        given(uidsCookieService.toCookie(any(), any())).willReturn(Cookie
                 .cookie("uids", "eyJ0ZW1wVUlEcyI6eyJydWJpY29uIjp7InVpZCI6Iko1VkxDV1FQLTI2LUNXRlQifX19"));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
@@ -704,10 +753,10 @@ public class SetuidHandlerTest extends VertxTest {
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(uidsCookie);
         given(uidsCookieService.updateUidsCookie(uidsCookie, RUBICON, "J5VLCWQP-26-CWFT"))
-                .willReturn(UidsCookieUpdateResult.updated(uidsCookie));
+                .willReturn(UidsCookieUpdateResult.success(Map.of("uids", uidsCookie)));
 
         // {"tempUIDs":{"rubicon":{"uid":"J5VLCWQP-26-CWFT"}}}
-        given(uidsCookieService.toCookie(any())).willReturn(Cookie
+        given(uidsCookieService.toCookie(any(), any())).willReturn(Cookie
                 .cookie("uids", "eyJ0ZW1wVUlEcyI6eyJydWJpY29uIjp7InVpZCI6Iko1VkxDV1FQLTI2LUNXRlQifX19"));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
@@ -734,7 +783,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(uidsCookie);
         given(uidsCookieService.updateUidsCookie(uidsCookie, RUBICON, "uid"))
-                .willReturn(UidsCookieUpdateResult.updated(uidsCookie));
+                .willReturn(UidsCookieUpdateResult.success(Map.of("uids", uidsCookie)));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
         given(httpRequest.getParam("uid")).willReturn("uid");
@@ -758,7 +807,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(uidsCookie);
         given(uidsCookieService.updateUidsCookie(uidsCookie, RUBICON, "updatedUid"))
-                .willReturn(UidsCookieUpdateResult.updated(uidsCookie));
+                .willReturn(UidsCookieUpdateResult.success(Map.of("uids", uidsCookie)));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
         given(httpRequest.getParam("uid")).willReturn("updatedUid");

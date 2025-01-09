@@ -68,7 +68,7 @@ public class OptoutHandler implements ApplicationResource {
             respondWithUnauthorized(routingContext, result.cause());
         } else {
             final boolean optout = isOptout(routingContext);
-            respondWithRedirectAndCookie(routingContext, optCookie(optout, routingContext), optUrl(optout));
+            respondWithRedirectAndCookie(routingContext, optCookies(optout, routingContext), optUrl(optout));
         }
     }
 
@@ -88,12 +88,12 @@ public class OptoutHandler implements ApplicationResource {
                         .end());
     }
 
-    private void respondWithRedirectAndCookie(RoutingContext routingContext, Cookie cookie, String url) {
+    private void respondWithRedirectAndCookie(RoutingContext routingContext, List<Cookie> cookies, String url) {
         HttpUtil.executeSafely(routingContext, Endpoint.optout,
                 response -> response
                         .setStatusCode(HttpResponseStatus.MOVED_PERMANENTLY.code())
                         .putHeader(HttpUtil.LOCATION_HEADER, url)
-                        .putHeader(HttpUtil.SET_COOKIE_HEADER, cookie.encode())
+                        .putHeader(HttpUtil.SET_COOKIE_HEADER.toString(), cookies.stream().map(Cookie::encode).toList())
                         .end());
     }
 
@@ -102,11 +102,14 @@ public class OptoutHandler implements ApplicationResource {
         return StringUtils.isNotEmpty(optoutValue);
     }
 
-    private Cookie optCookie(boolean optout, RoutingContext routingContext) {
+    private List<Cookie> optCookies(boolean optout, RoutingContext routingContext) {
         final UidsCookie uidsCookie = uidsCookieService
                 .parseFromRequest(routingContext)
                 .updateOptout(optout);
-        return uidsCookieService.toCookie(uidsCookie);
+
+        return uidsCookieService.splitUids(uidsCookie).entrySet().stream()
+                .map(entry -> uidsCookieService.toCookie(entry.getKey(), entry.getValue()))
+                .toList();
     }
 
     private String optUrl(boolean optout) {

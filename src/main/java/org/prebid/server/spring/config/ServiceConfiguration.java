@@ -658,6 +658,7 @@ public class ServiceConfiguration {
             @Value("${host-cookie.domain:#{null}}") String hostCookieDomain,
             @Value("${host-cookie.ttl-days}") Integer ttlDays,
             @Value("${host-cookie.max-cookie-size-bytes}") Integer maxCookieSizeBytes,
+            @Value("${setuid.number-of-uid-cookies:1}") int numberOfUidCookies,
             PrioritizedCoopSyncProvider prioritizedCoopSyncProvider,
             Metrics metrics,
             JacksonMapper mapper) {
@@ -670,6 +671,7 @@ public class ServiceConfiguration {
                 hostCookieDomain,
                 ttlDays,
                 maxCookieSizeBytes,
+                numberOfUidCookies,
                 prioritizedCoopSyncProvider,
                 metrics,
                 mapper);
