@@ -1213,7 +1213,7 @@ public class BidResponseCreator {
                 .or(() -> Optional.ofNullable(auctionContext.getAccount())
                         .map(Account::getAuction)
                         .map(AccountAuctionConfig::getPaaFormat))
-                .orElse(PaaFormat.IAB); // TODO: Decide what default value to use
+                .orElse(PaaFormat.IAB);
     }
 
     /**
