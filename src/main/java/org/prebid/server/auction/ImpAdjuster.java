@@ -39,7 +39,7 @@ public class ImpAdjuster {
     }
 
     public Imp adjust(Imp originalImp, String bidder, BidderAliases bidderAliases, List<String> debugMessages) {
-        setEaParams(originalImp.getExt());
+        setAeParams(originalImp.getExt());
 
         final JsonNode impExtPrebidImp = bidderParamsFromImpExtPrebidImp(originalImp.getExt());
         if (impExtPrebidImp == null) {
@@ -73,14 +73,14 @@ public class ImpAdjuster {
         }
     }
 
-    private void setEaParams(ObjectNode ext) {
-        final int extEa = Optional.ofNullable(ext)
+    private void setAeParams(ObjectNode ext) {
+        final int extAe = Optional.ofNullable(ext)
                 .map(extNode -> extNode.get(EXT_AE))
                 .filter(JsonNode::isInt)
                 .map(JsonNode::asInt)
                 .orElse(-1);
 
-        final boolean extIgsEaPresent = Optional.ofNullable(ext)
+        final boolean extIgsAePresent = Optional.ofNullable(ext)
                 .map(extNode -> extNode.get(EXT_IGS))
                 .filter(JsonNode::isArray)
                 .map(extNode -> StreamSupport.stream(extNode.spliterator(), false).toList())
@@ -89,9 +89,9 @@ public class ImpAdjuster {
                 .filter(Objects::nonNull)
                 .anyMatch(igsElementNode -> igsElementNode.has(EXT_AE));
 
-        if (!extIgsEaPresent && (extEa == 0 || extEa == 1)) {
+        if (!extIgsAePresent && (extAe == 0 || extAe == 1)) {
             final ArrayNode extIgs = jacksonMapper.mapper().createArrayNode();
-            extIgs.add(jacksonMapper.mapper().createObjectNode().set(EXT_AE, IntNode.valueOf(extEa)));
+            extIgs.add(jacksonMapper.mapper().createObjectNode().set(EXT_AE, IntNode.valueOf(extAe)));
             ext.set(EXT_IGS, extIgs);
         }
     }
