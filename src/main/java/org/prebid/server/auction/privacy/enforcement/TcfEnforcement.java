@@ -67,6 +67,7 @@ public class TcfEnforcement implements PrivacyEnforcement {
 
         final MetricName requestType = auctionContext.getRequestTypeMetric();
         final ActivityInfrastructure activityInfrastructure = auctionContext.getActivityInfrastructure();
+        final Account account = auctionContext.getAccount();
         final Set<String> bidders = results.stream()
                 .map(BidderPrivacyResult::getRequestBidder)
                 .collect(Collectors.toSet());
@@ -75,9 +76,15 @@ public class TcfEnforcement implements PrivacyEnforcement {
                         bidders,
                         VendorIdResolver.of(aliases),
                         auctionContext.getPrivacyContext().getTcfContext(),
-                        accountGdprConfig(auctionContext.getAccount()))
+                        accountGdprConfig(account))
                 .map(TcfResponse::getActions)
-                .map(enforcements -> updateMetrics(activityInfrastructure, enforcements, aliases, requestType, results))
+                .map(enforcements -> updateMetrics(
+                        activityInfrastructure,
+                        enforcements,
+                        aliases,
+                        requestType,
+                        results,
+                        account))
                 .map(enforcements -> applyEnforcements(enforcements, results));
     }
 
@@ -86,11 +93,28 @@ public class TcfEnforcement implements PrivacyEnforcement {
         return privacyConfig != null ? privacyConfig.getGdpr() : null;
     }
 
+    private static boolean isBuyerUidSet(User user) {
+        return user != null && user.getBuyeruid() != null;
+    }
+
+    private static boolean shouldRemoveUserData(User user) {
+        return user != null && ObjectUtils.anyNotNull(
+                user.getId(),
+                user.getBuyeruid(),
+                user.getYob(),
+                user.getGender(),
+                user.getKeywords(),
+                user.getKwarray(),
+                user.getData(),
+                ObjectUtil.getIfNotNull(user.getExt(), ExtUser::getData));
+    }
+
     private Map<String, PrivacyEnforcementAction> updateMetrics(ActivityInfrastructure activityInfrastructure,
                                                                 Map<String, PrivacyEnforcementAction> enforcements,
                                                                 BidderAliases aliases,
                                                                 MetricName requestType,
-                                                                List<BidderPrivacyResult> results) {
+                                                                List<BidderPrivacyResult> results,
+                                                                Account account) {
 
         // Metrics should represent real picture of the bidding process, so if bidder request is blocked
         // by privacy then no reason to increment another metrics, like geo masked, etc.
@@ -120,24 +144,16 @@ public class TcfEnforcement implements PrivacyEnforcement {
                     requestBlocked,
                     isLmtEnforcedAndEnabled);
 
+            if (isBuyerUidSet(user) && ufpdRemoved) {
+                metrics.updateAdapterRequestBuyerUidScrubbedMetrics(bidder, account);
+            }
+
             if (ufpdRemoved) {
                 logger.warn("The UFPD fields have been removed due to a consent check.");
             }
         }
 
         return enforcements;
-    }
-
-    private static boolean shouldRemoveUserData(User user) {
-        return user != null && ObjectUtils.anyNotNull(
-                user.getId(),
-                user.getBuyeruid(),
-                user.getYob(),
-                user.getGender(),
-                user.getKeywords(),
-                user.getKwarray(),
-                user.getData(),
-                ObjectUtil.getIfNotNull(user.getExt(), ExtUser::getData));
     }
 
     private static boolean shouldRemoveDeviceData(Device device) {

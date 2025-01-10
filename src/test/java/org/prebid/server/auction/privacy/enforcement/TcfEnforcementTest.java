@@ -44,6 +44,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mock.Strictness.LENIENT;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -167,6 +168,44 @@ public class TcfEnforcementTest {
         verifyMetric("bidder0", false, false, true, false, false, false);
         verifyMetric("bidder1", false, false, false, false, false, false);
         verifyMetric("bidder2", true, false, false, false, false, false);
+    }
+
+    @Test
+    public void enforceShouldEmitBuyerUidScrubbedMetricsWhenUserHasBuyerUid() {
+        // give
+        givenPrivacyEnforcementActions(Map.of(
+                "bidder0", givenEnforcementAction(PrivacyEnforcementAction::setMaskGeo),
+                "bidder1", givenEnforcementAction(PrivacyEnforcementAction::setMaskDeviceInfo),
+                "bidder2", givenEnforcementAction(PrivacyEnforcementAction::setRemoveUserFpd),
+                "bidder3", givenEnforcementAction(PrivacyEnforcementAction::setMaskDeviceInfo),
+                "bidder4", givenEnforcementAction(PrivacyEnforcementAction::setRemoveUserFpd),
+                "bidder5", givenEnforcementAction(PrivacyEnforcementAction::setMaskDeviceInfo)));
+
+        final User givenUserWithoutBuyerUid = givenUserWithPrivacyData();
+
+        final User givenUserWithBuyerUid = givenUserWithoutBuyerUid.toBuilder()
+                .buyeruid("buyeruid")
+                .build();
+
+        final AuctionContext auctionContext = givenAuctionContext(givenDeviceWithNoPrivacyData());
+        final List<BidderPrivacyResult> initialResults = List.of(
+                givenBidderPrivacyResult("bidder0", givenUserWithBuyerUid, givenDeviceWithNoPrivacyData()),
+                givenBidderPrivacyResult("bidder1", givenUserWithBuyerUid, givenDeviceWithNoPrivacyData()),
+                givenBidderPrivacyResult("bidder2", givenUserWithoutBuyerUid, givenDeviceWithNoPrivacyData()),
+                givenBidderPrivacyResult("bidder3", givenUserWithoutBuyerUid, givenDeviceWithPrivacyData()),
+                givenBidderPrivacyResult("bidder4", givenUserWithBuyerUid, givenDeviceWithNoPrivacyData()),
+                givenBidderPrivacyResult("bidder5", givenUserWithBuyerUid, givenDeviceWithPrivacyData()));
+
+        // when
+        target.enforce(auctionContext, aliases, initialResults);
+
+        // then
+        verify(metrics, never()).updateAdapterRequestBuyerUidScrubbedMetrics(eq("bidder0"), any());
+        verify(metrics, never()).updateAdapterRequestBuyerUidScrubbedMetrics(eq("bidder1"), any());
+        verify(metrics, never()).updateAdapterRequestBuyerUidScrubbedMetrics(eq("bidder2"), any());
+        verify(metrics, never()).updateAdapterRequestBuyerUidScrubbedMetrics(eq("bidder3"), any());
+        verify(metrics).updateAdapterRequestBuyerUidScrubbedMetrics(eq("bidder4"), any());
+        verify(metrics).updateAdapterRequestBuyerUidScrubbedMetrics(eq("bidder5"), any());
     }
 
     @Test
