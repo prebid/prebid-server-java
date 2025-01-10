@@ -493,8 +493,8 @@ public class HttpBidderRequesterTest extends VertxTest {
         assertThat(bidderSeatBid.getBids()).hasSameElementsAs(bids);
         assertThat(bidderSeatBid.getIgi()).containsExactlyElementsOf(igi);
 
-        verify(bidRejectionTracker, never()).reject(anyString(), any());
-        verify(bidRejectionTracker, never()).reject(anyList(), any());
+        verify(bidRejectionTracker, never()).rejectImp(anyString(), any());
+        verify(bidRejectionTracker, never()).rejectImps(anyList(), any());
     }
 
     @Test
