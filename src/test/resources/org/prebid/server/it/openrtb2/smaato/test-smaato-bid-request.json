@@ -9,7 +9,35 @@
         "w": 300,
         "h": 250
       },
-      "tagid": "130563103"
+      "tagid": "130563103",
+      "ext" : {
+        "gpid": 1,
+        "skadn": {
+          "versions": [
+            "2.0",
+            "2.1",
+            "2.2",
+            "3.0",
+            "4.0"
+          ],
+          "sourceapp": "880047117",
+          "productpage": 1,
+          "skadnetlist": {
+            "max": 306,
+            "excl": [
+              2,
+              8,
+              10,
+              55
+            ],
+            "addl": [
+              "cdkw7geqsh.skadnetwork",
+              "qyJfv329m4.skadnetwork"
+            ]
+          }
+        },
+        "tid": "${json-unit.any-string}"
+      }
     }
   ],
   "source": {
@@ -37,6 +65,6 @@
     }
   },
   "ext": {
-    "client": "prebid_server_1.1"
+    "client": "prebid_server_1.2"
   }
 }

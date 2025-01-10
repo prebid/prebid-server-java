@@ -3306,6 +3306,34 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldSetSeatToMetaSeat() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(identity()),
+                mapper.writeValueAsString(RubiconBidResponse.builder()
+                        .cur("USD")
+                        .seatbid(singletonList(RubiconSeatBid.builder()
+                                .seat("seat")
+                                .bid(singletonList(givenRubiconBid(bid -> bid.price(ONE))))
+                                .build()))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, givenBidRequest(identity()));
+
+        // then
+        final ObjectNode expectedBidExt = mapper.valueToTree(
+                ExtPrebid.of(ExtBidPrebid.builder()
+                        .meta(ExtBidPrebidMeta.builder().seat("seat").build())
+                        .build(), null));
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getExt)
+                .containsExactly(expectedBidExt);
+    }
+
+    @Test
     public void makeBidsShouldSetSeatBuyerToMetaNetworkId() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(

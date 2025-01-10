@@ -6,6 +6,7 @@
         {
           "id": "bid_id_banner",
           "impid": "imp_id_banner",
+          "exp": 300,
           "price":  11.393,
           "adomain": [],
           "adm": "<html>",

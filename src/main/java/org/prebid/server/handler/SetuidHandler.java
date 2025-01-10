@@ -2,6 +2,7 @@ package org.prebid.server.handler;
 
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
+import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.http.Cookie;
 import io.vertx.core.http.HttpHeaders;
@@ -50,6 +51,8 @@ import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.gdpr.model.TcfResponse;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountGdprConfig;
+import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.verticles.server.HttpEndpoint;
 import org.prebid.server.vertx.verticles.server.application.ApplicationResource;
@@ -208,17 +211,23 @@ public class SetuidHandler implements ApplicationResource {
 
         if (setuidContextResult.succeeded()) {
             final SetuidContext setuidContext = setuidContextResult.result();
-            final String bidder = setuidContext.getCookieName();
+            final String bidderCookieName = setuidContext.getCookieName();
             final TcfContext tcfContext = setuidContext.getPrivacyContext().getTcfContext();
 
             try {
-                validateSetuidContext(setuidContext, bidder);
+                validateSetuidContext(setuidContext, bidderCookieName);
             } catch (InvalidRequestException | UnauthorizedUidsException | UnavailableForLegalReasonsException e) {
                 handleErrors(e, routingContext, tcfContext);
                 return;
             }
 
-            isAllowedForHostVendorId(tcfContext)
+            final AccountPrivacyConfig privacyConfig = setuidContext.getAccount().getPrivacy();
+            final AccountGdprConfig accountGdprConfig = privacyConfig != null ? privacyConfig.getGdpr() : null;
+
+            Future.all(
+                    tcfDefinerService.isAllowedForHostVendorId(tcfContext),
+                    tcfDefinerService.resultForBidderNames(
+                            Collections.singleton(bidderCookieName), tcfContext, accountGdprConfig))
                     .onComplete(hostTcfResponseResult -> respondByTcfResponse(hostTcfResponseResult, setuidContext));
         } else {
             final Throwable error = setuidContextResult.cause();
@@ -255,44 +264,25 @@ public class SetuidHandler implements ApplicationResource {
         }
     }
 
-    /**
-     * If host vendor id is null, host allowed to setuid.
-     */
-    private Future<HostVendorTcfResponse> isAllowedForHostVendorId(TcfContext tcfContext) {
-        final Integer gdprHostVendorId = tcfDefinerService.getGdprHostVendorId();
-        return gdprHostVendorId == null
-                ? Future.succeededFuture(HostVendorTcfResponse.allowedVendor())
-                : tcfDefinerService.resultForVendorIds(Collections.singleton(gdprHostVendorId), tcfContext)
-                .map(this::toHostVendorTcfResponse);
-    }
-
-    private HostVendorTcfResponse toHostVendorTcfResponse(TcfResponse<Integer> tcfResponse) {
-        return HostVendorTcfResponse.of(tcfResponse.getUserInGdprScope(), tcfResponse.getCountry(),
-                isSetuidAllowed(tcfResponse));
-    }
-
-    private boolean isSetuidAllowed(TcfResponse<Integer> hostTcfResponseToSetuidContext) {
-        // allow cookie only if user is not in GDPR scope or vendor passed GDPR check
-        final boolean notInGdprScope = BooleanUtils.isFalse(hostTcfResponseToSetuidContext.getUserInGdprScope());
-
-        final Map<Integer, PrivacyEnforcementAction> vendorIdToAction = hostTcfResponseToSetuidContext.getActions();
-        final PrivacyEnforcementAction hostPrivacyAction = vendorIdToAction != null
-                ? vendorIdToAction.get(tcfDefinerService.getGdprHostVendorId())
-                : null;
-        final boolean blockPixelSync = hostPrivacyAction == null || hostPrivacyAction.isBlockPixelSync();
-
-        return notInGdprScope || !blockPixelSync;
-    }
-
-    private void respondByTcfResponse(AsyncResult<HostVendorTcfResponse> hostTcfResponseResult,
-                                      SetuidContext setuidContext) {
+    private void respondByTcfResponse(AsyncResult<CompositeFuture> hostTcfResponseResult, SetuidContext setuidContext) {
         final String bidderCookieName = setuidContext.getCookieName();
         final TcfContext tcfContext = setuidContext.getPrivacyContext().getTcfContext();
         final RoutingContext routingContext = setuidContext.getRoutingContext();
 
         if (hostTcfResponseResult.succeeded()) {
-            final HostVendorTcfResponse hostTcfResponse = hostTcfResponseResult.result();
-            if (hostTcfResponse.isVendorAllowed()) {
+            final CompositeFuture compositeFuture = hostTcfResponseResult.result();
+            final HostVendorTcfResponse hostVendorTcfResponse = compositeFuture.resultAt(0);
+            final TcfResponse<String> bidderTcfResponse = compositeFuture.resultAt(1);
+
+            final Map<String, PrivacyEnforcementAction> vendorIdToAction = bidderTcfResponse.getActions();
+            final PrivacyEnforcementAction action = vendorIdToAction != null
+                    ? vendorIdToAction.get(bidderCookieName)
+                    : null;
+
+            final boolean notInGdprScope = BooleanUtils.isFalse(bidderTcfResponse.getUserInGdprScope());
+            final boolean isBidderVendorAllowed = notInGdprScope || action == null || !action.isBlockPixelSync();
+
+            if (hostVendorTcfResponse.isVendorAllowed() && isBidderVendorAllowed) {
                 respondWithCookie(setuidContext);
             } else {
                 metrics.updateUserSyncTcfBlockedMetric(bidderCookieName);
@@ -308,7 +298,6 @@ public class SetuidHandler implements ApplicationResource {
 
                 analyticsDelegator.processEvent(SetuidEvent.error(status.code()), tcfContext);
             }
-
         } else {
             final Throwable error = hostTcfResponseResult.cause();
             metrics.updateUserSyncTcfBlockedMetric(bidderCookieName);

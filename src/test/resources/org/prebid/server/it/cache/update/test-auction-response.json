@@ -11,6 +11,7 @@
           "crid": "crid2",
           "w": 120,
           "h": 600,
+          "exp": 300,
           "ext": {
             "prebid": {
               "type": "banner",
@@ -35,6 +36,7 @@
         {
           "id": "31124",
           "impid": "impId-video-cache-update",
+          "exp": 1500,
           "price": 3,
           "adm": "adm1",
           "crid": "crid1",

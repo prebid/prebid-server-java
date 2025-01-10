@@ -28,6 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class RiseBidderTest extends VertxTest {
 
@@ -212,6 +213,21 @@ public class RiseBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).containsOnly(BidderBid.of(Bid.builder().mtype(2).build(), video, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnNativeBidIfMTypeIsFour() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder().imp(singletonList(Imp.builder().id("123").build())).build(),
+                mapper.writeValueAsString(givenBidResponse(Bid.builder().mtype(4).build())));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsOnly(BidderBid.of(Bid.builder().mtype(4).build(), xNative, "USD"));
     }
 
     @Test

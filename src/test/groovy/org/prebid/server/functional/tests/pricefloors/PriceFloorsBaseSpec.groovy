@@ -57,13 +57,16 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
                 maxRules: 0,
                 maxFileSizeKb: 200,
                 maxAgeSec: 86400,
-                periodSec: 3600)
+                periodSec: 3600,
+                maxSchemaDims: 5)
         def floors = new AccountPriceFloorsConfig(enabled: true,
                 fetch: fetch,
                 enforceFloorsRate: 100,
                 enforceDealFloors: true,
                 adjustForBidAdjustment: true,
-                useDynamicData: true)
+                useDynamicData: true,
+                maxRules: 0,
+                maxSchemaDims: 3)
         new AccountConfig(auction: new AccountAuctionConfig(priceFloors: floors))
     }
 

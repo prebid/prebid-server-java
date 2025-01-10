@@ -6,6 +6,7 @@
         {
           "id": "randomid",
           "impid": "test-imp-id",
+          "exp": 300,
           "price": 0.5,
           "adm": "some-test-ad",
           "adid": "12345678",

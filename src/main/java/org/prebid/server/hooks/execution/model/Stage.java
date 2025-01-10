@@ -33,5 +33,7 @@ public enum Stage {
 
     @JsonProperty("auction-response")
     @JsonAlias("auction_response")
-    auction_response
+    auction_response,
+
+    exitpoint
 }
