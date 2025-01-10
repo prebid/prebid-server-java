@@ -174,6 +174,7 @@ settings:
             "enabled": false,
             "timeout-ms": 5000,
             "max-rules": 0,
+            "max-schema-dims": 5,
             "max-file-size-kb": 200,
             "max-age-sec": 86400,
             "period-sec": 3600
@@ -181,7 +182,9 @@ settings:
           "enforce-floors-rate": 100,
           "adjust-for-bid-adjustment": true,
           "enforce-deal-floors": true,
-          "use-dynamic-data": true
+          "use-dynamic-data": true,
+          "max-rules": 100,
+          "max-schema-dims": 3
         }
       }
     }

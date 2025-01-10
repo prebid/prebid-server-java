@@ -153,6 +153,7 @@ There are several typical keys:
 - `adapters.<BIDDER_NAME>.usersync.type` - usersync type (i.e. redirect, iframe).
 - `adapters.<BIDDER_NAME>.usersync.support-cors` - flag signals if CORS supported by usersync.
 - `adapters.<BIDDER_NAME>.debug.allow` - enables debug output in the auction response for the given bidder. Default `true`.
+- `adapters.<BIDDER_NAME>.tmax-deduction-ms` - adjusts the tmax sent to the bidder by deducting the provided value (ms). Default `0 ms` - no deduction.
 
 In addition, each bidder could have arbitrary aliases configured that will look and act very much the same as the bidder itself.
 Aliases are configured by adding child configuration object at `adapters.<BIDDER_NAME>.aliases.<BIDDER_ALIAS>.`, aliases 

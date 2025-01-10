@@ -111,8 +111,10 @@ public class SetuidHandlerTest extends VertxTest {
 
     @BeforeEach
     public void setUp() {
-        final Map<Integer, PrivacyEnforcementAction> vendorIdToGdpr = singletonMap(1,
-                PrivacyEnforcementAction.allowAll());
+        final Map<String, PrivacyEnforcementAction> bidderToGdpr = Map.of(
+                RUBICON, PrivacyEnforcementAction.allowAll(),
+                ADNXS, PrivacyEnforcementAction.allowAll(),
+                FACEBOOK, PrivacyEnforcementAction.allowAll());
 
         tcfContext = TcfContext.builder().inGdprScope(false).build();
         given(setuidPrivacyContextFactory.contextFrom(any(), any(), any()))
@@ -122,8 +124,8 @@ public class SetuidHandlerTest extends VertxTest {
                 .willAnswer(invocation -> invocation.getArgument(0));
         given(activityInfrastructureCreator.create(any(), any(), any()))
                 .willReturn(activityInfrastructure);
-        given(tcfDefinerService.resultForVendorIds(anySet(), any()))
-                .willReturn(Future.succeededFuture(TcfResponse.of(true, vendorIdToGdpr, null)));
+        given(tcfDefinerService.resultForBidderNames(anySet(), any(), any()))
+                .willReturn(Future.succeededFuture(TcfResponse.of(true, bidderToGdpr, null)));
         given(tcfDefinerService.isAllowedForHostVendorId(any()))
                 .willReturn(Future.succeededFuture(HostVendorTcfResponse.allowedVendor()));
         given(tcfDefinerService.getGdprHostVendorId()).willReturn(1);
@@ -312,9 +314,9 @@ public class SetuidHandlerTest extends VertxTest {
     public void shouldRespondWithoutCookieIfGdprProcessingPreventsCookieSetting() {
         // given
         final PrivacyEnforcementAction privacyEnforcementAction = PrivacyEnforcementAction.restrictAll();
-        given(tcfDefinerService.resultForVendorIds(anySet(), any()))
+        given(tcfDefinerService.resultForBidderNames(anySet(), any(), any()))
                 .willReturn(Future.succeededFuture(
-                        TcfResponse.of(true, singletonMap(null, privacyEnforcementAction), null)));
+                        TcfResponse.of(true, singletonMap(RUBICON, privacyEnforcementAction), null)));
 
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
@@ -338,7 +340,7 @@ public class SetuidHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithBadRequestStatusIfGdprProcessingFailsWithInvalidRequestException() {
         // given
-        given(tcfDefinerService.resultForVendorIds(anySet(), any()))
+        given(tcfDefinerService.resultForBidderNames(anySet(), any(), any()))
                 .willReturn(Future.failedFuture(new InvalidRequestException("gdpr exception")));
 
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
@@ -361,7 +363,7 @@ public class SetuidHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithInternalServerErrorStatusIfGdprProcessingFailsWithUnexpectedException() {
         // given
-        given(tcfDefinerService.resultForVendorIds(anySet(), any()))
+        given(tcfDefinerService.resultForBidderNames(anySet(), any(), any()))
                 .willReturn(Future.failedFuture("unexpected error TCF"));
 
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))

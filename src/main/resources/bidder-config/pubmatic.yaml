@@ -1,6 +1,7 @@
 adapters:
   pubmatic:
     endpoint: https://hbopenbid.pubmatic.com/translator?source=prebid-server
+    ortb-version: "2.6"
     meta-info:
       maintainer-email: header-bidding@pubmatic.com
       app-media-types:

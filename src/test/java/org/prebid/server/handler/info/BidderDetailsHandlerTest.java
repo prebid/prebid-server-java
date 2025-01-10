@@ -199,7 +199,8 @@ public class BidderDetailsHandlerTest extends VertxTest {
                 true,
                 false,
                 CompressionType.NONE,
-                Ortb.of(false));
+                Ortb.of(false),
+                0L);
     }
 
     private static BidderInfo givenBidderInfo() {

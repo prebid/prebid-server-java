@@ -1217,6 +1217,7 @@ public class ExchangeService {
         final String bidderName = bidderRequest.getBidder();
         final String resolvedBidderName = aliases.resolveBidder(bidderName);
         final Bidder<?> bidder = bidderCatalog.bidderByName(resolvedBidderName);
+        final long bidderTmaxDeductionMs = bidderCatalog.bidderInfoByName(resolvedBidderName).getTmaxDeductionMs();
         final BidRejectionTracker bidRejectionTracker = auctionContext.getBidRejectionTrackers().get(bidderName);
 
         final TimeoutContext timeoutContext = auctionContext.getTimeoutContext();
@@ -1225,7 +1226,8 @@ public class ExchangeService {
         final long bidderRequestStartTime = clock.millis();
 
         return Future.succeededFuture(bidderRequest.getBidRequest())
-                .map(bidRequest -> adjustTmax(bidRequest, auctionStartTime, adjustmentFactor, bidderRequestStartTime))
+                .map(bidRequest -> adjustTmax(
+                        bidRequest, auctionStartTime, adjustmentFactor, bidderRequestStartTime, bidderTmaxDeductionMs))
                 .map(bidRequest -> ortbVersionConversionManager.convertFromAuctionSupportedVersion(
                         bidRequest, bidderRequest.getOrtbVersion()))
                 .map(bidderRequest::with)
@@ -1240,9 +1242,16 @@ public class ExchangeService {
                 .map(seatBid -> BidderResponse.of(bidderName, seatBid, responseTime(bidderRequestStartTime)));
     }
 
-    private BidRequest adjustTmax(BidRequest bidRequest, long startTime, int adjustmentFactor, long currentTime) {
+    private BidRequest adjustTmax(BidRequest bidRequest,
+                                  long startTime,
+                                  int adjustmentFactor,
+                                  long currentTime,
+                                  long bidderTmaxDeductionMs) {
+
         final long tmax = timeoutResolver.limitToMax(bidRequest.getTmax());
-        final long adjustedTmax = timeoutResolver.adjustForBidder(tmax, adjustmentFactor, currentTime - startTime);
+        final long adjustedTmax = timeoutResolver.adjustForBidder(
+                tmax, adjustmentFactor, currentTime - startTime, bidderTmaxDeductionMs);
+
         return tmax != adjustedTmax
                 ? bidRequest.toBuilder().tmax(adjustedTmax).build()
                 : bidRequest;
