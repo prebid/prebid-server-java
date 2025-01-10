@@ -37,6 +37,8 @@ import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
+import org.prebid.server.proto.openrtb.ext.response.ExtIgi;
+import org.prebid.server.proto.openrtb.ext.response.ExtIgiIgs;
 import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.httpclient.HttpClient;
@@ -196,7 +198,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                 emptyList()));
 
         final List<BidderBid> bids = asList(BidderBid.of(null, null, null), BidderBid.of(null, null, null));
-        given(bidder.makeBidderResponse(any(), any())).willReturn(CompositeBidderResponse.withBids(bids, emptyList()));
+        given(bidder.makeBidderResponse(any(), any())).willReturn(CompositeBidderResponse.builder().bids(bids).build());
 
         final BidderRequest bidderRequest = BidderRequest.builder()
                 .bidder("bidder")
@@ -346,7 +348,7 @@ public class HttpBidderRequesterTest extends VertxTest {
         givenSuccessfulBidderMakeHttpRequests();
 
         final List<BidderBid> bids = asList(BidderBid.of(null, null, null), BidderBid.of(null, null, null));
-        given(bidder.makeBidderResponse(any(), any())).willReturn(CompositeBidderResponse.withBids(bids, emptyList()));
+        given(bidder.makeBidderResponse(any(), any())).willReturn(CompositeBidderResponse.builder().bids(bids).build());
 
         final BidderRequest bidderRequest = BidderRequest.builder()
                 .bidder("bidder")
@@ -379,8 +381,7 @@ public class HttpBidderRequesterTest extends VertxTest {
         givenSuccessfulBidderMakeHttpRequests();
 
         final List<BidderBid> bids = emptyList();
-        given(bidder.makeBidderResponse(any(), any()))
-                .willReturn(CompositeBidderResponse.withBids(bids, null));
+        given(bidder.makeBidderResponse(any(), any())).willReturn(CompositeBidderResponse.builder().bids(bids).build());
 
         final BidderRequest bidderRequest = BidderRequest.builder()
                 .bidder("bidder")
@@ -417,8 +418,11 @@ public class HttpBidderRequesterTest extends VertxTest {
                 givenFledgeAuctionConfig("imp-2"));
         final List<BidderBid> bids = emptyList();
 
-        given(bidder.makeBidderResponse(any(), any()))
-                .willReturn(CompositeBidderResponse.withBids(bids, fledgeAuctionConfigs));
+        given(bidder.makeBidderResponse(any(), any())).willReturn(
+                CompositeBidderResponse.builder()
+                        .bids(bids)
+                        .fledgeAuctionConfigs(fledgeAuctionConfigs)
+                        .build());
 
         final BidderRequest bidderRequest = BidderRequest.builder()
                 .bidder("bidder")
@@ -444,6 +448,53 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         verify(bidRejectionTracker, never()).rejectImp(anyString(), any());
         verify(bidRejectionTracker, never()).rejectImps(anyList(), any());
+    }
+
+    @Test
+    public void shouldReturnExtIgiCreatedByBidder() {
+        // given
+        givenSuccessfulBidderMakeHttpRequests();
+
+        final List<ExtIgi> igi = List.of(
+                ExtIgi.builder()
+                        .impid("impId")
+                        .igs(singletonList(ExtIgiIgs.builder()
+                                .config(mapper.createObjectNode())
+                                .build()))
+                        .build());
+
+        final List<BidderBid> bids = emptyList();
+
+        given(bidder.makeBidderResponse(any(), any())).willReturn(
+                CompositeBidderResponse.builder()
+                        .bids(bids)
+                        .igi(igi)
+                        .build());
+
+        final BidderRequest bidderRequest = BidderRequest.builder()
+                .bidder("bidder")
+                .bidRequest(BidRequest.builder().build())
+                .build();
+
+        // when
+        final BidderSeatBid bidderSeatBid =
+                target
+                        .requestBids(
+                                bidder,
+                                bidderRequest,
+                                bidRejectionTracker,
+                                timeout,
+                                CaseInsensitiveMultiMap.empty(),
+                                bidderAliases,
+                                false)
+                        .result();
+
+        // then
+        assertThat(bidderSeatBid.getBids()).hasSameElementsAs(bids);
+        assertThat(bidderSeatBid.getIgi()).containsExactlyElementsOf(igi);
+
+        verify(bidRejectionTracker, never()).reject(anyString(), any());
+        verify(bidRejectionTracker, never()).reject(anyList(), any());
     }
 
     @Test
@@ -555,8 +606,8 @@ public class HttpBidderRequesterTest extends VertxTest {
         final BidderBid bidderBidDeal1 = BidderBid.of(Bid.builder().impid("deal1").dealid("deal1").build(), null, null);
         final BidderBid bidderBidDeal2 = BidderBid.of(Bid.builder().impid("deal2").dealid("deal2").build(), null, null);
         given(bidder.makeBidderResponse(any(), any())).willReturn(
-                CompositeBidderResponse.withBids(singletonList(bidderBidDeal1), emptyList()),
-                CompositeBidderResponse.withBids(singletonList(bidderBidDeal2), emptyList()));
+                CompositeBidderResponse.builder().bids(singletonList(bidderBidDeal1)).build(),
+                CompositeBidderResponse.builder().bids(singletonList(bidderBidDeal2)).build());
 
         // when
         final BidderSeatBid bidderSeatBid = target.requestBids(
@@ -604,7 +655,7 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         final BidderBid bidderBid = BidderBid.of(Bid.builder().dealid("deal2").build(), null, null);
         given(bidder.makeBidderResponse(any(), any())).willReturn(
-                CompositeBidderResponse.withBids(singletonList(bidderBid), emptyList()));
+                CompositeBidderResponse.builder().bids(singletonList(bidderBid)).build());
 
         // when
         final BidderSeatBid bidderSeatBid =
@@ -737,7 +788,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                 .bid(Bid.builder().impid("2").build())
                 .build());
         given(bidder.makeBidderResponse(any(), any()))
-                .willReturn(CompositeBidderResponse.withBids(secondRequestBids, null));
+                .willReturn(CompositeBidderResponse.builder().bids(secondRequestBids).build());
 
         final BidderRequest bidderRequest = BidderRequest.builder()
                 .bidder("bidder")

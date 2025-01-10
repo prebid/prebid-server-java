@@ -39,7 +39,8 @@ import org.prebid.server.proto.openrtb.ext.request.pubmatic.ExtImpPubmaticKeyVal
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
-import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
+import org.prebid.server.proto.openrtb.ext.response.ExtIgi;
+import org.prebid.server.proto.openrtb.ext.response.ExtIgiIgs;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.StreamUtil;
@@ -458,11 +459,14 @@ public class PubmaticBidder implements Bidder<BidRequest> {
     @Override
     public CompositeBidderResponse makeBidderResponse(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            final List<BidderError> bidderErrors = new ArrayList<>();
             final PubmaticBidResponse bidResponse = mapper.decodeValue(
-                    httpCall.getResponse().getBody(),
-                    PubmaticBidResponse.class);
-            return CompositeBidderResponse.withBids(extractBids(bidResponse, bidderErrors), extractFledge(bidResponse));
+                    httpCall.getResponse().getBody(), PubmaticBidResponse.class);
+            final List<BidderError> errors = new ArrayList<>();
+
+            return CompositeBidderResponse.builder()
+                    .bids(extractBids(bidResponse, errors))
+                    .igi(extractIgi(bidResponse))
+                    .build();
         } catch (DecodeException | PreBidException e) {
             return CompositeBidderResponse.withError(BidderError.badServerResponse(e.getMessage()));
         }
@@ -571,14 +575,16 @@ public class PubmaticBidder implements Bidder<BidRequest> {
                 .orElse(null);
     }
 
-    private static List<FledgeAuctionConfig> extractFledge(PubmaticBidResponse bidResponse) {
-        return Optional.ofNullable(bidResponse)
+    private static List<ExtIgi> extractIgi(PubmaticBidResponse bidResponse) {
+        final List<ExtIgiIgs> igs = Optional.ofNullable(bidResponse)
                 .map(PubmaticBidResponse::getExt)
                 .map(PubmaticExtBidResponse::getFledgeAuctionConfigs)
                 .orElse(Collections.emptyMap())
                 .entrySet()
                 .stream()
-                .map(e -> FledgeAuctionConfig.builder().impId(e.getKey()).config(e.getValue()).build())
+                .map(config -> ExtIgiIgs.builder().impId(config.getKey()).config(config.getValue()).build())
                 .toList();
+
+        return igs.isEmpty() ? null : Collections.singletonList(ExtIgi.builder().igs(igs).build());
     }
 }

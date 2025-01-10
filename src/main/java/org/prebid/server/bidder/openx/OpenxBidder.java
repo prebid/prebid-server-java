@@ -30,7 +30,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.openx.ExtImpOpenx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
-import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
+import org.prebid.server.proto.openrtb.ext.response.ExtIgi;
+import org.prebid.server.proto.openrtb.ext.response.ExtIgiIgs;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
@@ -84,9 +85,13 @@ public class OpenxBidder implements Bidder<BidRequest> {
     @Override
     public CompositeBidderResponse makeBidderResponse(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            final OpenxBidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(),
-                    OpenxBidResponse.class);
-            return CompositeBidderResponse.withBids(extractBids(bidRequest, bidResponse), extractFledge(bidResponse));
+            final OpenxBidResponse bidResponse = mapper.decodeValue(
+                    httpCall.getResponse().getBody(), OpenxBidResponse.class);
+
+            return CompositeBidderResponse.builder()
+                    .bids(extractBids(bidRequest, bidResponse))
+                    .igi(extractIgi(bidResponse))
+                    .build();
         } catch (DecodeException e) {
             return CompositeBidderResponse.withError(BidderError.badServerResponse(e.getMessage()));
         }
@@ -283,14 +288,16 @@ public class OpenxBidder implements Bidder<BidRequest> {
         return impIdToBidType.getOrDefault(bid.getImpid(), BidType.banner);
     }
 
-    private static List<FledgeAuctionConfig> extractFledge(OpenxBidResponse bidResponse) {
-        return Optional.ofNullable(bidResponse)
+    private static List<ExtIgi> extractIgi(OpenxBidResponse bidResponse) {
+        final List<ExtIgiIgs> igs = Optional.ofNullable(bidResponse)
                 .map(OpenxBidResponse::getExt)
                 .map(OpenxBidResponseExt::getFledgeAuctionConfigs)
                 .orElse(Collections.emptyMap())
                 .entrySet()
                 .stream()
-                .map(e -> FledgeAuctionConfig.builder().impId(e.getKey()).config(e.getValue()).build())
+                .map(ext -> ExtIgiIgs.builder().impId(ext.getKey()).config(ext.getValue()).build())
                 .toList();
+
+        return igs.isEmpty() ? null : Collections.singletonList(ExtIgi.builder().igs(igs).build());
     }
 }

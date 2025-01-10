@@ -95,6 +95,9 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidResponsePrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
 import org.prebid.server.proto.openrtb.ext.response.ExtDebugTrace;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
+import org.prebid.server.proto.openrtb.ext.response.ExtIgi;
+import org.prebid.server.proto.openrtb.ext.response.ExtIgiIgs;
+import org.prebid.server.proto.openrtb.ext.response.ExtIgiIgsExt;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseCache;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 import org.prebid.server.proto.openrtb.ext.response.ExtTraceActivityInfrastructure;
@@ -3476,6 +3479,7 @@ public class BidResponseCreatorTest extends VertxTest {
     @Test
     public void shouldAddExtPrebidFledgeIfAvailable() {
         // given
+        given(bidderCatalog.resolveBaseBidder("bidder1")).willReturn("adapter1");
         final Imp imp = givenImp("i1").toBuilder()
                 .ext(mapper.createObjectNode().put("ae", 1))
                 .build();
@@ -3505,13 +3509,55 @@ public class BidResponseCreatorTest extends VertxTest {
                 .usingRecursiveComparison()
                 .isEqualTo(fledgeAuctionConfig.toBuilder()
                         .bidder("bidder1")
-                        .adapter("bidder1")
+                        .adapter("adapter1")
+                        .build());
+    }
+
+    @Test
+    public void shouldAddExtIgiIfAvailable() {
+        // given
+        given(bidderCatalog.resolveBaseBidder("bidder1")).willReturn("adapter1");
+        final Imp imp = givenImp("i1").toBuilder()
+                .ext(mapper.createObjectNode().put("ae", 1))
+                .build();
+        final BidRequest bidRequest = givenBidRequest(identity(), identity(), imp);
+        final ExtIgi igi = ExtIgi.builder()
+                .impid("impId")
+                .igs(singletonList(ExtIgiIgs.builder().config(mapper.createObjectNode()).build()))
+                .build();
+
+        final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(2.37)).impid("i1").build();
+        final List<BidderResponse> bidderResponses = singletonList(
+                BidderResponse.of("bidder1",
+                        BidderSeatBid.builder()
+                                .bids(List.of(BidderBid.of(bid, banner, "USD")))
+                                .igi(singletonList(igi))
+                                .build(), 100));
+
+        final AuctionContext auctionContext = givenAuctionContext(
+                bidRequest,
+                contextBuilder -> contextBuilder.auctionParticipations(toAuctionParticipant(bidderResponses)));
+
+        // when
+        final BidResponse bidResponse = target
+                .create(auctionContext, CACHE_INFO, MULTI_BIDS)
+                .result();
+
+        // then
+        assertThat(bidResponse.getExt().getIgi()).containsExactly(
+                ExtIgi.builder()
+                        .impid("impId")
+                        .igs(singletonList(ExtIgiIgs.builder()
+                                .config(mapper.createObjectNode())
+                                .ext(ExtIgiIgsExt.of("bidder1", "adapter1"))
+                                .build()))
                         .build());
     }
 
     @Test
     public void shouldAddExtPrebidFledgeIfAvailableEvenIfBidsEmpty() {
         // given
+        given(bidderCatalog.resolveBaseBidder("bidder1")).willReturn("adapter1");
         final Imp imp = givenImp("i1").toBuilder()
                 .ext(mapper.createObjectNode().put("ae", 1))
                 .build();
@@ -3540,7 +3586,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .usingRecursiveComparison()
                 .isEqualTo(fledgeAuctionConfig.toBuilder()
                         .bidder("bidder1")
-                        .adapter("bidder1")
+                        .adapter("adapter1")
                         .build());
     }
 
