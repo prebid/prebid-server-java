@@ -77,6 +77,7 @@ public class SetuidHandlerTest extends VertxTest {
     private static final String RUBICON = "rubicon";
     private static final String FACEBOOK = "audienceNetwork";
     private static final String ADNXS = "adnxs";
+    private static final String APPNEXUS = "appnexus";
 
     @Mock(strictness = LENIENT)
     private UidsCookieService uidsCookieService;
@@ -98,6 +99,7 @@ public class SetuidHandlerTest extends VertxTest {
     private Metrics metrics;
 
     private SetuidHandler setuidHandler;
+
     @Mock(strictness = LENIENT)
     private RoutingContext routingContext;
     @Mock(strictness = LENIENT)
@@ -113,7 +115,7 @@ public class SetuidHandlerTest extends VertxTest {
     public void setUp() {
         final Map<String, PrivacyEnforcementAction> bidderToGdpr = Map.of(
                 RUBICON, PrivacyEnforcementAction.allowAll(),
-                ADNXS, PrivacyEnforcementAction.allowAll(),
+                APPNEXUS, PrivacyEnforcementAction.allowAll(),
                 FACEBOOK, PrivacyEnforcementAction.allowAll());
 
         tcfContext = TcfContext.builder().inGdprScope(false).build();
@@ -140,13 +142,16 @@ public class SetuidHandlerTest extends VertxTest {
 
         given(uidsCookieService.toCookie(any())).willReturn(Cookie.cookie("test", "test"));
 
-        given(bidderCatalog.names()).willReturn(new HashSet<>(asList("rubicon", "audienceNetwork")));
+        given(bidderCatalog.names()).willReturn(new HashSet<>(asList(RUBICON, FACEBOOK, APPNEXUS)));
         given(bidderCatalog.isActive(any())).willReturn(true);
+        given(bidderCatalog.resolveBaseBidder(any())).willAnswer(invocation -> invocation.getArgument(0));
 
         given(bidderCatalog.usersyncerByName(eq(RUBICON))).willReturn(
                 Optional.of(Usersyncer.of(RUBICON, null, redirectMethod())));
         given(bidderCatalog.usersyncerByName(eq(FACEBOOK))).willReturn(
                 Optional.of(Usersyncer.of(FACEBOOK, null, redirectMethod())));
+        given(bidderCatalog.usersyncerByName(eq(APPNEXUS))).willReturn(
+                Optional.of(Usersyncer.of(ADNXS, null, redirectMethod())));
 
         given(activityInfrastructure.isAllowed(any(), any()))
                 .willReturn(true);
@@ -457,6 +462,33 @@ public class SetuidHandlerTest extends VertxTest {
         final Uids decodedUids = decodeUids(encodedUidsCookie);
         assertThat(decodedUids.getUids()).hasSize(1);
         assertThat(decodedUids.getUids().get(RUBICON).getUid()).isEqualTo("J5VLCWQP-26-CWFT");
+    }
+
+    @Test
+    public void shouldRespondWithCookieFromRequestParamWhenBidderAndCookieFamilyAreDifferent() throws IOException {
+        // given
+        final UidsCookie uidsCookie = emptyUidsCookie();
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
+                .willReturn(uidsCookie);
+        given(uidsCookieService.updateUidsCookie(uidsCookie, ADNXS, "J5VLCWQP-26-CWFT"))
+                .willReturn(UidsCookieUpdateResult.updated(uidsCookie));
+
+        // {"tempUIDs":{"adnxs":{"uid":"J5VLCWQP-26-CWFT"}}}
+        given(uidsCookieService.toCookie(any())).willReturn(Cookie
+                .cookie("uids", "eyJ0ZW1wVUlEcyI6eyJhZG54cyI6eyJ1aWQiOiJKNVZMQ1dRUC0yNi1DV0ZUIn19fQ=="));
+
+        given(httpRequest.getParam("bidder")).willReturn(ADNXS);
+        given(httpRequest.getParam("uid")).willReturn("J5VLCWQP-26-CWFT");
+
+        // when
+        setuidHandler.handle(routingContext);
+
+        // then
+        verify(routingContext, never()).addCookie(any(Cookie.class));
+        final String encodedUidsCookie = getUidsCookie();
+        final Uids decodedUids = decodeUids(encodedUidsCookie);
+        assertThat(decodedUids.getUids()).hasSize(1);
+        assertThat(decodedUids.getUids().get(ADNXS).getUid()).isEqualTo("J5VLCWQP-26-CWFT");
     }
 
     @Test
