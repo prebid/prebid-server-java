@@ -10,7 +10,6 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -55,6 +54,7 @@ import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.StreamUtil;
 import org.prebid.server.vertx.verticles.server.HttpEndpoint;
 import org.prebid.server.vertx.verticles.server.application.ApplicationResource;
 
@@ -65,9 +65,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class SetuidHandler implements ApplicationResource {
 
@@ -113,46 +112,52 @@ public class SetuidHandler implements ApplicationResource {
         this.analyticsDelegator = Objects.requireNonNull(analyticsDelegator);
         this.metrics = Objects.requireNonNull(metrics);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
-        this.cookieNameToBidderAndSyncType = collectMap(bidderCatalog);
+        this.cookieNameToBidderAndSyncType = collectUsersyncers(bidderCatalog);
     }
 
-    private static Map<String, Pair<String, UsersyncMethodType>> collectMap(BidderCatalog bidderCatalog) {
+    private static Map<String, Pair<String, UsersyncMethodType>> collectUsersyncers(BidderCatalog bidderCatalog) {
+        validateUsersyncersDuplicates(bidderCatalog);
 
-        final Supplier<Stream<Pair<String, Usersyncer>>> usersyncers = () -> bidderCatalog.names()
-                .stream()
-                .filter(bidderCatalog::isActive)
-                .filter(bidderName -> bidderCatalog.resolveBaseBidder(bidderName).equals(bidderName))
+        return bidderCatalog.usersyncReadyBidders().stream()
+                .filter(bidderName -> !isAliasWithRootCookieFamilyName(bidderCatalog, bidderName))
+                .filter(StreamUtil.distinctBy(bidderCatalog::cookieFamilyName))
                 .map(bidderName -> bidderCatalog.usersyncerByName(bidderName)
                         .map(usersyncer -> Pair.of(bidderName, usersyncer)))
-                .flatMap(Optional::stream);
-
-        validateUsersyncers(usersyncers.get().map(Pair::getRight));
-
-        return usersyncers.get()
+                .flatMap(Optional::stream)
                 .collect(Collectors.toMap(
                         pair -> pair.getRight().getCookieFamilyName(),
                         pair -> Pair.of(pair.getLeft(), preferredUserSyncType(pair.getRight()))));
     }
 
-    private static UsersyncMethodType preferredUserSyncType(Usersyncer usersyncer) {
-        // when usersyncer is present, it will contain at least one method
-        return ObjectUtils.firstNonNull(usersyncer.getIframe(), usersyncer.getRedirect()).getType();
-    }
-
-    private static void validateUsersyncers(Stream<Usersyncer> usersyncers) {
-        final List<String> cookieFamilyNameDuplicates = usersyncers.map(Usersyncer::getCookieFamilyName)
-                .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()))
-                .entrySet()
-                .stream()
-                .filter(name -> name.getValue() > 1)
-                .map(Map.Entry::getKey)
+    private static void validateUsersyncersDuplicates(BidderCatalog bidderCatalog) {
+        final List<String> duplicatedCookieFamilyNames = bidderCatalog.usersyncReadyBidders().stream()
+                .filter(bidderName -> !isAliasWithRootCookieFamilyName(bidderCatalog, bidderName))
+                .map(bidderCatalog::usersyncerByName)
+                .flatMap(Optional::stream)
+                .map(Usersyncer::getCookieFamilyName)
+                .filter(Predicate.not(StreamUtil.distinctBy(Function.identity())))
                 .distinct()
                 .toList();
-        if (CollectionUtils.isNotEmpty(cookieFamilyNameDuplicates)) {
+
+        if (!duplicatedCookieFamilyNames.isEmpty()) {
             throw new IllegalArgumentException(
                     "Duplicated \"cookie-family-name\" found, values: "
-                            + String.join(", ", cookieFamilyNameDuplicates));
+                            + String.join(", ", duplicatedCookieFamilyNames));
         }
+    }
+
+    private static boolean isAliasWithRootCookieFamilyName(BidderCatalog bidderCatalog, String bidder) {
+        final String bidderCookieFamilyName = bidderCatalog.cookieFamilyName(bidder).orElse(StringUtils.EMPTY);
+        final String parentCookieFamilyName =
+                bidderCatalog.cookieFamilyName(bidderCatalog.resolveBaseBidder(bidder)).orElse(null);
+
+        return bidderCatalog.isAlias(bidder)
+                && parentCookieFamilyName != null
+                && parentCookieFamilyName.equals(bidderCookieFamilyName);
+    }
+
+    private static UsersyncMethodType preferredUserSyncType(Usersyncer usersyncer) {
+        return ObjectUtils.firstNonNull(usersyncer.getIframe(), usersyncer.getRedirect()).getType();
     }
 
     @Override
@@ -232,9 +237,9 @@ public class SetuidHandler implements ApplicationResource {
             final String bidderName = cookieNameToBidderAndSyncType.get(bidderCookieFamily).getLeft();
 
             Future.all(
-                    tcfDefinerService.isAllowedForHostVendorId(tcfContext),
-                    tcfDefinerService.resultForBidderNames(
-                            Collections.singleton(bidderName), tcfContext, accountGdprConfig))
+                            tcfDefinerService.isAllowedForHostVendorId(tcfContext),
+                            tcfDefinerService.resultForBidderNames(
+                                    Collections.singleton(bidderName), tcfContext, accountGdprConfig))
                     .onComplete(hostTcfResponseResult -> respondByTcfResponse(
                             hostTcfResponseResult,
                             bidderName,
