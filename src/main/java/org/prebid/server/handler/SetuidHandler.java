@@ -59,6 +59,7 @@ import org.prebid.server.vertx.verticles.server.HttpEndpoint;
 import org.prebid.server.vertx.verticles.server.application.ApplicationResource;
 
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -119,7 +120,7 @@ public class SetuidHandler implements ApplicationResource {
         validateUsersyncersDuplicates(bidderCatalog);
 
         return bidderCatalog.usersyncReadyBidders().stream()
-                .filter(bidderName -> !isAliasWithRootCookieFamilyName(bidderCatalog, bidderName))
+                .sorted(Comparator.comparing(bidderName -> BooleanUtils.toInteger(bidderCatalog.isAlias(bidderName))))
                 .filter(StreamUtil.distinctBy(bidderCatalog::cookieFamilyName))
                 .map(bidderName -> bidderCatalog.usersyncerByName(bidderName)
                         .map(usersyncer -> Pair.of(bidderName, usersyncer)))
