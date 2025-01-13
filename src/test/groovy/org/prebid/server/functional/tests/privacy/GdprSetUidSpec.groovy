@@ -54,7 +54,7 @@ class GdprSetUidSpec extends PrivacyBaseSpec {
                     .build()
         }
 
-        and: "Default uids cookie with rubicon bidder"
+        and: "Default uids cookie with gener_x bidder"
         def uidsCookie = UidsCookie.defaultUidsCookie.tap {
             it.tempUIDs = [(GENERIC): defaultUidWithExpiry]
         }
@@ -94,7 +94,7 @@ class GdprSetUidSpec extends PrivacyBaseSpec {
                     .build()
         }
 
-        and: "Default uids cookie with rubicon bidder"
+        and: "Default uids cookie with gener_x bidder"
         def uidsCookie = UidsCookie.defaultUidsCookie.tap {
             it.tempUIDs = [(GENER_X): defaultUidWithExpiry]
         }
@@ -135,7 +135,7 @@ class GdprSetUidSpec extends PrivacyBaseSpec {
         and: "Flush metrics"
         flushMetrics(prebidServerService)
 
-        and: "Default uids cookie with rubicon bidder"
+        and: "Default uids cookie with generic bidder"
         def uidsCookie = UidsCookie.defaultUidsCookie.tap {
             it.tempUIDs = [(GENERIC): defaultUidWithExpiry]
         }
@@ -149,7 +149,6 @@ class GdprSetUidSpec extends PrivacyBaseSpec {
 
         when: "PBS processes setuid request"
         prebidServerService.sendSetUidRequest(setuidRequest, uidsCookie)
-
 
         then: "Request should fail with error"
         def exception = thrown(PrebidServerException)
@@ -174,7 +173,7 @@ class GdprSetUidSpec extends PrivacyBaseSpec {
                     .build()
         }
 
-        and: "Default uids cookie with rubicon bidder"
+        and: "Default uids cookie with generic bidder"
         def uidsCookie = UidsCookie.defaultUidsCookie.tap {
             it.tempUIDs = [(GENERIC): defaultUidWithExpiry]
         }
@@ -219,7 +218,7 @@ class GdprSetUidSpec extends PrivacyBaseSpec {
                     .build()
         }
 
-        and: "Default uids cookie with rubicon bidder"
+        and: "Default uids cookie with generic bidder"
         def uidsCookie = UidsCookie.defaultUidsCookie.tap {
             it.tempUIDs = [(GENERIC): defaultUidWithExpiry]
         }
@@ -268,7 +267,7 @@ class GdprSetUidSpec extends PrivacyBaseSpec {
                     .build()
         }
 
-        and: "Default uids cookie with rubicon bidder"
+        and: "Default uids cookie with generic bidder"
         def uidsCookie = UidsCookie.defaultUidsCookie.tap {
             it.tempUIDs = [(GENERIC): defaultUidWithExpiry]
         }
@@ -309,7 +308,7 @@ class GdprSetUidSpec extends PrivacyBaseSpec {
                     .build()
         }
 
-        and: "Default uids cookie with rubicon bidder"
+        and: "Default uids cookie with generic bidder"
         def uidsCookie = UidsCookie.defaultUidsCookie.tap {
             it.tempUIDs = [(GENERIC): defaultUidWithExpiry]
         }
