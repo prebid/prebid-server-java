@@ -105,7 +105,8 @@ public class BidsBlocker {
             final List<String> warnings = MergeUtils.mergeMessages(blockedBidResults);
 
             if (blockedBids != null) {
-                rejectBlockedBids(blockedBidResults);
+                blockedBidIndexes.forEach(index ->
+                        rejectBlockedBid(blockedBidResults.get(index).getValue(), bids.get(index)));
             }
 
             return ExecutionResult.<BlockedBids>builder()
@@ -287,26 +288,19 @@ public class BidsBlocker {
                 blockingResult.getFailedChecks());
     }
 
-    private void rejectBlockedBids(List<Result<BlockingResult>> blockedBidResults) {
-        blockedBidResults.stream()
-                .map(Result::getValue)
-                .filter(BlockingResult::isBlocked)
-                .forEach(this::rejectBlockedBid);
-    }
-
-    private void rejectBlockedBid(BlockingResult blockingResult) {
+    private void rejectBlockedBid(BlockingResult blockingResult, BidderBid blockedBid) {
         if (blockingResult.getBattrCheckResult().isFailed()
                 || blockingResult.getBappCheckResult().isFailed()
                 || blockingResult.getBcatCheckResult().isFailed()) {
 
-            bidRejectionTracker.reject(
-                    blockingResult.getImpId(),
+            bidRejectionTracker.rejectBid(
+                    blockedBid,
                     BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE);
         }
 
         if (blockingResult.getBadvCheckResult().isFailed()) {
-            bidRejectionTracker.reject(
-                    blockingResult.getImpId(),
+            bidRejectionTracker.rejectBid(
+                    blockedBid,
                     BidRejectionReason.RESPONSE_REJECTED_ADVERTISER_BLOCKED);
         }
     }

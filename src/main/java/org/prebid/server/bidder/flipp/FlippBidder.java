@@ -70,6 +70,8 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
     private static final Set<Integer> AD_TYPES = Set.of(4309, 641);
     private static final Set<Integer> DTX_TYPES = Set.of(5061);
     private static final String EXT_REQUEST_TRANSMIT_EIDS = "transmitEids";
+    private static final int DEFAULT_STANDARD_HEIGHT = 2400;
+    private static final int DEFAULT_COMPACT_HEIGHT = 600;
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -144,7 +146,7 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
         final Format format = Optional.ofNullable(imp.getBanner())
                 .map(Banner::getFormat)
                 .filter(CollectionUtils::isNotEmpty)
-                .map(formats -> formats.getFirst())
+                .map(List::getFirst)
                 .orElse(null);
 
         return PrebidRequest.builder()
@@ -272,32 +274,38 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
         }
     }
 
-    private static List<BidderBid> extractBids(CampaignResponseBody campaignResponseBody, BidRequest bidRequest) {
+    private List<BidderBid> extractBids(CampaignResponseBody campaignResponseBody, BidRequest bidRequest) {
         return Optional.ofNullable(campaignResponseBody)
                 .map(CampaignResponseBody::getDecisions)
                 .map(Decisions::getInline)
                 .stream()
                 .flatMap(Collection::stream)
-                .filter(inline -> isInlineValid(bidRequest, inline))
-                .map(inline -> BidderBid.of(constructBid(inline), BidType.banner, "USD"))
+                .map(inline -> makeBid(inline, getCorrespondingImp(bidRequest, inline)))
+                .filter(Objects::nonNull)
                 .toList();
     }
 
-    private static boolean isInlineValid(BidRequest bidRequest, Inline inline) {
+    private static Imp getCorrespondingImp(BidRequest bidRequest, Inline inline) {
         final String requestId = Optional.ofNullable(inline)
                 .map(Inline::getPrebid)
                 .map(Prebid::getRequestId)
                 .orElse(null);
 
-        return requestId != null && bidRequest.getImp().stream()
-                .map(Imp::getId)
-                .anyMatch(impId -> impId.equals(requestId));
+        return requestId != null
+                ? bidRequest.getImp().stream().filter(imp -> imp.getId().equals(requestId)).findFirst().orElse(null)
+                : null;
     }
 
-    private static Bid constructBid(Inline inline) {
+    private BidderBid makeBid(Inline inline, Imp imp) {
+        return imp == null
+                ? null
+                : BidderBid.of(constructBid(inline, parseImpExt(imp)), BidType.banner, "USD");
+    }
+
+    private static Bid constructBid(Inline inline, ExtImpFlipp extImp) {
         final Prebid prebid = inline.getPrebid();
         final Data data = Optional.ofNullable(inline.getContents())
-                .map(content -> content.getFirst())
+                .map(List::getFirst)
                 .map(Content::getData)
                 .orElse(null);
 
@@ -308,7 +316,21 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
                 .id(Integer.toString(inline.getAdId()))
                 .impid(prebid.getRequestId())
                 .w(data != null ? data.getWidth() : null)
-                .h(data != null ? 0 : null)
+                .h(resolveHeight(data, extImp))
                 .build();
+    }
+
+    private static Integer resolveHeight(Data data, ExtImpFlipp extImp) {
+        final boolean startCompact = Optional.ofNullable(extImp)
+                .map(ExtImpFlipp::getOptions)
+                .map(ExtImpFlippOptions::getStartCompact)
+                .orElse(false);
+
+        return Optional.ofNullable(data)
+                .map(Data::getCustomData)
+                .map(customData -> customData.get(startCompact ? "compactHeight" : "standardHeight"))
+                .filter(JsonNode::isNumber)
+                .map(JsonNode::asInt)
+                .orElse(startCompact ? DEFAULT_COMPACT_HEIGHT : DEFAULT_STANDARD_HEIGHT);
     }
 }

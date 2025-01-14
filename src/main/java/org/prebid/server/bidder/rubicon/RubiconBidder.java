@@ -154,6 +154,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final String FPD_KEYWORDS_FIELD = "keywords";
     private static final String DFP_ADUNIT_CODE_FIELD = "dfp_ad_unit_code";
     private static final String STYPE_FIELD = "stype";
+    private static final String TID_FIELD = "tid";
     private static final String PREBID_EXT = "prebid";
     private static final String PBS_LOGIN = "pbs_login";
     private static final String PBS_VERSION = "pbs_version";
@@ -700,6 +701,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .maxbids(getMaxBids(extRequest))
                 .gpid(getGpid(imp.getExt()))
                 .skadn(getSkadn(imp.getExt()))
+                .tid(getTid(imp.getExt()))
                 .prebid(rubiconImpExtPrebid)
                 .build();
     }
@@ -945,6 +947,11 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private ObjectNode getSkadn(ObjectNode impExt) {
         final JsonNode skadnNode = impExt.get(FPD_SKADN_FIELD);
         return skadnNode != null && skadnNode.isObject() ? (ObjectNode) skadnNode : null;
+    }
+
+    private String getTid(ObjectNode impExt) {
+        final JsonNode tidNode = impExt.get(TID_FIELD);
+        return tidNode != null && tidNode.isTextual() ? tidNode.asText() : null;
     }
 
     private String getAdSlot(Imp imp) {
@@ -1617,19 +1624,27 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private RubiconSeatBid updateSeatBids(RubiconSeatBid seatBid, List<BidderError> errors) {
-        final String buyer = seatBid.getBuyer();
-        final int networkId = NumberUtils.toInt(buyer, 0);
-        if (networkId <= 0) {
+        final Integer networkId = resolveNetworkId(seatBid);
+        final String seat = seatBid.getSeat();
+
+        if (networkId == null && seat == null) {
             return seatBid;
         }
+
         final List<RubiconBid> updatedBids = seatBid.getBid().stream()
-                .map(bid -> insertNetworkIdToMeta(bid, networkId, errors))
+                .map(bid -> prepareBidMeta(bid, seat, networkId, errors))
                 .filter(Objects::nonNull)
                 .toList();
         return seatBid.toBuilder().bid(updatedBids).build();
     }
 
-    private RubiconBid insertNetworkIdToMeta(RubiconBid bid, int networkId, List<BidderError> errors) {
+    private static Integer resolveNetworkId(RubiconSeatBid seatBid) {
+        final String buyer = seatBid.getBuyer();
+        final int networkId = NumberUtils.toInt(buyer, 0);
+        return networkId <= 0 ? null : networkId;
+    }
+
+    private RubiconBid prepareBidMeta(RubiconBid bid, String seat, Integer networkId, List<BidderError> errors) {
         final ObjectNode bidExt = bid.getExt();
         final ExtPrebid<ExtBidPrebid, ObjectNode> extPrebid;
         try {
@@ -1640,9 +1655,13 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
         final ExtBidPrebid extBidPrebid = extPrebid != null ? extPrebid.getPrebid() : null;
         final ExtBidPrebidMeta meta = extBidPrebid != null ? extBidPrebid.getMeta() : null;
-        final ExtBidPrebidMeta updatedMeta = meta != null
-                ? meta.toBuilder().networkId(networkId).build()
-                : ExtBidPrebidMeta.builder().networkId(networkId).build();
+
+        final ExtBidPrebidMeta updatedMeta = Optional.ofNullable(meta)
+                .map(ExtBidPrebidMeta::toBuilder)
+                .orElseGet(ExtBidPrebidMeta::builder)
+                .networkId(networkId)
+                .seat(seat)
+                .build();
 
         final ExtBidPrebid modifiedExtBidPrebid = extBidPrebid != null
                 ? extBidPrebid.toBuilder().meta(updatedMeta).build()

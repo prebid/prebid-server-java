@@ -73,7 +73,7 @@ public class TcfEnforcement implements PrivacyEnforcement {
 
         return tcfDefinerService.resultForBidderNames(
                         bidders,
-                        VendorIdResolver.of(aliases, bidderCatalog),
+                        VendorIdResolver.of(aliases),
                         auctionContext.getPrivacyContext().getTcfContext(),
                         accountGdprConfig(auctionContext.getAccount()))
                 .map(TcfResponse::getActions)

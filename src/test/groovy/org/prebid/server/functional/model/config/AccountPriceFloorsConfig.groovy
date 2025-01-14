@@ -15,6 +15,8 @@ class AccountPriceFloorsConfig {
     Boolean adjustForBidAdjustment
     Boolean enforceDealFloors
     Boolean useDynamicData
+    Long maxRules
+    Long maxSchemaDims
 
     @JsonProperty("enforce_floors_rate")
     Integer enforceFloorsRateSnakeCase
@@ -24,4 +26,8 @@ class AccountPriceFloorsConfig {
     Boolean enforceDealFloorsSnakeCase
     @JsonProperty("use_dynamic_data")
     Boolean useDynamicDataSnakeCase
+    @JsonProperty("max_rules")
+    Long maxRulesSnakeCase
+    @JsonProperty("max_schema_dims")
+    Long maxSchemaDimsSnakeCase
 }

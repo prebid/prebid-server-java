@@ -15,6 +15,7 @@ import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -32,6 +33,9 @@ import org.prebid.server.bidder.pubmatic.model.response.VideoCreativeInfo;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
+import org.prebid.server.proto.openrtb.ext.request.ExtApp;
+import org.prebid.server.proto.openrtb.ext.request.ExtAppPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.pubmatic.ExtImpPubmatic;
@@ -90,9 +94,12 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         String publisherId = null;
         PubmaticWrapper wrapper;
         final List<String> acat;
+        final Pair<String, String> displayManagerFields;
+
         try {
             acat = extractAcat(request);
             wrapper = extractWrapper(request);
+            displayManagerFields = extractDisplayManagerFields(request.getApp());
         } catch (IllegalArgumentException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
@@ -110,7 +117,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
 
                 wrapper = merge(wrapper, extImpPubmatic.getWrapper());
 
-                validImps.add(modifyImp(imp, impExt));
+                validImps.add(modifyImp(imp, impExt, displayManagerFields.getLeft(), displayManagerFields.getRight()));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -149,6 +156,34 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         final ExtRequestPrebid extRequestPrebid = extRequest != null ? extRequest.getPrebid() : null;
         final ObjectNode bidderParams = extRequestPrebid != null ? extRequestPrebid.getBidderparams() : null;
         return bidderParams != null ? bidderParams.get(BIDDER_NAME) : null;
+    }
+
+    private Pair<String, String> extractDisplayManagerFields(App app) {
+        String source;
+        String version;
+
+        final ExtApp extApp = app != null ? app.getExt() : null;
+        final ExtAppPrebid extAppPrebid = extApp != null ? extApp.getPrebid() : null;
+
+        source = extAppPrebid != null ? extAppPrebid.getSource() : null;
+        version = extAppPrebid != null ? extAppPrebid.getVersion() : null;
+        if (StringUtils.isNoneBlank(source, version)) {
+            return Pair.of(source, version);
+        }
+
+        source = getPropertyValue(extApp, "source");
+        version = getPropertyValue(extApp, "version");
+        return StringUtils.isNoneBlank(source, version)
+                ? Pair.of(source, version)
+                : Pair.of(null, null);
+    }
+
+    private static String getPropertyValue(FlexibleExtension flexibleExtension, String propertyName) {
+        return Optional.ofNullable(flexibleExtension)
+                .map(ext -> ext.getProperty(propertyName))
+                .filter(JsonNode::isValueNode)
+                .map(JsonNode::asText)
+                .orElse(null);
     }
 
     private static void validateMediaType(Imp imp) {
@@ -191,7 +226,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         return value == null || value == 0 ? null : value;
     }
 
-    private Imp modifyImp(Imp imp, PubmaticBidderImpExt impExt) {
+    private Imp modifyImp(Imp imp, PubmaticBidderImpExt impExt, String displayManager, String displayManagerVersion) {
         final Banner banner = imp.getBanner();
         final ExtImpPubmatic impExtBidder = impExt.getBidder();
 
@@ -201,6 +236,8 @@ public class PubmaticBidder implements Bidder<BidRequest> {
                 .banner(banner != null ? assignSizesIfMissing(banner) : null)
                 .audio(null)
                 .bidfloor(resolveBidFloor(impExtBidder.getKadfloor(), imp.getBidfloor()))
+                .displaymanager(StringUtils.firstNonBlank(imp.getDisplaymanager(), displayManager))
+                .displaymanagerver(StringUtils.firstNonBlank(imp.getDisplaymanagerver(), displayManagerVersion))
                 .ext(!newExt.isEmpty() ? newExt : null);
 
         enrichWithAdSlotParameters(impBuilder, impExtBidder.getAdSlot(), banner);
@@ -400,7 +437,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
                 .imp(imps)
                 .site(modifySite(request.getSite(), publisherId))
                 .app(modifyApp(request.getApp(), publisherId))
-                .ext(modifyExtRequest(request.getExt(), wrapper, acat))
+                .ext(modifyExtRequest(wrapper, acat))
                 .build();
     }
 
@@ -426,7 +463,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
                 : Publisher.builder().id(publisherId).build();
     }
 
-    private ExtRequest modifyExtRequest(ExtRequest extRequest, PubmaticWrapper wrapper, List<String> acat) {
+    private ExtRequest modifyExtRequest(PubmaticWrapper wrapper, List<String> acat) {
         final ObjectNode extNode = mapper.mapper().createObjectNode();
 
         if (wrapper != null) {
@@ -437,9 +474,10 @@ public class PubmaticBidder implements Bidder<BidRequest> {
             extNode.putPOJO(ACAT_EXT_REQUEST, acat);
         }
 
+        final ExtRequest newExtRequest = ExtRequest.empty();
         return extNode.isEmpty()
-                ? extRequest
-                : mapper.fillExtension(extRequest == null ? ExtRequest.empty() : extRequest, extNode);
+                ? newExtRequest
+                : mapper.fillExtension(newExtRequest, extNode);
     }
 
     private HttpRequest<BidRequest> makeHttpRequest(BidRequest request) {

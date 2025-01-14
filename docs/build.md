@@ -1,8 +1,14 @@
 # Build project
 
 To build the project, you will need at least
-[Java 11](https://download.java.net/java/GA/jdk11/9/GPL/openjdk-11.0.2_linux-x64_bin.tar.gz)
+[Java 21](https://whichjdk.com/)
 and [Maven](https://maven.apache.org/) installed.
+
+If for whatever reason this Java reference will be stale, 
+you can always get the current project Java version from `pom.xml` property
+```xml
+<java.version>...</java.version>
+```
 
 To verify the installed Java run in console:
 
@@ -13,9 +19,9 @@ java -version
 which should show something like (yours may be different):
 
 ```
-openjdk version "11.0.2" 2019-01-15
-OpenJDK Runtime Environment 18.9 (build 11.0.2+9)
-OpenJDK 64-Bit Server VM 18.9 (build 11.0.2+9, mixed mode)
+openjdk version "21.0.5" 2024-10-15 LTS
+OpenJDK Runtime Environment Corretto-21.0.5.11.1 (build 21.0.5+11-LTS)
+OpenJDK 64-Bit Server VM Corretto-21.0.5.11.1 (build 21.0.5+11-LTS, mixed mode, sharing)
 ```
 
 Follow next steps to create JAR which can be deployed locally.

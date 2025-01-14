@@ -18,7 +18,7 @@ adapters:
     usersync:
       cookie-family-name: medianet
       iframe:
-        url: https://hbx.media.net/checksync.php?cid=8CUEHS6F9&cs=87&type=mpbc&cv=37&vsSync=1&uspstring={{us_privacy}}&gdpr={{gdpr}}&gdprsting={{gdpr_consent}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redirect={{redirect_url}}
+        url: https://hbx.media.net/checksync.php?cid=8CUEHS6F9&cs=87&type=mpbc&cv=37&vsSync=1&uspstring={{us_privacy}}&gdpr={{gdpr}}&gdprstring={{gdpr_consent}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redirect={{redirect_url}}
         support-cors: false
         uid-macro: '<vsid>'
       redirect:

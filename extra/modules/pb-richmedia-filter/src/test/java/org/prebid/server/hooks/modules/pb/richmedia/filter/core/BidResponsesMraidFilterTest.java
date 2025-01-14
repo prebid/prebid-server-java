@@ -50,15 +50,14 @@ public class BidResponsesMraidFilterTest {
     @Test
     public void filterShouldReturnFilteredBidsWhenBidsWithMraidScriptIsFilteredOut() {
         // given
-        final BidderResponse responseA = givenBidderResponse("bidderA", List.of(
-                givenBid("imp_id1", "adm1"),
-                givenBid("imp_id2", "adm2")));
-        final BidderResponse responseB = givenBidderResponse("bidderB", List.of(
-                givenBid("imp_id1", "adm1"),
-                givenBid("imp_id2", "adm2_mraid.js")));
-        final BidderResponse responseC = givenBidderResponse("bidderC", List.of(
-                givenBid("imp_id1", "adm1_mraid.js"),
-                givenBid("imp_id2", "adm2_mraid.js")));
+        final BidderBid givenBid1 = givenBid("imp_id1", "adm1");
+        final BidderBid givenBid2 = givenBid("imp_id2", "adm2");
+        final BidderBid givenInvalidBid1 = givenBid("imp_id1", "adm1_mraid.js");
+        final BidderBid givenInvalidBid2 = givenBid("imp_id2", "adm2_mraid.js");
+
+        final BidderResponse responseA = givenBidderResponse("bidderA", List.of(givenBid1, givenBid2));
+        final BidderResponse responseB = givenBidderResponse("bidderB", List.of(givenBid1, givenInvalidBid2));
+        final BidderResponse responseC = givenBidderResponse("bidderC", List.of(givenInvalidBid1, givenInvalidBid2));
 
         final BidRejectionTracker bidRejectionTrackerA = mock(BidRejectionTracker.class);
         final BidRejectionTracker bidRejectionTrackerB = mock(BidRejectionTracker.class);
@@ -77,10 +76,10 @@ public class BidResponsesMraidFilterTest {
         // then
         final BidderResponse expectedResponseA = givenBidderResponse(
                 "bidderA",
-                List.of(givenBid("imp_id1", "adm1"), givenBid("imp_id2", "adm2")));
+                List.of(givenBid1, givenBid2));
         final BidderResponse expectedResponseB = givenBidderResponse(
                 "bidderB",
-                List.of(givenBid("imp_id1", "adm1")),
+                List.of(givenBid1),
                 List.of(givenError("imp_id2")));
         final BidderResponse expectedResponseC = givenBidderResponse(
                 "bidderC",
@@ -106,9 +105,9 @@ public class BidResponsesMraidFilterTest {
 
         verifyNoInteractions(bidRejectionTrackerA);
         verify(bidRejectionTrackerB)
-                .reject(List.of("imp_id2"), BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE);
+                .rejectBids(List.of(givenInvalidBid2), BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE);
         verify(bidRejectionTrackerC)
-                .reject(List.of("imp_id1", "imp_id2"), BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE);
+                .rejectBids(List.of(givenInvalidBid1, givenInvalidBid2), BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE);
         verifyNoMoreInteractions(bidRejectionTrackerB, bidRejectionTrackerC);
     }
 
