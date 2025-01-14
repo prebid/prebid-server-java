@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming
 import groovy.transform.ToString
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.request.auction.BidAdjustment
-import org.prebid.server.functional.model.request.auction.PaaFormant
+import org.prebid.server.functional.model.request.auction.PaaFormat
 import org.prebid.server.functional.model.request.auction.Targeting
 import org.prebid.server.functional.model.response.auction.MediaType
 
@@ -24,7 +24,7 @@ class AccountAuctionConfig {
     AccountEventsConfig events
     AccountPriceFloorsConfig priceFloors
     Targeting targeting
-    PaaFormant paaformat
+    PaaFormat paaformat
     @JsonProperty("preferredmediatype")
     Map<BidderName, MediaType> preferredMediaType
     @JsonProperty("privacysandbox")

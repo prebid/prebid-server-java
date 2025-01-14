@@ -2,7 +2,7 @@ package org.prebid.server.functional.model.request.auction
 
 import com.fasterxml.jackson.annotation.JsonValue
 
-enum PaaFormant {
+enum PaaFormat {
 
     ORIGINAL, IAB
 

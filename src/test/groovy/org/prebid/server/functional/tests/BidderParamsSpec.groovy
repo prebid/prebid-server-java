@@ -787,7 +787,7 @@ class BidderParamsSpec extends BaseSpec {
         def impExt = ImpExt.getDefaultImpExt().tap {
             prebid.bidder.generic = null
             generic = new Generic()
-            ae = PBSUtils.randomNumber
+            ae = PBSUtils.getRandomEnum(AuctionEnvironment)
             all = PBSUtils.randomNumber
             context = new ImpExtContext(data: new ImpExtContextData())
             data = new ImpExtContextData(pbAdSlot: PBSUtils.randomString)
@@ -1052,7 +1052,7 @@ class BidderParamsSpec extends BaseSpec {
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].ext.tap {
                 ae = auctionEnvironment
-                interestGroupAuctionSupport = new InterestGroupAuctionSupport(auctionEnvironment: null)
+                interestGroupAuctionSupports = [new InterestGroupAuctionSupport(auctionEnvironment: null)]
             }
         }
 
@@ -1062,7 +1062,7 @@ class BidderParamsSpec extends BaseSpec {
         then: "Bidder request should imp[].{ae/ext.igs.ae} same value as requested"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp[0].ext.ae == auctionEnvironment
-        assert bidderRequest.imp[0].ext.interestGroupAuctionSupport.auctionEnvironment == auctionEnvironment
+        assert bidderRequest.imp[0].ext.interestGroupAuctionSupports[0].auctionEnvironment == auctionEnvironment
 
         where:
         auctionEnvironment << [NOT_SUPPORTED, DEVICE_ORCHESTRATED]
@@ -1073,7 +1073,7 @@ class BidderParamsSpec extends BaseSpec {
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].ext.tap {
                 ae = auctionEnvironment
-                interestGroupAuctionSupport = new InterestGroupAuctionSupport(auctionEnvironment: null)
+                interestGroupAuctionSupports = [new InterestGroupAuctionSupport(auctionEnvironment: null)]
             }
         }
 
@@ -1083,7 +1083,7 @@ class BidderParamsSpec extends BaseSpec {
         then: "Bidder request should imp[].ae same value as requested"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp[0].ext.ae == auctionEnvironment
-        assert !bidderRequest.imp[0].ext.interestGroupAuctionSupport.auctionEnvironment
+        assert !bidderRequest.imp[0].ext.interestGroupAuctionSupports[0].auctionEnvironment
 
         where:
         auctionEnvironment << [SERVER_ORCHESTRATED, UNKNOWN]
@@ -1096,7 +1096,7 @@ class BidderParamsSpec extends BaseSpec {
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].ext.tap {
                 ae = extAuctionEnv
-                interestGroupAuctionSupport = new InterestGroupAuctionSupport(auctionEnvironment: extIgsAuctionEnv)
+                interestGroupAuctionSupports = [new InterestGroupAuctionSupport(auctionEnvironment: extIgsAuctionEnv)]
             }
         }
 
@@ -1106,6 +1106,6 @@ class BidderParamsSpec extends BaseSpec {
         then: "Bidder request should imp[].{ae/ext.igs.ae} same value as requested"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp[0].ext.ae == extAuctionEnv
-        assert bidderRequest.imp[0].ext.interestGroupAuctionSupport.auctionEnvironment == extIgsAuctionEnv
+        assert bidderRequest.imp[0].ext.interestGroupAuctionSupports[0].auctionEnvironment == extIgsAuctionEnv
     }
 }

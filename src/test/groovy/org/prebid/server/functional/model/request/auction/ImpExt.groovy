@@ -28,7 +28,7 @@ class ImpExt {
     String skadn
     String general
     @JsonProperty("igs")
-    InterestGroupAuctionSupport interestGroupAuctionSupport
+    List<InterestGroupAuctionSupport> interestGroupAuctionSupports
     AnyUnsupportedBidder anyUnsupportedBidder
 
     static ImpExt getDefaultImpExt() {

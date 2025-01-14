@@ -40,7 +40,7 @@ class Prebid {
     PrebidModulesConfig modules
     PrebidAnalytics analytics
     StoredAuctionResponse storedAuctionResponse
-    PaaFormant paaFormat
+    PaaFormat paaFormat
 
     static class Channel {
 
