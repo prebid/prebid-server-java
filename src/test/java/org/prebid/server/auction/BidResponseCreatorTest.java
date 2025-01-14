@@ -1640,6 +1640,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 contextBuilder -> contextBuilder.auctionParticipations(toAuctionParticipant(bidderResponses)));
 
         target = new BidResponseCreator(
+                0,
                 coreCacheService,
                 bidderCatalog,
                 vastModifier,
@@ -3516,7 +3517,7 @@ public class BidResponseCreatorTest extends VertxTest {
     }
 
     @Test
-    public void shouldAddExtIgiIfAvailable() {
+    public void shouldAddExtIgiIfAvailableAndExtRequestPrebidPaaFormatIsIab() {
         // given
         given(bidderCatalog.resolveBaseBidder("bidder1")).willReturn("adapter1");
         final Imp imp = givenImp("i1").toBuilder()
@@ -3525,7 +3526,7 @@ public class BidResponseCreatorTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity(), ext -> ext.paaFormat(PaaFormat.IAB), imp);
         final ExtIgi igi = ExtIgi.builder()
                 .impid("impId")
-                .igs(singletonList(ExtIgiIgs.builder().config(mapper.createObjectNode()).build()))
+                .igs(singletonList(ExtIgiIgs.builder().impId("impId").config(mapper.createObjectNode()).build()))
                 .build();
 
         final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(2.37)).impid("i1").build();
@@ -3550,6 +3551,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 ExtIgi.builder()
                         .impid("impId")
                         .igs(singletonList(ExtIgiIgs.builder()
+                                .impId("impId")
                                 .config(mapper.createObjectNode())
                                 .ext(ExtIgiIgsExt.of("bidder1", "adapter1"))
                                 .build()))
@@ -3557,19 +3559,19 @@ public class BidResponseCreatorTest extends VertxTest {
     }
 
     @Test
-    public void shouldDefaultToOriginalPaaFormat() {
+    public void shouldAddExtPrebidFledgeIfAvailableAndExtRequestPrebidPaaFormatIsOriginal() {
         // given
         given(bidderCatalog.resolveBaseBidder("bidder1")).willReturn("adapter1");
-        final Imp imp = givenImp("i1").toBuilder()
+        final Imp imp = givenImp("impId").toBuilder()
                 .ext(mapper.createObjectNode().put("ae", 1))
                 .build();
-        final BidRequest bidRequest = givenBidRequest(identity(), identity(), imp);
+        final BidRequest bidRequest = givenBidRequest(identity(), ext -> ext.paaFormat(PaaFormat.ORIGINAL), imp);
         final ExtIgi igi = ExtIgi.builder()
                 .impid("impId")
-                .igs(singletonList(ExtIgiIgs.builder().config(mapper.createObjectNode()).build()))
+                .igs(singletonList(ExtIgiIgs.builder().impId("impId").config(mapper.createObjectNode()).build()))
                 .build();
 
-        final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(2.37)).impid("i1").build();
+        final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(2.37)).impid("impId").build();
         final List<BidderResponse> bidderResponses = singletonList(
                 BidderResponse.of("bidder1",
                         BidderSeatBid.builder()
@@ -3599,6 +3601,252 @@ public class BidResponseCreatorTest extends VertxTest {
                                 .bidder("bidder1")
                                 .adapter("adapter1")
                                 .build());
+    }
+
+    @Test
+    public void shouldAddExtIgiIfAvailableAndExtRequestPrebidPaaFormatIsAbsentAndAccountConfigPaaFormatSetToIab() {
+        // given
+        given(bidderCatalog.resolveBaseBidder("bidder1")).willReturn("adapter1");
+        final Imp imp = givenImp("impId").toBuilder()
+                .ext(mapper.createObjectNode().put("ae", 1))
+                .build();
+        final BidRequest bidRequest = givenBidRequest(identity(), identity(), imp);
+        final ExtIgi igi = ExtIgi.builder()
+                .impid("impId")
+                .igs(singletonList(ExtIgiIgs.builder().impId("impId").config(mapper.createObjectNode()).build()))
+                .build();
+
+        final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(2.37)).impid("impId").build();
+        final List<BidderResponse> bidderResponses = singletonList(
+                BidderResponse.of("bidder1",
+                        BidderSeatBid.builder()
+                                .bids(List.of(BidderBid.of(bid, banner, "USD")))
+                                .igi(singletonList(igi))
+                                .build(), 100));
+
+        final AuctionContext auctionContext = givenAuctionContext(
+                bidRequest,
+                contextBuilder -> contextBuilder
+                        .auctionParticipations(toAuctionParticipant(bidderResponses))
+                        .account(Account.builder()
+                                .auction(AccountAuctionConfig.builder().paaFormat(PaaFormat.IAB).build())
+                                .build()));
+
+        // when
+        final BidResponse bidResponse = target
+                .create(auctionContext, CACHE_INFO, MULTI_BIDS)
+                .result();
+
+        // then
+        assertThat(bidResponse.getExt().getIgi()).containsExactly(
+                ExtIgi.builder()
+                        .impid("impId")
+                        .igs(singletonList(ExtIgiIgs.builder()
+                                .impId("impId")
+                                .config(mapper.createObjectNode())
+                                .ext(ExtIgiIgsExt.of("bidder1", "adapter1"))
+                                .build()))
+                        .build());
+    }
+
+    @Test
+    public void shouldAddExtPrebidFledgeIfAvailableAndRequestPaaFormatIsAbsentAndAccountConfigPaaFormatSetToOriginal() {
+        // given
+        given(bidderCatalog.resolveBaseBidder("bidder1")).willReturn("adapter1");
+        final Imp imp = givenImp("impId").toBuilder()
+                .ext(mapper.createObjectNode().put("ae", 1))
+                .build();
+        final BidRequest bidRequest = givenBidRequest(identity(), identity(), imp);
+        final ExtIgi igi = ExtIgi.builder()
+                .impid("impId")
+                .igs(singletonList(ExtIgiIgs.builder().impId("impId").config(mapper.createObjectNode()).build()))
+                .build();
+
+        final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(2.37)).impid("impId").build();
+        final List<BidderResponse> bidderResponses = singletonList(
+                BidderResponse.of("bidder1",
+                        BidderSeatBid.builder()
+                                .bids(List.of(BidderBid.of(bid, banner, "USD")))
+                                .igi(singletonList(igi))
+                                .build(), 100));
+
+        final AuctionContext auctionContext = givenAuctionContext(
+                bidRequest,
+                contextBuilder -> contextBuilder
+                        .auctionParticipations(toAuctionParticipant(bidderResponses))
+                        .account(Account.builder()
+                                .auction(AccountAuctionConfig.builder().paaFormat(PaaFormat.ORIGINAL).build())
+                                .build()));
+
+        // when
+        final BidResponse bidResponse = target
+                .create(auctionContext, CACHE_INFO, MULTI_BIDS)
+                .result();
+
+        // then
+        assertThat(bidResponse.getExt())
+                .extracting(ExtBidResponse::getPrebid)
+                .extracting(ExtBidResponsePrebid::getFledge)
+                .extracting(ExtBidResponseFledge::getAuctionConfigs)
+                .asList()
+                .containsExactly(
+                        FledgeAuctionConfig.builder()
+                                .impId("impId")
+                                .config(mapper.createObjectNode())
+                                .bidder("bidder1")
+                                .adapter("adapter1")
+                                .build());
+    }
+
+    @Test
+    public void shouldDefaultToOriginalPaaFormat() {
+        // given
+        given(bidderCatalog.resolveBaseBidder("bidder1")).willReturn("adapter1");
+        final Imp imp = givenImp("impId").toBuilder()
+                .ext(mapper.createObjectNode().put("ae", 1))
+                .build();
+        final BidRequest bidRequest = givenBidRequest(identity(), identity(), imp);
+        final ExtIgi igi = ExtIgi.builder()
+                .impid("impId")
+                .igs(singletonList(ExtIgiIgs.builder().impId("impId").config(mapper.createObjectNode()).build()))
+                .build();
+
+        final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(2.37)).impid("impId").build();
+        final List<BidderResponse> bidderResponses = singletonList(
+                BidderResponse.of("bidder1",
+                        BidderSeatBid.builder()
+                                .bids(List.of(BidderBid.of(bid, banner, "USD")))
+                                .igi(singletonList(igi))
+                                .build(), 100));
+
+        final AuctionContext auctionContext = givenAuctionContext(
+                bidRequest,
+                contextBuilder -> contextBuilder.auctionParticipations(toAuctionParticipant(bidderResponses)));
+
+        // when
+        final BidResponse bidResponse = target
+                .create(auctionContext, CACHE_INFO, MULTI_BIDS)
+                .result();
+
+        // then
+        assertThat(bidResponse.getExt())
+                .extracting(ExtBidResponse::getPrebid)
+                .extracting(ExtBidResponsePrebid::getFledge)
+                .extracting(ExtBidResponseFledge::getAuctionConfigs)
+                .asList()
+                .containsExactly(
+                        FledgeAuctionConfig.builder()
+                                .impId("impId")
+                                .config(mapper.createObjectNode())
+                                .bidder("bidder1")
+                                .adapter("adapter1")
+                                .build());
+    }
+
+    @Test
+    public void shouldDropExtIgiIfAvailableAndExtIgiImpIdIsAbsent() {
+        // given
+        final Imp imp = givenImp("impId").toBuilder()
+                .ext(mapper.createObjectNode().put("ae", 1))
+                .build();
+        final BidRequest bidRequest = givenBidRequest(identity(), ext -> ext.paaFormat(PaaFormat.IAB), imp);
+        final ExtIgi igi = ExtIgi.builder()
+                .igs(singletonList(ExtIgiIgs.builder().impId("impId").config(mapper.createObjectNode()).build()))
+                .build();
+
+        final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(2.37)).impid("impId").build();
+        final List<BidderResponse> bidderResponses = singletonList(
+                BidderResponse.of("bidder1",
+                        BidderSeatBid.builder()
+                                .bids(List.of(BidderBid.of(bid, banner, "USD")))
+                                .igi(singletonList(igi))
+                                .build(), 100));
+
+        final AuctionContext auctionContext = givenAuctionContext(
+                bidRequest,
+                contextBuilder -> contextBuilder.auctionParticipations(toAuctionParticipant(bidderResponses)));
+
+        // when
+        final BidResponse bidResponse = target
+                .create(auctionContext, CACHE_INFO, MULTI_BIDS)
+                .result();
+
+        // then
+        assertThat(bidResponse.getExt())
+                .extracting(ExtBidResponse::getIgi)
+                .isNull();
+    }
+
+    @Test
+    public void shouldDropExtIgiIgsIfAvailableAndExtIgiIgsImpIdIsAbsent() {
+        // given
+        final Imp imp = givenImp("impId").toBuilder()
+                .ext(mapper.createObjectNode().put("ae", 1))
+                .build();
+        final BidRequest bidRequest = givenBidRequest(identity(), ext -> ext.paaFormat(PaaFormat.IAB), imp);
+        final ExtIgi igi = ExtIgi.builder()
+                .impid("impId")
+                .igs(singletonList(ExtIgiIgs.builder().config(mapper.createObjectNode()).build()))
+                .build();
+
+        final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(2.37)).impid("impId").build();
+        final List<BidderResponse> bidderResponses = singletonList(
+                BidderResponse.of("bidder1",
+                        BidderSeatBid.builder()
+                                .bids(List.of(BidderBid.of(bid, banner, "USD")))
+                                .igi(singletonList(igi))
+                                .build(), 100));
+
+        final AuctionContext auctionContext = givenAuctionContext(
+                bidRequest,
+                contextBuilder -> contextBuilder.auctionParticipations(toAuctionParticipant(bidderResponses)));
+
+        // when
+        final BidResponse bidResponse = target
+                .create(auctionContext, CACHE_INFO, MULTI_BIDS)
+                .result();
+
+        // then
+        assertThat(bidResponse.getExt())
+                .extracting(ExtBidResponse::getIgi)
+                .asList()
+                .containsExactly(ExtIgi.builder().impid("impId").build());
+    }
+
+    @Test
+    public void shouldDropExtIgiIgsIfAvailableAndExtIgiIgsConfigIsAbsent() {
+        // given
+        final Imp imp = givenImp("impId").toBuilder()
+                .ext(mapper.createObjectNode().put("ae", 1))
+                .build();
+        final BidRequest bidRequest = givenBidRequest(identity(), ext -> ext.paaFormat(PaaFormat.IAB), imp);
+        final ExtIgi igi = ExtIgi.builder()
+                .impid("impId")
+                .igs(singletonList(ExtIgiIgs.builder().impId("impId").build()))
+                .build();
+
+        final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(2.37)).impid("impId").build();
+        final List<BidderResponse> bidderResponses = singletonList(
+                BidderResponse.of("bidder1",
+                        BidderSeatBid.builder()
+                                .bids(List.of(BidderBid.of(bid, banner, "USD")))
+                                .igi(singletonList(igi))
+                                .build(), 100));
+
+        final AuctionContext auctionContext = givenAuctionContext(
+                bidRequest,
+                contextBuilder -> contextBuilder.auctionParticipations(toAuctionParticipant(bidderResponses)));
+
+        // when
+        final BidResponse bidResponse = target
+                .create(auctionContext, CACHE_INFO, MULTI_BIDS)
+                .result();
+
+        // then
+        assertThat(bidResponse.getExt())
+                .extracting(ExtBidResponse::getIgi)
+                .asList()
+                .containsExactly(ExtIgi.builder().impid("impId").build());
     }
 
     @Test
@@ -5114,6 +5362,7 @@ public class BidResponseCreatorTest extends VertxTest {
 
     private BidResponseCreator givenBidResponseCreator(int truncateAttrChars) {
         return new BidResponseCreator(
+                0,
                 coreCacheService,
                 bidderCatalog,
                 vastModifier,
