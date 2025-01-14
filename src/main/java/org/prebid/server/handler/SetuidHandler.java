@@ -152,6 +152,7 @@ public class SetuidHandler implements ApplicationResource {
                 .filter(name -> name.getValue() > 1)
                 .map(Map.Entry::getKey)
                 .distinct()
+                .sorted()
                 .toList();
         if (CollectionUtils.isNotEmpty(cookieFamilyNameDuplicates)) {
             throw new IllegalArgumentException(
