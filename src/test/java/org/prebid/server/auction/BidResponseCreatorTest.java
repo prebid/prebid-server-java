@@ -44,6 +44,7 @@ import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.CachedDebugLog;
 import org.prebid.server.auction.model.CategoryMappingResult;
 import org.prebid.server.auction.model.MultiBidConfig;
+import org.prebid.server.auction.model.PaaFormat;
 import org.prebid.server.auction.model.TargetingInfo;
 import org.prebid.server.auction.model.TimeoutContext;
 import org.prebid.server.auction.model.debug.DebugContext;
@@ -91,6 +92,7 @@ import org.prebid.server.proto.openrtb.ext.response.Events;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidResponseFledge;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponsePrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
 import org.prebid.server.proto.openrtb.ext.response.ExtDebugTrace;
@@ -3520,7 +3522,7 @@ public class BidResponseCreatorTest extends VertxTest {
         final Imp imp = givenImp("i1").toBuilder()
                 .ext(mapper.createObjectNode().put("ae", 1))
                 .build();
-        final BidRequest bidRequest = givenBidRequest(identity(), identity(), imp);
+        final BidRequest bidRequest = givenBidRequest(identity(), ext -> ext.paaFormat(PaaFormat.IAB), imp);
         final ExtIgi igi = ExtIgi.builder()
                 .impid("impId")
                 .igs(singletonList(ExtIgiIgs.builder().config(mapper.createObjectNode()).build()))
@@ -3552,6 +3554,51 @@ public class BidResponseCreatorTest extends VertxTest {
                                 .ext(ExtIgiIgsExt.of("bidder1", "adapter1"))
                                 .build()))
                         .build());
+    }
+
+    @Test
+    public void shouldDefaultToOriginalPaaFormat() {
+        // given
+        given(bidderCatalog.resolveBaseBidder("bidder1")).willReturn("adapter1");
+        final Imp imp = givenImp("i1").toBuilder()
+                .ext(mapper.createObjectNode().put("ae", 1))
+                .build();
+        final BidRequest bidRequest = givenBidRequest(identity(), identity(), imp);
+        final ExtIgi igi = ExtIgi.builder()
+                .impid("impId")
+                .igs(singletonList(ExtIgiIgs.builder().config(mapper.createObjectNode()).build()))
+                .build();
+
+        final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(2.37)).impid("i1").build();
+        final List<BidderResponse> bidderResponses = singletonList(
+                BidderResponse.of("bidder1",
+                        BidderSeatBid.builder()
+                                .bids(List.of(BidderBid.of(bid, banner, "USD")))
+                                .igi(singletonList(igi))
+                                .build(), 100));
+
+        final AuctionContext auctionContext = givenAuctionContext(
+                bidRequest,
+                contextBuilder -> contextBuilder.auctionParticipations(toAuctionParticipant(bidderResponses)));
+
+        // when
+        final BidResponse bidResponse = target
+                .create(auctionContext, CACHE_INFO, MULTI_BIDS)
+                .result();
+
+        // then
+        assertThat(bidResponse.getExt())
+                .extracting(ExtBidResponse::getPrebid)
+                .extracting(ExtBidResponsePrebid::getFledge)
+                .extracting(ExtBidResponseFledge::getAuctionConfigs)
+                .asList()
+                .containsExactly(
+                        FledgeAuctionConfig.builder()
+                                .impId("impId")
+                                .config(mapper.createObjectNode())
+                                .bidder("bidder1")
+                                .adapter("adapter1")
+                                .build());
     }
 
     @Test

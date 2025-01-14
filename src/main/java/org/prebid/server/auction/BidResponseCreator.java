@@ -898,9 +898,9 @@ public class BidResponseCreator {
 
     private ExtIgi extIgiWithBidder(ExtIgi extIgi, String bidder) {
         final List<ExtIgiIgs> extIgiIgs = CollectionUtils.emptyIfNull(extIgi.getIgs()).stream()
-                .map(igs -> Optional.ofNullable(igs)
-                        .map(ExtIgiIgs::toBuilder)
-                        .orElseGet(ExtIgiIgs::builder)
+                .filter(Objects::nonNull)
+                .filter(igs -> StringUtils.isNotEmpty(igs.getImpId()))
+                .map(igs -> igs.toBuilder()
                         .ext(ExtIgiIgsExt.of(bidder, bidderCatalog.resolveBaseBidder(bidder)))
                         .build())
                 .toList();
@@ -1229,7 +1229,7 @@ public class BidResponseCreator {
                 .or(() -> Optional.ofNullable(auctionContext.getAccount())
                         .map(Account::getAuction)
                         .map(AccountAuctionConfig::getPaaFormat))
-                .orElse(PaaFormat.IAB);
+                .orElse(PaaFormat.ORIGINAL);
     }
 
     /**
