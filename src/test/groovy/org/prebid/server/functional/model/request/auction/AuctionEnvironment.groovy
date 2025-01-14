@@ -8,9 +8,7 @@ enum AuctionEnvironment {
     NOT_SUPPORTED(0),
     DEVICE_ORCHESTRATED(1),
     SERVER_ORCHESTRATED(3),
-    UNKNOWN(PBSUtils.getRandomNumberWithExclusion([NOT_SUPPORTED.value,
-                                                   DEVICE_ORCHESTRATED.value,
-                                                   SERVER_ORCHESTRATED.value])),
+    UNKNOWN(Integer.MAX_VALUE),
 
     @JsonValue
     private int value

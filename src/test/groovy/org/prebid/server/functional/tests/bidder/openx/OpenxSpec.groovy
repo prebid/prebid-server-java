@@ -30,7 +30,7 @@ class OpenxSpec extends BaseSpec {
     def "PBS should populate fledge config by default when bid response with fledge"() {
         given: "Default basic BidRequest with ae and openx bidder"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp[0].ext.ae = DEVICE_ORCHESTRATED
+            imp[0].ext.auctionEnvironment = DEVICE_ORCHESTRATED
             imp[0].ext.prebid.bidder.openx = Openx.defaultOpenx
         }
 
@@ -61,7 +61,7 @@ class OpenxSpec extends BaseSpec {
     def "PBS should populate fledge config when bid response with fledge and ext.prebid.paaFormat = ORIGINAL"() {
         given: "Default basic BidRequest with ae and openx bidder"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp[0].ext.ae = DEVICE_ORCHESTRATED
+            imp[0].ext.auctionEnvironment = DEVICE_ORCHESTRATED
             imp[0].ext.prebid.bidder.openx = Openx.defaultOpenx
             ext.prebid.paaFormat = ORIGINAL
         }
@@ -93,7 +93,7 @@ class OpenxSpec extends BaseSpec {
     def "PBS shouldn't populate fledge config when bid response with fledge and ext.prebid.paaFormat = IAB"() {
         given: "Default basic BidRequest without ae"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp[0].ext.ae = NOT_SUPPORTED
+            imp[0].ext.auctionEnvironment = NOT_SUPPORTED
             imp[0].ext.prebid.bidder.openx = Openx.defaultOpenx
             ext.prebid.paaFormat = IAB
         }

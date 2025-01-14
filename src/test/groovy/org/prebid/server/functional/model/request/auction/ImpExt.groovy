@@ -23,7 +23,7 @@ class ImpExt {
     String tid
     String gpid
     String sid
-    AuctionEnvironment ae
+    AuctionEnvironment auctionEnvironment
     String all
     String skadn
     String general
