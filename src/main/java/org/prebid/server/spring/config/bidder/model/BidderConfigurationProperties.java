@@ -51,6 +51,8 @@ public class BidderConfigurationProperties {
 
     private Ortb ortb;
 
+    private long tmaxDeductionMs;
+
     private final Class<? extends BidderConfigurationProperties> selfClass;
 
     public BidderConfigurationProperties() {

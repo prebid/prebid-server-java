@@ -13,6 +13,7 @@ import org.prebid.server.functional.model.request.auction.Geo
 import org.prebid.server.functional.model.request.auction.ImpExtContext
 import org.prebid.server.functional.model.request.auction.ImpExtContextData
 import org.prebid.server.functional.model.request.auction.ImpExtContextDataAdServer
+import org.prebid.server.functional.model.request.auction.Publisher
 import org.prebid.server.functional.model.request.auction.Site
 import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.service.PrebidServerException
@@ -333,11 +334,14 @@ class AmpFpdSpec extends BaseSpec {
         given: "AMP request"
         def ampRequest = new AmpRequest(tagId: PBSUtils.randomString)
 
+        and: "Amp stored request with FPD data"
+        def fpdSite = Site.rootFPDSite
+        def fpdUser = User.rootFPDUser
         def ampStoredRequest = BidRequest.getDefaultBidRequest(SITE).tap {
             ext.prebid.tap {
                 data = new ExtRequestPrebidData(bidders: [extRequestPrebidDataBidder])
                 bidderConfig = [new ExtPrebidBidderConfig(bidders: [prebidBidderConfigBidder], config: new BidderConfig(
-                        ortb2: new BidderConfigOrtb(site: Site.configFPDSite, user: User.configFPDUser)))]
+                        ortb2: new BidderConfigOrtb(site: fpdSite, user: fpdUser)))]
             }
         }
 
@@ -350,25 +354,24 @@ class AmpFpdSpec extends BaseSpec {
 
         then: "Bidder request should contain certain FPD field from the stored request"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
-        def ortb2 = ampStoredRequest.ext.prebid.bidderConfig[0].config.ortb2
         verifyAll(bidderRequest) {
-            ortb2.site.name == site.name
-            ortb2.site.domain == site.domain
-            ortb2.site.cat == site.cat
-            ortb2.site.sectionCat == site.sectionCat
-            ortb2.site.pageCat == site.pageCat
-            ortb2.site.page == site.page
-            ortb2.site.ref == site.ref
-            ortb2.site.search == site.search
-            ortb2.site.keywords == site.keywords
-            ortb2.site.ext.data.language == site.ext.data.language
+            it.site.name == fpdSite.name
+            it.site.domain == fpdSite.domain
+            it.site.cat == fpdSite.cat
+            it.site.sectionCat == fpdSite.sectionCat
+            it.site.pageCat == fpdSite.pageCat
+            it.site.page == fpdSite.page
+            it.site.ref == fpdSite.ref
+            it.site.search == fpdSite.search
+            it.site.keywords == fpdSite.keywords
+            it.site.ext.data.language == fpdSite.ext.data.language
 
-            ortb2.user.yob == user.yob
-            ortb2.user.gender == user.gender
-            ortb2.user.keywords == user.keywords
-            ortb2.user.ext.data.keywords == user.ext.data.keywords
-            ortb2.user.ext.data.buyerUid == user.ext.data.buyerUid
-            ortb2.user.ext.data.buyerUids == user.ext.data.buyerUids
+            it.user.yob == fpdUser.yob
+            it.user.gender == fpdUser.gender
+            it.user.keywords == fpdUser.keywords
+            it.user.ext.data.keywords == fpdUser.ext.data.keywords
+            it.user.ext.data.buyerUid == fpdUser.ext.data.buyerUid
+            it.user.ext.data.buyerUids == fpdUser.ext.data.buyerUids
         }
 
         and: "Bidder request shouldn't contain imp[0].ext.rp"
@@ -413,17 +416,18 @@ class AmpFpdSpec extends BaseSpec {
         }
     }
 
-    def "PBS should fill unknown FPD when unknown FPD data present"() {
+    def "PBS should ignore any not FPD data value in bidderconfig.config when merging values"() {
         given: "AMP request"
         def ampRequest = new AmpRequest(tagId: PBSUtils.randomString)
 
         and: "Stored request"
-        def fpdGeo = Geo.FPDGeo
+        def fpdSite = Site.rootFPDSite
+        def fpdUser = User.rootFPDUser
         def ampStoredRequest = BidRequest.getDefaultBidRequest(SITE).tap {
-            site = Site.rootFPDSite
-            user = User.rootFPDUser
+            site = fpdSite
+            user = fpdUser
             ext.prebid.bidderConfig = [new ExtPrebidBidderConfig(bidders: [GENERIC], config: new BidderConfig(ortb2:
-                    new BidderConfigOrtb(user: new User(geo: fpdGeo))))]
+                    new BidderConfigOrtb(user: new User(geo: Geo.FPDGeo), site: new Site(publisher: new Publisher(name: PBSUtils.randomString)))))]
         }
 
         and: "Save stored request in DB"
@@ -433,13 +437,32 @@ class AmpFpdSpec extends BaseSpec {
         when: "PBS processes amp request"
         defaultPbsService.sendAmpRequest(ampRequest)
 
-        then: "Bidder request should contain certain FPD field from the stored request"
+        then: "Bidder request should contain FPD field from the stored request"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
         verifyAll(bidderRequest) {
-            user.ext.data.geo.country == fpdGeo.country
-            user.ext.data.geo.zip == fpdGeo.zip
-            user.geo.country == ampStoredRequest.user.geo.country
-            user.geo.zip == ampStoredRequest.user.geo.zip
+            it.site.name == fpdSite.name
+            it.site.domain == fpdSite.domain
+            it.site.cat == fpdSite.cat
+            it.site.sectionCat == fpdSite.sectionCat
+            it.site.pageCat == fpdSite.pageCat
+            it.site.page == fpdSite.page
+            it.site.ref == fpdSite.ref
+            it.site.search == fpdSite.search
+            it.site.keywords == fpdSite.keywords
+            it.site.ext.data.language == fpdSite.ext.data.language
+
+            it.user.yob == fpdUser.yob
+            it.user.gender == fpdUser.gender
+            it.user.keywords == fpdUser.keywords
+            it.user.ext.data.keywords == fpdUser.ext.data.keywords
+            it.user.ext.data.buyerUid == fpdUser.ext.data.buyerUid
+            it.user.ext.data.buyerUids == fpdUser.ext.data.buyerUids
+        }
+
+        and: "Should should ignore any non FPD data"
+        verifyAll(bidderRequest) {
+            !it.user.ext.data.geo
+            !it.site.ext.data.publisher
         }
     }
 

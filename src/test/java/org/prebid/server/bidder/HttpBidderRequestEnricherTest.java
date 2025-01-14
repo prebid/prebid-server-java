@@ -174,7 +174,8 @@ public class HttpBidderRequestEnricherTest {
                 false,
                 false,
                 CompressionType.GZIP,
-                Ortb.of(false)));
+                Ortb.of(false),
+                0L));
 
         final CaseInsensitiveMultiMap originalHeaders = CaseInsensitiveMultiMap.builder().build();
 
@@ -212,7 +213,8 @@ public class HttpBidderRequestEnricherTest {
                 false,
                 false,
                 CompressionType.GZIP,
-                Ortb.of(false)));
+                Ortb.of(false),
+                0L));
 
         final CaseInsensitiveMultiMap originalHeaders = CaseInsensitiveMultiMap.builder().build();
 
