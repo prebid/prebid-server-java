@@ -87,6 +87,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
 import org.prebid.server.proto.openrtb.ext.response.ExtDebugTrace;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.proto.openrtb.ext.response.ExtIgi;
+import org.prebid.server.proto.openrtb.ext.response.ExtIgiIgb;
 import org.prebid.server.proto.openrtb.ext.response.ExtIgiIgs;
 import org.prebid.server.proto.openrtb.ext.response.ExtIgiIgsExt;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseCache;
@@ -864,13 +865,18 @@ public class BidResponseCreator {
             return null;
         }
 
-        if (StringUtils.isEmpty(igi.getImpid())) {
-            conditionalLogger.warn("ExtIgi with absent impId", logSamplingRate);
-            return null;
+        boolean shouldDropIgb = StringUtils.isEmpty(igi.getImpid());
+        if (shouldDropIgb) {
+            conditionalLogger.warn("ExtIgi with absent impId from bidder: " + bidder, logSamplingRate);
         }
 
-        final List<ExtIgiIgs> preparedIgs = prepareExtIgiIgs(igi.getIgs(), bidder);
-        return igi.toBuilder().igs(preparedIgs.isEmpty() ? null : preparedIgs).build();
+        final List<ExtIgiIgs> updatedIgs = prepareExtIgiIgs(igi.getIgs(), bidder);
+        final List<ExtIgiIgs> preparedIgs = updatedIgs.isEmpty() ? null : updatedIgs;
+        final List<ExtIgiIgb> preparedIgb = shouldDropIgb ? null : igi.getIgb();
+
+        return ObjectUtils.anyNotNull(preparedIgs, preparedIgb)
+                ? igi.toBuilder().igs(preparedIgs).igb(preparedIgb).build()
+                : null;
     }
 
     private List<ExtIgiIgs> prepareExtIgiIgs(List<ExtIgiIgs> igiIgs, String bidder) {
@@ -885,12 +891,12 @@ public class BidResponseCreator {
             }
 
             if (StringUtils.isEmpty(extIgiIgs.getImpId())) {
-                conditionalLogger.warn("ExtIgiIgs with absent impId", logSamplingRate);
+                conditionalLogger.warn("ExtIgiIgs with absent impId from bidder: " + bidder, logSamplingRate);
                 continue;
             }
 
             if (extIgiIgs.getConfig() == null) {
-                conditionalLogger.warn("ExtIgiIgs with absent config", logSamplingRate);
+                conditionalLogger.warn("ExtIgiIgs with absent config from bidder: " + bidder, logSamplingRate);
                 continue;
             }
 
