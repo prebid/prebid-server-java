@@ -3,62 +3,28 @@ package org.prebid.server.proto.openrtb.ext.request;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import lombok.Builder;
-import lombok.Value;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 import java.util.List;
 
-/**
- * Defines the contract for bidrequest.imp[i].ext.prebid
- */
-@Builder(toBuilder = true)
-@Value
-public class ExtImpPrebid {
+@Data
+@SuperBuilder(toBuilder = true)
+@EqualsAndHashCode(callSuper = true)
+@NoArgsConstructor
+public class ExtImpPrebid extends ExtImpPrebidBidderFields {
 
-    /**
-     * Defines the contract for bidrequest.imp[i].ext.prebid.storedrequest
-     */
-    ExtStoredRequest storedrequest;
-
-    /**
-     * Defines the contract for bidrequest.imp[i].ext.prebid.storedauctionresponse
-     */
     @JsonProperty("storedauctionresponse")
     ExtStoredAuctionResponse storedAuctionResponse;
 
-    /**
-     * Defines the contract for bidrequest.imp[i].ext.prebid.storedbidresponse
-     */
     @JsonProperty("storedbidresponse")
     List<ExtStoredBidResponse> storedBidResponse;
 
-    /**
-     * Defines the contract for bidrequest.imp[i].ext.prebid.options
-     */
-    ExtOptions options;
-
-    /**
-     * Defines the contract for bidrequest.imp[i].ext.prebid.is_rewarded_inventory
-     */
-    Integer isRewardedInventory;
-
-    /**
-     * Defines the contract for bidrequest.imp[i].ext.prebid.BIDDER
-     */
     ObjectNode bidder;
 
-    /**
-     * Defines the contract for bidrequest.imp[i].ext.prebid.floors
-     */
-    ExtImpPrebidFloors floors;
-
-    /**
-     * Defines the contract for bidrequest.imp[i].ext.prebid.passthrough
-     */
     JsonNode passthrough;
 
-    /**
-     * Defines the contract for bidrequest.imp[i].ext.prebid.imp
-     */
     ObjectNode imp;
 }

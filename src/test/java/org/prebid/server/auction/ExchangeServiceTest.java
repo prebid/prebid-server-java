@@ -523,7 +523,7 @@ public class ExchangeServiceTest extends VertxTest {
         // given
         givenBidder(givenEmptySeatBid());
 
-        final Map<String, Map<String, BigDecimal>> currencyRates = doubleMap(
+        final Map<String, Map<String, BigDecimal>> currencyRates = Map.of(
                 "GBP", singletonMap("EUR", BigDecimal.valueOf(1.15)),
                 "UAH", singletonMap("EUR", BigDecimal.valueOf(1.1565)));
 
@@ -571,7 +571,7 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder("bidder2", bidder2, givenEmptySeatBid());
 
         final BidRequest bidRequest = givenBidRequest(asList(
-                givenImp(doubleMap("bidder1", 1, "bidder2", 2), identity()),
+                givenImp(Map.of("bidder1", 1, "bidder2", 2), identity()),
                 givenImp(singletonMap("bidder1", 3), identity())));
 
         // when
@@ -1145,7 +1145,7 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder("bidder", bidder, givenEmptySeatBid());
 
         final BidRequest bidRequest = givenBidRequest(singletonList(
-                        givenImp(doubleMap("bidder", 1, "bidderAlias", 2), identity())),
+                        givenImp(Map.of("bidder", 1, "bidderAlias", 2), identity())),
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .aliases(singletonMap("bidderAlias", "bidder"))
                         .auctiontimestamp(1000L)
@@ -1175,7 +1175,7 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder("bidderAlias", bidderAlias, givenEmptySeatBid());
 
         final BidRequest bidRequest = givenBidRequest(singletonList(
-                        givenImp(doubleMap("bidder", 1, "bidderAlias", 2), identity())),
+                        givenImp(Map.of("bidder", 1, "bidderAlias", 2), identity())),
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .aliases(singletonMap("bidderAlias", "bidder"))
                         .auctiontimestamp(1000L)
@@ -1263,7 +1263,7 @@ public class ExchangeServiceTest extends VertxTest {
                         givenBidderBid(Bid.builder().impid("1").price(BigDecimal.ONE).build())))));
 
         final BidRequest bidRequest = givenBidRequest(
-                givenSingleImp("1", doubleMap("bidder", 1, "bidderAlias", 2)),
+                givenSingleImp("1", Map.of("bidder", 1, "bidderAlias", 2)),
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .aliases(singletonMap("bidderAlias", "bidder"))
                         .auctiontimestamp(1000L)
@@ -1301,7 +1301,7 @@ public class ExchangeServiceTest extends VertxTest {
                 singletonList(Imp.builder()
                         .id("impId")
                         .ext(mapper.valueToTree(
-                                doubleMap("prebid", singletonMap("bidder", singletonMap("bidderAlias", 1)),
+                                Map.of("prebid", singletonMap("bidder", singletonMap("bidderAlias", 1)),
                                         "ae", 1)))
                         .build()),
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
@@ -1499,7 +1499,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(asList(
                         // imp ids are not really used for matching, included them here for clarity
                         givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1")),
-                        givenImp(doubleMap("bidder1", 1, "bidder2", 2), builder -> builder.id("impId2"))),
+                        givenImp(Map.of("bidder1", 1, "bidder2", 2), builder -> builder.id("impId2"))),
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .targeting(targeting)
                         .auctiontimestamp(1000L)
@@ -1594,7 +1594,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(asList(
                         // imp ids are not really used for matching, included them here for clarity
                         givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1")),
-                        givenImp(doubleMap("bidder1", 1, "bidder2", 2), builder -> builder.id("impId2"))),
+                        givenImp(Map.of("bidder1", 1, "bidder2", 2), builder -> builder.id("impId2"))),
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .targeting(targeting)
                         .cache(ExtRequestPrebidCache.of(null, null, true))
@@ -1633,7 +1633,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(asList(
                         // imp ids are not really used for matching, included them here for clarity
                         givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1")),
-                        givenImp(doubleMap("bidder1", 1, "bidder2", 2), builder -> builder.id("impId2"))),
+                        givenImp(Map.of("bidder1", 1, "bidder2", 2), builder -> builder.id("impId2"))),
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .targeting(targeting)
                         .cache(ExtRequestPrebidCache.of(null, null, null))
@@ -1768,7 +1768,7 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder(givenEmptySeatBid());
 
         final BidRequest bidRequest = givenBidRequest(singletonList(
-                        givenImp(doubleMap("prebid", 0, "someBidder", 1), builder -> builder
+                        givenImp(Map.of("prebid", 0, "someBidder", 1), builder -> builder
                                 .id("impId")
                                 .banner(Banner.builder()
                                         .format(singletonList(Format.builder().w(400).h(300).build()))
@@ -1802,7 +1802,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .willReturn(Future.failedFuture(new InvalidRequestException("Error")));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(
-                        givenImp(doubleMap("prebid", 0, "someBidder", 1), builder -> builder
+                        givenImp(Map.of("prebid", 0, "someBidder", 1), builder -> builder
                                 .id("impId")
                                 .banner(Banner.builder()
                                         .format(singletonList(Format.builder().w(400).h(300).build()))
@@ -1826,7 +1826,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .willThrow(new PreBidException("Error"));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(
-                        givenImp(doubleMap("prebid", 0, "someBidder", 1), builder -> builder
+                        givenImp(Map.of("prebid", 0, "someBidder", 1), builder -> builder
                                 .id("impId")
                                 .banner(Banner.builder()
                                         .format(singletonList(Format.builder().w(400).h(300).build()))
@@ -2123,7 +2123,7 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder("missingBidder", bidder, givenEmptySeatBid());
 
         final ObjectNode dataNode = mapper.createObjectNode().put("data", "value");
-        final Map<String, Integer> bidderToGdpr = doubleMap("someBidder", 1, "missingBidder", 0);
+        final Map<String, Integer> bidderToGdpr = Map.of("someBidder", 1, "missingBidder", 0);
         final List<Eid> eids = singletonList(Eid.builder().source("eId").uids(emptyList()).build());
         final ExtUser extUser = ExtUser.builder().data(dataNode).build();
         final List<Data> data = singletonList(Data.builder().build());
@@ -2363,7 +2363,7 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder("missingBidder", bidder, givenEmptySeatBid());
 
         final ObjectNode dataNode = mapper.createObjectNode().put("data", "value");
-        final Map<String, Integer> bidderToGdpr = doubleMap("someBidder", 1, "missingBidder", 0);
+        final Map<String, Integer> bidderToGdpr = Map.of("someBidder", 1, "missingBidder", 0);
         final List<Eid> eids = singletonList(Eid.builder().source("eId").uids(emptyList()).build());
         final ExtUser extUser = ExtUser.builder().data(dataNode).build();
 
@@ -2406,7 +2406,7 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder("missingBidder", bidder, givenEmptySeatBid());
 
         final ObjectNode dataNode = mapper.createObjectNode().put("data", "value");
-        final Map<String, Integer> bidderToGdpr = doubleMap("someBidder", 1, "missingBidder", 0);
+        final Map<String, Integer> bidderToGdpr = Map.of("someBidder", 1, "missingBidder", 0);
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(bidderToGdpr),
                 builder -> builder
@@ -2449,7 +2449,7 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder("missingBidder", bidder, givenEmptySeatBid());
 
         final ObjectNode dataNode = mapper.createObjectNode().put("data", "value");
-        final Map<String, Integer> bidderToGdpr = doubleMap("someBidder", 1, "missingBidder", 0);
+        final Map<String, Integer> bidderToGdpr = Map.of("someBidder", 1, "missingBidder", 0);
         final Content content = Content.builder()
                 .data(singletonList(Data.builder().build()))
                 .album("album")
@@ -2502,7 +2502,7 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder("missingBidder", bidder, givenEmptySeatBid());
 
         final ObjectNode dataNode = mapper.createObjectNode().put("data", "value");
-        final Map<String, Integer> bidderToGdpr = doubleMap("someBidder", 1, "missingBidder", 0);
+        final Map<String, Integer> bidderToGdpr = Map.of("someBidder", 1, "missingBidder", 0);
         final Content content = Content.builder()
                 .data(singletonList(Data.builder().build()))
                 .album("album")
@@ -2553,7 +2553,7 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder("missingBidder", bidder, givenEmptySeatBid());
 
         final ObjectNode dataNode = mapper.createObjectNode().put("data", "value");
-        final Map<String, Integer> bidderToGdpr = doubleMap("someBidder", 1, "missingBidder", 0);
+        final Map<String, Integer> bidderToGdpr = Map.of("someBidder", 1, "missingBidder", 0);
         final Content content = Content.builder()
                 .data(singletonList(Data.builder().build()))
                 .album("album")
@@ -2604,7 +2604,7 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder("missingBidder", bidder, givenEmptySeatBid());
 
         final ObjectNode dataNode = mapper.createObjectNode().put("data", "value");
-        final Map<String, Integer> bidderToGdpr = doubleMap("someBidder", 1, "missingBidder", 0);
+        final Map<String, Integer> bidderToGdpr = Map.of("someBidder", 1, "missingBidder", 0);
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(bidderToGdpr),
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
@@ -2641,7 +2641,7 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder("missingBidder", bidder, givenEmptySeatBid());
 
         final ObjectNode dataNode = mapper.createObjectNode().put("data", "value");
-        final Map<String, Integer> bidderToGdpr = doubleMap("someBidder", 1, "missingBidder", 0);
+        final Map<String, Integer> bidderToGdpr = Map.of("someBidder", 1, "missingBidder", 0);
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(bidderToGdpr),
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
@@ -3631,13 +3631,22 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldProperPopulateImpExtPrebidEvenIfInExtImpPrebidContainNotCorrectField() {
+    public void shouldProperPopulateImpExtPrebid() {
         // given
-        final Imp imp = Imp.builder()
-                .ext(mapper.valueToTree(Map.of("prebid",
-                        doubleMap("test-field", "test-value", "bidder",
-                                Map.of("bidderName", doubleMap("test-host", "unknownHost", "publisher_id", "ps4"))))))
-                .build();
+        final HashMap<String, Object> impExpPrebidMap = new HashMap<>();
+        impExpPrebidMap.put("test-field", "test-value");
+        impExpPrebidMap.put("storedrequest", Map.of("id", "id"));
+        impExpPrebidMap.put("options", Map.of("echovideoattrs", true));
+        impExpPrebidMap.put("is_rewarded_inventory", 1);
+        impExpPrebidMap.put("floors", Map.of("floorRule", "rule"));
+        impExpPrebidMap.put("adunitcode", "adCodeValue");
+        impExpPrebidMap.put("passthrough", Map.of("test-field", "test-value"));
+        impExpPrebidMap.put("storedauctionresponse", Map.of("id", "id"));
+        impExpPrebidMap.put("bidder", Map.of("bidderName",
+                Map.of("test-host", "unknownHost", "publisher_id", "ps4")));
+        impExpPrebidMap.put("imp", Map.of("test-field", "test-value"));
+
+        final Imp imp = Imp.builder().ext(mapper.valueToTree(Map.of("prebid", impExpPrebidMap))).build();
         final BidRequest bidRequest = givenBidRequest(singletonList(imp), identity());
         final AuctionContext auctionContext = givenRequestContext(bidRequest);
 
@@ -3653,8 +3662,14 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest capturedBidRequest = captureBidRequest();
         assertThat(capturedBidRequest.getImp())
                 .extracting(Imp::getExt)
-                .containsExactly(mapper.valueToTree(doubleMap("prebid", emptyMap(),
-                        "bidder", doubleMap("test-host", "unknownHost", "publisher_id", "ps4"))));
+                .containsExactly(mapper.valueToTree(Map.of(
+                        "prebid", Map.of(
+                                "storedrequest", Map.of("id", "id"),
+                                "options", Map.of("echovideoattrs", true),
+                                "is_rewarded_inventory", 1,
+                                "floors", Map.of("floorRule", "rule"),
+                                "adunitcode", "adCodeValue"),
+                        "bidder", Map.of("test-host", "unknownHost", "publisher_id", "ps4"))));
     }
 
     @Test
@@ -3666,10 +3681,10 @@ public class ExchangeServiceTest extends VertxTest {
         final String bidderName = "bidderName";
         final String optionValue = "1";
         final Map<String, Map<String, String>> bidderValue =
-                singletonMap(bidderName, doubleMap("test-host", "unknownHost", "publisher_id", "ps4"));
+                singletonMap(bidderName, Map.of("test-host", "unknownHost", "publisher_id", "ps4"));
 
         final ObjectNode prebidJsonNodes = mapper.valueToTree(
-                singletonMap(prebid, doubleMap(optionKey, optionValue, bidderKey, bidderValue)));
+                singletonMap(prebid, Map.of(optionKey, optionValue, bidderKey, bidderValue)));
 
         final Imp imp = Imp.builder().ext(prebidJsonNodes).build();
         final BidRequest bidRequest = givenBidRequest(singletonList(imp), identity());
@@ -4160,13 +4175,6 @@ public class ExchangeServiceTest extends VertxTest {
                 .impId(impId)
                 .config(mapper.createObjectNode().put("references", impId))
                 .build();
-    }
-
-    private static <K, V> Map<K, V> doubleMap(K key1, V value1, K key2, V value2) {
-        final Map<K, V> map = new HashMap<>();
-        map.put(key1, value1);
-        map.put(key2, value2);
-        return map;
     }
 
     private static ExtBidPrebid toExtBidPrebid(ObjectNode ext) {

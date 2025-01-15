@@ -79,7 +79,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebidBidders;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigOrtb;
 import org.prebid.server.proto.openrtb.ext.request.ExtDooh;
-import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebidBidderFields;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebidFloors;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -906,7 +906,7 @@ public class ExchangeService {
             return null;
         }
 
-        final ExtImpPrebid extImpPrebid = extImpPrebid(extImpPrebidNode);
+        final ExtImpPrebidBidderFields extImpPrebid = extImpPrebid(extImpPrebidNode);
         final ExtImpPrebidFloors floors = extImpPrebid.getFloors();
         final ExtImpPrebidFloors updatedFloors = floors != null
                 ? ExtImpPrebidFloors.of(floors.getFloorRule(),
@@ -918,13 +918,12 @@ public class ExchangeService {
 
         return mapper.mapper().valueToTree(extImpPrebid(extImpPrebidNode).toBuilder()
                 .floors(updatedFloors)
-                .bidder(null)
                 .build());
     }
 
-    private ExtImpPrebid extImpPrebid(JsonNode extImpPrebid) {
+    private ExtImpPrebidBidderFields extImpPrebid(JsonNode extImpPrebid) {
         try {
-            return mapper.mapper().treeToValue(extImpPrebid, ExtImpPrebid.class);
+            return mapper.mapper().treeToValue(extImpPrebid, ExtImpPrebidBidderFields.class);
         } catch (JsonProcessingException e) {
             throw new PreBidException("Error decoding imp.ext.prebid: " + e.getMessage(), e);
         }
