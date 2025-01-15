@@ -22,7 +22,8 @@
               "type": "banner"
             },
             "origbidcpm": 0.5
-          }
+          },
+          "mtype": 1
         }
       ],
       "seat": "smartadserver",
