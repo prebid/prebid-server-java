@@ -865,7 +865,7 @@ public class BidResponseCreator {
             return null;
         }
 
-        boolean shouldDropIgb = StringUtils.isEmpty(igi.getImpid());
+        final boolean shouldDropIgb = StringUtils.isEmpty(igi.getImpid());
         if (shouldDropIgb) {
             conditionalLogger.warn("ExtIgi with absent impId from bidder: " + bidder, logSamplingRate);
         }
