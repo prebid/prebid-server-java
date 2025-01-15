@@ -807,6 +807,7 @@ public class ServiceConfiguration {
 
     @Bean
     BidResponseCreator bidResponseCreator(
+            @Value("${logging.sampling-rate:0.01}") double logSamplingRate,
             CoreCacheService coreCacheService,
             BidderCatalog bidderCatalog,
             VastModifier vastModifier,
@@ -824,6 +825,7 @@ public class ServiceConfiguration {
             CacheDefaultTtlProperties cacheDefaultTtlProperties) {
 
         return new BidResponseCreator(
+                logSamplingRate,
                 coreCacheService,
                 bidderCatalog,
                 vastModifier,
