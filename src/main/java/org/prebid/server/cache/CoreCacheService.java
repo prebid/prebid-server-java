@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.Future;
+import io.vertx.core.MultiMap;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
@@ -26,7 +27,7 @@ import org.prebid.server.cache.utils.CacheServiceUtil;
 import org.prebid.server.events.EventsContext;
 import org.prebid.server.events.EventsService;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.execution.Timeout;
+import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.identity.UUIDIdGenerator;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
@@ -61,8 +62,6 @@ public class CoreCacheService {
 
     private static final Logger logger = LoggerFactory.getLogger(CoreCacheService.class);
 
-    private static final Map<String, List<String>> DEBUG_HEADERS =
-            HttpUtil.toDebugHeaders(CacheServiceUtil.CACHE_HEADERS);
     private static final String BID_WURL_ATTRIBUTE = "wurl";
 
     private final HttpClient httpClient;
@@ -76,11 +75,16 @@ public class CoreCacheService {
     private final UUIDIdGenerator idGenerator;
     private final JacksonMapper mapper;
 
+    private final MultiMap cacheHeaders;
+    private final Map<String, List<String>> debugHeaders;
+
     public CoreCacheService(
             HttpClient httpClient,
             URL endpointUrl,
             String cachedAssetUrlTemplate,
             long expectedCacheTimeMs,
+            String apiKey,
+            boolean isApiKeySecured,
             VastModifier vastModifier,
             EventsService eventsService,
             Metrics metrics,
@@ -98,6 +102,11 @@ public class CoreCacheService {
         this.clock = Objects.requireNonNull(clock);
         this.idGenerator = Objects.requireNonNull(idGenerator);
         this.mapper = Objects.requireNonNull(mapper);
+
+        cacheHeaders = isApiKeySecured
+                ? HttpUtil.headers().add(HttpUtil.X_PBC_API_KEY_HEADER, Objects.requireNonNull(apiKey))
+                : HttpUtil.headers();
+        debugHeaders = HttpUtil.toDebugHeaders(cacheHeaders);
     }
 
     public String getEndpointHost() {
@@ -121,7 +130,10 @@ public class CoreCacheService {
         final List<CachedCreative> cachedCreatives = Collections.singletonList(
                 makeDebugCacheCreative(cachedDebugLog, cacheKey, videoCacheTtl));
         final BidCacheRequest bidCacheRequest = toBidCacheRequest(cachedCreatives);
-        httpClient.post(endpointUrl.toString(), HttpUtil.headers(), mapper.encodeToString(bidCacheRequest),
+        httpClient.post(
+                endpointUrl.toString(),
+                cacheHeaders,
+                mapper.encodeToString(bidCacheRequest),
                 expectedCacheTimeMs);
         return cacheKey;
     }
@@ -155,7 +167,7 @@ public class CoreCacheService {
         final long startTime = clock.millis();
         return httpClient.post(
                         endpointUrl.toString(),
-                        CacheServiceUtil.CACHE_HEADERS,
+                        cacheHeaders,
                         mapper.encodeToString(bidCacheRequest),
                         remainingTimeout)
                 .map(response -> toBidCacheResponse(
@@ -238,7 +250,7 @@ public class CoreCacheService {
     private List<CacheBid> getVideoCacheBids(List<BidInfo> bidInfos) {
         return bidInfos.stream()
                 .filter(bidInfo -> Objects.equals(bidInfo.getBidType(), BidType.video))
-                .map(bidInfo -> CacheBid.of(bidInfo, bidInfo.getVideoTtl()))
+                .map(bidInfo -> CacheBid.of(bidInfo, bidInfo.getVastTtl()))
                 .toList();
     }
 
@@ -286,7 +298,7 @@ public class CoreCacheService {
         final CacheHttpRequest httpRequest = CacheHttpRequest.of(url, body);
 
         final long startTime = clock.millis();
-        return httpClient.post(url, CacheServiceUtil.CACHE_HEADERS, body, remainingTimeout)
+        return httpClient.post(url, cacheHeaders, body, remainingTimeout)
                 .map(response -> processResponseOpenrtb(response,
                         httpRequest,
                         cachedCreatives.size(),
@@ -348,7 +360,7 @@ public class CoreCacheService {
                 .responseStatus(httpResponse != null ? httpResponse.getStatusCode() : null)
                 .responseBody(httpResponse != null ? httpResponse.getBody() : null)
                 .responseTimeMillis(responseTime(startTime))
-                .requestHeaders(DEBUG_HEADERS)
+                .requestHeaders(debugHeaders)
                 .build();
     }
 

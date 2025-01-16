@@ -23,6 +23,8 @@ import static org.mockserver.model.HttpStatusCode.PROCESSING_102
 import static org.mockserver.model.HttpStatusCode.SERVICE_UNAVAILABLE_503
 import static org.prebid.server.functional.model.AccountStatus.ACTIVE
 import static org.prebid.server.functional.model.config.BidValidationEnforcement.ENFORCE
+import static org.prebid.server.functional.model.request.auction.DebugCondition.DISABLED
+import static org.prebid.server.functional.model.request.auction.DebugCondition.ENABLED
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 import static org.prebid.server.functional.model.request.auction.SecurityLevel.SECURE
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.ERROR_BIDDER_UNREACHABLE
@@ -170,6 +172,9 @@ class SeatNonBidSpec extends BaseSpec {
         assert seatNonBid.seat == GENERIC.value
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == RESPONSE_REJECTED_INVALID_CREATIVE_NOT_SECURE
+
+        and: "PBS response shouldn't contain seatBid"
+        assert !response.seatbid
     }
 
     def "PBS shouldn't populate seatNonBid when returnAllBidStatus=true and bidder successfully bids"() {
@@ -219,7 +224,7 @@ class SeatNonBidSpec extends BaseSpec {
         assert !response.seatbid
 
         where:
-        debug << [1, 0, null]
+        debug << [ENABLED, DISABLED, null]
     }
 
     def "PBS shouldn't populate seatNonBid when returnAllBidStatus=false and debug=#debug and requested bidder didn't bid for any reason"() {
@@ -245,7 +250,7 @@ class SeatNonBidSpec extends BaseSpec {
         assert !response.seatbid
 
         where:
-        debug << [1, 0, null]
+        debug << [ENABLED, DISABLED, null]
     }
 
     def "PBS should populate seatNonBid when bidder is rejected due to timeout"() {

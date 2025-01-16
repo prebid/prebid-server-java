@@ -7,6 +7,7 @@
         {
           "id": "8ee514f1-b2b8-4abb-89fd-084437d1e800",
           "impid": "test-imp-id",
+          "exp": 300,
           "price": 0.500000,
           "adm": "some-test-ad",
           "crid": "crid_10",

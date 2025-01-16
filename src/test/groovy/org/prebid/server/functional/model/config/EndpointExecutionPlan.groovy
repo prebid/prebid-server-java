@@ -12,4 +12,16 @@ class EndpointExecutionPlan {
         new EndpointExecutionPlan(stages:  stages.collectEntries {
             it -> [(it): StageExecutionPlan.getModuleStageExecutionPlan(name, it)] } as Map<Stage, StageExecutionPlan>)
     }
+
+    static EndpointExecutionPlan getModulesEndpointExecutionPlan(Map<Stage, List<ModuleName>> modulesStages) {
+        new EndpointExecutionPlan(
+                stages: modulesStages.collectEntries { stage, moduleNames ->
+                    [(stage): new StageExecutionPlan(
+                            groups: moduleNames.collect { moduleName ->
+                                ExecutionGroup.getModuleExecutionGroup(moduleName, stage)
+                            }
+                    )]
+                } as Map<Stage, StageExecutionPlan>
+        )
+    }
 }

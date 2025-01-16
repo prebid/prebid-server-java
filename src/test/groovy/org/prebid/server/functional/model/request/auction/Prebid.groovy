@@ -10,11 +10,12 @@ import org.prebid.server.functional.model.bidder.BidderName
 @ToString(includeNames = true, ignoreNulls = true)
 class Prebid {
 
-    Integer debug
+    DebugCondition debug
     Boolean returnAllBidStatus
     Map<String, BidderName> aliases
     Map<String, Integer> aliasgvlids
     BidAdjustmentFactors bidAdjustmentFactors
+    BidAdjustment bidAdjustments
     PrebidCurrency currency
     Targeting targeting
     TraceLevel trace

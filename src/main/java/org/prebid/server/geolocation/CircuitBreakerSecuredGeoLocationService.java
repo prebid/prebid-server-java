@@ -2,7 +2,7 @@ package org.prebid.server.geolocation;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import org.prebid.server.execution.Timeout;
+import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.Logger;

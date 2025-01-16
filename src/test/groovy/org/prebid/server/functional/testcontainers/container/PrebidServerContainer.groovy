@@ -91,7 +91,6 @@ class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
 
     private static String normalizeProperty(String property) {
         property.replace(".", "_")
-                .replace("-", "")
                 .replace("[", "_")
                 .replace("]", "_")
     }

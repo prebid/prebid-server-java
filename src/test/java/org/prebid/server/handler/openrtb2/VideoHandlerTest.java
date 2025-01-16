@@ -19,19 +19,27 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.analytics.model.VideoEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.ExchangeService;
+import org.prebid.server.auction.HooksMetricsService;
 import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.CachedDebugLog;
 import org.prebid.server.auction.model.TimeoutContext;
 import org.prebid.server.auction.model.WithPodErrors;
+import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.auction.requestfactory.VideoRequestFactory;
 import org.prebid.server.cache.CoreCacheService;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
-import org.prebid.server.execution.Timeout;
-import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.execution.timeout.Timeout;
+import org.prebid.server.execution.timeout.TimeoutFactory;
+import org.prebid.server.hooks.execution.HookStageExecutor;
+import org.prebid.server.hooks.execution.model.HookExecutionContext;
+import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
+import org.prebid.server.hooks.execution.v1.exitpoint.ExitpointPayloadImpl;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.model.Endpoint;
+import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 import org.prebid.server.proto.response.VideoResponse;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
@@ -56,6 +64,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
@@ -86,8 +95,12 @@ public class VideoHandlerTest extends VertxTest {
     private UidsCookie uidsCookie;
     @Mock
     private PrebidVersionProvider prebidVersionProvider;
+    @Mock(strictness = LENIENT)
+    private HooksMetricsService hooksMetricsService;
+    @Mock(strictness = LENIENT)
+    private HookStageExecutor hookStageExecutor;
 
-    private VideoHandler videoHandler;
+    private VideoHandler target;
 
     private Timeout timeout;
 
@@ -107,16 +120,25 @@ public class VideoHandlerTest extends VertxTest {
 
         given(prebidVersionProvider.getNameVersionRecord()).willReturn("pbs-java/1.00");
 
+        given(hookStageExecutor.executeExitpointStage(any(), any(), any()))
+                .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
+                        false,
+                        ExitpointPayloadImpl.of(invocation.getArgument(0), invocation.getArgument(1)))));
+
+        given(hooksMetricsService.updateHooksMetrics(any())).willAnswer(invocation -> invocation.getArgument(0));
+
         timeout = new TimeoutFactory(clock).create(2000L);
 
-        videoHandler = new VideoHandler(
+        target = new VideoHandler(
                 videoRequestFactory,
                 videoResponseFactory,
                 exchangeService, coreCacheService,
                 analyticsReporterDelegator,
                 metrics,
+                hooksMetricsService,
                 clock,
                 prebidVersionProvider,
+                hookStageExecutor,
                 jacksonMapper);
     }
 
@@ -130,7 +152,7 @@ public class VideoHandlerTest extends VertxTest {
         givenHoldAuction(BidResponse.builder().build());
 
         // when
-        videoHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         assertThat(captureAuctionContext())
@@ -154,7 +176,7 @@ public class VideoHandlerTest extends VertxTest {
                         .build()));
 
         // when
-        videoHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         assertThat(httpResponse.headers())
@@ -176,7 +198,7 @@ public class VideoHandlerTest extends VertxTest {
                         .build()));
 
         // when
-        videoHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         assertThat(httpResponse.headers())
@@ -196,7 +218,7 @@ public class VideoHandlerTest extends VertxTest {
         given(clock.millis()).willReturn(now.toEpochMilli()).willReturn(now.plusMillis(50L).toEpochMilli());
 
         // when
-        videoHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         assertThat(captureAuctionContext())
@@ -214,11 +236,12 @@ public class VideoHandlerTest extends VertxTest {
                 .willReturn(Future.failedFuture(new InvalidRequestException("Request is invalid")));
 
         // when
-        videoHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(httpResponse).setStatusCode(eq(400));
         verify(httpResponse).end(eq("Invalid request format: Request is invalid"));
+        verifyNoInteractions(hooksMetricsService, hookStageExecutor);
     }
 
     @Test
@@ -228,12 +251,13 @@ public class VideoHandlerTest extends VertxTest {
                 .willReturn(Future.failedFuture(new UnauthorizedAccountException("Account id is not provided", "1")));
 
         // when
-        videoHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verifyNoInteractions(exchangeService);
         verify(httpResponse).setStatusCode(eq(401));
         verify(httpResponse).end(eq("Unauthorised: Account id is not provided"));
+        verifyNoInteractions(hooksMetricsService, hookStageExecutor);
     }
 
     @Test
@@ -246,11 +270,12 @@ public class VideoHandlerTest extends VertxTest {
                 .willThrow(new RuntimeException("Unexpected exception"));
 
         // when
-        videoHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(httpResponse).setStatusCode(eq(500));
         verify(httpResponse).end(eq("Critical error while running the auction: Unexpected exception"));
+        verifyNoInteractions(hooksMetricsService, hookStageExecutor);
     }
 
     @Test
@@ -262,10 +287,11 @@ public class VideoHandlerTest extends VertxTest {
         given(routingContext.response().closed()).willReturn(true);
 
         // when
-        videoHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(httpResponse, never()).end(anyString());
+        verifyNoInteractions(hooksMetricsService, hookStageExecutor);
     }
 
     @Test
@@ -280,10 +306,10 @@ public class VideoHandlerTest extends VertxTest {
                 .willReturn(VideoResponse.of(emptyList(), null));
 
         // when
-        videoHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
-        verify(videoResponseFactory).toVideoResponse(any(), any(), any());
+        verify(videoResponseFactory, times(2)).toVideoResponse(any(), any(), any());
 
         assertThat(httpResponse.headers()).hasSize(2)
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
@@ -291,6 +317,63 @@ public class VideoHandlerTest extends VertxTest {
                         tuple("Content-Type", "application/json"),
                         tuple("x-prebid", "pbs-java/1.00"));
         verify(httpResponse).end(eq("{\"adPods\":[]}"));
+
+        final ArgumentCaptor<MultiMap> responseHeadersCaptor = ArgumentCaptor.forClass(MultiMap.class);
+        verify(hookStageExecutor).executeExitpointStage(
+                responseHeadersCaptor.capture(),
+                eq("{\"adPods\":[]}"),
+                any());
+
+        assertThat(responseHeadersCaptor.getValue()).hasSize(2)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsOnly(
+                        tuple("Content-Type", "application/json"),
+                        tuple("x-prebid", "pbs-java/1.00"));
+
+        verify(hooksMetricsService).updateHooksMetrics(any());
+    }
+
+    @Test
+    public void shouldRespondWithBidResponseWhenExitpointHookChangesResponseAndHeaders() {
+        // given
+        given(videoRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(givenAuctionContext(identity(), emptyList())));
+
+        givenHoldAuction(BidResponse.builder().build());
+
+        given(videoResponseFactory.toVideoResponse(any(), any(), any()))
+                .willReturn(VideoResponse.of(emptyList(), null));
+
+        given(hookStageExecutor.executeExitpointStage(any(), any(), any()))
+                .willReturn(Future.succeededFuture(HookStageExecutionResult.success(
+                        ExitpointPayloadImpl.of(
+                                MultiMap.caseInsensitiveMultiMap().add("New-Header", "New-Header-Value"),
+                                "{\"adPods\":[{\"something\":1}]}"))));
+
+        // when
+        target.handle(routingContext);
+
+        // then
+        verify(videoResponseFactory, times(2)).toVideoResponse(any(), any(), any());
+
+        assertThat(httpResponse.headers()).hasSize(1)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsExactlyInAnyOrder(tuple("New-Header", "New-Header-Value"));
+        verify(httpResponse).end(eq("{\"adPods\":[{\"something\":1}]}"));
+
+        final ArgumentCaptor<MultiMap> responseHeadersCaptor = ArgumentCaptor.forClass(MultiMap.class);
+        verify(hookStageExecutor).executeExitpointStage(
+                responseHeadersCaptor.capture(),
+                eq("{\"adPods\":[]}"),
+                any());
+
+        assertThat(responseHeadersCaptor.getValue()).hasSize(2)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsOnly(
+                        tuple("Content-Type", "application/json"),
+                        tuple("x-prebid", "pbs-java/1.00"));
+
+        verify(hooksMetricsService).updateHooksMetrics(any());
     }
 
     @Test
@@ -309,7 +392,7 @@ public class VideoHandlerTest extends VertxTest {
         given(coreCacheService.cacheVideoDebugLog(any(), anyInt())).willReturn("cacheKey");
 
         // when
-        videoHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(coreCacheService).cacheVideoDebugLog(any(), anyInt());
@@ -327,6 +410,7 @@ public class VideoHandlerTest extends VertxTest {
         final AuctionContext auctionContext = AuctionContext.builder()
                 .bidRequest(BidRequest.builder().imp(emptyList()).build())
                 .account(Account.builder().auction(AccountAuctionConfig.builder().videoCacheTtl(100).build()).build())
+                .debugContext(DebugContext.empty())
                 .cachedDebugLog(cachedDebugLog)
                 .build();
 
@@ -343,7 +427,7 @@ public class VideoHandlerTest extends VertxTest {
                 .willReturn(VideoResponse.of(emptyList(), null));
 
         // when
-        videoHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(coreCacheService).cacheVideoDebugLog(any(), anyInt());
@@ -377,6 +461,8 @@ public class VideoHandlerTest extends VertxTest {
                 .uidsCookie(uidsCookie)
                 .bidRequest(bidRequest)
                 .timeoutContext(TimeoutContext.of(0, timeout, 0))
+                .debugContext(DebugContext.of(true, false, TraceLevel.verbose))
+                .hookExecutionContext(HookExecutionContext.of(Endpoint.openrtb2_video))
                 .build();
 
         return WithPodErrors.of(auctionContext, errors);

@@ -54,11 +54,9 @@ import org.prebid.server.auction.privacy.contextfactory.AmpPrivacyContextFactory
 import org.prebid.server.auction.privacy.contextfactory.AuctionPrivacyContextFactory;
 import org.prebid.server.auction.privacy.contextfactory.CookieSyncPrivacyContextFactory;
 import org.prebid.server.auction.privacy.contextfactory.SetuidPrivacyContextFactory;
-import org.prebid.server.auction.privacy.enforcement.ActivityEnforcement;
 import org.prebid.server.auction.privacy.enforcement.CcpaEnforcement;
-import org.prebid.server.auction.privacy.enforcement.CoppaEnforcement;
+import org.prebid.server.auction.privacy.enforcement.PrivacyEnforcement;
 import org.prebid.server.auction.privacy.enforcement.PrivacyEnforcementService;
-import org.prebid.server.auction.privacy.enforcement.TcfEnforcement;
 import org.prebid.server.auction.requestfactory.AmpRequestFactory;
 import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
 import org.prebid.server.auction.requestfactory.Ortb2ImplicitParametersResolver;
@@ -66,6 +64,9 @@ import org.prebid.server.auction.requestfactory.Ortb2RequestFactory;
 import org.prebid.server.auction.requestfactory.VideoRequestFactory;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConverterFactory;
+import org.prebid.server.bidadjustments.BidAdjustmentsProcessor;
+import org.prebid.server.bidadjustments.BidAdjustmentsResolver;
+import org.prebid.server.bidadjustments.BidAdjustmentsRetriever;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.BidderErrorNotifier;
@@ -84,7 +85,7 @@ import org.prebid.server.cookie.PrioritizedCoopSyncProvider;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.events.EventsService;
-import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.floors.PriceFloorAdjuster;
 import org.prebid.server.floors.PriceFloorEnforcer;
 import org.prebid.server.floors.PriceFloorProcessor;
@@ -107,6 +108,7 @@ import org.prebid.server.privacy.PrivacyExtractor;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.BidValidationEnforcement;
+import org.prebid.server.spring.config.model.CacheDefaultTtlProperties;
 import org.prebid.server.spring.config.model.ExternalConversionProperties;
 import org.prebid.server.spring.config.model.HttpClientCircuitBreakerProperties;
 import org.prebid.server.spring.config.model.HttpClientProperties;
@@ -160,6 +162,8 @@ public class ServiceConfiguration {
             @Value("${cache.path}") String path,
             @Value("${cache.query}") String query,
             @Value("${auction.cache.expected-request-time-ms}") long expectedCacheTimeMs,
+            @Value("${pbc.api.key:#{null}}") String apiKey,
+            @Value("${cache.api-key-secured:false}") boolean apiKeySecured,
             VastModifier vastModifier,
             EventsService eventsService,
             HttpClient httpClient,
@@ -172,6 +176,8 @@ public class ServiceConfiguration {
                 CacheServiceUtil.getCacheEndpointUrl(scheme, host, path),
                 CacheServiceUtil.getCachedAssetUrlTemplate(scheme, host, path, query),
                 expectedCacheTimeMs,
+                apiKey,
+                apiKeySecured,
                 vastModifier,
                 eventsService,
                 metrics,
@@ -420,7 +426,8 @@ public class ServiceConfiguration {
             AuctionPrivacyContextFactory auctionPrivacyContextFactory,
             DebugResolver debugResolver,
             JacksonMapper mapper,
-            GeoLocationServiceWrapper geoLocationServiceWrapper) {
+            GeoLocationServiceWrapper geoLocationServiceWrapper,
+            BidAdjustmentsRetriever bidAdjustmentsRetriever) {
 
         return new AuctionRequestFactory(
                 maxRequestSize,
@@ -436,7 +443,8 @@ public class ServiceConfiguration {
                 auctionPrivacyContextFactory,
                 debugResolver,
                 mapper,
-                geoLocationServiceWrapper);
+                geoLocationServiceWrapper,
+                bidAdjustmentsRetriever);
     }
 
     @Bean
@@ -748,11 +756,13 @@ public class ServiceConfiguration {
             HttpBidderRequestEnricher requestEnricher,
             JacksonMapper mapper) {
 
-        return new HttpBidderRequester(httpClient,
+        return new HttpBidderRequester(
+                httpClient,
                 bidderRequestCompletionTrackerFactory,
                 bidderErrorNotifier,
                 requestEnricher,
-                mapper);
+                mapper,
+                logSamplingRate);
     }
 
     @Bean
@@ -786,6 +796,16 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    CacheDefaultTtlProperties cacheDefaultTtlProperties(
+            @Value("${cache.default-ttl-seconds.banner:300}") Integer bannerTtl,
+            @Value("${cache.default-ttl-seconds.video:1500}") Integer videoTtl,
+            @Value("${cache.default-ttl-seconds.audio:1500}") Integer audioTtl,
+            @Value("${cache.default-ttl-seconds.native:300}") Integer nativeTtl) {
+
+        return CacheDefaultTtlProperties.of(bannerTtl, videoTtl, audioTtl, nativeTtl);
+    }
+
+    @Bean
     BidResponseCreator bidResponseCreator(
             CoreCacheService coreCacheService,
             BidderCatalog bidderCatalog,
@@ -800,7 +820,8 @@ public class ServiceConfiguration {
             Clock clock,
             JacksonMapper mapper,
             @Value("${cache.banner-ttl-seconds:#{null}}") Integer bannerCacheTtl,
-            @Value("${cache.video-ttl-seconds:#{null}}") Integer videoCacheTtl) {
+            @Value("${cache.video-ttl-seconds:#{null}}") Integer videoCacheTtl,
+            CacheDefaultTtlProperties cacheDefaultTtlProperties) {
 
         return new BidResponseCreator(
                 coreCacheService,
@@ -815,7 +836,8 @@ public class ServiceConfiguration {
                 truncateAttrChars,
                 clock,
                 mapper,
-                CacheTtl.of(bannerCacheTtl, videoCacheTtl));
+                CacheTtl.of(bannerCacheTtl, videoCacheTtl),
+                cacheDefaultTtlProperties);
     }
 
     @Bean
@@ -877,19 +899,11 @@ public class ServiceConfiguration {
 
     @Bean
     BidsAdjuster bidsAdjuster(ResponseBidValidator responseBidValidator,
-                              CurrencyConversionService currencyConversionService,
                               PriceFloorEnforcer priceFloorEnforcer,
                               DsaEnforcer dsaEnforcer,
-                              BidAdjustmentFactorResolver bidAdjustmentFactorResolver,
-                              JacksonMapper mapper) {
+                              BidAdjustmentsProcessor bidAdjustmentsProcessor) {
 
-        return new BidsAdjuster(
-                responseBidValidator,
-                currencyConversionService,
-                bidAdjustmentFactorResolver,
-                priceFloorEnforcer,
-                dsaEnforcer,
-                mapper);
+        return new BidsAdjuster(responseBidValidator, priceFloorEnforcer, bidAdjustmentsProcessor, dsaEnforcer);
     }
 
     @Bean
@@ -930,16 +944,8 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    PrivacyEnforcementService privacyEnforcementService(CoppaEnforcement coppaEnforcement,
-                                                        CcpaEnforcement ccpaEnforcement,
-                                                        TcfEnforcement tcfEnforcement,
-                                                        ActivityEnforcement activityEnforcement) {
-
-        return new PrivacyEnforcementService(
-                coppaEnforcement,
-                ccpaEnforcement,
-                tcfEnforcement,
-                activityEnforcement);
+    PrivacyEnforcementService privacyEnforcementService(List<PrivacyEnforcement> enforcements) {
+        return new PrivacyEnforcementService(enforcements);
     }
 
     @Bean
@@ -1166,6 +1172,29 @@ public class ServiceConfiguration {
                                              BidResponseCreator bidResponseCreator) {
 
         return new SkippedAuctionService(storedResponseProcessor, bidResponseCreator);
+    }
+
+    @Bean
+    BidAdjustmentsRetriever bidAdjustmentsRetriever(JacksonMapper mapper, JsonMerger jsonMerger) {
+        return new BidAdjustmentsRetriever(mapper, jsonMerger, logSamplingRate);
+    }
+
+    @Bean
+    BidAdjustmentsResolver bidAdjustmentsResolver(CurrencyConversionService currencyService) {
+        return new BidAdjustmentsResolver(currencyService);
+    }
+
+    @Bean
+    BidAdjustmentsProcessor bidAdjustmentsProcessor(CurrencyConversionService currencyService,
+                                                    BidAdjustmentFactorResolver bidAdjustmentFactorResolver,
+                                                    BidAdjustmentsResolver bidAdjustmentsResolver,
+                                                    JacksonMapper mapper) {
+
+        return new BidAdjustmentsProcessor(
+                currencyService,
+                bidAdjustmentFactorResolver,
+                bidAdjustmentsResolver,
+                mapper);
     }
 
     private static List<String> splitToList(String listAsString) {

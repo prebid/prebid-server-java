@@ -25,6 +25,7 @@ public enum MetricName {
 
     // auction
     requests,
+    debug_requests,
     app_requests,
     no_cookie_requests,
     request_time,
@@ -138,6 +139,7 @@ public enum MetricName {
     call,
     success,
     noop,
+    no_invocation("no-invocation"),
     reject,
     unknown,
     failure,

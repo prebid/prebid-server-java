@@ -110,6 +110,21 @@ public class AgmaAnalyticsReporterTest extends VertxTest {
     }
 
     @Test
+    public void processEventShouldNotSendAnythingWhenAuctionContextIsNull() {
+        // given
+        final AuctionEvent auctionEvent = AuctionEvent.builder()
+                .auctionContext(null)
+                .build();
+
+        // when
+        final Future<Void> result = target.processEvent(auctionEvent);
+
+        // then
+        verifyNoInteractions(httpClient);
+        assertThat(result.succeeded()).isTrue();
+    }
+
+    @Test
     public void processEventShouldSendEventWhenEventIsAuctionEvent() {
         // given
         final Site givenSite = Site.builder().publisher(Publisher.builder().id("publisherId").build()).build();
@@ -406,6 +421,124 @@ public class AgmaAnalyticsReporterTest extends VertxTest {
         // then
         verifyNoInteractions(httpClient);
         assertThat(result.succeeded()).isTrue();
+    }
+
+    @Test
+    public void processEventShouldSendWhenAccountsHasConfiguredAppsOrSites() {
+        // given
+        final AgmaAnalyticsProperties properties = AgmaAnalyticsProperties.builder()
+                .url("http://endpoint.com")
+                .gzip(false)
+                .bufferSize(100000)
+                .bufferTimeoutMs(10000L)
+                .maxEventsCount(0)
+                .httpTimeoutMs(1000L)
+                .accounts(Map.of("publisherId_bundleId", "accountCode"))
+                .build();
+
+        target = new AgmaAnalyticsReporter(properties, versionProvider, jacksonMapper, clock, httpClient, vertx);
+
+        // given
+        final App givenApp = App.builder().bundle("bundleId")
+                .publisher(Publisher.builder().id("publisherId").build()).build();
+        final Device givenDevice = Device.builder().build();
+        final User givenUser = User.builder().build();
+
+        final AuctionEvent auctionEvent = AuctionEvent.builder()
+                .auctionContext(AuctionContext.builder()
+                        .privacyContext(PrivacyContext.of(
+                                null, TcfContext.builder().consent(PARSED_VALID_CONSENT).build()))
+                        .timeoutContext(TimeoutContext.of(clock.millis(), null, 1))
+                        .bidRequest(BidRequest.builder()
+                                .id("requestId")
+                                .app(givenApp)
+                                .app(givenApp)
+                                .device(givenDevice)
+                                .user(givenUser)
+                                .build())
+                        .build())
+                .build();
+
+        // when
+        final Future<Void> result = target.processEvent(auctionEvent);
+
+        // then
+        final AgmaEvent expectedEvent = AgmaEvent.builder()
+                .eventType("auction")
+                .accountCode("accountCode")
+                .requestId("requestId")
+                .app(givenApp)
+                .device(givenDevice)
+                .user(givenUser)
+                .startTime(ZonedDateTime.parse("2024-09-03T15:00:00+05:00"))
+                .build();
+
+        final String expectedEventPayload = "[" + jacksonMapper.encodeToString(expectedEvent) + "]";
+
+        verify(httpClient).request(
+                eq(POST),
+                eq("http://endpoint.com"),
+                any(),
+                eq(expectedEventPayload),
+                eq(1000L));
+    }
+
+    @Test
+    public void processEventShouldSendWhenAccountsHasConfiguredAppsOrSitesOnly() {
+        // given
+        final AgmaAnalyticsProperties properties = AgmaAnalyticsProperties.builder()
+                .url("http://endpoint.com")
+                .gzip(false)
+                .bufferSize(100000)
+                .bufferTimeoutMs(10000L)
+                .maxEventsCount(0)
+                .httpTimeoutMs(1000L)
+                .accounts(Map.of("_mySite", "accountCode"))
+                .build();
+
+        target = new AgmaAnalyticsReporter(properties, versionProvider, jacksonMapper, clock, httpClient, vertx);
+
+        // given
+        final Site givenSite = Site.builder().id("mySite").build();
+        final Device givenDevice = Device.builder().build();
+        final User givenUser = User.builder().build();
+
+        final AuctionEvent auctionEvent = AuctionEvent.builder()
+                .auctionContext(AuctionContext.builder()
+                        .privacyContext(PrivacyContext.of(
+                                null, TcfContext.builder().consent(PARSED_VALID_CONSENT).build()))
+                        .timeoutContext(TimeoutContext.of(clock.millis(), null, 1))
+                        .bidRequest(BidRequest.builder()
+                                .id("requestId")
+                                .site(givenSite)
+                                .device(givenDevice)
+                                .user(givenUser)
+                                .build())
+                        .build())
+                .build();
+
+        // when
+        final Future<Void> result = target.processEvent(auctionEvent);
+
+        // then
+        final AgmaEvent expectedEvent = AgmaEvent.builder()
+                .eventType("auction")
+                .accountCode("accountCode")
+                .requestId("requestId")
+                .site(givenSite)
+                .device(givenDevice)
+                .user(givenUser)
+                .startTime(ZonedDateTime.parse("2024-09-03T15:00:00+05:00"))
+                .build();
+
+        final String expectedEventPayload = "[" + jacksonMapper.encodeToString(expectedEvent) + "]";
+
+        verify(httpClient).request(
+                eq(POST),
+                eq("http://endpoint.com"),
+                any(),
+                eq(expectedEventPayload),
+                eq(1000L));
     }
 
     @Test

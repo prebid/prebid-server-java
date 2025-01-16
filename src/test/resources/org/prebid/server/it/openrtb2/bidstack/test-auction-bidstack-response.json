@@ -6,6 +6,7 @@
         {
           "id": "bid_id",
           "impid": "imp_id",
+          "exp": 1500,
           "price": 3.33,
           "adid": "adid001",
           "adm": "<VAST version=\"3.0\"></VAST>",

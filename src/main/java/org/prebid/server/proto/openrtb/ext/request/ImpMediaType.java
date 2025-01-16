@@ -9,6 +9,8 @@ public enum ImpMediaType {
     @JsonProperty("native")
     xNative,
     video,
+    @JsonProperty("video-instream")
+    video_instream,
     @JsonProperty("video-outstream")
     video_outstream;
 
@@ -16,6 +18,7 @@ public enum ImpMediaType {
     public String toString() {
         return this == xNative ? "native"
                 : this == video_outstream ? "video-outstream"
+                : this == video_instream ? "video-instream"
                 : super.toString();
     }
 }

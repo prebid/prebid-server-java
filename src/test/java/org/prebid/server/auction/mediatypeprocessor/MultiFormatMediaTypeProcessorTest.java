@@ -279,7 +279,8 @@ public class MultiFormatMediaTypeProcessorTest extends VertxTest {
                 false,
                 false,
                 CompressionType.NONE,
-                Ortb.of(multiFormatSupported));
+                Ortb.of(multiFormatSupported),
+                0L);
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,

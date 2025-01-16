@@ -14,6 +14,7 @@ import com.iab.openrtb.request.Uid;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.net.impl.SocketAddressImpl;
 import io.vertx.ext.web.RoutingContext;
@@ -39,8 +40,8 @@ import org.prebid.server.exception.BlocklistedAccountException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.exception.UnauthorizedAccountException;
-import org.prebid.server.execution.Timeout;
-import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.execution.timeout.Timeout;
+import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.hooks.execution.HookStageExecutor;
@@ -1079,6 +1080,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         given(httpServerRequest.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
         given(httpServerRequest.absoluteURI()).willReturn("absoluteUri");
+        given(httpServerRequest.method()).willReturn(HttpMethod.POST);
         given(httpServerRequest.scheme()).willReturn("https");
         given(httpServerRequest.remoteAddress()).willReturn(new SocketAddressImpl(1234, "host"));
 
@@ -1107,6 +1109,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         // then
         final HttpRequestContext httpRequest = result.result();
         assertThat(httpRequest.getAbsoluteUri()).isEqualTo("absoluteUri");
+        assertThat(httpRequest.getHttpMethod()).isEqualTo(HttpMethod.POST);
         assertThat(httpRequest.getQueryParams()).isSameAs(updatedQueryParam);
         assertThat(httpRequest.getHeaders()).isSameAs(headerParams);
         assertThat(httpRequest.getBody()).isEqualTo("{\"app\":{\"bundle\":\"org.company.application\"}}");

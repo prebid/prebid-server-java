@@ -8,7 +8,10 @@ enum BidAdjustmentMediaType {
     AUDIO("audio"),
     NATIVE("native"),
     VIDEO("video"),
-    VIDEO_OUTSTREAM("video-outstream")
+    VIDEO_IN_STREAM("video-instream"),
+    VIDEO_OUT_STREAM("video-outstream"),
+    ANY('*'),
+    UNKNOWN('unknown')
 
     @JsonValue
     String value

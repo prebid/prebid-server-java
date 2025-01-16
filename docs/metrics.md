@@ -37,6 +37,7 @@ where `[DATASOURCE]` is a data source name, `DEFAULT_DS` by defaul.
 
 ## General auction metrics
 - `app_requests` - number of requests received from applications
+- `debug_requests` - number of requests received (when debug mode is enabled)
 - `no_cookie_requests` - number of requests without `uids` cookie or with one that didn't contain at least one live UID
 - `request_time` - timer tracking how long did it take for Prebid Server to serve a request
 - `imps_requested` - number if impressions requested
@@ -89,6 +90,7 @@ Following metrics are collected and submitted if account is configured with `bas
 
 Following metrics are collected and submitted if account is configured with `detailed` verbosity:
 - `account.<account-id>.requests.type.(openrtb2-web,openrtb-app,amp,legacy)` - number of requests received from account with `<account-id>` broken down by type of incoming request
+- `account.<account-id>.debug_requests` - number of requests received from account with `<account-id>` broken down by type of incoming request (when debug mode is enabled)
 - `account.<account-id>.requests.rejected` - number of rejected requests caused by incorrect `accountId`
 - `account.<account-id>.adapter.<bidder-name>.request_time` - timer tracking how long did it take to make a request to `<bidder-name>` when incoming request was from `<account-id>` 
 - `account.<account-id>.adapter.<bidder-name>.bids_received` - number of bids received from `<bidder-name>` when incoming request was from `<account-id>`
@@ -133,3 +135,15 @@ Following metrics are collected and submitted if account is configured with `det
 - `analytics.<reporter-name>.(auction|amp|video|cookie_sync|event|setuid).timeout` - number of event requests, failed with timeout cause
 - `analytics.<reporter-name>.(auction|amp|video|cookie_sync|event|setuid).err` - number of event requests, failed with errors
 - `analytics.<reporter-name>.(auction|amp|video|cookie_sync|event|setuid).badinput` - number of event requests, rejected with bad input cause
+
+## Modules metrics
+- `modules.module.<module>.stage.<stage>.hook.<hook>.call` - number of times the hook is called
+- `modules.module.<module>.stage.<stage>.hook.<hook>.duration` - timer tracking the called hook execution time
+- `modules.module.<module>.stage.<stage>.hook.<hook>.success.(noop|update|reject|no-invocation)` - number of times the hook is called successfully with the action applied
+- `modules.module.<module>.stage.<stage>.hook.<hook>.(failure|timeout|execution-error)` - number of times the hook execution is failed
+
+## Modules per-account metrics
+- `account.<account-id>.modules.module.<module>.call` - number of times the module is called
+- `account.<account-id>.modules.module.<module>.duration` - timer tracking the called module execution time
+- `account.<account-id>.modules.module.<module>.success.(noop|update|reject|no-invocation)` - number of times the module is called successfully with the action applied
+- `account.<account-id>.modules.module.<module>.failure` - number of times the module execution is failed

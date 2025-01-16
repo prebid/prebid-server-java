@@ -33,8 +33,8 @@ import org.prebid.server.exception.BlocklistedAccountException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.exception.UnauthorizedAccountException;
-import org.prebid.server.execution.Timeout;
-import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.execution.timeout.Timeout;
+import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.hooks.execution.HookStageExecutor;
@@ -385,6 +385,7 @@ public class Ortb2RequestFactory {
         }
 
         return HttpRequestContext.builder()
+                .httpMethod(routingContext.request().method())
                 .absoluteUri(routingContext.request().absoluteURI())
                 .queryParams(stageResult.getPayload().queryParams())
                 .headers(stageResult.getPayload().headers())

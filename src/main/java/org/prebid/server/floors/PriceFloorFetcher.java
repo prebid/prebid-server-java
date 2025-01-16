@@ -13,7 +13,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpStatus;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.floors.model.PriceFloorData;
 import org.prebid.server.floors.model.PriceFloorDebugProperties;
 import org.prebid.server.floors.proto.FetchResult;
@@ -176,7 +176,10 @@ public class PriceFloorFetcher {
         }
 
         final PriceFloorData priceFloorData = parsePriceFloorData(body, accountId);
-        PriceFloorRulesValidator.validateRulesData(priceFloorData, resolveMaxRules(fetchConfig.getMaxRules()));
+        PriceFloorRulesValidator.validateRulesData(
+                priceFloorData,
+                PriceFloorsConfigResolver.resolveMaxValue(fetchConfig.getMaxRules()),
+                PriceFloorsConfigResolver.resolveMaxValue(fetchConfig.getMaxSchemaDims()));
 
         return ResponseCacheInfo.of(priceFloorData,
                 FetchStatus.success,
@@ -192,12 +195,6 @@ public class PriceFloorFetcher {
                     .formatted(accountId, ExceptionUtils.getMessage(e)));
         }
         return priceFloorData;
-    }
-
-    private static int resolveMaxRules(Long accountMaxRules) {
-        return accountMaxRules != null && !accountMaxRules.equals(0L)
-                ? Math.toIntExact(accountMaxRules)
-                : Integer.MAX_VALUE;
     }
 
     private Long cacheTtlFromResponse(HttpClientResponse httpClientResponse, String fetchUrl) {

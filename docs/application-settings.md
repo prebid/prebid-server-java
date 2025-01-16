@@ -19,8 +19,13 @@ There are two ways to configure application settings: database and file. This do
       operational warning.
     - "enforce": if a bidder returns a creative that's larger in height or width than any of the allowed sizes, reject
       the bid and log an operational warning.
+- `auction.bidadjustments` - configuration JSON for default bid adjustments
+- `auction.bidadjustments.mediatype.{banner, video-instream, video-outstream, audio, native, *}.{<BIDDER>, *}.{<DEAL_ID>, *}[]` - array of bid adjustment to be applied to any bid of the provided mediatype, <BIDDER> and <DEAL_ID> (`*` means ANY)
+- `auction.bidadjustments.mediatype.*.*.*[].adjtype` - type of the bid adjustment (cpm, multiplier, static)
+- `auction.bidadjustments.mediatype.*.*.*[].value` - value of the bid adjustment
+- `auction.bidadjustments.mediatype.*.*.*[].currency` - currency of the bid adjustment
 - `auction.events.enabled` - enables events for account if true
-- `auction.price-floors.enabeled` - enables price floors for account if true. Defaults to true.
+- `auction.price-floors.enabled` - enables price floors for account if true. Defaults to true.
 - `auction.price-floors.fetch.enabled`- enables data fetch for price floors for account if true. Defaults to false.
 - `auction.price-floors.fetch.url` - url to fetch price floors data from.
 - `auction.price-floors.fetch.timeout-ms` - timeout for fetching price floors data. Defaults to 5000.
@@ -96,6 +101,7 @@ Keep in mind following restrictions:
 - `cookie-sync.pri` - a list of prioritized bidder codes
 - `cookie-sync.coop-sync.default` - if the "coopSync" value isn't specified in the `/cookie_sync` request, use this
 - `hooks` - configuration for Prebid Server Modules. For further details, see: https://docs.prebid.org/prebid-server/pbs-modules/index.html#2-define-an-execution-plan
+- `hooks.admin.module-execution` - a key-value map, where a key is a module name and a value is a boolean, that defines whether modules hooks should/should not be always executed; if the module is not specified it is executed by default when it's present in the execution plan
 - `settings.geo-lookup` - enables geo lookup for account if true. Defaults to false.
 
 Here are the definitions of the "purposes" that can be defined in the GDPR setting configurations:

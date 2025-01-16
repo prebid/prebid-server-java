@@ -104,13 +104,13 @@ public class AccountConfigReader {
         final Result<List<String>> bapp =
                 blockedAttribute(BAPP_FIELD, String.class, BLOCKED_APP_FIELD, requestMediaTypes);
         final Result<Map<String, List<Integer>>> btype =
-                blockedAttributesForImps(BTYPE_FIELD, Integer.class, BLOCKED_BANNER_TYPE_FIELD, bidRequest);
+                blockedAttributesForImps(BTYPE_FIELD, Integer.class, BLOCKED_BANNER_TYPE_FIELD, BANNER_MEDIA_TYPE, bidRequest);
         final Result<Map<String, List<Integer>>> bannerBattr =
-                blockedAttributesForImps(BATTR_FIELD, Integer.class, BLOCKED_BANNER_ATTR_FIELD, bidRequest);
+                blockedAttributesForImps(BATTR_FIELD, Integer.class, BLOCKED_BANNER_ATTR_FIELD, BANNER_MEDIA_TYPE, bidRequest);
         final Result<Map<String, List<Integer>>> videoBattr =
-                blockedAttributesForImps(BATTR_FIELD, Integer.class, BLOCKED_VIDEO_ATTR_FIELD, bidRequest);
+                blockedAttributesForImps(BATTR_FIELD, Integer.class, BLOCKED_VIDEO_ATTR_FIELD, VIDEO_MEDIA_TYPE, bidRequest);
         final Result<Map<String, List<Integer>>> audioBattr =
-                blockedAttributesForImps(BATTR_FIELD, Integer.class, BLOCKED_AUDIO_ATTR_FIELD, bidRequest);
+                blockedAttributesForImps(BATTR_FIELD, Integer.class, BLOCKED_AUDIO_ATTR_FIELD, AUDIO_MEDIA_TYPE, bidRequest);
         final Result<Map<MediaType, Map<String, List<Integer>>>> battr =
                 mergeBlockedAttributes(bannerBattr, videoBattr, audioBattr);
 
@@ -226,19 +226,23 @@ public class AccountConfigReader {
     private <T> Result<Map<String, List<T>>> blockedAttributesForImps(String attribute,
                                                                       Class<T> attributeType,
                                                                       String fieldName,
+                                                                      String attributeMediaType,
                                                                       BidRequest bidRequest) {
 
         final Map<String, List<T>> attributeValues = new HashMap<>();
         final List<Result<?>> results = new ArrayList<>();
 
         for (final Imp imp : bidRequest.getImp()) {
-            final Result<List<T>> attributeForImp = blockedAttribute(
-                    attribute, attributeType, fieldName, mediaTypesFrom(imp));
+            final Set<String> actualMediaTypes = mediaTypesFrom(imp);
+            if (actualMediaTypes.contains(attributeMediaType)) {
+                final Result<List<T>> attributeForImp = blockedAttribute(
+                        attribute, attributeType, fieldName, actualMediaTypes);
 
-            if (attributeForImp.hasValue()) {
-                attributeValues.put(imp.getId(), attributeForImp.getValue());
+                if (attributeForImp.hasValue()) {
+                    attributeValues.put(imp.getId(), attributeForImp.getValue());
+                }
+                results.add(attributeForImp);
             }
-            results.add(attributeForImp);
         }
 
         return Result.of(

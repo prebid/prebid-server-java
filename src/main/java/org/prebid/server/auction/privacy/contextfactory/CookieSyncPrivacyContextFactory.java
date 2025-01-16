@@ -6,7 +6,7 @@ import io.vertx.core.http.HttpServerRequest;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.model.IpAddress;
-import org.prebid.server.execution.Timeout;
+import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.privacy.PrivacyExtractor;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;

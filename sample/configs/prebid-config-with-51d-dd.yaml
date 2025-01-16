@@ -1,0 +1,99 @@
+status-response: "ok"
+adapters:
+  appnexus:
+    enabled: true
+  ix:
+    enabled: true
+  openx:
+    enabled: true
+  pubmatic:
+    enabled: true
+  rubicon:
+    enabled: true
+metrics:
+  prefix: prebid
+cache:
+  scheme: http
+  host: localhost
+  path: /cache
+  query: uuid=
+settings:
+  enforce-valid-account: false
+  generate-storedrequest-bidrequest-id: true
+  filesystem:
+    settings-filename: sample/configs/sample-app-settings.yaml
+    stored-requests-dir: sample
+    stored-imps-dir: sample
+    stored-responses-dir: sample
+    categories-dir:
+gdpr:
+  default-value: 1
+  vendorlist:
+    v2:
+      cache-dir: /var/tmp/vendor2
+    v3:
+      cache-dir: /var/tmp/vendor3
+admin-endpoints:
+  logging-changelevel:
+    enabled: true
+    path: /logging/changelevel
+    on-application-port: true
+    protected: false
+hooks:
+  fiftyone-devicedetection:
+    enabled: true
+  host-execution-plan: >
+    {
+      "endpoints": {
+        "/openrtb2/auction": {
+          "stages": {
+            "entrypoint": {
+              "groups": [
+                {
+                  "timeout": 100,
+                  "hook-sequence": [
+                    {
+                      "module-code": "fiftyone-devicedetection",
+                      "hook-impl-code": "fiftyone-devicedetection-entrypoint-hook"
+                    }
+                  ]
+                }
+              ]
+            },
+            "raw-auction-request": {
+              "groups": [
+                {
+                  "timeout": 100,
+                  "hook-sequence": [
+                    {
+                      "module-code": "fiftyone-devicedetection",
+                      "hook-impl-code": "fiftyone-devicedetection-raw-auction-request-hook"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  modules:
+    fiftyone-devicedetection:
+      account-filter:
+        allow-list: [] # list of strings
+      data-file:
+        path: "51Degrees-LiteV4.1.hash" # string, REQUIRED, download the sample from https://github.com/51Degrees/device-detection-data/blob/main/51Degrees-LiteV4.1.hash or Enterprise from https://51degrees.com/pricing
+        make-temp-copy: ~ # boolean
+        update:
+          auto: ~ # boolean
+          on-startup: ~ # boolean
+          url: ~ # string
+          license-key: ~ # string
+          watch-file-system: ~ # boolean
+          polling-interval: ~ # int, seconds
+      performance:
+        profile: ~ # string, one of [LowMemory,MaxPerformance,HighPerformance,Balanced,BalancedTemp]
+        concurrency: ~ # int
+        difference: ~ # int
+        allow-unmatched: ~ # boolean
+        drift: ~ # int

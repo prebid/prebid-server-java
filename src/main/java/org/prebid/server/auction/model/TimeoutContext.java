@@ -1,7 +1,7 @@
 package org.prebid.server.auction.model;
 
 import lombok.Value;
-import org.prebid.server.execution.Timeout;
+import org.prebid.server.execution.timeout.Timeout;
 
 @Value(staticConstructor = "of")
 public class TimeoutContext {

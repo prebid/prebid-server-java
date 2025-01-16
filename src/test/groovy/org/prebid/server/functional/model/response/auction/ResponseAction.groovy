@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonValue
 
 enum ResponseAction {
 
-    UPDATE, NO_ACTION
+    UPDATE, NO_ACTION, NO_INVOCATION
 
     @JsonValue
     String getValue() {

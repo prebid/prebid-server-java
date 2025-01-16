@@ -13,6 +13,7 @@ enum BidderName {
     ALIAS_CAMEL_CASE("AlIaS"),
     GENERIC_CAMEL_CASE("GeNerIc"),
     GENERIC("generic"),
+    GENER_X("gener_x"),
     RUBICON("rubicon"),
     APPNEXUS("appnexus"),
     RUBICON_ALIAS("rubiconAlias"),

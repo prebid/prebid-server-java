@@ -6,6 +6,7 @@
         {
           "id": "12345",
           "impid": "imp_id",
+          "exp": 300,
           "price": 2.29,
           "crid": "",
           "dealid": "1234",

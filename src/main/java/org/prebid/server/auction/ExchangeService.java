@@ -57,19 +57,12 @@ import org.prebid.server.bidder.model.Price;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.execution.Timeout;
-import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.execution.timeout.Timeout;
+import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.floors.PriceFloorAdjuster;
 import org.prebid.server.floors.PriceFloorProcessor;
 import org.prebid.server.hooks.execution.HookStageExecutor;
-import org.prebid.server.hooks.execution.model.ExecutionAction;
-import org.prebid.server.hooks.execution.model.ExecutionStatus;
-import org.prebid.server.hooks.execution.model.GroupExecutionOutcome;
-import org.prebid.server.hooks.execution.model.HookExecutionOutcome;
-import org.prebid.server.hooks.execution.model.HookId;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
-import org.prebid.server.hooks.execution.model.Stage;
-import org.prebid.server.hooks.execution.model.StageExecutionOutcome;
 import org.prebid.server.hooks.v1.bidder.BidderRequestPayload;
 import org.prebid.server.hooks.v1.bidder.BidderResponsePayload;
 import org.prebid.server.json.JacksonMapper;
@@ -110,7 +103,6 @@ import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -221,8 +213,7 @@ public class ExchangeService {
         return processAuctionRequest(context)
                 .compose(this::invokeResponseHooks)
                 .map(AnalyticsTagsEnricher::enrichWithAnalyticsTags)
-                .map(HookDebugInfoEnricher::enrichWithHooksDebugInfo)
-                .map(this::updateHooksMetrics);
+                .map(HookDebugInfoEnricher::enrichWithHooksDebugInfo);
     }
 
     private Future<AuctionContext> processAuctionRequest(AuctionContext context) {
@@ -249,6 +240,10 @@ public class ExchangeService {
         final Map<String, MultiBidConfig> bidderToMultiBid = bidderToMultiBids(bidRequest, debugWarnings);
         receivedContext.getBidRejectionTrackers().putAll(makeBidRejectionTrackers(bidRequest, aliases));
 
+        final boolean debugEnabled = receivedContext.getDebugContext().isDebugEnabled();
+        metrics.updateDebugRequestMetrics(debugEnabled);
+        metrics.updateAccountDebugRequestMetrics(account, debugEnabled);
+
         return storedResponseProcessor.getStoredResponseResult(bidRequest.getImp(), timeout)
                 .map(storedResponseResult -> populateStoredResponse(storedResponseResult, storedAuctionResponses))
                 .compose(storedResponseResult ->
@@ -273,7 +268,8 @@ public class ExchangeService {
                                 storedAuctionResponses,
                                 bidRequest.getImp(),
                                 context.getBidRejectionTrackers()))
-                        .map(auctionParticipations -> dropZeroNonDealBids(auctionParticipations, debugWarnings))
+                        .map(auctionParticipations -> dropZeroNonDealBids(
+                                auctionParticipations, debugWarnings, debugEnabled))
                         .map(auctionParticipations ->
                                 bidsAdjuster.validateAndAdjustBids(auctionParticipations, context, aliases))
                         .map(auctionParticipations -> updateResponsesMetrics(auctionParticipations, account, aliases))
@@ -284,7 +280,7 @@ public class ExchangeService {
                                 logger,
                                 bidResponse,
                                 context.getBidRequest(),
-                                context.getDebugContext().isDebugEnabled()))
+                                debugEnabled))
                         .compose(bidResponse -> bidResponsePostProcessor.postProcess(
                                 context.getHttpRequest(), uidsCookie, bidRequest, bidResponse, account))
                         .map(context::with));
@@ -705,7 +701,7 @@ public class ExchangeService {
         if (blockedRequestByTcf) {
             context.getBidRejectionTrackers()
                     .get(bidder)
-                    .rejectAll(BidRejectionReason.REQUEST_BLOCKED_PRIVACY);
+                    .rejectAllImps(BidRejectionReason.REQUEST_BLOCKED_PRIVACY);
 
             return AuctionParticipation.builder()
                     .bidder(bidder)
@@ -1158,7 +1154,7 @@ public class ExchangeService {
 
         auctionContext.getBidRejectionTrackers()
                 .get(bidderName)
-                .rejectAll(bidRejectionReason);
+                .rejectAllImps(bidRejectionReason);
         final BidderSeatBid bidderSeatBid = BidderSeatBid.builder()
                 .warnings(warnings)
                 .build();
@@ -1197,7 +1193,7 @@ public class ExchangeService {
         if (hookStageResult.isShouldReject()) {
             auctionContext.getBidRejectionTrackers()
                     .get(bidderRequest.getBidder())
-                    .rejectAll(BidRejectionReason.REQUEST_BLOCKED_GENERAL);
+                    .rejectAllImps(BidRejectionReason.REQUEST_BLOCKED_GENERAL);
 
             return Future.succeededFuture(BidderResponse.of(bidderRequest.getBidder(), BidderSeatBid.empty(), 0));
         }
@@ -1221,6 +1217,7 @@ public class ExchangeService {
         final String bidderName = bidderRequest.getBidder();
         final String resolvedBidderName = aliases.resolveBidder(bidderName);
         final Bidder<?> bidder = bidderCatalog.bidderByName(resolvedBidderName);
+        final long bidderTmaxDeductionMs = bidderCatalog.bidderInfoByName(resolvedBidderName).getTmaxDeductionMs();
         final BidRejectionTracker bidRejectionTracker = auctionContext.getBidRejectionTrackers().get(bidderName);
 
         final TimeoutContext timeoutContext = auctionContext.getTimeoutContext();
@@ -1229,7 +1226,8 @@ public class ExchangeService {
         final long bidderRequestStartTime = clock.millis();
 
         return Future.succeededFuture(bidderRequest.getBidRequest())
-                .map(bidRequest -> adjustTmax(bidRequest, auctionStartTime, adjustmentFactor, bidderRequestStartTime))
+                .map(bidRequest -> adjustTmax(
+                        bidRequest, auctionStartTime, adjustmentFactor, bidderRequestStartTime, bidderTmaxDeductionMs))
                 .map(bidRequest -> ortbVersionConversionManager.convertFromAuctionSupportedVersion(
                         bidRequest, bidderRequest.getOrtbVersion()))
                 .map(bidderRequest::with)
@@ -1244,9 +1242,16 @@ public class ExchangeService {
                 .map(seatBid -> BidderResponse.of(bidderName, seatBid, responseTime(bidderRequestStartTime)));
     }
 
-    private BidRequest adjustTmax(BidRequest bidRequest, long startTime, int adjustmentFactor, long currentTime) {
+    private BidRequest adjustTmax(BidRequest bidRequest,
+                                  long startTime,
+                                  int adjustmentFactor,
+                                  long currentTime,
+                                  long bidderTmaxDeductionMs) {
+
         final long tmax = timeoutResolver.limitToMax(bidRequest.getTmax());
-        final long adjustedTmax = timeoutResolver.adjustForBidder(tmax, adjustmentFactor, currentTime - startTime);
+        final long adjustedTmax = timeoutResolver.adjustForBidder(
+                tmax, adjustmentFactor, currentTime - startTime, bidderTmaxDeductionMs);
+
         return tmax != adjustedTmax
                 ? bidRequest.toBuilder().tmax(adjustedTmax).build()
                 : bidRequest;
@@ -1269,15 +1274,18 @@ public class ExchangeService {
     }
 
     private List<AuctionParticipation> dropZeroNonDealBids(List<AuctionParticipation> auctionParticipations,
-                                                           List<String> debugWarnings) {
+                                                           List<String> debugWarnings,
+                                                           boolean isDebugEnabled) {
 
         return auctionParticipations.stream()
-                .map(auctionParticipation -> dropZeroNonDealBids(auctionParticipation, debugWarnings))
+                .map(auctionParticipation -> dropZeroNonDealBids(auctionParticipation, debugWarnings, isDebugEnabled))
                 .toList();
     }
 
     private AuctionParticipation dropZeroNonDealBids(AuctionParticipation auctionParticipation,
-                                                     List<String> debugWarnings) {
+                                                     List<String> debugWarnings,
+                                                     boolean isDebugEnabled) {
+
         final BidderResponse bidderResponse = auctionParticipation.getBidderResponse();
         final BidderSeatBid seatBid = bidderResponse.getSeatBid();
         final List<BidderBid> bidderBids = seatBid.getBids();
@@ -1287,8 +1295,11 @@ public class ExchangeService {
             final Bid bid = bidderBid.getBid();
             if (isZeroNonDealBids(bid.getPrice(), bid.getDealid())) {
                 metrics.updateAdapterRequestErrorMetric(bidderResponse.getBidder(), MetricName.unknown_error);
-                debugWarnings.add("Dropped bid '%s'. Does not contain a positive (or zero if there is a deal) 'price'"
-                        .formatted(bid.getId()));
+                if (isDebugEnabled) {
+                    debugWarnings.add(
+                            "Dropped bid '%s'. Does not contain a positive (or zero if there is a deal) 'price'"
+                            .formatted(bid.getId()));
+                }
             } else {
                 validBids.add(bidderBid);
             }
@@ -1366,58 +1377,5 @@ public class ExchangeService {
             case invalid_bid -> MetricName.bid_validation;
             case rejected_ipf, generic -> MetricName.unknown_error;
         };
-    }
-
-    private AuctionContext updateHooksMetrics(AuctionContext context) {
-        final EnumMap<Stage, List<StageExecutionOutcome>> stageOutcomes =
-                context.getHookExecutionContext().getStageOutcomes();
-
-        final Account account = context.getAccount();
-
-        stageOutcomes.forEach((stage, outcomes) -> updateHooksStageMetrics(account, stage, outcomes));
-
-        // account might be null if request is rejected by the entrypoint hook
-        if (account != null) {
-            stageOutcomes.values().stream()
-                    .flatMap(Collection::stream)
-                    .map(StageExecutionOutcome::getGroups)
-                    .flatMap(Collection::stream)
-                    .map(GroupExecutionOutcome::getHooks)
-                    .flatMap(Collection::stream)
-                    .collect(Collectors.groupingBy(
-                            outcome -> outcome.getHookId().getModuleCode(),
-                            Collectors.summingLong(HookExecutionOutcome::getExecutionTime)))
-                    .forEach((moduleCode, executionTime) ->
-                            metrics.updateAccountModuleDurationMetric(account, moduleCode, executionTime));
-        }
-
-        return context;
-    }
-
-    private void updateHooksStageMetrics(Account account, Stage stage, List<StageExecutionOutcome> stageOutcomes) {
-        stageOutcomes.stream()
-                .flatMap(stageOutcome -> stageOutcome.getGroups().stream())
-                .flatMap(groupOutcome -> groupOutcome.getHooks().stream())
-                .forEach(hookOutcome -> updateHookInvocationMetrics(account, stage, hookOutcome));
-    }
-
-    private void updateHookInvocationMetrics(Account account, Stage stage, HookExecutionOutcome hookOutcome) {
-        final HookId hookId = hookOutcome.getHookId();
-        final ExecutionStatus status = hookOutcome.getStatus();
-        final ExecutionAction action = hookOutcome.getAction();
-        final String moduleCode = hookId.getModuleCode();
-
-        metrics.updateHooksMetrics(
-                moduleCode,
-                stage,
-                hookId.getHookImplCode(),
-                status,
-                hookOutcome.getExecutionTime(),
-                action);
-
-        // account might be null if request is rejected by the entrypoint hook
-        if (account != null) {
-            metrics.updateAccountHooksMetrics(account, moduleCode, status, action);
-        }
     }
 }

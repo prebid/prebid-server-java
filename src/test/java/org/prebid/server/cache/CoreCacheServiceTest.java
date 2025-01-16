@@ -8,6 +8,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.Future;
+import io.vertx.core.MultiMap;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,8 +32,8 @@ import org.prebid.server.cache.proto.response.bid.CacheObject;
 import org.prebid.server.events.EventsContext;
 import org.prebid.server.events.EventsService;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.execution.Timeout;
-import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.execution.timeout.Timeout;
+import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.identity.UUIDIdGenerator;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
@@ -40,6 +41,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vast.VastModifier;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
@@ -107,6 +109,8 @@ public class CoreCacheServiceTest extends VertxTest {
                 new URL("http://cache-service/cache"),
                 "http://cache-service-host/cache?uuid=",
                 100L,
+                null,
+                false,
                 vastModifier,
                 eventsService,
                 metrics,
@@ -369,6 +373,40 @@ public class CoreCacheServiceTest extends VertxTest {
                         .responseBody("{\"responses\":[{\"uuid\":\"uuid1\"}]}")
                         .responseTimeMillis(0)
                         .build());
+    }
+
+    @Test
+    public void cacheBidsOpenrtbShouldUseApiKeyWhenProvided() throws MalformedURLException {
+        // given
+        target = new CoreCacheService(
+                httpClient,
+                new URL("http://cache-service/cache"),
+                "http://cache-service-host/cache?uuid=",
+                100L,
+                "ApiKey",
+                true,
+                vastModifier,
+                eventsService,
+                metrics,
+                clock,
+                idGenerator,
+                jacksonMapper);
+        final BidInfo bidinfo = givenBidInfo(builder -> builder.id("bidId1"));
+
+        // when
+        final Future<CacheServiceResult> future = target.cacheBidsOpenrtb(
+                singletonList(bidinfo),
+                givenAuctionContext(),
+                CacheContext.builder()
+                        .shouldCacheBids(true)
+                        .build(),
+                eventsContext);
+
+        // then
+        assertThat(future.result().getHttpCall().getRequestHeaders().get(HttpUtil.X_PBC_API_KEY_HEADER.toString()))
+                .containsExactly("ApiKey");
+        assertThat(captureBidCacheRequestHeaders().get(HttpUtil.X_PBC_API_KEY_HEADER.toString()))
+                .isEqualTo("ApiKey");
     }
 
     @Test
@@ -694,7 +732,7 @@ public class CoreCacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void cachePutObjectsShouldModifyVastAndCachePutObjects() throws IOException {
+    public void cachePutObjectsShould() throws IOException {
         // given
         final BidPutObject firstBidPutObject = BidPutObject.builder()
                 .type("json")
@@ -760,6 +798,45 @@ public class CoreCacheServiceTest extends VertxTest {
 
         assertThat(captureBidCacheRequest().getPuts())
                 .containsExactly(modifiedFirstBidPutObject, modifiedSecondBidPutObject, modifiedThirdBidPutObject);
+    }
+
+    @Test
+    public void cachePutObjectsShouldUseApiKeyWhenProvided() throws MalformedURLException {
+        // given
+        target = new CoreCacheService(
+                httpClient,
+                new URL("http://cache-service/cache"),
+                "http://cache-service-host/cache?uuid=",
+                100L,
+                "ApiKey",
+                true,
+                vastModifier,
+                eventsService,
+                metrics,
+                clock,
+                idGenerator,
+                jacksonMapper);
+
+        final BidPutObject firstBidPutObject = BidPutObject.builder()
+                .type("json")
+                .bidid("bidId1")
+                .bidder("bidder1")
+                .timestamp(1L)
+                .value(new TextNode("vast"))
+                .build();
+
+        // when
+        target.cachePutObjects(
+                asList(firstBidPutObject),
+                true,
+                singleton("bidder1"),
+                "account",
+                "pbjs",
+                timeout);
+
+        // then
+        assertThat(captureBidCacheRequestHeaders().get(HttpUtil.X_PBC_API_KEY_HEADER.toString()))
+                .isEqualTo("ApiKey");
     }
 
     private AuctionContext givenAuctionContext(UnaryOperator<Account.AccountBuilder> accountCustomizer,
@@ -848,6 +925,12 @@ public class CoreCacheServiceTest extends VertxTest {
         final ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
         verify(httpClient).post(anyString(), any(), captor.capture(), anyLong());
         return mapper.readValue(captor.getValue(), BidCacheRequest.class);
+    }
+
+    private MultiMap captureBidCacheRequestHeaders() {
+        final ArgumentCaptor<MultiMap> captor = ArgumentCaptor.forClass(MultiMap.class);
+        verify(httpClient).post(anyString(), captor.capture(), anyString(), anyLong());
+        return captor.getValue();
     }
 
     private Map<String, List<String>> givenDebugHeaders() {

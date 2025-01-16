@@ -1,6 +1,7 @@
 package org.prebid.server.analytics.reporter.greenbids;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.Banner;
@@ -26,20 +27,43 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.reporter.greenbids.model.CommonMessage;
+import org.prebid.server.analytics.reporter.greenbids.model.ExplorationResult;
 import org.prebid.server.analytics.reporter.greenbids.model.ExtBanner;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsAdUnit;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsAnalyticsProperties;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsBid;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsUnifiedCode;
 import org.prebid.server.analytics.reporter.greenbids.model.MediaTypes;
+import org.prebid.server.analytics.reporter.greenbids.model.Ortb2ImpExtResult;
+import org.prebid.server.analytics.reporter.greenbids.model.Ortb2ImpResult;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.auction.model.BidRejectionTracker;
+import org.prebid.server.hooks.execution.model.GroupExecutionOutcome;
+import org.prebid.server.hooks.execution.model.HookExecutionContext;
+import org.prebid.server.hooks.execution.model.HookExecutionOutcome;
+import org.prebid.server.hooks.execution.model.HookId;
+import org.prebid.server.hooks.execution.model.Stage;
+import org.prebid.server.hooks.execution.model.StageExecutionOutcome;
+import org.prebid.server.hooks.execution.v1.analytics.ActivityImpl;
+import org.prebid.server.hooks.execution.v1.analytics.ResultImpl;
+import org.prebid.server.hooks.execution.v1.analytics.TagsImpl;
 import org.prebid.server.json.EncodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidResponsePrebid;
+import org.prebid.server.proto.openrtb.ext.response.ExtModules;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTrace;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceAnalyticsActivity;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceAnalyticsResult;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceAnalyticsTags;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceGroup;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceInvocationResult;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceStage;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceStageOutcome;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.version.PrebidVersionProvider;
 import org.prebid.server.vertx.httpclient.HttpClient;
@@ -50,6 +74,7 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -111,6 +136,65 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 httpClient,
                 clock,
                 prebidVersionProvider);
+    }
+
+    @Test
+    public void shouldReceiveValidResponseOnAuctionContextWithAnalyticsTagForBanner() throws IOException {
+        // given
+        final Banner banner = givenBanner();
+
+        final ObjectNode impExtNode = mapper.createObjectNode();
+        impExtNode.set("gpid", TextNode.valueOf("gpidvalue"));
+        impExtNode.set("prebid", givenPrebidBidderParamsNode());
+
+        final Imp imp = Imp.builder()
+                .id("adunitcodevalue")
+                .ext(impExtNode)
+                .banner(banner)
+                .build();
+
+        final AuctionContext auctionContext = givenAuctionContextWithAnalyticsTag(
+                context -> context, List.of(imp), true, true);
+        final AuctionEvent event = AuctionEvent.builder()
+                .auctionContext(auctionContext)
+                .bidResponse(auctionContext.getBidResponse())
+                .build();
+
+        final HttpClientResponse mockResponse = mock(HttpClientResponse.class);
+        when(mockResponse.getStatusCode()).thenReturn(202);
+        when(httpClient.post(anyString(), any(MultiMap.class), anyString(), anyLong()))
+                .thenReturn(Future.succeededFuture(mockResponse));
+        final CommonMessage expectedCommonMessage = givenCommonMessageForBannerWithRtb2Imp();
+
+        // when
+        final Future<Void> result = target.processEvent(event);
+
+        // then
+        assertThat(result.succeeded()).isTrue();
+        verify(httpClient).post(
+                eq(greenbidsAnalyticsProperties.getAnalyticsServerUrl()),
+                headersCaptor.capture(),
+                jsonCaptor.capture(),
+                eq(greenbidsAnalyticsProperties.getTimeoutMs()));
+
+        final String capturedJson = jsonCaptor.getValue();
+        final CommonMessage capturedCommonMessage = jacksonMapper.mapper()
+                .readValue(capturedJson, CommonMessage.class);
+
+        assertThat(capturedCommonMessage).usingRecursiveComparison()
+                .ignoringFields("billingId", "greenbidsId")
+                .isEqualTo(expectedCommonMessage);
+        assertThat(capturedCommonMessage.getGreenbidsId()).isNotNull();
+        assertThat(capturedCommonMessage.getBillingId()).isNotNull();
+        capturedCommonMessage.getAdUnits().forEach(adUnit -> {
+            assertThat(adUnit.getOrtb2ImpResult().getExt().getGreenbids().getFingerprint()).isNotNull();
+            assertThat(adUnit.getOrtb2ImpResult().getExt().getTid()).isNotNull();
+        });
+
+        assertThat(headersCaptor.getValue().get(HttpUtil.ACCEPT_HEADER))
+                .isEqualTo(HttpHeaderValues.APPLICATION_JSON.toString());
+        assertThat(headersCaptor.getValue().get(HttpUtil.CONTENT_TYPE_HEADER))
+                .isEqualTo(HttpHeaderValues.APPLICATION_JSON.toString());
     }
 
     @Test
@@ -508,6 +592,28 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         return auctionContextCustomizer.apply(auctionContextBuilder).build();
     }
 
+    private static AuctionContext givenAuctionContextWithAnalyticsTag(
+            UnaryOperator<AuctionContext.AuctionContextBuilder> auctionContextCustomizer,
+            List<Imp> imps,
+            boolean includeBidResponse,
+            boolean includeHookExecutionContextWithAnalyticsTag) {
+        final AuctionContext.AuctionContextBuilder auctionContextBuilder = AuctionContext.builder()
+                .httpRequest(HttpRequestContext.builder().build())
+                .bidRequest(givenBidRequest(request -> request, imps))
+                .bidRejectionTrackers(Map.of("seat3", givenBidRejectionTracker()));
+
+        if (includeHookExecutionContextWithAnalyticsTag) {
+            final HookExecutionContext hookExecutionContext = givenHookExecutionContextWithAnalyticsTag();
+            auctionContextBuilder.hookExecutionContext(hookExecutionContext);
+        }
+
+        if (includeBidResponse) {
+            auctionContextBuilder.bidResponse(givenBidResponse(response -> response));
+        }
+
+        return auctionContextCustomizer.apply(auctionContextBuilder).build();
+    }
+
     private static BidRequest givenBidRequest(
             UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
             List<Imp> imps) {
@@ -533,6 +639,37 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 + "AppleWebKit/537.13 (KHTML, like Gecko) Version/5.1.7 Safari/534.57.2";
     }
 
+    private static HookExecutionContext givenHookExecutionContextWithAnalyticsTag() {
+        final ObjectNode analyticsResultNode = mapper.valueToTree(
+                singletonMap(
+                        "adunitcodevalue",
+                        createAnalyticsResultNode()));
+
+        final ActivityImpl activity = ActivityImpl.of(
+                "greenbids-filter",
+                "success",
+                Collections.singletonList(
+                        ResultImpl.of("success", analyticsResultNode, null)));
+
+        final TagsImpl tags = TagsImpl.of(Collections.singletonList(activity));
+
+        final HookExecutionOutcome hookExecutionOutcome = HookExecutionOutcome.builder()
+                .hookId(HookId.of("greenbids-real-time-data", null))
+                .analyticsTags(tags)
+                .build();
+
+        final GroupExecutionOutcome groupExecutionOutcome = GroupExecutionOutcome.of(
+                Collections.singletonList(hookExecutionOutcome));
+
+        final StageExecutionOutcome stageExecutionOutcome = StageExecutionOutcome.of(
+                "auction-request", Collections.singletonList(groupExecutionOutcome));
+
+        final EnumMap<Stage, List<StageExecutionOutcome>> stageOutcomes = new EnumMap<>(Stage.class);
+        stageOutcomes.put(Stage.processed_auction_request, Collections.singletonList(stageExecutionOutcome));
+
+        return HookExecutionContext.of(null, stageOutcomes);
+    }
+
     private static BidResponse givenBidResponse(UnaryOperator<BidResponse.BidResponseBuilder> bidResponseCustomizer) {
         return bidResponseCustomizer.apply(BidResponse.builder()
                 .id("response1")
@@ -546,10 +683,77 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .cur("USD")).build();
     }
 
+    private static BidResponse givenBidResponseWithAnalyticsTag(
+            UnaryOperator<BidResponse.BidResponseBuilder> bidResponseCustomizer) {
+        final ObjectNode analyticsResultNode = mapper.valueToTree(
+                singletonMap(
+                        "adunitcodevalue",
+                        createAnalyticsResultNode()));
+
+        final ExtModulesTraceAnalyticsTags analyticsTags = ExtModulesTraceAnalyticsTags.of(
+                Collections.singletonList(
+                        ExtModulesTraceAnalyticsActivity.of(
+                                null, null, Collections.singletonList(
+                                        ExtModulesTraceAnalyticsResult.of(
+                                                null, analyticsResultNode, null)))));
+
+        final ExtModulesTraceInvocationResult invocationResult = ExtModulesTraceInvocationResult.builder()
+                .hookId(HookId.of("greenbids-real-time-data", null))
+                .analyticsTags(analyticsTags)
+                .build();
+
+        final ExtModulesTraceStageOutcome outcome = ExtModulesTraceStageOutcome.of(
+                "auction-request", null,
+                Collections.singletonList(ExtModulesTraceGroup.of(
+                        null, Collections.singletonList(invocationResult))));
+
+        final ExtModulesTraceStage stage = ExtModulesTraceStage.of(
+                Stage.processed_auction_request, null,
+                Collections.singletonList(outcome));
+
+        final ExtModulesTrace modulesTrace = ExtModulesTrace.of(null, Collections.singletonList(stage));
+
+        final ExtModules modules = ExtModules.of(null, null, modulesTrace);
+
+        final ExtBidResponsePrebid prebid = ExtBidResponsePrebid.builder().modules(modules).build();
+
+        final ExtBidResponse extBidResponse = ExtBidResponse.builder().prebid(prebid).build();
+
+        return bidResponseCustomizer.apply(BidResponse.builder()
+                .id("response2")
+                .seatbid(List.of(
+                        givenSeatBid(
+                                seatBid -> seatBid.seat("seat1"),
+                                bid -> bid.id("bid1").price(BigDecimal.valueOf(1.5))),
+                        givenSeatBid(
+                                seatBid -> seatBid.seat("seat2"),
+                                bid -> bid.id("bid2").price(BigDecimal.valueOf(0.5)))))
+                .cur("USD")
+                .ext(extBidResponse)).build();
+    }
+
+    private static ObjectNode createAnalyticsResultNode() {
+        final ObjectNode keptInAuctionNode = new ObjectNode(JsonNodeFactory.instance);
+        keptInAuctionNode.put("seat1", true);
+        keptInAuctionNode.put("seat2", true);
+        keptInAuctionNode.put("seat3", true);
+
+        final ObjectNode explorationResultNode = new ObjectNode(JsonNodeFactory.instance);
+        explorationResultNode.put("fingerprint", "4f8d2e76-87fe-47c7-993f-d905b5fe2aa7");
+        explorationResultNode.set("keptInAuction", keptInAuctionNode);
+        explorationResultNode.put("isExploration", false);
+
+        final ObjectNode analyticsResultNode = new ObjectNode(JsonNodeFactory.instance);
+        analyticsResultNode.set("greenbids", explorationResultNode);
+        analyticsResultNode.put("tid", "c65c165d-f4ea-4301-bb91-982ce813dd3e");
+
+        return analyticsResultNode;
+    }
+
     private static SeatBid givenSeatBid(UnaryOperator<SeatBid.SeatBidBuilder> seatBidCostumizer,
                                         UnaryOperator<Bid.BidBuilder>... bidCustomizers) {
         return seatBidCostumizer.apply(SeatBid.builder()
-                        .bid(givenBids(bidCustomizers))).build();
+                .bid(givenBids(bidCustomizers))).build();
     }
 
     private static List<Bid> givenBids(UnaryOperator<Bid.BidBuilder>... bidCustomizers) {
@@ -569,7 +773,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 "seat3",
                 Set.of("adunitcodevalue"),
                 1.0);
-        bidRejectionTracker.reject("imp1", BidRejectionReason.NO_BID);
+        bidRejectionTracker.rejectImp("imp1", BidRejectionReason.NO_BID);
         return bidRejectionTracker;
     }
 
@@ -619,6 +823,16 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                         .unifiedCode(GreenbidsUnifiedCode.of("gpidvalue", "gpidSource"))
                         .mediaTypes(MediaTypes.of(givenExtBanner(320, 50, null), null, null))
                         .bids(expectedGreenbidBids()));
+    }
+
+    private static CommonMessage givenCommonMessageForBannerWithRtb2Imp() {
+        return expectedCommonMessage(
+                adUnit -> adUnit
+                        .code("adunitcodevalue")
+                        .unifiedCode(GreenbidsUnifiedCode.of("gpidvalue", "gpidSource"))
+                        .mediaTypes(MediaTypes.of(givenExtBanner(320, 50, null), null, null))
+                        .bids(expectedGreenbidBids())
+                        .ortb2ImpResult(givenOrtb2Imp()));
     }
 
     private static CommonMessage expectedCommonMessageForVideo() {
@@ -717,5 +931,18 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .pos(1)
                 .plcmt(1)
                 .build();
+    }
+
+    private static Ortb2ImpResult givenOrtb2Imp() {
+        return Ortb2ImpResult.of(
+                Ortb2ImpExtResult.of(
+                        ExplorationResult.of(
+                                "4f8d2e76-87fe-47c7-993f-d905b5fe2aa7",
+                                Map.of("seat1", true, "seat2", true, "seat3", true),
+                                false
+                        ),
+                        "c65c165d-f4ea-4301-bb91-982ce813dd3e"
+                )
+        );
     }
 }

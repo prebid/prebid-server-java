@@ -116,7 +116,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
     public void makeHttpRequestsShouldProperProcessConsentedProvidersSetting() {
         // given
         final ExtUser extUser = ExtUser.builder()
-                .consentedProvidersSettings(ConsentedProvidersSettings.of("1~10.20.90"))
+                .deprecatedConsentedProvidersSettings(ConsentedProvidersSettings.of("1~10.20.90"))
                 .build();
 
         final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
@@ -145,7 +145,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
     public void makeHttpRequestsShouldProperProcessConsentedProvidersSettingWithMultipleTilda() {
         // given
         final ExtUser extUser = ExtUser.builder()
-                .consentedProvidersSettings(ConsentedProvidersSettings.of("1~10.20.90~anything"))
+                .deprecatedConsentedProvidersSettings(ConsentedProvidersSettings.of("1~10.20.90~anything"))
                 .build();
 
         final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
@@ -174,7 +174,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnUserExtIfConsentedProvidersIsNotProvided() {
         // given
         final ExtUser extUser = ExtUser.builder()
-                .consentedProvidersSettings(ConsentedProvidersSettings.of(null))
+                .deprecatedConsentedProvidersSettings(ConsentedProvidersSettings.of(null))
                 .build();
 
         final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
@@ -190,28 +190,6 @@ public class ImprovedigitalBidderTest extends VertxTest {
                 .extracting(BidRequest::getUser)
                 .extracting(User::getExt)
                 .containsExactly(extUser);
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnErrorIfCannotParseConsentedProviders() {
-        // given
-        final ExtUser extUser = ExtUser.builder()
-                .consentedProvidersSettings(ConsentedProvidersSettings.of("1~a.fv.90"))
-                .build();
-
-        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
-                        .user(User.builder().ext(extUser).build()).id("request_id"),
-                identity());
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).allSatisfy(error -> {
-            assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
-            assertThat(error.getMessage()).startsWith("Cannot deserialize value of type");
-        });
     }
 
     @Test

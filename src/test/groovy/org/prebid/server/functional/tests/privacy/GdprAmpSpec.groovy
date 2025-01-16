@@ -8,9 +8,11 @@ import org.prebid.server.functional.model.config.AccountPrivacyConfig
 import org.prebid.server.functional.model.config.PurposeConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
+import org.prebid.server.functional.model.pricefloors.Country
 import org.prebid.server.functional.model.request.auction.BidRequest
-import org.prebid.server.functional.service.PrebidServerService
-import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
+import org.prebid.server.functional.model.request.auction.DistributionChannel
+import org.prebid.server.functional.model.request.auction.Regs
+import org.prebid.server.functional.model.request.auction.RegsExt
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.BogusConsent
 import org.prebid.server.functional.util.privacy.CcpaConsent
@@ -27,6 +29,7 @@ import static org.prebid.server.functional.model.config.Purpose.P4
 import static org.prebid.server.functional.model.config.PurposeEnforcement.BASIC
 import static org.prebid.server.functional.model.config.PurposeEnforcement.NO
 import static org.prebid.server.functional.model.mock.services.vendorlist.GvlSpecificationVersion.V3
+import static org.prebid.server.functional.model.pricefloors.Country.BULGARIA
 import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ADAPTER_DISALLOWED_COUNT
 import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_REQUEST_DISALLOWED_COUNT
 import static org.prebid.server.functional.model.request.amp.ConsentType.BOGUS
@@ -36,6 +39,7 @@ import static org.prebid.server.functional.model.request.auction.ActivityType.FE
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_EIDS
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_PRECISE_GEO
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_UFPD
+import static org.prebid.server.functional.model.request.auction.PublicCountryIp.BGR_IP
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.ENFORCED
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
@@ -314,10 +318,8 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         def startTime = Instant.now()
 
         and: "Create new container"
-        def serverContainer = new PrebidServerContainer(GDPR_VENDOR_LIST_CONFIG +
-                ["adapters.generic.meta-info.vendor-id": GENERIC_VENDOR_ID as String])
-        serverContainer.start()
-        def privacyPbsService = new PrebidServerService(serverContainer)
+        def config = GDPR_VENDOR_LIST_CONFIG + ["adapters.generic.meta-info.vendor-id": GENERIC_VENDOR_ID as String]
+        def defaultPrivacyPbsService = pbsServiceFactory.getService(config)
 
         and: "Prepare tcf consent string"
         def tcfConsent = new TcfConsent.Builder()
@@ -341,21 +343,21 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         vendorListResponse.setResponse(tcfPolicyVersion)
 
         when: "PBS processes amp request"
-        privacyPbsService.sendAmpRequest(ampRequest)
+        defaultPrivacyPbsService.sendAmpRequest(ampRequest)
 
         then: "Used vendor list have proper specification version of GVL"
         def properVendorListPath = VENDOR_LIST_PATH.replace("{VendorVersion}", tcfPolicyVersion.vendorListVersion.toString())
-        PBSUtils.waitUntil { privacyPbsService.isFileExist(properVendorListPath) }
-        def vendorList = privacyPbsService.getValueFromContainer(properVendorListPath, VendorListConsent.class)
+        PBSUtils.waitUntil { defaultPrivacyPbsService.isFileExist(properVendorListPath) }
+        def vendorList = defaultPrivacyPbsService.getValueFromContainer(properVendorListPath, VendorListConsent.class)
         assert vendorList.tcfPolicyVersion == tcfPolicyVersion.vendorListVersion
 
         and: "Logs should contain proper vendor list version"
-        def logs = privacyPbsService.getLogsByTime(startTime)
+        def logs = defaultPrivacyPbsService.getLogsByTime(startTime)
         assert getLogsByText(logs, "Created new TCF 2 vendor list for version " +
                 "v${tcfPolicyVersion.vendorListVersion}.${tcfPolicyVersion.vendorListVersion}")
 
-        cleanup: "Stop container with default request"
-        serverContainer.stop()
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(config)
 
         where:
         tcfPolicyVersion << [TCF_POLICY_V2, TCF_POLICY_V4, TCF_POLICY_V5]
@@ -404,7 +406,10 @@ class GdprAmpSpec extends PrivacyBaseSpec {
     }
 
     def "PBS amp should emit the same error without a second GVL list request if a retry is too soon for the exponential-backoff"() {
-        given: "Test start time"
+        given: "Prebid server with privacy settings"
+        def defaultPrivacyPbsService = pbsServiceFactory.getService(GENERAL_PRIVACY_CONFIG)
+
+        and: "Test start time"
         def startTime = Instant.now()
 
         and: "Prepare tcf consent string"
@@ -432,14 +437,14 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         vendorListResponse.setResponse(tcfPolicyVersion, Delay.seconds(EXPONENTIAL_BACKOFF_MAX_DELAY + 3))
 
         when: "PBS processes amp request"
-        privacyPbsService.sendAmpRequest(ampRequest)
+        defaultPrivacyPbsService.sendAmpRequest(ampRequest)
 
         then: "PBS shouldn't fetch vendor list"
         def vendorListPath = VENDOR_LIST_PATH.replace("{VendorVersion}", tcfPolicyVersion.vendorListVersion.toString())
-        assert !privacyPbsService.isFileExist(vendorListPath)
+        assert !defaultPrivacyPbsService.isFileExist(vendorListPath)
 
         and: "Logs should contain proper vendor list version"
-        def logs = privacyPbsService.getLogsByTime(startTime)
+        def logs = defaultPrivacyPbsService.getLogsByTime(startTime)
         def tcfError = "TCF 2 vendor list for version v${tcfPolicyVersion.vendorListVersion}.${tcfPolicyVersion.vendorListVersion} not found, started downloading."
         assert getLogsByText(logs, tcfError)
 
@@ -447,17 +452,20 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         def secondStartTime = Instant.now()
 
         when: "PBS processes amp request"
-        privacyPbsService.sendAmpRequest(ampRequest)
+        defaultPrivacyPbsService.sendAmpRequest(ampRequest)
 
         then: "PBS shouldn't fetch vendor list"
-        assert !privacyPbsService.isFileExist(vendorListPath)
+        assert !defaultPrivacyPbsService.isFileExist(vendorListPath)
 
         and: "Logs should contain proper vendor list version"
-        def logsSecond = privacyPbsService.getLogsByTime(secondStartTime)
+        def logsSecond = defaultPrivacyPbsService.getLogsByTime(secondStartTime)
         assert getLogsByText(logsSecond, tcfError)
 
         and: "Reset vendor list response"
         vendorListResponse.reset()
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(GENERAL_PRIVACY_CONFIG)
 
         where:
         tcfPolicyVersion << [TCF_POLICY_V2, TCF_POLICY_V4, TCF_POLICY_V5]
@@ -653,7 +661,10 @@ class GdprAmpSpec extends PrivacyBaseSpec {
     }
 
     def "PBS amp should set 3 for tcfPolicyVersion when tcfPolicyVersion is #tcfPolicyVersion"() {
-        given: "Tcf consent setup"
+        given: "Prebid server with privacy settings"
+        def defaultPrivacyPbsService = pbsServiceFactory.getService(GENERAL_PRIVACY_CONFIG)
+
+        and: "Tcf consent setup"
         def tcfConsent = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
                 .setTcfPolicyVersion(tcfPolicyVersion.value)
@@ -675,15 +686,176 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         vendorListResponse.setResponse(tcfPolicyVersion)
 
         when: "PBS processes amp request"
-        privacyPbsService.sendAmpRequest(ampRequest)
+        defaultPrivacyPbsService.sendAmpRequest(ampRequest)
 
         then: "Used vendor list have proper specification version of GVL"
         def properVendorListPath = VENDOR_LIST_PATH.replace("{VendorVersion}", tcfPolicyVersion.vendorListVersion.toString())
-        PBSUtils.waitUntil { privacyPbsService.isFileExist(properVendorListPath) }
-        def vendorList = privacyPbsService.getValueFromContainer(properVendorListPath, VendorListConsent.class)
+        PBSUtils.waitUntil { defaultPrivacyPbsService.isFileExist(properVendorListPath) }
+        def vendorList = defaultPrivacyPbsService.getValueFromContainer(properVendorListPath, VendorListConsent.class)
         assert vendorList.gvlSpecificationVersion == V3
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(GENERAL_PRIVACY_CONFIG)
 
         where:
         tcfPolicyVersion << [TCF_POLICY_V4, TCF_POLICY_V5]
+    }
+
+    def "PBS should process with GDPR enforcement when GDPR and COPPA configurations are present in request"() {
+        given: "Valid consent string without basic ads"
+        def validConsentString = new TcfConsent.Builder()
+                .setPurposesLITransparency(DEVICE_ACCESS)
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .build()
+
+        and: "Amp default request"
+        def ampRequest = getGdprAmpRequest(validConsentString)
+
+        and: "Bid request with gdpr and coppa config"
+        def ampStoredRequest = getGdprBidRequest(DistributionChannel.SITE, validConsentString).tap {
+            regs = new Regs(gdpr: gdpr, coppa: coppa, ext: new RegsExt(gdpr: extGdpr, coppa: extCoppa))
+            setAccountId(ampRequest.account)
+        }
+
+        and: "Save account config without eea countries into DB"
+        def accountGdprConfig = new AccountGdprConfig(enabled: true, eeaCountries: PBSUtils.getRandomEnum(Country.class, [BULGARIA]))
+        def account = getAccountWithGdpr(ampRequest.account, accountGdprConfig)
+        accountDao.save(account)
+
+        and: "Stored request in DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        and: "Flush metrics"
+        flushMetrics(privacyPbsService)
+
+        when: "PBS processes amp request"
+        privacyPbsService.sendAmpRequest(ampRequest)
+
+        then: "Bidder shouldn't be called"
+        assert !bidder.getBidderRequests(ampStoredRequest.id)
+
+        then: "Metrics processed across activities should be updated"
+        def metrics = privacyPbsService.sendCollectedMetricsRequest()
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, FETCH_BIDS)] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, FETCH_BIDS)] == 1
+
+        where:
+        gdpr | coppa | extGdpr | extCoppa
+        1    | 1     | 1       | 1
+        1    | 1     | 1       | 0
+        1    | 1     | 1       | null
+        1    | 1     | 0       | 1
+        1    | 1     | 0       | 0
+        1    | 1     | 0       | null
+        1    | 1     | null    | 1
+        1    | 1     | null    | 0
+        1    | 1     | null    | null
+        1    | 0     | 1       | 1
+        1    | 0     | 1       | 0
+        1    | 0     | 1       | null
+        1    | 0     | 0       | 1
+        1    | 0     | 0       | 0
+        1    | 0     | 0       | null
+        1    | 0     | null    | 1
+        1    | 0     | null    | 0
+        1    | 0     | null    | null
+        1    | null  | 1       | 1
+        1    | null  | 1       | 0
+        1    | null  | 1       | null
+        1    | null  | 0       | 1
+        1    | null  | 0       | 0
+        1    | null  | 0       | null
+        1    | null  | null    | 1
+        1    | null  | null    | 0
+        1    | null  | null    | null
+
+        null | 1     | 1       | 1
+        null | 1     | 1       | 0
+        null | 1     | 1       | null
+        null | 0     | 1       | 1
+        null | 0     | 1       | 0
+        null | 0     | 1       | null
+        null | null  | 1       | 1
+        null | null  | 1       | 0
+        null | null  | 1       | null
+    }
+
+    def "PBS should process with GDPR enforcement when request comes from EEA IP with COPPA enabled"() {
+        given: "Valid consent string without basic ads"
+        def validConsentString = new TcfConsent.Builder()
+                .setPurposesLITransparency(DEVICE_ACCESS)
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .build()
+
+        and: "Amp default request"
+        def ampRequest = getGdprAmpRequest(validConsentString)
+
+        and: "Bid request with gdpr and coppa config"
+        def ampStoredRequest = getGdprBidRequest(DistributionChannel.SITE, validConsentString).tap {
+            regs = new Regs(gdpr: 1, coppa: 1, ext: new RegsExt(gdpr: 1, coppa: 1))
+            device.geo.country = requestCountry
+            device.geo.region = null
+            device.ip = requestIpV4
+            device.ipv6 = requestIpV6
+        }
+
+        and: "Save account config without eea countries into DB"
+        def accountGdprConfig = new AccountGdprConfig(enabled: true, eeaCountries: accountCountry)
+        def account = getAccountWithGdpr(ampRequest.account, accountGdprConfig)
+        accountDao.save(account)
+
+        and: "Stored request in DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        and: "Flush metrics"
+        flushMetrics(privacyPbsService)
+
+        when: "PBS processes amp request"
+        privacyPbsService.sendAmpRequest(ampRequest, header)
+
+        then: "Bidder shouldn't be called"
+        assert !bidder.getBidderRequests(ampStoredRequest.id)
+
+        then: "Metrics processed across activities should be updated"
+        def metrics = privacyPbsService.sendCollectedMetricsRequest()
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, FETCH_BIDS)] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, FETCH_BIDS)] == 1
+
+        where:
+        requestCountry | accountCountry | requestIpV4 | requestIpV6 | header
+        BULGARIA       | BULGARIA       | BGR_IP.v4   | BGR_IP.v6   | ["X-Forwarded-For": BGR_IP.v4]
+        BULGARIA       | null           | BGR_IP.v4   | BGR_IP.v6   | ["X-Forwarded-For": BGR_IP.v4]
+        BULGARIA       | BULGARIA       | BGR_IP.v4   | null        | ["X-Forwarded-For": BGR_IP.v4]
+        BULGARIA       | null           | BGR_IP.v4   | null        | ["X-Forwarded-For": BGR_IP.v4]
+        BULGARIA       | BULGARIA       | null        | BGR_IP.v6   | ["X-Forwarded-For": BGR_IP.v4]
+        BULGARIA       | null           | null        | BGR_IP.v6   | ["X-Forwarded-For": BGR_IP.v4]
+        BULGARIA       | BULGARIA       | null        | null        | ["X-Forwarded-For": BGR_IP.v4]
+        BULGARIA       | null           | null        | null        | ["X-Forwarded-For": BGR_IP.v4]
+        null           | BULGARIA       | BGR_IP.v4   | BGR_IP.v6   | ["X-Forwarded-For": BGR_IP.v4]
+        null           | null           | BGR_IP.v4   | BGR_IP.v6   | ["X-Forwarded-For": BGR_IP.v4]
+        null           | BULGARIA       | BGR_IP.v4   | null        | ["X-Forwarded-For": BGR_IP.v4]
+        null           | null           | BGR_IP.v4   | null        | ["X-Forwarded-For": BGR_IP.v4]
+        null           | BULGARIA       | null        | BGR_IP.v6   | ["X-Forwarded-For": BGR_IP.v4]
+        null           | null           | null        | BGR_IP.v6   | ["X-Forwarded-For": BGR_IP.v4]
+        null           | BULGARIA       | null        | null        | ["X-Forwarded-For": BGR_IP.v4]
+        null           | null           | null        | null        | ["X-Forwarded-For": BGR_IP.v4]
+        BULGARIA       | BULGARIA       | BGR_IP.v4   | BGR_IP.v6   | [:]
+        BULGARIA       | null           | BGR_IP.v4   | BGR_IP.v6   | [:]
+        BULGARIA       | BULGARIA       | BGR_IP.v4   | null        | [:]
+        BULGARIA       | null           | BGR_IP.v4   | null        | [:]
+        BULGARIA       | BULGARIA       | null        | BGR_IP.v6   | [:]
+        BULGARIA       | null           | null        | BGR_IP.v6   | [:]
+        BULGARIA       | BULGARIA       | null        | null        | [:]
+        BULGARIA       | null           | null        | null        | [:]
+        null           | BULGARIA       | BGR_IP.v4   | BGR_IP.v6   | [:]
+        null           | null           | BGR_IP.v4   | BGR_IP.v6   | [:]
+        null           | BULGARIA       | BGR_IP.v4   | null        | [:]
+        null           | null           | BGR_IP.v4   | null        | [:]
+        null           | BULGARIA       | null        | BGR_IP.v6   | [:]
+        null           | null           | null        | BGR_IP.v6   | [:]
+        null           | BULGARIA       | null        | null        | [:]
+        null           | null           | null        | null        | [:]
     }
 }

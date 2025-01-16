@@ -21,6 +21,8 @@ class StageMetrics extends UpdatableMetrics {
         STAGE_TO_METRIC.put(Stage.raw_bidder_response, "rawbidresponse");
         STAGE_TO_METRIC.put(Stage.processed_bidder_response, "procbidresponse");
         STAGE_TO_METRIC.put(Stage.auction_response, "auctionresponse");
+        STAGE_TO_METRIC.put(Stage.all_processed_bid_responses, "allprocbidresponses");
+        STAGE_TO_METRIC.put(Stage.exitpoint, "exitpoint");
     }
 
     private static final String UNKNOWN_STAGE = "unknown";

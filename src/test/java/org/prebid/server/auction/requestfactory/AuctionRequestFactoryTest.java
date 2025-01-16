@@ -36,6 +36,9 @@ import org.prebid.server.auction.model.AuctionStoredResult;
 import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.auction.privacy.contextfactory.AuctionPrivacyContextFactory;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
+import org.prebid.server.bidadjustments.BidAdjustmentsRetriever;
+import org.prebid.server.bidadjustments.model.BidAdjustmentType;
+import org.prebid.server.bidadjustments.model.BidAdjustments;
 import org.prebid.server.cookie.CookieDeprecationService;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.geolocation.model.GeoInfo;
@@ -49,14 +52,18 @@ import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsa;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidAdjustmentsRule;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidDataEidPermissions;
 import org.prebid.server.settings.model.Account;
 
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
@@ -102,6 +109,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
     private DebugResolver debugResolver;
     @Mock(strictness = LENIENT)
     private GeoLocationServiceWrapper geoLocationServiceWrapper;
+    @Mock(strictness = LENIENT)
+    private BidAdjustmentsRetriever bidAdjustmentsRetriever;
 
     private AuctionRequestFactory target;
 
@@ -188,6 +197,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .will(invocationOnMock -> invocationOnMock.getArgument(0));
         given(geoLocationServiceWrapper.lookup(any()))
                 .willReturn(Future.succeededFuture(GeoInfo.builder().vendor("vendor").build()));
+        given(bidAdjustmentsRetriever.retrieve(any())).willReturn(BidAdjustments.of(emptyMap()));
 
         target = new AuctionRequestFactory(
                 Integer.MAX_VALUE,
@@ -203,7 +213,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 auctionPrivacyContextFactory,
                 debugResolver,
                 jacksonMapper,
-                geoLocationServiceWrapper);
+                geoLocationServiceWrapper,
+                bidAdjustmentsRetriever);
     }
 
     @Test
@@ -238,7 +249,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 auctionPrivacyContextFactory,
                 debugResolver,
                 jacksonMapper,
-                geoLocationServiceWrapper);
+                geoLocationServiceWrapper,
+                bidAdjustmentsRetriever);
 
         given(routingContext.getBodyAsString()).willReturn("body");
 
@@ -712,6 +724,27 @@ public class AuctionRequestFactoryTest extends VertxTest {
         // then
         assertThat(result.getPrivacyContext()).isEqualTo(privacyContext);
         assertThat(result.getGeoInfo()).isEqualTo(geoInfo);
+    }
+
+    @Test
+    public void shouldReturnPopulatedBidAdjustments() {
+        // given
+        givenValidBidRequest();
+
+        final BidAdjustments bidAdjustments = BidAdjustments.of(Map.of(
+                "rule1", List.of(
+                        ExtRequestBidAdjustmentsRule.builder().adjType(BidAdjustmentType.CPM).build()),
+                "rule2", List.of(
+                        ExtRequestBidAdjustmentsRule.builder().adjType(BidAdjustmentType.CPM).build(),
+                        ExtRequestBidAdjustmentsRule.builder().adjType(BidAdjustmentType.STATIC).build())));
+
+        given(bidAdjustmentsRetriever.retrieve(any())).willReturn(bidAdjustments);
+
+        // when
+        final AuctionContext result = target.enrichAuctionContext(defaultActionContext).result();
+
+        // then
+        assertThat(result.getBidAdjustments()).isEqualTo(bidAdjustments);
     }
 
     @Test

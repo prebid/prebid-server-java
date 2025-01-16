@@ -62,6 +62,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.request.Targeting;
+import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAuctionConfig;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -538,6 +540,33 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .containsExactly(
                         tuple(false, mapper.valueToTree(ExtPriceGranularity.of(2, singletonList(
                                 ExtGranularityRange.of(BigDecimal.valueOf(20), BigDecimal.valueOf(0.1)))))));
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithAccountPriceGranularityIfStoredBidRequestExtTargetingHasNoPriceGranularity() {
+        // given
+        givenBidRequest(
+                builder -> builder
+                        .ext(givenRequestExt(ExtRequestTargeting.builder().includewinners(false).build())),
+                Imp.builder().build());
+
+        given(ortb2RequestFactory.fetchAccount(any())).willReturn(Future.succeededFuture(Account.builder()
+                .auction(AccountAuctionConfig.builder().priceGranularity("low").build())
+                .build()));
+
+        // when
+        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(singletonList(request))
+                .extracting(BidRequest::getExt).isNotNull()
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getTargeting)
+                .extracting(ExtRequestTargeting::getIncludewinners, ExtRequestTargeting::getPricegranularity)
+                // assert that priceGranularity was set with default value and includeWinners remained unchanged
+                .containsExactly(
+                        tuple(false, mapper.valueToTree(ExtPriceGranularity.of(2, singletonList(
+                                ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))))));
     }
 
     @Test
@@ -1248,10 +1277,12 @@ public class AmpRequestFactoryTest extends VertxTest {
         final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
+        final ConsentedProvidersSettings settings = ConsentedProvidersSettings.of("someConsent");
         assertThat(result.getUser())
                 .isEqualTo(User.builder()
                         .ext(ExtUser.builder()
-                                .consentedProvidersSettings(ConsentedProvidersSettings.of("someConsent"))
+                                .deprecatedConsentedProvidersSettings(settings)
+                                .consentedProvidersSettings(settings)
                                 .build())
                         .build());
     }

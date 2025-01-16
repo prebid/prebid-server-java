@@ -32,6 +32,7 @@ public class BidderInfoCreator {
                 configurationProperties.getPbsEnforcesCcpa(),
                 configurationProperties.getModifyingVastXmlAllowed(),
                 configurationProperties.getEndpointCompression(),
-                configurationProperties.getOrtb());
+                configurationProperties.getOrtb(),
+                configurationProperties.getTmaxDeductionMs());
     }
 }

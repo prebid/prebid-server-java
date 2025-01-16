@@ -25,6 +25,7 @@ import org.prebid.server.functional.util.PBSUtils
 
 import java.math.RoundingMode
 
+import static org.prebid.server.functional.model.request.auction.DebugCondition.ENABLED
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 import static org.prebid.server.functional.model.request.auction.FetchStatus.INPROGRESS
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
@@ -36,14 +37,14 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
     public static final Map<String, String> FLOORS_CONFIG = ["price-floors.enabled"           : "true",
                                                              "settings.default-account-config": encode(defaultAccountConfigSettings)]
 
-    protected static final String basicFetchUrl = networkServiceContainer.rootUri + FloorsProvider.FLOORS_ENDPOINT
-    protected static final FloorsProvider floorsProvider = new FloorsProvider(networkServiceContainer)
+    protected static final String BASIC_FETCH_URL = networkServiceContainer.rootUri + FloorsProvider.FLOORS_ENDPOINT
     protected static final int MAX_MODEL_WEIGHT = 100
 
     private static final int DEFAULT_MODEL_WEIGHT = 1
     private static final int CURRENCY_CONVERSION_PRECISION = 3
     private static final int FLOOR_VALUE_PRECISION = 4
 
+    protected static final FloorsProvider floorsProvider = new FloorsProvider(networkServiceContainer)
     protected final PrebidServerService floorsPbsService = pbsServiceFactory.getService(FLOORS_CONFIG + GENERIC_ALIAS_CONFIG)
 
     def setupSpec() {
@@ -56,19 +57,22 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
                 maxRules: 0,
                 maxFileSizeKb: 200,
                 maxAgeSec: 86400,
-                periodSec: 3600)
+                periodSec: 3600,
+                maxSchemaDims: 5)
         def floors = new AccountPriceFloorsConfig(enabled: true,
                 fetch: fetch,
                 enforceFloorsRate: 100,
                 enforceDealFloors: true,
                 adjustForBidAdjustment: true,
-                useDynamicData: true)
+                useDynamicData: true,
+                maxRules: 0,
+                maxSchemaDims: 3)
         new AccountConfig(auction: new AccountAuctionConfig(priceFloors: floors))
     }
 
     protected static Account getAccountWithEnabledFetch(String accountId) {
         def priceFloors = new AccountPriceFloorsConfig(enabled: true,
-                fetch: new PriceFloorsFetch(url: basicFetchUrl + accountId, enabled: true))
+                fetch: new PriceFloorsFetch(url: BASIC_FETCH_URL + accountId, enabled: true))
         def accountConfig = new AccountConfig(auction: new AccountAuctionConfig(priceFloors: priceFloors))
         new Account(uuid: accountId, config: accountConfig)
     }
@@ -85,7 +89,7 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
     static BidRequest getStoredRequestWithFloors(DistributionChannel channel = SITE) {
         channel == SITE
                 ? BidRequest.defaultStoredRequest.tap { ext.prebid.floors = ExtPrebidFloors.extPrebidFloors }
-                : new BidRequest(ext: new BidRequestExt(prebid: new Prebid(debug: 1, floors: ExtPrebidFloors.extPrebidFloors)))
+                : new BidRequest(ext: new BidRequestExt(prebid: new Prebid(debug: ENABLED, floors: ExtPrebidFloors.extPrebidFloors)))
 
     }
 

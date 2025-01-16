@@ -16,6 +16,7 @@ import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.AmpEvent;
@@ -115,6 +116,11 @@ public class AgmaAnalyticsReporter implements AnalyticsReporter, Initializable {
         }
 
         final AuctionContext auctionContext = contextAndType.getLeft();
+        final String eventType = contextAndType.getRight();
+        if (auctionContext == null) {
+            return Future.succeededFuture();
+        }
+
         final BidRequest bidRequest = auctionContext.getBidRequest();
         final TimeoutContext timeoutContext = auctionContext.getTimeoutContext();
         final PrivacyContext privacyContext = auctionContext.getPrivacyContext();
@@ -133,7 +139,7 @@ public class AgmaAnalyticsReporter implements AnalyticsReporter, Initializable {
         }
 
         final AgmaEvent agmaEvent = AgmaEvent.builder()
-                .eventType(contextAndType.getRight())
+                .eventType(eventType)
                 .accountCode(accountCode)
                 .requestId(bidRequest.getId())
                 .app(bidRequest.getApp())
@@ -146,11 +152,7 @@ public class AgmaAnalyticsReporter implements AnalyticsReporter, Initializable {
 
         final String eventString = jacksonMapper.encodeToString(agmaEvent);
         buffer.put(eventString, eventString.length());
-        final List<String> toFlush = buffer.pollToFlush();
-        if (!toFlush.isEmpty()) {
-            sendEvents(toFlush);
-        }
-
+        sendEvents(buffer.pollToFlush());
         return Future.succeededFuture();
     }
 
@@ -200,10 +202,15 @@ public class AgmaAnalyticsReporter implements AnalyticsReporter, Initializable {
             return null;
         }
 
-        return publisherId;
+        return StringUtils.isNotBlank(appSiteId)
+                ? String.format("%s_%s", StringUtils.defaultString(publisherId), appSiteId)
+                : publisherId;
     }
 
     private void sendEvents(List<String> events) {
+        if (events.isEmpty()) {
+            return;
+        }
         final String payload = preparePayload(events);
         final Future<HttpClientResponse> responseFuture = compressToGzip
                 ? httpClient.request(HttpMethod.POST, url, headers, gzip(payload), httpTimeoutMs)

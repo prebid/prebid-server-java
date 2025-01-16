@@ -18,6 +18,8 @@ import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderInfo;
+import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
+import org.prebid.server.hooks.execution.v1.bidder.BidderRequestPayloadImpl;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.config.ArrayOverride;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.config.Attribute;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.config.AttributeActionOverrides;
@@ -27,8 +29,6 @@ import org.prebid.server.hooks.modules.ortb2.blocking.core.config.ModuleConfig;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.model.BlockedAttributes;
 import org.prebid.server.hooks.modules.ortb2.blocking.model.ModuleContext;
 import org.prebid.server.hooks.modules.ortb2.blocking.v1.model.BidderInvocationContextImpl;
-import org.prebid.server.hooks.modules.ortb2.blocking.v1.model.BidderRequestPayloadImpl;
-import org.prebid.server.hooks.modules.ortb2.blocking.v1.model.InvocationResultImpl;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
@@ -276,7 +276,8 @@ public class Ortb2BlockingBidderRequestHookTest {
                 false,
                 false,
                 null,
-                Ortb.of(false));
+                Ortb.of(false),
+                0L);
     }
 
     private static BidRequest emptyRequest() {

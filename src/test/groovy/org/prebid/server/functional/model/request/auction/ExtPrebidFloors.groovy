@@ -20,6 +20,7 @@ class ExtPrebidFloors {
     ExtPrebidPriceFloorEnforcement enforcement
     Integer skipRate
     PriceFloorData data
+    Long maxSchemaDims
 
     static ExtPrebidFloors getExtPrebidFloors() {
         new ExtPrebidFloors(floorMin: FLOOR_MIN,

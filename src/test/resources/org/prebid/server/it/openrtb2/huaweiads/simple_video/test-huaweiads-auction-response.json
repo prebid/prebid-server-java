@@ -21,6 +21,7 @@
           "crid": "58001445",
           "id": "test-imp-id",
           "impid": "test-imp-id",
+          "exp": 1500,
           "price": 0.404,
           "h": 1280,
           "w": 720,

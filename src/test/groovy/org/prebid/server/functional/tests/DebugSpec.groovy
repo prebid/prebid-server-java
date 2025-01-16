@@ -3,29 +3,44 @@ package org.prebid.server.functional.tests
 import org.apache.commons.lang3.StringUtils
 import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountConfig
+import org.prebid.server.functional.model.config.AccountMetricsConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.db.StoredResponse
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
+import org.prebid.server.functional.model.request.auction.Site
 import org.prebid.server.functional.model.request.auction.StoredBidResponse
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
+import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.PendingFeature
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.config.AccountMetricsVerbosityLevel.BASIC
+import static org.prebid.server.functional.model.config.AccountMetricsVerbosityLevel.DETAILED
+import static org.prebid.server.functional.model.config.AccountMetricsVerbosityLevel.NONE
+import static org.prebid.server.functional.model.request.auction.DebugCondition.DISABLED
+import static org.prebid.server.functional.model.request.auction.DebugCondition.ENABLED
 import static org.prebid.server.functional.model.response.auction.BidderCallType.STORED_BID_RESPONSE
 
 class DebugSpec extends BaseSpec {
 
     private static final String overrideToken = PBSUtils.randomString
+    private static final String ACCOUNT_METRICS_PREFIX_NAME = "account"
+    private static final String DEBUG_REQUESTS_METRIC = "debug_requests"
+    private static final String ACCOUNT_DEBUG_REQUESTS_METRIC = "account.%s.debug_requests"
+    private static final String REQUEST_OK_WEB_METRICS = "requests.ok.openrtb2-web"
 
-    def "PBS should return debug information when debug flag is #debug and test flag is #test"() {
+    def "PBS should return debug information and emit metrics when debug flag is #debug and test flag is #test"() {
         given: "Default BidRequest with test flag"
         def bidRequest = BidRequest.defaultBidRequest
         bidRequest.ext.prebid.debug = debug
         bidRequest.test = test
+
+        and: "Flash metrics"
+        flushMetrics(defaultPbsService)
 
         when: "PBS processes auction request"
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
@@ -33,11 +48,18 @@ class DebugSpec extends BaseSpec {
         then: "Response should contain ext.debug"
         assert response.ext?.debug
 
+        and: "Debug metrics should be incremented"
+        def metricsRequest = defaultPbsService.sendCollectedMetricsRequest()
+        assert metricsRequest[DEBUG_REQUESTS_METRIC] == 1
+
+        and: "Account debug metrics shouldn't be incremented"
+        assert !metricsRequest.keySet().contains(ACCOUNT_METRICS_PREFIX_NAME)
+
         where:
-        debug | test
-        1     | null
-        1     | 0
-        null  | 1
+        debug   | test
+        ENABLED | null
+        ENABLED | DISABLED
+        null    | ENABLED
     }
 
     def "PBS shouldn't return debug information when debug flag is #debug and test flag is #test"() {
@@ -46,16 +68,27 @@ class DebugSpec extends BaseSpec {
         bidRequest.ext.prebid.debug = test
         bidRequest.test = test
 
+        and: "Flash metrics"
+        flushMetrics(defaultPbsService)
+
         when: "PBS processes auction request"
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "Response shouldn't contain ext.debug"
         assert !response.ext?.debug
 
+        and: "Debug metrics shouldn't be populated"
+        def metricsRequest = defaultPbsService.sendCollectedMetricsRequest()
+        assert !metricsRequest[DEBUG_REQUESTS_METRIC]
+        assert !metricsRequest.keySet().contains(ACCOUNT_METRICS_PREFIX_NAME)
+
+        and: "General metrics should be present"
+        assert metricsRequest[REQUEST_OK_WEB_METRICS] == 1
+
         where:
-        debug | test
-        0     | null
-        null  | 0
+        debug    | test
+        DISABLED | null
+        null     | DISABLED
     }
 
     def "PBS should not return debug information when bidder-level setting debug.allowed = false"() {
@@ -64,7 +97,7 @@ class DebugSpec extends BaseSpec {
 
         and: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
-        bidRequest.ext.prebid.debug = 1
+        bidRequest.ext.prebid.debug = ENABLED
 
         when: "PBS processes auction request"
         def response = pbsService.sendAuctionRequest(bidRequest)
@@ -84,7 +117,7 @@ class DebugSpec extends BaseSpec {
 
         and: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
-        bidRequest.ext.prebid.debug = 1
+        bidRequest.ext.prebid.debug = ENABLED
 
         when: "PBS processes auction request"
         def response = pbsService.sendAuctionRequest(bidRequest)
@@ -102,7 +135,7 @@ class DebugSpec extends BaseSpec {
 
         and: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
-        bidRequest.ext.prebid.debug = 1
+        bidRequest.ext.prebid.debug = ENABLED
 
         and: "Account in the DB"
         def account = new Account(uuid: bidRequest.site.publisher.id, config: accountConfig)
@@ -132,7 +165,7 @@ class DebugSpec extends BaseSpec {
 
         and: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
-        bidRequest.ext.prebid.debug = 1
+        bidRequest.ext.prebid.debug = ENABLED
 
         and: "Account in the DB"
         def account = new Account(uuid: bidRequest.site.publisher.id, config: accountConfig)
@@ -161,7 +194,7 @@ class DebugSpec extends BaseSpec {
 
         and: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
-        bidRequest.ext.prebid.debug = 1
+        bidRequest.ext.prebid.debug = ENABLED
 
         and: "Account in the DB"
         def accountConfig = new AccountConfig(auction: new AccountAuctionConfig(debugAllow: false))
@@ -183,7 +216,7 @@ class DebugSpec extends BaseSpec {
     def "PBS should use default values = true for bidder-level setting debug.allow and account-level setting debug-allowed when they are not specified"() {
         given: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
-        bidRequest.ext.prebid.debug = 1
+        bidRequest.ext.prebid.debug = ENABLED
 
         when: "PBS processes auction request"
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
@@ -201,7 +234,7 @@ class DebugSpec extends BaseSpec {
 
         and: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
-        bidRequest.ext.prebid.debug = 1
+        bidRequest.ext.prebid.debug = ENABLED
 
         and: "Account in the DB"
         def accountConfig = new AccountConfig(auction: new AccountAuctionConfig(debugAllow: debugAllowedAccount))
@@ -233,7 +266,7 @@ class DebugSpec extends BaseSpec {
 
         and: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
-        bidRequest.ext.prebid.debug = 1
+        bidRequest.ext.prebid.debug = ENABLED
 
         and: "Account in the DB"
         def accountConfig = new AccountConfig(auction: new AccountAuctionConfig(debugAllow: false))
@@ -278,11 +311,11 @@ class DebugSpec extends BaseSpec {
         assert response.ext?.debug
 
         where:
-        requestDebug || storedRequestDebug
-        1            || 0
-        1            || 1
-        1            || null
-        null         || 1
+        requestDebug | storedRequestDebug
+        ENABLED      | DISABLED
+        ENABLED      | ENABLED
+        ENABLED      | null
+        null         | ENABLED
     }
 
     def "PBS AMP shouldn't return debug information when request flag is #requestDebug and stored request flag is #storedRequestDebug"() {
@@ -307,12 +340,12 @@ class DebugSpec extends BaseSpec {
         assert !response.ext?.debug
 
         where:
-        requestDebug || storedRequestDebug
-        0            || 1
-        0            || 0
-        0            || null
-        null         || 0
-        null         || null
+        requestDebug | storedRequestDebug
+        DISABLED     | ENABLED
+        DISABLED     | DISABLED
+        DISABLED     | null
+        null         | DISABLED
+        null         | null
     }
 
     def "PBS shouldn't populate call type when it's default bidder call"() {
@@ -348,5 +381,158 @@ class DebugSpec extends BaseSpec {
 
         and: "Response should not contain ext.warnings"
         assert !response.ext?.warnings
+    }
+
+    def "PBS should return debug information and emit metrics when account debug enabled and verbosity detailed"() {
+        given: "Default basic generic bid request"
+        def bidRequest = BidRequest.defaultBidRequest
+
+        and: "Account in the DB"
+        def accountConfig = new AccountConfig(
+                metrics: new AccountMetricsConfig(verbosityLevel: DETAILED),
+                auction: new AccountAuctionConfig(debugAllow: true))
+        def account = new Account(uuid: bidRequest.site.publisher.id, config: accountConfig)
+        accountDao.save(account)
+
+        and: "Flash metrics"
+        flushMetrics(defaultPbsService)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain ext.debug"
+        assert response.ext?.debug
+
+        and: "Debug metrics should be incremented"
+        def metricsRequest = defaultPbsService.sendCollectedMetricsRequest()
+        assert metricsRequest[ACCOUNT_DEBUG_REQUESTS_METRIC.formatted(bidRequest.accountId)] == 1
+        assert metricsRequest[DEBUG_REQUESTS_METRIC] == 1
+    }
+
+    def "PBS shouldn't return debug information and emit metrics when account debug enabled and verbosity #verbosityLevel"() {
+        given: "Default basic generic bid request"
+        def bidRequest = BidRequest.defaultBidRequest
+
+        and: "Account in the DB"
+        def accountConfig = new AccountConfig(
+                metrics: new AccountMetricsConfig(verbosityLevel: verbosityLevel),
+                auction: new AccountAuctionConfig(debugAllow: true))
+        def account = new Account(uuid: bidRequest.site.publisher.id, config: accountConfig)
+        accountDao.save(account)
+
+        and: "Flash metrics"
+        flushMetrics(defaultPbsService)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain ext.debug"
+        assert response.ext?.debug
+
+        and: "Account debug metrics shouldn't be incremented"
+        def metricsRequest = defaultPbsService.sendCollectedMetricsRequest()
+        assert !metricsRequest[ACCOUNT_DEBUG_REQUESTS_METRIC.formatted(bidRequest.accountId)]
+
+        and: "Request debug metrics should be incremented"
+        assert metricsRequest[DEBUG_REQUESTS_METRIC] == 1
+
+        where:
+        verbosityLevel << [NONE, BASIC]
+    }
+
+    def "PBS amp should return debug information and emit metrics when account debug enabled and verbosity detailed"() {
+        given: "Default AMP request"
+        def ampRequest = AmpRequest.defaultAmpRequest
+
+        and: "Default stored request"
+        def ampStoredRequest = BidRequest.defaultStoredRequest
+
+        and: "Account in the DB"
+        def accountConfig = new AccountConfig(
+                metrics: new AccountMetricsConfig(verbosityLevel: DETAILED),
+                auction: new AccountAuctionConfig(debugAllow: true))
+        def account = new Account(uuid: ampRequest.account, config: accountConfig)
+        accountDao.save(account)
+
+        and: "Flash metrics"
+        flushMetrics(defaultPbsService)
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        def response = defaultPbsService.sendAmpRequest(ampRequest)
+
+        then: "Response should contain ext.debug"
+        assert response.ext?.debug
+
+        and: "Debug metrics should be incremented"
+        def metricsRequest = defaultPbsService.sendCollectedMetricsRequest()
+        assert metricsRequest[ACCOUNT_DEBUG_REQUESTS_METRIC.formatted(ampRequest.account)] == 1
+        assert metricsRequest[DEBUG_REQUESTS_METRIC] == 1
+    }
+
+    def "PBS amp should return debug information and emit metrics when account debug enabled and verbosity #verbosityLevel"() {
+        given: "Default AMP request"
+        def ampRequest = AmpRequest.defaultAmpRequest
+
+        and: "Default stored request"
+        def ampStoredRequest = BidRequest.defaultStoredRequest
+
+        and: "Account in the DB"
+        def accountConfig = new AccountConfig(
+                metrics: new AccountMetricsConfig(verbosityLevel: verbosityLevel),
+                auction: new AccountAuctionConfig(debugAllow: true))
+        def account = new Account(uuid: ampRequest.account, config: accountConfig)
+        accountDao.save(account)
+
+        and: "Flash metrics"
+        flushMetrics(defaultPbsService)
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        def response = defaultPbsService.sendAmpRequest(ampRequest)
+
+        then: "Response should contain ext.debug"
+        assert response.ext?.debug
+
+        and: "Account debug metrics shouldn't be incremented"
+        def metricsRequest = defaultPbsService.sendCollectedMetricsRequest()
+        assert !metricsRequest[ACCOUNT_DEBUG_REQUESTS_METRIC.formatted(ampRequest.account)]
+
+        and: "Debug metrics should be incremented"
+        assert metricsRequest[DEBUG_REQUESTS_METRIC] == 1
+
+        where:
+        verbosityLevel << [NONE, BASIC]
+    }
+
+    def "PBS shouldn't emit auction request metric when incoming request invalid"() {
+        given: "Default basic BidRequest"
+        def bidRequest = BidRequest.defaultBidRequest
+        bidRequest.site = new Site(id: null, name: PBSUtils.randomString, page: null)
+        bidRequest.ext.prebid.debug = ENABLED
+
+        and: "Flash metrics"
+        flushMetrics(defaultPbsService)
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Request should fail with error"
+        def exception = thrown(PrebidServerException)
+        assert exception.responseBody.contains("request.site should include at least one of request.site.id or request.site.page")
+
+        and: "Debug metrics shouldn't be populated"
+        def metricsRequest = defaultPbsService.sendCollectedMetricsRequest()
+        assert !metricsRequest[DEBUG_REQUESTS_METRIC]
+        assert !metricsRequest.keySet().contains(ACCOUNT_METRICS_PREFIX_NAME)
+
+        and: "General metrics shouldn't be present"
+        assert !metricsRequest[REQUEST_OK_WEB_METRICS]
     }
 }

@@ -75,6 +75,11 @@ public enum BidRejectionReason {
     RESPONSE_REJECTED_BELOW_FLOOR(301),
 
     /**
+     * The bidder returns a bid that doesn't meet the price deal floor.
+     */
+    RESPONSE_REJECTED_BELOW_DEAL_FLOOR(304),
+
+    /**
      * Rejected by the DSA validations
      */
     RESPONSE_REJECTED_DSA_PRIVACY(305),
@@ -101,14 +106,14 @@ public enum BidRejectionReason {
      */
     RESPONSE_REJECTED_ADVERTISER_BLOCKED(356);
 
-    public final int code;
+    private final int code;
 
     BidRejectionReason(int code) {
         this.code = code;
     }
 
     @JsonValue
-    private int getValue() {
+    public int getValue() {
         return code;
     }
 

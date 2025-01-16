@@ -6,7 +6,7 @@ import groovy.transform.ToString
 @ToString
 enum InvocationStatus {
 
-    SUCCESS, FAILURE
+    SUCCESS, FAILURE, INVOCATION_FAILURE
 
     @JsonValue
     String getValue() {

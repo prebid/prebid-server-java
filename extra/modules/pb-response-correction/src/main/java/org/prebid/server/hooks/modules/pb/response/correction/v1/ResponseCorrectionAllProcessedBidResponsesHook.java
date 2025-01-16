@@ -11,9 +11,9 @@ import org.prebid.server.hooks.execution.v1.bidder.AllProcessedBidResponsesPaylo
 import org.prebid.server.hooks.modules.pb.response.correction.core.ResponseCorrectionProvider;
 import org.prebid.server.hooks.modules.pb.response.correction.core.config.model.Config;
 import org.prebid.server.hooks.modules.pb.response.correction.core.correction.Correction;
-import org.prebid.server.hooks.modules.pb.response.correction.v1.model.InvocationResultImpl;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
+import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.v1.InvocationStatus;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.bidder.AllProcessedBidResponsesHook;
@@ -57,7 +57,7 @@ public class ResponseCorrectionAllProcessedBidResponsesHook implements AllProces
             return noAction();
         }
 
-        final InvocationResult<AllProcessedBidResponsesPayload> invocationResult = InvocationResultImpl.builder()
+        final InvocationResult<AllProcessedBidResponsesPayload> invocationResult = InvocationResultImpl.<AllProcessedBidResponsesPayload>builder()
                 .status(InvocationStatus.success)
                 .action(InvocationAction.update)
                 .payloadUpdate(initialPayload -> AllProcessedBidResponsesPayloadImpl.of(
@@ -84,7 +84,7 @@ public class ResponseCorrectionAllProcessedBidResponsesHook implements AllProces
     }
 
     private Future<InvocationResult<AllProcessedBidResponsesPayload>> failure(String message) {
-        return Future.succeededFuture(InvocationResultImpl.builder()
+        return Future.succeededFuture(InvocationResultImpl.<AllProcessedBidResponsesPayload>builder()
                 .status(InvocationStatus.failure)
                 .message(message)
                 .action(InvocationAction.no_action)
@@ -92,7 +92,7 @@ public class ResponseCorrectionAllProcessedBidResponsesHook implements AllProces
     }
 
     private static Future<InvocationResult<AllProcessedBidResponsesPayload>> noAction() {
-        return Future.succeededFuture(InvocationResultImpl.builder()
+        return Future.succeededFuture(InvocationResultImpl.<AllProcessedBidResponsesPayload>builder()
                 .status(InvocationStatus.success)
                 .action(InvocationAction.no_action)
                 .build());
