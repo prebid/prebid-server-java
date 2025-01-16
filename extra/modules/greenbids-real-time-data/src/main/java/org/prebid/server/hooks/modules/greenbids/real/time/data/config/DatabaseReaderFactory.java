@@ -63,9 +63,8 @@ public class DatabaseReaderFactory implements Initializable {
     private Future<Void> downloadFile(String downloadUrl, String tmpPath) {
         return fileSystem.open(tmpPath, new OpenOptions())
                 .compose(tmpFile -> sendHttpRequest(downloadUrl)
-                        .compose(response -> response.pipeTo(tmpFile))
-                        .onFailure(error -> logger.error(
-                                "Failed to download file from {} to {}.", downloadUrl, tmpPath, error)));
+                        .onFailure(ignore -> tmpFile.close())
+                        .compose(response -> response.pipeTo(tmpFile)));
     }
 
     private Future<HttpClientResponse> sendHttpRequest(String url) {
