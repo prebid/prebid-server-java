@@ -40,10 +40,9 @@ public class GreenbidsInferenceDataService {
 
     private final CountryCodeMapper countryCodeMapper;
 
-    public GreenbidsInferenceDataService(
-            DatabaseReaderFactory dbReaderFactory,
-            ObjectMapper mapper,
-            CountryCodeMapper countryCodeMapper) {
+    public GreenbidsInferenceDataService(DatabaseReaderFactory dbReaderFactory,
+                                         ObjectMapper mapper,
+                                         CountryCodeMapper countryCodeMapper) {
         this.databaseReaderFactory = Objects.requireNonNull(dbReaderFactory);
         this.mapper = Objects.requireNonNull(mapper);
         this.countryCodeMapper = Objects.requireNonNull(countryCodeMapper);
@@ -100,6 +99,7 @@ public class GreenbidsInferenceDataService {
                 .map(Geo::getCountry)
                 .map(countryCodeMapper::mapToAlpha2)
                 .map(GreenbidsInferenceDataService::getCountryNameFromAlpha2)
+                .filter(c -> !c.isEmpty())
                 .orElseGet(() -> getCountry(ip));
 
         return createThrottlingMessages(
@@ -119,13 +119,10 @@ public class GreenbidsInferenceDataService {
     }
 
     private String getCountry(String ip) {
-        if (ip == null) {
-            return null;
-        }
-
-        return Optional.ofNullable(databaseReaderFactory.getDatabaseReader())
-                .map(dbReader -> getCountryFromIpUsingDatabase(dbReader, ip))
-                .orElse(null);
+        final DatabaseReader databaseReader = databaseReaderFactory.getDatabaseReader();
+        return ip != null && databaseReader != null
+                ? getCountryFromIpUsingDatabase(databaseReader, ip)
+                : null;
     }
 
     private String getCountryFromIpUsingDatabase(DatabaseReader databaseReader, String ip) {

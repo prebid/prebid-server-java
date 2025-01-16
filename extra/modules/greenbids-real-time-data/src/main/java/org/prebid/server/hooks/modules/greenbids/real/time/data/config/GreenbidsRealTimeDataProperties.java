@@ -22,4 +22,6 @@ public class GreenbidsRealTimeDataProperties {
     String thresholdsCacheKeyPrefix;
 
     Long timeoutMs;
+
+    Integer maxRedirects;
 }

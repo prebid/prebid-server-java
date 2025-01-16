@@ -2,6 +2,7 @@ package org.prebid.server.hooks.modules.greenbids.real.time.data.config;
 
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.file.FileSystem;
+import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import com.maxmind.db.Reader;
@@ -37,8 +38,7 @@ public class DatabaseReaderFactory implements Initializable {
 
     private final FileSystem fileSystem;
 
-    public DatabaseReaderFactory(
-            GreenbidsRealTimeDataProperties properties, Vertx vertx) {
+    public DatabaseReaderFactory(GreenbidsRealTimeDataProperties properties, Vertx vertx) {
         this.properties = properties;
         this.vertx = vertx;
         this.fileSystem = vertx.fileSystem();
@@ -46,7 +46,8 @@ public class DatabaseReaderFactory implements Initializable {
 
     @Override
     public void initialize(Promise<Void> initializePromise) {
-        vertx.executeBlocking(() -> downloadAndExtract().onSuccess(databaseReaderRef::set))
+        downloadAndExtract()
+                .onSuccess(databaseReaderRef::set)
                 .<Void>mapEmpty()
                 .onComplete(initializePromise);
     }
@@ -55,7 +56,7 @@ public class DatabaseReaderFactory implements Initializable {
         final String downloadUrl = properties.getGeoLiteCountryPath();
         final String tmpPath = properties.getTmpPath();
         return downloadFile(downloadUrl, tmpPath)
-                .map(unused -> extractMMDB(tmpPath))
+                .compose(ignored -> vertx.executeBlocking(() -> extractMMDB(tmpPath)))
                 .onComplete(ar -> removeFile(tmpPath));
     }
 
@@ -74,7 +75,11 @@ public class DatabaseReaderFactory implements Initializable {
                 .setTimeout(properties.getTimeoutMs())
                 .setAbsoluteURI(url);
 
-        return vertx.createHttpClient().request(options)
+        final HttpClientOptions httpClientOptions = new HttpClientOptions()
+                .setConnectTimeout(properties.getTimeoutMs().intValue())
+                .setMaxRedirects(properties.getMaxRedirects());
+
+        return vertx.createHttpClient(httpClientOptions).request(options)
                 .compose(HttpClientRequest::send)
                 .map(this::validateResponse);
     }
@@ -113,8 +118,12 @@ public class DatabaseReaderFactory implements Initializable {
     }
 
     private void removeFile(String filePath) {
-        fileSystem.delete(filePath)
-                .onFailure(err -> logger.error("Failed to remove file {}", filePath, err));
+        fileSystem.exists(filePath).onSuccess(exists -> {
+            if (exists) {
+               fileSystem.delete(filePath)
+                        .onFailure(err -> logger.error("Failed to remove file {}", filePath, err));
+            }
+        });
     }
 
     public DatabaseReader getDatabaseReader() {

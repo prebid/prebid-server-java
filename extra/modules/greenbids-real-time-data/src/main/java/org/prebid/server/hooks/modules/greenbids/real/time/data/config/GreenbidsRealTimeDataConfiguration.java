@@ -32,15 +32,14 @@ import java.util.concurrent.TimeUnit;
 public class GreenbidsRealTimeDataConfiguration {
 
     @Bean
-    DatabaseReaderFactory databaseReaderFactory(
-            GreenbidsRealTimeDataProperties properties, Vertx vertx) {
+    DatabaseReaderFactory databaseReaderFactory(GreenbidsRealTimeDataProperties properties, Vertx vertx) {
         return new DatabaseReaderFactory(properties, vertx);
     }
 
     @Bean
-    GreenbidsInferenceDataService greenbidsInferenceDataService(
-            DatabaseReaderFactory databaseReaderFactory,
-            CountryCodeMapper countryCodeMapper) {
+    GreenbidsInferenceDataService greenbidsInferenceDataService(DatabaseReaderFactory databaseReaderFactory,
+                                                                CountryCodeMapper countryCodeMapper) {
+
         return new GreenbidsInferenceDataService(
                 databaseReaderFactory, ObjectMapperProvider.mapper(), countryCodeMapper);
     }
