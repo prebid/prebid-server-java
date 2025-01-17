@@ -11,7 +11,7 @@ enabling bidders to make better-informed targeting and optimization decisions.
 
 #### Device Field Enrichment:
 
-The module populates missing or empty fields in ortb2.device with the following data:
+The WURFL module populates missing or empty fields in ortb2.device with the following data:
  - **make**: Manufacturer of the device (e.g., "Apple", "Samsung").
  - **model**: Device model (e.g., "iPhone 14", "Galaxy S22").
  - **os**: Operating system (e.g., "iOS", "Android").
@@ -30,10 +30,10 @@ The module identifies publishers through the `getAccount()` method in the `Aucti
 
 ### Build prerequisites
 
-To build the WURFL device detection module, you need to download the WURFL Onsite Java API (both JAR and POM files) 
-from the Scientiamobile private repository and install it in your local Maven repository. 
-Access to the WURFL Onsite Java API repository requires a valid Scientiamobile WURFL license. 
-For more details, visit: [Scientiamobile WURFL Onsite API for Java](https://www.scientiamobile.com/secondary-products/wurfl-onsite-api-for-java/).
+To build the WURFL module, you need to download the WURFL Onsite Java API (both JAR and POM files) 
+from the ScientiaMobile private repository and install it in your local Maven repository. 
+Access to the WURFL Onsite Java API repository requires a valid ScientiaMobile WURFL license. 
+For more details, visit: [ScientiaMobile WURFL Onsite API for Java](https://www.scientiamobile.com/secondary-products/wurfl-onsite-api-for-java/).
 
 Run the following command to install the WURFL API:
 
@@ -47,12 +47,12 @@ mvn install:install-file \
     -DpomFile=<path-to-your-wurfl-api-pom-file>
 ```
 
-### Activating the WURFL Device Detection Module
+### Activating the WURFL Module
 
-The WURFL device detection module is disabled by default. Building the Prebid Server Java with the default bundle option 
+The WURFL module is disabled by default. Building the Prebid Server Java with the default bundle option 
 does not include the WURFL module in the server's JAR file.
 
-To include the WURFL device detection module in the Prebid Server Java bundle, follow these steps:
+To include the WURFL module in the Prebid Server Java bundle, follow these steps:
 
 1. Uncomment the WURFL Java API dependency in `extra/modules/WURFL-devicedetection/pom.xml`.
 2. Uncomment the WURFL module dependency in `extra/bundle/pom.xml`.
@@ -64,9 +64,9 @@ After making these changes, you can build the Prebid Server Java bundle with the
 mvn clean package --file extra/pom.xml
 ```
 
-### Configuring the WURFL Device Detection Module
+### Configuring the WURFL Module
 
-Below is a sample configuration for the WURFL device detection module:
+Below is a sample configuration for the WURFL module:
 
 ```yaml
 hooks:
