@@ -51,6 +51,9 @@ class Account {
     @Column(name = "config")
     @Convert(converter = AccountConfigTypeConverter)
     AccountConfig config
+ /* @Column(name = "alternate_bidder_codes")
+    @Convert(converter = AlternateBidderCodeSpec)
+    AlternateBidderCodeSpec alternateBidderCodes*/
     @Column(name = "updated_by")
     Integer updatedBy
     @Column(name = "updated_by_user")

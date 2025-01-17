@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming
 import groovy.transform.ToString
 import org.prebid.server.functional.model.ChannelType
 import org.prebid.server.functional.model.bidder.BidderName
+import org.prebid.server.functional.model.config.AlternateBidderCodes
 
 @JsonNaming(PropertyNamingStrategies.LowerCaseStrategy)
 @ToString(includeNames = true, ignoreNulls = true)
@@ -40,6 +41,7 @@ class Prebid {
     PrebidModulesConfig modules
     PrebidAnalytics analytics
     StoredAuctionResponse storedAuctionResponse
+    AlternateBidderCodes alternateBidderCodes
 
     static class Channel {
 
