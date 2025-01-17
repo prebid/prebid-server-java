@@ -9,7 +9,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -107,10 +106,10 @@ public class MetaxBidder implements Bidder<BidRequest> {
     private String resolveEndpoint(ExtImpMetax extImpMetax) {
         final String publisherIdAsString = Optional.ofNullable(extImpMetax.getPublisherId())
                 .map(Object::toString)
-                .orElse(StringUtils.EMPTY);
+                .orElse("0");
         final String adUnitAsString = Optional.ofNullable(extImpMetax.getAdUnit())
                 .map(Object::toString)
-                .orElse(StringUtils.EMPTY);
+                .orElse("0");
 
         return endpointUrl
                 .replace(PUBLISHER_ID_MACRO, publisherIdAsString)
@@ -143,7 +142,6 @@ public class MetaxBidder implements Bidder<BidRequest> {
                         .bidCurrency(bidResponse.getCur())
                         .videoInfo(videoInfo(bid))
                         .build())
-
                 .toList();
     }
 
