@@ -19,15 +19,15 @@ public class KiviAdsTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromKiviAds() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/kiviads-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/kiviads/test-kiviads-bid-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/kiviads/test-kiviads-bid-response.json"))));
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/kiviads/test-kobler-bid-request.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/kiviads/test-kobler-bid-response.json"))));
 
         // when
-        final Response response = responseFor("openrtb2/kiviads/test-auction-kiviads-request.json",
+        final Response response = responseFor("openrtb2/kiviads/test-auction-kobler-request.json",
                 Endpoint.openrtb2_auction);
 
         // then
-        assertJsonEquals("openrtb2/kiviads/test-auction-kiviads-response.json", response,
+        assertJsonEquals("openrtb2/kiviads/test-auction-kobler-response.json", response,
                 singletonList("kiviads"));
     }
 }

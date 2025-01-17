@@ -1,0 +1,19 @@
+{
+  "id": "test-request-id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid-1",
+          "impid": "imp-1",
+          "price": 1.0,
+          "adm": "<div>Test Ad</div>",
+          "crid": "creative-1",
+          "w": 300,
+          "h": 250
+        }
+      ]
+    }
+  ],
+  "cur": "USD"
+}

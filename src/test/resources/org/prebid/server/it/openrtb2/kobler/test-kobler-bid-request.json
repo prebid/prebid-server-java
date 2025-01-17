@@ -1,0 +1,28 @@
+{
+  "id": "test-request-id",
+  "imp": [
+    {
+      "id": "imp-1",
+      "banner": {
+        "format": [
+          { "w": 300, "h": 250 },
+          { "w": 728, "h": 90 }
+        ]
+      },
+      "bidfloor": 0.6,
+      "bidfloorcur": "USD",
+      "ext": {
+        "bidder": {
+          "test": true
+        }
+      }
+    }
+  ],
+  "site": {
+    "id": "site-1",
+    "page": "http://test-page.com"
+  },
+  "cur": ["USD"],
+  "test": 1,
+  "tmax": 500
+}
