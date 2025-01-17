@@ -27,6 +27,14 @@ The WURFL module populates missing or empty fields in ortb2.device with the foll
 Device enrichment is selectively enabled for publishers based on their account ID. 
 The module identifies publishers through the `getAccount()` method in the `AuctionContext` class.
 
+Device enrichment is selectively enabled for publishers based on their account ID. The module identifies publishers through the following fields:
+
+```json
+site.publisher.id (for web environments).
+app.publisher.id (for mobile app environments).
+dooh.publisher.id (for digital out-of-home environments).
+```
+
 
 ### Build prerequisites
 
