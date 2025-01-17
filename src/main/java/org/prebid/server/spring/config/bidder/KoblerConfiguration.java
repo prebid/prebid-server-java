@@ -29,13 +29,13 @@ public class KoblerConfiguration {
     }
 
     @Bean
-    BidderDeps koblerBidderDeps(BidderConfigurationProperties koblerConfigurationProperies,
-                                CurrencyConversionService currencyConversionService,
-                                @NotBlank @Value("#{external-url}") String externalUrl,
-                                JacksonMapper mapper) {
+    BidderDeps koblerBidderDeps(BidderConfigurationProperties koblerConfigurationProperties,
+                                 CurrencyConversionService currencyConversionService,
+                                 @NotBlank @Value("${external-url}") String externalUrl,
+                                 JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
-                .withConfig(koblerConfigurationProperies)
+                .withConfig(koblerConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new KoblerBidder(config.getEndpoint(), currencyConversionService, mapper))
                 .assemble();
