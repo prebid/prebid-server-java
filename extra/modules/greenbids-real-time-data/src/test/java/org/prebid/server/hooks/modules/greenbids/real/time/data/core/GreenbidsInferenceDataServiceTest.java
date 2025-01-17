@@ -15,6 +15,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.config.DatabaseReaderFactory;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.data.ThrottlingMessage;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider;
@@ -50,16 +51,20 @@ public class GreenbidsInferenceDataServiceTest {
     @Mock
     private Country country;
 
+    @Mock
+    private CountryCodeMapper countryCodeMapper;
+
     private GreenbidsInferenceDataService target;
 
     @BeforeEach
     public void setUp() {
         when(databaseReaderFactory.getDatabaseReader()).thenReturn(databaseReader);
-        target = new GreenbidsInferenceDataService(databaseReaderFactory, TestBidRequestProvider.MAPPER);
+        target = new GreenbidsInferenceDataService(
+                databaseReaderFactory, TestBidRequestProvider.MAPPER, countryCodeMapper);
     }
 
     @Test
-    public void extractThrottlingMessagesFromBidRequestShouldReturnValidThrottlingMessages()
+    public void extractThrottlingMessagesFromBidRequestShouldReturnValidThrottlingMessagesWhenGeoIsNull()
             throws IOException, GeoIp2Exception {
         // given
         final Banner banner = givenBanner();
@@ -79,20 +84,57 @@ public class GreenbidsInferenceDataServiceTest {
 
         when(databaseReader.country(any(InetAddress.class))).thenReturn(countryResponse);
         when(countryResponse.getCountry()).thenReturn(country);
-        when(country.getName()).thenReturn("US");
+        when(country.getName()).thenReturn("United States");
 
         // when
         final List<ThrottlingMessage> throttlingMessages = target.extractThrottlingMessagesFromBidRequest(bidRequest);
 
         // then
         assertThat(throttlingMessages).isNotEmpty();
-        assertThat(throttlingMessages.getFirst().getBidder()).isEqualTo("rubicon");
-        assertThat(throttlingMessages.get(1).getBidder()).isEqualTo("appnexus");
-        assertThat(throttlingMessages.getLast().getBidder()).isEqualTo("pubmatic");
+        assertThat(throttlingMessages)
+                .extracting(ThrottlingMessage::getBidder)
+                .containsExactly("rubicon", "appnexus", "pubmatic");
 
         throttlingMessages.forEach(message -> {
             assertThat(message.getAdUnitCode()).isEqualTo("adunitcodevalue");
-            assertThat(message.getCountry()).isEqualTo("US");
+            assertThat(message.getCountry()).isEqualTo("United States");
+            assertThat(message.getHostname()).isEqualTo("www.leparisien.fr");
+            assertThat(message.getDevice()).isEqualTo("PC");
+            assertThat(message.getHourBucket()).isEqualTo(String.valueOf(expectedHourBucket));
+            assertThat(message.getMinuteQuadrant()).isEqualTo(String.valueOf(expectedMinuteQuadrant));
+        });
+    }
+
+    @Test
+    public void extractThrottlingMessagesFromBidRequestShouldReturnValidThrottlingMessagesWhenGeoDefined() {
+        // given
+        final Banner banner = givenBanner();
+        final Imp imp = Imp.builder()
+                .id("adunitcodevalue")
+                .ext(givenImpExt())
+                .banner(banner)
+                .build();
+        final Device device = givenDevice(identity(), "FRA");
+        final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device, null);
+
+        final ZonedDateTime timestamp = ZonedDateTime.now(ZoneId.of("UTC"));
+        final Integer expectedHourBucket = timestamp.getHour();
+        final Integer expectedMinuteQuadrant = (timestamp.getMinute() / 15) + 1;
+
+        when(countryCodeMapper.mapToAlpha2("FRA")).thenReturn("FR");
+
+        // when
+        final List<ThrottlingMessage> throttlingMessages = target.extractThrottlingMessagesFromBidRequest(bidRequest);
+
+        // then
+        assertThat(throttlingMessages).isNotEmpty();
+        assertThat(throttlingMessages)
+                .extracting(ThrottlingMessage::getBidder)
+                .containsExactly("rubicon", "appnexus", "pubmatic");
+
+        throttlingMessages.forEach(message -> {
+            assertThat(message.getAdUnitCode()).isEqualTo("adunitcodevalue");
+            assertThat(message.getCountry()).isEqualTo("France");
             assertThat(message.getHostname()).isEqualTo("www.leparisien.fr");
             assertThat(message.getDevice()).isEqualTo("PC");
             assertThat(message.getHourBucket()).isEqualTo(String.valueOf(expectedHourBucket));
@@ -121,10 +163,9 @@ public class GreenbidsInferenceDataServiceTest {
 
         // then
         assertThat(throttlingMessages).isNotEmpty();
-
-        assertThat(throttlingMessages.getFirst().getBidder()).isEqualTo("rubicon");
-        assertThat(throttlingMessages.get(1).getBidder()).isEqualTo("appnexus");
-        assertThat(throttlingMessages.getLast().getBidder()).isEqualTo("pubmatic");
+        assertThat(throttlingMessages)
+                .extracting(ThrottlingMessage::getBidder)
+                .containsExactly("rubicon", "appnexus", "pubmatic");
 
         throttlingMessages.forEach(message -> {
             assertThat(message.getAdUnitCode()).isEqualTo("adunitcodevalue");
