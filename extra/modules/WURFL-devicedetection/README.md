@@ -249,3 +249,7 @@ When `ext_caps` is set to `true`, the response will include all licensed capabil
   }
 }
 ```
+
+## Maintainer
+
+prebid@scientiamobile.com
