@@ -119,13 +119,15 @@ hooks:
 
 ### Configuration Options
 
-- **`wurfl-file-dir-path`** (Mandatory): Path to the directory where the WURFL file is downloaded. Directory must exist and be writable.
-- **`wurfl-file-name`** (Mandatory): Name of the WURFL file, typically `wurfl.zip`.
-- **`wurfl-file-url`** (Mandatory): URL to the licensed WURFL file to be downloaded when Prebid Server Java starts.
-- **`cache-size`** (Optional): Maximum number of devices stored in the WURFL cache. Defaults to the WURFL cache's standard size.
-- **`ext_caps`** (Optional): If `true`, the module adds all licensed capabilities to the `device.ext` object.
-- **`wurfl-updater-frequency`** (Optional): Frequency for updating the WURFL file. Defaults to no updates.
-- **`allowed_publisher_ids`** (Optional): List of publisher IDs permitted to use the module. Defaults to all publishers.
+| Parameter                 | Requirement | Description                                                                                           |
+|---------------------------|-------------|-------------------------------------------------------------------------------------------------------|
+| **`wurfl-file-dir-path`** | Mandatory   | Path to the directory where the WURFL file is downloaded. Directory must exist and be writable.       |
+| **`wurfl-snapshot-url`**  | Mandatory   | URL of the licensed WURFL snapshot file to be downloaded when Prebid Server Java starts.             |
+| **`cache-size`**          | Optional    | Maximum number of devices stored in the WURFL cache. Defaults to the WURFL cache's standard size.    |
+| **`ext-caps`**            | Optional    | If `true`, the module adds all licensed capabilities to the `device.ext` object.                     |
+| **`wurfl-run-updater`**   | Optional    | Enables the WURFL updater. Defaults to no updates.                                                   |
+| **`allowed-publisher-ids`** | Optional  | List of publisher IDs permitted to use the module. Defaults to all publishers.                       |
+
 
 A valid WURFL license must include all the required capabilities for device enrichment.
 
