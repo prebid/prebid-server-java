@@ -52,7 +52,6 @@ public class KoblerBidder implements Bidder<BidRequest> {
         this.mapper = Objects.requireNonNull(mapper);
     }
 
-
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         final List<BidderError> errors = new ArrayList<>();

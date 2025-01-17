@@ -1,7 +1,5 @@
 package org.prebid.server.spring.config.bidder;
 
-import jakarta.validation.constraints.NotBlank;
-
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.kobler.KoblerBidder;
 import org.prebid.server.currency.CurrencyConversionService;
@@ -16,6 +14,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 
+import jakarta.validation.constraints.NotBlank;
+
 @Configuration
 @PropertySource(value = "classpath:/bidder-config/kobler.yaml", factory = YamlPropertySourceFactory.class)
 public class KoblerConfiguration {
@@ -28,14 +28,16 @@ public class KoblerConfiguration {
         return new BidderConfigurationProperties();
     }
 
+    @Bean
     BidderDeps koblerBidderDeps(BidderConfigurationProperties koblerConfigurationProperies,
                                 CurrencyConversionService currencyConversionService,
                                 @NotBlank @Value("#{external-url}") String externalUrl,
                                 JacksonMapper mapper) {
+
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(koblerConfigurationProperies)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new KoblerBidder(config.getEndpoint(),currencyConversionService, mapper))
+                .bidderCreator(config -> new KoblerBidder(config.getEndpoint(), currencyConversionService, mapper))
                 .assemble();
     }
 }
