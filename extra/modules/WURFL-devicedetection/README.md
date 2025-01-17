@@ -142,14 +142,14 @@ java -jar target/prebid-server-bundle.jar --spring.config.additional-location=sa
 This sample configuration contains the module hook basic configuration. All the other module configuration options
 are located in the `WURFL-devicedetection.yaml` inside the module. 
 
-When the server starts, it downloads the WURFL file from the `wurfl-file-url` and loads it into the module.
+When the server starts, it downloads the WURFL file from the `wurfl-snapshot-url` and loads it into the module.
 
 Sample request data for testing is available in the module's `sample` directory. Using the `auction` endpoint, 
 you can observe WURFL-enriched device data in the response.
 
 ### Sample Response
 
-Using the sample request data via `curl` when the module is configured with `ext_caps` set to `false` (or no value)
+Using the sample request data via `curl` when the module is configured with `ext-caps` set to `false` (or no value)
 
 ```bash
 curl http://localhost:8080/openrtb2/auction --data @extra/modules/WURFL-devicedetection/sample/request_data.json
