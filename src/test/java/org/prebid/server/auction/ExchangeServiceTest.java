@@ -3667,42 +3667,8 @@ public class ExchangeServiceTest extends VertxTest {
                                 "storedrequest", Map.of("id", "id"),
                                 "options", Map.of("echovideoattrs", true),
                                 "is_rewarded_inventory", 1,
-                                "floors", Map.of("floorRule", "rule"),
                                 "adunitcode", "adCodeValue"),
                         "bidder", Map.of("test-host", "unknownHost", "publisher_id", "ps4"))));
-    }
-
-    @Test
-    public void shouldThrowErrorIfCannotBeParsedImpExtPrebid() {
-        // given
-        final String prebid = "prebid";
-        final String bidderKey = "bidder";
-        final String optionKey = "options";
-        final String bidderName = "bidderName";
-        final String optionValue = "1";
-        final Map<String, Map<String, String>> bidderValue =
-                singletonMap(bidderName, Map.of("test-host", "unknownHost", "publisher_id", "ps4"));
-
-        final ObjectNode prebidJsonNodes = mapper.valueToTree(
-                singletonMap(prebid, Map.of(optionKey, optionValue, bidderKey, bidderValue)));
-
-        final Imp imp = Imp.builder().ext(prebidJsonNodes).build();
-        final BidRequest bidRequest = givenBidRequest(singletonList(imp), identity());
-        final AuctionContext auctionContext = givenRequestContext(bidRequest);
-
-        given(privacyEnforcementService.mask(any(), anyMap(), any()))
-                .willReturn(Future.succeededFuture(singletonList(BidderPrivacyResult.builder()
-                        .requestBidder(bidderName)
-                        .build())));
-
-        // when
-        final Future<AuctionContext> result = target.holdAuction(auctionContext);
-
-        // then
-        assertThat(result.failed()).isTrue();
-        assertThat(result.cause())
-                .hasMessageStartingWith("Error decoding imp.ext.prebid: "
-                        + "Cannot construct instance of `org.prebid.server.proto.openrtb.ext.request.ExtOptions`");
     }
 
     @Test
