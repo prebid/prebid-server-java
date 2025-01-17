@@ -96,8 +96,8 @@ public class RemoteFileSupplier implements Supplier<Future<String>> {
     private Future<Void> downloadFile() {
         return fileSystem.open(tmpPath, new OpenOptions())
                 .compose(tmpFile -> sendHttpRequest(getRequestOptions)
-                        .onFailure(ignore -> tmpFile.close())
-                        .compose(response -> response.pipeTo(tmpFile)));
+                        .compose(response -> response.pipeTo(tmpFile))
+                        .onComplete(result -> tmpFile.close()));
     }
 
     private Future<HttpClientResponse> sendHttpRequest(RequestOptions requestOptions) {
