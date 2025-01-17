@@ -1,4 +1,4 @@
-## WURFL-devicedetection module 
+## WURFL Device Enrichment Module 
 
 ### Overview
 
