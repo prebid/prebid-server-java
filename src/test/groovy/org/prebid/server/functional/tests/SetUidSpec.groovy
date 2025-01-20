@@ -12,10 +12,16 @@ import spock.lang.Shared
 import java.time.Clock
 import java.time.ZonedDateTime
 
+import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
+import static org.prebid.server.functional.model.bidder.BidderName.ALIAS_CAMEL_CASE
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
+import static org.prebid.server.functional.model.bidder.BidderName.EMPTY
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.bidder.BidderName.GENERIC_CAMEL_CASE
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.bidder.BidderName.RUBICON
+import static org.prebid.server.functional.model.bidder.BidderName.UNKNOWN
+import static org.prebid.server.functional.model.bidder.BidderName.WILDCARD
 import static org.prebid.server.functional.model.request.setuid.UidWithExpiry.defaultUidWithExpiry
 import static org.prebid.server.functional.model.response.cookiesync.UserSyncInfo.Type.REDIRECT
 import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
@@ -37,11 +43,13 @@ class SetUidSpec extends BaseSpec {
              "adapters.${APPNEXUS.value}.usersync.cookie-family-name"                 : APPNEXUS.value,
              "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url"         : USER_SYNC_URL,
              "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.support-cors": CORS_SUPPORT.toString()]
+    private static final Map<String, String> GENERIC_ALIAS_CONFIG = ["adapters.generic.aliases.alias.enabled" : "true",
+                                                                       "adapters.generic.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
     private static final String TCF_ERROR_MESSAGE = "The gdpr_consent param prevents cookies from being saved"
     private static final int UNAVAILABLE_FOR_LEGAL_REASONS_CODE = 451
 
     @Shared
-    PrebidServerService prebidServerService = pbsServiceFactory.getService(PBS_CONFIG)
+    PrebidServerService prebidServerService = pbsServiceFactory.getService(PBS_CONFIG + GENERIC_ALIAS_CONFIG)
 
     def "PBS should set uids cookie"() {
         given: "Default SetuidRequest"
@@ -77,8 +85,8 @@ class SetUidSpec extends BaseSpec {
 
     def "PBS setuid should return requested uids cookie when priority bidder not present in config"() {
         given: "PBS config"
-        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG +
-                ["cookie-sync.pri": null])
+        def pbsConfig = PBS_CONFIG + ["cookie-sync.pri": null]
+        def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Setuid request"
         def request = SetuidRequest.defaultSetuidRequest.tap {
@@ -94,13 +102,16 @@ class SetUidSpec extends BaseSpec {
         then: "Response should contain requested uids"
         assert response.uidsCookie.tempUIDs[GENERIC]
         assert response.uidsCookie.tempUIDs[RUBICON]
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS setuid should return prioritized uids bidder when size is full"() {
         given: "PBS config"
         def genericBidder = GENERIC
-        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG +
-                ["cookie-sync.pri": genericBidder.value])
+        def pbsConfig = PBS_CONFIG + ["cookie-sync.pri": genericBidder.value]
+        def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Setuid request"
         def request = SetuidRequest.defaultSetuidRequest.tap {
@@ -119,12 +130,15 @@ class SetUidSpec extends BaseSpec {
         then: "Response should contain uids cookies"
         assert response.uidsCookie.tempUIDs[rubiconBidder]
         assert response.uidsCookie.tempUIDs[genericBidder]
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS setuid should remove earliest expiration bidder when size is full"() {
         given: "PBS config"
-        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG +
-                ["cookie-sync.pri": GENERIC.value])
+        def pbsConfig = PBS_CONFIG + ["cookie-sync.pri": GENERIC.value]
+        def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Setuid request"
         def request = SetuidRequest.defaultSetuidRequest.tap {
@@ -147,12 +161,15 @@ class SetUidSpec extends BaseSpec {
         then: "Response should contain uids cookies"
         assert response.uidsCookie.tempUIDs[APPNEXUS]
         assert response.uidsCookie.tempUIDs[GENERIC]
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS setuid should ignore requested bidder and log metric when cookie's filled and requested bidder not in prioritize list"() {
         given: "PBS config"
-        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG +
-                ["cookie-sync.pri": APPNEXUS.value])
+        def pbsConfig = PBS_CONFIG + ["cookie-sync.pri": APPNEXUS.value]
+        def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Setuid request"
         def bidderName = GENERIC
@@ -176,14 +193,17 @@ class SetUidSpec extends BaseSpec {
         and: "Response should contain uids cookies"
         assert response.uidsCookie.tempUIDs[APPNEXUS]
         assert response.uidsCookie.tempUIDs[RUBICON]
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS setuid should reject bidder when cookie's filled and requested bidder in pri and rejected by tcf"() {
         given: "Setuid request"
         def bidderName = RUBICON
-        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG
-                + ["gdpr.host-vendor-id": RUBICON_VENDOR_ID.toString(),
-                   "cookie-sync.pri"    : bidderName.value])
+        def pbsConfig = PBS_CONFIG + ["gdpr.host-vendor-id": RUBICON_VENDOR_ID.toString(),
+                                      "cookie-sync.pri"    : bidderName.value]
+        def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
         def request = SetuidRequest.defaultSetuidRequest.tap {
             it.bidder = bidderName
@@ -207,12 +227,15 @@ class SetUidSpec extends BaseSpec {
         and: "usersync.FAMILY.tcf.blocked metric should be updated"
         def metric = prebidServerService.sendCollectedMetricsRequest()
         assert metric["usersync.${bidderName.value}.tcf.blocked"] == 1
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS setuid should remove oldest uid and log metric when cookie's filled and oldest uid's not on the pri"() {
         given: "PBS config"
-        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG +
-                ["cookie-sync.pri": GENERIC.value])
+        def pbsConfig = PBS_CONFIG + ["cookie-sync.pri": GENERIC.value]
+        def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Flush metrics"
         flushMetrics(prebidServerService)
@@ -241,12 +264,15 @@ class SetUidSpec extends BaseSpec {
         then: "Response should contain uids cookies"
         assert response.uidsCookie.tempUIDs[APPNEXUS]
         assert response.uidsCookie.tempUIDs[GENERIC]
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS SetUid should remove oldest bidder from uids cookie in favor of prioritized bidder"() {
         given: "PBS config"
-        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG +
-                ["cookie-sync.pri": "$OPENX.value, $GENERIC.value" as String])
+        def pbsConfig = PBS_CONFIG + ["cookie-sync.pri": "$OPENX.value, $GENERIC.value" as String]
+        def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Set uid request"
         def request = SetuidRequest.defaultSetuidRequest.tap {
@@ -281,5 +307,26 @@ class SetUidSpec extends BaseSpec {
 
         and: "usersync.FAMILY.sets metric should be updated"
         assert metricsRequest["usersync.${OPENX.value}.sets"] == 1
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
+    }
+
+    def "PBS  setuid should reject request when requested bidder mismatching with cookie-family-name"() {
+        given: "Default SetuidRequest"
+        def request = SetuidRequest.getDefaultSetuidRequest().tap {
+            it.bidder = bidderName
+        }
+
+        when: "PBS processes setuid request"
+        prebidServerService.sendSetUidRequest(request, UidsCookie.defaultUidsCookie)
+
+        then: "Request should fail with error"
+        def exception = thrown(PrebidServerException)
+        assert exception.statusCode == 400
+        assert exception.responseBody == 'Invalid request format: "bidder" query param is invalid'
+
+        where:
+        bidderName << [UNKNOWN, WILDCARD, GENERIC_CAMEL_CASE, ALIAS, ALIAS_CAMEL_CASE]
     }
 }
