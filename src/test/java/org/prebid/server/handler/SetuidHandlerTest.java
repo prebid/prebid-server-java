@@ -475,10 +475,10 @@ public class SetuidHandlerTest extends VertxTest {
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(uidsCookie);
         given(uidsCookieService.updateUidsCookie(uidsCookie, ADNXS, "J5VLCWQP-26-CWFT"))
-                .willReturn(UidsCookieUpdateResult.updated(uidsCookie));
+                .willReturn(UidsCookieUpdateResult.success(Map.of("uids", uidsCookie)));
 
         // {"tempUIDs":{"adnxs":{"uid":"J5VLCWQP-26-CWFT"}}}
-        given(uidsCookieService.toCookie(any())).willReturn(Cookie
+        given(uidsCookieService.toCookie(any(), any())).willReturn(Cookie
                 .cookie("uids", "eyJ0ZW1wVUlEcyI6eyJhZG54cyI6eyJ1aWQiOiJKNVZMQ1dRUC0yNi1DV0ZUIn19fQ=="));
 
         given(httpRequest.getParam("bidder")).willReturn(ADNXS);
