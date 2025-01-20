@@ -38,6 +38,7 @@ public class KoblerBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
     private static final String DEFAULT_BID_CURRENCY = "USD";
+    private static final String DEV_ENDPOINT = "https://bid-service.dev.essrtb.com/bid/prebid_server_rtb_call";
 
     private final String endpointUrl;
     private final CurrencyConversionService currencyConversionService;
@@ -57,11 +58,18 @@ public class KoblerBidder implements Bidder<BidRequest> {
         final List<BidderError> errors = new ArrayList<>();
         final List<HttpRequest<BidRequest>> requests = new ArrayList<>();
 
+        boolean testMode = false;
+
         for (Imp imp : bidRequest.getImp()) {
             try {
                 final ExtImpKobler impExt = parseImpExt(imp);
+
+                if (bidRequest.getImp().indexOf(imp) == 0) {
+                    testMode = impExt.getTest();
+                }
+
                 final Imp modifiedImp = modifyImp(imp, impExt, bidRequest);
-                requests.add(makeHttpRequest(bidRequest, modifiedImp));
+                requests.add(makeHttpRequest(bidRequest, modifiedImp, testMode));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -105,11 +113,14 @@ public class KoblerBidder implements Bidder<BidRequest> {
         return Price.of(DEFAULT_BID_CURRENCY, convertedPrice);
     }
 
-    private HttpRequest<BidRequest> makeHttpRequest(BidRequest bidRequest, Imp imp) {
+    private HttpRequest<BidRequest> makeHttpRequest(BidRequest bidRequest, Imp imp, boolean testMode) {
         final BidRequest modifiedBidRequest = bidRequest.toBuilder()
                 .imp(Collections.singletonList(imp))
                 .build();
-        return BidderUtil.defaultRequest(modifiedBidRequest, endpointUrl, mapper);
+
+        final String endpoint = testMode ? DEV_ENDPOINT : endpointUrl;
+
+        return BidderUtil.defaultRequest(modifiedBidRequest, endpoint, mapper);
     }
 
     @Override

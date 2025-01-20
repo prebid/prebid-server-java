@@ -27,7 +27,6 @@ public class KoblerTest extends IntegrationTest {
         // when
         final Response response = responseFor("openrtb2/kobler/test-auction-kobler-request.json",
                 Endpoint.openrtb2_auction);
-
         // then
         assertJsonEquals("openrtb2/kobler/test-auction-kobler-response.json", response, singletonList("kobler"));
     }

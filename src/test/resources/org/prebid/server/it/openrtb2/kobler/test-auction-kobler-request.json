@@ -1,28 +1,23 @@
 {
-  "id": "test-request-id",
+  "id": "request_id",
   "imp": [
     {
-      "id": "imp-1",
+      "id": "imp_id",
       "banner": {
-        "format": [
-          { "w": 300, "h": 250 },
-          { "w": 728, "h": 90 }
-        ]
+        "w": 300,
+        "h": 250
       },
-      "bidfloor": 0.6,
-      "bidfloorcur": "USD",
       "ext": {
-        "bidder": {
-          "test": true
+        "kobler": {
+          "test": false
         }
       }
     }
   ],
-  "site": {
-    "id": "site-1",
-    "page": "http://test-page.com"
-  },
-  "cur": ["USD"],
-  "test": 1,
-  "tmax": 500
+  "tmax": 5000,
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
 }

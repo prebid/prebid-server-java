@@ -1,19 +1,40 @@
 {
-  "id": "test-request-id",
+  "id": "request_id",
   "seatbid": [
     {
       "bid": [
         {
-          "id": "bid-1",
-          "impid": "imp-1",
-          "price": 1.0,
-          "adm": "<div>Test Ad</div>",
-          "crid": "creative-1",
+          "id": "bid_id",
+          "impid": "imp_id",
+          "exp": 300,
+          "price": 3.33,
+          "adm": "adm001",
+          "adid": "adid001",
+          "cid": "cid001",
+          "crid": "crid001",
           "w": 300,
-          "h": 250
+          "h": 250,
+          "mtype": 1,
+          "ext": {
+            "prebid": {
+              "type": "banner"
+            },
+            "origbidcpm": 3.33
+          }
         }
-      ]
+      ],
+      "seat": "kobler",
+      "group": 0
     }
   ],
-  "cur": "USD"
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "kobler": "{{ kobler.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
 }

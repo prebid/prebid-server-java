@@ -1,19 +1,21 @@
 {
-  "id": "test-request-id",
+  "id": "request_id",
   "seatbid": [
     {
       "bid": [
         {
-          "id": "bid-1",
-          "impid": "imp-1",
-          "price": 1.0,
-          "adm": "<div>Test Ad from Kobler</div>",
-          "crid": "creative-1",
-          "w": 300,
-          "h": 250
+          "id": "bid_id",
+          "impid": "imp_id",
+          "price": 3.33,
+          "adid": "adid001",
+          "crid": "crid001",
+          "cid": "cid001",
+          "adm": "adm001",
+          "mtype": 1,
+          "h": 250,
+          "w": 300
         }
       ]
     }
-  ],
-  "cur": "USD"
+  ]
 }
