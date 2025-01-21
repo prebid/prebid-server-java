@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonValue
 
 enum PaaFormat {
 
-    ORIGINAL, IAB
+    ORIGINAL, IAB, INVALID
 
     @JsonValue
     String getValue() {
