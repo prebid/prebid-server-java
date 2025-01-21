@@ -158,17 +158,23 @@ public class UidsCookieService {
      * Creates a {@link Cookie} with 'uids' as a name and encoded JSON string representing supplied {@link UidsCookie}
      * as a value.
      */
-    public Cookie toCookie(String cookieName, UidsCookie uidsCookie) {
-        return makeCookie(cookieName, uidsCookie);
-    }
-
-    private Cookie makeCookie(String cookieName, UidsCookie uidsCookie) {
+    public Cookie makeCookie(String cookieName, UidsCookie uidsCookie) {
         return Cookie
                 .cookie(cookieName, Base64.getUrlEncoder().encodeToString(uidsCookie.toJson().getBytes()))
                 .setPath("/")
                 .setSameSite(CookieSameSite.NONE)
                 .setSecure(true)
                 .setMaxAge(ttlSeconds)
+                .setDomain(hostCookieDomain);
+    }
+
+    public Cookie removeCookie(String cookieName) {
+        return Cookie
+                .cookie(cookieName, StringUtils.EMPTY)
+                .setPath("/")
+                .setSameSite(CookieSameSite.NONE)
+                .setSecure(true)
+                .setMaxAge(0)
                 .setDomain(hostCookieDomain);
     }
 

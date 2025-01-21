@@ -108,7 +108,7 @@ public class OptoutHandler implements ApplicationResource {
                 .updateOptout(optout);
 
         return uidsCookieService.splitUids(uidsCookie).entrySet().stream()
-                .map(entry -> uidsCookieService.toCookie(entry.getKey(), entry.getValue()))
+                .map(entry -> uidsCookieService.makeCookie(entry.getKey(), entry.getValue()))
                 .toList();
     }
 

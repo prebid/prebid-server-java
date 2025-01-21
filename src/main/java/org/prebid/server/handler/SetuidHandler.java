@@ -332,7 +332,7 @@ public class SetuidHandler implements ApplicationResource {
                 setuidContext.getUidsCookie(), bidder, uid);
 
         uidsCookieUpdateResult.getUidsCookies().entrySet().stream()
-                .map(e -> uidsCookieService.toCookie(e.getKey(), e.getValue()))
+                .map(entry -> toCookie(entry.getKey(), entry.getValue()))
                 .forEach(uidsCookie -> addCookie(routingContext, uidsCookie));
 
         if (uidsCookieUpdateResult.isSuccessfullyUpdated()) {
@@ -349,6 +349,12 @@ public class SetuidHandler implements ApplicationResource {
                 .success(uidsCookieUpdateResult.isSuccessfullyUpdated())
                 .build();
         analyticsDelegator.processEvent(setuidEvent, tcfContext);
+    }
+
+    private Cookie toCookie(String cookieName, UidsCookie uidsCookie) {
+        return uidsCookie.getCookieUids().getUids().isEmpty()
+                ? uidsCookieService.removeCookie(cookieName)
+                : uidsCookieService.makeCookie(cookieName, uidsCookie);
     }
 
     private Consumer<HttpServerResponse> buildCookieResponseConsumer(SetuidContext setuidContext,

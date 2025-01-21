@@ -280,7 +280,7 @@ public class UidsCookieServiceTest extends VertxTest {
     }
 
     @Test
-    public void toCookieShouldSetSameSiteNone() {
+    public void makeCookieShouldSetSameSiteNone() {
         // given
         final Uids uids = Uids.builder()
                 .uids(Map.of(RUBICON, UidWithExpiry.live("test")))
@@ -289,14 +289,14 @@ public class UidsCookieServiceTest extends VertxTest {
         final UidsCookie uidsCookie = new UidsCookie(uids, jacksonMapper);
 
         // when
-        final Cookie cookie = target.toCookie("uids", uidsCookie);
+        final Cookie cookie = target.makeCookie("uids", uidsCookie);
 
         // then
         assertThat(cookie.getSameSite()).isEqualTo(CookieSameSite.NONE);
     }
 
     @Test
-    public void toCookieShouldSetSecure() {
+    public void makeCookieShouldSetSecure() {
         // given
         final Uids uids = Uids.builder()
                 .uids(Map.of(RUBICON, UidWithExpiry.live("test")))
@@ -305,14 +305,14 @@ public class UidsCookieServiceTest extends VertxTest {
         final UidsCookie uidsCookie = new UidsCookie(uids, jacksonMapper);
 
         // when
-        final Cookie cookie = target.toCookie("uids", uidsCookie);
+        final Cookie cookie = target.makeCookie("uids", uidsCookie);
 
         // then
         assertThat(cookie.isSecure()).isTrue();
     }
 
     @Test
-    public void toCookieShouldSetPath() {
+    public void makeCookieShouldSetPath() {
         // given
         final Uids uids = Uids.builder()
                 .uids(Map.of(RUBICON, UidWithExpiry.live("test")))
@@ -321,7 +321,7 @@ public class UidsCookieServiceTest extends VertxTest {
         final UidsCookie uidsCookie = new UidsCookie(uids, jacksonMapper);
 
         // when
-        final Cookie cookie = target.toCookie("uids", uidsCookie);
+        final Cookie cookie = target.makeCookie("uids", uidsCookie);
 
         // then
         assertThat(cookie.getPath()).isEqualTo("/");
@@ -484,7 +484,7 @@ public class UidsCookieServiceTest extends VertxTest {
     }
 
     @Test
-    public void toCookieShouldReturnCookieWithExpectedValue() throws IOException {
+    public void makeCookieShouldReturnCookieWithExpectedValue() throws IOException {
         // given
         final UidsCookie uidsCookie = new UidsCookie(
                 Uids.builder().uids(new HashMap<>()).build(), jacksonMapper)
@@ -492,7 +492,7 @@ public class UidsCookieServiceTest extends VertxTest {
                 .updateUid(ADNXS, "adnxsUid");
 
         // when
-        final Cookie cookie = target.toCookie("uids", uidsCookie);
+        final Cookie cookie = target.makeCookie("uids", uidsCookie);
 
         // then
         final Map<String, UidWithExpiry> uids = decodeUids(cookie.getValue()).getUids();
@@ -508,22 +508,46 @@ public class UidsCookieServiceTest extends VertxTest {
     }
 
     @Test
-    public void toCookieShouldReturnCookieWithExpectedExpiration() {
-        // when
+    public void makeCookieShouldReturnCookieWithExpectedExpiration() {
+        // given
         final UidsCookie uidsCookie = new UidsCookie(
-                Uids.builder().uids(new HashMap<>()).build(), jacksonMapper);
-        final Cookie cookie = target.toCookie("uids", uidsCookie);
+                Uids.builder().uids(new HashMap<>()).build(), jacksonMapper)
+                .updateUid(RUBICON, "rubiconUid")
+                .updateUid(ADNXS, "adnxsUid");
+
+        // when
+        final Cookie cookie = target.makeCookie("uids", uidsCookie);
 
         // then
         assertThat(cookie.encode()).containsSequence("Max-Age=7776000; Expires=");
     }
 
     @Test
-    public void toCookieShouldReturnCookieWithExpectedDomain() {
+    public void removeCookieShouldReturnCookieWithZeroMaxAge() {
         // when
+        final Cookie cookie = target.removeCookie("uids");
+
+        // then
+        assertThat(cookie.encode()).containsSequence("Max-Age=0; Expires=");
+    }
+
+    @Test
+    public void removeCookieShouldReturnCookieWithEmptyValue() {
+        // when
+        final Cookie cookie = target.removeCookie("uids");
+
+        // then
+        assertThat(cookie.encode()).containsSequence("uids=;");
+    }
+
+    @Test
+    public void makeCookieShouldReturnCookieWithExpectedDomain() {
+        // given
         final UidsCookie uidsCookie = new UidsCookie(
                 Uids.builder().uids(new HashMap<>()).build(), jacksonMapper);
-        final Cookie cookie = target.toCookie("uids", uidsCookie);
+
+        // when
+        final Cookie cookie = target.makeCookie("uids", uidsCookie);
 
         // then
         assertThat(cookie.getDomain()).isEqualTo(HOST_COOKIE_DOMAIN);
