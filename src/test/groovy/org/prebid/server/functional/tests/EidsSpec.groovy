@@ -16,7 +16,10 @@ import org.prebid.server.functional.util.PBSUtils
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
+import static org.prebid.server.functional.model.bidder.BidderName.UNKNOWN
 import static org.prebid.server.functional.model.bidder.BidderName.WILDCARD
+import static org.prebid.server.functional.model.request.auction.DebugCondition.DISABLED
+import static org.prebid.server.functional.model.request.auction.DebugCondition.ENABLED
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 
@@ -89,6 +92,58 @@ class EidsSpec extends BaseSpec {
         then: "Bidder request shouldn't contain requested eids"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert !bidderRequest.user.eids
+    }
+
+    def "PBS eids shouldn't include warning for unknown bidder in request"() {
+        given: "Default bid request with generic bidder"
+        def sourceId = PBSUtils.randomString
+        def eids = [new Eid(source: sourceId, uids: [new Uid(id: sourceId)])]
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            user = new User(eids: eids)
+            ext.prebid.data = new ExtRequestPrebidData(eidpermissions: [new EidPermission(source: sourceId, bidders: [UNKNOWN])])
+            it.ext.prebid.debug = DISABLED
+            it.test = DISABLED
+        }
+
+        when: "PBS processes auction request"
+        def bidResponse = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request shouldn't contain requested eids"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert !bidderRequest.user.eids
+
+        and: "Bid response shouldn't contain warning"
+        assert !bidResponse.ext.warnings
+    }
+
+    def "PBS eids should include warning for unknown bidder when request in debug mode"() {
+        given: "Default bid request with generic bidder"
+        def sourceId = PBSUtils.randomString
+        def eids = [new Eid(source: sourceId, uids: [new Uid(id: sourceId)])]
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            user = new User(eids: eids)
+            ext.prebid.data = new ExtRequestPrebidData(eidpermissions: [new EidPermission(source: sourceId, bidders: [UNKNOWN])])
+            it.ext.prebid.debug = debug
+            it.test = test
+        }
+
+        when: "PBS processes auction request"
+        def bidResponse = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request shouldn't contain requested eids"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert !bidderRequest.user.eids
+
+        and: "Bid response should contain warning"
+        assert bidResponse.ext.warnings[PREBID]?.code == [999]
+        assert bidResponse.ext.warnings[PREBID]?.message ==
+                ["request.ext.prebid.data.eidPermissions[].bidders[] unrecognized biddercode: '$UNKNOWN'"]
+
+        where:
+        debug    | test
+        DISABLED | ENABLED
+        ENABLED  | DISABLED
+        ENABLED  | ENABLED
     }
 
     def "PBs eid permissions should affect only specified on source"() {
