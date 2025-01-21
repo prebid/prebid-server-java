@@ -1042,10 +1042,8 @@ class BidderParamsSpec extends BaseSpec {
     }
 
     def "PBS should send bidder code from imp[].ext.prebid.bidder to seatbid.bid.ext.prebid.meta.adapterCode"() {
-        given: "Default basic BidRequest with stored response"
+        given: "Default basic bid request"
         def bidRequest = BidRequest.defaultBidRequest
-
-        bidder.reset()
 
         and: "Default bid response"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
