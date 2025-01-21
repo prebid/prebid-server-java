@@ -363,6 +363,9 @@ class OpenxSpec extends BaseSpec {
         and: "Set bidder response"
         bidder.setResponse(bidRequest.id, bidResponse)
 
+        and: "Flush metrics"
+        flushMetrics(pbsService)
+
         when: "PBS processes auction request"
         def response = pbsService.sendAuctionRequest(bidRequest)
 
@@ -375,6 +378,10 @@ class OpenxSpec extends BaseSpec {
         and: "PBS log should contain error"
         def logs = pbsService.getLogsByTime(startTime)
         assert getLogsByText(logs, "ExtIgiIgs with absent impId from bidder: ${OPENX.value}")
+
+        and: "Alert.general metric should be updated"
+        def metrics = pbsService.sendCollectedMetricsRequest()
+        assert metrics["alerts.general" as String] == 1
     }
 
     def "PBS shouldn't populate fledge or igi config when bidder respond with igb"() {
