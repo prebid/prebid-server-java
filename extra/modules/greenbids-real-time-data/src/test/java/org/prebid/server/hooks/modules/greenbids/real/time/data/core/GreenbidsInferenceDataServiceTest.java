@@ -115,7 +115,7 @@ public class GreenbidsInferenceDataServiceTest {
                 .banner(banner)
                 .build();
         final Device device = givenDevice(identity(), "FRA");
-        final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device, null);
+        final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device);
 
         final ZonedDateTime timestamp = ZonedDateTime.now(ZoneId.of("UTC"));
         final Integer expectedHourBucket = timestamp.getHour();

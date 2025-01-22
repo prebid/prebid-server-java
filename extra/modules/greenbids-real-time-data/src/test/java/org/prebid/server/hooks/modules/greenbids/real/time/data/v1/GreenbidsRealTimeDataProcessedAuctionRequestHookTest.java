@@ -389,34 +389,6 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 .isEqualTo(expectedBidRequest);
     }
 
-    static DatabaseReader givenDatabaseReader() throws IOException {
-        final URL url = new URL("https://git.io/GeoLite2-Country.mmdb");
-        final Path databasePath = Files.createTempFile("GeoLite2-Country", ".mmdb");
-
-        try (
-                InputStream inputStream = url.openStream();
-                FileOutputStream outputStream = new FileOutputStream(databasePath.toFile())) {
-            inputStream.transferTo(outputStream);
-        }
-
-        return new DatabaseReader.Builder(databasePath.toFile()).build();
-    }
-
-    static ExtRequest givenExtRequest(Double explorationRate) {
-        final ObjectNode greenbidsNode = TestBidRequestProvider.MAPPER.createObjectNode();
-        greenbidsNode.put("pbuid", "test-pbuid");
-        greenbidsNode.put("targetTpr", 0.60);
-        greenbidsNode.put("explorationRate", explorationRate);
-
-        final ObjectNode analyticsNode = TestBidRequestProvider.MAPPER.createObjectNode();
-        analyticsNode.set("greenbids-rtd", greenbidsNode);
-
-        return ExtRequest.of(ExtRequestPrebid
-                .builder()
-                .analytics(analyticsNode)
-                .build());
-    }
-
     private AuctionContext givenAuctionContext(
             BidRequest bidRequest,
             UnaryOperator<AuctionContext.AuctionContextBuilder> auctionContextCustomizer,
