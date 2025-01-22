@@ -94,7 +94,7 @@ class EidsSpec extends BaseSpec {
         assert !bidderRequest.user.eids
     }
 
-    def "PBS eids shouldn't include warning for unknown bidder in request"() {
+    def "PBS eids shouldn't include warning for unknown bidder when test and debug disabled"() {
         given: "Default bid request with generic bidder"
         def sourceId = PBSUtils.randomString
         def eids = [new Eid(source: sourceId, uids: [new Uid(id: sourceId)])]
