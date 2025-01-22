@@ -960,4 +960,89 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         null           | BULGARIA       | null        | null        | [:]
         null           | null           | null        | null        | [:]
     }
+
+    def "PBS auction should update buyeruid scrubbed metrics when user.buyeruid requested"() {
+        given: "Default bid requests with personal data"
+        def tcfConsent = new TcfConsent.Builder().build()
+        def bidRequest = bidRequestWithPersonalData.tap {
+            regs.gdpr = 1
+            user.ext.consent = tcfConsent
+            ext.prebid.trace = VERBOSE
+        }
+
+        and: "Save account config with requireConsent into DB"
+        def purposes = [(P2): new PurposeConfig(enforcePurpose: NO, enforceVendors: false)]
+        def accountGdprConfig = new AccountGdprConfig(purposes: purposes)
+        def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig)
+        accountDao.save(account)
+
+        and: "Flush metric"
+        flushMetrics(privacyPbsService)
+
+        when: "PBS processes auction requests"
+        privacyPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should mask user personal data"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        verifyAll(bidderRequest.user) {
+            !id
+            !buyeruid
+            !yob
+            !gender
+            !eids
+            !data
+            !geo
+            !ext
+            !eids
+            !ext?.eids
+        }
+
+        and: "Metrics buyeruid scrubbed should be updated"
+        def metrics = privacyPbsService.sendCollectedMetricsRequest()
+        assert metrics["adapter.${GENERIC.value}.requests.buyeruid_scrubbed"] == 1
+        assert metrics["account.${account.uuid}.adapter.${GENERIC.value}.requests.buyeruid_scrubbed"] == 1
+    }
+
+    def "PBS auction shouldn't update buyeruid scrubbed metrics when user.buyeruid not requested"() {
+        given: "Default bid requests with personal data"
+        def tcfConsent = new TcfConsent.Builder().build()
+        def bidRequest = bidRequestWithPersonalData.tap {
+            regs.gdpr = 1
+            user.ext.consent = tcfConsent
+            user.buyeruid = null
+            ext.prebid.trace = VERBOSE
+        }
+
+        and: "Save account config with requireConsent into DB"
+        def purposes = [(P2): new PurposeConfig(enforcePurpose: NO, enforceVendors: false)]
+        def accountGdprConfig = new AccountGdprConfig(purposes: purposes)
+        def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig)
+        accountDao.save(account)
+
+        and: "Flush metric"
+        flushMetrics(privacyPbsService)
+
+        when: "PBS processes auction requests"
+        privacyPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should mask user personal data"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        verifyAll(bidderRequest.user) {
+            !id
+            !buyeruid
+            !yob
+            !gender
+            !eids
+            !data
+            !geo
+            !ext
+            !eids
+            !ext?.eids
+        }
+
+        and: "Metrics buyeruid scrubbed shouldn't be updated"
+        def metrics = privacyPbsService.sendCollectedMetricsRequest()
+        assert !metrics["adapter.${GENERIC.value}.requests.buyeruid_scrubbed"]
+        assert !metrics["account.${account.uuid}.adapter.${GENERIC.value}.requests.buyeruid_scrubbed"]
+    }
 }
