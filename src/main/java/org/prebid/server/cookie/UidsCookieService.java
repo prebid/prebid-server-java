@@ -168,6 +168,10 @@ public class UidsCookieService {
                 .setDomain(hostCookieDomain);
     }
 
+    public Cookie makeCookie(UidsCookie uidsCookie) {
+        return makeCookie(COOKIE_NAME, uidsCookie);
+    }
+
     public Cookie removeCookie(String cookieName) {
         return Cookie
                 .cookie(cookieName, StringUtils.EMPTY)
