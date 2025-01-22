@@ -16,11 +16,11 @@ class UidsCookie {
     Map<BidderName, UidWithExpiry> tempUIDs
     Boolean optout
 
-    static UidsCookie getDefaultUidsCookie(BidderName bidder = GENERIC) {
+    static UidsCookie getDefaultUidsCookie(BidderName bidder = GENERIC, Integer expireDays = 2) {
         new UidsCookie().tap {
             uids = [(bidder): UUID.randomUUID().toString()]
             tempUIDs = [(bidder): new UidWithExpiry(uid: UUID.randomUUID().toString(),
-                    expires: ZonedDateTime.now(Clock.systemUTC()).plusDays(2))]
+                    expires: ZonedDateTime.now(Clock.systemUTC()).plusDays(expireDays))]
         }
     }
 }

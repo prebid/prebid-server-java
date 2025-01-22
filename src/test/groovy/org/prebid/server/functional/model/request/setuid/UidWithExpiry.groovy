@@ -11,10 +11,10 @@ class UidWithExpiry {
     String uid
     ZonedDateTime expires
 
-    static UidWithExpiry getDefaultUidWithExpiry() {
+    static UidWithExpiry getDefaultUidWithExpiry(Integer plusDays = 2) {
         new UidWithExpiry().tap {
             uid = UUID.randomUUID().toString()
-            expires = ZonedDateTime.now(Clock.systemUTC()).plusDays(2)
+            expires = ZonedDateTime.now(Clock.systemUTC()).plusDays(plusDays)
         }
     }
 }
