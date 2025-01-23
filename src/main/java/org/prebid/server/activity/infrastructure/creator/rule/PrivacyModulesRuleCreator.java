@@ -5,6 +5,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.activity.infrastructure.creator.ActivityControllerCreationContext;
 import org.prebid.server.activity.infrastructure.creator.PrivacyModuleCreationContext;
 import org.prebid.server.activity.infrastructure.creator.privacy.PrivacyModuleCreator;
+import org.prebid.server.activity.infrastructure.privacy.AbstainPrivacyModule;
 import org.prebid.server.activity.infrastructure.privacy.PrivacyModule;
 import org.prebid.server.activity.infrastructure.privacy.PrivacyModuleQualifier;
 import org.prebid.server.activity.infrastructure.rule.AndRule;
@@ -17,12 +18,16 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 public class PrivacyModulesRuleCreator extends AbstractRuleCreator<AccountActivityPrivacyModulesRuleConfig> {
 
     private static final String WILDCARD = "*";
+    private static final int SKIP_RATE_MIN = 0;
+    private static final int SKIP_RATE_MAX = 100;
 
     private final Map<PrivacyModuleQualifier, PrivacyModuleCreator> privacyModulesCreators;
 
@@ -81,6 +86,15 @@ public class PrivacyModulesRuleCreator extends AbstractRuleCreator<AccountActivi
 
     private PrivacyModule createPrivacyModule(PrivacyModuleQualifier privacyModuleQualifier,
                                               ActivityControllerCreationContext creationContext) {
+
+        final Integer skipRate = Optional.ofNullable(creationContext.getPrivacyModulesConfigs())
+                .map(configs -> configs.get(privacyModuleQualifier))
+                .map(AccountPrivacyModuleConfig::getSkipRate)
+                .orElse(SKIP_RATE_MIN);
+
+        if (ThreadLocalRandom.current().nextInt(SKIP_RATE_MAX) < skipRate) {
+            return new AbstainPrivacyModule(privacyModuleQualifier);
+        }
 
         return privacyModulesCreators.get(privacyModuleQualifier)
                 .from(creationContext(privacyModuleQualifier, creationContext));

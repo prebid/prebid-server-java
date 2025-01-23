@@ -248,7 +248,7 @@ public class USCustomLogicModuleCreatorTest extends VertxTest {
 
         return PrivacyModuleCreationContext.of(
                 Activity.CALL_BIDDER,
-                AccountUSCustomLogicModuleConfig.of(true, config),
+                AccountUSCustomLogicModuleConfig.of(true, null, config),
                 GppContextCreator.from(null, sectionsIds).build().getGppContext());
     }
 

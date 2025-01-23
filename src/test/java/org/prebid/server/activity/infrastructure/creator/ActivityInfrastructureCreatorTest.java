@@ -91,8 +91,8 @@ public class ActivityInfrastructureCreatorTest {
                         .activities(Map.of(Activity.SYNC_USER, AccountActivityConfiguration.of(
                                 null, singletonList(AccountActivityConditionsRuleConfig.of(null, null)))))
                         .modules(asList(
-                                AccountUSNatModuleConfig.of(null, null),
-                                AccountUSNatModuleConfig.of(null, null)))
+                                AccountUSNatModuleConfig.of(null, null, null),
+                                AccountUSNatModuleConfig.of(null, null, null)))
                         .build())
                 .build();
 
