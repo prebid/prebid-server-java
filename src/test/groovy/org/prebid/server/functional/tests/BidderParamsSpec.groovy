@@ -776,6 +776,27 @@ class BidderParamsSpec extends BaseSpec {
                          "request.imp[0].ext.prebid.bidder contains unknown bidder: anyUnsupportedBidder"]
     }
 
+    def "PBS should emit warning and proceed auction when ext.prebid fields include adunitcode"() {
+        given: "Default bid request with populated ext.prebid.bidderParams"
+        def genericBidderParams = PBSUtils.randomString
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.bidderParams = [adUnitCode     : PBSUtils.randomString,
+                                       (GENERIC.value): genericBidderParams]
+        }
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response shouldn't contain error"
+        assert !response.ext?.errors
+
+        and: "PBS should emit an warning"
+        assert response?.ext?.warnings[PREBID]*.code == [999]
+        assert response?.ext?.warnings[PREBID]*.message ==
+                ["WARNING: request.imp[0].ext.prebid.bidder.adUnitCode was dropped with a reason: " +
+                         "request.imp[0].ext.prebid.bidder contains unknown bidder: adUnitCode"]
+    }
+
     def "PBS shouldn't emit warning and proceed auction when all imp.ext fields known for PBS"() {
         given: "Default bid request with populated imp.ext"
         def impExt = ImpExt.getDefaultImpExt().tap {
@@ -832,7 +853,6 @@ class BidderParamsSpec extends BaseSpec {
                                        gpid           : PBSUtils.randomString,
                                        skadn          : PBSUtils.randomString,
                                        tid            : PBSUtils.randomString,
-                                       adunitcode     : PBSUtils.randomString,
                                        (GENERIC.value): genericBidderParams
             ]
         }
