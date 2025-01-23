@@ -265,8 +265,7 @@ abstract class PrivacyBaseSpec extends BaseSpec {
     }
 
     private static Account getAccountWithPrivacy(String accountId, AccountPrivacyConfig privacy) {
-        def metricsConfig = new AccountMetricsConfig(verbosityLevel: DETAILED)
-        new Account(uuid: accountId, config: new AccountConfig(privacy: privacy, metrics: metricsConfig))
+        new Account(uuid: accountId, config: new AccountConfig(privacy: privacy))
     }
 
     protected static Account getAccountWithAllowActivitiesAndPrivacyModule(String accountId,
