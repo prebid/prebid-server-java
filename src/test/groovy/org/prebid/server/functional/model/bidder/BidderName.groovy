@@ -24,8 +24,7 @@ enum BidderName {
     ADKERNEL("adkernel"),
     IX("ix"),
     GRID("grid"),
-    MEDIANET("medianet"),
-    AUDIENCE_NETWORK("audienceNetwork")
+    MEDIANET("medianet")
 
     @JsonValue
     final String value

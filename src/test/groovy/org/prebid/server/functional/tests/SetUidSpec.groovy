@@ -18,7 +18,6 @@ import java.time.temporal.ChronoUnit
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS_CAMEL_CASE
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
-import static org.prebid.server.functional.model.bidder.BidderName.AUDIENCE_NETWORK
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC_CAMEL_CASE
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
@@ -39,20 +38,17 @@ class SetUidSpec extends BaseSpec {
     private static final boolean CORS_SUPPORT = false
     private static final Integer RANDOM_EXPIRE_DAY = PBSUtils.getRandomNumber(1, 10)
     private static final String USER_SYNC_URL = "$networkServiceContainer.rootUri/generic-usersync"
+    private static final String USER_SYNC_URL_2 = "$networkServiceContainer.rootUri/audience-network-usersync"
     private static final Map<String, String> PBS_CONFIG =
-            ["host-cookie.max-cookie-size-bytes"                                      : MAX_COOKIE_SIZE as String,
-             "adapters.${RUBICON.value}.enabled"                                      : "true",
-             "adapters.${RUBICON.value}.usersync.cookie-family-name"                  : RUBICON.value,
-             "adapters.${OPENX.value}.enabled"                                        : "true",
-             "adapters.${OPENX.value}.usersync.cookie-family-name"                    : OPENX.value,
-             "adapters.${AUDIENCE_NETWORK.value}.enabled"                             : "true",
-             "adapters.${AUDIENCE_NETWORK.value}.usersync.cookie-family-name"         : AUDIENCE_NETWORK.value,
-             "adapters.${AUDIENCE_NETWORK.value}.platform-id"                         : "0",
-             "adapters.${AUDIENCE_NETWORK.value}.app-secret"                          : PBSUtils.randomString,
-             "adapters.${APPNEXUS.value}.enabled"                                     : "true",
-             "adapters.${APPNEXUS.value}.usersync.cookie-family-name"                 : APPNEXUS.value,
-             "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url"         : USER_SYNC_URL,
-             "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.support-cors": CORS_SUPPORT.toString()]
+            ["host-cookie.max-cookie-size-bytes"                                               : MAX_COOKIE_SIZE as String,
+             "adapters.${RUBICON.value}.enabled"                                               : "true",
+             "adapters.${RUBICON.value}.usersync.cookie-family-name"                           : RUBICON.value,
+             "adapters.${OPENX.value}.enabled"                                                 : "true",
+             "adapters.${OPENX.value}.usersync.cookie-family-name"                             : OPENX.value,
+             "adapters.${APPNEXUS.value}.enabled"                                              : "true",
+             "adapters.${APPNEXUS.value}.usersync.cookie-family-name"                          : APPNEXUS.value,
+             "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url"                  : USER_SYNC_URL,
+             "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.support-cors"         : CORS_SUPPORT.toString()]
     private static final Map<String, String> UID_COOKIES_CONFIG = ['setuid.number-of-uid-cookies': MAX_NUMBER_OF_UID_COOKIES.toString()]
     private static final Map<String, String> GENERIC_ALIAS_CONFIG = ["adapters.generic.aliases.alias.enabled" : "true",
                                                                      "adapters.generic.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
@@ -277,8 +273,8 @@ class SetUidSpec extends BaseSpec {
         }
 
         def uidsCookie = UidsCookie.defaultUidsCookie.tap {
-            tempUIDs = [(APPNEXUS)  : getDefaultUidWithExpiry(RANDOM_EXPIRE_DAY),
-                        (RUBICON): getDefaultUidWithExpiry(RANDOM_EXPIRE_DAY + 1)]
+            tempUIDs = [(APPNEXUS): getDefaultUidWithExpiry(RANDOM_EXPIRE_DAY),
+                        (RUBICON) : getDefaultUidWithExpiry(RANDOM_EXPIRE_DAY + 1)]
         }
 
         when: "PBS processes setuid request"
@@ -309,8 +305,8 @@ class SetUidSpec extends BaseSpec {
 
         and: "Set up set uid cookie"
         def uidsCookie = UidsCookie.defaultUidsCookie.tap {
-            tempUIDs = [(APPNEXUS)  : getDefaultUidWithExpiry(RANDOM_EXPIRE_DAY + 1),
-                        (RUBICON): getDefaultUidWithExpiry(RANDOM_EXPIRE_DAY)]
+            tempUIDs = [(APPNEXUS): getDefaultUidWithExpiry(RANDOM_EXPIRE_DAY + 1),
+                        (RUBICON) : getDefaultUidWithExpiry(RANDOM_EXPIRE_DAY)]
         }
 
         and: "Flush metrics"
@@ -349,9 +345,9 @@ class SetUidSpec extends BaseSpec {
 
         and: "Set up set uid cookie"
         def uidsCookie = UidsCookie.defaultUidsCookie.tap {
-            tempUIDs = [(APPNEXUS)  : getDefaultUidWithExpiry(RANDOM_EXPIRE_DAY + 1),
-                        (OPENX): getDefaultUidWithExpiry(RANDOM_EXPIRE_DAY),
-                        (RUBICON): getDefaultUidWithExpiry(RANDOM_EXPIRE_DAY)]
+            tempUIDs = [(APPNEXUS): getDefaultUidWithExpiry(RANDOM_EXPIRE_DAY + 1),
+                        (OPENX)   : getDefaultUidWithExpiry(RANDOM_EXPIRE_DAY),
+                        (RUBICON) : getDefaultUidWithExpiry(RANDOM_EXPIRE_DAY)]
         }
 
         and: "Flush metrics"
@@ -443,7 +439,7 @@ class SetUidSpec extends BaseSpec {
 
         and: "Setuid request"
         def request = SetuidRequest.defaultSetuidRequest
-        
+
         def genericUidsCookie = UidsCookie.getDefaultUidsCookie(GENERIC, RANDOM_EXPIRE_DAY + 1)
         def rubiconUidsCookie = UidsCookie.getDefaultUidsCookie(RUBICON, RANDOM_EXPIRE_DAY + 2)
         def openxUidsCookie = UidsCookie.getDefaultUidsCookie(OPENX, RANDOM_EXPIRE_DAY + 3)
@@ -476,30 +472,23 @@ class SetUidSpec extends BaseSpec {
         assert response.uidsCookie.tempUIDs[GENERIC].expires == duplicateUidsCookie.tempUIDs[GENERIC].expires
     }
 
-    def "PBS should shouldn't modify uids cookie for specific conditions"() {
+    def "PBS should shouldn't modify uids cookie when uid is empty"() {
         given: "Setuid request"
         def request = SetuidRequest.defaultSetuidRequest.tap {
-            it.uid = requestUid
-            it.bidder = requestBidder
+            it.uid = null
+            it.bidder = GENERIC
         }
 
         and: "Specific uids cookies"
-        def uidsCookie = UidsCookie.getDefaultUidsCookie(cookieBidder).tap {
-            tempUIDs[cookieBidder].uid = cookieUid
-        }
+        def uidsCookie = UidsCookie.getDefaultUidsCookie(GENERIC)
 
         when: "PBS processes setuid request"
-        def response = singleCookiesPbsService.sendSetUidRequest(request, [uidsCookie])
+        def response = multipleCookiesPbsService.sendSetUidRequest(request, [uidsCookie])
 
         then: "Response should contain single generic uid"
         assert response.uidsCookie.tempUIDs.size() == 1
-        assert response.uidsCookie.tempUIDs[cookieBidder].uid == uidsCookie.tempUIDs[cookieBidder].uid
-        assert response.uidsCookie.tempUIDs[cookieBidder].expires == uidsCookie.tempUIDs[cookieBidder].expires
-
-        where:
-        requestUid                   | requestBidder    | cookieUid                    | cookieBidder
-        null                         | GENERIC          | UUID.randomUUID().toString() | GENERIC
-        UUID.randomUUID().toString() | AUDIENCE_NETWORK | '0'                          | AUDIENCE_NETWORK
+        assert response.uidsCookie.tempUIDs[GENERIC].uid == uidsCookie.tempUIDs[GENERIC].uid
+        assert response.uidsCookie.tempUIDs[GENERIC].expires == uidsCookie.tempUIDs[GENERIC].expires
     }
 
     def "PBS should include all cookies even empty when incoming request have multiple uids cookies"() {
