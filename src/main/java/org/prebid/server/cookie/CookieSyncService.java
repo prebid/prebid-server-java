@@ -43,6 +43,7 @@ import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.spring.config.bidder.model.usersync.CookieFamilySource;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
+import org.prebid.server.util.StreamUtil;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -54,7 +55,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -385,14 +385,9 @@ public class CookieSyncService {
 
     private List<BidderUsersyncStatus> validStatuses(Set<String> biddersToSync, CookieSyncContext cookieSyncContext) {
         return biddersToSync.stream()
-                .filter(distinctBy(bidder -> bidderCatalog.cookieFamilyName(bidder).orElseThrow()))
+                .filter(StreamUtil.distinctBy(bidder -> bidderCatalog.cookieFamilyName(bidder).orElseThrow()))
                 .map(bidder -> validStatus(bidder, cookieSyncContext))
                 .toList();
-    }
-
-    private static <T> Predicate<T> distinctBy(Function<? super T, ?> keyExtractor) {
-        final Set<Object> seen = new HashSet<>();
-        return value -> seen.add(keyExtractor.apply(value));
     }
 
     private BidderUsersyncStatus validStatus(String bidder, CookieSyncContext cookieSyncContext) {
