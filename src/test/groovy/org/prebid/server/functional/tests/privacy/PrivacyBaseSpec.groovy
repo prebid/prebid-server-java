@@ -7,7 +7,6 @@ import org.prebid.server.functional.model.config.AccountCoopSyncConfig
 import org.prebid.server.functional.model.config.AccountDsaConfig
 import org.prebid.server.functional.model.config.AccountGdprConfig
 import org.prebid.server.functional.model.config.AccountGppConfig
-import org.prebid.server.functional.model.config.AccountMetricsConfig
 import org.prebid.server.functional.model.config.AccountPrivacyConfig
 import org.prebid.server.functional.model.config.Purpose
 import org.prebid.server.functional.model.db.Account
@@ -39,7 +38,6 @@ import spock.lang.Shared
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
-import static org.prebid.server.functional.model.config.AccountMetricsVerbosityLevel.DETAILED
 import static org.prebid.server.functional.model.config.PurposeEnforcement.BASIC
 import static org.prebid.server.functional.model.config.PurposeEnforcement.FULL
 import static org.prebid.server.functional.model.config.PurposeEnforcement.NO
