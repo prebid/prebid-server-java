@@ -9,10 +9,12 @@
           "price": 0.01,
           "id": "bid_id",
           "impid": "imp_id",
-          "cid": "cid"
+          "cid": "cid",
+          "mtype": 1
         }
       ],
-      "type": "banner"
+      "seat": "silvermob"
     }
-  ]
+  ],
+  "cur": "USD"
 }
