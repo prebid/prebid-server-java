@@ -275,7 +275,7 @@ public class ExchangeService {
                         .map(auctionParticipations -> updateResponsesMetrics(auctionParticipations, account, aliases))
                         .map(context::with))
                 // produce response from bidder results
-                .compose(context -> bidResponseCreator.create(context, cacheInfo, bidderToMultiBid)
+                .compose(context -> bidResponseCreator.create(context, cacheInfo, aliases, bidderToMultiBid)
                         .map(bidResponse -> criteriaLogManager.traceResponse(
                                 logger,
                                 bidResponse,
