@@ -3770,7 +3770,9 @@ public class BidResponseCreatorTest extends VertxTest {
 
         final AuctionContext auctionContext = givenAuctionContext(
                 bidRequest,
-                contextBuilder -> contextBuilder.auctionParticipations(toAuctionParticipant(bidderResponses)));
+                contextBuilder -> contextBuilder
+                        .debugContext(DebugContext.of(true, false, null))
+                        .auctionParticipations(toAuctionParticipant(bidderResponses)));
 
         // when
         final BidResponse bidResponse = target
@@ -3824,7 +3826,9 @@ public class BidResponseCreatorTest extends VertxTest {
 
         final AuctionContext auctionContext = givenAuctionContext(
                 bidRequest,
-                contextBuilder -> contextBuilder.auctionParticipations(toAuctionParticipant(bidderResponses)));
+                contextBuilder -> contextBuilder
+                        .debugContext(DebugContext.of(true, false, null))
+                        .auctionParticipations(toAuctionParticipant(bidderResponses)));
 
         // when
         final BidResponse bidResponse = target
@@ -3874,7 +3878,9 @@ public class BidResponseCreatorTest extends VertxTest {
 
         final AuctionContext auctionContext = givenAuctionContext(
                 bidRequest,
-                contextBuilder -> contextBuilder.auctionParticipations(toAuctionParticipant(bidderResponses)));
+                contextBuilder -> contextBuilder
+                        .debugContext(DebugContext.of(true, false, null))
+                        .auctionParticipations(toAuctionParticipant(bidderResponses)));
 
         // when
         final BidResponse bidResponse = target
@@ -3922,7 +3928,9 @@ public class BidResponseCreatorTest extends VertxTest {
 
         final AuctionContext auctionContext = givenAuctionContext(
                 bidRequest,
-                contextBuilder -> contextBuilder.auctionParticipations(toAuctionParticipant(bidderResponses)));
+                contextBuilder -> contextBuilder
+                        .debugContext(DebugContext.of(true, false, null))
+                        .auctionParticipations(toAuctionParticipant(bidderResponses)));
 
         // when
         final BidResponse bidResponse = target

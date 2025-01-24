@@ -882,7 +882,9 @@ public class BidResponseCreator {
         final boolean shouldDropIgb = StringUtils.isEmpty(igi.getImpid());
         if (shouldDropIgb) {
             final String warning = "ExtIgi with absent impId from bidder: " + bidder;
-            auctionContext.getDebugWarnings().add(warning);
+            if (auctionContext.getDebugContext().isDebugEnabled()) {
+                auctionContext.getDebugWarnings().add(warning);
+            }
             conditionalLogger.warn(warning, logSamplingRate);
         }
 
@@ -904,6 +906,7 @@ public class BidResponseCreator {
             return Collections.emptyList();
         }
 
+        final boolean debugEnabled = auctionContext.getDebugContext().isDebugEnabled();
         final List<ExtIgiIgs> preparedIgiIgs = new ArrayList<>();
         for (ExtIgiIgs extIgiIgs : igiIgs) {
             if (extIgiIgs == null) {
@@ -912,14 +915,18 @@ public class BidResponseCreator {
 
             if (StringUtils.isEmpty(extIgiIgs.getImpId())) {
                 final String warning = "ExtIgiIgs with absent impId from bidder: " + bidder;
-                auctionContext.getDebugWarnings().add(warning);
+                if (debugEnabled) {
+                    auctionContext.getDebugWarnings().add(warning);
+                }
                 conditionalLogger.warn(warning, logSamplingRate);
                 continue;
             }
 
             if (extIgiIgs.getConfig() == null) {
                 final String warning = "ExtIgiIgs with absent config from bidder: " + bidder;
-                auctionContext.getDebugWarnings().add(warning);
+                if (debugEnabled) {
+                    auctionContext.getDebugWarnings().add(warning);
+                }
                 conditionalLogger.warn(warning, logSamplingRate);
                 continue;
             }
