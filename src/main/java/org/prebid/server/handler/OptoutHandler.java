@@ -107,7 +107,7 @@ public class OptoutHandler implements ApplicationResource {
                 .parseFromRequest(routingContext)
                 .updateOptout(optout);
 
-        return uidsCookieService.makeCookie(uidsCookie);
+        return uidsCookieService.aliveCookie(uidsCookie);
     }
 
     private String optUrl(boolean optout) {

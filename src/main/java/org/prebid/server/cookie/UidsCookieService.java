@@ -6,7 +6,6 @@ import io.vertx.core.http.CookieSameSite;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.cookie.model.UidWithExpiry;
-import org.prebid.server.cookie.model.UidsCookieUpdateResult;
 import org.prebid.server.cookie.proto.Uids;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
@@ -14,13 +13,16 @@ import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.HttpRequestContext;
+import org.prebid.server.model.UpdateResult;
 import org.prebid.server.util.HttpUtil;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -137,17 +139,19 @@ public class UidsCookieService {
 
         for (Map.Entry<String, String> cookie : cookies.entrySet()) {
             final String cookieKey = cookie.getKey();
-            if (cookieKey.startsWith(COOKIE_NAME)) {
-                try {
-                    final Uids parsedUids = mapper.decodeValue(
-                            Buffer.buffer(Base64.getUrlDecoder().decode(cookie.getValue())), Uids.class);
-                    if (parsedUids != null && parsedUids.getUids() != null) {
-                        parsedUids.getUids().forEach((key, value) -> uids.merge(key, value, (newValue, oldValue) ->
-                                newValue.getExpires().compareTo(oldValue.getExpires()) > 0 ? newValue : oldValue));
-                    }
-                } catch (IllegalArgumentException | DecodeException e) {
-                    logger.debug("Could not decode or parse {} cookie value {}", e, COOKIE_NAME, cookie.getValue());
+            if (!cookieKey.startsWith(COOKIE_NAME)) {
+                continue;
+            }
+
+            try {
+                final Uids parsedUids = mapper.decodeValue(
+                        Buffer.buffer(Base64.getUrlDecoder().decode(cookie.getValue())), Uids.class);
+                if (parsedUids != null && parsedUids.getUids() != null) {
+                    parsedUids.getUids().forEach((key, value) -> uids.merge(key, value, (newValue, oldValue) ->
+                            newValue.getExpires().compareTo(oldValue.getExpires()) > 0 ? newValue : oldValue));
                 }
+            } catch (IllegalArgumentException | DecodeException e) {
+                logger.debug("Could not decode or parse {} cookie value {}", e, COOKIE_NAME, cookie.getValue());
             }
         }
 
@@ -158,7 +162,7 @@ public class UidsCookieService {
      * Creates a {@link Cookie} with 'uids' as a name and encoded JSON string representing supplied {@link UidsCookie}
      * as a value.
      */
-    public Cookie makeCookie(String cookieName, UidsCookie uidsCookie) {
+    public Cookie aliveCookie(String cookieName, UidsCookie uidsCookie) {
         return Cookie
                 .cookie(cookieName, Base64.getUrlEncoder().encodeToString(uidsCookie.toJson().getBytes()))
                 .setPath("/")
@@ -168,11 +172,11 @@ public class UidsCookieService {
                 .setDomain(hostCookieDomain);
     }
 
-    public Cookie makeCookie(UidsCookie uidsCookie) {
-        return makeCookie(COOKIE_NAME, uidsCookie);
+    public Cookie aliveCookie(UidsCookie uidsCookie) {
+        return aliveCookie(COOKIE_NAME, uidsCookie);
     }
 
-    public Cookie removeCookie(String cookieName) {
+    public Cookie expiredCookie(String cookieName) {
         return Cookie
                 .cookie(cookieName, StringUtils.EMPTY)
                 .setPath("/")
@@ -245,17 +249,17 @@ public class UidsCookieService {
     /***
      * Removes expired {@link Uids}, updates {@link UidsCookie} with new uid for family name according to priority
      */
-    public UidsCookieUpdateResult updateUidsCookie(UidsCookie uidsCookie, String familyName, String uid) {
+    public UpdateResult<UidsCookie> updateUidsCookie(UidsCookie uidsCookie, String familyName, String uid) {
         final UidsCookie initialCookie = removeExpiredUids(uidsCookie);
 
         // At the moment, Facebook calls /setuid with a UID of 0 if the user isn't logged into Facebook.
         // They shouldn't be sending us a sentinel value... but since they are, we're refusing to save that ID.
         if (StringUtils.isBlank(uid) || UidsCookie.isFacebookSentinel(familyName, uid)) {
-            return UidsCookieUpdateResult.failure(splitUids(initialCookie));
+            return UpdateResult.unaltered(initialCookie);
         }
 
         final UidsCookie updatedCookie = initialCookie.updateUid(familyName, uid);
-        return UidsCookieUpdateResult.success(splitUids(updatedCookie));
+        return UpdateResult.updated(updatedCookie);
     }
 
     private static UidsCookie removeExpiredUids(UidsCookie uidsCookie) {
@@ -271,48 +275,48 @@ public class UidsCookieService {
         return updatedCookie;
     }
 
-    public Map<String, UidsCookie> splitUids(UidsCookie uidsCookie) {
+    public List<Cookie> splitUidsIntoCookies(UidsCookie uidsCookie) {
         final Uids cookieUids = uidsCookie.getCookieUids();
         final Map<String, UidWithExpiry> uids = cookieUids.getUids();
         final boolean hasOptout = !uidsCookie.allowsSync();
 
-        final Iterator<String> cookieFamilyIterator = cookieFamilyNamesByDescPriorityAndExpiration(uidsCookie);
-        final Map<String, UidsCookie> splitCookies = new HashMap<>();
+        final Iterator<String> cookieFamilies = cookieFamilyNamesByDescPriorityAndExpiration(uidsCookie);
+        final List<Cookie> splitCookies = new ArrayList<>();
 
         int uidsIndex = 0;
         String nextCookieFamily = null;
 
         while (uidsIndex < numberOfUidCookies) {
             final String uidsName = uidsIndex == 0 ? COOKIE_NAME : COOKIE_NAME_FORMAT.formatted(uidsIndex + 1);
-            final UidsCookie tempUidsCookie = splitCookies.computeIfAbsent(
-                    uidsName,
-                    key -> new UidsCookie(Uids.builder().uids(new HashMap<>()).optout(hasOptout).build(), mapper));
-            final Map<String, UidWithExpiry> tempUids = tempUidsCookie.getCookieUids().getUids();
+            UidsCookie tempUidsCookie = new UidsCookie(
+                    Uids.builder().uids(new HashMap<>()).optout(hasOptout).build(),
+                    mapper);
 
-            while (nextCookieFamily != null || cookieFamilyIterator.hasNext()) {
-                nextCookieFamily = nextCookieFamily == null ? cookieFamilyIterator.next() : nextCookieFamily;
-                tempUids.put(nextCookieFamily, uids.get(nextCookieFamily));
+            while (nextCookieFamily != null || cookieFamilies.hasNext()) {
+                nextCookieFamily = nextCookieFamily == null ? cookieFamilies.next() : nextCookieFamily;
+                tempUidsCookie = tempUidsCookie.updateUid(nextCookieFamily, uids.get(nextCookieFamily));
                 if (cookieExceededMaxLength(uidsName, tempUidsCookie)) {
-                    tempUids.remove(nextCookieFamily);
+                    tempUidsCookie = tempUidsCookie.deleteUid(nextCookieFamily);
                     break;
                 }
 
                 nextCookieFamily = null;
             }
 
+            if (tempUidsCookie.getCookieUids().getUids().isEmpty()) {
+                splitCookies.add(expiredCookie(uidsName));
+            } else {
+                splitCookies.add(aliveCookie(uidsName, tempUidsCookie));
+            }
+
             uidsIndex++;
         }
 
-        while (nextCookieFamily != null || cookieFamilyIterator.hasNext()) {
-            nextCookieFamily = nextCookieFamily == null ? cookieFamilyIterator.next() : nextCookieFamily;
-            if (prioritizedCoopSyncProvider.isPrioritizedFamily(nextCookieFamily)) {
-                metrics.updateUserSyncSizedOutMetric(nextCookieFamily);
-            } else {
-                metrics.updateUserSyncSizeBlockedMetric(nextCookieFamily);
-            }
-
-            nextCookieFamily = null;
+        if (nextCookieFamily != null) {
+            updateSyncSizeMetrics(nextCookieFamily);
         }
+
+        cookieFamilies.forEachRemaining(this::updateSyncSizeMetrics);
 
         return splitCookies;
     }
@@ -340,12 +344,20 @@ public class UidsCookieService {
         }
     }
 
+    private void updateSyncSizeMetrics(String nextCookieFamily) {
+        if (prioritizedCoopSyncProvider.isPrioritizedFamily(nextCookieFamily)) {
+            metrics.updateUserSyncSizedOutMetric(nextCookieFamily);
+        } else {
+            metrics.updateUserSyncSizeBlockedMetric(nextCookieFamily);
+        }
+    }
+
     private boolean cookieExceededMaxLength(String name, UidsCookie uidsCookie) {
         return maxCookieSizeBytes > 0 && cookieBytesLength(name, uidsCookie) > maxCookieSizeBytes;
     }
 
     private int cookieBytesLength(String cookieName, UidsCookie uidsCookie) {
-        return makeCookie(cookieName, uidsCookie).encode().getBytes().length;
+        return aliveCookie(cookieName, uidsCookie).encode().getBytes().length;
     }
 
     public String hostCookieUidToSync(RoutingContext routingContext, String cookieFamilyName) {
