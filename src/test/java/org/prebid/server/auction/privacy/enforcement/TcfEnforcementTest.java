@@ -16,7 +16,6 @@ import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.auction.privacy.enforcement.mask.UserFpdTcfMask;
-import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
@@ -55,8 +54,6 @@ public class TcfEnforcementTest {
     @Mock(strictness = LENIENT)
     private UserFpdTcfMask userFpdTcfMask;
     @Mock
-    private BidderCatalog bidderCatalog;
-    @Mock
     private Metrics metrics;
 
     private TcfEnforcement target;
@@ -74,7 +71,7 @@ public class TcfEnforcementTest {
         given(userFpdTcfMask.maskDevice(any(), anyBoolean(), anyBoolean(), anyBoolean()))
                 .willAnswer(invocation -> invocation.getArgument(0));
 
-        target = new TcfEnforcement(tcfDefinerService, userFpdTcfMask, bidderCatalog, metrics, true);
+        target = new TcfEnforcement(tcfDefinerService, userFpdTcfMask, metrics, true);
 
         given(aliases.resolveBidder(anyString()))
                 .willAnswer(invocation -> invocation.getArgument(0));
@@ -304,7 +301,7 @@ public class TcfEnforcementTest {
         final List<BidderPrivacyResult> initialResults = List.of(
                 givenBidderPrivacyResult("bidder", givenUserWithPrivacyData(), device));
 
-        target = new TcfEnforcement(tcfDefinerService, userFpdTcfMask, bidderCatalog, metrics, false);
+        target = new TcfEnforcement(tcfDefinerService, userFpdTcfMask, metrics, false);
 
         // when
         target.enforce(auctionContext, aliases, initialResults);

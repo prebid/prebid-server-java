@@ -10,7 +10,6 @@ import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.auction.privacy.enforcement.mask.UserFpdTcfMask;
-import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.MetricName;
@@ -38,19 +37,16 @@ public class TcfEnforcement implements PrivacyEnforcement {
 
     private final TcfDefinerService tcfDefinerService;
     private final UserFpdTcfMask userFpdTcfMask;
-    private final BidderCatalog bidderCatalog;
     private final Metrics metrics;
     private final boolean lmtEnforce;
 
     public TcfEnforcement(TcfDefinerService tcfDefinerService,
                           UserFpdTcfMask userFpdTcfMask,
-                          BidderCatalog bidderCatalog,
                           Metrics metrics,
                           boolean lmtEnforce) {
 
         this.tcfDefinerService = Objects.requireNonNull(tcfDefinerService);
         this.userFpdTcfMask = Objects.requireNonNull(userFpdTcfMask);
-        this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.metrics = Objects.requireNonNull(metrics);
         this.lmtEnforce = lmtEnforce;
     }
@@ -93,20 +89,8 @@ public class TcfEnforcement implements PrivacyEnforcement {
         return privacyConfig != null ? privacyConfig.getGdpr() : null;
     }
 
-    private static boolean isBuyerUidSet(User user) {
+    private static boolean hasBuyerUid(User user) {
         return user != null && user.getBuyeruid() != null;
-    }
-
-    private static boolean shouldRemoveUserData(User user) {
-        return user != null && ObjectUtils.anyNotNull(
-                user.getId(),
-                user.getBuyeruid(),
-                user.getYob(),
-                user.getGender(),
-                user.getKeywords(),
-                user.getKwarray(),
-                user.getData(),
-                ObjectUtil.getIfNotNull(user.getExt(), ExtUser::getData));
     }
 
     private Map<String, PrivacyEnforcementAction> updateMetrics(ActivityInfrastructure activityInfrastructure,
@@ -144,7 +128,7 @@ public class TcfEnforcement implements PrivacyEnforcement {
                     requestBlocked,
                     isLmtEnforcedAndEnabled);
 
-            if (isBuyerUidSet(user) && ufpdRemoved) {
+            if (hasBuyerUid(user) && ufpdRemoved) {
                 metrics.updateAdapterRequestBuyerUidScrubbedMetrics(bidder, account);
             }
 
@@ -154,6 +138,18 @@ public class TcfEnforcement implements PrivacyEnforcement {
         }
 
         return enforcements;
+    }
+
+    private static boolean shouldRemoveUserData(User user) {
+        return user != null && ObjectUtils.anyNotNull(
+                user.getId(),
+                user.getBuyeruid(),
+                user.getYob(),
+                user.getGender(),
+                user.getKeywords(),
+                user.getKwarray(),
+                user.getData(),
+                ObjectUtil.getIfNotNull(user.getExt(), ExtUser::getData));
     }
 
     private static boolean shouldRemoveDeviceData(Device device) {
