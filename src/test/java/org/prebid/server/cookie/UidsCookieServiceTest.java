@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import io.vertx.core.http.Cookie;
 import io.vertx.core.http.CookieSameSite;
 import io.vertx.ext.web.RoutingContext;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -11,9 +12,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.cookie.model.UidWithExpiry;
-import org.prebid.server.cookie.model.UidsCookieUpdateResult;
 import org.prebid.server.cookie.proto.Uids;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.model.UpdateResult;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -22,7 +23,9 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
@@ -95,40 +98,15 @@ public class UidsCookieServiceTest extends VertxTest {
     @Test
     public void shouldReturnNonEmptyUidsCookieFromCookiesMapWhenSeveralUidsCookiesArePresent() {
         // given
-        final String uidsCookieValue = """
-                {
-                  "tempUIDs": {
-                    "bidderA": {
-                      "uid": "bidder-A-uid",
-                      "expires": "2023-12-05T19:00:05.103329-03:00"
-                    },
-                    "bidderB": {
-                      "uid": "bidder-B-uid",
-                      "expires": "2023-12-05T19:00:05.103329-03:00"
-                    }
-                  }
-                }
-                """;
-
-        final String uids2CookieValue = """
-                {
-                  "tempUIDs": {
-                    "bidderC": {
-                      "uid": "bidder-C-uid",
-                      "expires": "2023-12-05T19:00:05.103329-03:00"
-                    },
-                    "bidderD": {
-                      "uid": "bidder-D-uid",
-                      "expires": "2023-12-05T19:00:05.103329-03:00"
-                    }
-                  }
-                }
-                """;
-
-        final String encodedUidsCookie = Base64.getEncoder().encodeToString(uidsCookieValue.getBytes());
-        final String encodedUids2Cookie = Base64.getEncoder().encodeToString(uids2CookieValue.getBytes());
-
-        final Map<String, String> cookies = Map.of("uids", encodedUidsCookie, "uids2", encodedUids2Cookie);
+        final Map<String, String> cookies = Map.of(
+                "uids", "eyJ0ZW1wVUlEcyI6eyJiaWRkZXJBIjp7InVpZCI6ImJpZGRlci1BLXVp"
+                        + "ZCIsImV4cGlyZXMiOiIyMDIzLTEyLTA1VDE5OjAwOjA1LjEwMzMyOS0wMzowMCJ9L"
+                        + "CJiaWRkZXJCIjp7InVpZCI6ImJpZGRlci1CLXVpZCIsImV4cGlyZXMiOiIyMDIzLTE"
+                        + "yLTA1VDE5OjAwOjA1LjEwMzMyOS0wMzowMCJ9fX0=",
+                "uids2", "eyJ0ZW1wVUlEcyI6eyJiaWRkZXJDIjp7InVpZCI6ImJpZGRlci1DLXVpZCIsIm"
+                        + "V4cGlyZXMiOiIyMDIzLTEyLTA1VDE5OjAwOjA1LjEwMzMyOS0wMzowMCJ9LCJiaWRkZXJEIjp7I"
+                        + "nVpZCI6ImJpZGRlci1ELXVpZCIsImV4cGlyZXMiOiIyMDIzLTEyLTA1VDE5OjAwOjA1LjEwMzMy"
+                        + "OS0wMzowMCJ9fX0");
 
         // when
         final UidsCookie uidsCookie = target.parseFromCookies(cookies);
@@ -144,36 +122,13 @@ public class UidsCookieServiceTest extends VertxTest {
     @Test
     public void shouldReturnMergedUidsFromCookiesWithOldestUidWhenDuplicatesArePresent() {
         // given
-        final String uidsCookieValue = """
-                {
-                  "tempUIDs": {
-                    "bidderA": {
-                      "uid": "bidder-A1-uid",
-                      "expires": "2023-12-05T19:00:05.103329-03:00"
-                    },
-                    "bidderB": {
-                      "uid": "bidder-B-uid",
-                      "expires": "2023-12-05T19:00:05.103329-03:00"
-                    }
-                  }
-                }
-                """;
-
-        final String uids2CookieValue = """
-                {
-                  "tempUIDs": {
-                    "bidderA": {
-                      "uid": "bidder-A2-uid",
-                      "expires": "2024-12-05T19:00:05.103329-03:00"
-                    }
-                  }
-                }
-                """;
-
-        final String encodedUidsCookie = Base64.getEncoder().encodeToString(uidsCookieValue.getBytes());
-        final String encodedUids2Cookie = Base64.getEncoder().encodeToString(uids2CookieValue.getBytes());
-
-        final Map<String, String> cookies = Map.of("uids", encodedUidsCookie, "uids2", encodedUids2Cookie);
+        final Map<String, String> cookies = Map.of(
+                "uids", "eyJ0ZW1wVUlEcyI6eyJiaWRkZXJBIjp7InVpZCI6ImJpZGRlci1BMS11aW"
+                        + "QiLCJleHBpcmVzIjoiMjAyMy0xMi0wNVQxOTowMDowNS4xMDMzMjktMDM6MDAifSwiYml"
+                        + "kZGVyQiI6eyJ1aWQiOiJiaWRkZXItQi11aWQiLCJleHBpcmVzIjoiMjAyMy0xMi0wNVQxOTo"
+                        + "wMDowNS4xMDMzMjktMDM6MDAifX19",
+                "uids2", "eyJ0ZW1wVUlEcyI6eyJiaWRkZXJBIjp7InVpZCI6ImJpZGRlci1BMi11aWQiLCJleH"
+                        + "BpcmVzIjoiMjAyNC0xMi0wNVQxOTowMDowNS4xMDMzMjktMDM6MDAifX19");
 
         // when
         final UidsCookie uidsCookie = target.parseFromCookies(cookies);
@@ -280,7 +235,7 @@ public class UidsCookieServiceTest extends VertxTest {
     }
 
     @Test
-    public void makeCookieShouldSetSameSiteNone() {
+    public void aliveCookieShouldSetSameSiteNone() {
         // given
         final Uids uids = Uids.builder()
                 .uids(Map.of(RUBICON, UidWithExpiry.live("test")))
@@ -289,14 +244,14 @@ public class UidsCookieServiceTest extends VertxTest {
         final UidsCookie uidsCookie = new UidsCookie(uids, jacksonMapper);
 
         // when
-        final Cookie cookie = target.makeCookie("uids", uidsCookie);
+        final Cookie cookie = target.aliveCookie("uids", uidsCookie);
 
         // then
         assertThat(cookie.getSameSite()).isEqualTo(CookieSameSite.NONE);
     }
 
     @Test
-    public void makeCookieShouldSetSecure() {
+    public void aliveCookieShouldSetSecure() {
         // given
         final Uids uids = Uids.builder()
                 .uids(Map.of(RUBICON, UidWithExpiry.live("test")))
@@ -305,14 +260,14 @@ public class UidsCookieServiceTest extends VertxTest {
         final UidsCookie uidsCookie = new UidsCookie(uids, jacksonMapper);
 
         // when
-        final Cookie cookie = target.makeCookie("uids", uidsCookie);
+        final Cookie cookie = target.aliveCookie("uids", uidsCookie);
 
         // then
         assertThat(cookie.isSecure()).isTrue();
     }
 
     @Test
-    public void makeCookieShouldSetPath() {
+    public void aliveCookieShouldSetPath() {
         // given
         final Uids uids = Uids.builder()
                 .uids(Map.of(RUBICON, UidWithExpiry.live("test")))
@@ -321,7 +276,7 @@ public class UidsCookieServiceTest extends VertxTest {
         final UidsCookie uidsCookie = new UidsCookie(uids, jacksonMapper);
 
         // when
-        final Cookie cookie = target.makeCookie("uids", uidsCookie);
+        final Cookie cookie = target.aliveCookie("uids", uidsCookie);
 
         // then
         assertThat(cookie.getPath()).isEqualTo("/");
@@ -484,7 +439,7 @@ public class UidsCookieServiceTest extends VertxTest {
     }
 
     @Test
-    public void makeCookieShouldReturnCookieWithExpectedValue() throws IOException {
+    public void aliveCookieShouldReturnCookieWithExpectedValue() {
         // given
         final UidsCookie uidsCookie = new UidsCookie(
                 Uids.builder().uids(new HashMap<>()).build(), jacksonMapper)
@@ -492,7 +447,7 @@ public class UidsCookieServiceTest extends VertxTest {
                 .updateUid(ADNXS, "adnxsUid");
 
         // when
-        final Cookie cookie = target.makeCookie("uids", uidsCookie);
+        final Cookie cookie = target.aliveCookie("uids", uidsCookie);
 
         // then
         final Map<String, UidWithExpiry> uids = decodeUids(cookie.getValue()).getUids();
@@ -508,7 +463,7 @@ public class UidsCookieServiceTest extends VertxTest {
     }
 
     @Test
-    public void makeCookieShouldReturnCookieWithExpectedExpiration() {
+    public void aliveCookieShouldReturnCookieWithExpectedExpiration() {
         // given
         final UidsCookie uidsCookie = new UidsCookie(
                 Uids.builder().uids(new HashMap<>()).build(), jacksonMapper)
@@ -516,38 +471,38 @@ public class UidsCookieServiceTest extends VertxTest {
                 .updateUid(ADNXS, "adnxsUid");
 
         // when
-        final Cookie cookie = target.makeCookie("uids", uidsCookie);
+        final Cookie cookie = target.aliveCookie("uids", uidsCookie);
 
         // then
         assertThat(cookie.encode()).containsSequence("Max-Age=7776000; Expires=");
     }
 
     @Test
-    public void removeCookieShouldReturnCookieWithZeroMaxAge() {
+    public void expiredCookieShouldReturnCookieWithZeroMaxAge() {
         // when
-        final Cookie cookie = target.removeCookie("uids");
+        final Cookie cookie = target.expiredCookie("uids");
 
         // then
         assertThat(cookie.encode()).containsSequence("Max-Age=0; Expires=");
     }
 
     @Test
-    public void removeCookieShouldReturnCookieWithEmptyValue() {
+    public void expiredCookieShouldReturnCookieWithEmptyValue() {
         // when
-        final Cookie cookie = target.removeCookie("uids");
+        final Cookie cookie = target.expiredCookie("uids");
 
         // then
         assertThat(cookie.encode()).containsSequence("uids=;");
     }
 
     @Test
-    public void makeCookieShouldReturnCookieWithExpectedDomain() {
+    public void aliveCookieShouldReturnCookieWithExpectedDomain() {
         // given
         final UidsCookie uidsCookie = new UidsCookie(
                 Uids.builder().uids(new HashMap<>()).build(), jacksonMapper);
 
         // when
-        final Cookie cookie = target.makeCookie("uids", uidsCookie);
+        final Cookie cookie = target.aliveCookie("uids", uidsCookie);
 
         // then
         assertThat(cookie.getDomain()).isEqualTo(HOST_COOKIE_DOMAIN);
@@ -720,15 +675,13 @@ public class UidsCookieServiceTest extends VertxTest {
                         "family3", UidWithExpiry.expired("uid3")));
 
         // when
-        final UidsCookieUpdateResult result = target.updateUidsCookie(uidsCookie, "family4", "uid4");
+        final UpdateResult<UidsCookie> result = target.updateUidsCookie(uidsCookie, "family4", "uid4");
 
         // then
-        assertThat(result.isSuccessfullyUpdated()).isTrue();
+        assertThat(result.isUpdated()).isTrue();
 
-        final Map<String, UidsCookie> actualUidsCookies = result.getUidsCookies();
-        assertThat(actualUidsCookies.keySet()).containsOnly("uids");
-        assertThat(actualUidsCookies.get("uids"))
-                .extracting(UidsCookie::getCookieUids)
+        final UidsCookie actualUidsCookies = result.getValue();
+        assertThat(actualUidsCookies.getCookieUids())
                 .extracting(Uids::getUids)
                 .extracting(Map::values)
                 .extracting(ArrayList::new)
@@ -747,11 +700,11 @@ public class UidsCookieServiceTest extends VertxTest {
                         "family3", UidWithExpiry.expired("uid3")));
 
         // when
-        final UidsCookieUpdateResult result = target.updateUidsCookie(uidsCookie, "family", null);
+        final UpdateResult<UidsCookie> result = target.updateUidsCookie(uidsCookie, "family", null);
 
         // then
-        assertThat(result.isSuccessfullyUpdated()).isFalse();
-        assertThat(result.getUidsCookies().get("uids").getCookieUids().getUids().keySet()).containsOnly("family2");
+        assertThat(result.isUpdated()).isFalse();
+        assertThat(result.getValue().getCookieUids().getUids().keySet()).containsOnly("family2");
     }
 
     @Test
@@ -763,12 +716,12 @@ public class UidsCookieServiceTest extends VertxTest {
                         "family3", UidWithExpiry.expired("uid3")));
 
         // when
-        final UidsCookieUpdateResult result = target.updateUidsCookie(
+        final UpdateResult<UidsCookie> result = target.updateUidsCookie(
                 uidsCookie, "audienceNetwork", "0");
 
         // then
-        assertThat(result.isSuccessfullyUpdated()).isFalse();
-        assertThat(result.getUidsCookies().get("uids").getCookieUids().getUids().keySet()).containsOnly("family2");
+        assertThat(result.isUpdated()).isFalse();
+        assertThat(result.getValue().getCookieUids().getUids().keySet()).containsOnly("family2");
     }
 
     @Test
@@ -790,16 +743,12 @@ public class UidsCookieServiceTest extends VertxTest {
         final UidsCookie uidsCookie = givenUidsCookie(Map.of("family", UidWithExpiry.live("uid")));
 
         // when
-        final UidsCookieUpdateResult result = target.updateUidsCookie(
+        final UpdateResult<UidsCookie> result = target.updateUidsCookie(
                 uidsCookie, "another-family", "uid");
 
         // then
-        assertThat(result.isSuccessfullyUpdated()).isTrue();
-
-        final Map<String, UidsCookie> actualUidsCookies = result.getUidsCookies();
-        assertThat(actualUidsCookies.keySet()).containsOnly("uids", "uids2");
-        assertThat(actualUidsCookies.get("uids").getCookieUids().getUids().keySet())
-                .containsExactly("another-family", "family");
+        assertThat(result.isUpdated()).isTrue();
+        assertThat(result.getValue().getCookieUids().getUids().keySet()).containsOnly("another-family", "family");
     }
 
     @Test
@@ -824,19 +773,17 @@ public class UidsCookieServiceTest extends VertxTest {
         // cookie of encoded size 450 bytes
         final UidsCookie uidsCookie = givenUidsCookie(Map.of(
                 "very-very-very-very-long-family", UidWithExpiry.live("some-very-very-very-long-uid"),
-                "another-very-very-very-long-family", UidWithExpiry.live("another-very-very-very-long-uid")));
+                "another-very-very-very-long-family", UidWithExpiry.live("another-very-very-very-long-uid"),
+                "family", UidWithExpiry.live("uid")));
 
         // when
-        final UidsCookieUpdateResult result = target.updateUidsCookie(
-                uidsCookie, "family", "uid");
+        final List<Cookie> result = target.splitUidsIntoCookies(uidsCookie);
 
         // then
         verify(metrics).updateUserSyncSizeBlockedMetric("family");
-        assertThat(result.isSuccessfullyUpdated()).isTrue();
 
-        final Map<String, UidsCookie> actualUidsCookies = result.getUidsCookies();
-        assertThat(actualUidsCookies.keySet()).containsOnly("uids");
-        assertThat(actualUidsCookies.get("uids").getCookieUids().getUids().keySet())
+        assertThat(result).hasSize(1).extracting(Cookie::getName).containsOnly("uids");
+        assertThat(decodeUids(result.getFirst().getValue()).getUids().keySet())
                 .containsExactly("very-very-very-very-long-family", "another-very-very-very-long-family");
     }
 
@@ -860,19 +807,17 @@ public class UidsCookieServiceTest extends VertxTest {
         // cookie of encoded size 450 bytes
         final UidsCookie uidsCookie = givenUidsCookie(Map.of(
                 "very-very-very-very-long-family", UidWithExpiry.live("some-very-very-very-long-uid"),
-                "another-very-very-very-long-family", UidWithExpiry.live("another-very-very-very-long-uid")));
+                "another-very-very-very-long-family", UidWithExpiry.live("another-very-very-very-long-uid"),
+                "family", UidWithExpiry.live("uid")));
 
         // when
-        final UidsCookieUpdateResult result = target.updateUidsCookie(
-                uidsCookie, "family", "uid");
+        final List<Cookie> result = target.splitUidsIntoCookies(uidsCookie);
 
         // then
         verify(metrics).updateUserSyncSizedOutMetric("family");
-        assertThat(result.isSuccessfullyUpdated()).isTrue();
 
-        final Map<String, UidsCookie> actualUidsCookies = result.getUidsCookies();
-        assertThat(actualUidsCookies.keySet()).containsOnly("uids");
-        assertThat(actualUidsCookies.get("uids").getCookieUids().getUids().keySet())
+        assertThat(result).hasSize(1).extracting(Cookie::getName).containsOnly("uids");
+        assertThat(decodeUids(result.getFirst().getValue()).getUids().keySet())
                 .containsExactly("very-very-very-very-long-family", "another-very-very-very-long-family");
     }
 
@@ -896,34 +841,19 @@ public class UidsCookieServiceTest extends VertxTest {
         // cookie of encoded size 450 bytes
         final UidsCookie uidsCookie = givenUidsCookie(Map.of(
                 "very-very-very-very-long-family", UidWithExpiry.live("some-very-very-very-long-uid"),
-                "another-very-very-very-long-family", UidWithExpiry.live("another-very-very-very-long-uid")));
+                "another-very-very-very-long-family", UidWithExpiry.live("another-very-very-very-long-uid"),
+                "family", UidWithExpiry.live("uid")));
 
         // when
-        final UidsCookieUpdateResult result = target.updateUidsCookie(
-                uidsCookie, "family", "uid");
+        final List<Cookie> result = target.splitUidsIntoCookies(uidsCookie);
 
         // then
         verifyNoInteractions(metrics);
-        assertThat(result.isSuccessfullyUpdated()).isTrue();
 
-        final Map<String, UidsCookie> actualUidsCookies = result.getUidsCookies();
-        assertThat(actualUidsCookies.keySet()).containsOnly("uids", "uids2");
-        assertThat(actualUidsCookies.get("uids"))
-                .extracting(UidsCookie::getCookieUids)
-                .extracting(Uids::getUids)
-                .extracting(Map::keySet)
-                .extracting(ArrayList::new)
-                .asList()
-                .flatExtracting(identity())
+        assertThat(result).hasSize(2).extracting(Cookie::getName).containsOnly("uids", "uids2");
+        assertThat(decodeUids(result.getFirst().getValue()).getUids().keySet())
                 .containsExactly("very-very-very-very-long-family", "another-very-very-very-long-family");
-
-        assertThat(actualUidsCookies.get("uids2"))
-                .extracting(UidsCookie::getCookieUids)
-                .extracting(Uids::getUids)
-                .extracting(Map::keySet)
-                .extracting(ArrayList::new)
-                .asList()
-                .flatExtracting(identity())
+        assertThat(decodeUids(result.getLast().getValue()).getUids().keySet())
                 .containsExactly("family");
     }
 
@@ -947,25 +877,35 @@ public class UidsCookieServiceTest extends VertxTest {
         // cookie of encoded size 450 bytes
         final UidsCookie uidsCookie = givenUidsCookie(Map.of(
                 "very-very-very-very-long-family", UidWithExpiry.live("some-very-very-very-long-uid"),
-                "another-very-very-very-long-family", UidWithExpiry.live("another-very-very-very-long-uid")));
+                "another-very-very-very-long-family", UidWithExpiry.live("another-very-very-very-long-uid"),
+                "family", UidWithExpiry.live("uid")));
 
         // when
-        final UidsCookieUpdateResult result = target.updateUidsCookie(
-                uidsCookie, "family", "uid");
+        final List<Cookie> result = target.splitUidsIntoCookies(uidsCookie);
 
         // then
         verifyNoInteractions(metrics);
-        assertThat(result.isSuccessfullyUpdated()).isTrue();
 
-        final Map<String, UidsCookie> actualUidsCookies = result.getUidsCookies();
-        assertThat(actualUidsCookies.keySet()).containsOnly("uids", "uids2", "uids3", "uids4", "uids5");
-        assertThat(actualUidsCookies.get("uids").getCookieUids().getUids().keySet())
-                .containsExactly("very-very-very-very-long-family", "another-very-very-very-long-family");
-        assertThat(actualUidsCookies.get("uids2").getCookieUids().getUids().keySet())
+        final Map<String, Cookie> actualCookies = result.stream()
+                .collect(Collectors.toMap(Cookie::getName, identity()));
+
+        assertThat(actualCookies.keySet()).hasSize(5)
+                .containsOnly("uids", "uids2", "uids3", "uids4", "uids5");
+
+        assertThat(decodeUids(actualCookies.get("uids").getValue()).getUids().keySet())
+                .containsOnly("very-very-very-very-long-family", "another-very-very-very-long-family");
+        assertThat(actualCookies.get("uids").getMaxAge()).isEqualTo(7776000L);
+
+        assertThat(decodeUids(actualCookies.get("uids2").getValue()).getUids().keySet())
                 .containsOnly("family");
-        assertThat(actualUidsCookies.get("uids3").getCookieUids().getUids()).isEmpty();
-        assertThat(actualUidsCookies.get("uids4").getCookieUids().getUids()).isEmpty();
-        assertThat(actualUidsCookies.get("uids5").getCookieUids().getUids()).isEmpty();
+        assertThat(actualCookies.get("uids2").getMaxAge()).isEqualTo(7776000L);
+
+        assertThat(actualCookies.get("uids3").getValue()).isEmpty();
+        assertThat(actualCookies.get("uids3").getMaxAge()).isEqualTo(0);
+        assertThat(actualCookies.get("uids4").getValue()).isEmpty();
+        assertThat(actualCookies.get("uids4").getMaxAge()).isEqualTo(0);
+        assertThat(actualCookies.get("uids5").getValue()).isEmpty();
+        assertThat(actualCookies.get("uids5").getMaxAge()).isEqualTo(0);
     }
 
     @Test
@@ -988,23 +928,21 @@ public class UidsCookieServiceTest extends VertxTest {
         // cookie of encoded size 450 bytes
         final Map<String, UidWithExpiry> givenUids = Map.of(
                 "very-very-very-very-long-family", UidWithExpiry.live("some-very-very-very-long-uid"),
-                "another-very-very-very-long-family", UidWithExpiry.live("another-very-very-very-long-uid"));
+                "another-very-very-very-long-family", UidWithExpiry.live("another-very-very-very-long-uid"),
+                "family", UidWithExpiry.live("uid"));
 
         final UidsCookie uidsCookie = new UidsCookie(
                 Uids.builder().uids(givenUids).optout(true).build(), jacksonMapper);
 
         // when
-        final UidsCookieUpdateResult result = target.updateUidsCookie(
-                uidsCookie, "family", "uid");
+        final List<Cookie> result = target.splitUidsIntoCookies(uidsCookie);
 
         // then
         verifyNoInteractions(metrics);
-        assertThat(result.isSuccessfullyUpdated()).isTrue();
 
-        final Map<String, UidsCookie> actualUidsCookies = result.getUidsCookies();
-        assertThat(actualUidsCookies.keySet()).containsOnly("uids", "uids2");
-        assertThat(actualUidsCookies.get("uids").allowsSync()).isFalse();
-        assertThat(actualUidsCookies.get("uids2").allowsSync()).isFalse();
+        assertThat(result).hasSize(2).extracting(Cookie::getName).containsOnly("uids", "uids2");
+        assertThat(decodeUids(result.getFirst().getValue()).getOptout()).isTrue();
+        assertThat(decodeUids(result.getLast().getValue()).getOptout()).isTrue();
     }
 
     private UidsCookie givenUidsCookie(Map<String, UidWithExpiry> uids) {
@@ -1015,7 +953,12 @@ public class UidsCookieServiceTest extends VertxTest {
         return Base64.getUrlEncoder().encodeToString(mapper.writeValueAsBytes(uids));
     }
 
-    private static Uids decodeUids(String value) throws IOException {
-        return mapper.readValue(Base64.getUrlDecoder().decode(value), Uids.class);
+    private static Uids decodeUids(String value) {
+        try {
+            return mapper.readValue(Base64.getUrlDecoder().decode(value), Uids.class);
+        } catch (IOException e) {
+            Assertions.fail(e.getMessage());
+            throw new RuntimeException("Fail decoding cookie value");
+        }
     }
 }
