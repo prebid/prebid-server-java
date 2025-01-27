@@ -65,6 +65,8 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
+import org.prebid.server.metric.MetricName;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpAuctionEnvironment;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
@@ -151,6 +153,7 @@ public class BidResponseCreator {
     private final int truncateAttrChars;
     private final Clock clock;
     private final JacksonMapper mapper;
+    private final Metrics metrics;
     private final CacheTtl mediaTypeCacheTtl;
     private final CacheDefaultTtlProperties cacheDefaultProperties;
 
@@ -171,6 +174,7 @@ public class BidResponseCreator {
                               int truncateAttrChars,
                               Clock clock,
                               JacksonMapper mapper,
+                              Metrics metrics,
                               CacheTtl mediaTypeCacheTtl,
                               CacheDefaultTtlProperties cacheDefaultProperties) {
 
@@ -188,6 +192,7 @@ public class BidResponseCreator {
         this.mapper = Objects.requireNonNull(mapper);
         this.mediaTypeCacheTtl = Objects.requireNonNull(mediaTypeCacheTtl);
         this.cacheDefaultProperties = Objects.requireNonNull(cacheDefaultProperties);
+        this.metrics = Objects.requireNonNull(metrics);
 
         this.logSamplingRate = logSamplingRate;
 
@@ -879,13 +884,14 @@ public class BidResponseCreator {
             return null;
         }
 
-        final boolean shouldDropIgb = StringUtils.isEmpty(igi.getImpid());
+        final boolean shouldDropIgb = StringUtils.isEmpty(igi.getImpid()) && CollectionUtils.isNotEmpty(igi.getIgb());
         if (shouldDropIgb) {
             final String warning = "ExtIgi with absent impId from bidder: " + bidder;
             if (auctionContext.getDebugContext().isDebugEnabled()) {
                 auctionContext.getDebugWarnings().add(warning);
             }
             conditionalLogger.warn(warning, logSamplingRate);
+            metrics.updateAlertsMetrics(MetricName.general);
         }
 
         final List<ExtIgiIgs> updatedIgs = prepareExtIgiIgs(igi.getIgs(), bidder, auctionContext, aliases);
@@ -919,6 +925,7 @@ public class BidResponseCreator {
                     auctionContext.getDebugWarnings().add(warning);
                 }
                 conditionalLogger.warn(warning, logSamplingRate);
+                metrics.updateAlertsMetrics(MetricName.general);
                 continue;
             }
 
@@ -928,6 +935,7 @@ public class BidResponseCreator {
                     auctionContext.getDebugWarnings().add(warning);
                 }
                 conditionalLogger.warn(warning, logSamplingRate);
+                metrics.updateAlertsMetrics(MetricName.general);
                 continue;
             }
 

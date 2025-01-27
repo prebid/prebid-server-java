@@ -69,6 +69,8 @@ import org.prebid.server.hooks.execution.v1.bidder.AllProcessedBidResponsesPaylo
 import org.prebid.server.hooks.execution.v1.bidder.BidderResponsePayloadImpl;
 import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.identity.IdGeneratorType;
+import org.prebid.server.metric.MetricName;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeal;
 import org.prebid.server.proto.openrtb.ext.request.ExtDealLine;
@@ -201,6 +203,8 @@ public class BidResponseCreatorTest extends VertxTest {
     private CacheDefaultTtlProperties cacheDefaultProperties;
     @Mock(strictness = LENIENT)
     private BidderAliases aliases;
+    @Mock(strictness = LENIENT)
+    private Metrics metrics;
 
     @Spy
     private WinningBidComparatorFactory winningBidComparatorFactory;
@@ -1657,6 +1661,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 20,
                 clock,
                 jacksonMapper,
+                metrics,
                 mediaTypeCacheTtl,
                 cacheDefaultProperties);
 
@@ -3801,6 +3806,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         ExtBidderError.of(
                                 BidderError.Type.generic.getCode(),
                                 "ExtIgi with absent impId from bidder: bidder1"));
+        verify(metrics).updateAlertsMetrics(MetricName.general);
     }
 
     @Test
@@ -3853,6 +3859,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         ExtBidderError.of(
                                 BidderError.Type.generic.getCode(),
                                 "ExtIgiIgs with absent impId from bidder: bidder1"));
+        verify(metrics).updateAlertsMetrics(MetricName.general);
     }
 
     @Test
@@ -3905,6 +3912,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         ExtBidderError.of(
                                 BidderError.Type.generic.getCode(),
                                 "ExtIgiIgs with absent config from bidder: bidder1"));
+        verify(metrics).updateAlertsMetrics(MetricName.general);
     }
 
     @Test
@@ -5469,6 +5477,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 truncateAttrChars,
                 clock,
                 jacksonMapper,
+                metrics,
                 mediaTypeCacheTtl,
                 cacheDefaultProperties);
     }

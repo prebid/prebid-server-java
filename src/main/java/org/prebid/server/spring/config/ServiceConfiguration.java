@@ -820,6 +820,7 @@ public class ServiceConfiguration {
             @Value("${settings.targeting.truncate-attr-chars}") int truncateAttrChars,
             Clock clock,
             JacksonMapper mapper,
+            Metrics metrics,
             @Value("${cache.banner-ttl-seconds:#{null}}") Integer bannerCacheTtl,
             @Value("${cache.video-ttl-seconds:#{null}}") Integer videoCacheTtl,
             CacheDefaultTtlProperties cacheDefaultTtlProperties) {
@@ -838,6 +839,7 @@ public class ServiceConfiguration {
                 truncateAttrChars,
                 clock,
                 mapper,
+                metrics,
                 CacheTtl.of(bannerCacheTtl, videoCacheTtl),
                 cacheDefaultTtlProperties);
     }
