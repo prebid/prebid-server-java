@@ -17,7 +17,6 @@ import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.tests.BaseSpec
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.IgnoreRest
 import spock.lang.Shared
 
 import java.time.Instant
