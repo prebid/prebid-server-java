@@ -1,19 +1,21 @@
 package org.prebid.server.functional.tests
 
+import org.prebid.server.functional.model.bidder.AppNexus
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.bidder.Openx
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.service.PrebidServerException
-import org.prebid.server.functional.testcontainers.Dependencies
 import org.prebid.server.functional.util.PBSUtils
 
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
+import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.model.bidder.BidderName.BOGUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.GENER_X
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.bidder.CompressionType.GZIP
+import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
 import static org.prebid.server.functional.util.HttpUtil.CONTENT_ENCODING_HEADER
 
@@ -204,6 +206,73 @@ class AliasSpec extends BaseSpec {
         assert responseDebug.httpcalls.size() == 2
         assert responseDebug.httpcalls[OPENX.value]*.uri == ["$networkServiceContainer.rootUri/openx/auction"]
         assert responseDebug.httpcalls[GENERIC.value]*.uri == ["$networkServiceContainer.rootUri/auction"]
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
+    }
+
+    def "PBS should validate request as alias request and without any warnings when required properties in place"() {
+        given: "PBs server with aliases config"
+        def pbsConfig = ["adapters.${OPENX.value}.enabled" : "true",
+                         "adapters.${OPENX.value}.endpoint": "$networkServiceContainer.rootUri/${OPENX.value}/auction".toString(),
+                         "adapters.${APPNEXUS.value}.enabled" : "true",
+                         "adapters.${APPNEXUS.value}.endpoint": "$networkServiceContainer.rootUri/${APPNEXUS.value}/auction".toString()]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
+
+        and: "Default bid request with openx and alias bidder"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.prebid.bidder.appNexus = AppNexus.default
+            imp[0].ext.prebid.bidder.generic = null
+            ext.prebid.aliases = [(APPNEXUS.value): OPENX]
+        }
+
+        when: "PBS processes auction request"
+        def bidResponse = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS contain http call for specific bidder"
+        def responseDebug = bidResponse.ext.debug
+        assert responseDebug.httpcalls.size() == 1
+        assert responseDebug.httpcalls[APPNEXUS.value]*.uri == ["$networkServiceContainer.rootUri/${APPNEXUS.value}/auction"]
+
+        and: "PBS should not contain any warnings"
+        assert !bidResponse.ext.warnings
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
+    }
+
+    def "PBS should validate request as alias request and emit proper warnings when validation fails for request"() {
+        given: "PBs server with aliases config"
+        def pbsConfig = ["adapters.${OPENX.value}.enabled" : "true",
+                         "adapters.${OPENX.value}.endpoint": "$networkServiceContainer.rootUri/${OPENX.value}/auction".toString(),
+                         "adapters.${APPNEXUS.value}.enabled" : "true",
+                         "adapters.${APPNEXUS.value}.endpoint": "$networkServiceContainer.rootUri/${APPNEXUS.value}/auction".toString()]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
+
+        and: "Default bid request with openx and alias bidder"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.prebid.bidder.appNexus = new AppNexus()
+            imp[0].ext.prebid.bidder.generic = null
+            ext.prebid.aliases = [(APPNEXUS.value): OPENX]
+        }
+
+        when: "PBS processes auction request"
+        def bidResponse = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS shouldn't contain http calls"
+        assert !bidResponse.ext.debug.httpcalls
+
+        and: "Bid response should contain warning"
+        assert bidResponse.ext.warnings[PREBID]?.code == [999, 999]
+        assert bidResponse.ext?.warnings[PREBID]*.message ==
+                ["WARNING: request.imp[0].ext.prebid.bidder.${APPNEXUS.value} was dropped with a reason: " +
+                         "request.imp[0].ext.prebid.bidder.${APPNEXUS.value} failed validation.\n" +
+                         "\$.placement_id: is missing but it is required\n" +
+                         "\$.member: is missing but it is required\n" +
+                         "\$.placementId: is missing but it is required\n" +
+                         "\$.inv_code: is missing but it is required\n" +
+                         "\$.invCode: is missing but it is required",
+                 "WARNING: request.imp[0].ext must contain at least one valid bidder"]
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsConfig)
