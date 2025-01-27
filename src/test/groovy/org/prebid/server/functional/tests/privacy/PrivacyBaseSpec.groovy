@@ -110,12 +110,14 @@ abstract class PrivacyBaseSpec extends BaseSpec {
             GENERIC_CONFIG + GDPR_VENDOR_LIST_CONFIG + GENERIC_VENDOR_CONFIG + RETRY_POLICY_EXPONENTIAL_CONFIG
 
     @Shared
-    protected final PrebidServerService privacyPbsService = pbsServiceFactory.getService(GENERAL_PRIVACY_CONFIG + GDPR_EEA_COUNTRY)
+    protected static PrebidServerService privacyPbsService
 
     @Shared
-    protected final PrebidServerService activityPbsService = pbsServiceFactory.getService(OPENX_CONFIG + SETTING_CONFIG + GENERAL_PRIVACY_CONFIG)
+    protected static PrebidServerService activityPbsService
 
     def setupSpec() {
+        privacyPbsService = pbsServiceFactory.getService(GENERAL_PRIVACY_CONFIG + GDPR_EEA_COUNTRY)
+        activityPbsService = pbsServiceFactory.getService(OPENX_CONFIG + SETTING_CONFIG + GENERAL_PRIVACY_CONFIG)
         vendorListResponse.setResponse()
     }
 
