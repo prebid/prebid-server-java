@@ -167,9 +167,9 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final BidRequest bidRequest = givenBidRequestWithExtension(identity(), List.of(imp));
         final AuctionContext auctionContext = givenAuctionContext(
                 bidRequest,
-                context -> context,
-                explorationRate);
-        final AuctionInvocationContext invocationContext = givenAuctionInvocationContext(auctionContext);
+                context -> context);
+        final AuctionInvocationContext invocationContext = givenAuctionInvocationContext(
+                auctionContext, explorationRate);
         when(invocationContext.auctionContext()).thenReturn(auctionContext);
         when(modelCacheWithExpiration.getIfPresent("onnxModelRunner_test-pbuid"))
                 .thenReturn(givenOnnxModelRunner());
@@ -229,8 +229,9 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final Double explorationRate = 1.0;
         final Device device = givenDevice(identity());
         final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device);
-        final AuctionContext auctionContext = givenAuctionContext(bidRequest, context -> context, explorationRate);
-        final AuctionInvocationContext invocationContext = givenAuctionInvocationContext(auctionContext);
+        final AuctionContext auctionContext = givenAuctionContext(bidRequest, context -> context);
+        final AuctionInvocationContext invocationContext = givenAuctionInvocationContext(
+                auctionContext, explorationRate);
         when(invocationContext.auctionContext()).thenReturn(auctionContext);
         when(modelCacheWithExpiration.getIfPresent("onnxModelRunner_test-pbuid"))
                 .thenReturn(givenOnnxModelRunner());
@@ -282,8 +283,9 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final Double explorationRate = 0.0001;
         final Device device = givenDeviceWithoutUserAgent(identity());
         final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device);
-        final AuctionContext auctionContext = givenAuctionContext(bidRequest, context -> context, explorationRate);
-        final AuctionInvocationContext invocationContext = givenAuctionInvocationContext(auctionContext);
+        final AuctionContext auctionContext = givenAuctionContext(bidRequest, context -> context);
+        final AuctionInvocationContext invocationContext = givenAuctionInvocationContext(
+                auctionContext, explorationRate);
         when(invocationContext.auctionContext()).thenReturn(auctionContext);
         when(modelCacheWithExpiration.getIfPresent("onnxModelRunner_test-pbuid"))
                 .thenReturn(givenOnnxModelRunner());
@@ -342,8 +344,9 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final Double explorationRate = 0.0001;
         final Device device = givenDevice(identity());
         final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device);
-        final AuctionContext auctionContext = givenAuctionContext(bidRequest, context -> context, explorationRate);
-        final AuctionInvocationContext invocationContext = givenAuctionInvocationContext(auctionContext);
+        final AuctionContext auctionContext = givenAuctionContext(bidRequest, context -> context);
+        final AuctionInvocationContext invocationContext = givenAuctionInvocationContext(
+                auctionContext, explorationRate);
         when(invocationContext.auctionContext()).thenReturn(auctionContext);
         when(modelCacheWithExpiration.getIfPresent("onnxModelRunner_test-pbuid"))
                 .thenReturn(givenOnnxModelRunner());
@@ -391,38 +394,30 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
 
     private AuctionContext givenAuctionContext(
             BidRequest bidRequest,
-            UnaryOperator<AuctionContext.AuctionContextBuilder> auctionContextCustomizer,
-            Double explorationRate) {
+            UnaryOperator<AuctionContext.AuctionContextBuilder> auctionContextCustomizer) {
 
         final AuctionContext.AuctionContextBuilder auctionContextBuilder = AuctionContext.builder()
                 .httpRequest(HttpRequestContext.builder().build())
-                .bidRequest(bidRequest)
-                .account(givenAccount(explorationRate));
+                .bidRequest(bidRequest);
 
         return auctionContextCustomizer.apply(auctionContextBuilder).build();
     }
 
-    private AuctionInvocationContext givenAuctionInvocationContext(AuctionContext auctionContext) {
+    private AuctionInvocationContext givenAuctionInvocationContext(
+            AuctionContext auctionContext, Double explorationRate) {
         final AuctionInvocationContext invocationContext = mock(AuctionInvocationContext.class);
         when(invocationContext.auctionContext()).thenReturn(auctionContext);
+        when(invocationContext.accountConfig()).thenReturn(givenAccountConfig(explorationRate));
         return invocationContext;
     }
 
-    private Account givenAccount(Double explorationRate) {
-        return Account.builder()
-                .id("test-account")
-                .hooks(givenAccountHooksConfiguration(explorationRate))
-                .build();
-    }
-
-    private AccountHooksConfiguration givenAccountHooksConfiguration(Double explorationRate) {
+    private ObjectNode givenAccountConfig(Double explorationRate) {
         final ObjectNode greenbidsNode = TestBidRequestProvider.MAPPER.createObjectNode();
         greenbidsNode.put("enabled", true);
         greenbidsNode.put("pbuid", "test-pbuid");
-        greenbidsNode.put("targetTpr", 0.60);
-        greenbidsNode.put("explorationRate", explorationRate);
-        final Map<String, ObjectNode> modules = Map.of("greenbids", greenbidsNode);
-        return AccountHooksConfiguration.of(null, modules, null);
+        greenbidsNode.put("target-tpr", 0.60);
+        greenbidsNode.put("exploration-rate", explorationRate);
+        return greenbidsNode;
     }
 
     private OnnxModelRunner givenOnnxModelRunner() throws OrtException, IOException {

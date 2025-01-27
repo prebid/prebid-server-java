@@ -8,6 +8,6 @@ public class GreenbidsConfig {
 
     String pbuid;
 
-    @JsonProperty("greenbidsSampling")
+    @JsonProperty("greenbids-sampling")
     Double greenbidsSampling;
 }

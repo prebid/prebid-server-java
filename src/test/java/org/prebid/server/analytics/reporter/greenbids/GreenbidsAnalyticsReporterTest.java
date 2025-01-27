@@ -668,7 +668,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
     private static AccountAnalyticsConfig givenAccountHooksConfiguration() {
         final ObjectNode greenbidsNode = mapper.createObjectNode();
         greenbidsNode.put("pbuid", "leparisien");
-        greenbidsNode.put("greenbidsSampling", 1.0);
+        greenbidsNode.put("greenbids-sampling", 1.0);
         final Map<String, ObjectNode> modules = Map.of("greenbids", greenbidsNode);
         return AccountAnalyticsConfig.of(true, null, modules);
     }
@@ -701,7 +701,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
     private static ExtRequest givenExtRequest() {
         final ObjectNode greenbidsNode = new ObjectMapper().createObjectNode();
         greenbidsNode.put("pbuid", "leparisien");
-        greenbidsNode.put("greenbidsSampling", 1.0);
+        greenbidsNode.put("greenbids-sampling", 1.0);
 
         final ObjectNode analyticsNode = new ObjectMapper().createObjectNode();
         analyticsNode.set("greenbids", greenbidsNode);

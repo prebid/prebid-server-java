@@ -78,7 +78,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
         final AuctionContext auctionContext = invocationContext.auctionContext();
         final BidRequest bidRequest = auctionContext.getBidRequest();
         final GreenbidsConfig greenbidsConfig = Optional.ofNullable(parseBidRequestExt(auctionContext))
-                .orElse(parseAccountConfig(auctionContext.getAccount()));
+                .orElse(parseAccountConfig(invocationContext.accountConfig()));
 
         if (greenbidsConfig == null) {
             return Future.failedFuture(
@@ -113,13 +113,12 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
         return analytics != null && analytics.isObject() && !analytics.isEmpty();
     }
 
-    private GreenbidsConfig parseAccountConfig(Account account) {
-        return Optional.ofNullable(account)
-                .map(Account::getHooks)
-                .map(AccountHooksConfiguration::getModules)
-                .map(modules -> modules.get(name()))
-                .map(this::toGreenbidsConfig)
-                .orElse(null);
+    private GreenbidsConfig parseAccountConfig(ObjectNode accountConfig) {
+        try {
+            return mapper.treeToValue(accountConfig, GreenbidsConfig.class);
+        } catch (JsonProcessingException e) {
+            throw new PreBidException(e.getMessage());
+        }
     }
 
     private GreenbidsConfig toGreenbidsConfig(ObjectNode adapterNode) {

@@ -16,10 +16,10 @@ public class GreenbidsConfig {
 
     String pbuid;
 
-    @JsonProperty("targetTpr")
+    @JsonProperty("target-tpr")
     Double targetTpr;
 
-    @JsonProperty("explorationRate")
+    @JsonProperty("exploration-rate")
     Double explorationRate;
 
     public Double getThreshold(ThrottlingThresholds throttlingThresholds) {
