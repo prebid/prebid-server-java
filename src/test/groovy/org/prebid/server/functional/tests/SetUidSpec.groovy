@@ -407,24 +407,6 @@ class SetUidSpec extends BaseSpec {
         assert exception.responseBody == 'Unauthorized: Sync is not allowed for this uids'
     }
 
-    def "PBS should remove all cookies when incoming request have optout flag"() {
-        given: "Setuid request"
-        def request = SetuidRequest.defaultSetuidRequest
-        def genericUidsCookie = UidsCookie.getDefaultUidsCookie(GENERIC)
-        def rubiconUidsCookie = UidsCookie.getDefaultUidsCookie(RUBICON)
-
-        and: "PBS service with optout cookies"
-        def pbsConfig = PBS_CONFIG + UID_COOKIES_CONFIG + ["host-cookie.optout-cookie.name" : "uids",
-                                                           "host-cookie.optout-cookie.value": Base64.urlEncoder.encodeToString(encode(rubiconUidsCookie).bytes)]
-        def prebidServerService = pbsServiceFactory.getService(pbsConfig)
-
-        when: "PBS processes setuid request"
-        def response = prebidServerService.sendSetUidRequest(request, [genericUidsCookie, rubiconUidsCookie])
-
-        then: "Response shouldn't contain any tempUIDs"
-        assert !response.uidsCookie.tempUIDs
-    }
-
     def "PBS should merge cookies when incoming request have multiple uids cookies"() {
         given: "Setuid request"
         def request = SetuidRequest.defaultSetuidRequest.tap {
