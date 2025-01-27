@@ -45,10 +45,9 @@ abstract class BaseSpec extends Specification implements ObjectMapperWrapper {
                                                                        "adapters.generic.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
 
     @Shared
-    protected static PrebidServerService defaultPbsService
+    protected static final PrebidServerService defaultPbsService = pbsServiceFactory.getService([:])
 
     def setupSpec() {
-        defaultPbsService = pbsServiceFactory.getService([:])
         prebidCache.setResponse()
         bidder.setResponse()
         vendorList.setResponse()
