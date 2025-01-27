@@ -28,6 +28,7 @@ import static org.prebid.server.functional.model.request.auction.AuctionEnvironm
 import static org.prebid.server.functional.model.request.auction.AuctionEnvironment.NOT_SUPPORTED
 import static org.prebid.server.functional.model.request.auction.PaaFormat.IAB
 import static org.prebid.server.functional.model.request.auction.PaaFormat.ORIGINAL
+import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
 
 class OpenxSpec extends BaseSpec {
@@ -255,7 +256,7 @@ class OpenxSpec extends BaseSpec {
         def auctionConfigs = response.ext?.prebid?.fledge?.auctionConfigs
         assert auctionConfigs?.size() == 1
         assert auctionConfigs[0].impId == impId
-        assert auctionConfigs[0].bidder == bidResponse.seatbid[0].seat.value
+        assert auctionConfigs[0].bidder == OPENX_ALIAS.value
         assert auctionConfigs[0].adapter == OPENX.value
         assert auctionConfigs[0].config == fledgeConfig
 
@@ -298,7 +299,7 @@ class OpenxSpec extends BaseSpec {
         def interestGroupAuctionSeller = response.ext.interestGroupAuctionIntent[0].interestGroupAuctionSeller[0]
         assert interestGroupAuctionSeller.impId == impId
         assert interestGroupAuctionSeller.config == fledgeConfig
-        assert interestGroupAuctionSeller.ext.bidder == bidResponse.seatbid[0].seat.value
+        assert interestGroupAuctionSeller.ext.bidder == OPENX_ALIAS.value
         assert interestGroupAuctionSeller.ext.adapter == OPENX.value
 
         and: "PBS response shouldn't contain igi config"
@@ -341,7 +342,7 @@ class OpenxSpec extends BaseSpec {
         fledgeImpId << [PBSUtils.randomString, PBSUtils.randomNumber as String, WILDCARD.value]
     }
 
-    def "PBS should log error and not populated fledge impId when bidder respond with empty config"() {
+    def "PBS should log error and not populated fledge impId when bidder respond with not empty config, but an empty impid"() {
         given: "Start time"
         def startTime = Instant.now()
 
@@ -378,6 +379,12 @@ class OpenxSpec extends BaseSpec {
         and: "PBS log should contain error"
         def logs = pbsService.getLogsByTime(startTime)
         assert getLogsByText(logs, "ExtIgiIgs with absent impId from bidder: ${OPENX.value}")
+
+        and: "Bid response should contain warning"
+        assert response.ext.warnings[PREBID]?.code == [999, 999]
+        assert response.ext.warnings[PREBID]?.message ==
+                ["ExtIgi with absent impId from bidder: ${OPENX.value}" as String,
+                 "ExtIgiIgs with absent impId from bidder: ${OPENX.value}" as String]
 
         and: "Alert.general metric should be updated"
         def metrics = pbsService.sendCollectedMetricsRequest()
@@ -464,8 +471,8 @@ class OpenxSpec extends BaseSpec {
         def bidResponse = OpenxBidResponse.getDefaultBidResponse(bidRequest, OPENX).tap {
             ext = new OpenxBidResponseExt().tap {
                 interestGroupAuctionIntent = [new InterestGroupAuctionIntent(
-                        interestGroupAuctionSeller: [new InterestGroupAuctionSeller()],
-                        interestGroupAuctionBuyer: [new InterestGroupAuctionBuyer()]
+                        interestGroupAuctionSeller: interestGroupAuctionSeller,
+                        interestGroupAuctionBuyer: interestGroupAuctionBuyer
                 )]
             }
         }
@@ -483,6 +490,8 @@ class OpenxSpec extends BaseSpec {
         assert !response.ext?.interestGroupAuctionIntent
 
         where:
-        paaFormat << [IAB, ORIGINAL]
+        paaFormat | interestGroupAuctionSeller         | interestGroupAuctionBuyer
+        IAB       | [new InterestGroupAuctionSeller()] | [new InterestGroupAuctionBuyer()]
+        ORIGINAL  | []                                 | []
     }
 }
