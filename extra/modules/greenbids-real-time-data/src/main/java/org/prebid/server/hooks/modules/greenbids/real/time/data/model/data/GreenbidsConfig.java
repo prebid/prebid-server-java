@@ -6,6 +6,7 @@ import org.prebid.server.hooks.modules.greenbids.real.time.data.model.filter.Thr
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.IntStream;
 
 @Value(staticConstructor = "of")
@@ -20,13 +21,14 @@ public class GreenbidsConfig {
     Double explorationRate;
 
     public Double getThreshold(ThrottlingThresholds throttlingThresholds) {
+        final double safeTargetTpr = Optional.ofNullable(targetTpr).orElse(1.0);
         final List<Double> truePositiveRates = throttlingThresholds.getTpr();
         final List<Double> thresholds = throttlingThresholds.getThresholds();
 
         final int minSize = Math.min(truePositiveRates.size(), thresholds.size());
 
         return IntStream.range(0, minSize)
-                .filter(i -> truePositiveRates.get(i) >= targetTpr)
+                .filter(i -> truePositiveRates.get(i) >= safeTargetTpr)
                 .mapToObj(thresholds::get)
                 .max(Comparator.naturalOrder())
                 .orElse(0.0);

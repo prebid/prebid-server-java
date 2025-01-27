@@ -80,6 +80,11 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
         final GreenbidsConfig greenbidsConfig = Optional.ofNullable(parseBidRequestExt(auctionContext))
                 .orElse(parseAccountConfig(auctionContext.getAccount()));
 
+        if (greenbidsConfig == null) {
+            return Future.failedFuture(
+                    new PreBidException("Greenbids config is null; cannot proceed."));
+        }
+
         return Future.all(
                         onnxModelRunnerWithThresholds.retrieveOnnxModelRunner(greenbidsConfig),
                         onnxModelRunnerWithThresholds.retrieveThreshold(greenbidsConfig))

@@ -50,9 +50,10 @@ public class GreenbidsInvocationService {
     }
 
     private Boolean isExploration(GreenbidsConfig greenbidsConfig, String greenbidsId) {
+        final double explorationRate = Optional.ofNullable(greenbidsConfig.getExplorationRate()).orElse(1.0);
         final int hashInt = Integer.parseInt(
                 greenbidsId.substring(greenbidsId.length() - 4), 16);
-        return hashInt < greenbidsConfig.getExplorationRate() * RANGE_16_BIT_INTEGER_DIVISION_BASIS;
+        return hashInt < explorationRate * RANGE_16_BIT_INTEGER_DIVISION_BASIS;
     }
 
     private List<Imp> updateImps(BidRequest bidRequest, Map<String, Map<String, Boolean>> impsBiddersFilterMap) {

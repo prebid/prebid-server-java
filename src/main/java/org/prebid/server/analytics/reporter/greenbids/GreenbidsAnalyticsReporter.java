@@ -17,6 +17,7 @@ import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.AmpEvent;
 import org.prebid.server.analytics.model.AuctionEvent;
@@ -134,7 +135,14 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
 
         final String greenbidsId = greenbidsId(analyticsResultFromAnalyticsTag);
 
-        if (!isSampled(greenbidsConfig.getGreenbidsSampling(), greenbidsId)) {
+        final double samplingRate = Optional.ofNullable(greenbidsConfig.getGreenbidsSampling())
+                .orElseGet(() -> {
+                    logger.warn("Warning: Sampling rate is not defined in request. Set sampling at "
+                            + greenbidsAnalyticsProperties.getDefaultSamplingRate());
+                    return greenbidsAnalyticsProperties.getDefaultSamplingRate();
+                });
+
+        if (!isSampled(samplingRate, greenbidsId)) {
             return Future.succeededFuture();
         }
 
@@ -146,7 +154,8 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                     greenbidsId,
                     billingId,
                     greenbidsConfig,
-                    analyticsResultFromAnalyticsTag);
+                    analyticsResultFromAnalyticsTag,
+                    samplingRate);
             commonMessageJson = jacksonMapper.encodeToString(commonMessage);
         } catch (PreBidException e) {
             return Future.failedFuture(e);
@@ -274,12 +283,6 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
     }
 
     private boolean isSampled(Double samplingRate, String greenbidsId) {
-        if (samplingRate == null) {
-            logger.warn("Warning: Sampling rate is not defined in request. Set sampling at "
-                    + greenbidsAnalyticsProperties.getDefaultSamplingRate());
-            return true;
-        }
-
         if (samplingRate < 0 || samplingRate > 1) {
             logger.warn("Warning: Sampling rate must be between 0 and 1");
             return true;
@@ -304,8 +307,9 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
             BidResponse bidResponse,
             String greenbidsId,
             String billingId,
-            GreenbidsConfig greenbidsImpExt,
-            Map<String, Ortb2ImpExtResult> analyticsResultFromAnalyticsTag) {
+            GreenbidsConfig greenbidsConfig,
+            Map<String, Ortb2ImpExtResult> analyticsResultFromAnalyticsTag,
+            Double samplingRate) {
         final Optional<BidRequest> bidRequest = Optional.ofNullable(auctionContext.getBidRequest());
 
         final List<Imp> imps = bidRequest
@@ -337,17 +341,16 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 .map(Site::getPage)
                 .orElse(null);
 
-        final Double greenbidsSamplingRate = Optional.ofNullable(greenbidsImpExt.getGreenbidsSampling())
-                .orElse(greenbidsAnalyticsProperties.getDefaultSamplingRate());
+        final String pbuid = Optional.ofNullable(greenbidsConfig.getPbuid()).orElse(StringUtils.EMPTY);
 
         return CommonMessage.builder()
                         .version(greenbidsAnalyticsProperties.getAnalyticsServerVersion())
                         .auctionId(auctionId)
                         .referrer(referrer)
-                        .sampling(greenbidsSamplingRate)
+                        .sampling(samplingRate)
                         .prebidServer(prebidVersionProvider.getNameVersionRecord())
                         .greenbidsId(greenbidsId)
-                        .pbuid(greenbidsImpExt.getPbuid())
+                        .pbuid(pbuid)
                         .billingId(billingId)
                         .adUnits(adUnitsWithBidResponses)
                         .auctionElapsed(auctionElapsed)
