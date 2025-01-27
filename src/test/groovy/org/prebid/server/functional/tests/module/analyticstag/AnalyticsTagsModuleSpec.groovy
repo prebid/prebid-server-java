@@ -18,6 +18,7 @@ import org.prebid.server.functional.model.response.auction.ModuleActivityName
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.tests.module.ModuleBaseSpec
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.Shared
 
 import static org.prebid.server.functional.model.ModuleName.ORTB2_BLOCKING
 import static org.prebid.server.functional.model.ModuleName.PB_RICHMEDIA_FILTER
@@ -30,7 +31,16 @@ import static org.prebid.server.functional.model.response.auction.ErrorType.PREB
 
 class AnalyticsTagsModuleSpec extends ModuleBaseSpec {
 
-    private final PrebidServerService pbsServiceWithEnabledOrtb2Blocking = pbsServiceFactory.getService(ortb2BlockingSettings)
+    @Shared
+    private static PrebidServerService pbsServiceWithEnabledOrtb2Blocking
+
+    def setupSpec() {
+        pbsServiceWithEnabledOrtb2Blocking = pbsServiceFactory.getService(ortb2BlockingSettings)
+    }
+
+    def cleanupSpec() {
+        pbsServiceFactory.removeContainer(ortb2BlockingSettings)
+    }
 
     def "PBS should include analytics tag for ortb2-blocking module in response when request and account allow client details"() {
         given: "Default account with module config"

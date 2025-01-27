@@ -16,6 +16,7 @@ import org.prebid.server.functional.model.response.auction.Prebid
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.tests.module.ModuleBaseSpec
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.Shared
 
 import java.time.Instant
 
@@ -32,12 +33,22 @@ import static org.prebid.server.functional.model.response.auction.MediaType.VIDE
 
 class ResponseCorrectionSpec extends ModuleBaseSpec {
 
-    private final PrebidServerService pbsServiceWithResponseCorrectionModule = pbsServiceFactory.getService(
-            ["adapter-defaults.modifying-vast-xml-allowed": "false",
-             "adapters.generic.modifying-vast-xml-allowed": "false"] +
-                    responseCorrectionConfig)
-
     private final static int OPTIMAL_MAX_LENGTH = 20
+    private static final Map PBS_CONFIG = ["adapter-defaults.modifying-vast-xml-allowed": "false",
+                                           "adapters.generic.modifying-vast-xml-allowed": "false"] +
+            getResponseCorrectionConfig()
+
+    @Shared
+    private static PrebidServerService pbsServiceWithResponseCorrectionModule
+
+    def setupSpec() {
+        pbsServiceWithResponseCorrectionModule = pbsServiceFactory.getService(PBS_CONFIG)
+    }
+
+    def cleanupSpec() {
+        pbsServiceFactory.removeContainer(PBS_CONFIG)
+    }
+
 
     def "PBS shouldn't modify response when in account correction module disabled"() {
         given: "Start up time"

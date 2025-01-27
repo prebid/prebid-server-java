@@ -27,13 +27,28 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
 
     private static final String PATTERN_NAME = PBSUtils.randomString
     private static final String PATTERN_NAME_ACCOUNT = PBSUtils.randomString
-    private final PrebidServerService pbsServiceWithEnabledMediaFilter = pbsServiceFactory.getService(getRichMediaFilterSettings(PATTERN_NAME))
-    private final PrebidServerService pbsServiceWithEnabledMediaFilterAndDifferentCaseStrategy = pbsServiceFactory.getService(
-            (getRichMediaFilterSettings(PATTERN_NAME) + ["hooks.host-execution-plan": encode(ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, PB_RICHMEDIA_FILTER, [ALL_PROCESSED_BID_RESPONSES]).tap {
+    private static final Map<String, String> DISABLED_FILTER_SPECIFIC_PATTERN_NAME_CONFIG = getRichMediaFilterSettings(PATTERN_NAME, false)
+    private static final Map<String, String> SPECIFIC_PATTERN_NAME_CONFIG = getRichMediaFilterSettings(PATTERN_NAME)
+    private static final Map<String, String> SNAKE_SPECIFIC_PATTERN_NAME_CONFIG =  (getRichMediaFilterSettings(PATTERN_NAME) +
+            ["hooks.host-execution-plan": encode(ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, PB_RICHMEDIA_FILTER, [ALL_PROCESSED_BID_RESPONSES]).tap {
                 endpoints.values().first().stages.values().first().groups.first.hookSequenceSnakeCase = [new HookId(moduleCodeSnakeCase: PB_RICHMEDIA_FILTER.code, hookImplCodeSnakeCase: "${PB_RICHMEDIA_FILTER.code}-${ALL_PROCESSED_BID_RESPONSES.value}-hook")]
-            })])
-                    .collectEntries { key, value -> [(key.toString()): value.toString()] })
-    private final PrebidServerService pbsServiceWithDisabledMediaFilter = pbsServiceFactory.getService(getRichMediaFilterSettings(PATTERN_NAME, false))
+            })]).collectEntries { key, value -> [(key.toString()): value.toString()] }
+
+    private static PrebidServerService pbsServiceWithDisabledMediaFilter
+    private static PrebidServerService pbsServiceWithEnabledMediaFilter
+    private static PrebidServerService pbsServiceWithEnabledMediaFilterAndDifferentCaseStrategy
+
+    def setupSpec() {
+        pbsServiceWithDisabledMediaFilter = pbsServiceFactory.getService(DISABLED_FILTER_SPECIFIC_PATTERN_NAME_CONFIG)
+        pbsServiceWithEnabledMediaFilter = pbsServiceFactory.getService(SPECIFIC_PATTERN_NAME_CONFIG)
+        pbsServiceWithEnabledMediaFilterAndDifferentCaseStrategy = pbsServiceFactory.getService(SNAKE_SPECIFIC_PATTERN_NAME_CONFIG)
+    }
+
+    def cleanupSpec() {
+        pbsServiceFactory.removeContainer(DISABLED_FILTER_SPECIFIC_PATTERN_NAME_CONFIG)
+        pbsServiceFactory.removeContainer(SPECIFIC_PATTERN_NAME_CONFIG)
+        pbsServiceFactory.removeContainer(SNAKE_SPECIFIC_PATTERN_NAME_CONFIG)
+    }
 
     def "PBS should process request without rich media module when host config have empty settings"() {
         given: "Prebid server with empty settings for module"

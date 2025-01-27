@@ -15,6 +15,7 @@ import org.prebid.server.functional.model.request.auction.TraceLevel
 import org.prebid.server.functional.model.response.auction.InvocationResult
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.Shared
 
 import static org.prebid.server.functional.model.ModuleName.ORTB2_BLOCKING
 import static org.prebid.server.functional.model.ModuleName.PB_RICHMEDIA_FILTER
@@ -45,8 +46,20 @@ class GeneralModuleSpec extends ModuleBaseSpec {
             getOrtb2BlockingSettings() +
             ['hooks.host-execution-plan': encode(ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, MODULES_STAGES))]
 
-    private final static PrebidServerService pbsServiceWithMultipleModule = pbsServiceFactory.getService(MULTI_MODULE_CONFIG + DISABLED_INVOKE_CONFIG)
-    private final static PrebidServerService pbsServiceWithMultipleModuleWithRequireInvoke = pbsServiceFactory.getService(MULTI_MODULE_CONFIG + ENABLED_INVOKE_CONFIG)
+    @Shared
+    private static PrebidServerService pbsServiceWithMultipleModule
+    @Shared
+    private static PrebidServerService pbsServiceWithMultipleModuleWithRequireInvoke
+
+    def setupSpec() {
+        pbsServiceWithMultipleModule = pbsServiceFactory.getService(MULTI_MODULE_CONFIG + DISABLED_INVOKE_CONFIG)
+        pbsServiceWithMultipleModuleWithRequireInvoke = pbsServiceFactory.getService(MULTI_MODULE_CONFIG + ENABLED_INVOKE_CONFIG)
+    }
+
+    def cleanupSpec() {
+        pbsServiceFactory.removeContainer(MULTI_MODULE_CONFIG + DISABLED_INVOKE_CONFIG)
+        pbsServiceFactory.removeContainer(MULTI_MODULE_CONFIG + ENABLED_INVOKE_CONFIG)
+    }
 
     def "PBS should call all modules and traces response when account config is empty and require-config-to-invoke is disabled"() {
         given: "Default bid request with verbose trace"

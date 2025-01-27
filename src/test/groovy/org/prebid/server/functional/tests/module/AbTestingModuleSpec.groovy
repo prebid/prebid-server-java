@@ -14,6 +14,7 @@ import org.prebid.server.functional.model.response.auction.AnalyticResult
 import org.prebid.server.functional.model.response.auction.InvocationResult
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.Shared
 
 import static org.prebid.server.functional.model.ModuleName.PB_RESPONSE_CORRECTION
 import static org.prebid.server.functional.model.config.Endpoint.OPENRTB2_AUCTION
@@ -48,8 +49,20 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
     private final static Map<String, String> MULTI_MODULE_CONFIG = getResponseCorrectionConfig() + getOrtb2BlockingSettings() +
             ['hooks.host-execution-plan': null]
 
-    private final static PrebidServerService ortbModulePbsService = pbsServiceFactory.getService(getOrtb2BlockingSettings())
-    private final static PrebidServerService pbsServiceWithMultipleModules = pbsServiceFactory.getService(MULTI_MODULE_CONFIG)
+    @Shared
+    private static PrebidServerService ortbModulePbsService
+    @Shared
+    private static PrebidServerService pbsServiceWithMultipleModules
+
+    def setupSpec() {
+        ortbModulePbsService = pbsServiceFactory.getService(getOrtb2BlockingSettings())
+        pbsServiceWithMultipleModules = pbsServiceFactory.getService(MULTI_MODULE_CONFIG)
+    }
+
+    def cleanupSpec() {
+        pbsServiceFactory.removeContainer(getOrtb2BlockingSettings())
+        pbsServiceFactory.removeContainer(MULTI_MODULE_CONFIG)
+    }
 
     def "PBS shouldn't apply a/b test config when config of ab test is disabled"() {
         given: "Default bid request with verbose trace"

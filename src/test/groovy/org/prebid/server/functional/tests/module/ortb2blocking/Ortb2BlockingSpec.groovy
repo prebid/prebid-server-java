@@ -33,6 +33,7 @@ import org.prebid.server.functional.model.response.auction.SeatBid
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.tests.module.ModuleBaseSpec
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.Shared
 
 import static org.prebid.server.functional.model.ModuleName.ORTB2_BLOCKING
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
@@ -59,9 +60,19 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
     private static final String WILDCARD = '*'
     private static final Map IX_CONFIG = ["adapters.ix.enabled" : "true",
                                           "adapters.ix.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
+    private static final Map PBS_CONFIG = getOrtb2BlockingSettings() + IX_CONFIG +
+            ['adapter-defaults.ortb.multiformat-supported': 'false']
 
-    private final PrebidServerService pbsServiceWithEnabledOrtb2Blocking = pbsServiceFactory.getService(ortb2BlockingSettings + IX_CONFIG +
-            ['adapter-defaults.ortb.multiformat-supported': 'false'])
+    @Shared
+    private static PrebidServerService pbsServiceWithEnabledOrtb2Blocking
+
+    def setupSpec() {
+        pbsServiceWithEnabledOrtb2Blocking = pbsServiceFactory.getService(PBS_CONFIG)
+    }
+
+    def cleanupSpec() {
+        pbsServiceFactory.removeContainer(PBS_CONFIG)
+    }
 
     def "PBS should send original array ortb2 attribute to bidder when enforce blocking is disabled"() {
         given: "Default bid request with proper ortb attribute"

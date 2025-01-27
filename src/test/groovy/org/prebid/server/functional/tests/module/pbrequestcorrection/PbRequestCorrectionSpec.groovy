@@ -14,6 +14,7 @@ import org.prebid.server.functional.model.request.auction.OperationState
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.tests.module.ModuleBaseSpec
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.Shared
 
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.request.auction.OperationState.YES
@@ -27,7 +28,16 @@ class PbRequestCorrectionSpec extends ModuleBaseSpec {
     private static final String ANDROID = "android"
     private static final String IOS = "IOS"
 
-    private PrebidServerService pbsServiceWithRequestCorrectionModule = pbsServiceFactory.getService(requestCorrectionSettings)
+    @Shared
+    private static PrebidServerService pbsServiceWithRequestCorrectionModule
+
+    def setupSpec() {
+        pbsServiceWithRequestCorrectionModule = pbsServiceFactory.getService(requestCorrectionSettings)
+    }
+
+    def cleanupSpec() {
+        pbsServiceFactory.removeContainer(requestCorrectionSettings)
+    }
 
     def "PBS should remove positive instl from imps for android app when request correction is enabled for account"() {
         given: "Android APP bid request with version lover then version threshold"
