@@ -17,6 +17,7 @@ import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.tests.BaseSpec
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.IgnoreRest
 import spock.lang.Shared
 
 import java.time.Instant
@@ -114,6 +115,47 @@ class OpenxSpec extends BaseSpec {
 
         and: "PBS response shouldn't contain igs config"
         assert !response.ext?.interestGroupAuctionIntent?.interestGroupAuctionSeller
+    }
+
+    def "PBS should take precedence request paa format over account value when both specified"() {
+        given: "Default bid request with openx"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.prebid.bidder.openx = Openx.defaultOpenx
+            ext.prebid.paaFormat = IAB
+        }
+
+        and: "Default bid response with fledge config"
+        def impId = bidRequest.imp[0].id
+        def fledgeConfig = [(PBSUtils.randomString): PBSUtils.randomString]
+        def bidResponse = OpenxBidResponse.getDefaultBidResponse(bidRequest).tap {
+            ext = new OpenxBidResponseExt().tap {
+                fledgeAuctionConfigs = [(impId): fledgeConfig]
+            }
+        }
+
+        and: "Set bidder response"
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        and: "Save account in the DB"
+        def accountConfig = new AccountConfig(auction: new AccountAuctionConfig(paaformat: ORIGINAL))
+        def account = new Account(uuid: bidRequest.site.publisher.id, config: accountConfig)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS response shouldn't contain fledge config"
+        assert !response.ext?.prebid?.fledge?.auctionConfigs
+
+        and: "PBS response should contain igs config"
+        def interestGroupAuctionSeller = response.ext.interestGroupAuctionIntent[0].interestGroupAuctionSeller[0]
+        assert interestGroupAuctionSeller.impId == impId
+        assert interestGroupAuctionSeller.config == fledgeConfig
+        assert interestGroupAuctionSeller.ext.bidder == bidResponse.seatbid[0].seat.value
+        assert interestGroupAuctionSeller.ext.adapter == bidResponse.seatbid[0].seat.value
+
+        and: "PBS response shouldn't contain igb config"
+        assert !response.ext?.interestGroupAuctionIntent?[0]?.interestGroupAuctionBuyer
     }
 
     def "PBS shouldn't populate fledge config when bid response with fledge and ext.prebid.paaFormat = IAB"() {
@@ -381,10 +423,9 @@ class OpenxSpec extends BaseSpec {
         assert getLogsByText(logs, "ExtIgiIgs with absent impId from bidder: ${OPENX.value}")
 
         and: "Bid response should contain warning"
-        assert response.ext.warnings[PREBID]?.code == [999, 999]
+        assert response.ext.warnings[PREBID]?.code == [999]
         assert response.ext.warnings[PREBID]?.message ==
-                ["ExtIgi with absent impId from bidder: ${OPENX.value}" as String,
-                 "ExtIgiIgs with absent impId from bidder: ${OPENX.value}" as String]
+                ["ExtIgiIgs with absent impId from bidder: ${OPENX.value}" as String]
 
         and: "Alert.general metric should be updated"
         def metrics = pbsService.sendCollectedMetricsRequest()
