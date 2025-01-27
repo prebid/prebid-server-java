@@ -22,6 +22,8 @@ public class GreenbidsInvocationService {
 
     private static final int RANGE_16_BIT_INTEGER_DIVISION_BASIS = 0x10000;
 
+    private static final double DEFAULT_EXPLORATION_RATE = 1.0;
+
     public GreenbidsInvocationResult createGreenbidsInvocationResult(
             GreenbidsConfig greenbidsConfig,
             BidRequest bidRequest,
@@ -50,7 +52,8 @@ public class GreenbidsInvocationService {
     }
 
     private Boolean isExploration(GreenbidsConfig greenbidsConfig, String greenbidsId) {
-        final double explorationRate = Optional.ofNullable(greenbidsConfig.getExplorationRate()).orElse(1.0);
+        final double explorationRate = Optional.ofNullable(greenbidsConfig.getExplorationRate())
+                .orElse(DEFAULT_EXPLORATION_RATE);
         final int hashInt = Integer.parseInt(
                 greenbidsId.substring(greenbidsId.length() - 4), 16);
         return hashInt < explorationRate * RANGE_16_BIT_INTEGER_DIVISION_BASIS;

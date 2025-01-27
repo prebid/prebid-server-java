@@ -135,12 +135,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
 
         final String greenbidsId = greenbidsId(analyticsResultFromAnalyticsTag);
 
-        final double samplingRate = Optional.ofNullable(greenbidsConfig.getGreenbidsSampling())
-                .orElseGet(() -> {
-                    logger.warn("Warning: Sampling rate is not defined in request. Set sampling at "
-                            + greenbidsAnalyticsProperties.getDefaultSamplingRate());
-                    return greenbidsAnalyticsProperties.getDefaultSamplingRate();
-                });
+        final double samplingRate = resolveSamplingRate(greenbidsConfig);
 
         if (!isSampled(samplingRate, greenbidsId)) {
             return Future.succeededFuture();
@@ -272,6 +267,16 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 .map(Ortb2ImpExtResult::getGreenbids)
                 .map(ExplorationResult::getFingerprint)
                 .orElseGet(() -> UUID.randomUUID().toString());
+    }
+
+    private double resolveSamplingRate(GreenbidsConfig greenbidsConfig) {
+        final Double sampling = greenbidsConfig.getGreenbidsSampling();
+        if (sampling == null) {
+            logger.warn("Warning: Sampling rate is not defined in request. Set sampling at {}",
+                    greenbidsAnalyticsProperties.getDefaultSamplingRate());
+            return greenbidsAnalyticsProperties.getDefaultSamplingRate();
+        }
+        return sampling;
     }
 
     private Future<Void> processAnalyticServerResponse(HttpClientResponse response) {

@@ -12,6 +12,8 @@ import java.util.stream.IntStream;
 @Value(staticConstructor = "of")
 public class GreenbidsConfig {
 
+    private static final double DEFAULT_TPR = 1.0;
+
     String pbuid;
 
     @JsonProperty("targetTpr")
@@ -21,7 +23,7 @@ public class GreenbidsConfig {
     Double explorationRate;
 
     public Double getThreshold(ThrottlingThresholds throttlingThresholds) {
-        final double safeTargetTpr = Optional.ofNullable(targetTpr).orElse(1.0);
+        final double safeTargetTpr = targetTpr != null ? targetTpr : DEFAULT_TPR;
         final List<Double> truePositiveRates = throttlingThresholds.getTpr();
         final List<Double> thresholds = throttlingThresholds.getThresholds();
 
