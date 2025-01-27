@@ -1,0 +1,42 @@
+package org.prebid.server.spring.config.bidder;
+
+import jakarta.validation.constraints.NotBlank;
+
+import org.prebid.server.bidder.BidderDeps;
+import org.prebid.server.bidder.adverxo.AdverxoBidder;
+import org.prebid.server.currency.CurrencyConversionService;
+import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
+import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
+import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
+import org.prebid.server.spring.env.YamlPropertySourceFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.PropertySource;
+
+@Configuration
+@PropertySource(value = "classpath:/bidder-config/adverxo.yaml", factory = YamlPropertySourceFactory.class)
+public class AdverxoBidderConfiguration {
+
+    private static final String BIDDER_NAME = "adverxo";
+
+    @Bean("adverxoConfigurationProperties")
+    @ConfigurationProperties("adapters.adverxo")
+    BidderConfigurationProperties configurationProperties() {
+        return new BidderConfigurationProperties();
+    }
+
+    @Bean
+    BidderDeps adverxoBidderDeps(BidderConfigurationProperties adverxoConfigurationProperties,
+                                 @NotBlank @Value("${external-url}") String externalUrl,
+                                 JacksonMapper mapper, CurrencyConversionService currencyConversionService) {
+
+        return BidderDepsAssembler.forBidder(BIDDER_NAME)
+                .withConfig(adverxoConfigurationProperties)
+                .usersyncerCreator(UsersyncerCreator.create(externalUrl))
+                .bidderCreator(config -> new AdverxoBidder(config.getEndpoint(), mapper, currencyConversionService))
+                .assemble();
+    }
+}

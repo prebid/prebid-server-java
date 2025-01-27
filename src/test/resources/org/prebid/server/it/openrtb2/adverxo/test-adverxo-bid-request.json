@@ -1,0 +1,33 @@
+{
+  "id": "test-bid-request",
+  "imp": [
+    {
+      "id": "imp1",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          }
+        ]
+      },
+      "bidfloor": 1,
+      "bidfloorcur": "USD",
+      "ext": {
+        "bidder": {
+          "adUnitId": 1,
+          "auth": "123456"
+        }
+      }
+    }
+  ],
+  "site": {
+    "page": "http://example.com"
+  },
+  "device": {
+    "ua": "Mozilla/5.0",
+    "ip": "127.0.0.1"
+  },
+  "tmax": 500,
+  "test": 1
+}

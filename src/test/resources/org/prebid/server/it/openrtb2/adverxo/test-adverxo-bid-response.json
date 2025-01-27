@@ -1,0 +1,21 @@
+{
+  "id": "test-bid-response",
+  "cur": "USD",
+  "seatbid": [
+    {
+      "seat": "adverxo",
+      "bid": [
+        {
+          "id": "bid1",
+          "impid": "imp1",
+          "price": 1.23,
+          "adm": "<script>Ad markup with ${AUCTION_PRICE}</script>",
+          "nurl": "https://example.com/win?price=${AUCTION_PRICE}",
+          "mtype": 1,
+          "w": 300,
+          "h": 250
+        }
+      ]
+    }
+  ]
+}

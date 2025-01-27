@@ -1,0 +1,33 @@
+{
+  "id": "test-auction-request",
+  "imp": [
+    {
+      "id": "imp1",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          }
+        ]
+      },
+      "ext": {
+        "prebid": {
+          "bidder": {
+            "adverxo": {
+              "adUnitId": 1,
+              "auth": "123456"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "site": {
+    "page": "http://testpage.com"
+  },
+  "device": {
+    "ua": "Mozilla/5.0"
+  },
+  "tmax": 1000
+}
