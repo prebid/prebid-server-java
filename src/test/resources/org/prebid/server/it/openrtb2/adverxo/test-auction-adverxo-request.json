@@ -12,13 +12,9 @@
         ]
       },
       "ext": {
-        "prebid": {
-          "bidder": {
-            "adverxo": {
-              "adUnitId": 1,
-              "auth": "123456"
-            }
-          }
+        "adverxo": {
+          "adUnitId": 1,
+          "auth": "123456"
         }
       }
     }
@@ -29,5 +25,10 @@
   "device": {
     "ua": "Mozilla/5.0"
   },
-  "tmax": 1000
+  "tmax": 5000,
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
 }

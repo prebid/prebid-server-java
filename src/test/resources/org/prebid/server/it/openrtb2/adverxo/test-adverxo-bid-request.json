@@ -1,5 +1,5 @@
 {
-  "id": "test-bid-request",
+  "id": "test-auction-request",
   "imp": [
     {
       "id": "imp1",
@@ -11,9 +11,9 @@
           }
         ]
       },
-      "bidfloor": 1,
-      "bidfloorcur": "USD",
+      "secure": 1,
       "ext": {
+        "tid": "${json-unit.any-string}",
         "bidder": {
           "adUnitId": 1,
           "auth": "123456"
@@ -22,12 +22,30 @@
     }
   ],
   "site": {
-    "page": "http://example.com"
+    "domain": "testpage.com",
+    "page": "http://testpage.com",
+    "publisher": {
+      "domain": "testpage.com"
+    },
+    "ext": {
+      "amp": 0
+    }
   },
   "device": {
     "ua": "Mozilla/5.0",
-    "ip": "127.0.0.1"
+    "ip": "193.168.244.1"
   },
-  "tmax": 500,
-  "test": 1
+  "at": 1,
+  "tmax": "${json-unit.any-number}",
+  "cur": [
+    "USD"
+  ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
 }

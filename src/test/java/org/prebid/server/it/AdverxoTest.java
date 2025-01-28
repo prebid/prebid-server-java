@@ -22,14 +22,13 @@ public class AdverxoTest extends IntegrationTest{
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/adverxo-exchange"))
                 .withQueryParam("adUnitId", equalTo("1"))
                 .withQueryParam("auth", equalTo("123456"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/adverxo/test-adverxo-bid-request.json")))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/adverxo/test-adverxo-bid-request.json"), true, true))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/adverxo/test-adverxo-bid-response.json"))));
 
         // when
         final Response response = responseFor("openrtb2/adverxo/test-auction-adverxo-request.json",
                 Endpoint.openrtb2_auction);
         // then
-        System.out.println("Actual response: " + response.asString());
         assertJsonEquals("openrtb2/adverxo/test-auction-adverxo-response.json", response,
                 singletonList("adverxo"));
     }
