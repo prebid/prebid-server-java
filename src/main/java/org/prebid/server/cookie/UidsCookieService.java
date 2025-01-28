@@ -42,6 +42,12 @@ public class UidsCookieService {
     private static final int MIN_NUMBER_OF_UID_COOKIES = 1;
     private static final int MAX_NUMBER_OF_UID_COOKIES = 30;
 
+    // {"tempUIDs":{},"optout":false}
+    private static final int TEMP_UIDS_BASE64_BYTES = "eyJ0ZW1wVUlEcyI6e30sIm9wdG91dCI6ZmFsc2V9".length();
+    // "":{"uid":"","expires":"1970-01-01T00:00:00.000000000Z"},
+    private static final int UID_BASE64_BYTES = ("IiI6eyJ1aWQiOiIiLCJleHBpcmVzI"
+            + "joiMTk3MC0wMS0wMVQwMDowMDowMC4wMDAwMDAwMDBaIn0s").length();
+
     private final String optOutCookieName;
     private final String optOutCookieValue;
     private final String hostCookieFamily;
@@ -163,13 +169,8 @@ public class UidsCookieService {
      * as a value.
      */
     public Cookie aliveCookie(String cookieName, UidsCookie uidsCookie) {
-        return Cookie
-                .cookie(cookieName, Base64.getUrlEncoder().encodeToString(uidsCookie.toJson().getBytes()))
-                .setPath("/")
-                .setSameSite(CookieSameSite.NONE)
-                .setSecure(true)
-                .setMaxAge(ttlSeconds)
-                .setDomain(hostCookieDomain);
+        final String value = Base64.getUrlEncoder().encodeToString(uidsCookie.toJson().getBytes());
+        return makeCookie(cookieName, value, ttlSeconds);
     }
 
     public Cookie aliveCookie(UidsCookie uidsCookie) {
@@ -177,12 +178,15 @@ public class UidsCookieService {
     }
 
     public Cookie expiredCookie(String cookieName) {
-        return Cookie
-                .cookie(cookieName, StringUtils.EMPTY)
+        return makeCookie(cookieName, StringUtils.EMPTY, 0);
+    }
+
+    private Cookie makeCookie(String cookieName, String value, long maxAge) {
+        return Cookie.cookie(cookieName, value)
                 .setPath("/")
                 .setSameSite(CookieSameSite.NONE)
                 .setSecure(true)
-                .setMaxAge(0)
+                .setMaxAge(maxAge)
                 .setDomain(hostCookieDomain);
     }
 
@@ -283,33 +287,38 @@ public class UidsCookieService {
         final Iterator<String> cookieFamilies = cookieFamilyNamesByDescPriorityAndExpiration(uidsCookie);
         final List<Cookie> splitCookies = new ArrayList<>();
 
-        int uidsIndex = 0;
+        final int staticCookieDataBytes = makeCookie(COOKIE_NAME, StringUtils.EMPTY, ttlSeconds).encode().length();
+
         String nextCookieFamily = null;
 
-        while (uidsIndex < numberOfUidCookies) {
-            final String uidsName = uidsIndex == 0 ? COOKIE_NAME : COOKIE_NAME_FORMAT.formatted(uidsIndex + 1);
-            UidsCookie tempUidsCookie = new UidsCookie(
-                    Uids.builder().uids(new HashMap<>()).optout(hasOptout).build(),
-                    mapper);
+        for (int uidsIndex = 0; uidsIndex < numberOfUidCookies; uidsIndex++) {
+            int actualCookieSize = staticCookieDataBytes + TEMP_UIDS_BASE64_BYTES;
+            final Map<String, UidWithExpiry> tempUids = new HashMap<>();
 
             while (nextCookieFamily != null || cookieFamilies.hasNext()) {
                 nextCookieFamily = nextCookieFamily == null ? cookieFamilies.next() : nextCookieFamily;
-                tempUidsCookie = tempUidsCookie.updateUid(nextCookieFamily, uids.get(nextCookieFamily));
-                if (cookieExceededMaxLength(uidsName, tempUidsCookie)) {
-                    tempUidsCookie = tempUidsCookie.deleteUid(nextCookieFamily);
+
+                final UidWithExpiry uidWithExpiry = uids.get(nextCookieFamily);
+                actualCookieSize += UID_BASE64_BYTES
+                        + calculateCookieSize(uidsIndex, nextCookieFamily, uidWithExpiry.getUid());
+
+                if (maxCookieSizeBytes > 0 && actualCookieSize > maxCookieSizeBytes) {
                     break;
                 }
 
+                tempUids.put(nextCookieFamily, uidWithExpiry);
                 nextCookieFamily = null;
             }
 
-            if (tempUidsCookie.getCookieUids().getUids().isEmpty()) {
+            final String uidsName = uidsIndex == 0 ? COOKIE_NAME : COOKIE_NAME_FORMAT.formatted(uidsIndex + 1);
+
+            if (tempUids.isEmpty()) {
                 splitCookies.add(expiredCookie(uidsName));
             } else {
-                splitCookies.add(aliveCookie(uidsName, tempUidsCookie));
+                splitCookies.add(aliveCookie(
+                        uidsName,
+                        new UidsCookie(Uids.builder().uids(tempUids).optout(hasOptout).build(), mapper)));
             }
-
-            uidsIndex++;
         }
 
         if (nextCookieFamily != null) {
@@ -321,11 +330,18 @@ public class UidsCookieService {
         return splitCookies;
     }
 
+    private static int calculateCookieSize(int uidsIndex, String cookieFamily, String uid) {
+        final int approximateBase64CookieFamilySize = (int) Math.ceil(cookieFamily.length() * 1.33);
+        final int approximateBase64UidSize = (int) Math.ceil(uid.length() * 1.33);
+        final int uidsIndexSize = uidsIndex == 0 ? 0 : 2;
+
+        return uidsIndexSize + approximateBase64CookieFamilySize + approximateBase64UidSize;
+    }
+
     private Iterator<String> cookieFamilyNamesByDescPriorityAndExpiration(UidsCookie uidsCookie) {
         return uidsCookie.getCookieUids().getUids().entrySet().stream()
                 .sorted(this::compareCookieFamilyNames)
                 .map(Map.Entry::getKey)
-                .toList()
                 .iterator();
     }
 
@@ -350,14 +366,6 @@ public class UidsCookieService {
         } else {
             metrics.updateUserSyncSizeBlockedMetric(nextCookieFamily);
         }
-    }
-
-    private boolean cookieExceededMaxLength(String name, UidsCookie uidsCookie) {
-        return maxCookieSizeBytes > 0 && cookieBytesLength(name, uidsCookie) > maxCookieSizeBytes;
-    }
-
-    private int cookieBytesLength(String cookieName, UidsCookie uidsCookie) {
-        return aliveCookie(cookieName, uidsCookie).encode().getBytes().length;
     }
 
     public String hostCookieUidToSync(RoutingContext routingContext, String cookieFamilyName) {
