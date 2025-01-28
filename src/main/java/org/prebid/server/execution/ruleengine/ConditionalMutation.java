@@ -1,22 +1,21 @@
 package org.prebid.server.execution.ruleengine;
 
-import com.iab.openrtb.request.BidRequest;
+import org.prebid.server.execution.ruleengine.extractors.ArgumentExtractor;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Function;
 
-public class ConditionalMutation<T> implements RequestMutation {
+public class ConditionalMutation<T, R> implements Mutation<T> {
 
-    private final Map<T, RequestMutation> subrules;
-    private final Function<BidRequest, T> argumentExtractor;
-    private final RequestMutation defaultAction;
+    private final Map<R, Mutation<T>> subrules;
+    private final ArgumentExtractor<T, R> argumentExtractor;
+    private final Mutation<T> defaultAction;
 
-    public ConditionalMutation(Map<T, RequestMutation> subrules,
-                               Function<BidRequest, T> argumentExtractor,
-                               RequestMutation defaultAction) {
+    public ConditionalMutation(Map<R, Mutation<T>> subrules,
+                               ArgumentExtractor<T, R> argumentExtractor,
+                               Mutation<T> defaultAction) {
 
         this.subrules = new HashMap<>(subrules);
         this.argumentExtractor = Objects.requireNonNull(argumentExtractor);
@@ -24,10 +23,10 @@ public class ConditionalMutation<T> implements RequestMutation {
     }
 
     @Override
-    public BidRequest mutate(BidRequest request) {
-        return Optional.ofNullable(argumentExtractor.apply(request))
+    public T mutate(T input) {
+        return Optional.ofNullable(argumentExtractor.extract(input))
                 .map(subrules::get)
                 .orElse(defaultAction)
-                .mutate(request);
+                .mutate(input);
     }
 }
