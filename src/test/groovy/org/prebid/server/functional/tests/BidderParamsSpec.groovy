@@ -6,6 +6,7 @@ import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredImp
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
+import org.prebid.server.functional.model.request.auction.AuctionEnvironment
 import org.prebid.server.functional.model.request.auction.Banner
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Device
@@ -15,6 +16,7 @@ import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.ImpExt
 import org.prebid.server.functional.model.request.auction.ImpExtContext
 import org.prebid.server.functional.model.request.auction.ImpExtContextData
+import org.prebid.server.functional.model.request.auction.InterestGroupAuctionSupport
 import org.prebid.server.functional.model.request.auction.Native
 import org.prebid.server.functional.model.request.auction.PrebidOptions
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
@@ -35,6 +37,10 @@ import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.model.bidder.CompressionType.GZIP
 import static org.prebid.server.functional.model.bidder.CompressionType.NONE
 import static org.prebid.server.functional.model.request.auction.Asset.titleAsset
+import static org.prebid.server.functional.model.request.auction.AuctionEnvironment.DEVICE_ORCHESTRATED
+import static org.prebid.server.functional.model.request.auction.AuctionEnvironment.NOT_SUPPORTED
+import static org.prebid.server.functional.model.request.auction.AuctionEnvironment.SERVER_ORCHESTRATED
+import static org.prebid.server.functional.model.request.auction.AuctionEnvironment.UNKNOWN
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.DOOH
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
@@ -866,7 +872,7 @@ class BidderParamsSpec extends BaseSpec {
             prebid.bidder.generic = null
             prebid.adUnitCode = PBSUtils.randomString
             generic = new Generic()
-            ae = PBSUtils.randomNumber
+            auctionEnvironment = PBSUtils.getRandomEnum(AuctionEnvironment)
             all = PBSUtils.randomNumber
             context = new ImpExtContext(data: new ImpExtContextData())
             data = new ImpExtContextData(pbAdSlot: PBSUtils.randomString)
@@ -892,7 +898,7 @@ class BidderParamsSpec extends BaseSpec {
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         verifyAll(bidderRequest.imp[0].ext) {
             bidder == impExt.generic
-            ae == impExt.ae
+            auctionEnvironment == impExt.auctionEnvironment
             all == impExt.all
             context == impExt.context
             data == impExt.data
@@ -1229,5 +1235,67 @@ class BidderParamsSpec extends BaseSpec {
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsConfig)
+    }
+
+    def "PBS should add auction environment to imp.ext.igs when it is present in imp.ext and imp.ext.igs is empty"() {
+        given: "Default bid request with populated imp.ext"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.tap {
+                auctionEnvironment = requestedAuctionEnvironment
+                interestGroupAuctionSupports = [new InterestGroupAuctionSupport(auctionEnvironment: null)]
+            }
+        }
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should imp[].{ae/ext.igs.ae} same value as requested"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.imp[0].ext.auctionEnvironment == requestedAuctionEnvironment
+        assert bidderRequest.imp[0].ext.interestGroupAuctionSupports[0].auctionEnvironment == requestedAuctionEnvironment
+
+        where:
+        requestedAuctionEnvironment << [NOT_SUPPORTED, DEVICE_ORCHESTRATED]
+    }
+
+    def "PBS shouldn't add unsupported auction environment to imp.ext.igs when it is present in imp.ext and imp.ext.igs is empty"() {
+        given: "Default bid request with populated imp.ext"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.tap {
+                auctionEnvironment = requestedAuctionEnvironment
+                interestGroupAuctionSupports = [new InterestGroupAuctionSupport(auctionEnvironment: null)]
+            }
+        }
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should imp[].ae same value as requested"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.imp[0].ext.auctionEnvironment == requestedAuctionEnvironment
+        assert !bidderRequest.imp[0].ext.interestGroupAuctionSupports[0].auctionEnvironment
+
+        where:
+        requestedAuctionEnvironment << [SERVER_ORCHESTRATED, UNKNOWN]
+    }
+
+    def "PBS shouldn't change auction environment in imp.ext.igs when it is present in both imp.ext and imp.ext.igs"() {
+        given: "Default bid request with populated imp.ext"
+        def extAuctionEnv = PBSUtils.getRandomEnum(AuctionEnvironment)
+        def extIgsAuctionEnv = PBSUtils.getRandomEnum(AuctionEnvironment)
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.tap {
+                auctionEnvironment = extAuctionEnv
+                interestGroupAuctionSupports = [new InterestGroupAuctionSupport(auctionEnvironment: extIgsAuctionEnv)]
+            }
+        }
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should imp[].{ae/ext.igs.ae} same value as requested"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.imp[0].ext.auctionEnvironment == extAuctionEnv
+        assert bidderRequest.imp[0].ext.interestGroupAuctionSupports[0].auctionEnvironment == extIgsAuctionEnv
     }
 }

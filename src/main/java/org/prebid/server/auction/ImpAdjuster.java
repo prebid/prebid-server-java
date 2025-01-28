@@ -1,10 +1,13 @@
 package org.prebid.server.auction;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Imp;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
+import org.prebid.server.util.StreamUtil;
 import org.prebid.server.validation.ImpValidator;
 
 import java.util.Iterator;
@@ -15,6 +18,8 @@ import java.util.Optional;
 public class ImpAdjuster {
 
     private static final String IMP_EXT = "ext";
+    private static final String EXT_AE = "ae";
+    private static final String EXT_IGS = "igs";
     private static final String EXT_PREBID = "prebid";
     private static final String EXT_PREBID_BIDDER = "bidder";
     private static final String EXT_PREBID_IMP = "imp";
@@ -33,6 +38,8 @@ public class ImpAdjuster {
     }
 
     public Imp adjust(Imp originalImp, String bidder, BidderAliases bidderAliases, List<String> debugMessages) {
+        setAeParams(originalImp.getExt());
+
         final JsonNode impExtPrebidImp = bidderParamsFromImpExtPrebidImp(originalImp.getExt());
         if (impExtPrebidImp == null) {
             return originalImp;
@@ -62,6 +69,28 @@ public class ImpAdjuster {
                     .formatted(bidder, originalImp.getId(), e.getMessage()));
             removeImpExtPrebidImp(originalImp.getExt());
             return originalImp;
+        }
+    }
+
+    private void setAeParams(ObjectNode ext) {
+        final int extAe = Optional.ofNullable(ext)
+                .map(extNode -> extNode.get(EXT_AE))
+                .filter(JsonNode::isInt)
+                .map(JsonNode::asInt)
+                .orElse(-1);
+
+        final boolean extIgsAePresent = Optional.ofNullable(ext)
+                .map(extNode -> extNode.get(EXT_IGS))
+                .filter(JsonNode::isArray)
+                .stream()
+                .flatMap(extNode -> StreamUtil.asStream(extNode.spliterator()))
+                .filter(Objects::nonNull)
+                .anyMatch(igsElementNode -> igsElementNode.has(EXT_AE));
+
+        if (!extIgsAePresent && (extAe == 0 || extAe == 1)) {
+            final ArrayNode extIgs = jacksonMapper.mapper().createArrayNode();
+            extIgs.add(jacksonMapper.mapper().createObjectNode().set(EXT_AE, IntNode.valueOf(extAe)));
+            ext.set(EXT_IGS, extIgs);
         }
     }
 
