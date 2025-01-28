@@ -1,7 +1,6 @@
 package org.prebid.server.execution.ruleengine;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.prebid.server.execution.ruleengine.extractors.ArgumentExtractor;
@@ -52,6 +51,7 @@ public class MutationFactory<T> {
 
         if (argumentSchema.size() == 1) {
             final Map<Object, Mutation<T>> parsedSubrules = mutationSubrules.stream()
+                    // todo: add filter for *
                     .collect(Collectors.toMap(
                             subrule -> argumentExtractor.extract(subrule.argumentMatchers().getFirst()),
                             MutationSubrule::mutation,
@@ -66,6 +66,7 @@ public class MutationFactory<T> {
         // a | * | * | *
         final Map<Object, List<MutationSubrule<T>>> subrules =
                 mutationSubrules.stream()
+                        // todo: add filter for *
                         .collect(Collectors.groupingBy(
                                 subrule -> argumentExtractor.extract(subrule.argumentMatchers().getFirst())));
 

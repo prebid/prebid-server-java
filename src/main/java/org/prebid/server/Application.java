@@ -21,6 +21,7 @@ public class Application {
     @Value
     @Builder(toBuilder = true)
     private static class Test {
+
         String name;
 
         int version;
@@ -28,22 +29,22 @@ public class Application {
         boolean test;
     }
 
-    private static final String BOOL_EXTR = "boolean-extractor";
-    private static final String INT_EXTR = "int-extractor";
-    private static final String STR_EXTR = "string-extractor";
+    private static final String NAME_EXTRACTOR = "name-extractor";
+    private static final String VERSION_EXTRACTOR = "version-extractor";
+    private static final String IS_TEST_EXTRACTOR = "is-test-extractor";
 
     public static void main(String[] args) {
         final Map<String, ArgumentExtractor<Test, ?>> argumentExtractors =
-                Map.of(BOOL_EXTR, BooleanExtractor.of(test -> test.test),
-                        INT_EXTR, IntegerExtractor.of(test -> test.version),
-                        STR_EXTR, StringExtractor.of(test -> test.name));
+                Map.of(NAME_EXTRACTOR, BooleanExtractor.of(test -> test.test),
+                        VERSION_EXTRACTOR, IntegerExtractor.of(test -> test.version),
+                        IS_TEST_EXTRACTOR, StringExtractor.of(test -> test.name));
 
         final MutationFactory<Test> mutationFactory = new MutationFactory<>(
                 argumentExtractors,
                 node -> test -> test.toBuilder().name(node.textValue()).build());
 
         final Mutation<Test> mutation = mutationFactory.parse(
-                List.of(BOOL_EXTR, BOOL_EXTR, INT_EXTR, STR_EXTR),
+                List.of(NAME_EXTRACTOR, NAME_EXTRACTOR, VERSION_EXTRACTOR, IS_TEST_EXTRACTOR),
                 Map.of(
                         "true|true|123|hello", TextNode.valueOf("1"),
                         "true|true|5|test", TextNode.valueOf("2"),
@@ -54,5 +55,6 @@ public class Application {
                         "true|true|123|last", TextNode.valueOf("7")));
 
         final Test mutated = mutation.mutate(new Test("bruh", 123, false));
+        System.out.println(mutated);
     }
 }
