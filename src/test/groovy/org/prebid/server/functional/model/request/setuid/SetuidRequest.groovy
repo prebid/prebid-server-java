@@ -23,9 +23,9 @@ class SetuidRequest {
     String account
 
     static SetuidRequest getDefaultSetuidRequest() {
-        def request = new SetuidRequest()
-        request.bidder = GENERIC
-        request.gdpr = "0"
-        request
+        new SetuidRequest().tap {
+            bidder = GENERIC
+            gdpr = "0"
+        }
     }
 }
