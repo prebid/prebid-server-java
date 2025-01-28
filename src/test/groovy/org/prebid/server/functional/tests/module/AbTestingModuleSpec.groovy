@@ -48,13 +48,8 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
     private final static Map<String, String> MULTI_MODULE_CONFIG = getResponseCorrectionConfig() + getOrtb2BlockingSettings() +
             ['hooks.host-execution-plan': null]
 
-    private static PrebidServerService ortbModulePbsService
-    private static PrebidServerService pbsServiceWithMultipleModules
-
-    def setupSpec() {
-        ortbModulePbsService = pbsServiceFactory.getService(getOrtb2BlockingSettings())
-        pbsServiceWithMultipleModules = pbsServiceFactory.getService(MULTI_MODULE_CONFIG)
-    }
+    private static final PrebidServerService ortbModulePbsService = pbsServiceFactory.getService(getOrtb2BlockingSettings())
+    private static final PrebidServerService pbsServiceWithMultipleModules = pbsServiceFactory.getService(MULTI_MODULE_CONFIG)
 
     def cleanupSpec() {
         pbsServiceFactory.removeContainer(getOrtb2BlockingSettings())

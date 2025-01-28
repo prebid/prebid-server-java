@@ -62,11 +62,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
     private static final Map PBS_CONFIG = getOrtb2BlockingSettings() + IX_CONFIG +
             ['adapter-defaults.ortb.multiformat-supported': 'false']
 
-    private static PrebidServerService pbsServiceWithEnabledOrtb2Blocking
-
-    def setupSpec() {
-        pbsServiceWithEnabledOrtb2Blocking = pbsServiceFactory.getService(PBS_CONFIG)
-    }
+    private static final PrebidServerService pbsServiceWithEnabledOrtb2Blocking = pbsServiceFactory.getService(PBS_CONFIG)
 
     def cleanupSpec() {
         pbsServiceFactory.removeContainer(PBS_CONFIG)

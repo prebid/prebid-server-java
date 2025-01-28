@@ -27,11 +27,7 @@ class PbRequestCorrectionSpec extends ModuleBaseSpec {
     private static final String ANDROID = "android"
     private static final String IOS = "IOS"
 
-    private static PrebidServerService pbsServiceWithRequestCorrectionModule
-
-    def setupSpec() {
-        pbsServiceWithRequestCorrectionModule = pbsServiceFactory.getService(requestCorrectionSettings)
-    }
+    private static final PrebidServerService pbsServiceWithRequestCorrectionModule = pbsServiceFactory.getService(requestCorrectionSettings)
 
     def cleanupSpec() {
         pbsServiceFactory.removeContainer(requestCorrectionSettings)

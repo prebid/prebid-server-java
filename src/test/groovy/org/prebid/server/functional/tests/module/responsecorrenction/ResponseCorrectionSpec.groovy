@@ -37,11 +37,7 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
                                            "adapters.generic.modifying-vast-xml-allowed": "false"] +
             getResponseCorrectionConfig()
 
-    private static PrebidServerService pbsServiceWithResponseCorrectionModule
-
-    def setupSpec() {
-        pbsServiceWithResponseCorrectionModule = pbsServiceFactory.getService(PBS_CONFIG)
-    }
+    private static final PrebidServerService pbsServiceWithResponseCorrectionModule = pbsServiceFactory.getService(PBS_CONFIG)
 
     def cleanupSpec() {
         pbsServiceFactory.removeContainer(PBS_CONFIG)

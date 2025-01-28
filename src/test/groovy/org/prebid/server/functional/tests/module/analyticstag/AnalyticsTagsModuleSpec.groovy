@@ -30,11 +30,7 @@ import static org.prebid.server.functional.model.response.auction.ErrorType.PREB
 
 class AnalyticsTagsModuleSpec extends ModuleBaseSpec {
 
-    private static PrebidServerService pbsServiceWithEnabledOrtb2Blocking
-
-    def setupSpec() {
-        pbsServiceWithEnabledOrtb2Blocking = pbsServiceFactory.getService(ortb2BlockingSettings)
-    }
+    private static final PrebidServerService pbsServiceWithEnabledOrtb2Blocking = pbsServiceFactory.getService(ortb2BlockingSettings)
 
     def cleanupSpec() {
         pbsServiceFactory.removeContainer(ortb2BlockingSettings)

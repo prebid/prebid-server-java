@@ -45,13 +45,8 @@ class GeneralModuleSpec extends ModuleBaseSpec {
             getOrtb2BlockingSettings() +
             ['hooks.host-execution-plan': encode(ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, MODULES_STAGES))]
 
-    private static PrebidServerService pbsServiceWithMultipleModule
-    private static PrebidServerService pbsServiceWithMultipleModuleWithRequireInvoke
-
-    def setupSpec() {
-        pbsServiceWithMultipleModule = pbsServiceFactory.getService(MULTI_MODULE_CONFIG + DISABLED_INVOKE_CONFIG)
-        pbsServiceWithMultipleModuleWithRequireInvoke = pbsServiceFactory.getService(MULTI_MODULE_CONFIG + ENABLED_INVOKE_CONFIG)
-    }
+    private static final PrebidServerService pbsServiceWithMultipleModule = pbsServiceFactory.getService(MULTI_MODULE_CONFIG + DISABLED_INVOKE_CONFIG)
+    private static final PrebidServerService pbsServiceWithMultipleModuleWithRequireInvoke = pbsServiceFactory.getService(MULTI_MODULE_CONFIG + ENABLED_INVOKE_CONFIG)
 
     def cleanupSpec() {
         pbsServiceFactory.removeContainer(MULTI_MODULE_CONFIG + DISABLED_INVOKE_CONFIG)

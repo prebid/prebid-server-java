@@ -32,6 +32,10 @@ class TcfBasicTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
     private final PrebidServerService activityPbsServiceExcludeGvl = pbsServiceFactory.getService(PBS_CONFIG)
 
+    def cleanupSpec() {
+        pbsServiceFactory.removeContainer(PBS_CONFIG)
+    }
+
     def "PBS should leave the original request with eids data when requireConsent is enabled and #enforcementRequirements.purpose have any basic consent"() {
         given: "Default Generic BidRequests with Eid field"
         def userEids = [Eid.defaultEid]
