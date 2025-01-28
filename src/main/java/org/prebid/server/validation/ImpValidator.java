@@ -28,6 +28,7 @@ import com.iab.openrtb.request.ntv.Protocol;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
@@ -365,9 +366,10 @@ public class ImpValidator {
         validateImpExtPrebid(ext != null ? ext.get(PREBID_EXT) : null, aliases, impIndex, warnings);
     }
 
-    private void validateImpExtPrebid(JsonNode extPrebidNode, Map<String, String> aliases, int impIndex,
-                                      List<String> warnings)
-            throws ValidationException {
+    private void validateImpExtPrebid(JsonNode extPrebidNode,
+                                      Map<String, String> requestAliases,
+                                      int impIndex,
+                                      List<String> warnings) throws ValidationException {
 
         if (extPrebidNode == null) {
             throw new ValidationException(
@@ -387,15 +389,21 @@ public class ImpValidator {
         }
         final ExtImpPrebid extPrebid = parseExtImpPrebid((ObjectNode) extPrebidNode, impIndex);
 
-        validateImpExtPrebidBidder(extPrebidBidderNode, extPrebid.getStoredAuctionResponse(),
-                aliases, impIndex, warnings);
-        validateImpExtPrebidStoredResponses(extPrebid, aliases, impIndex, warnings);
+        final BidderAliases aliases = BidderAliases.of(requestAliases, null, bidderCatalog);
 
+        validateImpExtPrebidBidder(
+                extPrebidBidderNode,
+                extPrebid.getStoredAuctionResponse(),
+                aliases,
+                impIndex,
+                warnings);
+
+        validateImpExtPrebidStoredResponses(extPrebid, aliases, impIndex, warnings);
         validateImpExtPrebidImp(extPrebidNode.get(IMP_EXT), aliases, impIndex, warnings);
     }
 
     private void validateImpExtPrebidImp(JsonNode imp,
-                                         Map<String, String> aliases,
+                                         BidderAliases aliases,
                                          int impIndex,
                                          List<String> warnings) {
         if (imp == null) {
@@ -406,7 +414,7 @@ public class ImpValidator {
         while (bidders.hasNext()) {
             final Map.Entry<String, JsonNode> bidder = bidders.next();
             final String bidderName = bidder.getKey();
-            final String resolvedBidderName = aliases.getOrDefault(bidderName, bidderName);
+            final String resolvedBidderName = aliases.resolveBidder(bidderName);
             if (!bidderCatalog.isValidName(resolvedBidderName) && !bidderCatalog.isDeprecatedName(resolvedBidderName)) {
                 bidders.remove();
                 warnings.add("WARNING: request.imp[%d].ext.prebid.imp.%s was dropped with the reason: invalid bidder"
@@ -417,7 +425,7 @@ public class ImpValidator {
 
     private void validateImpExtPrebidBidder(JsonNode extPrebidBidder,
                                             ExtStoredAuctionResponse storedAuctionResponse,
-                                            Map<String, String> aliases,
+                                            BidderAliases aliases,
                                             int impIndex,
                                             List<String> warnings) throws ValidationException {
         if (extPrebidBidder == null) {
@@ -433,7 +441,7 @@ public class ImpValidator {
             final Map.Entry<String, JsonNode> bidderExtension = bidderExtensions.next();
             final String bidder = bidderExtension.getKey();
             try {
-                validateImpBidderExtName(impIndex, bidderExtension, aliases.getOrDefault(bidder, bidder));
+                validateImpBidderExtName(impIndex, bidderExtension, aliases.resolveBidder(bidder));
             } catch (ValidationException ex) {
                 bidderExtensions.remove();
                 warnings.add("WARNING: request.imp[%d].ext.prebid.bidder.%s was dropped with a reason: %s"
@@ -447,7 +455,7 @@ public class ImpValidator {
     }
 
     private void validateImpExtPrebidStoredResponses(ExtImpPrebid extPrebid,
-                                                     Map<String, String> aliases,
+                                                     BidderAliases aliases,
                                                      int impIndex,
                                                      List<String> warnings) throws ValidationException {
         final ExtStoredAuctionResponse extStoredAuctionResponse = extPrebid.getStoredAuctionResponse();
@@ -479,8 +487,11 @@ public class ImpValidator {
         }
     }
 
-    private void validateStoredBidResponse(ExtStoredBidResponse extStoredBidResponse, ObjectNode bidderNode,
-                                           Map<String, String> aliases, int impIndex) throws ValidationException {
+    private void validateStoredBidResponse(ExtStoredBidResponse extStoredBidResponse,
+                                           ObjectNode bidderNode,
+                                           BidderAliases aliases,
+                                           int impIndex) throws ValidationException {
+
         final String bidder = extStoredBidResponse.getBidder();
         final String id = extStoredBidResponse.getId();
         if (StringUtils.isEmpty(bidder)) {
@@ -493,7 +504,7 @@ public class ImpValidator {
                     "Id was not defined for request.imp[%d].ext.prebid.storedbidresponse.id".formatted(impIndex));
         }
 
-        final String resolvedBidder = aliases.getOrDefault(bidder, bidder);
+        final String resolvedBidder = aliases.resolveBidder(bidder);
 
         if (!bidderCatalog.isValidName(resolvedBidder)) {
             throw new ValidationException(
@@ -518,8 +529,10 @@ public class ImpValidator {
         }
     }
 
-    private void validateImpBidderExtName(int impIndex, Map.Entry<String, JsonNode> bidderExtension, String bidderName)
-            throws ValidationException {
+    private void validateImpBidderExtName(int impIndex,
+                                          Map.Entry<String, JsonNode> bidderExtension,
+                                          String bidderName) throws ValidationException {
+
         if (bidderCatalog.isValidName(bidderName)) {
             final Set<String> messages = bidderParamValidator.validate(bidderName, bidderExtension.getValue());
             if (!messages.isEmpty()) {
