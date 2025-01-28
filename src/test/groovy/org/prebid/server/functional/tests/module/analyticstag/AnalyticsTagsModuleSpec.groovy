@@ -30,10 +30,10 @@ import static org.prebid.server.functional.model.response.auction.ErrorType.PREB
 
 class AnalyticsTagsModuleSpec extends ModuleBaseSpec {
 
-    private static final PrebidServerService pbsServiceWithEnabledOrtb2Blocking = pbsServiceFactory.getService(ortb2BlockingSettings)
+    private static final PrebidServerService pbsServiceWithEnabledOrtb2Blocking = pbsServiceFactory.getService(getOrtb2BlockingSettings())
 
     def cleanupSpec() {
-        pbsServiceFactory.removeContainer(ortb2BlockingSettings)
+        pbsServiceFactory.removeContainer(getOrtb2BlockingSettings())
     }
 
     def "PBS should include analytics tag for ortb2-blocking module in response when request and account allow client details"() {
