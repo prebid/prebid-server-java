@@ -110,10 +110,6 @@ public class VideoRequestFactory {
         return ortb2RequestFactory.executeEntrypointHooks(routingContext, body, initialAuctionContext)
                 .compose(httpRequest -> createBidRequest(httpRequest)
                         .map(bidRequest -> removeEmptyEids(bidRequest, initialAuctionContext.getDebugWarnings()))
-                        .compose(bidRequest -> validateRequest(
-                                bidRequest,
-                                httpRequest,
-                                initialAuctionContext.getDebugWarnings()))
 
                         .map(bidRequestWithErrors -> populatePodErrors(
                                 bidRequestWithErrors.getPodErrors(), podErrors, bidRequestWithErrors))
@@ -121,10 +117,17 @@ public class VideoRequestFactory {
                         .map(bidRequestWithErrors -> ortb2RequestFactory.enrichAuctionContext(
                                 initialAuctionContext, httpRequest, bidRequestWithErrors.getData(), startTime)))
 
-                .compose(auctionContext -> ortb2RequestFactory.fetchAccountWithoutStoredRequestLookup(auctionContext)
+                .map(auctionContext -> auctionContext.with(debugResolver.debugContextFrom(auctionContext)))
+
+                .compose(auctionContext -> ortb2RequestFactory.validateRequest(
+                                auctionContext.getBidRequest(),
+                                auctionContext.getHttpRequest(),
+                                auctionContext.getDebugContext(),
+                                auctionContext.getDebugWarnings())
                         .map(auctionContext::with))
 
-                .map(auctionContext -> auctionContext.with(debugResolver.debugContextFrom(auctionContext)))
+                .compose(auctionContext -> ortb2RequestFactory.fetchAccountWithoutStoredRequestLookup(auctionContext)
+                        .map(auctionContext::with))
 
                 .compose(auctionContext -> geoLocationServiceWrapper.lookup(auctionContext)
                         .map(auctionContext::with))
@@ -322,13 +325,5 @@ public class VideoRequestFactory {
                 : updatedBidRequest;
 
         return WithPodErrors.of(updatedWithDebugBidRequest, bidRequestToErrors.getPodErrors());
-    }
-
-    private Future<WithPodErrors<BidRequest>> validateRequest(WithPodErrors<BidRequest> requestWithPodErrors,
-                                                              HttpRequestContext httpRequestContext,
-                                                              List<String> warnings) {
-
-        return ortb2RequestFactory.validateRequest(requestWithPodErrors.getData(), httpRequestContext, warnings)
-                .map(bidRequest -> requestWithPodErrors);
     }
 }

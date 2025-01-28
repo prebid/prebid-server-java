@@ -418,10 +418,6 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
             imp[0].bidFloor == floorValue
             imp[0].bidFloorCur == floorsResponse.modelGroups[0].currency
 
-            imp[0].ext?.prebid?.floors?.floorRule == floorsResponse.modelGroups[0].values.keySet()[0]
-            imp[0].ext?.prebid?.floors?.floorRuleValue == floorValue
-            imp[0].ext?.prebid?.floors?.floorValue == floorValue
-
             ext?.prebid?.floors?.location == FETCH
             ext?.prebid?.floors?.fetchStatus == SUCCESS
             ext?.prebid?.floors?.floorProvider == floorsResponse.floorProvider
@@ -429,6 +425,9 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
             ext?.prebid?.floors?.skipRate == floorsResponse.skipRate
             ext?.prebid?.floors?.data == floorsResponse
         }
+
+        and: "Bidder request shouldn't include imp.ext.prebid.floors"
+        assert !bidderRequest.imp[0].ext.prebid.floors
     }
 
     def "PBS shouldn't fetch data from provider when use-dynamic-data disabled and useFetchDataRate at max value"() {
@@ -999,19 +998,15 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
             imp[0].bidFloor == storedRequestModel.ext.prebid.floors.data.modelGroups[0].values[rule]
             imp[0].bidFloorCur == storedRequestModel.ext.prebid.floors.data.modelGroups[0].currency
 
-            imp[0].ext?.prebid?.floors?.floorRule ==
-                    storedRequestModel.ext.prebid.floors.data.modelGroups[0].values.keySet()[0]
-            imp[0].ext?.prebid?.floors?.floorRuleValue ==
-                    storedRequestModel.ext.prebid.floors.data.modelGroups[0].values[rule]
-            imp[0].ext?.prebid?.floors?.floorValue ==
-                    storedRequestModel.ext.prebid.floors.data.modelGroups[0].values[rule]
-
             ext?.prebid?.floors?.location == REQUEST
             ext?.prebid?.floors?.fetchStatus == NONE
             ext?.prebid?.floors?.floorMin == storedRequestModel.ext.prebid.floors.floorMin
             ext?.prebid?.floors?.floorProvider == storedRequestModel.ext.prebid.floors.data.floorProvider
             ext?.prebid?.floors?.data == storedRequestModel.ext.prebid.floors.data
         }
+
+        and: "Bidder request shouldn't include imp.ext.prebid.floors"
+        assert !bidderRequest.imp[0].ext.prebid.floors
 
         where:
         request                              | bidRequestWithFloors
@@ -1044,16 +1039,15 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
             imp[0].bidFloor == bidRequest.ext.prebid.floors.data.modelGroups[0].values[rule]
             imp[0].bidFloorCur == bidRequest.ext.prebid.floors.data.modelGroups[0].currency
 
-            imp[0].ext?.prebid?.floors?.floorRule == bidRequest.ext.prebid.floors.data.modelGroups[0].values.keySet()[0]
-            imp[0].ext?.prebid?.floors?.floorRuleValue == bidRequest.ext.prebid.floors.data.modelGroups[0].values[rule]
-            imp[0].ext?.prebid?.floors?.floorValue == bidRequest.ext.prebid.floors.data.modelGroups[0].values[rule]
-
             ext?.prebid?.floors?.location == REQUEST
             ext?.prebid?.floors?.fetchStatus == NONE
             ext?.prebid?.floors?.floorMin == bidRequest.ext.prebid.floors.floorMin
             ext?.prebid?.floors?.floorProvider == bidRequest.ext.prebid.floors.data.floorProvider
             ext?.prebid?.floors?.data == bidRequest.ext.prebid.floors.data
         }
+
+        and: "Bidder request shouldn't include imp.ext.prebid.floors"
+        assert !bidderRequest.imp[0].ext.prebid.floors
     }
 
     def "PBS should prefer data from stored request when fetch is disabled in account config for amp request"() {
@@ -1080,19 +1074,15 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
             imp[0].bidFloor == ampStoredRequest.ext.prebid.floors.data.modelGroups[0].values[rule]
             imp[0].bidFloorCur == ampStoredRequest.ext.prebid.floors.data.modelGroups[0].currency
 
-            imp[0].ext?.prebid?.floors?.floorRule ==
-                    ampStoredRequest.ext.prebid.floors.data.modelGroups[0].values.keySet()[0]
-            imp[0].ext?.prebid?.floors?.floorRuleValue ==
-                    ampStoredRequest.ext.prebid.floors.data.modelGroups[0].values[rule]
-            imp[0].ext?.prebid?.floors?.floorValue ==
-                    ampStoredRequest.ext.prebid.floors.data.modelGroups[0].values[rule]
-
             ext?.prebid?.floors?.location == REQUEST
             ext?.prebid?.floors?.fetchStatus == NONE
             ext?.prebid?.floors?.floorMin == ampStoredRequest.ext.prebid.floors.floorMin
             ext?.prebid?.floors?.floorProvider == ampStoredRequest.ext.prebid.floors.data.floorProvider
             ext?.prebid?.floors?.data == ampStoredRequest.ext.prebid.floors.data
         }
+
+        and: "Bidder request shouldn't include imp.ext.prebid.floors"
+        assert !bidderRequest.imp[0].ext.prebid.floors
     }
 
     def "PBS should prefer data from floors provider when floors data is defined in both request and stored request"() {
@@ -1130,10 +1120,6 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
             imp[0].bidFloor == floorValue
             imp[0].bidFloorCur == floorsResponse.modelGroups[0].currency
 
-            imp[0].ext?.prebid?.floors?.floorRule == floorsResponse.modelGroups[0].values.keySet()[0]
-            imp[0].ext?.prebid?.floors?.floorRuleValue == floorValue
-            imp[0].ext?.prebid?.floors?.floorValue == floorValue
-
             ext?.prebid?.floors?.location == FETCH
             ext?.prebid?.floors?.fetchStatus == SUCCESS
             ext?.prebid?.floors?.floorMin == bidRequest.ext.prebid.floors.floorMin
@@ -1142,6 +1128,9 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
             ext?.prebid?.floors?.skipRate == floorsResponse.skipRate
             ext?.prebid?.floors?.data == floorsResponse
         }
+
+        and: "Bidder request shouldn't include imp.ext.prebid.floors"
+        assert !bidderRequest.imp[0].ext.prebid.floors
     }
 
     def "PBS should prefer data from floors provider when floors data is defined in stored request for amp request"() {
@@ -1175,10 +1164,6 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
             imp[0].bidFloor == floorValue
             imp[0].bidFloorCur == floorsResponse.modelGroups[0].currency
 
-            imp[0].ext?.prebid?.floors?.floorRule == floorsResponse.modelGroups[0].values.keySet()[0]
-            imp[0].ext?.prebid?.floors?.floorRuleValue == floorValue
-            imp[0].ext?.prebid?.floors?.floorValue == floorValue
-
             ext?.prebid?.floors?.location == FETCH
             ext?.prebid?.floors?.fetchStatus == SUCCESS
             ext?.prebid?.floors?.floorMin == ampStoredRequest.ext.prebid.floors.floorMin
@@ -1187,6 +1172,9 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
             ext?.prebid?.floors?.skipRate == floorsResponse.skipRate
             ext?.prebid?.floors?.data == floorsResponse
         }
+
+        and: "Bidder request shouldn't include imp.ext.prebid.floors"
+        assert !bidderRequest.imp[0].ext.prebid.floors
     }
 
     def "PBS should periodically fetch floor rules when previous response from floors provider is #description"() {
@@ -1260,9 +1248,6 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         verifyAll(bidderRequest) {
             imp[0].bidFloor == floorValue
             imp[0].bidFloorCur == floorsResponse.modelGroups[0].currency
-            imp[0].ext?.prebid?.floors?.floorRule == floorsResponse.modelGroups[0].values.keySet()[0]
-            imp[0].ext?.prebid?.floors?.floorRuleValue == floorValue
-            imp[0].ext?.prebid?.floors?.floorValue == floorValue
 
             ext?.prebid?.floors?.location == FETCH
             ext?.prebid?.floors?.fetchStatus == SUCCESS
@@ -1272,6 +1257,9 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
             ext?.prebid?.floors?.skipRate == floorsResponse.skipRate
             ext?.prebid?.floors?.data == floorsResponse
         }
+
+        and: "Bidder request shouldn't include imp.ext.prebid.floors"
+        assert !bidderRequest.imp[0].ext.prebid.floors
     }
 
     def "PBS should validate rules from request when floorMin from request is invalid"() {
@@ -1622,9 +1610,6 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         verifyAll(bidderRequest) {
             imp[0].bidFloor == floorValue
             imp[0].bidFloorCur == floorsResponse.modelGroups[0].currency
-            imp[0].ext?.prebid?.floors?.floorRule == floorsResponse.modelGroups[0].values.keySet()[0]
-            imp[0].ext?.prebid?.floors?.floorRuleValue == floorValue
-            imp[0].ext?.prebid?.floors?.floorValue == floorValue
 
             ext?.prebid?.floors?.location == FETCH
             ext?.prebid?.floors?.fetchStatus == SUCCESS
@@ -1634,6 +1619,9 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
             ext?.prebid?.floors?.skipRate == floorsResponse.skipRate
             ext?.prebid?.floors?.data == floorsResponse
         }
+
+        and: "Bidder request shouldn't include imp.ext.prebid.floors"
+        assert !bidderRequest.imp[0].ext.prebid.floors
     }
 
     def "PBS should reject fetch when modelWeight from floors provider is invalid"() {
