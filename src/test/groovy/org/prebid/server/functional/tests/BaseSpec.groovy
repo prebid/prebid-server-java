@@ -17,6 +17,7 @@ import org.prebid.server.functional.testcontainers.scaffolding.PrebidCache
 import org.prebid.server.functional.testcontainers.scaffolding.VendorList
 import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.Shared
 import spock.lang.Specification
 
 import static java.math.RoundingMode.DOWN
@@ -43,6 +44,7 @@ abstract class BaseSpec extends Specification implements ObjectMapperWrapper {
     protected static final Map<String, String> GENERIC_ALIAS_CONFIG = ["adapters.generic.aliases.alias.enabled" : "true",
                                                                        "adapters.generic.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
 
+    @Shared
     protected static final PrebidServerService defaultPbsService = pbsServiceFactory.getService([:])
 
     def setupSpec() {

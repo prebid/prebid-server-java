@@ -14,6 +14,7 @@ import org.prebid.server.functional.model.response.auction.AnalyticResult
 import org.prebid.server.functional.model.response.auction.InvocationResult
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.Shared
 
 import static org.prebid.server.functional.model.ModuleName.PB_RESPONSE_CORRECTION
 import static org.prebid.server.functional.model.config.Endpoint.OPENRTB2_AUCTION
@@ -48,7 +49,9 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
     private final static Map<String, String> MULTI_MODULE_CONFIG = getResponseCorrectionConfig() + getOrtb2BlockingSettings() +
             ['hooks.host-execution-plan': null]
 
+    @Shared
     private static PrebidServerService ortbModulePbsService
+    @Shared
     private static PrebidServerService pbsServiceWithMultipleModules
 
     def setupSpec() {

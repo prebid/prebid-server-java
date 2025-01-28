@@ -14,6 +14,7 @@ import org.prebid.server.functional.model.request.auction.OperationState
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.tests.module.ModuleBaseSpec
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.Shared
 
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.request.auction.OperationState.YES
@@ -27,6 +28,7 @@ class PbRequestCorrectionSpec extends ModuleBaseSpec {
     private static final String ANDROID = "android"
     private static final String IOS = "IOS"
 
+    @Shared
     private static PrebidServerService pbsServiceWithRequestCorrectionModule
 
     def setupSpec() {

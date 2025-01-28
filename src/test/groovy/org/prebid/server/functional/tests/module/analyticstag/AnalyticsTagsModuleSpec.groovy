@@ -18,6 +18,7 @@ import org.prebid.server.functional.model.response.auction.ModuleActivityName
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.tests.module.ModuleBaseSpec
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.Shared
 
 import static org.prebid.server.functional.model.ModuleName.ORTB2_BLOCKING
 import static org.prebid.server.functional.model.ModuleName.PB_RICHMEDIA_FILTER
@@ -30,6 +31,7 @@ import static org.prebid.server.functional.model.response.auction.ErrorType.PREB
 
 class AnalyticsTagsModuleSpec extends ModuleBaseSpec {
 
+    @Shared
     private static PrebidServerService pbsServiceWithEnabledOrtb2Blocking
 
     def setupSpec() {

@@ -15,6 +15,7 @@ import org.prebid.server.functional.model.request.auction.TraceLevel
 import org.prebid.server.functional.model.response.auction.InvocationResult
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.Shared
 
 import static org.prebid.server.functional.model.ModuleName.ORTB2_BLOCKING
 import static org.prebid.server.functional.model.ModuleName.PB_RICHMEDIA_FILTER
@@ -45,7 +46,9 @@ class GeneralModuleSpec extends ModuleBaseSpec {
             getOrtb2BlockingSettings() +
             ['hooks.host-execution-plan': encode(ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, MODULES_STAGES))]
 
+    @Shared
     private static PrebidServerService pbsServiceWithMultipleModule
+    @Shared
     private static PrebidServerService pbsServiceWithMultipleModuleWithRequireInvoke
 
     def setupSpec() {
