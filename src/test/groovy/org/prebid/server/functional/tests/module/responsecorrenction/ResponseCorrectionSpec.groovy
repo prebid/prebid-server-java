@@ -16,7 +16,6 @@ import org.prebid.server.functional.model.response.auction.Prebid
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.tests.module.ModuleBaseSpec
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.Shared
 
 import java.time.Instant
 
@@ -38,7 +37,6 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
                                            "adapters.generic.modifying-vast-xml-allowed": "false"] +
             getResponseCorrectionConfig()
 
-    @Shared
     private static PrebidServerService pbsServiceWithResponseCorrectionModule
 
     def setupSpec() {
@@ -48,7 +46,6 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
     def cleanupSpec() {
         pbsServiceFactory.removeContainer(PBS_CONFIG)
     }
-
 
     def "PBS shouldn't modify response when in account correction module disabled"() {
         given: "Start up time"

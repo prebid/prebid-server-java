@@ -34,7 +34,6 @@ import org.prebid.server.functional.util.privacy.ConsentString
 import org.prebid.server.functional.util.privacy.TcfConsent
 import org.prebid.server.functional.util.privacy.gpp.GppConsent
 import org.prebid.server.functional.util.privacy.gpp.UsNatV1Consent
-import spock.lang.Shared
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
@@ -78,13 +77,9 @@ abstract class PrivacyBaseSpec extends BaseSpec {
                                                                         "gdpr.host-vendor-id"                 : GENERIC_VENDOR_ID as String,
                                                                         "adapters.generic.ccpa-enforced"      : "true"]
 
-    @Shared
     protected static final int PURPOSES_ONLY_GVL_VERSION = PBSUtils.getRandomNumber(0, 4095)
-    @Shared
     protected static final int LEG_INT_PURPOSES_ONLY_GVL_VERSION = PBSUtils.getRandomNumberWithExclusion(PURPOSES_ONLY_GVL_VERSION, 0, 4095)
-    @Shared
     protected static final int LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION = PBSUtils.getRandomNumberWithExclusion([PURPOSES_ONLY_GVL_VERSION, LEG_INT_PURPOSES_ONLY_GVL_VERSION], 0, 4095)
-    @Shared
     protected static final int PURPOSES_AND_LEG_INT_PURPOSES_GVL_VERSION = PBSUtils.getRandomNumberWithExclusion([PURPOSES_ONLY_GVL_VERSION, LEG_INT_PURPOSES_ONLY_GVL_VERSION, LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION], 0, 4095)
 
     protected static final int EXPONENTIAL_BACKOFF_MAX_DELAY = 1
@@ -109,10 +104,7 @@ abstract class PrivacyBaseSpec extends BaseSpec {
     protected static final Map<String, String> GENERAL_PRIVACY_CONFIG =
             GENERIC_CONFIG + GDPR_VENDOR_LIST_CONFIG + GENERIC_VENDOR_CONFIG + RETRY_POLICY_EXPONENTIAL_CONFIG
 
-    @Shared
     protected static PrebidServerService privacyPbsService
-
-    @Shared
     protected static PrebidServerService activityPbsService
 
     def setupSpec() {

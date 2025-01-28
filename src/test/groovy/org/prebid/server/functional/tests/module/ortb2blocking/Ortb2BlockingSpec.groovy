@@ -33,7 +33,6 @@ import org.prebid.server.functional.model.response.auction.SeatBid
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.tests.module.ModuleBaseSpec
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.Shared
 
 import static org.prebid.server.functional.model.ModuleName.ORTB2_BLOCKING
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
@@ -63,7 +62,6 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
     private static final Map PBS_CONFIG = getOrtb2BlockingSettings() + IX_CONFIG +
             ['adapter-defaults.ortb.multiformat-supported': 'false']
 
-    @Shared
     private static PrebidServerService pbsServiceWithEnabledOrtb2Blocking
 
     def setupSpec() {
