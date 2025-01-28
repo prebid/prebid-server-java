@@ -1,7 +1,5 @@
 package org.prebid.server.spring.config.bidder;
 
-import jakarta.validation.constraints.NotBlank;
-
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.adverxo.AdverxoBidder;
 import org.prebid.server.currency.CurrencyConversionService;
@@ -15,6 +13,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
+
+import jakarta.validation.constraints.NotBlank;
 
 @Configuration
 @PropertySource(value = "classpath:/bidder-config/adverxo.yaml", factory = YamlPropertySourceFactory.class)
