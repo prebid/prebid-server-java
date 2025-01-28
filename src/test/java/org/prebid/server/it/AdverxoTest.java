@@ -14,7 +14,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static java.util.Collections.singletonList;
 
-public class AdverxoTest extends IntegrationTest{
+public class AdverxoTest extends IntegrationTest {
 
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromTheAdverxo() throws IOException, JSONException {
@@ -28,6 +28,7 @@ public class AdverxoTest extends IntegrationTest{
         // when
         final Response response = responseFor("openrtb2/adverxo/test-auction-adverxo-request.json",
                 Endpoint.openrtb2_auction);
+
         // then
         assertJsonEquals("openrtb2/adverxo/test-auction-adverxo-response.json", response,
                 singletonList("adverxo"));
