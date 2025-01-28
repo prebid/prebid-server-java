@@ -31,6 +31,7 @@ import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
+import org.prebid.server.proto.openrtb.ext.response.ExtIgi;
 import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.httpclient.HttpClient;
@@ -248,7 +249,7 @@ public class HttpBidderRequester {
      */
     private <T> Future<BidderCall<T>> failResponse(Throwable exception, HttpRequest<T> httpRequest) {
         conditionalLogger.warn("Error occurred while sending HTTP request to a bidder url: %s with message: %s"
-                        .formatted(httpRequest.getUri(), exception.getMessage()), logSamplingRate);
+                .formatted(httpRequest.getUri(), exception.getMessage()), logSamplingRate);
         logger.debug("Error occurred while sending HTTP request to a bidder url: {}",
                 exception, httpRequest.getUri());
 
@@ -346,6 +347,7 @@ public class HttpBidderRequester {
         private final Map<HttpRequest<T>, BidderCall<T>> bidderCallsRecorded = new HashMap<>();
         private final List<BidderBid> bidsRecorded = new ArrayList<>();
         private final List<BidderError> errorsRecorded = new ArrayList<>();
+        private final List<ExtIgi> igiRecorded = new ArrayList<>();
         private final List<FledgeAuctionConfig> fledgeRecorded = new ArrayList<>();
 
         ResultBuilder(List<HttpRequest<T>> httpRequests,
@@ -366,6 +368,7 @@ public class HttpBidderRequester {
             handleBids(bidderResponse);
             handleBidderErrors(bidderResponse);
             handleBidderCallError(bidderCall);
+            handleIgis(bidderResponse);
             handleFledgeAuctionConfigs(bidderResponse);
         }
 
@@ -429,6 +432,12 @@ public class HttpBidderRequester {
                     .ifPresent(fledgeRecorded::addAll);
         }
 
+        private void handleIgis(CompositeBidderResponse bidderResponse) {
+            Optional.ofNullable(bidderResponse)
+                    .map(CompositeBidderResponse::getIgi)
+                    .ifPresent(igiRecorded::addAll);
+        }
+
         BidderSeatBid toBidderSeatBid(boolean debugEnabled) {
             final List<BidderCall<T>> httpCalls = new ArrayList<>(bidderCallsRecorded.values());
             httpRequests.stream()
@@ -446,6 +455,7 @@ public class HttpBidderRequester {
                     .bids(bidsRecorded)
                     .httpCalls(extHttpCalls)
                     .errors(errors)
+                    .igi(igiRecorded)
                     .fledgeAuctionConfigs(fledgeRecorded)
                     .build();
         }

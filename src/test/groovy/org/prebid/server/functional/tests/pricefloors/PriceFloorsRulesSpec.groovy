@@ -88,8 +88,9 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         then: "Bidder request bidFloor should correspond to appropriate rule"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         assert bidderRequest.imp[0].bidFloor == floorValue
-        assert bidderRequest.imp[0].ext.prebid.floors.floorRule == rule
-        assert bidderRequest.imp[0].ext.prebid.floors.floorRuleValue == floorValue
+
+        and: "Bidder request shouldn't include imp.ext.prebid.floors"
+        assert !bidderRequest.imp[0].ext.prebid.floors
     }
 
     def "PBS should support different delimiters for floor rules"() {

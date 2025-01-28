@@ -72,6 +72,7 @@ public enum MetricName {
     unknown_error,
     err,
     networkerr,
+    buyeruid_scrubbed,
 
     // bids validation
     warn,

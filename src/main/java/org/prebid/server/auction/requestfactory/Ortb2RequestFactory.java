@@ -194,9 +194,11 @@ public class Ortb2RequestFactory {
 
     public Future<BidRequest> validateRequest(BidRequest bidRequest,
                                               HttpRequestContext httpRequestContext,
+                                              DebugContext debugContext,
                                               List<String> warnings) {
 
-        final ValidationResult validationResult = requestValidator.validate(bidRequest, httpRequestContext);
+        final ValidationResult validationResult = requestValidator.validate(
+                bidRequest, httpRequestContext, debugContext);
 
         if (validationResult.hasWarnings()) {
             warnings.addAll(validationResult.getWarnings());
