@@ -48,8 +48,13 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
     private final static Map<String, String> MULTI_MODULE_CONFIG = getResponseCorrectionConfig() + getOrtb2BlockingSettings() +
             ['hooks.host-execution-plan': null]
 
-    private final static PrebidServerService ortbModulePbsService = pbsServiceFactory.getService(getOrtb2BlockingSettings())
-    private final static PrebidServerService pbsServiceWithMultipleModules = pbsServiceFactory.getService(MULTI_MODULE_CONFIG)
+    private static final PrebidServerService ortbModulePbsService = pbsServiceFactory.getService(getOrtb2BlockingSettings())
+    private static final PrebidServerService pbsServiceWithMultipleModules = pbsServiceFactory.getService(MULTI_MODULE_CONFIG)
+
+    def cleanupSpec() {
+        pbsServiceFactory.removeContainer(getOrtb2BlockingSettings())
+        pbsServiceFactory.removeContainer(MULTI_MODULE_CONFIG)
+    }
 
     def "PBS shouldn't apply a/b test config when config of ab test is disabled"() {
         given: "Default bid request with verbose trace"
