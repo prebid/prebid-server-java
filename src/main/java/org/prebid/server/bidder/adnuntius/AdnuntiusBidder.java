@@ -213,7 +213,7 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
     private String createUri(BidRequest bidRequest, Boolean noCookies) {
         try {
             final URIBuilder uriBuilder = new URIBuilder(endpointUrl)
-                    .addParameter("format", "prebid")
+                    .addParameter("format", "prebidServer")
                     .addParameter("tzo", getTimeZoneOffset());
 
             final String gdpr = extractGdpr(bidRequest.getRegs());

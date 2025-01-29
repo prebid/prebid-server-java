@@ -15,6 +15,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.ConditionalLogger;
@@ -96,8 +97,12 @@ public class RequestValidator {
      * Validates the {@link BidRequest} against a list of validation checks, however, reports only one problem
      * at a time.
      */
-    public ValidationResult validate(BidRequest bidRequest, HttpRequestContext httpRequestContext) {
+    public ValidationResult validate(BidRequest bidRequest,
+                                     HttpRequestContext httpRequestContext,
+                                     DebugContext debugContext) {
+
         final List<String> warnings = new ArrayList<>();
+        final boolean isDebugEnabled = debugContext != null && debugContext.isDebugEnabled();
         try {
             if (StringUtils.isBlank(bidRequest.getId())) {
                 throw new ValidationException("request missing required field: \"id\"");
@@ -124,7 +129,7 @@ public class RequestValidator {
                 validateAliases(aliases);
                 validateAliasesGvlIds(extRequestPrebid, aliases);
                 validateBidAdjustmentFactors(extRequestPrebid.getBidadjustmentfactors(), aliases);
-                validateExtBidPrebidData(extRequestPrebid.getData(), aliases);
+                validateExtBidPrebidData(extRequestPrebid.getData(), aliases, isDebugEnabled, warnings);
                 validateSchains(extRequestPrebid.getSchains());
             }
 
@@ -313,15 +318,20 @@ public class RequestValidator {
         }
     }
 
-    private void validateExtBidPrebidData(ExtRequestPrebidData data, Map<String, String> aliases)
-            throws ValidationException {
+    private void validateExtBidPrebidData(ExtRequestPrebidData data,
+                                          Map<String, String> aliases,
+                                          boolean isDebugEnabled,
+                                          List<String> warnings) throws ValidationException {
+
         if (data != null) {
-            validateEidPermissions(data.getEidPermissions(), aliases);
+            validateEidPermissions(data.getEidPermissions(), aliases, isDebugEnabled, warnings);
         }
     }
 
     private void validateEidPermissions(List<ExtRequestPrebidDataEidPermissions> eidPermissions,
-                                        Map<String, String> aliases) throws ValidationException {
+                                        Map<String, String> aliases,
+                                        boolean isDebugEnabled,
+                                        List<String> warnings) throws ValidationException {
 
         if (eidPermissions == null) {
             return;
@@ -333,7 +343,7 @@ public class RequestValidator {
             }
 
             validateEidPermissionSource(eidPermission.getSource());
-            validateEidPermissionBidders(eidPermission.getBidders(), aliases);
+            validateEidPermissionBidders(eidPermission.getBidders(), aliases, isDebugEnabled, warnings);
         }
     }
 
@@ -344,18 +354,22 @@ public class RequestValidator {
     }
 
     private void validateEidPermissionBidders(List<String> bidders,
-                                              Map<String, String> aliases) throws ValidationException {
+                                              Map<String, String> aliases,
+                                              boolean isDebugEnabled,
+                                              List<String> warnings) throws ValidationException {
 
         if (CollectionUtils.isEmpty(bidders)) {
             throw new ValidationException("request.ext.prebid.data.eidpermissions[].bidders[] required values"
                     + " but was empty or null");
         }
 
-        for (String bidder : bidders) {
-            if (!bidderCatalog.isValidName(bidder) && !bidderCatalog.isValidName(aliases.get(bidder))
-                    && ObjectUtils.notEqual(bidder, ASTERISK)) {
-                throw new ValidationException(
-                        "request.ext.prebid.data.eidPermissions[].bidders[] unrecognized biddercode: '%s'", bidder);
+        if (isDebugEnabled) {
+            for (String bidder : bidders) {
+                if (!bidderCatalog.isValidName(bidder) && !bidderCatalog.isValidName(aliases.get(bidder))
+                        && ObjectUtils.notEqual(bidder, ASTERISK)) {
+                    warnings.add("request.ext.prebid.data.eidPermissions[].bidders[] unrecognized biddercode: '%s'"
+                            .formatted(bidder));
+                }
             }
         }
     }

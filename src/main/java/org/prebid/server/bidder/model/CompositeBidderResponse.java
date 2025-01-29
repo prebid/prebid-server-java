@@ -3,6 +3,7 @@ package org.prebid.server.bidder.model;
 import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.bidder.Bidder;
+import org.prebid.server.proto.openrtb.ext.response.ExtIgi;
 import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
 
 import java.util.Collections;
@@ -26,17 +27,10 @@ public class CompositeBidderResponse {
      */
     List<FledgeAuctionConfig> fledgeAuctionConfigs;
 
+    List<ExtIgi> igi;
+
     public static CompositeBidderResponse empty() {
         return builder().build();
-    }
-
-    public static CompositeBidderResponse withBids(List<BidderBid> bids,
-                                                   List<FledgeAuctionConfig> fledgeAuctionConfigs) {
-
-        return builder()
-                .bids(bids)
-                .fledgeAuctionConfigs(fledgeAuctionConfigs)
-                .build();
     }
 
     public static CompositeBidderResponse withError(BidderError error) {

@@ -138,6 +138,7 @@ public class SetuidHandler implements ApplicationResource {
                 .map(Usersyncer::getCookieFamilyName)
                 .filter(Predicate.not(StreamUtil.distinctBy(Function.identity())))
                 .distinct()
+                .sorted()
                 .toList();
 
         if (!duplicatedCookieFamilyNames.isEmpty()) {

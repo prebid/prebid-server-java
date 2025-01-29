@@ -20,7 +20,8 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
-import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
+import org.prebid.server.proto.openrtb.ext.response.ExtIgi;
+import org.prebid.server.proto.openrtb.ext.response.ExtIgiIgs;
 
 import java.util.List;
 import java.util.Set;
@@ -199,7 +200,7 @@ public class CriteoBidderTest extends VertxTest {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidResponse(bid -> bid
-                                .impid("123")
+                        .impid("123")
                         .ext(givenBidExtWithNetwork("anyNetworkName"))));
 
         // when
@@ -236,18 +237,16 @@ public class CriteoBidderTest extends VertxTest {
     @Test
     public void makeBidderResponseShouldReturnFledgeConfigs() throws JsonProcessingException {
         // given
+        final List<ExtIgiIgs> igs = List.of(
+                ExtIgiIgs.builder().config(mapper.createObjectNode().put("proterty1", "value1")).build(),
+                ExtIgiIgs.builder().config(mapper.createObjectNode().put("proterty2", "value2")).build());
+
         final CriteoBidResponse bidResponseWithFledge = CriteoBidResponse.builder()
                 .ext(CriteoExtBidResponse.of(List.of(
-                        CriteoIgiExtBidResponse.of("imp_id1", List.of(
-                                CriteoIgsIgiExtBidResponse.of(
-                                        mapper.createObjectNode().put("proterty1", "value1")),
-                                CriteoIgsIgiExtBidResponse.of(
-                                        mapper.createObjectNode().put("proterty2", "value2")))),
-                        CriteoIgiExtBidResponse.of("imp_id2", List.of(
-                                CriteoIgsIgiExtBidResponse.of(
-                                        mapper.createObjectNode().put("proterty3", "value3")),
-                                CriteoIgsIgiExtBidResponse.of(
-                                        mapper.createObjectNode().put("proterty4", "value4")))))))
+                        ExtIgi.builder()
+                                .impid("imp_id1")
+                                .igs(igs)
+                                .build())))
                 .build();
         final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(bidResponseWithFledge));
 
@@ -255,19 +254,12 @@ public class CriteoBidderTest extends VertxTest {
         final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
 
         // then
+        final List<ExtIgiIgs> expectedIgs = List.of(
+                ExtIgiIgs.builder().config(mapper.createObjectNode().put("proterty1", "value1")).build(),
+                ExtIgiIgs.builder().config(mapper.createObjectNode().put("proterty2", "value2")).build());
+
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getFledgeAuctionConfigs())
-                .containsExactlyInAnyOrder(
-                        FledgeAuctionConfig.builder()
-                                .bidder("criteo")
-                                .impId("imp_id1")
-                                .config(mapper.createObjectNode().put("proterty1", "value1"))
-                                .build(),
-                        FledgeAuctionConfig.builder()
-                                .bidder("criteo")
-                                .impId("imp_id2")
-                                .config(mapper.createObjectNode().put("proterty3", "value3"))
-                                .build());
+        assertThat(result.getIgi()).containsExactly(ExtIgi.builder().impid("imp_id1").igs(expectedIgs).build());
     }
 
     @Test

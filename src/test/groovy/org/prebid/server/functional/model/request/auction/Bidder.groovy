@@ -22,6 +22,8 @@ class Bidder {
     AppNexus appNexus
     Openx openx
     Ix ix
+    @JsonProperty("openxalias")
+    Openx openxAlias
 
     static Bidder getDefaultBidder() {
         new Bidder().tap {
