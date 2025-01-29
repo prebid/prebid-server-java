@@ -86,12 +86,6 @@ public class UidsCookie {
         return new UidsCookie(uids.toBuilder().uids(uidsMap).build(), mapper);
     }
 
-    public UidsCookie updateUid(String familyName, UidWithExpiry uid) {
-        final Map<String, UidWithExpiry> uidsMap = new HashMap<>(uids.getUids());
-        uidsMap.put(familyName, uid);
-        return new UidsCookie(uids.toBuilder().uids(uidsMap).build(), mapper);
-    }
-
     /**
      * Performs updates of {@link UidsCookie}'s optout flag and returns newly constructed {@link UidsCookie}
      * to avoid mutation of the current {@link UidsCookie}.
