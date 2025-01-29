@@ -78,7 +78,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
         final AuctionContext auctionContext = invocationContext.auctionContext();
         final BidRequest bidRequest = auctionContext.getBidRequest();
         final GreenbidsConfig greenbidsConfig = Optional.ofNullable(parseBidRequestExt(auctionContext))
-                .orElse(parseAccountConfig(invocationContext.accountConfig()));
+                .orElseGet(() -> toGreenbidsConfig(invocationContext.accountConfig()));
 
         if (greenbidsConfig == null) {
             return Future.failedFuture(
@@ -113,17 +113,9 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
         return analytics != null && analytics.isObject() && !analytics.isEmpty();
     }
 
-    private GreenbidsConfig parseAccountConfig(ObjectNode accountConfig) {
+    private GreenbidsConfig toGreenbidsConfig(ObjectNode greenbidsConfigNode) {
         try {
-            return mapper.treeToValue(accountConfig, GreenbidsConfig.class);
-        } catch (JsonProcessingException e) {
-            throw new PreBidException(e.getMessage());
-        }
-    }
-
-    private GreenbidsConfig toGreenbidsConfig(ObjectNode adapterNode) {
-        try {
-            return mapper.treeToValue(adapterNode, GreenbidsConfig.class);
+            return mapper.treeToValue(greenbidsConfigNode, GreenbidsConfig.class);
         } catch (JsonProcessingException e) {
             return null;
         }
@@ -218,9 +210,5 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
     @Override
     public String code() {
         return CODE;
-    }
-
-    public String name() {
-        return "greenbids";
     }
 }

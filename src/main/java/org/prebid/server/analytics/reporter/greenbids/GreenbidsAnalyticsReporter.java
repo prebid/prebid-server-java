@@ -122,7 +122,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
         }
 
         final GreenbidsConfig greenbidsConfig = Optional.ofNullable(parseBidRequestExt(auctionContext))
-                .orElse(parseAccountConfig(auctionContext.getAccount()));
+                .orElseGet(() -> parseAccountConfig(auctionContext.getAccount()));
 
         if (greenbidsConfig == null) {
             return Future.succeededFuture();
