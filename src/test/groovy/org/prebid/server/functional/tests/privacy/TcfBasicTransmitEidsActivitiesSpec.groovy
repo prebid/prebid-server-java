@@ -30,7 +30,7 @@ class TcfBasicTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
     private static final Map<String, String> PBS_CONFIG = SETTING_CONFIG + GENERIC_VENDOR_CONFIG + GENERIC_CONFIG + ["gdpr.vendorlist.v2.http-endpoint-template": null,
                                                                                                                      "gdpr.vendorlist.v3.http-endpoint-template": null]
 
-    private final PrebidServerService activityPbsServiceExcludeGvl = pbsServiceFactory.getService(PBS_CONFIG)
+    private static final PrebidServerService activityPbsServiceExcludeGvl = pbsServiceFactory.getService(PBS_CONFIG)
 
     def cleanupSpec() {
         pbsServiceFactory.removeContainer(PBS_CONFIG)
