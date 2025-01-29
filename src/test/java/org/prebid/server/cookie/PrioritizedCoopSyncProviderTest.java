@@ -17,7 +17,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static java.util.Collections.emptySet;
 import static java.util.Collections.singleton;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
@@ -91,26 +90,6 @@ public class PrioritizedCoopSyncProviderTest {
 
         // when and then
         assertThat(target.isPrioritizedFamily("invalid-cookie-family")).isFalse();
-    }
-
-    @Test
-    public void hasPrioritizedBiddersShouldReturnTrueWhenThereArePrioritizedBiddersDefined() {
-        // given
-        givenValidBidderWithCookieSync("bidder");
-
-        target = new PrioritizedCoopSyncProvider(Set.of("bidder"), bidderCatalog);
-
-        // when and then
-        assertThat(target.hasPrioritizedBidders()).isTrue();
-    }
-
-    @Test
-    public void hasPrioritizedBiddersShouldReturnFalseWhenThereAreNoPrioritizedBiddersDefined() {
-        // given
-        target = new PrioritizedCoopSyncProvider(emptySet(), bidderCatalog);
-
-        // when and then
-        assertThat(target.hasPrioritizedBidders()).isFalse();
     }
 
     private void givenValidBiddersWithCookieSync(String... bidders) {
