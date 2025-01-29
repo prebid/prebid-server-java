@@ -1,20 +1,36 @@
 package org.prebid.server.cookie;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.vertx.core.http.Cookie;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.json.ObjectMapperProvider;
 
-public class CookieSize {
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+
+public class UidsCookieSize {
 
     // {"tempUIDs":{},"optout":false}
     private static final int TEMP_UIDS_BASE64_BYTES = "eyJ0ZW1wVUlEcyI6e30sIm9wdG91dCI6ZmFsc2V9".length();
-    private static final int UID_TEMPLATE_BYTES =
-            "\"\":{\"uid\":\"\",\"expires\":\"1970-01-01T00:00:00.000000Z\"},".length();
+    private static final int UID_TEMPLATE_BYTES;
+
+    static {
+        try {
+            UID_TEMPLATE_BYTES = "\"\":{\"uid\":\"\",\"expires\":\"%s\"},"
+                    .formatted(ObjectMapperProvider.mapper().writeValueAsString(
+                            ZonedDateTime.ofInstant(Instant.ofEpochSecond(0, 1), ZoneId.of("UTC"))))
+                    .length();
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     private final int cookieSchemaSize;
     private final int maxSize;
     private int encodedUidsSize;
 
-    public CookieSize(int cookieSchemaSize, int maxSize) {
+    public UidsCookieSize(int cookieSchemaSize, int maxSize) {
         this.cookieSchemaSize = cookieSchemaSize;
         this.maxSize = maxSize;
 

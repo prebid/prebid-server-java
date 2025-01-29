@@ -281,19 +281,19 @@ public class UidsCookieService {
         final Iterator<String> cookieFamilies = cookieFamilyNamesByDescPriorityAndExpiration(uidsCookie);
         final List<Cookie> splitCookies = new ArrayList<>();
 
-        final int cookieSchemaSize = CookieSize.schemaSize(makeCookie(COOKIE_NAME, StringUtils.EMPTY, ttlSeconds));
+        final int cookieSchemaSize = UidsCookieSize.schemaSize(makeCookie(COOKIE_NAME, StringUtils.EMPTY, ttlSeconds));
         String nextCookieFamily = null;
         for (int i = 0; i < numberOfUidCookies; i++) {
             final int digits = i < 10 ? Integer.signum(i) : 2;
-            final CookieSize cookieSize = new CookieSize(cookieSchemaSize + digits, maxCookieSizeBytes);
+            final UidsCookieSize uidsCookieSize = new UidsCookieSize(cookieSchemaSize + digits, maxCookieSizeBytes);
 
             final Map<String, UidWithExpiry> tempUids = new HashMap<>();
             while (nextCookieFamily != null || cookieFamilies.hasNext()) {
                 nextCookieFamily = nextCookieFamily == null ? cookieFamilies.next() : nextCookieFamily;
                 final UidWithExpiry uidWithExpiry = uids.get(nextCookieFamily);
 
-                cookieSize.addUid(nextCookieFamily, uidWithExpiry.getUid());
-                if (!cookieSize.isValid()) {
+                uidsCookieSize.addUid(nextCookieFamily, uidWithExpiry.getUid());
+                if (!uidsCookieSize.isValid()) {
                     break;
                 }
 
