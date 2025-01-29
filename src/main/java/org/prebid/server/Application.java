@@ -1,11 +1,9 @@
 package org.prebid.server;
 
-import com.fasterxml.jackson.databind.node.TextNode;
 import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.execution.ruleengine.Mutation;
 import org.prebid.server.execution.ruleengine.MutationFactory;
-import org.prebid.server.execution.ruleengine.extractors.ArgumentExtractor;
 import org.prebid.server.execution.ruleengine.extractors.BooleanExtractor;
 import org.prebid.server.execution.ruleengine.extractors.IntegerExtractor;
 import org.prebid.server.execution.ruleengine.extractors.StringExtractor;
@@ -29,30 +27,21 @@ public class Application {
         boolean test;
     }
 
-    private static final String NAME_EXTRACTOR = "name-extractor";
-    private static final String VERSION_EXTRACTOR = "version-extractor";
-    private static final String IS_TEST_EXTRACTOR = "is-test-extractor";
-
     public static void main(String[] args) {
-        final Map<String, ArgumentExtractor<Test, ?>> argumentExtractors =
-                Map.of(NAME_EXTRACTOR, BooleanExtractor.of(test -> test.test),
-                        VERSION_EXTRACTOR, IntegerExtractor.of(test -> test.version),
-                        IS_TEST_EXTRACTOR, StringExtractor.of(test -> test.name));
+        final BooleanExtractor<Test> isTestExtractor = BooleanExtractor.of(test -> test.test);
+        final IntegerExtractor<Test> versionExtractor = IntegerExtractor.of(test -> test.version);
+        final StringExtractor<Test> nameExtractor = StringExtractor.of(test -> test.name);
 
-        final MutationFactory<Test> mutationFactory = new MutationFactory<>(
-                argumentExtractors,
-                node -> test -> test.toBuilder().name(node.textValue()).build());
-
-        final Mutation<Test> mutation = mutationFactory.parse(
-                List.of(NAME_EXTRACTOR, NAME_EXTRACTOR, VERSION_EXTRACTOR, IS_TEST_EXTRACTOR),
+        final Mutation<Test> mutation = new MutationFactory<Test>().buildMutation(
+                List.of(isTestExtractor, isTestExtractor, versionExtractor, nameExtractor),
                 Map.of(
-                        "true|true|123|hello", TextNode.valueOf("1"),
-                        "true|true|5|test", TextNode.valueOf("2"),
-                        "false|false|123|bruh", TextNode.valueOf("3"),
-                        "true|false|1|hello", TextNode.valueOf("4"),
-                        "true|true|-2|aloha", TextNode.valueOf("5"),
-                        "true|false|-2|hello", TextNode.valueOf("6"),
-                        "true|true|123|last", TextNode.valueOf("7")));
+                        "true|true|123|hello", test -> test.toBuilder().name("1").build(),
+                        "true|true|5|test", test -> test.toBuilder().name("2").build(),
+                        "false|false|123|bruh", test -> test.toBuilder().name("3").build(),
+                        "true|false|1|hello", test -> test.toBuilder().name("4").build(),
+                        "true|true|-2|aloha", test -> test.toBuilder().name("5").build(),
+                        "true|false|-2|hello", test -> test.toBuilder().name("6").build(),
+                        "true|true|123|last", test -> test.toBuilder().name("7").build()));
 
         final Test mutated = mutation.mutate(new Test("bruh", 123, false));
         System.out.println(mutated);

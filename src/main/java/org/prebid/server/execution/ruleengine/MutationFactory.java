@@ -1,62 +1,42 @@
 package org.prebid.server.execution.ruleengine;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.prebid.server.execution.ruleengine.extractors.ArgumentExtractor;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class MutationFactory<T> {
 
-    private final Map<String, ArgumentExtractor<T, ?>> argumentExtractors;
-    private final Function<JsonNode, Mutation<T>> mutationParser;
-
-    public MutationFactory(Map<String, ArgumentExtractor<T, ?>> argumentExtractors,
-                           Function<JsonNode, Mutation<T>> mutationParser) {
-
-        this.argumentExtractors = new HashMap<>(argumentExtractors);
-        this.mutationParser = Objects.requireNonNull(mutationParser);
-    }
-
-    public Mutation<T> parse(List<String> argumentSchema, Map<String, JsonNode> mutationRules) {
-        if (argumentSchema.isEmpty()) {
+    public Mutation<T> buildMutation(List<ArgumentExtractor<T, ?>> extractors, Map<String, Mutation<T>> rules) {
+        if (extractors.isEmpty()) {
             return input -> input;
         }
 
-        if (!argumentSchema.stream().allMatch(argumentExtractors::containsKey)) {
-            throw new IllegalArgumentException("Invalid arguments schema");
-        }
-
-        final List<MutationSubrule<T>> subrules = mutationRules.entrySet().stream()
+        final List<MutationSubrule<T>> subrules = rules.entrySet().stream()
                 .map(entry -> Pair.of(
                         List.of(StringUtils.defaultString(entry.getKey()).split("\\|")),
-                        mutationParser.apply(entry.getValue())))
+                        entry.getValue()))
                 .map(entry -> new MutationSubrule<>(entry.getKey(), entry.getValue()))
                 .toList();
 
-        return parseConditionalMutation(argumentSchema, subrules);
+        return parseConditionalMutation(extractors, subrules);
     }
 
-    private Mutation<T> parseConditionalMutation(List<String> argumentSchema,
+    private Mutation<T> parseConditionalMutation(List<ArgumentExtractor<T, ?>> argumentExtractors,
                                                  List<MutationSubrule<T>> mutationSubrules) {
 
         final ArgumentExtractor<T, Object> argumentExtractor =
-                (ArgumentExtractor<T, Object>) argumentExtractors.get(argumentSchema.getFirst());
+                (ArgumentExtractor<T, Object>) argumentExtractors.getFirst();
 
-        if (argumentSchema.size() == 1) {
+        if (argumentExtractors.size() == 1) {
             final Map<Object, Mutation<T>> parsedSubrules = mutationSubrules.stream()
                     // todo: add filter for *
                     .collect(Collectors.toMap(
                             subrule -> argumentExtractor.extract(subrule.argumentMatchers().getFirst()),
-                            MutationSubrule::mutation,
-                            (left, right) -> left,
-                            HashMap::new));
+                            MutationSubrule::mutation));
 
             return new ConditionalMutation<>(parsedSubrules, argumentExtractor, input -> input);
         }
@@ -79,7 +59,7 @@ public class MutationFactory<T> {
 
                 .map(entry -> Pair.of(
                         entry.getKey(),
-                        parseConditionalMutation(tail(argumentSchema), entry.getValue())))
+                        parseConditionalMutation(tail(argumentExtractors), entry.getValue())))
 
                 .collect(Collectors.toMap(Pair::getKey, Pair::getValue));
 
@@ -91,6 +71,7 @@ public class MutationFactory<T> {
     }
 
     private record MutationSubrule<T>(List<String> argumentMatchers, Mutation<T> mutation) {
+
         public MutationSubrule<T> tail() {
             return new MutationSubrule<>(MutationFactory.tail(argumentMatchers), mutation);
         }
