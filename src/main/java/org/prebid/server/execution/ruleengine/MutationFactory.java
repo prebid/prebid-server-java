@@ -1,79 +1,93 @@
 package org.prebid.server.execution.ruleengine;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.prebid.server.execution.ruleengine.extractors.ArgumentExtractor;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class MutationFactory<T> {
 
+    private static final String DEFAULT_ARGUMENT_MATCHER = "*";
+
+    private final Mutation<T> identityMutation = input -> input;
+
     public Mutation<T> buildMutation(List<ArgumentExtractor<T, ?>> extractors, Map<String, Mutation<T>> rules) {
         if (extractors.isEmpty()) {
-            return input -> input;
+            return identityMutation;
         }
 
-        final List<MutationSubrule<T>> subrules = rules.entrySet().stream()
-                .map(entry -> Pair.of(
-                        List.of(StringUtils.defaultString(entry.getKey()).split("\\|")),
-                        entry.getValue()))
-                .map(entry -> new MutationSubrule<>(entry.getKey(), entry.getValue()))
-                .toList();
+        return parseConditionalMutation(extractors, toParsingContexts(extractors, rules));
+    }
 
-        return parseConditionalMutation(extractors, subrules);
+    private List<ParsingContext<T>> toParsingContexts(List<ArgumentExtractor<T, ?>> extractors,
+                                                      Map<String, Mutation<T>> rules) {
+
+        final List<ParsingContext<T>> contexts = new ArrayList<>();
+
+        for (Map.Entry<String, Mutation<T>> entry : rules.entrySet()) {
+            final List<String> arguments = List.of(StringUtils.defaultString(entry.getKey()).split("\\|"));
+            final Mutation<T> mutation = entry.getValue();
+
+            if (extractors.size() != arguments.size()) {
+                throw new IllegalArgumentException("Argument count mismatch");
+            }
+
+            contexts.add(new ParsingContext<>(arguments, mutation));
+        }
+
+        return contexts;
     }
 
     private Mutation<T> parseConditionalMutation(List<ArgumentExtractor<T, ?>> argumentExtractors,
-                                                 List<MutationSubrule<T>> mutationSubrules) {
+                                                 List<ParsingContext<T>> parsingContexts) {
+
+        if (argumentExtractors.isEmpty()) {
+            if (parsingContexts.size() > 1) {
+                throw new IllegalArgumentException("Ambiguous matcher rules");
+            }
+
+            return parsingContexts.getFirst().mutation();
+        }
 
         final ArgumentExtractor<T, Object> argumentExtractor =
                 (ArgumentExtractor<T, Object>) argumentExtractors.getFirst();
+        final List<ArgumentExtractor<T, ?>> nextArgumentExtractors = tail(argumentExtractors);
 
-        if (argumentExtractors.size() == 1) {
-            final Map<Object, Mutation<T>> parsedSubrules = mutationSubrules.stream()
-                    // todo: add filter for *
-                    .collect(Collectors.toMap(
-                            subrule -> argumentExtractor.extract(subrule.argumentMatchers().getFirst()),
-                            MutationSubrule::mutation));
+        final Map<String, List<ParsingContext<T>>> subrules = parsingContexts.stream()
+                .collect(Collectors.groupingBy(
+                        ParsingContext::argumentMatcher,
+                        Collectors.mapping(ParsingContext::next, Collectors.toList())));
 
-            return new ConditionalMutation<>(parsedSubrules, argumentExtractor, input -> input);
-        }
+        final Mutation<T> defaultAction = Optional.ofNullable(subrules.get(DEFAULT_ARGUMENT_MATCHER))
+                .map(subrule -> parseConditionalMutation(nextArgumentExtractors, subrule))
+                .orElse(identityMutation);
 
-        // a | b | c | d
-        // a | e | 1 | 2
-        // a | * | * | *
-        final Map<Object, List<MutationSubrule<T>>> subrules =
-                mutationSubrules.stream()
-                        // todo: add filter for *
-                        .collect(Collectors.groupingBy(
-                                subrule -> argumentExtractor.extract(subrule.argumentMatchers().getFirst())));
+        subrules.remove(DEFAULT_ARGUMENT_MATCHER);
 
         final Map<Object, Mutation<T>> parsedSubrules = subrules.entrySet().stream()
-                .map(entry -> Pair.of(
-                        entry.getKey(),
-                        entry.getValue().stream()
-                                .map(MutationSubrule::tail)
-                                .toList()))
+                .collect(Collectors.toMap(
+                        entry -> argumentExtractor.extract(entry.getKey()),
+                        entry -> parseConditionalMutation(nextArgumentExtractors, entry.getValue())));
 
-                .map(entry -> Pair.of(
-                        entry.getKey(),
-                        parseConditionalMutation(tail(argumentExtractors), entry.getValue())))
+        return new ConditionalMutation<>(parsedSubrules, argumentExtractor, defaultAction);
+    }
 
-                .collect(Collectors.toMap(Pair::getKey, Pair::getValue));
+    private record ParsingContext<T>(List<String> argumentMatchers, Mutation<T> mutation) {
 
-        return new ConditionalMutation<>(parsedSubrules, argumentExtractor, input -> input);
+        public ParsingContext<T> next() {
+            return new ParsingContext<>(tail(argumentMatchers), mutation);
+        }
+
+        public String argumentMatcher() {
+            return argumentMatchers.getFirst();
+        }
     }
 
     private static <R> List<R> tail(List<R> list) {
         return list.subList(1, list.size());
-    }
-
-    private record MutationSubrule<T>(List<String> argumentMatchers, Mutation<T> mutation) {
-
-        public MutationSubrule<T> tail() {
-            return new MutationSubrule<>(MutationFactory.tail(argumentMatchers), mutation);
-        }
     }
 }

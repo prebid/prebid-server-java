@@ -33,15 +33,15 @@ public class Application {
         final StringExtractor<Test> nameExtractor = StringExtractor.of(test -> test.name);
 
         final Mutation<Test> mutation = new MutationFactory<Test>().buildMutation(
-                List.of(isTestExtractor, isTestExtractor, versionExtractor, nameExtractor),
+                List.of(isTestExtractor, versionExtractor, nameExtractor),
                 Map.of(
-                        "true|true|123|hello", test -> test.toBuilder().name("1").build(),
-                        "true|true|5|test", test -> test.toBuilder().name("2").build(),
-                        "false|false|123|bruh", test -> test.toBuilder().name("3").build(),
-                        "true|false|1|hello", test -> test.toBuilder().name("4").build(),
-                        "true|true|-2|aloha", test -> test.toBuilder().name("5").build(),
-                        "true|false|-2|hello", test -> test.toBuilder().name("6").build(),
-                        "true|true|123|last", test -> test.toBuilder().name("7").build()));
+                        "false|12|hello", test -> test.toBuilder().name("1").build(),
+                        "true|5|test", test -> test.toBuilder().name("2").build(),
+                        "false|12|*", test -> test.toBuilder().name("3").build(),
+                        "true|1|hello", test -> test.toBuilder().name("4").build(),
+                        "true|-2|aloha", test -> test.toBuilder().name("5").build(),
+                        "true|-2|hello", test -> test.toBuilder().name("6").build(),
+                        "false|*|*", test -> test.toBuilder().name("7").build()));
 
         final Test mutated = mutation.mutate(new Test("bruh", 123, false));
         System.out.println(mutated);
