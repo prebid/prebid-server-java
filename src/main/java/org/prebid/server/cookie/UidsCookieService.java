@@ -42,12 +42,6 @@ public class UidsCookieService {
     private static final int MIN_NUMBER_OF_UID_COOKIES = 1;
     private static final int MAX_NUMBER_OF_UID_COOKIES = 30;
 
-    // {"tempUIDs":{},"optout":false}
-    private static final int TEMP_UIDS_BASE64_BYTES = "eyJ0ZW1wVUlEcyI6e30sIm9wdG91dCI6ZmFsc2V9".length();
-    // "":{"uid":"","expires":"1970-01-01T00:00:00.000000000Z"},
-    private static final int UID_BASE64_BYTES = ("IiI6eyJ1aWQiOiIiLCJleHBpcmVzI"
-            + "joiMTk3MC0wMS0wMVQwMDowMDowMC4wMDAwMDAwMDBaIn0s").length();
-
     private final String optOutCookieName;
     private final String optOutCookieValue;
     private final String hostCookieFamily;
@@ -287,22 +281,19 @@ public class UidsCookieService {
         final Iterator<String> cookieFamilies = cookieFamilyNamesByDescPriorityAndExpiration(uidsCookie);
         final List<Cookie> splitCookies = new ArrayList<>();
 
-        final int staticCookieDataBytes = makeCookie(COOKIE_NAME, StringUtils.EMPTY, ttlSeconds).encode().length();
-
+        final int cookieSchemaSize = CookieSize.schemaSize(makeCookie(COOKIE_NAME, StringUtils.EMPTY, ttlSeconds));
         String nextCookieFamily = null;
+        for (int i = 0; i < numberOfUidCookies; i++) {
+            final int digits = i < 10 ? Integer.signum(i) : 2;
+            final CookieSize cookieSize = new CookieSize(cookieSchemaSize + digits, maxCookieSizeBytes);
 
-        for (int uidsIndex = 0; uidsIndex < numberOfUidCookies; uidsIndex++) {
-            int actualCookieSize = staticCookieDataBytes + TEMP_UIDS_BASE64_BYTES;
             final Map<String, UidWithExpiry> tempUids = new HashMap<>();
-
             while (nextCookieFamily != null || cookieFamilies.hasNext()) {
                 nextCookieFamily = nextCookieFamily == null ? cookieFamilies.next() : nextCookieFamily;
-
                 final UidWithExpiry uidWithExpiry = uids.get(nextCookieFamily);
-                actualCookieSize += UID_BASE64_BYTES
-                        + calculateCookieSize(uidsIndex, nextCookieFamily, uidWithExpiry.getUid());
 
-                if (maxCookieSizeBytes > 0 && actualCookieSize > maxCookieSizeBytes) {
+                cookieSize.addUid(nextCookieFamily, uidWithExpiry.getUid());
+                if (!cookieSize.isValid()) {
                     break;
                 }
 
@@ -310,7 +301,7 @@ public class UidsCookieService {
                 nextCookieFamily = null;
             }
 
-            final String uidsName = uidsIndex == 0 ? COOKIE_NAME : COOKIE_NAME_FORMAT.formatted(uidsIndex + 1);
+            final String uidsName = i == 0 ? COOKIE_NAME : COOKIE_NAME_FORMAT.formatted(i + 1);
 
             if (tempUids.isEmpty()) {
                 splitCookies.add(expiredCookie(uidsName));
@@ -328,14 +319,6 @@ public class UidsCookieService {
         cookieFamilies.forEachRemaining(this::updateSyncSizeMetrics);
 
         return splitCookies;
-    }
-
-    private static int calculateCookieSize(int uidsIndex, String cookieFamily, String uid) {
-        final int approximateBase64CookieFamilySize = (int) Math.ceil(cookieFamily.length() * 1.33);
-        final int approximateBase64UidSize = (int) Math.ceil(uid.length() * 1.33);
-        final int uidsIndexSize = uidsIndex == 0 ? 0 : 2;
-
-        return uidsIndexSize + approximateBase64CookieFamilySize + approximateBase64UidSize;
     }
 
     private Iterator<String> cookieFamilyNamesByDescPriorityAndExpiration(UidsCookie uidsCookie) {
