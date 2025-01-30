@@ -872,7 +872,7 @@ class BidderParamsSpec extends BaseSpec {
             prebid.bidder.generic = null
             prebid.adUnitCode = PBSUtils.randomString
             generic = new Generic()
-            auctionEnvironment = PBSUtils.getRandomEnum(AuctionEnvironment)
+            auctionEnvironment = PBSUtils.getRandomEnum(AuctionEnvironment, [AuctionEnvironment.SERVER_ORCHESTRATED, AuctionEnvironment.UNKNOWN])
             all = PBSUtils.randomNumber
             context = new ImpExtContext(data: new ImpExtContextData())
             data = new ImpExtContextData(pbAdSlot: PBSUtils.randomString)
@@ -1025,8 +1025,8 @@ class BidderParamsSpec extends BaseSpec {
 
     def "PBS should send request to bidder when adapters.bidder.aliases.bidder.meta-info.currency-accepted not specified"() {
         given: "PBS with adapter configuration"
-        def pbsConfig = ["adapters.generic.aliases.alias.enabled": "true",
-                         "adapters.generic.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString(),
+        def pbsConfig = ["adapters.generic.aliases.alias.enabled"                    : "true",
+                         "adapters.generic.aliases.alias.endpoint"                   : "$networkServiceContainer.rootUri/auction".toString(),
                          "adapters.generic.aliases.alias.meta-info.currency-accepted": ""]
         def pbsService = pbsServiceFactory.getService(pbsConfig)
 
@@ -1144,8 +1144,8 @@ class BidderParamsSpec extends BaseSpec {
 
     def "PBS should send request to bidder when adapters.bidder.aliases.bidder.meta-info.currency-accepted intersect with requested currency"() {
         given: "PBS with adapter configuration"
-        def pbsConfig = ["adapters.generic.aliases.alias.enabled": "true",
-                         "adapters.generic.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString(),
+        def pbsConfig = ["adapters.generic.aliases.alias.enabled"                    : "true",
+                         "adapters.generic.aliases.alias.endpoint"                   : "$networkServiceContainer.rootUri/auction".toString(),
                          "adapters.generic.aliases.alias.meta-info.currency-accepted": "${USD},${EUR}".toString()]
         def pbsService = pbsServiceFactory.getService(pbsConfig)
 
@@ -1188,8 +1188,8 @@ class BidderParamsSpec extends BaseSpec {
 
     def "PBS shouldn't send request to bidder and emit warning when adapters.bidder.aliases.bidder.meta-info.currency-accepted not intersect with requested currency"() {
         given: "PBS with adapter configuration"
-        def pbsConfig = ["adapters.generic.aliases.alias.enabled": "true",
-                         "adapters.generic.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString(),
+        def pbsConfig = ["adapters.generic.aliases.alias.enabled"                    : "true",
+                         "adapters.generic.aliases.alias.endpoint"                   : "$networkServiceContainer.rootUri/auction".toString(),
                          "adapters.generic.aliases.alias.meta-info.currency-accepted": "${JPY},${CHF}".toString()]
         def pbsService = pbsServiceFactory.getService(pbsConfig)
 
@@ -1281,8 +1281,8 @@ class BidderParamsSpec extends BaseSpec {
 
     def "PBS shouldn't change auction environment in imp.ext.igs when it is present in both imp.ext and imp.ext.igs"() {
         given: "Default bid request with populated imp.ext"
-        def extAuctionEnv = PBSUtils.getRandomEnum(AuctionEnvironment)
-        def extIgsAuctionEnv = PBSUtils.getRandomEnum(AuctionEnvironment)
+        def extAuctionEnv = PBSUtils.getRandomEnum(AuctionEnvironment, [SERVER_ORCHESTRATED, UNKNOWN])
+        def extIgsAuctionEnv = PBSUtils.getRandomEnum(AuctionEnvironment, [SERVER_ORCHESTRATED, UNKNOWN])
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].ext.tap {
                 auctionEnvironment = extAuctionEnv

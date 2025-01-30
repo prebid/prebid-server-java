@@ -26,6 +26,7 @@ import java.time.Instant
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX_ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.WILDCARD
+import static org.prebid.server.functional.model.request.auction.AuctionEnvironment.*
 import static org.prebid.server.functional.model.request.auction.AuctionEnvironment.DEVICE_ORCHESTRATED
 import static org.prebid.server.functional.model.request.auction.AuctionEnvironment.NOT_SUPPORTED
 import static org.prebid.server.functional.model.request.auction.PaaFormat.IAB
@@ -546,8 +547,8 @@ class OpenxSpec extends BaseSpec {
 
     def "PBS shouldn't change auction environment in imp.ext.igs and not emit a warning when it is present in both imp.ext and imp.ext.igs"() {
         given: "Default bid request with populated imp.ext"
-        def extAuctionEnv = PBSUtils.getRandomEnum(AuctionEnvironment)
-        def extIgsAuctionEnv = PBSUtils.getRandomEnum(AuctionEnvironment)
+        def extAuctionEnv = PBSUtils.getRandomEnum(AuctionEnvironment, [SERVER_ORCHESTRATED, UNKNOWN])
+        def extIgsAuctionEnv = PBSUtils.getRandomEnum(AuctionEnvironment, [SERVER_ORCHESTRATED, UNKNOWN])
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].ext.prebid.bidder.openx = Openx.defaultOpenx
             imp[0].ext.prebid.bidder.generic = null
