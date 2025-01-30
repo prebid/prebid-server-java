@@ -544,7 +544,7 @@ class OpenxSpec extends BaseSpec {
         ORIGINAL  | []                                 | []
     }
 
-    def "PBS shouldn't change auction environment in imp.ext.igs and emit a warning when it is present in both imp.ext and imp.ext.igs"() {
+    def "PBS shouldn't change auction environment in imp.ext.igs and not emit a warning when it is present in both imp.ext and imp.ext.igs"() {
         given: "Default bid request with populated imp.ext"
         def extAuctionEnv = PBSUtils.getRandomEnum(AuctionEnvironment)
         def extIgsAuctionEnv = PBSUtils.getRandomEnum(AuctionEnvironment)
