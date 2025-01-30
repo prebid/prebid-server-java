@@ -5,7 +5,9 @@ import org.prebid.server.functional.model.bidder.Openx
 import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.db.Account
+import org.prebid.server.functional.model.request.auction.AuctionEnvironment
 import org.prebid.server.functional.model.request.auction.BidRequest
+import org.prebid.server.functional.model.request.auction.InterestGroupAuctionSupport
 import org.prebid.server.functional.model.request.auction.PaaFormat
 import org.prebid.server.functional.model.response.auction.InterestGroupAuctionBuyer
 import org.prebid.server.functional.model.response.auction.InterestGroupAuctionBuyerExt
@@ -40,6 +42,13 @@ class OpenxSpec extends BaseSpec {
 
     @Shared
     PrebidServerService pbsService = pbsServiceFactory.getService(OPENX_CONFIG)
+
+    @Override
+    def cleanupSpec() {
+        pbsServiceFactory.removeContainer(OPENX_CONFIG)
+        pbsServiceFactory.removeContainer(OPENX_CONFIG + OPENX_ALIAS_CONFIG)
+        pbsServiceFactory.removeContainer(OPENX_ALIAS_CONFIG)
+    }
 
     def "PBS should populate fledge config by default when bid response with fledge"() {
         given: "Default basic BidRequest with ae and openx bidder"
@@ -533,5 +542,32 @@ class OpenxSpec extends BaseSpec {
         paaFormat | interestGroupAuctionSeller         | interestGroupAuctionBuyer
         IAB       | [new InterestGroupAuctionSeller()] | [new InterestGroupAuctionBuyer()]
         ORIGINAL  | []                                 | []
+    }
+
+    def "PBS shouldn't change auction environment in imp.ext.igs and emit a warning when it is present in both imp.ext and imp.ext.igs"() {
+        given: "Default bid request with populated imp.ext"
+        def extAuctionEnv = PBSUtils.getRandomEnum(AuctionEnvironment)
+        def extIgsAuctionEnv = PBSUtils.getRandomEnum(AuctionEnvironment)
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.prebid.bidder.openx = Openx.defaultOpenx
+            imp[0].ext.tap {
+                auctionEnvironment = extAuctionEnv
+                interestGroupAuctionSupports = new InterestGroupAuctionSupport(auctionEnvironment: extIgsAuctionEnv)
+            }
+        }
+
+        when: "PBS processes auction request"
+        def bidResponse = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should imp[].{ae/ext.igs.ae} same value as requested"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.imp[0].ext.auctionEnvironment == extAuctionEnv
+        assert bidderRequest.imp[0].ext.interestGroupAuctionSupports.auctionEnvironment == extIgsAuctionEnv
+
+        and: "Response shouldn't contain errors"
+        assert !bidResponse.ext.errors
+
+        and: "Response shouldn't contain warnings"
+        assert !bidResponse.ext.warnings
     }
 }

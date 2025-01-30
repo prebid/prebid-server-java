@@ -1242,7 +1242,7 @@ class BidderParamsSpec extends BaseSpec {
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].ext.tap {
                 auctionEnvironment = requestedAuctionEnvironment
-                interestGroupAuctionSupports = [new InterestGroupAuctionSupport(auctionEnvironment: null)]
+                interestGroupAuctionSupports = new InterestGroupAuctionSupport(auctionEnvironment: null)
             }
         }
 
@@ -1252,7 +1252,7 @@ class BidderParamsSpec extends BaseSpec {
         then: "Bidder request should imp[].{ae/ext.igs.ae} same value as requested"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp[0].ext.auctionEnvironment == requestedAuctionEnvironment
-        assert bidderRequest.imp[0].ext.interestGroupAuctionSupports[0].auctionEnvironment == requestedAuctionEnvironment
+        assert bidderRequest.imp[0].ext.interestGroupAuctionSupports.auctionEnvironment == requestedAuctionEnvironment
 
         where:
         requestedAuctionEnvironment << [NOT_SUPPORTED, DEVICE_ORCHESTRATED]
@@ -1263,7 +1263,7 @@ class BidderParamsSpec extends BaseSpec {
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].ext.tap {
                 auctionEnvironment = requestedAuctionEnvironment
-                interestGroupAuctionSupports = [new InterestGroupAuctionSupport(auctionEnvironment: null)]
+                interestGroupAuctionSupports = new InterestGroupAuctionSupport(auctionEnvironment: null)
             }
         }
 
@@ -1273,7 +1273,7 @@ class BidderParamsSpec extends BaseSpec {
         then: "Bidder request should imp[].ae same value as requested"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp[0].ext.auctionEnvironment == requestedAuctionEnvironment
-        assert !bidderRequest.imp[0].ext.interestGroupAuctionSupports[0].auctionEnvironment
+        assert !bidderRequest.imp[0].ext.interestGroupAuctionSupports.auctionEnvironment
 
         where:
         requestedAuctionEnvironment << [SERVER_ORCHESTRATED, UNKNOWN]
@@ -1286,7 +1286,7 @@ class BidderParamsSpec extends BaseSpec {
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].ext.tap {
                 auctionEnvironment = extAuctionEnv
-                interestGroupAuctionSupports = [new InterestGroupAuctionSupport(auctionEnvironment: extIgsAuctionEnv)]
+                interestGroupAuctionSupports = new InterestGroupAuctionSupport(auctionEnvironment: extIgsAuctionEnv)
             }
         }
 
@@ -1296,6 +1296,6 @@ class BidderParamsSpec extends BaseSpec {
         then: "Bidder request should imp[].{ae/ext.igs.ae} same value as requested"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp[0].ext.auctionEnvironment == extAuctionEnv
-        assert bidderRequest.imp[0].ext.interestGroupAuctionSupports[0].auctionEnvironment == extIgsAuctionEnv
+        assert bidderRequest.imp[0].ext.interestGroupAuctionSupports.auctionEnvironment == extIgsAuctionEnv
     }
 }
