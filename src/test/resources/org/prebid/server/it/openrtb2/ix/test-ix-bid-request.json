@@ -16,11 +16,9 @@
       },
       "ext": {
         "ae": 1,
-        "igs": [
-          {
-            "ae": 1
-          }
-        ],
+        "igs": {
+          "ae": 1
+        },
         "tid": "${json-unit.any-string}",
         "bidder": {
           "siteId": "10002"

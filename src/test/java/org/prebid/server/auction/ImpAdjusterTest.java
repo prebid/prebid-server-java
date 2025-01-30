@@ -92,7 +92,7 @@ public class ImpAdjusterTest extends VertxTest {
         final Imp result = target.adjust(givenImp, "someBidder", bidderAliases, debugMessages);
 
         // then
-        assertThat(result.getExt().get("igs").get(0).get("ae")).isEqualTo(IntNode.valueOf(0));
+        assertThat(result.getExt().get("igs").get("ae")).isEqualTo(IntNode.valueOf(0));
         assertThat(debugMessages).isEmpty();
     }
 
@@ -110,7 +110,7 @@ public class ImpAdjusterTest extends VertxTest {
         final Imp result = target.adjust(givenImp, "someBidder", bidderAliases, debugMessages);
 
         // then
-        assertThat(result.getExt().get("igs").get(0).get("ae")).isEqualTo(IntNode.valueOf(1));
+        assertThat(result.getExt().get("igs").get("ae")).isEqualTo(IntNode.valueOf(1));
         assertThat(debugMessages).isEmpty();
     }
 
@@ -137,7 +137,7 @@ public class ImpAdjusterTest extends VertxTest {
         // given
         final ObjectNode ext = mapper.createObjectNode();
         ext.set("ae", IntNode.valueOf(0));
-        ext.set("igs", mapper.createArrayNode().add(mapper.createObjectNode().set("ae", IntNode.valueOf(123))));
+        ext.set("igs", mapper.createObjectNode().set("ae", IntNode.valueOf(123)));
 
         final Imp givenImp = Imp.builder().ext(ext).build();
 
@@ -147,7 +147,7 @@ public class ImpAdjusterTest extends VertxTest {
         final Imp result = target.adjust(givenImp, "someBidder", bidderAliases, debugMessages);
 
         // then
-        assertThat(result.getExt().get("igs").get(0).get("ae")).isEqualTo(IntNode.valueOf(123));
+        assertThat(result.getExt().get("igs").get("ae")).isEqualTo(IntNode.valueOf(123));
         assertThat(debugMessages).isEmpty();
     }
 
