@@ -550,6 +550,7 @@ class OpenxSpec extends BaseSpec {
         def extIgsAuctionEnv = PBSUtils.getRandomEnum(AuctionEnvironment)
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].ext.prebid.bidder.openx = Openx.defaultOpenx
+            imp[0].ext.prebid.bidder.generic = null
             imp[0].ext.tap {
                 auctionEnvironment = extAuctionEnv
                 interestGroupAuctionSupports = new InterestGroupAuctionSupport(auctionEnvironment: extIgsAuctionEnv)
