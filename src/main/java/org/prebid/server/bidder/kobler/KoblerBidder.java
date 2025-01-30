@@ -1,28 +1,30 @@
 package org.prebid.server.bidder.kobler;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
-import org.prebid.server.bidder.model.Price;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.EncodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.kobler.ExtImpKobler;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
-import org.prebid.server.util.BidderUtil;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
@@ -37,6 +39,7 @@ public class KoblerBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpKobler>> KOBLER_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
+    private static final String EXT_PREBID = "prebid";
     private static final String DEFAULT_BID_CURRENCY = "USD";
     private static final String DEV_ENDPOINT = "https://bid-service.dev.essrtb.com/bid/prebid_server_rtb_call";
 
@@ -56,71 +59,90 @@ public class KoblerBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         final List<BidderError> errors = new ArrayList<>();
-        final List<HttpRequest<BidRequest>> requests = new ArrayList<>();
-
         boolean testMode = false;
+        final List<Imp> modifiedImps = new ArrayList<>();
 
-        for (Imp imp : bidRequest.getImp()) {
+        final List<String> currencies = bidRequest.getCur() != null
+                ? new ArrayList<>(bidRequest.getCur())
+                : new ArrayList<>();
+        if (!currencies.contains(DEFAULT_BID_CURRENCY)) {
+            currencies.add(DEFAULT_BID_CURRENCY);
+        }
+
+        BidRequest modifiedRequest = bidRequest.toBuilder().cur(currencies).build();
+
+        for (Imp imp : modifiedRequest.getImp()) {
             try {
-                final ExtImpKobler impExt = parseImpExt(imp);
+                final Imp processedImp = processImp(modifiedRequest, imp, errors);
+                modifiedImps.add(processedImp);
 
-                if (bidRequest.getImp().indexOf(imp) == 0) {
-                    testMode = impExt.getTest();
+                if (modifiedImps.size() == 1) {
+                    testMode = extractTestMode(processedImp);
                 }
-
-                final Imp modifiedImp = modifyImp(imp, impExt, bidRequest);
-                requests.add(makeHttpRequest(bidRequest, modifiedImp, testMode));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
         }
 
-        return Result.of(requests, errors);
-    }
-
-    private ExtImpKobler parseImpExt(Imp imp) {
-        try {
-            return mapper.mapper().convertValue(imp.getExt(), KOBLER_EXT_TYPE_REFERENCE).getBidder();
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage());
+        if (modifiedImps.isEmpty()) {
+            errors.add(BidderError.badInput("No valid impressions"));
+            return Result.withErrors(errors);
         }
-    }
 
-    private Imp modifyImp(Imp imp, ExtImpKobler extImpKobler, BidRequest bidRequest) {
-        final Price resolvedBidFloor = resolveBidFloor(imp, bidRequest);
-
-        return imp.toBuilder()
-                .bidfloor(resolvedBidFloor.getValue())
-                .bidfloorcur(resolvedBidFloor.getCurrency())
-                .ext(mapper.mapper().valueToTree(extImpKobler))
-                .build();
-    }
-
-    private Price resolveBidFloor(Imp imp, BidRequest bidRequest) {
-        final Price initialBidFloorPrice = Price.of(imp.getBidfloorcur(), imp.getBidfloor());
-        return BidderUtil.shouldConvertBidFloor(initialBidFloorPrice, DEFAULT_BID_CURRENCY)
-                ? convertBidFloor(initialBidFloorPrice, bidRequest)
-                : initialBidFloorPrice;
-    }
-
-    private Price convertBidFloor(Price bidFloorPrice, BidRequest bidRequest) {
-        final BigDecimal convertedPrice = currencyConversionService.convertCurrency(
-                bidFloorPrice.getValue(),
-                bidRequest,
-                bidFloorPrice.getCurrency(),
-                DEFAULT_BID_CURRENCY);
-
-        return Price.of(DEFAULT_BID_CURRENCY, convertedPrice);
-    }
-
-    private HttpRequest<BidRequest> makeHttpRequest(BidRequest bidRequest, Imp imp, boolean testMode) {
-        final BidRequest modifiedBidRequest = bidRequest.toBuilder()
-                .imp(Collections.singletonList(imp))
-                .build();
+        modifiedRequest = modifiedRequest.toBuilder().imp(modifiedImps).build();
 
         final String endpoint = testMode ? DEV_ENDPOINT : endpointUrl;
 
-        return BidderUtil.defaultRequest(modifiedBidRequest, endpoint, mapper);
+        try {
+            return Result.of(Collections.singletonList(
+                    HttpRequest.<BidRequest>builder()
+                            .method(HttpMethod.POST)
+                            .uri(endpoint)
+                            .headers(HttpUtil.headers())
+                            .body(mapper.encodeToBytes(modifiedRequest))
+                            .payload(modifiedRequest)
+                            .build()
+            ), errors);
+        } catch (EncodeException e) {
+            errors.add(BidderError.badInput("Failed to encode request: " + e.getMessage()));
+            return Result.withErrors(errors);
+        }
+    }
+
+    private Imp processImp(BidRequest bidRequest, Imp imp, List<BidderError> errors) {
+        if (imp.getBidfloor() != null
+                && imp.getBidfloor().compareTo(BigDecimal.ZERO) > 0
+                && imp.getBidfloorcur() != null) {
+            final String bidFloorCur = imp.getBidfloorcur().toUpperCase();
+            if (!DEFAULT_BID_CURRENCY.equals(bidFloorCur)) {
+                try {
+                    final BigDecimal convertedPrice = currencyConversionService.convertCurrency(
+                            imp.getBidfloor(),
+                            bidRequest,
+                            bidFloorCur,
+                            DEFAULT_BID_CURRENCY
+                    );
+                    return imp.toBuilder()
+                            .bidfloor(convertedPrice)
+                            .bidfloorcur(DEFAULT_BID_CURRENCY)
+                            .build();
+                } catch (PreBidException e) {
+                    errors.add(BidderError.badInput(e.getMessage()));
+                }
+            }
+        }
+        return imp;
+    }
+
+    public boolean extractTestMode(Imp imp) {
+        try {
+            final ExtPrebid<?, ExtImpKobler> extPrebid = mapper.mapper().convertValue(imp.getExt(),
+                    KOBLER_EXT_TYPE_REFERENCE);
+            final ExtImpKobler extImpKobler = extPrebid != null ? extPrebid.getBidder() : null;
+            return extImpKobler != null && Boolean.TRUE.equals(extImpKobler.getTest());
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
     }
 
     @Override
@@ -153,12 +175,28 @@ public class KoblerBidder implements Bidder<BidRequest> {
     }
 
     private BidType getBidType(Bid bid) {
-        final Integer markupType = ObjectUtils.defaultIfNull(bid.getMtype(), 0);
+        if (bid.getExt() == null) {
+            return BidType.banner;
+        }
 
-        return switch (markupType) {
-            case 1 -> BidType.banner;
-            default -> throw new PreBidException(
-                    "could not define media type for impression: " + bid.getImpid());
-        };
+        final ObjectNode prebidNode = (ObjectNode) bid.getExt().get(EXT_PREBID);
+        if (prebidNode == null) {
+            return BidType.banner;
+        }
+
+        final ExtBidPrebid extBidPrebid = parseExtBidPrebid(prebidNode);
+        if (extBidPrebid == null || extBidPrebid.getType() == null) {
+            return BidType.banner;
+        }
+
+        return extBidPrebid.getType(); // jeśli udało się sparsować
+    }
+
+    private ExtBidPrebid parseExtBidPrebid(ObjectNode prebid) {
+        try {
+            return mapper.mapper().treeToValue(prebid, ExtBidPrebid.class);
+        } catch (JsonProcessingException e) {
+            return null;
+        }
     }
 }
