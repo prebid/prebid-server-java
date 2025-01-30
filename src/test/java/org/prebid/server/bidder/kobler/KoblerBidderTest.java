@@ -63,7 +63,7 @@ public class KoblerBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorIfNoValidImps() {
         // Given
-        BidRequest bidRequest = BidRequest.builder()
+        final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .bidfloor(BigDecimal.ONE)
                         .bidfloorcur("EUR")
@@ -75,7 +75,7 @@ public class KoblerBidderTest extends VertxTest {
                 .thenThrow(new PreBidException("Currency conversion failed"));
 
         // When
-        Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // Then
         assertThat(result.getErrors()).hasSize(1)
@@ -85,10 +85,10 @@ public class KoblerBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorIfNoImps() {
         // Given
-        BidRequest bidRequest = BidRequest.builder().imp(emptyList()).build();
+        final BidRequest bidRequest = BidRequest.builder().imp(emptyList()).build();
 
         // When
-        Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // Then
         assertThat(result.getErrors()).hasSize(1)
@@ -98,7 +98,7 @@ public class KoblerBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldConvertBidFloorCurrency() {
         // Given
-        BidRequest bidRequest = givenBidRequest(imp -> imp
+        final BidRequest bidRequest = givenBidRequest(imp -> imp
                 .bidfloor(BigDecimal.ONE)
                 .bidfloorcur("EUR"));
 
@@ -106,7 +106,7 @@ public class KoblerBidderTest extends VertxTest {
                 .thenReturn(BigDecimal.TEN);
 
         // When
-        Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // Then
         assertThat(result.getErrors()).isEmpty();
@@ -118,11 +118,11 @@ public class KoblerBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldUseDevEndpointWhenTestModeEnabled() {
         // Given
-        BidRequest bidRequest = givenBidRequest(imp -> imp
+        final BidRequest bidRequest = givenBidRequest(imp -> imp
                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpKobler.of(true)))));
 
         // When
-        Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // Then
         assertThat(result.getValue()).hasSize(1);
@@ -132,11 +132,11 @@ public class KoblerBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldAddUsdToCurrenciesIfMissing() {
         // Given
-        BidRequest bidRequest = givenBidRequest(identity())
+        final BidRequest bidRequest = givenBidRequest(identity())
                 .toBuilder().cur(singletonList("EUR")).build();
 
         // When
-        Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // Then
         assertThat(result.getValue().get(0).getPayload().getCur())
@@ -146,10 +146,10 @@ public class KoblerBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyIsInvalid() {
         // Given
-        BidderCall<BidRequest> httpCall = givenHttpCall();
+        final BidderCall<BidRequest> httpCall = givenHttpCall();
 
         // When
-        Result<List<BidderBid>> result = target.makeBids(httpCall, BidRequest.builder().build());
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, BidRequest.builder().build());
 
         // Then
         assertThat(result.getErrors()).hasSize(1)
@@ -162,10 +162,10 @@ public class KoblerBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBidsWithCorrectTypes() throws JsonProcessingException {
         // Given
-        ObjectNode bidExt = mapper.createObjectNode()
+        final ObjectNode bidExt = mapper.createObjectNode()
                 .set("prebid", mapper.createObjectNode().put("type", "banner"));
 
-        BidderCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidResponse.builder()
                         .cur("USD")
                         .seatbid(singletonList(SeatBid.builder()
@@ -177,7 +177,7 @@ public class KoblerBidderTest extends VertxTest {
                         .build());
 
         // When
-        Result<List<BidderBid>> result = target.makeBids(httpCall, BidRequest.builder().build());
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, BidRequest.builder().build());
 
         // Then
         assertThat(result.getErrors()).isEmpty();
@@ -189,12 +189,12 @@ public class KoblerBidderTest extends VertxTest {
     @Test
     public void extractTestModeShouldReturnTrueWhenImpExtHasTestTrue() {
         // Given
-        Imp imp = Imp.builder()
+        final Imp imp = Imp.builder()
                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpKobler.of(true))))
                 .build();
 
         // When
-        boolean testMode = target.extractTestMode(imp);
+        final boolean testMode = target.extractTestMode(imp);
 
         // Then
         assertThat(testMode).isTrue();
