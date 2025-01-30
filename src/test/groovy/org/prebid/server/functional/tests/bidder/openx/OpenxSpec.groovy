@@ -48,7 +48,6 @@ class OpenxSpec extends BaseSpec {
     def cleanupSpec() {
         pbsServiceFactory.removeContainer(OPENX_CONFIG)
         pbsServiceFactory.removeContainer(OPENX_CONFIG + OPENX_ALIAS_CONFIG)
-        pbsServiceFactory.removeContainer(OPENX_ALIAS_CONFIG)
     }
 
     def "PBS should populate fledge config by default when bid response with fledge"() {
