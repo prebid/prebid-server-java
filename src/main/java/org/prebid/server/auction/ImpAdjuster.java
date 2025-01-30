@@ -1,13 +1,11 @@
 package org.prebid.server.auction;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Imp;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
-import org.prebid.server.util.StreamUtil;
 import org.prebid.server.validation.ImpValidator;
 
 import java.util.Iterator;
@@ -81,16 +79,14 @@ public class ImpAdjuster {
 
         final boolean extIgsAePresent = Optional.ofNullable(ext)
                 .map(extNode -> extNode.get(EXT_IGS))
-                .filter(JsonNode::isArray)
-                .stream()
-                .flatMap(extNode -> StreamUtil.asStream(extNode.spliterator()))
-                .filter(Objects::nonNull)
-                .anyMatch(igsElementNode -> igsElementNode.has(EXT_AE));
+                .map(igsNode -> igsNode.get(EXT_AE))
+                .isPresent();
 
         if (!extIgsAePresent && (extAe == 0 || extAe == 1)) {
-            final ArrayNode extIgs = jacksonMapper.mapper().createArrayNode();
-            extIgs.add(jacksonMapper.mapper().createObjectNode().set(EXT_AE, IntNode.valueOf(extAe)));
-            ext.set(EXT_IGS, extIgs);
+            final ObjectNode igsNode = jacksonMapper.mapper().createObjectNode()
+                    .set(EXT_AE, IntNode.valueOf(extAe));
+
+            ext.set(EXT_IGS, igsNode);
         }
     }
 
