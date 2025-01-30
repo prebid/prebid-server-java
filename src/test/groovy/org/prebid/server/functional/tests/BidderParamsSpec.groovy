@@ -872,7 +872,7 @@ class BidderParamsSpec extends BaseSpec {
             prebid.bidder.generic = null
             prebid.adUnitCode = PBSUtils.randomString
             generic = new Generic()
-            auctionEnvironment = PBSUtils.getRandomEnum(AuctionEnvironment)
+            auctionEnvironment = PBSUtils.getRandomEnum(AuctionEnvironment, [AuctionEnvironment.SERVER_ORCHESTRATED, AuctionEnvironment.UNKNOWN])
             all = PBSUtils.randomNumber
             context = new ImpExtContext(data: new ImpExtContextData())
             data = new ImpExtContextData(pbAdSlot: PBSUtils.randomString)
@@ -1025,8 +1025,8 @@ class BidderParamsSpec extends BaseSpec {
 
     def "PBS should send request to bidder when adapters.bidder.aliases.bidder.meta-info.currency-accepted not specified"() {
         given: "PBS with adapter configuration"
-        def pbsConfig = ["adapters.generic.aliases.alias.enabled": "true",
-                         "adapters.generic.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString(),
+        def pbsConfig = ["adapters.generic.aliases.alias.enabled"                    : "true",
+                         "adapters.generic.aliases.alias.endpoint"                   : "$networkServiceContainer.rootUri/auction".toString(),
                          "adapters.generic.aliases.alias.meta-info.currency-accepted": ""]
         def pbsService = pbsServiceFactory.getService(pbsConfig)
 
@@ -1144,8 +1144,8 @@ class BidderParamsSpec extends BaseSpec {
 
     def "PBS should send request to bidder when adapters.bidder.aliases.bidder.meta-info.currency-accepted intersect with requested currency"() {
         given: "PBS with adapter configuration"
-        def pbsConfig = ["adapters.generic.aliases.alias.enabled": "true",
-                         "adapters.generic.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString(),
+        def pbsConfig = ["adapters.generic.aliases.alias.enabled"                    : "true",
+                         "adapters.generic.aliases.alias.endpoint"                   : "$networkServiceContainer.rootUri/auction".toString(),
                          "adapters.generic.aliases.alias.meta-info.currency-accepted": "${USD},${EUR}".toString()]
         def pbsService = pbsServiceFactory.getService(pbsConfig)
 
@@ -1188,8 +1188,8 @@ class BidderParamsSpec extends BaseSpec {
 
     def "PBS shouldn't send request to bidder and emit warning when adapters.bidder.aliases.bidder.meta-info.currency-accepted not intersect with requested currency"() {
         given: "PBS with adapter configuration"
-        def pbsConfig = ["adapters.generic.aliases.alias.enabled": "true",
-                         "adapters.generic.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString(),
+        def pbsConfig = ["adapters.generic.aliases.alias.enabled"                    : "true",
+                         "adapters.generic.aliases.alias.endpoint"                   : "$networkServiceContainer.rootUri/auction".toString(),
                          "adapters.generic.aliases.alias.meta-info.currency-accepted": "${JPY},${CHF}".toString()]
         def pbsService = pbsServiceFactory.getService(pbsConfig)
 
@@ -1242,7 +1242,7 @@ class BidderParamsSpec extends BaseSpec {
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].ext.tap {
                 auctionEnvironment = requestedAuctionEnvironment
-                interestGroupAuctionSupports = [new InterestGroupAuctionSupport(auctionEnvironment: null)]
+                interestGroupAuctionSupports = new InterestGroupAuctionSupport(auctionEnvironment: null)
             }
         }
 
@@ -1252,7 +1252,7 @@ class BidderParamsSpec extends BaseSpec {
         then: "Bidder request should imp[].{ae/ext.igs.ae} same value as requested"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp[0].ext.auctionEnvironment == requestedAuctionEnvironment
-        assert bidderRequest.imp[0].ext.interestGroupAuctionSupports[0].auctionEnvironment == requestedAuctionEnvironment
+        assert bidderRequest.imp[0].ext.interestGroupAuctionSupports.auctionEnvironment == requestedAuctionEnvironment
 
         where:
         requestedAuctionEnvironment << [NOT_SUPPORTED, DEVICE_ORCHESTRATED]
@@ -1263,7 +1263,7 @@ class BidderParamsSpec extends BaseSpec {
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].ext.tap {
                 auctionEnvironment = requestedAuctionEnvironment
-                interestGroupAuctionSupports = [new InterestGroupAuctionSupport(auctionEnvironment: null)]
+                interestGroupAuctionSupports = new InterestGroupAuctionSupport(auctionEnvironment: null)
             }
         }
 
@@ -1273,7 +1273,7 @@ class BidderParamsSpec extends BaseSpec {
         then: "Bidder request should imp[].ae same value as requested"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp[0].ext.auctionEnvironment == requestedAuctionEnvironment
-        assert !bidderRequest.imp[0].ext.interestGroupAuctionSupports[0].auctionEnvironment
+        assert !bidderRequest.imp[0].ext.interestGroupAuctionSupports.auctionEnvironment
 
         where:
         requestedAuctionEnvironment << [SERVER_ORCHESTRATED, UNKNOWN]
@@ -1281,12 +1281,12 @@ class BidderParamsSpec extends BaseSpec {
 
     def "PBS shouldn't change auction environment in imp.ext.igs when it is present in both imp.ext and imp.ext.igs"() {
         given: "Default bid request with populated imp.ext"
-        def extAuctionEnv = PBSUtils.getRandomEnum(AuctionEnvironment)
-        def extIgsAuctionEnv = PBSUtils.getRandomEnum(AuctionEnvironment)
+        def extAuctionEnv = PBSUtils.getRandomEnum(AuctionEnvironment, [SERVER_ORCHESTRATED, UNKNOWN])
+        def extIgsAuctionEnv = PBSUtils.getRandomEnum(AuctionEnvironment, [SERVER_ORCHESTRATED, UNKNOWN])
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].ext.tap {
                 auctionEnvironment = extAuctionEnv
-                interestGroupAuctionSupports = [new InterestGroupAuctionSupport(auctionEnvironment: extIgsAuctionEnv)]
+                interestGroupAuctionSupports = new InterestGroupAuctionSupport(auctionEnvironment: extIgsAuctionEnv)
             }
         }
 
@@ -1296,6 +1296,6 @@ class BidderParamsSpec extends BaseSpec {
         then: "Bidder request should imp[].{ae/ext.igs.ae} same value as requested"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp[0].ext.auctionEnvironment == extAuctionEnv
-        assert bidderRequest.imp[0].ext.interestGroupAuctionSupports[0].auctionEnvironment == extIgsAuctionEnv
+        assert bidderRequest.imp[0].ext.interestGroupAuctionSupports.auctionEnvironment == extIgsAuctionEnv
     }
 }
