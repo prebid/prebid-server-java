@@ -105,7 +105,6 @@ public class KoblerBidderTest extends VertxTest {
                 .bidfloorcur("EUR")
                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpKobler.of(false)))));
 
-
         when(currencyConversionService.convertCurrency(any(), any(), any(), any()))
                 .thenReturn(BigDecimal.TEN);
 
