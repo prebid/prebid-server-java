@@ -132,7 +132,7 @@ public class YieldlabBidderTest extends VertxTest {
                 .allSatisfy(uri -> {
                     assertThat(uri).startsWith("https://test.endpoint.com/1?content=json&pvid=true&ts=");
                     assertThat(uri).endsWith("&t=key1%3Dvalue1%26key2%3Dvalue2&sizes=1%3A1%7C1%2C1%3A2%7C2&"
-                            + "ids=buyeruid&yl_rtb_ifa&yl_rtb_devicetype=1&gdpr=1&consent=consent");
+                            + "ids=buyeruid&yl_rtb_ifa&yl_rtb_devicetype=1&gdpr=1&gdpr_consent=consent");
                     final String ts = uri.substring(54, uri.indexOf("&t="));
                     assertThat(Long.parseLong(ts)).isEqualTo(expectedTime);
                 });
@@ -193,7 +193,7 @@ public class YieldlabBidderTest extends VertxTest {
                 .allSatisfy(uri -> {
                     assertThat(uri).startsWith("https://test.endpoint.com/1,2?content=json&pvid=true&ts=");
                     assertThat(uri).endsWith("&t=key1%3Dvalue1&ids=buyeruid&yl_rtb_ifa&"
-                            + "yl_rtb_devicetype=1&gdpr=1&consent=consent");
+                            + "yl_rtb_devicetype=1&gdpr=1&gdpr_consent=consent");
                 });
     }
 
@@ -245,7 +245,7 @@ public class YieldlabBidderTest extends VertxTest {
         final int weekNumber = Calendar.getInstance().get(Calendar.WEEK_OF_YEAR);
         final String adm = """
                 <script src="https://ad.yieldlab.net/d/1/2/728x90?ts=%s\
-                &id=extId&pvid=40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5&ids=buyeruid&gdpr=1&consent=consent">\
+                &id=extId&pvid=40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5&ids=buyeruid&gdpr=1&gdpr_consent=consent">\
                 </script>""".formatted(timestamp);
         final BidderBid expected = BidderBid.of(
                 Bid.builder()

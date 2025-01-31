@@ -209,7 +209,7 @@ public class YieldlabBidder implements Bidder<Void> {
 
         final String consent = getConsentParameter(request.getUser());
         if (StringUtils.isNotBlank(consent)) {
-            uriBuilder.addParameter("consent", consent);
+            uriBuilder.addParameter("gdpr_consent", consent);
         }
 
         extractDsaRequestParamsFromBidRequest(request).forEach(uriBuilder::addParameter);
@@ -500,7 +500,7 @@ public class YieldlabBidder implements Bidder<Void> {
         final String consent = getConsentParameter(bidRequest.getUser());
         if (StringUtils.isNotBlank(gdpr) && StringUtils.isNotBlank(consent)) {
             uriBuilder.addParameter("gdpr", gdpr)
-                    .addParameter("consent", consent);
+                    .addParameter("gdpr_consent", consent);
         }
 
         return AD_SOURCE_URL.formatted(
