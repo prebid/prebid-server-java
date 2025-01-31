@@ -8,13 +8,13 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
+import org.prebid.server.bidder.model.Price;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
@@ -25,6 +25,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.kobler.ExtImpKobler;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
@@ -69,16 +70,19 @@ public class KoblerBidder implements Bidder<BidRequest> {
             currencies.add(DEFAULT_BID_CURRENCY);
         }
 
-        BidRequest modifiedRequest = bidRequest.toBuilder().cur(currencies).build();
-
-        for (Imp imp : modifiedRequest.getImp()) {
+        final List<Imp> imps = bidRequest.getImp();
+        if (!imps.isEmpty()) {
             try {
-                final Imp processedImp = processImp(modifiedRequest, imp, errors);
-                modifiedImps.add(processedImp);
+                testMode = parseImpExt(imps.get(0)).getTest();
+            } catch (PreBidException e) {
+                errors.add(BidderError.badInput(e.getMessage()));
+            }
+        }
 
-                if (modifiedImps.size() == 1) {
-                    testMode = extractTestMode(processedImp);
-                }
+        for (Imp imp : imps) {
+            try {
+                final Imp processedImp = processImp(bidRequest, imp);
+                modifiedImps.add(processedImp);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -89,59 +93,53 @@ public class KoblerBidder implements Bidder<BidRequest> {
             return Result.withErrors(errors);
         }
 
-        modifiedRequest = modifiedRequest.toBuilder().imp(modifiedImps).build();
+        final BidRequest modifiedRequest = bidRequest.toBuilder()
+                .cur(currencies)
+                .imp(modifiedImps)
+                .build();
 
         final String endpoint = testMode ? DEV_ENDPOINT : endpointUrl;
 
         try {
-            return Result.of(Collections.singletonList(
-                    HttpRequest.<BidRequest>builder()
-                            .method(HttpMethod.POST)
-                            .uri(endpoint)
-                            .headers(HttpUtil.headers())
-                            .body(mapper.encodeToBytes(modifiedRequest))
-                            .payload(modifiedRequest)
-                            .build()
-            ), errors);
+            final HttpRequest<BidRequest> httpRequest = BidderUtil.defaultRequest(modifiedRequest, endpoint, mapper);
+            return Result.of(Collections.singletonList(httpRequest), errors);
         } catch (EncodeException e) {
             errors.add(BidderError.badInput("Failed to encode request: " + e.getMessage()));
             return Result.withErrors(errors);
         }
     }
 
-    private Imp processImp(BidRequest bidRequest, Imp imp, List<BidderError> errors) {
-        if (imp.getBidfloor() != null
-                && imp.getBidfloor().compareTo(BigDecimal.ZERO) > 0
-                && imp.getBidfloorcur() != null) {
-            final String bidFloorCur = imp.getBidfloorcur().toUpperCase();
-            if (!DEFAULT_BID_CURRENCY.equals(bidFloorCur)) {
-                try {
-                    final BigDecimal convertedPrice = currencyConversionService.convertCurrency(
-                            imp.getBidfloor(),
-                            bidRequest,
-                            bidFloorCur,
-                            DEFAULT_BID_CURRENCY
-                    );
-                    return imp.toBuilder()
-                            .bidfloor(convertedPrice)
-                            .bidfloorcur(DEFAULT_BID_CURRENCY)
-                            .build();
-                } catch (PreBidException e) {
-                    errors.add(BidderError.badInput(e.getMessage()));
-                }
-            }
-        }
-        return imp;
+    private Imp processImp(BidRequest bidRequest, Imp imp) {
+        final Price resolvedBidFloor = resolveBidFloor(imp, bidRequest);
+
+        return imp.toBuilder()
+                .bidfloor(resolvedBidFloor.getValue())
+                .bidfloorcur(resolvedBidFloor.getCurrency())
+                .build();
     }
 
-    public boolean extractTestMode(Imp imp) {
+    private Price resolveBidFloor(Imp imp, BidRequest bidRequest) {
+        final Price initialBidFloorPrice = Price.of(imp.getBidfloorcur(), imp.getBidfloor());
+        return BidderUtil.shouldConvertBidFloor(initialBidFloorPrice, DEFAULT_BID_CURRENCY)
+                ? convertBidFloor(initialBidFloorPrice, bidRequest)
+                : initialBidFloorPrice;
+    }
+
+    private Price convertBidFloor(Price bidFloorPrice, BidRequest bidRequest) {
+        final BigDecimal convertedPrice = currencyConversionService.convertCurrency(
+                bidFloorPrice.getValue(),
+                bidRequest,
+                bidFloorPrice.getCurrency(),
+                DEFAULT_BID_CURRENCY);
+
+        return Price.of(DEFAULT_BID_CURRENCY, convertedPrice);
+    }
+
+    private ExtImpKobler parseImpExt(Imp imp) {
         try {
-            final ExtPrebid<?, ExtImpKobler> extPrebid = mapper.mapper().convertValue(imp.getExt(),
-                    KOBLER_EXT_TYPE_REFERENCE);
-            final ExtImpKobler extImpKobler = extPrebid != null ? extPrebid.getBidder() : null;
-            return extImpKobler != null && Boolean.TRUE.equals(extImpKobler.getTest());
+            return mapper.mapper().convertValue(imp.getExt(), KOBLER_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            return false;
+            throw new PreBidException(e.getMessage());
         }
     }
 

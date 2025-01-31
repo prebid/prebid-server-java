@@ -26,6 +26,7 @@ import org.prebid.server.proto.openrtb.ext.request.kobler.ExtImpKobler;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
@@ -67,7 +68,7 @@ public class KoblerBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .bidfloor(BigDecimal.ONE)
                         .bidfloorcur("EUR")
-                        .ext(mapper.createObjectNode())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpKobler.of(false))))
                         .build()))
                 .build();
 
@@ -78,8 +79,9 @@ public class KoblerBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // Then
-        assertThat(result.getErrors()).hasSize(1)
-                .satisfies(errors -> assertThat(errors.get(0).getMessage()).contains("Currency conversion failed"));
+        assertThat(result.getErrors()).hasSize(2)
+                .extracting(BidderError::getMessage)
+                .containsExactlyInAnyOrder("Currency conversion failed", "No valid impressions");
     }
 
     @Test
@@ -100,7 +102,9 @@ public class KoblerBidderTest extends VertxTest {
         // Given
         final BidRequest bidRequest = givenBidRequest(imp -> imp
                 .bidfloor(BigDecimal.ONE)
-                .bidfloorcur("EUR"));
+                .bidfloorcur("EUR")
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpKobler.of(false)))));
+
 
         when(currencyConversionService.convertCurrency(any(), any(), any(), any()))
                 .thenReturn(BigDecimal.TEN);
@@ -132,8 +136,11 @@ public class KoblerBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldAddUsdToCurrenciesIfMissing() {
         // Given
-        final BidRequest bidRequest = givenBidRequest(identity())
-                .toBuilder().cur(singletonList("EUR")).build();
+        final BidRequest bidRequest = givenBidRequest(imp -> imp
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpKobler.of(false)))))
+                .toBuilder()
+                .cur(singletonList("EUR"))
+                .build();
 
         // When
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -187,17 +194,30 @@ public class KoblerBidderTest extends VertxTest {
     }
 
     @Test
-    public void extractTestModeShouldReturnTrueWhenImpExtHasTestTrue() {
-        // Given
+    public void makeHttpRequestsShouldUseDevEndpointWhenImpExtTestIsTrue() {
+        // given
+        final ObjectNode extNode = jacksonMapper.mapper().createObjectNode();
+        extNode.putObject("bidder").put("test", true);
+
         final Imp imp = Imp.builder()
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpKobler.of(true))))
+                .id("test-imp")
+                .ext(extNode)
                 .build();
 
-        // When
-        final boolean testMode = target.extractTestMode(imp);
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(Collections.singletonList(imp))
+                .cur(Collections.singletonList("USD"))
+                .build();
 
-        // Then
-        assertThat(testMode).isTrue();
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+
+        final HttpRequest<BidRequest> httpRequest = result.getValue().get(0);
+        assertThat(httpRequest.getUri()).isEqualTo(DEV_ENDPOINT);
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
