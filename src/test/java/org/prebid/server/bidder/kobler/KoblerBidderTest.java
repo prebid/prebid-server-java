@@ -57,72 +57,56 @@ public class KoblerBidderTest extends VertxTest {
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new KoblerBidder(
-                "invalid_url", currencyConversionService, jacksonMapper));
+        assertThatIllegalArgumentException().isThrownBy(() -> new KoblerBidder("invalid_url", currencyConversionService, jacksonMapper));
     }
 
     @Test
     public void makeHttpRequestsShouldReturnErrorIfNoValidImps() {
         // Given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .bidfloor(BigDecimal.ONE)
-                        .bidfloorcur("EUR")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpKobler.of(false))))
-                        .build()))
-                .build();
+        final BidRequest bidRequest = BidRequest.builder().cur(singletonList("USD")).imp(singletonList(Imp.builder().bidfloor(BigDecimal.ONE).bidfloorcur("EUR").ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpKobler.of(false)))).build())).build();
 
-        when(currencyConversionService.convertCurrency(any(), any(), any(), any()))
-                .thenThrow(new PreBidException("Currency conversion failed"));
+        when(currencyConversionService.convertCurrency(any(), any(), any(), any())).thenThrow(new PreBidException("Currency conversion failed"));
 
         // When
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // Then
-        assertThat(result.getErrors()).hasSize(2)
-                .extracting(BidderError::getMessage)
-                .containsExactlyInAnyOrder("Currency conversion failed", "No valid impressions");
+        assertThat(result.getErrors()).hasSize(2).extracting(BidderError::getMessage).containsExactlyInAnyOrder("Currency conversion failed", "No valid impressions");
     }
 
     @Test
     public void makeHttpRequestsShouldReturnErrorIfNoImps() {
         // Given
-        final BidRequest bidRequest = BidRequest.builder().imp(emptyList()).build();
+        final BidRequest bidRequest = BidRequest.builder().cur(singletonList("USD")).imp(emptyList()).build();
 
         // When
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // Then
-        assertThat(result.getErrors()).hasSize(1)
-                .allSatisfy(error -> assertThat(error.getMessage()).contains("No valid impressions"));
+        assertThat(result.getErrors()).hasSize(1).allSatisfy(error -> assertThat(error.getMessage()).contains("No valid impressions"));
     }
 
     @Test
     public void makeHttpRequestsShouldConvertBidFloorCurrency() {
         // Given
-        final BidRequest bidRequest = givenBidRequest(imp -> imp
-                .bidfloor(BigDecimal.ONE)
-                .bidfloorcur("EUR")
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpKobler.of(false)))));
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder.cur(singletonList("EUR")), imp -> imp.bidfloor(BigDecimal.ONE).bidfloorcur("EUR").ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpKobler.of(false)))));
 
-        when(currencyConversionService.convertCurrency(any(), any(), any(), any()))
-                .thenReturn(BigDecimal.TEN);
+        when(currencyConversionService.convertCurrency(any(), any(), any(), any())).thenReturn(BigDecimal.TEN);
 
         // When
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // Then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue().get(0).getPayload().getImp())
-                .extracting(Imp::getBidfloor, Imp::getBidfloorcur)
-                .containsExactly(tuple(BigDecimal.TEN, "USD"));
+        assertThat(result.getValue().get(0).getPayload().getImp()).extracting(Imp::getBidfloor, Imp::getBidfloorcur).containsExactly(tuple(BigDecimal.TEN, "USD"));
     }
 
     @Test
     public void makeHttpRequestsShouldUseDevEndpointWhenTestModeEnabled() {
         // Given
-        final BidRequest bidRequest = givenBidRequest(imp -> imp
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpKobler.of(true)))));
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.cur(singletonList("EUR")),
+                imp -> imp.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpKobler.of(true)))));
 
         // When
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -135,18 +119,13 @@ public class KoblerBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldAddUsdToCurrenciesIfMissing() {
         // Given
-        final BidRequest bidRequest = givenBidRequest(imp -> imp
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpKobler.of(false)))))
-                .toBuilder()
-                .cur(singletonList("EUR"))
-                .build();
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpKobler.of(false))))).toBuilder().cur(singletonList("EUR")).build();
 
         // When
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // Then
-        assertThat(result.getValue().get(0).getPayload().getCur())
-                .containsExactlyInAnyOrder("EUR", "USD");
+        assertThat(result.getValue().get(0).getPayload().getCur()).containsExactlyInAnyOrder("EUR", "USD");
     }
 
     @Test
@@ -158,38 +137,25 @@ public class KoblerBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = target.makeBids(httpCall, BidRequest.builder().build());
 
         // Then
-        assertThat(result.getErrors()).hasSize(1)
-                .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
-                    assertThat(error.getMessage()).startsWith("Failed to decode");
-                });
+        assertThat(result.getErrors()).hasSize(1).allSatisfy(error -> {
+            assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+            assertThat(error.getMessage()).startsWith("Failed to decode");
+        });
     }
 
     @Test
     public void makeBidsShouldReturnBidsWithCorrectTypes() throws JsonProcessingException {
         // Given
-        final ObjectNode bidExt = mapper.createObjectNode()
-                .set("prebid", mapper.createObjectNode().put("type", "banner"));
+        final ObjectNode bidExt = mapper.createObjectNode().set("prebid", mapper.createObjectNode().put("type", "banner"));
 
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                BidResponse.builder()
-                        .cur("USD")
-                        .seatbid(singletonList(SeatBid.builder()
-                                .bid(singletonList(Bid.builder()
-                                        .impid("123")
-                                        .ext(bidExt)
-                                        .build()))
-                                .build()))
-                        .build());
+        final BidderCall<BidRequest> httpCall = givenHttpCall(BidResponse.builder().cur("USD").seatbid(singletonList(SeatBid.builder().bid(singletonList(Bid.builder().impid("123").ext(bidExt).build())).build())).build());
 
         // When
         final Result<List<BidderBid>> result = target.makeBids(httpCall, BidRequest.builder().build());
 
         // Then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(BidderBid::getType)
-                .containsExactly(BidType.banner);
+        assertThat(result.getValue()).extracting(BidderBid::getType).containsExactly(BidType.banner);
     }
 
     @Test
@@ -198,15 +164,9 @@ public class KoblerBidderTest extends VertxTest {
         final ObjectNode extNode = jacksonMapper.mapper().createObjectNode();
         extNode.putObject("bidder").put("test", true);
 
-        final Imp imp = Imp.builder()
-                .id("test-imp")
-                .ext(extNode)
-                .build();
+        final Imp imp = Imp.builder().id("test-imp").ext(extNode).build();
 
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(Collections.singletonList(imp))
-                .cur(Collections.singletonList("USD"))
-                .build();
+        final BidRequest bidRequest = BidRequest.builder().imp(Collections.singletonList(imp)).cur(Collections.singletonList("USD")).build();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -223,26 +183,16 @@ public class KoblerBidderTest extends VertxTest {
         return givenBidRequest(identity(), impCustomizer);
     }
 
-    private static BidRequest givenBidRequest(
-            UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
-            UnaryOperator<Imp.ImpBuilder> impCustomizer) {
+    private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer, UnaryOperator<Imp.ImpBuilder> impCustomizer) {
 
-        return bidRequestCustomizer.apply(BidRequest.builder()
-                        .imp(singletonList(impCustomizer.apply(Imp.builder().id("123")).build())))
-                .build();
+        return bidRequestCustomizer.apply(BidRequest.builder().imp(singletonList(impCustomizer.apply(Imp.builder().id("123")).build()))).build();
     }
 
     private BidderCall<BidRequest> givenHttpCall(BidResponse bidResponse) throws JsonProcessingException {
-        return BidderCall.succeededHttp(
-                HttpRequest.<BidRequest>builder().payload(null).build(),
-                HttpResponse.of(200, null, mapper.writeValueAsString(bidResponse)),
-                null);
+        return BidderCall.succeededHttp(HttpRequest.<BidRequest>builder().payload(null).build(), HttpResponse.of(200, null, mapper.writeValueAsString(bidResponse)), null);
     }
 
     private BidderCall<BidRequest> givenHttpCall() {
-        return BidderCall.succeededHttp(
-                HttpRequest.<BidRequest>builder().payload(null).build(),
-                HttpResponse.of(200, null, "invalid"),
-                null);
+        return BidderCall.succeededHttp(HttpRequest.<BidRequest>builder().payload(null).build(), HttpResponse.of(200, null, "invalid"), null);
     }
 }

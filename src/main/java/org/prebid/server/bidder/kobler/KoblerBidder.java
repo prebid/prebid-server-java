@@ -63,9 +63,7 @@ public class KoblerBidder implements Bidder<BidRequest> {
         boolean testMode = false;
         final List<Imp> modifiedImps = new ArrayList<>();
 
-        final List<String> currencies = bidRequest.getCur() != null
-                ? new ArrayList<>(bidRequest.getCur())
-                : new ArrayList<>();
+        final List<String> currencies = new ArrayList<>(bidRequest.getCur());
         if (!currencies.contains(DEFAULT_BID_CURRENCY)) {
             currencies.add(DEFAULT_BID_CURRENCY);
         }
