@@ -24,6 +24,7 @@ import static org.prebid.server.functional.model.pricefloors.Country.USA
 import static org.prebid.server.functional.model.request.GppSectionId.US_CA_V1
 import static org.prebid.server.functional.model.request.GppSectionId.US_CO_V1
 import static org.prebid.server.functional.model.request.auction.ActivityType.FETCH_BIDS
+import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_EIDS
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_PRECISE_GEO
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_TID
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_UFPD
@@ -41,6 +42,9 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
                                                           "Activity Infrastructure invocation result."]
 
     private static final def PROCESSING_ACTIVITY_TRACE = ["Processing rule."]
+
+    private final static Integer MIN_PERCENT_AB = 0
+    private final static Integer MAX_PERCENT_AB = 100
 
     def "PBS auction shouldn't log info about activity in response when ext.prebid.trace=null"() {
         given: "Default basic generic BidRequest"
@@ -398,10 +402,223 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
         allow << [false, true]
     }
 
-    private List<ActivityInfrastructure> getActivityByName(List<ActivityInfrastructure> activityInfrastructures,
-                                                           ActivityType activity) {
+    def "PBS auction should log info about activity in response when ext.prebid.trace=verbose and skipRate=#skipRate"() {
+        given: "Default bid request"
+        def accountId = PBSUtils.randomNumber as String
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.trace = VERBOSE
+            device = new Device(geo: new Geo(country: USA, region: ALABAMA.abbreviation))
+            regs.ext = new RegsExt(gpc: PBSUtils.randomString)
+            regs.gppSid = [US_CA_V1.intValue]
+            regs.gpp = new UsNatV1Consent.Builder().setGpc(true).build()
+            setAccountId(accountId)
+        }
+
+        and: "Set up activities"
+        def gpc = PBSUtils.randomString
+        def condition = Condition.baseCondition.tap {
+            it.gpc = gpc
+            it.geo = [CAN.withState(ARIZONA)]
+        }
+        def activityRule = ActivityRule.getDefaultActivityRule(condition).tap {
+            it.privacyRegulation = [IAB_US_GENERAL]
+        }
+        def activity = Activity.getDefaultActivity([activityRule])
+        def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, activity)
+
+        and: "Account gpp configuration"
+        def accountGppConfig = new AccountGppConfig(code: IAB_US_GENERAL, enabled: true, skipRate: skipRate)
+
+        and: "Save account with allow activities setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        def bidResponse = activityPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bid response should contain verbose info in debug"
+        def infrastructure = bidResponse.ext.debug.trace.activityInfrastructure
+        def ruleConfigurations = findProcessingRule(infrastructure, FETCH_BIDS).ruleConfiguration.and
+        assert ruleConfigurations.size() == 1
+        assert ruleConfigurations.first.and.every { it != null }
+
+        and: "Should not contain information that module was skipped"
+        verifyAll(ruleConfigurations.first) {
+            !it.privacyModule
+            !it.skipped
+            !it.result
+        }
+
+        where:
+        skipRate << [null, MIN_PERCENT_AB]
+    }
+
+    def "PBS auction should log info about module skip in response when ext.prebid.trace=verbose and skipRate is max"() {
+        given: "Default bid request"
+        def accountId = PBSUtils.randomNumber as String
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.trace = VERBOSE
+            device = new Device(geo: new Geo(country: USA, region: ALABAMA.abbreviation))
+            regs.ext = new RegsExt(gpc: PBSUtils.randomString)
+            regs.gppSid = [US_CA_V1.intValue]
+            regs.gpp = new UsNatV1Consent.Builder().setGpc(true).build()
+            setAccountId(accountId)
+        }
+
+        and: "Set up activities"
+        def gpc = PBSUtils.randomString
+        def condition = Condition.baseCondition.tap {
+            it.gpc = gpc
+            it.geo = [CAN.withState(ARIZONA)]
+        }
+        def activityRule = ActivityRule.getDefaultActivityRule(condition).tap {
+            it.privacyRegulation = [IAB_US_GENERAL]
+        }
+        def activity = Activity.getDefaultActivity([activityRule], defaultAction)
+        def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, activity)
+
+        and: "Account gpp configuration"
+        def accountGppConfig = new AccountGppConfig(code: IAB_US_GENERAL, enabled: true, skipRate: MAX_PERCENT_AB)
+
+        and: "Save account with allow activities setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        def bidResponse = activityPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bid response should not contain verbose info in debug"
+        def infrastructure = bidResponse.ext.debug.trace.activityInfrastructure
+        def ruleConfigurations = findProcessingRule(infrastructure, FETCH_BIDS).ruleConfiguration.and
+        assert ruleConfigurations.size() == 1
+        assert ruleConfigurations.first.and.every { it == null }
+
+        and: "Should contain information that module was skipped"
+        verifyAll(ruleConfigurations.first) {
+            it.privacyModule == 'iab.usgeneral'
+            it.skipped == 'true'
+            it.result == 'ABSTAIN'
+        }
+
+        where:
+        defaultAction << [false, true]
+    }
+
+    def "PBS auction should log consistently for each activity about skips modules in response"() {
+        given: "Default bid request"
+        def accountId = PBSUtils.randomNumber as String
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.trace = VERBOSE
+            device = new Device(geo: new Geo(country: USA, region: ALABAMA.abbreviation))
+            regs.ext = new RegsExt(gpc: PBSUtils.randomString)
+            regs.gppSid = [US_CA_V1.intValue]
+            regs.gpp = new UsNatV1Consent.Builder().build()
+            setAccountId(accountId)
+        }
+
+        and: "Set up activities"
+        def gpc = PBSUtils.randomString
+        def condition = Condition.baseCondition.tap {
+            it.gpc = gpc
+            it.geo = [CAN.withState(ARIZONA)]
+        }
+        def activityRule = ActivityRule.getDefaultActivityRule(condition).tap {
+            it.privacyRegulation = [IAB_US_GENERAL]
+        }
+        def activity = Activity.getDefaultActivity([activityRule])
+        def activities = new AllowActivities(
+                syncUser: activity,
+                fetchBids: activity,
+                enrichUfpd: activity,
+                reportAnalytics: activity,
+                transmitUfpd: activity,
+                transmitEids: activity,
+                transmitPreciseGeo: activity,
+                transmitTid: activity,
+        )
+
+        and: "Account gpp configuration"
+        def skipRate = PBSUtils.getRandomNumber(MIN_PERCENT_AB, MAX_PERCENT_AB)
+        def accountGppConfig = new AccountGppConfig(code: IAB_US_GENERAL, enabled: true, skipRate: skipRate)
+
+        and: "Save account with allow activities setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        def bidResponse = activityPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bid response should log consistently for each activity about skips"
+        def infrastructure = bidResponse.ext.debug.trace.activityInfrastructure
+        def fetchBidsLogs = findProcessingRule(infrastructure, FETCH_BIDS).ruleConfiguration.and
+        def transmitUfpdLogs = findProcessingRule(infrastructure, TRANSMIT_UFPD).ruleConfiguration.and
+        def transmitEidsLogs = findProcessingRule(infrastructure, TRANSMIT_EIDS).ruleConfiguration.and
+        def transmitPreciseGeoLogs = findProcessingRule(infrastructure, TRANSMIT_PRECISE_GEO).ruleConfiguration.and
+        def transmitTidLogs = findProcessingRule(infrastructure, TRANSMIT_TID).ruleConfiguration.and
+        verifyAll ([fetchBidsLogs, transmitUfpdLogs, transmitEidsLogs, transmitPreciseGeoLogs, transmitTidLogs]) {
+            it.privacyModule.toSet().size() == 1
+            it.skipped.toSet().size() == 1
+            it.result.toSet().size() == 1
+        }
+    }
+
+    def "PBS auction shouldn't emit errors or warnings when skip rate is out of borders"() {
+        given: "Default bid request"
+        def accountId = PBSUtils.randomNumber as String
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.trace = VERBOSE
+            device = new Device(geo: new Geo(country: USA, region: ALABAMA.abbreviation))
+            regs.ext = new RegsExt(gpc: PBSUtils.randomString)
+            regs.gppSid = [US_CA_V1.intValue]
+            regs.gpp = new UsNatV1Consent.Builder().setGpc(true).build()
+            setAccountId(accountId)
+        }
+
+        and: "Set up activities"
+        def gpc = PBSUtils.randomString
+        def condition = Condition.baseCondition.tap {
+            it.gpc = gpc
+            it.geo = [CAN.withState(ARIZONA)]
+        }
+        def activityRule = ActivityRule.getDefaultActivityRule(condition).tap {
+            it.privacyRegulation = [IAB_US_GENERAL]
+        }
+        def activity = Activity.getDefaultActivity([activityRule])
+        def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, activity)
+
+        and: "Account gpp configuration"
+        def accountGppConfig = new AccountGppConfig(code: IAB_US_GENERAL, enabled: true, skipRate: skipRate)
+
+        and: "Save account with allow activities setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        def bidResponse = activityPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should not contain error"
+        assert !bidResponse.ext?.errors
+        assert !bidResponse.ext?.warnings
+
+        where:
+        skipRate << [Integer.MIN_VALUE, Integer.MAX_VALUE]
+    }
+
+    private static List<ActivityInfrastructure> getActivityByName(List<ActivityInfrastructure> activityInfrastructures,
+                                                                  ActivityType activity) {
         def firstIndex = activityInfrastructures.findLastIndexOf { it -> it.activity == activity }
         def lastIndex = activityInfrastructures.findIndexOf { it -> it.activity == activity }
         activityInfrastructures[new IntRange(true, firstIndex, lastIndex)]
+    }
+
+    private static ActivityInfrastructure findProcessingRule(List<ActivityInfrastructure> infrastructures, ActivityType activity) {
+        def matchingActivities = getActivityByName(infrastructures, activity)
+                .findAll { PROCESSING_ACTIVITY_TRACE.contains(it.description) }
+
+        if (matchingActivities.size() != 1) {
+            throw new IllegalStateException("Expected a single processing activity, but found ${matchingActivities.size()}")
+        }
+
+        matchingActivities.first()
     }
 }
