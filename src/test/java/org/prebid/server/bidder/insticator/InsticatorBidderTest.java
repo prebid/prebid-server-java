@@ -449,11 +449,11 @@ public class InsticatorBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 imp -> imp.id("givenImpId1").ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))),
                 imp -> imp.id("givenImpId2"),
-                imp -> imp.id("givenImpId3").video(Video.builder().mimes(null).build()),
-                imp -> imp.id("givenImpId4").video(Video.builder().h(null).build()),
-                imp -> imp.id("givenImpId5").video(Video.builder().h(0).build()),
-                imp -> imp.id("givenImpId6").video(Video.builder().w(null).build()),
-                imp -> imp.id("givenImpId7").video(Video.builder().w(0).build()));
+                imp -> imp.id("givenImpId3").video(givenVideo(video -> video.mimes(null))),
+                imp -> imp.id("givenImpId4").video(givenVideo(video -> video.h(null))),
+                imp -> imp.id("givenImpId5").video(givenVideo(video -> video.h(0))),
+                imp -> imp.id("givenImpId6").video(givenVideo(video -> video.w(null))),
+                imp -> imp.id("givenImpId7").video(givenVideo(video -> video.w(0))));
 
         //when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -566,6 +566,14 @@ public class InsticatorBidderTest extends VertxTest {
                         .ext(mapper.valueToTree(ExtPrebid.of(
                                 null,
                                 ExtImpInsticator.of("adUnitId", "publisherId")))))
+                .build();
+    }
+
+    private static Video givenVideo(UnaryOperator<Video.VideoBuilder> videoCustomizer) {
+        return videoCustomizer.apply(Video.builder()
+                        .mimes(List.of("video/mp4"))
+                        .h(100)
+                        .w(100))
                 .build();
     }
 
