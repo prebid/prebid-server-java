@@ -20,6 +20,8 @@ public class ActivityControllerCreationContext {
 
     Map<PrivacyModuleQualifier, AccountPrivacyModuleConfig> privacyModulesConfigs;
 
+    Map<PrivacyModuleQualifier, Boolean> skipModuleConfigs;
+
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
     Set<PrivacyModuleQualifier> usedPrivacyModules = EnumSet.noneOf(PrivacyModuleQualifier.class);

@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -40,6 +41,8 @@ import java.util.stream.Collectors;
 public class ActivityInfrastructureCreator {
 
     private static final Logger logger = LoggerFactory.getLogger(ActivityInfrastructureCreator.class);
+
+    private static final int MODULE_MAX_SKIP_RATE = 100;
 
     private final ActivityRuleFactory activityRuleFactory;
     private final Purpose defaultPurpose4;
@@ -144,9 +147,13 @@ public class ActivityInfrastructureCreator {
                     debug);
         }
 
+        final Map<PrivacyModuleQualifier, Boolean> skipModulesConfigs = modulesConfigs.entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, entry -> shouldSkipAllActivities(entry.getValue())));
+
         final ActivityControllerCreationContext creationContext = ActivityControllerCreationContext.of(
                 activity,
                 modulesConfigs,
+                skipModulesConfigs,
                 gppContext);
 
         final boolean allow = allowFromConfig(activityConfiguration.getAllow());
@@ -156,6 +163,13 @@ public class ActivityInfrastructureCreator {
                 .toList();
 
         return ActivityController.of(allow, rules, debug);
+    }
+
+    private static boolean shouldSkipAllActivities(AccountPrivacyModuleConfig config) {
+        return Optional.ofNullable(config)
+                .map(AccountPrivacyModuleConfig::getSkipRate)
+                .map(skipRate -> ThreadLocalRandom.current().nextInt(MODULE_MAX_SKIP_RATE) < skipRate)
+                .orElse(false);
     }
 
     private static boolean allowFromConfig(Boolean configValue) {

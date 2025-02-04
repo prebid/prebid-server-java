@@ -3,6 +3,7 @@ package org.prebid.server.activity.infrastructure.creator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.activity.Activity;
@@ -22,6 +23,7 @@ import org.prebid.server.settings.model.Purpose;
 import org.prebid.server.settings.model.PurposeEid;
 import org.prebid.server.settings.model.Purposes;
 import org.prebid.server.settings.model.activity.AccountActivityConfiguration;
+import org.prebid.server.settings.model.activity.privacy.AccountUSCustomLogicModuleConfig;
 import org.prebid.server.settings.model.activity.privacy.AccountUSNatModuleConfig;
 import org.prebid.server.settings.model.activity.rule.AccountActivityConditionsRuleConfig;
 
@@ -30,12 +32,15 @@ import java.util.Map;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
+import static org.prebid.server.activity.infrastructure.privacy.PrivacyModuleQualifier.US_CUSTOM_LOGIC;
+import static org.prebid.server.activity.infrastructure.privacy.PrivacyModuleQualifier.US_NAT;
 
 @ExtendWith(MockitoExtension.class)
 public class ActivityInfrastructureCreatorTest {
@@ -102,6 +107,30 @@ public class ActivityInfrastructureCreatorTest {
         // then
         verify(activityRuleFactory).from(any(), argThat(arg -> arg.getPrivacyModulesConfigs().size() == 1));
         verify(metrics).updateAlertsMetrics(eq(MetricName.general));
+    }
+
+    @Test
+    public void parseShouldPopulateSkipConfigForModules() {
+        // given
+        final Account account = Account.builder()
+                .privacy(AccountPrivacyConfig.builder()
+                        .activities(Map.of(Activity.SYNC_USER, AccountActivityConfiguration.of(
+                                null, singletonList(AccountActivityConditionsRuleConfig.of(null, null)))))
+                        .modules(asList(
+                                AccountUSNatModuleConfig.of(null, 100, null),
+                                AccountUSCustomLogicModuleConfig.of(null, 0, null)))
+                        .build())
+                .build();
+
+        // when
+        creator.parse(account, null, debug);
+
+        // then
+        final ArgumentCaptor<ActivityControllerCreationContext> captor =
+                ArgumentCaptor.forClass(ActivityControllerCreationContext.class);
+        verify(activityRuleFactory).from(any(), captor.capture());
+        assertThat(captor.getValue().getSkipModuleConfigs())
+                .containsOnly(entry(US_NAT, true), entry(US_CUSTOM_LOGIC, false));
     }
 
     @Test
