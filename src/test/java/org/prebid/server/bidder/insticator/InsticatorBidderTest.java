@@ -13,6 +13,9 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+
+import java.util.Collections;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,6 +45,7 @@ import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.InstanceOfAssertFactories.COLLECTION;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
@@ -450,6 +454,7 @@ public class InsticatorBidderTest extends VertxTest {
                 imp -> imp.id("givenImpId1").ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))),
                 imp -> imp.id("givenImpId2"),
                 imp -> imp.id("givenImpId3").video(givenVideo(video -> video.mimes(null))),
+                imp -> imp.id("givenImpId3").video(givenVideo(video -> video.mimes(Collections.emptyList()))),
                 imp -> imp.id("givenImpId4").video(givenVideo(video -> video.h(null))),
                 imp -> imp.id("givenImpId5").video(givenVideo(video -> video.h(0))),
                 imp -> imp.id("givenImpId6").video(givenVideo(video -> video.w(null))),
