@@ -14,7 +14,8 @@ env:
   GITHUB_PR_NUMBER: ${{ github.event.pull_request.number }}
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-permissions: read-all
+permissions:
+  contents: read
 
 jobs:
   notify:
