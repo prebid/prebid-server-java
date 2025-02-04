@@ -120,6 +120,7 @@ Removes and downloads file again if depending service cant process probably corr
 
 ## Setuid
 - `setuid.default-timeout-ms` - default operation timeout for requests to `/setuid` endpoint.
+- `setuid.number-of-uid-cookies` - specifies the maximum number of UID cookies that can be returned in the `/setuid` endpoint response. If it's not specified `1` will be taken as the default value.
 
 ## Cookie Sync
 - `cookie-sync.default-timeout-ms` - default operation timeout for requests to `/cookie_sync` endpoint.
