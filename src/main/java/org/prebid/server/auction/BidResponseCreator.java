@@ -34,6 +34,7 @@ import org.prebid.server.auction.model.BidderResponseInfo;
 import org.prebid.server.auction.model.CachedDebugLog;
 import org.prebid.server.auction.model.CategoryMappingResult;
 import org.prebid.server.auction.model.MultiBidConfig;
+import org.prebid.server.auction.model.PaaFormat;
 import org.prebid.server.auction.model.TargetingInfo;
 import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.auction.requestfactory.Ortb2ImplicitParametersResolver;
@@ -61,6 +62,11 @@ import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.identity.IdGeneratorType;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
+import org.prebid.server.metric.MetricName;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpAuctionEnvironment;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
@@ -82,6 +88,10 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidResponsePrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
 import org.prebid.server.proto.openrtb.ext.response.ExtDebugTrace;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
+import org.prebid.server.proto.openrtb.ext.response.ExtIgi;
+import org.prebid.server.proto.openrtb.ext.response.ExtIgiIgb;
+import org.prebid.server.proto.openrtb.ext.response.ExtIgiIgs;
+import org.prebid.server.proto.openrtb.ext.response.ExtIgiIgsExt;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseCache;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 import org.prebid.server.proto.openrtb.ext.response.ExtTraceActivityInfrastructure;
@@ -118,6 +128,9 @@ import java.util.stream.Stream;
 
 public class BidResponseCreator {
 
+    private static final Logger logger = LoggerFactory.getLogger(BidResponseCreator.class);
+    private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
+
     private static final String CACHE = "cache";
     private static final String PREBID_EXT = "prebid";
     private static final Integer DEFAULT_BID_LIMIT_MIN = 1;
@@ -127,6 +140,7 @@ public class BidResponseCreator {
     private static final String TARGETING_ENV_APP_VALUE = "mobile-app";
     private static final String TARGETING_ENV_AMP_VALUE = "amp";
 
+    private final double logSamplingRate;
     private final CoreCacheService coreCacheService;
     private final BidderCatalog bidderCatalog;
     private final VastModifier vastModifier;
@@ -139,6 +153,7 @@ public class BidResponseCreator {
     private final int truncateAttrChars;
     private final Clock clock;
     private final JacksonMapper mapper;
+    private final Metrics metrics;
     private final CacheTtl mediaTypeCacheTtl;
     private final CacheDefaultTtlProperties cacheDefaultProperties;
 
@@ -146,7 +161,8 @@ public class BidResponseCreator {
     private final String cachePath;
     private final String cacheAssetUrlTemplate;
 
-    public BidResponseCreator(CoreCacheService coreCacheService,
+    public BidResponseCreator(double logSamplingRate,
+                              CoreCacheService coreCacheService,
                               BidderCatalog bidderCatalog,
                               VastModifier vastModifier,
                               EventsService eventsService,
@@ -158,6 +174,7 @@ public class BidResponseCreator {
                               int truncateAttrChars,
                               Clock clock,
                               JacksonMapper mapper,
+                              Metrics metrics,
                               CacheTtl mediaTypeCacheTtl,
                               CacheDefaultTtlProperties cacheDefaultProperties) {
 
@@ -175,10 +192,13 @@ public class BidResponseCreator {
         this.mapper = Objects.requireNonNull(mapper);
         this.mediaTypeCacheTtl = Objects.requireNonNull(mediaTypeCacheTtl);
         this.cacheDefaultProperties = Objects.requireNonNull(cacheDefaultProperties);
+        this.metrics = Objects.requireNonNull(metrics);
 
+        this.logSamplingRate = logSamplingRate;
+
+        cacheAssetUrlTemplate = Objects.requireNonNull(coreCacheService.getCachedAssetURLTemplate());
         cacheHost = Objects.requireNonNull(coreCacheService.getEndpointHost());
         cachePath = Objects.requireNonNull(coreCacheService.getEndpointPath());
-        cacheAssetUrlTemplate = Objects.requireNonNull(coreCacheService.getCachedAssetURLTemplate());
     }
 
     private static int validateTruncateAttrChars(int truncateAttrChars) {
@@ -209,16 +229,19 @@ public class BidResponseCreator {
 
     Future<BidResponse> create(AuctionContext auctionContext,
                                BidRequestCacheInfo cacheInfo,
+                               BidderAliases aliases,
                                Map<String, MultiBidConfig> bidderToMultiBids) {
 
         return videoStoredDataResult(auctionContext)
-                .compose(videoStoredData -> create(videoStoredData, auctionContext, cacheInfo, bidderToMultiBids))
+                .compose(videoStoredData ->
+                        create(videoStoredData, auctionContext, cacheInfo, aliases, bidderToMultiBids))
                 .map(bidResponse -> populateSeatNonBid(auctionContext, bidResponse));
     }
 
     private Future<BidResponse> create(VideoStoredDataResult videoStoredDataResult,
                                        AuctionContext auctionContext,
                                        BidRequestCacheInfo cacheInfo,
+                                       BidderAliases aliases,
                                        Map<String, MultiBidConfig> bidderToMultiBids) {
 
         final EventsContext eventsContext = createEventsContext(auctionContext);
@@ -236,6 +259,7 @@ public class BidResponseCreator {
                         toBidderResponseInfos(categoryMappingResult, cacheInfo, auctionContext),
                         auctionContext,
                         cacheInfo,
+                        aliases,
                         bidderToMultiBids,
                         videoStoredDataResult,
                         eventsContext));
@@ -418,7 +442,8 @@ public class BidResponseCreator {
                     seatBid.getHttpCalls(),
                     seatBid.getErrors(),
                     seatBid.getWarnings(),
-                    seatBid.getFledgeAuctionConfigs());
+                    seatBid.getFledgeAuctionConfigs(),
+                    seatBid.getIgi());
 
             result.add(BidderResponseInfo.of(bidder, bidderSeatBidInfo, bidderResponse.getResponseTime()));
         }
@@ -553,6 +578,7 @@ public class BidResponseCreator {
     private Future<BidResponse> cacheBidsAndCreateResponse(List<BidderResponseInfo> bidderResponses,
                                                            AuctionContext auctionContext,
                                                            BidRequestCacheInfo cacheInfo,
+                                                           BidderAliases aliases,
                                                            Map<String, MultiBidConfig> bidderToMultiBids,
                                                            VideoStoredDataResult videoStoredDataResult,
                                                            EventsContext eventsContext) {
@@ -563,6 +589,7 @@ public class BidResponseCreator {
             final ExtBidResponse extBidResponse = toExtBidResponse(
                     bidderResponses,
                     auctionContext,
+                    aliases,
                     CacheServiceResult.empty(),
                     VideoStoredDataResult.empty(),
                     eventsContext.getAuctionTimestamp(),
@@ -606,6 +633,7 @@ public class BidResponseCreator {
                 .map(cacheResult -> toBidResponse(
                         bidderResponseInfos,
                         auctionContext,
+                        aliases,
                         targeting,
                         cacheInfo,
                         cacheResult,
@@ -760,6 +788,7 @@ public class BidResponseCreator {
      */
     private ExtBidResponse toExtBidResponse(List<BidderResponseInfo> bidderResponseInfos,
                                             AuctionContext auctionContext,
+                                            BidderAliases aliases,
                                             CacheServiceResult cacheResult,
                                             VideoStoredDataResult videoStoredDataResult,
                                             long auctionTimestamp,
@@ -768,6 +797,10 @@ public class BidResponseCreator {
 
         final DebugContext debugContext = auctionContext.getDebugContext();
         final boolean debugEnabled = debugContext.isDebugEnabled();
+
+        final PaaResult paaResult = toPaaOutput(bidderResponseInfos, auctionContext, aliases);
+        final List<ExtIgi> igi = paaResult.igis();
+        final ExtBidResponseFledge fledge = paaResult.fledge();
 
         final ExtResponseDebug extResponseDebug = toExtResponseDebug(
                 bidderResponseInfos, auctionContext, cacheResult, debugEnabled);
@@ -778,9 +811,8 @@ public class BidResponseCreator {
 
         final Map<String, Integer> responseTimeMillis = toResponseTimes(bidderResponseInfos, cacheResult);
 
-        final ExtBidResponseFledge extBidResponseFledge = toExtBidResponseFledge(bidderResponseInfos, auctionContext);
         final ExtBidResponsePrebid prebid = toExtBidResponsePrebid(
-                auctionTimestamp, auctionContext.getBidRequest(), extBidResponseFledge);
+                auctionTimestamp, auctionContext.getBidRequest(), fledge);
 
         return ExtBidResponse.builder()
                 .debug(extResponseDebug)
@@ -788,6 +820,7 @@ public class BidResponseCreator {
                 .warnings(warnings)
                 .responsetimemillis(responseTimeMillis)
                 .tmaxrequest(auctionContext.getBidRequest().getTmax())
+                .igi(igi)
                 .prebid(prebid)
                 .build();
     }
@@ -809,22 +842,139 @@ public class BidResponseCreator {
                 .build();
     }
 
-    private ExtBidResponseFledge toExtBidResponseFledge(List<BidderResponseInfo> bidderResponseInfos,
-                                                        AuctionContext auctionContext) {
+    private PaaResult toPaaOutput(List<BidderResponseInfo> bidderResponseInfos,
+                                  AuctionContext auctionContext,
+                                  BidderAliases aliases) {
 
+        final PaaFormat paaFormat = resolvePaaFormat(auctionContext);
+        final List<ExtIgi> igis = extractIgis(bidderResponseInfos, auctionContext, aliases);
+        final List<ExtIgi> extIgi = paaFormat == PaaFormat.IAB && !igis.isEmpty() ? igis : null;
+
+        final List<FledgeAuctionConfig> fledgeConfigs = paaFormat == PaaFormat.ORIGINAL
+                ? toOriginalFledgeFormat(igis)
+                : Collections.emptyList();
+
+        // TODO: Remove after transition period
         final List<Imp> imps = auctionContext.getBidRequest().getImp();
-        final List<FledgeAuctionConfig> fledgeConfigs = bidderResponseInfos.stream()
-                .flatMap(bidderResponseInfo -> fledgeConfigsForBidder(bidderResponseInfo, imps))
+        final List<FledgeAuctionConfig> deprecatedFledgeConfigs = bidderResponseInfos.stream()
+                .flatMap(bidderResponseInfo -> toDeprecatedFledgeConfigs(bidderResponseInfo, aliases, imps))
                 .toList();
-        return !fledgeConfigs.isEmpty() ? ExtBidResponseFledge.of(fledgeConfigs) : null;
+
+        final List<FledgeAuctionConfig> combinedFledgeConfigs = ListUtils.union(deprecatedFledgeConfigs, fledgeConfigs);
+        final ExtBidResponseFledge extBidResponseFledge = combinedFledgeConfigs.isEmpty()
+                ? null
+                : ExtBidResponseFledge.of(combinedFledgeConfigs);
+
+        return new PaaResult(extIgi, extBidResponseFledge);
     }
 
-    private Stream<FledgeAuctionConfig> fledgeConfigsForBidder(BidderResponseInfo bidderResponseInfo, List<Imp> imps) {
+    private List<ExtIgi> extractIgis(List<BidderResponseInfo> bidderResponseInfos,
+                                     AuctionContext auctionContext,
+                                     BidderAliases aliases) {
+
+        return bidderResponseInfos.stream()
+                .flatMap(responseInfo -> responseInfo.getSeatBid().getIgi().stream()
+                        .map(igi -> prepareExtIgi(igi, responseInfo.getBidder(), auctionContext, aliases)))
+                .filter(Objects::nonNull)
+                .toList();
+    }
+
+    private ExtIgi prepareExtIgi(ExtIgi igi, String bidder, AuctionContext auctionContext, BidderAliases aliases) {
+        if (igi == null) {
+            return null;
+        }
+
+        final boolean shouldDropIgb = StringUtils.isEmpty(igi.getImpid()) && CollectionUtils.isNotEmpty(igi.getIgb());
+        if (shouldDropIgb) {
+            final String warning = "ExtIgi with absent impId from bidder: " + bidder;
+            if (auctionContext.getDebugContext().isDebugEnabled()) {
+                auctionContext.getDebugWarnings().add(warning);
+            }
+            conditionalLogger.warn(warning, logSamplingRate);
+            metrics.updateAlertsMetrics(MetricName.general);
+        }
+
+        final List<ExtIgiIgs> updatedIgs = prepareExtIgiIgs(igi.getIgs(), bidder, auctionContext, aliases);
+        final List<ExtIgiIgs> preparedIgs = updatedIgs.isEmpty() ? null : updatedIgs;
+        final List<ExtIgiIgb> preparedIgb = shouldDropIgb ? null : igi.getIgb();
+
+        return ObjectUtils.anyNotNull(preparedIgs, preparedIgb)
+                ? igi.toBuilder().igs(preparedIgs).igb(preparedIgb).build()
+                : null;
+    }
+
+    private List<ExtIgiIgs> prepareExtIgiIgs(List<ExtIgiIgs> igiIgs,
+                                             String bidder,
+                                             AuctionContext auctionContext,
+                                             BidderAliases aliases) {
+
+        if (igiIgs == null) {
+            return Collections.emptyList();
+        }
+
+        final boolean debugEnabled = auctionContext.getDebugContext().isDebugEnabled();
+        final List<ExtIgiIgs> preparedIgiIgs = new ArrayList<>();
+        for (ExtIgiIgs extIgiIgs : igiIgs) {
+            if (extIgiIgs == null) {
+                continue;
+            }
+
+            if (StringUtils.isEmpty(extIgiIgs.getImpId())) {
+                final String warning = "ExtIgiIgs with absent impId from bidder: " + bidder;
+                if (debugEnabled) {
+                    auctionContext.getDebugWarnings().add(warning);
+                }
+                conditionalLogger.warn(warning, logSamplingRate);
+                metrics.updateAlertsMetrics(MetricName.general);
+                continue;
+            }
+
+            if (extIgiIgs.getConfig() == null) {
+                final String warning = "ExtIgiIgs with absent config from bidder: " + bidder;
+                if (debugEnabled) {
+                    auctionContext.getDebugWarnings().add(warning);
+                }
+                conditionalLogger.warn(warning, logSamplingRate);
+                metrics.updateAlertsMetrics(MetricName.general);
+                continue;
+            }
+
+            final ExtIgiIgs preparedExtIgiIgs = extIgiIgs.toBuilder()
+                    .ext(ExtIgiIgsExt.of(bidder, bidderCatalog.resolveBaseBidder(aliases.resolveBidder(bidder))))
+                    .build();
+
+            preparedIgiIgs.add(preparedExtIgiIgs);
+        }
+
+        return preparedIgiIgs;
+    }
+
+    private List<FledgeAuctionConfig> toOriginalFledgeFormat(List<ExtIgi> igis) {
+        return igis.stream()
+                .map(ExtIgi::getIgs)
+                .flatMap(Collection::stream)
+                .map(BidResponseCreator::extIgiIgsToFledgeConfig)
+                .toList();
+    }
+
+    private static FledgeAuctionConfig extIgiIgsToFledgeConfig(ExtIgiIgs extIgiIgs) {
+        return FledgeAuctionConfig.builder()
+                .bidder(extIgiIgs.getExt().getBidder())
+                .adapter(extIgiIgs.getExt().getAdapter())
+                .impId(extIgiIgs.getImpId())
+                .config(extIgiIgs.getConfig())
+                .build();
+    }
+
+    private Stream<FledgeAuctionConfig> toDeprecatedFledgeConfigs(BidderResponseInfo bidderResponseInfo,
+                                                                  BidderAliases aliases,
+                                                                  List<Imp> imps) {
+
         return Optional.ofNullable(bidderResponseInfo.getSeatBid().getFledgeAuctionConfigs())
                 .stream()
                 .flatMap(Collection::stream)
                 .filter(fledgeConfig -> validateFledgeConfig(fledgeConfig, imps))
-                .map(fledgeConfig -> fledgeConfigWithBidder(fledgeConfig, bidderResponseInfo.getBidder()));
+                .map(fledgeConfig -> fledgeConfigWithBidder(fledgeConfig, bidderResponseInfo.getBidder(), aliases));
     }
 
     private boolean validateFledgeConfig(FledgeAuctionConfig fledgeAuctionConfig, List<Imp> imps) {
@@ -836,10 +986,13 @@ public class BidResponseCreator {
         return fledgeEnabled == ExtImpAuctionEnvironment.ON_DEVICE_IG_AUCTION_FLEDGE;
     }
 
-    private static FledgeAuctionConfig fledgeConfigWithBidder(FledgeAuctionConfig fledgeConfig, String bidderName) {
+    private FledgeAuctionConfig fledgeConfigWithBidder(FledgeAuctionConfig fledgeConfig,
+                                                       String bidder,
+                                                       BidderAliases aliases) {
+
         return fledgeConfig.toBuilder()
-                .bidder(bidderName)
-                .adapter(bidderName)
+                .bidder(bidder)
+                .adapter(bidderCatalog.resolveBaseBidder(aliases.resolveBidder(bidder)))
                 .build();
     }
 
@@ -1154,11 +1307,23 @@ public class BidResponseCreator {
         return responseTimeMillis;
     }
 
+    private static PaaFormat resolvePaaFormat(AuctionContext auctionContext) {
+        return Optional.of(auctionContext.getBidRequest())
+                .map(BidRequest::getExt)
+                .map(ExtRequest::getPrebid)
+                .map(ExtRequestPrebid::getPaaFormat)
+                .or(() -> Optional.ofNullable(auctionContext.getAccount())
+                        .map(Account::getAuction)
+                        .map(AccountAuctionConfig::getPaaFormat))
+                .orElse(PaaFormat.ORIGINAL);
+    }
+
     /**
      * Returns {@link BidResponse} based on list of {@link BidderResponse}s and {@link CacheServiceResult}.
      */
     private BidResponse toBidResponse(List<BidderResponseInfo> bidderResponseInfos,
                                       AuctionContext auctionContext,
+                                      BidderAliases aliases,
                                       ExtRequestTargeting targeting,
                                       BidRequestCacheInfo requestCacheInfo,
                                       CacheServiceResult cacheResult,
@@ -1189,6 +1354,7 @@ public class BidResponseCreator {
         final ExtBidResponse extBidResponse = toExtBidResponse(
                 bidderResponseInfos,
                 auctionContext,
+                aliases,
                 cacheResult,
                 videoStoredDataResult,
                 auctionTimestamp,
@@ -1799,5 +1965,8 @@ public class BidResponseCreator {
         } catch (IllegalArgumentException ignored) {
             return null;
         }
+    }
+
+    private record PaaResult(List<ExtIgi> igis, ExtBidResponseFledge fledge) {
     }
 }

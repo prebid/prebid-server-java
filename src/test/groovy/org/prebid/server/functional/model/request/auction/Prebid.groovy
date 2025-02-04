@@ -29,7 +29,7 @@ class Prebid {
     List<MultiBid> multibid
     Pbs pbs
     Server server
-    Map<BidderName, Map<String, Integer>> bidderParams
+    Map bidderParams
     ExtPrebidFloors floors
     Map passThrough
     Events events
@@ -40,6 +40,7 @@ class Prebid {
     PrebidModulesConfig modules
     PrebidAnalytics analytics
     StoredAuctionResponse storedAuctionResponse
+    PaaFormat paaFormat
 
     static class Channel {
 

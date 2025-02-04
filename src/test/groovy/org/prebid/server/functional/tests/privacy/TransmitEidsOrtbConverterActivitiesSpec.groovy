@@ -54,6 +54,7 @@ class TransmitEidsOrtbConverterActivitiesSpec extends PrivacyBaseSpec {
 
     def cleanupSpec() {
         privacyPbsContainerWithMultipleGvlWithElderOrtb.stop()
+        pbsServiceFactory.removeContainer(PBS_CONFIG + ["adapters.generic.ortb-version": "2.5"])
     }
 
     def "PBS should leave the original request with ext.eids data for elder ortb when requireConsent is enabled and #enforcementRequirements.purpose have any basic consent"() {

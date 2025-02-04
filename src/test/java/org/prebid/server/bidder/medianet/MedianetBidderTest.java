@@ -21,7 +21,8 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
+import org.prebid.server.proto.openrtb.ext.response.ExtIgi;
+import org.prebid.server.proto.openrtb.ext.response.ExtIgiIgs;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -215,13 +216,14 @@ public class MedianetBidderTest extends VertxTest {
         final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
 
         // then
+        final ExtIgiIgs igs = ExtIgiIgs.builder()
+                .impId("imp_id")
+                .config(mapper.createObjectNode().put("someKey", "someValue"))
+                .build();
+
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getBids()).hasSize(1);
-        assertThat(result.getFledgeAuctionConfigs())
-                .containsOnly(FledgeAuctionConfig.builder()
-                        .impId("imp_id")
-                        .config(mapper.createObjectNode().put("someKey", "someValue"))
-                        .build());
+        assertThat(result.getIgi()).containsExactly(ExtIgi.builder().igs(singletonList(igs)).build());
     }
 
     @Test
@@ -235,13 +237,14 @@ public class MedianetBidderTest extends VertxTest {
         final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
 
         // then
+        final ExtIgiIgs igs = ExtIgiIgs.builder()
+                .impId("imp_id")
+                .config(mapper.createObjectNode().put("someKey", "someValue"))
+                .build();
+
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getBids()).isEmpty();
-        assertThat(result.getFledgeAuctionConfigs())
-                .containsOnly(FledgeAuctionConfig.builder()
-                        .impId("imp_id")
-                        .config(mapper.createObjectNode().put("someKey", "someValue"))
-                        .build());
+        assertThat(result.getIgi()).containsExactly(ExtIgi.builder().igs(singletonList(igs)).build());
     }
 
     private static MedianetBidResponse sampleBidResponse(Function<Bid.BidBuilder,

@@ -7,5 +7,5 @@ import org.prebid.server.functional.model.ResponseModel
 class RawAuctionResponse implements ResponseModel {
 
     String responseBody
-    Map<String, String> headers
+    Map<String, List<String>> headers
 }
