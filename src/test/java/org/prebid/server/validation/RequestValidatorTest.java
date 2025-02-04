@@ -1195,7 +1195,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
+        assertThat(result.getWarnings()).hasSize(1)
                 .containsOnly("request.ext.prebid.aliases.alias refers to unknown bidder: fake");
     }
 
@@ -1213,7 +1213,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
+        assertThat(result.getWarnings()).hasSize(1)
                 .containsOnly("request.ext.prebid.aliases.alias refers to disabled bidder: appnexus");
     }
 
