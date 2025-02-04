@@ -49,6 +49,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mock.Strictness.LENIENT;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 public class ImpValidatorTest extends VertxTest {
@@ -1514,6 +1515,42 @@ public class ImpValidatorTest extends VertxTest {
                 .extracting(impExt -> impExt.get("prebid"))
                 .extracting(prebid -> prebid.get("bidder"))
                 .containsOnly(mapper.createObjectNode());
+    }
+
+    @Test
+    public void validateImpsShouldReturnWarningMessageAndDropBidderWhenBidderExtIsInvalidAndBidderIsHardcodedAlias()
+            throws ValidationException {
+
+        // given
+        final List<Imp> givenImps = singletonList(validImpBuilder()
+                .ext(mapper.valueToTree(singletonMap("prebid", singletonMap("bidder", singletonMap("someAlias", 0)))))
+                .build());
+        given(bidderParamValidator.validate(any(), any()))
+                .willReturn(new LinkedHashSet<>(asList("errorMessage1", "errorMessage2")));
+        given(bidderCatalog.isValidName("someAlias")).willReturn(true);
+
+        final List<String> debugMessages = new ArrayList<>();
+
+        // when
+        target.validateImps(givenImps, Map.of("someAlias", "rubicon"), debugMessages);
+
+        // then
+        assertThat(debugMessages)
+                .containsExactly(
+                        """
+                                WARNING: request.imp[0].ext.prebid.bidder.someAlias was dropped with a reason: \
+                                request.imp[0].ext.prebid.bidder.someAlias failed validation.
+                                errorMessage1
+                                errorMessage2""",
+                        "WARNING: request.imp[0].ext must contain at least one valid bidder");
+
+        assertThat(givenImps)
+                .extracting(Imp::getExt)
+                .extracting(impExt -> impExt.get("prebid"))
+                .extracting(prebid -> prebid.get("bidder"))
+                .containsOnly(mapper.createObjectNode());
+
+        verify(bidderParamValidator).validate(eq("someAlias"), any());
     }
 
     @Test

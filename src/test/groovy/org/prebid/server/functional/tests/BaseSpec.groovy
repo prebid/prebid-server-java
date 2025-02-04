@@ -49,7 +49,7 @@ abstract class BaseSpec extends Specification implements ObjectMapperWrapper {
     protected static final Map<String, String> EMPTY_CACHE_TTL_HOST_CONFIG = ["cache.banner-ttl-seconds": "",
                                                                             "cache.video-ttl-seconds" : ""]
 
-    protected final PrebidServerService defaultPbsService = pbsServiceFactory.getService([:])
+    protected static final PrebidServerService defaultPbsService = pbsServiceFactory.getService([:])
 
     def setupSpec() {
         prebidCache.setResponse()

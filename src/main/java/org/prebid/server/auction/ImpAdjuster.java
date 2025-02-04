@@ -1,6 +1,7 @@
 package org.prebid.server.auction;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Imp;
 import org.prebid.server.json.JacksonMapper;
@@ -15,6 +16,8 @@ import java.util.Optional;
 public class ImpAdjuster {
 
     private static final String IMP_EXT = "ext";
+    private static final String EXT_AE = "ae";
+    private static final String EXT_IGS = "igs";
     private static final String EXT_PREBID = "prebid";
     private static final String EXT_PREBID_BIDDER = "bidder";
     private static final String EXT_PREBID_IMP = "imp";
@@ -33,6 +36,8 @@ public class ImpAdjuster {
     }
 
     public Imp adjust(Imp originalImp, String bidder, BidderAliases bidderAliases, List<String> debugMessages) {
+        setAeParams(originalImp.getExt());
+
         final JsonNode impExtPrebidImp = bidderParamsFromImpExtPrebidImp(originalImp.getExt());
         if (impExtPrebidImp == null) {
             return originalImp;
@@ -62,6 +67,26 @@ public class ImpAdjuster {
                     .formatted(bidder, originalImp.getId(), e.getMessage()));
             removeImpExtPrebidImp(originalImp.getExt());
             return originalImp;
+        }
+    }
+
+    private void setAeParams(ObjectNode ext) {
+        final int extAe = Optional.ofNullable(ext)
+                .map(extNode -> extNode.get(EXT_AE))
+                .filter(JsonNode::isInt)
+                .map(JsonNode::asInt)
+                .orElse(-1);
+
+        final boolean extIgsAePresent = Optional.ofNullable(ext)
+                .map(extNode -> extNode.get(EXT_IGS))
+                .map(igsNode -> igsNode.get(EXT_AE))
+                .isPresent();
+
+        if (!extIgsAePresent && (extAe == 0 || extAe == 1)) {
+            final ObjectNode igsNode = jacksonMapper.mapper().createObjectNode()
+                    .set(EXT_AE, IntNode.valueOf(extAe));
+
+            ext.set(EXT_IGS, igsNode);
         }
     }
 

@@ -19,7 +19,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidMeta;
-import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
+import org.prebid.server.proto.openrtb.ext.response.ExtIgi;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
@@ -31,7 +31,6 @@ import java.util.Optional;
 
 public class CriteoBidder implements Bidder<BidRequest> {
 
-    private static final String BIDDER_NAME = "criteo";
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
@@ -55,9 +54,12 @@ public class CriteoBidder implements Bidder<BidRequest> {
     public CompositeBidderResponse makeBidderResponse(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final CriteoBidResponse bidResponse = mapper.decodeValue(
-                    httpCall.getResponse().getBody(),
-                    CriteoBidResponse.class);
-            return CompositeBidderResponse.withBids(extractBids(bidResponse), extractFledge(bidResponse));
+                    httpCall.getResponse().getBody(), CriteoBidResponse.class);
+
+            return CompositeBidderResponse.builder()
+                    .bids(extractBids(bidResponse))
+                    .igi(extractIgi(bidResponse))
+                    .build();
         } catch (DecodeException | PreBidException e) {
             return CompositeBidderResponse.withError(BidderError.badServerResponse(e.getMessage()));
         }
@@ -105,21 +107,11 @@ public class CriteoBidder implements Bidder<BidRequest> {
                 .build());
     }
 
-    private static List<FledgeAuctionConfig> extractFledge(CriteoBidResponse bidResponse) {
-        final List<FledgeAuctionConfig> fledgeConfigs = Optional.ofNullable(bidResponse)
+    private static List<ExtIgi> extractIgi(CriteoBidResponse bidResponse) {
+        return Optional.ofNullable(bidResponse)
                 .map(CriteoBidResponse::getExt)
                 .map(CriteoExtBidResponse::getIgi)
                 .filter(CollectionUtils::isNotEmpty)
-                .orElse(Collections.emptyList())
-                .stream()
-                .filter(igi -> CollectionUtils.isNotEmpty(igi.getIgs()) && igi.getIgs().getFirst() != null)
-                .map(igi -> FledgeAuctionConfig.builder()
-                        .impId(igi.getImpId())
-                        .bidder(BIDDER_NAME)
-                        .config(igi.getIgs().getFirst().getConfig())
-                        .build())
-                .toList();
-
-        return CollectionUtils.isEmpty(fledgeConfigs) ? null : fledgeConfigs;
+                .orElse(Collections.emptyList());
     }
 }

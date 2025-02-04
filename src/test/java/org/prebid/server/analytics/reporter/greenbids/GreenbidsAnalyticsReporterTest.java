@@ -39,6 +39,7 @@ import org.prebid.server.analytics.reporter.greenbids.model.Ortb2ImpResult;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.auction.model.BidRejectionTracker;
+import org.prebid.server.hooks.execution.model.ExecutionStatus;
 import org.prebid.server.hooks.execution.model.GroupExecutionOutcome;
 import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.hooks.execution.model.HookExecutionOutcome;
@@ -656,6 +657,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         final HookExecutionOutcome hookExecutionOutcome = HookExecutionOutcome.builder()
                 .hookId(HookId.of("greenbids-real-time-data", null))
                 .analyticsTags(tags)
+                .status(ExecutionStatus.success)
                 .build();
 
         final GroupExecutionOutcome groupExecutionOutcome = GroupExecutionOutcome.of(

@@ -50,6 +50,10 @@ class PBSUtils implements ObjectMapperWrapper {
         RandomStringUtils.randomAlphanumeric(stringLength)
     }
 
+    static Boolean getRandomBoolean() {
+        new Random().nextBoolean()
+    }
+
     static <T> T getRandomElement(List<T> list) {
         list[getRandomNumber(0, list.size() - 1)]
     }

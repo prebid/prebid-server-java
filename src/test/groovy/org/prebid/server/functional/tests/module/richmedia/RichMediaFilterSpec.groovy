@@ -35,15 +35,9 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
                 endpoints.values().first().stages.values().first().groups.first.hookSequenceSnakeCase = [new HookId(moduleCodeSnakeCase: PB_RICHMEDIA_FILTER.code, hookImplCodeSnakeCase: "${PB_RICHMEDIA_FILTER.code}-${ALL_PROCESSED_BID_RESPONSES.value}-hook")]
             })]).collectEntries { key, value -> [(key.toString()): value.toString()] }
 
-    private static PrebidServerService pbsServiceWithDisabledMediaFilter
-    private static PrebidServerService pbsServiceWithEnabledMediaFilter
-    private static PrebidServerService pbsServiceWithEnabledMediaFilterAndDifferentCaseStrategy
-
-    def setupSpec() {
-        pbsServiceWithDisabledMediaFilter = pbsServiceFactory.getService(DISABLED_FILTER_SPECIFIC_PATTERN_NAME_CONFIG)
-        pbsServiceWithEnabledMediaFilter = pbsServiceFactory.getService(SPECIFIC_PATTERN_NAME_CONFIG)
-        pbsServiceWithEnabledMediaFilterAndDifferentCaseStrategy = pbsServiceFactory.getService(SNAKE_SPECIFIC_PATTERN_NAME_CONFIG)
-    }
+    private static final PrebidServerService pbsServiceWithDisabledMediaFilter = pbsServiceFactory.getService(DISABLED_FILTER_SPECIFIC_PATTERN_NAME_CONFIG)
+    private static final PrebidServerService pbsServiceWithEnabledMediaFilter = pbsServiceFactory.getService(SPECIFIC_PATTERN_NAME_CONFIG)
+    private static final PrebidServerService pbsServiceWithEnabledMediaFilterAndDifferentCaseStrategy = pbsServiceFactory.getService(SNAKE_SPECIFIC_PATTERN_NAME_CONFIG)
 
     def cleanupSpec() {
         pbsServiceFactory.removeContainer(DISABLED_FILTER_SPECIFIC_PATTERN_NAME_CONFIG)
