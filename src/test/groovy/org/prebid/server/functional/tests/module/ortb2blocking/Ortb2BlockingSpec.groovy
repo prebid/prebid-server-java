@@ -48,18 +48,6 @@ import static org.prebid.server.functional.model.response.auction.MediaType.VIDE
 
 class Ortb2BlockingSpec extends ModuleBaseSpec {
 
-    private static final String WILDCARD = '*'
-    private static final Map IX_CONFIG = ["adapters.ix.enabled" : "true",
-                                          "adapters.ix.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
-    private static final Map PBS_CONFIG = getOrtb2BlockingSettings() + IX_CONFIG +
-            ['adapter-defaults.ortb.multiformat-supported': 'false']
-
-    private static final PrebidServerService pbsServiceWithEnabledOrtb2Blocking = pbsServiceFactory.getService(PBS_CONFIG)
-
-    def cleanupSpec() {
-        pbsServiceFactory.removeContainer(PBS_CONFIG)
-    }
-
     def "PBS should send original array ortb2 attribute to bidder when enforce blocking is disabled"() {
         given: "Default bid request with proper ortb attribute"
         def bidRequest = getBidRequestForOrtbAttribute(attributeName)
