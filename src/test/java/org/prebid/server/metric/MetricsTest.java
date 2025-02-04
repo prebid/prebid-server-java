@@ -48,6 +48,7 @@ public class MetricsTest {
     private static final String RUBICON = "rubicon";
     private static final String CONVERSANT = "conversant";
     private static final String ACCOUNT_ID = "accountId";
+    private static final String ACCOUNT_ID_1 = "accountId1";
     private static final String ANALYTIC_CODE = "analyticCode";
 
     private MetricRegistry metricRegistry;
@@ -615,37 +616,34 @@ public class MetricsTest {
     }
 
     @Test
-    public void updateAdapterRequestUnknownBidderMetricsShouldIncrementMetrics() {
+    public void updateUnknownBidderMetricsShouldIncrementMetrics() {
         // when
-        metrics.updateAdapterRequestUnknownBidderMetric(RUBICON, Account.empty(ACCOUNT_ID));
-        metrics.updateAdapterRequestUnknownBidderMetric(CONVERSANT, Account.empty(ACCOUNT_ID));
-        metrics.updateAdapterRequestUnknownBidderMetric(CONVERSANT, Account.empty(ACCOUNT_ID));
+        metrics.updateUnknownBidderMetric(Account.empty(ACCOUNT_ID));
+        metrics.updateUnknownBidderMetric(Account.empty(ACCOUNT_ID));
+        metrics.updateUnknownBidderMetric(Account.empty(ACCOUNT_ID_1));
 
         // then
-        assertThat(metricRegistry.counter("adapter.rubicon.requests.unknown_bidder").getCount()).isOne();
+        assertThat(metricRegistry.counter("unknown_bidder").getCount()).isEqualTo(3);
         assertThat(metricRegistry.counter(
-                "account.accountId.adapter.rubicon.requests.unknown_bidder").getCount()).isOne();
+                "account.accountId.requests.unknown_bidder").getCount()).isEqualTo(2);
         assertThat(metricRegistry.counter(
-                "adapter.conversant.requests.unknown_bidder").getCount()).isEqualTo(2);
-        assertThat(metricRegistry.counter(
-                "account.accountId.adapter.conversant.requests.unknown_bidder").getCount()).isEqualTo(2);
+                "account.accountId1.requests.unknown_bidder").getCount()).isEqualTo(1);
     }
 
     @Test
-    public void updateAdapterRequestDisabledBidderMetricsShouldIncrementMetrics() {
+    public void updateDisabledBidderMetricsShouldIncrementMetrics() {
         // when
-        metrics.updateAdapterRequestDisabledBidderMetric(RUBICON, Account.empty(ACCOUNT_ID));
-        metrics.updateAdapterRequestDisabledBidderMetric(CONVERSANT, Account.empty(ACCOUNT_ID));
-        metrics.updateAdapterRequestDisabledBidderMetric(CONVERSANT, Account.empty(ACCOUNT_ID));
+        metrics.updateDisabledBidderMetric(Account.empty(ACCOUNT_ID));
+        metrics.updateDisabledBidderMetric(Account.empty(ACCOUNT_ID));
+        metrics.updateDisabledBidderMetric(Account.empty(ACCOUNT_ID_1));
 
         // then
-        assertThat(metricRegistry.counter("adapter.rubicon.requests.disabled_bidder").getCount()).isOne();
         assertThat(metricRegistry.counter(
-                "account.accountId.adapter.rubicon.requests.disabled_bidder").getCount()).isOne();
+                "disabled_bidder").getCount()).isEqualTo(3);
         assertThat(metricRegistry.counter(
-                "adapter.conversant.requests.disabled_bidder").getCount()).isEqualTo(2);
+                "account.accountId.requests.disabled_bidder").getCount()).isEqualTo(2);
         assertThat(metricRegistry.counter(
-                "account.accountId.adapter.conversant.requests.disabled_bidder").getCount()).isEqualTo(2);
+                "account.accountId1.requests.disabled_bidder").getCount()).isEqualTo(1);
     }
 
     @Test
@@ -999,8 +997,8 @@ public class MetricsTest {
         metrics.updateAdapterRequestNobidMetrics(RUBICON, Account.empty(ACCOUNT_ID));
         metrics.updateAdapterRequestGotbidsMetrics(RUBICON, Account.empty(ACCOUNT_ID));
         metrics.updateAdapterBidMetrics(RUBICON, Account.empty(ACCOUNT_ID), 1234L, true, "banner");
-        metrics.updateAdapterRequestDisabledBidderMetric(RUBICON, Account.empty(ACCOUNT_ID));
-        metrics.updateAdapterRequestUnknownBidderMetric(RUBICON, Account.empty(ACCOUNT_ID));
+        metrics.updateDisabledBidderMetric(Account.empty(ACCOUNT_ID));
+        metrics.updateUnknownBidderMetric(Account.empty(ACCOUNT_ID));
 
         // then
         assertThat(metricRegistry.counter("account.accountId.requests").getCount()).isZero();
@@ -1030,8 +1028,8 @@ public class MetricsTest {
         metrics.updateAdapterRequestNobidMetrics(RUBICON, Account.empty(ACCOUNT_ID));
         metrics.updateAdapterRequestGotbidsMetrics(RUBICON, Account.empty(ACCOUNT_ID));
         metrics.updateAdapterBidMetrics(RUBICON, Account.empty(ACCOUNT_ID), 1234L, true, "banner");
-        metrics.updateAdapterRequestDisabledBidderMetric(RUBICON, Account.empty(ACCOUNT_ID));
-        metrics.updateAdapterRequestUnknownBidderMetric(RUBICON, Account.empty(ACCOUNT_ID));
+        metrics.updateDisabledBidderMetric(Account.empty(ACCOUNT_ID));
+        metrics.updateUnknownBidderMetric(Account.empty(ACCOUNT_ID));
 
         // then
         assertThat(metricRegistry.counter("account.accountId.requests").getCount()).isOne();
@@ -1061,8 +1059,8 @@ public class MetricsTest {
         metrics.updateAdapterRequestNobidMetrics(RUBICON, Account.empty(ACCOUNT_ID));
         metrics.updateAdapterRequestGotbidsMetrics(RUBICON, Account.empty(ACCOUNT_ID));
         metrics.updateAdapterBidMetrics(RUBICON, Account.empty(ACCOUNT_ID), 1234L, true, "banner");
-        metrics.updateAdapterRequestDisabledBidderMetric(RUBICON, Account.empty(ACCOUNT_ID));
-        metrics.updateAdapterRequestUnknownBidderMetric(RUBICON, Account.empty(ACCOUNT_ID));
+        metrics.updateDisabledBidderMetric(Account.empty(ACCOUNT_ID));
+        metrics.updateUnknownBidderMetric(Account.empty(ACCOUNT_ID));
 
         // then
         assertThat(metricRegistry.counter("account.accountId.requests").getCount()).isOne();
@@ -1079,9 +1077,9 @@ public class MetricsTest {
         assertThat(metricRegistry.counter("account.accountId.adapter.rubicon.bids_received").getCount())
                 .isEqualTo(1);
         assertThat(metricRegistry.counter(
-                "account.accountId.adapter.rubicon.requests.unknown_bidder").getCount()).isEqualTo(1);
+                "unknown_bidder").getCount()).isEqualTo(1);
         assertThat(metricRegistry.counter(
-                "account.accountId.adapter.rubicon.requests.disabled_bidder").getCount()).isEqualTo(1);
+                "account.accountId.requests.disabled_bidder").getCount()).isEqualTo(1);
     }
 
     @Test

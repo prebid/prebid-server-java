@@ -336,19 +336,19 @@ public class Metrics extends UpdatableMetrics {
         forAdapter(bidder).request().incCounter(errorMetric);
     }
 
-    public void updateAdapterRequestDisabledBidderMetric(String bidder, Account account) {
-        forAdapter(bidder).request().incCounter(MetricName.disabled_bidder);
+    public void updateDisabledBidderMetric(Account account) {
+        incCounter(MetricName.disabled_bidder);
         if (accountMetricsVerbosityResolver.forAccount(account)
                 .isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
-            forAccount(account.getId()).adapter().forAdapter(bidder).request().incCounter(MetricName.disabled_bidder);
+            forAccount(account.getId()).requests().incCounter(MetricName.disabled_bidder);
         }
     }
 
-    public void updateAdapterRequestUnknownBidderMetric(String bidder, Account account) {
-        forAdapter(bidder).request().incCounter(MetricName.unknown_bidder);
+    public void updateUnknownBidderMetric(Account account) {
+        incCounter(MetricName.unknown_bidder);
         if (accountMetricsVerbosityResolver.forAccount(account)
                 .isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
-            forAccount(account.getId()).adapter().forAdapter(bidder).request().incCounter(MetricName.unknown_bidder);
+            forAccount(account.getId()).requests().incCounter(MetricName.unknown_bidder);
         }
     }
 

@@ -84,7 +84,7 @@ public class RequestValidatorTest extends VertxTest {
         given(bidderCatalog.isValidName(eq(RUBICON))).willReturn(true);
         given(bidderCatalog.isActive(eq(RUBICON))).willReturn(true);
 
-        target = new RequestValidator(bidderCatalog, impValidator, metrics, jacksonMapper, 0.01, false);
+        target = new RequestValidator(bidderCatalog, impValidator, metrics, jacksonMapper, 0.01, false, true, true);
     }
 
     @Test
@@ -356,7 +356,7 @@ public class RequestValidatorTest extends VertxTest {
     @Test
     public void validateShouldFailWhenDoohSiteAndAppArePresentInRequestAndStrictValidationIsEnabled() {
         // when
-        target = new RequestValidator(bidderCatalog, impValidator, metrics, jacksonMapper, 0.01, true);
+        target = new RequestValidator(bidderCatalog, impValidator, metrics, jacksonMapper, 0.01, true, true, true);
         final BidRequest invalidRequest = validBidRequestBuilder()
                 .dooh(Dooh.builder().build())
                 .app(App.builder().build())
@@ -374,7 +374,7 @@ public class RequestValidatorTest extends VertxTest {
     @Test
     public void validateShouldFailWhenSiteAndAppArePresentInRequestAndStrictValidationIsEnabled() {
         // when
-        target = new RequestValidator(bidderCatalog, impValidator, metrics, jacksonMapper, 0.01, true);
+        target = new RequestValidator(bidderCatalog, impValidator, metrics, jacksonMapper, 0.01, true, true, true);
         final BidRequest invalidRequest = validBidRequestBuilder()
                 .app(App.builder().build())
                 .site(Site.builder().build())
@@ -391,7 +391,7 @@ public class RequestValidatorTest extends VertxTest {
     @Test
     public void validateShouldFailWhenDoohAndSiteArePresentInRequestAndStrictValidationIsEnabled() {
         // when
-        target = new RequestValidator(bidderCatalog, impValidator, metrics, jacksonMapper, 0.01, true);
+        target = new RequestValidator(bidderCatalog, impValidator, metrics, jacksonMapper, 0.01, true, true, true);
         final BidRequest invalidRequest = validBidRequestBuilder()
                 .dooh(Dooh.builder().build())
                 .site(Site.builder().build())
@@ -408,7 +408,7 @@ public class RequestValidatorTest extends VertxTest {
     @Test
     public void validateShouldFailWhenDoohAndAppArePresentInRequestAndStrictValidationIsEnabled() {
         // when
-        target = new RequestValidator(bidderCatalog, impValidator, metrics, jacksonMapper, 0.01, true);
+        target = new RequestValidator(bidderCatalog, impValidator, metrics, jacksonMapper, 0.01, true, true, true);
         final BidRequest invalidRequest = validBidRequestBuilder()
                 .dooh(Dooh.builder().build())
                 .app(App.builder().build())
@@ -1184,7 +1184,7 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationMessageWhenAliasPointOnNotValidBidderName() {
+    public void validateShouldReturnValidationErrorMessageWhenAliasPointOnNotValidBidderName() {
         // given
         final ExtRequest ext = ExtRequest.of(ExtRequestPrebid.builder()
                 .aliases(singletonMap("alias", "fake"))
@@ -1195,12 +1195,29 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.ext.prebid.aliases.alias refers to unknown bidder: fake");
+    }
+
+    @Test
+    public void validateShouldReturnValidationWarningMessageWhenAliasPointOnNotValidBidderName() {
+        // given
+        final ExtRequest ext = ExtRequest.of(ExtRequestPrebid.builder()
+                .aliases(singletonMap("alias", "fake"))
+                .build());
+        final BidRequest bidRequest = validBidRequestBuilder().ext(ext).build();
+
+        // when
+        target = new RequestValidator(bidderCatalog, impValidator, metrics, jacksonMapper, 0.01, false, true, false);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
+
+        // then
         assertThat(result.getWarnings()).hasSize(1)
                 .containsOnly("request.ext.prebid.aliases.alias refers to unknown bidder: fake");
     }
 
     @Test
-    public void validateShouldReturnValidationMessageWhenAliasPointOnDisabledBidder() {
+    public void validateShouldReturnValidationErrorMessageWhenAliasPointOnDisabledBidder() {
         // given
         final ExtRequest ext = ExtRequest.of(ExtRequestPrebid.builder()
                 .aliases(singletonMap("alias", "appnexus"))
@@ -1210,6 +1227,25 @@ public class RequestValidatorTest extends VertxTest {
         given(bidderCatalog.isActive("appnexus")).willReturn(false);
 
         // when
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.ext.prebid.aliases.alias refers to disabled bidder: appnexus");
+    }
+
+    @Test
+    public void validateShouldReturnValidationWarningMessageWhenAliasPointOnDisabledBidder() {
+        // given
+        final ExtRequest ext = ExtRequest.of(ExtRequestPrebid.builder()
+                .aliases(singletonMap("alias", "appnexus"))
+                .build());
+        final BidRequest bidRequest = validBidRequestBuilder().ext(ext).build();
+        given(bidderCatalog.isValidName("appnexus")).willReturn(true);
+        given(bidderCatalog.isActive("appnexus")).willReturn(false);
+
+        // when
+        target = new RequestValidator(bidderCatalog, impValidator, metrics, jacksonMapper, 0.01, false, false, true);
         final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then

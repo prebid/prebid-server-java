@@ -75,6 +75,8 @@ public class RequestValidator {
     private final JacksonMapper mapper;
     private final double logSamplingRate;
     private final boolean enabledStrictAppSiteDoohValidation;
+    private final boolean failOnDisabledBidders;
+    private final boolean failOnUnknownBidders;
 
     /**
      * Constructs a RequestValidator that will use the BidderParamValidator passed in order to validate all critical
@@ -84,7 +86,9 @@ public class RequestValidator {
                             ImpValidator impValidator, Metrics metrics,
                             JacksonMapper mapper,
                             double logSamplingRate,
-                            boolean enabledStrictAppSiteDoohValidation) {
+                            boolean enabledStrictAppSiteDoohValidation,
+                            boolean failOnDisabledBidders,
+                            boolean failOnUnknownBidders) {
 
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.impValidator = Objects.requireNonNull(impValidator);
@@ -92,6 +96,8 @@ public class RequestValidator {
         this.mapper = Objects.requireNonNull(mapper);
         this.logSamplingRate = logSamplingRate;
         this.enabledStrictAppSiteDoohValidation = enabledStrictAppSiteDoohValidation;
+        this.failOnDisabledBidders = failOnDisabledBidders;
+        this.failOnUnknownBidders = failOnUnknownBidders;
     }
 
     /**
@@ -514,13 +520,25 @@ public class RequestValidator {
             final String alias = aliasToBidder.getKey();
             final String coreBidder = aliasToBidder.getValue();
             if (!bidderCatalog.isValidName(coreBidder)) {
-                warnings.add(
-                        "request.ext.prebid.aliases.%s refers to unknown bidder: %s".formatted(alias, coreBidder));
-                metrics.updateAdapterRequestUnknownBidderMetric(coreBidder, account);
+                metrics.updateUnknownBidderMetric(account);
+
+                final String message = String.format("request.ext.prebid.aliases.%s refers to unknown bidder: %s",
+                        alias, coreBidder);
+                if (failOnUnknownBidders) {
+                    throw new ValidationException(message);
+                } else {
+                    warnings.add(message);
+                }
             } else if (!bidderCatalog.isActive(coreBidder)) {
-                warnings.add(
-                        "request.ext.prebid.aliases.%s refers to disabled bidder: %s".formatted(alias, coreBidder));
-                metrics.updateAdapterRequestDisabledBidderMetric(coreBidder, account);
+                metrics.updateDisabledBidderMetric(account);
+
+                final String message = String.format("request.ext.prebid.aliases.%s refers to disabled bidder: %s",
+                        alias, coreBidder);
+                if (failOnDisabledBidders) {
+                    throw new ValidationException(message);
+                } else {
+                    warnings.add(message);
+                }
             }
 
             if (alias.equals(coreBidder)) {

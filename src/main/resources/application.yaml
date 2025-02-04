@@ -158,6 +158,8 @@ currency-converter:
 settings:
   generate-storedrequest-bidrequest-id: false
   enforce-valid-account: false
+  fail-on-unknown-bidders: true
+  fail-on-disabled-bidders: true
   database:
     pool-size: 20
     idle-connection-timeout: 300

@@ -302,6 +302,10 @@ Preconfigured application settings can be obtained from multiple data sources co
 
 Warning! Application will not start in case of no one data source is defined and you'll get an exception in logs.
 
+For requests validation mode available next options:
+- `settings.fail-on-unknown-bidders` - fail with validation error or just make warning for unknown bidders.
+- `settings.fail-on-disabled-bidders` - fail with validation error or just make warning for disabled bidders.
+
 For filesystem data source available next options:
 - `settings.filesystem.settings-filename` - location of file settings.
 - `settings.filesystem.stored-requests-dir` - directory with stored requests.
