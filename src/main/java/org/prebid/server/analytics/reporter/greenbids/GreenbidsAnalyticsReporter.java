@@ -43,7 +43,6 @@ import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.hooks.execution.model.HookExecutionOutcome;
 import org.prebid.server.hooks.execution.model.Stage;
 import org.prebid.server.hooks.execution.model.StageExecutionOutcome;
-import org.prebid.server.hooks.v1.analytics.Activity;
 import org.prebid.server.hooks.v1.analytics.Result;
 import org.prebid.server.hooks.v1.analytics.Tags;
 import org.prebid.server.json.EncodeException;
@@ -66,8 +65,6 @@ import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 import java.time.Clock;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -239,17 +236,15 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
     }
 
     private Map<String, Ortb2ImpExtResult> parseAnalyticsResult(Result result) {
-        final ObjectNode valuesNode = result.values();
-
-        if (valuesNode == null || !valuesNode.fieldNames().hasNext()) {
-            return Collections.emptyMap();
-        }
-
-        return Streams.stream(valuesNode.fields())
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        entry -> parseOrtb2ImpExtResult(entry.getValue()),
-                        (existing, replacement) -> existing));
+        return Optional.ofNullable(result)
+                .map(Result::values)
+                .filter(valuesNode -> valuesNode.fieldNames().hasNext())
+                .map(valuesNode -> Streams.stream(valuesNode.fields())
+                        .collect(Collectors.toMap(
+                                Map.Entry::getKey,
+                                entry -> parseOrtb2ImpExtResult(entry.getValue()),
+                                (existing, replacement) -> existing)))
+                .orElseGet(Collections::emptyMap);
     }
 
     private Ortb2ImpExtResult parseOrtb2ImpExtResult(JsonNode node) {

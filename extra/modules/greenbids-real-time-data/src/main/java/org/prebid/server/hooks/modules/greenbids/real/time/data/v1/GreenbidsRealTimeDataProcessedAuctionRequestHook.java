@@ -189,34 +189,31 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
 
     private List<Result> toResults(List<AnalyticsResult> analyticsResults) {
         return analyticsResults.stream()
-                .flatMap(analyticsResult -> {
-                    Map<String, Ortb2ImpExtResult> values = analyticsResult.getValues();
+                .flatMap(analyticsResult -> toResult(analyticsResult).stream())
+                .toList();
+    }
 
-                    if (values == null || values.isEmpty()) {
-                        return java.util.stream.Stream.empty();
-                    }
-
-                    return values.entrySet().stream().map(entry -> {
-                        String impId = entry.getKey();
-                        Ortb2ImpExtResult ortb2ImpExtResult = entry.getValue();
-                        ObjectNode objectNode = toObjectNode(impId, ortb2ImpExtResult);
-
-                        return (Result) ResultImpl.of(
-                                analyticsResult.getStatus(),
-                                objectNode,
-                                AppliedToImpl.builder()
-                                        .impIds(Collections.singletonList(impId))
-                                        .build());
-                    });
+    private List<Result> toResult(AnalyticsResult analyticsResult) {
+        return analyticsResult.getValues().entrySet().stream()
+                .map(entry -> {
+                    final String impId = entry.getKey();
+                    final Ortb2ImpExtResult ortb2ImpExtResult = entry.getValue();
+                    final ObjectNode objectNode = toObjectNode(impId, ortb2ImpExtResult);
+                    return (Result) ResultImpl.of(
+                            analyticsResult.getStatus(),
+                            objectNode,
+                            AppliedToImpl.builder()
+                                    .impIds(Collections.singletonList(impId))
+                                    .build());
                 })
                 .toList();
     }
 
     private ObjectNode toObjectNode(String key, Ortb2ImpExtResult value) {
-        ObjectNode root = mapper.createObjectNode();
+        ObjectNode objectNode = mapper.createObjectNode();
         JsonNode node = value != null ? mapper.valueToTree(value) : null;
-        root.set(key, node);
-        return root;
+        objectNode.set(key, node);
+        return objectNode;
     }
 
     @Override
