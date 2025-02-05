@@ -1778,9 +1778,10 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
     def "PBS cookie sync should process rule when geo doesn't intersection"() {
         given: "Pbs config with geo location"
-        def prebidServerService = pbsServiceFactory.getService(GENERAL_PRIVACY_CONFIG + GEO_LOCATION +
+        def pbsConfig = GENERAL_PRIVACY_CONFIG + GEO_LOCATION +
                 ["geolocation.configurations.geo-info.[0].country": countyConfig,
-                 "geolocation.configurations.geo-info.[0].region" : regionConfig])
+                 "geolocation.configurations.geo-info.[0].region" : regionConfig]
+        def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Cookie sync request with account connection"
         def accountId = PBSUtils.randomNumber as String
@@ -1819,6 +1820,9 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def metrics = prebidServerService.sendCollectedMetricsRequest()
         assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(cookieSyncRequest, SYNC_USER)] == 1
 
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
+
         where:
         countyConfig  | regionConfig          | conditionGeo
         null          | null                  | ["$USA.ISOAlpha3".toString()]
@@ -1830,9 +1834,10 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
     def "PBS setuid should process rule when geo doesn't intersection"() {
         given: "Pbs config with geo location"
-        def prebidServerService = pbsServiceFactory.getService(GENERAL_PRIVACY_CONFIG + GEO_LOCATION +
+        def pbsConfig = GENERAL_PRIVACY_CONFIG + GEO_LOCATION +
                 ["geolocation.configurations.[0].geo-info.country": countyConfig,
-                 "geolocation.configurations.[0].geo-info.region" : regionConfig])
+                 "geolocation.configurations.[0].geo-info.region" : regionConfig]
+        def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default set uid request"
         def accountId = PBSUtils.randomString
@@ -1875,6 +1880,9 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def metrics = prebidServerService.sendCollectedMetricsRequest()
         assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(setuidRequest, SYNC_USER)] == 1
 
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
+
         where:
         countyConfig  | regionConfig          | conditionGeo
         null          | null                  | [USA.ISOAlpha3]
@@ -1885,9 +1893,10 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
     def "PBS cookie sync should disallowed rule when device.geo intersection"() {
         given: "Pbs config with geo location"
-        def prebidServerService = pbsServiceFactory.getService(GENERAL_PRIVACY_CONFIG + GEO_LOCATION +
+        def pbsConfig = GENERAL_PRIVACY_CONFIG + GEO_LOCATION +
                 ["geolocation.configurations.[0].geo-info.country": countyConfig,
-                 "geolocation.configurations.[0].geo-info.region" : regionConfig])
+                 "geolocation.configurations.[0].geo-info.region" : regionConfig]
+        def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Cookie sync request with account connection"
         def accountId = PBSUtils.randomNumber as String
@@ -1928,6 +1937,9 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(cookieSyncRequest, SYNC_USER)] == 1
         assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(cookieSyncRequest, SYNC_USER)] == 1
 
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
+
         where:
         countyConfig  | regionConfig         | conditionGeo
         USA.ISOAlpha3 | null                 | [USA.ISOAlpha3]
@@ -1936,9 +1948,10 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
     def "PBS setuid should disallowed rule when device.geo intersection"() {
         given: "Pbs config with geo location"
-        def prebidServerService = pbsServiceFactory.getService(GENERAL_PRIVACY_CONFIG + GEO_LOCATION +
+        def pbsConfig = GENERAL_PRIVACY_CONFIG + GEO_LOCATION +
                 ["geolocation.configurations.[0].geo-info.country": countyConfig,
-                 "geolocation.configurations.[0].geo-info.region" : regionConfig])
+                 "geolocation.configurations.[0].geo-info.region" : regionConfig]
+        def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default set uid request"
         def accountId = PBSUtils.randomString
@@ -1978,6 +1991,9 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         assert exception.statusCode == INVALID_STATUS_CODE
         assert exception.responseBody == INVALID_STATUS_MESSAGE
 
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
+
         where:
         countyConfig  | regionConfig         | conditionGeo
         USA.ISOAlpha3 | null                 | [USA.ISOAlpha3]
@@ -1986,9 +2002,10 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
     def "PBS cookie sync should fetch geo once when gpp sync user and account require geo look up"() {
         given: "Pbs config with geo location"
-        def prebidServerService = pbsServiceFactory.getService(GENERAL_PRIVACY_CONFIG + GEO_LOCATION +
+        def pbsConfig = GENERAL_PRIVACY_CONFIG + GEO_LOCATION +
                 ["geolocation.configurations.[0].geo-info.country": USA.ISOAlpha3,
-                 "geolocation.configurations.[0].geo-info.region" : ALABAMA.abbreviation])
+                 "geolocation.configurations.[0].geo-info.region" : ALABAMA.abbreviation]
+        def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Cookie sync request with account connection"
         def accountId = PBSUtils.randomNumber as String
@@ -2034,5 +2051,8 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         and: "Metrics processed across activities should be updated"
         assert metrics[GEO_LOCATION_REQUESTS] == 1
         assert metrics[GEO_LOCATION_SUCCESSFUL] == 1
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
     }
 }

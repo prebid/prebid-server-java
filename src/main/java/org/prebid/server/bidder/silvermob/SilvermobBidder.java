@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
@@ -98,7 +99,7 @@ public class SilvermobBidder implements Bidder<BidRequest> {
     }
 
     private static Boolean isInvalidHost(String host) {
-        return !StringUtils.equalsAny(host, "eu", "us", "apac");
+        return !StringUtils.equalsAny(host, "eu", "us", "apac", "global");
     }
 
     private String resolveEndpoint(ExtImpSilvermob extImp) {
@@ -142,30 +143,31 @@ public class SilvermobBidder implements Bidder<BidRequest> {
         if (CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             throw new PreBidException("Empty SeatBid array");
         }
-        return bidsFromResponse(bidResponse, httpCall.getRequest().getPayload());
+        return bidsFromResponse(bidResponse);
     }
 
-    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse, BidRequest bidRequest) {
+    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, getBidType(bid), bidResponse.getCur()))
                 .toList();
     }
 
-    private static BidType getBidType(String impId, List<Imp> imps) {
-        for (Imp imp : imps) {
-            if (imp.getId().equals(impId)) {
-                if (imp.getVideo() != null) {
-                    return BidType.video;
-                }
-                if (imp.getXNative() != null) {
-                    return BidType.xNative;
-                }
-            }
+    private static BidType getBidType(Bid bid) {
+        final Integer markupType = bid.getMtype();
+        if (markupType == null) {
+            throw new PreBidException("Missing MType for bid: " + bid.getId());
         }
-        return BidType.banner;
+
+        return switch (markupType) {
+            case 1 -> BidType.banner;
+            case 2 -> BidType.video;
+            case 4 -> BidType.xNative;
+            default -> throw new PreBidException("Unable to fetch mediaType in multi-format: %s"
+                    .formatted(bid.getImpid()));
+        };
     }
 }

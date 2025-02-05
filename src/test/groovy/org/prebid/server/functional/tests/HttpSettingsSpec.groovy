@@ -105,10 +105,11 @@ class HttpSettingsSpec extends BaseSpec {
 
     def "PBS should take account information from http data source on setuid request"() {
         given: "Pbs config with adapters.generic.usersync.redirect.*"
-        def prebidServerService = pbsServiceFactory.getService(PbsConfig.httpSettingsConfig +
+        def pbsConfig = PbsConfig.httpSettingsConfig +
                 ["adapters.generic.usersync.redirect.url"            : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
                  "adapters.generic.usersync.redirect.support-cors"   : "false",
-                 "adapters.generic.usersync.redirect.format-override": "blank"])
+                 "adapters.generic.usersync.redirect.format-override": "blank"]
+        def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Get default SetuidRequest and set account, gdpr=1 "
         def request = SetuidRequest.defaultSetuidRequest
@@ -123,14 +124,17 @@ class HttpSettingsSpec extends BaseSpec {
         when: "PBS processes setuid request"
         def response = prebidServerService.sendSetUidRequest(request, uidsCookie)
 
-        then: "Response should contain uids cookie"
-        assert !response.uidsCookie.tempUIDs
+        then: "Response should contain tempUIDs cookie"
         assert !response.uidsCookie.uids
+        assert response.uidsCookie.tempUIDs
         assert response.responseBody ==
                 ResourceUtil.readByteArrayFromClassPath("org/prebid/server/functional/tracking-pixel.png")
 
         and: "There should be only one account request"
         assert httpSettings.getRequestCount(request.account) == 1
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS should take account information from http data source on vtrack request"() {

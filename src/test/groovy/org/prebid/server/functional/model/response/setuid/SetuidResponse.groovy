@@ -6,7 +6,7 @@ import org.prebid.server.functional.model.UidsCookie
 @ToString(includeNames = true, ignoreNulls = true)
 class SetuidResponse {
 
-    Map<String, String> headers
+    Map<String, List<String>> headers
     UidsCookie uidsCookie
     Byte[] responseBody
 }

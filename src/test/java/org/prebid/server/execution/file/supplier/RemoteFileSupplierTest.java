@@ -125,6 +125,7 @@ public class RemoteFileSupplierTest {
         final Future<String> result = target.get();
 
         // then
+        verify(tmpFile).close();
         FutureAssertion.assertThat(result).isFailed()
                 .hasMessage("Got unexpected response from server with status code 204 and message null");
     }
@@ -147,7 +148,6 @@ public class RemoteFileSupplierTest {
         final Future<String> result = target.get();
 
         // then
-        verify(tmpFile).close();
         assertThat(result.result()).isEqualTo(SAVE_PATH);
     }
 
@@ -178,7 +178,6 @@ public class RemoteFileSupplierTest {
         final Future<String> result = target.get();
 
         // then
-        verify(tmpFile).close();
         assertThat(result.result()).isEqualTo(SAVE_PATH);
     }
 
