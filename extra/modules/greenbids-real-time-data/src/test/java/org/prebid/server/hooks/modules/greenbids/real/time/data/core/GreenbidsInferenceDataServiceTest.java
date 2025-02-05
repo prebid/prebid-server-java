@@ -74,7 +74,7 @@ public class GreenbidsInferenceDataServiceTest {
                 .banner(banner)
                 .build();
         final Device device = givenDevice(identity());
-        final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device, null);
+        final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device);
 
         final CountryResponse countryResponse = mock(CountryResponse.class);
 
@@ -115,7 +115,7 @@ public class GreenbidsInferenceDataServiceTest {
                 .banner(banner)
                 .build();
         final Device device = givenDevice(identity(), "FRA");
-        final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device, null);
+        final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device);
 
         final ZonedDateTime timestamp = ZonedDateTime.now(ZoneId.of("UTC"));
         final Integer expectedHourBucket = timestamp.getHour();
@@ -152,7 +152,7 @@ public class GreenbidsInferenceDataServiceTest {
                 .banner(banner)
                 .build();
         final Device device = givenDeviceWithoutIp(identity());
-        final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device, null);
+        final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device);
 
         final ZonedDateTime timestamp = ZonedDateTime.now(ZoneId.of("UTC"));
         final Integer expectedHourBucket = timestamp.getHour();
@@ -188,7 +188,7 @@ public class GreenbidsInferenceDataServiceTest {
                 .banner(banner)
                 .build();
         final Device device = givenDevice(identity());
-        final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device, null);
+        final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device);
 
         when(databaseReader.country(any(InetAddress.class))).thenThrow(new GeoIp2Exception("GeoIP failure"));
 

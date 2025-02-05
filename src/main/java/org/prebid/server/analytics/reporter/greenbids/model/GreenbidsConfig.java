@@ -4,10 +4,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Value;
 
 @Value(staticConstructor = "of")
-public class GreenbidsPrebidExt {
+public class GreenbidsConfig {
 
     String pbuid;
 
-    @JsonProperty("greenbidsSampling")
+    @JsonProperty("greenbids-sampling")
     Double greenbidsSampling;
 }

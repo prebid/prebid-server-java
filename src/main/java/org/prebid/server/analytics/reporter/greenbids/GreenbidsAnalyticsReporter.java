@@ -17,6 +17,7 @@ import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.AmpEvent;
 import org.prebid.server.analytics.model.AuctionEvent;
@@ -26,7 +27,7 @@ import org.prebid.server.analytics.reporter.greenbids.model.ExtBanner;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsAdUnit;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsAnalyticsProperties;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsBid;
-import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsPrebidExt;
+import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsConfig;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsSource;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsUnifiedCode;
 import org.prebid.server.analytics.reporter.greenbids.model.MediaTypes;
@@ -54,6 +55,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredRequest;
 import org.prebid.server.proto.openrtb.ext.response.seatnonbid.NonBid;
 import org.prebid.server.proto.openrtb.ext.response.seatnonbid.SeatNonBid;
+import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.version.PrebidVersionProvider;
 import org.prebid.server.vertx.httpclient.HttpClient;
@@ -118,9 +121,10 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
             return Future.failedFuture(new PreBidException("Bid response or auction context cannot be null"));
         }
 
-        final GreenbidsPrebidExt greenbidsBidRequestExt = parseBidRequestExt(auctionContext.getBidRequest());
+        final GreenbidsConfig greenbidsConfig = Optional.ofNullable(parseBidRequestExt(auctionContext))
+                .orElseGet(() -> parseAccountConfig(auctionContext.getAccount()));
 
-        if (greenbidsBidRequestExt == null) {
+        if (greenbidsConfig == null) {
             return Future.succeededFuture();
         }
 
@@ -131,7 +135,9 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
 
         final String greenbidsId = greenbidsId(analyticsResultFromAnalyticsTag);
 
-        if (!isSampled(greenbidsBidRequestExt.getGreenbidsSampling(), greenbidsId)) {
+        final double samplingRate = resolveSamplingRate(greenbidsConfig);
+
+        if (!isSampled(samplingRate, greenbidsId)) {
             return Future.succeededFuture();
         }
 
@@ -142,8 +148,9 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                     bidResponse,
                     greenbidsId,
                     billingId,
-                    greenbidsBidRequestExt,
-                    analyticsResultFromAnalyticsTag);
+                    greenbidsConfig,
+                    analyticsResultFromAnalyticsTag,
+                    samplingRate);
             commonMessageJson = jacksonMapper.encodeToString(commonMessage);
         } catch (PreBidException e) {
             return Future.failedFuture(e);
@@ -170,14 +177,15 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
         return responseFuture.compose(this::processAnalyticServerResponse);
     }
 
-    private GreenbidsPrebidExt parseBidRequestExt(BidRequest bidRequest) {
-        return Optional.ofNullable(bidRequest)
+    private GreenbidsConfig parseBidRequestExt(AuctionContext auctionContext) {
+        return Optional.ofNullable(auctionContext)
+                .map(AuctionContext::getBidRequest)
                 .map(BidRequest::getExt)
                 .map(ExtRequest::getPrebid)
                 .map(ExtRequestPrebid::getAnalytics)
                 .filter(this::isNotEmptyObjectNode)
                 .map(analytics -> (ObjectNode) analytics.get(BID_REQUEST_ANALYTICS_EXTENSION_NAME))
-                .map(this::toGreenbidsPrebidExt)
+                .map(this::toGreenbidsConfig)
                 .orElse(null);
     }
 
@@ -185,9 +193,18 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
         return analytics != null && analytics.isObject() && !analytics.isEmpty();
     }
 
-    private GreenbidsPrebidExt toGreenbidsPrebidExt(ObjectNode adapterNode) {
+    private GreenbidsConfig parseAccountConfig(Account account) {
+        return Optional.ofNullable(account)
+                .map(Account::getAnalytics)
+                .map(AccountAnalyticsConfig::getModules)
+                .map(analyticsModules -> analyticsModules.get(name()))
+                .map(this::toGreenbidsConfig)
+                .orElse(null);
+    }
+
+    private GreenbidsConfig toGreenbidsConfig(ObjectNode adapterNode) {
         try {
-            return jacksonMapper.mapper().treeToValue(adapterNode, GreenbidsPrebidExt.class);
+            return jacksonMapper.mapper().treeToValue(adapterNode, GreenbidsConfig.class);
         } catch (JsonProcessingException e) {
             throw new PreBidException("Error decoding bid request analytics extension: " + e.getMessage(), e);
         }
@@ -252,6 +269,16 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 .orElseGet(() -> UUID.randomUUID().toString());
     }
 
+    private double resolveSamplingRate(GreenbidsConfig greenbidsConfig) {
+        final Double sampling = greenbidsConfig.getGreenbidsSampling();
+        if (sampling == null) {
+            logger.warn("Warning: Sampling rate is not defined in request. Set sampling at {}",
+                    greenbidsAnalyticsProperties.getDefaultSamplingRate());
+            return greenbidsAnalyticsProperties.getDefaultSamplingRate();
+        }
+        return sampling;
+    }
+
     private Future<Void> processAnalyticServerResponse(HttpClientResponse response) {
         final int responseStatusCode = response.getStatusCode();
         if (responseStatusCode >= 200 && responseStatusCode < 300) {
@@ -261,12 +288,6 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
     }
 
     private boolean isSampled(Double samplingRate, String greenbidsId) {
-        if (samplingRate == null) {
-            logger.warn("Warning: Sampling rate is not defined in request. Set sampling at "
-                    + greenbidsAnalyticsProperties.getDefaultSamplingRate());
-            return true;
-        }
-
         if (samplingRate < 0 || samplingRate > 1) {
             logger.warn("Warning: Sampling rate must be between 0 and 1");
             return true;
@@ -291,8 +312,9 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
             BidResponse bidResponse,
             String greenbidsId,
             String billingId,
-            GreenbidsPrebidExt greenbidsImpExt,
-            Map<String, Ortb2ImpExtResult> analyticsResultFromAnalyticsTag) {
+            GreenbidsConfig greenbidsConfig,
+            Map<String, Ortb2ImpExtResult> analyticsResultFromAnalyticsTag,
+            Double samplingRate) {
         final Optional<BidRequest> bidRequest = Optional.ofNullable(auctionContext.getBidRequest());
 
         final List<Imp> imps = bidRequest
@@ -324,17 +346,16 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 .map(Site::getPage)
                 .orElse(null);
 
-        final Double greenbidsSamplingRate = Optional.ofNullable(greenbidsImpExt.getGreenbidsSampling())
-                .orElse(greenbidsAnalyticsProperties.getDefaultSamplingRate());
+        final String pbuid = Optional.ofNullable(greenbidsConfig.getPbuid()).orElse(StringUtils.EMPTY);
 
         return CommonMessage.builder()
                         .version(greenbidsAnalyticsProperties.getAnalyticsServerVersion())
                         .auctionId(auctionId)
                         .referrer(referrer)
-                        .sampling(greenbidsSamplingRate)
+                        .sampling(samplingRate)
                         .prebidServer(prebidVersionProvider.getNameVersionRecord())
                         .greenbidsId(greenbidsId)
-                        .pbuid(greenbidsImpExt.getPbuid())
+                        .pbuid(pbuid)
                         .billingId(billingId)
                         .adUnits(adUnitsWithBidResponses)
                         .auctionElapsed(auctionElapsed)
