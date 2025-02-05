@@ -154,10 +154,6 @@ public class YieldlabBidder implements Bidder<Void> {
         }
     }
 
-    private static String encodeValue(String value) {
-        return value == null ? StringUtils.EMPTY : HttpUtil.encodeUrl(value);
-    }
-
     private String makeUrl(ExtImpYieldlab extImpYieldlab, BidRequest request) {
         // for passing validation tests
         final String timestamp = isDebugEnabled(request) ? "200000" : String.valueOf(clock.instant().getEpochSecond());
@@ -325,6 +321,10 @@ public class YieldlabBidder implements Bidder<Void> {
         }
 
         return stringBuilder.toString();
+    }
+
+    private static String encodeValue(String value) {
+        return value == null ? StringUtils.EMPTY : HttpUtil.encodeUrl(value);
     }
 
     private static Map<String, String> extractDsaRequestParamsFromBidRequest(BidRequest request) {
