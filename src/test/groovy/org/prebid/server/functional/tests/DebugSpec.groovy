@@ -14,6 +14,7 @@ import org.prebid.server.functional.model.request.auction.StoredBidResponse
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.service.PrebidServerException
+import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.PendingFeature
 
@@ -32,6 +33,14 @@ class DebugSpec extends BaseSpec {
     private static final String DEBUG_REQUESTS_METRIC = "debug_requests"
     private static final String ACCOUNT_DEBUG_REQUESTS_METRIC = "account.%s.debug_requests"
     private static final String REQUEST_OK_WEB_METRICS = "requests.ok.openrtb2-web"
+
+    private static final PrebidServerService enabledDebugPbsService = pbsServiceFactory.getService("adapters.generic.debug.allow": "true")
+    private static final PrebidServerService disabledDebugPbsService = pbsServiceFactory.getService("adapters.generic.debug.allow": "false")
+
+    def cleanupSpec() {
+        pbsServiceFactory.removeContainer("adapters.generic.debug.allow": "true")
+        pbsServiceFactory.removeContainer("adapters.generic.debug.allow": "false")
+    }
 
     def "PBS should return debug information and emit metrics when debug flag is #debug and test flag is #test"() {
         given: "Default BidRequest with test flag"
@@ -92,15 +101,12 @@ class DebugSpec extends BaseSpec {
     }
 
     def "PBS should not return debug information when bidder-level setting debug.allowed = false"() {
-        given: "Pbs config"
-        def pbsService = pbsServiceFactory.getService(["adapters.generic.debug.allow": "false"])
-
-        and: "Default basic generic BidRequest"
+        given: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
         bidRequest.ext.prebid.debug = ENABLED
 
         when: "PBS processes auction request"
-        def response = pbsService.sendAuctionRequest(bidRequest)
+        def response = disabledDebugPbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should not contain ext.debug"
         assert !response.ext?.debug?.httpcalls
@@ -112,15 +118,12 @@ class DebugSpec extends BaseSpec {
     }
 
     def "PBS should return debug information when bidder-level setting debug.allowed = true"() {
-        given: "Pbs config"
-        def pbsService = pbsServiceFactory.getService(["adapters.generic.debug.allow": "true"])
-
-        and: "Default basic generic BidRequest"
+        given: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
         bidRequest.ext.prebid.debug = ENABLED
 
         when: "PBS processes auction request"
-        def response = pbsService.sendAuctionRequest(bidRequest)
+        def response = enabledDebugPbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should contain ext.debug"
         assert response.ext?.debug?.httpcalls[GENERIC.value]
@@ -130,10 +133,7 @@ class DebugSpec extends BaseSpec {
     }
 
     def "PBS should not return debug information when bidder-level setting debug.allowed = false is overridden by account-level setting debug-allowed = false"() {
-        given: "Pbs config"
-        def pbsService = pbsServiceFactory.getService(["adapters.generic.debug.allow": "false"])
-
-        and: "Default basic generic BidRequest"
+        given: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
         bidRequest.ext.prebid.debug = ENABLED
 
@@ -142,7 +142,7 @@ class DebugSpec extends BaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction request"
-        def response = pbsService.sendAuctionRequest(bidRequest)
+        def response = disabledDebugPbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should not contain ext.debug"
         assert !response.ext?.debug
@@ -160,10 +160,7 @@ class DebugSpec extends BaseSpec {
     }
 
     def "PBS should not return debug information when bidder-level setting debug.allowed = false is overridden by account-level setting debug-allowed = true"() {
-        given: "Pbs config"
-        def pbsService = pbsServiceFactory.getService(["adapters.generic.debug.allow": "false"])
-
-        and: "Default basic generic BidRequest"
+        given: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
         bidRequest.ext.prebid.debug = ENABLED
 
@@ -172,7 +169,7 @@ class DebugSpec extends BaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction request"
-        def response = pbsService.sendAuctionRequest(bidRequest)
+        def response = disabledDebugPbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should not contain ext.debug"
         assert !response.ext?.debug?.httpcalls
@@ -189,10 +186,7 @@ class DebugSpec extends BaseSpec {
     }
 
     def "PBS should not return debug information when bidder-level setting debug.allowed = true is overridden by account-level setting debug-allowed = false"() {
-        given: "Pbs config"
-        def pbsService = pbsServiceFactory.getService(["adapters.generic.debug.allow": "true"])
-
-        and: "Default basic generic BidRequest"
+        given: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
         bidRequest.ext.prebid.debug = ENABLED
 
@@ -202,7 +196,7 @@ class DebugSpec extends BaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction request"
-        def response = pbsService.sendAuctionRequest(bidRequest)
+        def response = enabledDebugPbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should not contain ext.debug"
         assert !response.ext?.debug
@@ -230,7 +224,7 @@ class DebugSpec extends BaseSpec {
 
     def "PBS should return debug information when bidder-level setting debug.allowed = #debugAllowedConfig and account-level setting debug-allowed = #debugAllowedAccount is overridden by x-pbs-debug-override header"() {
         given: "PBS with debug configuration"
-        def pbsService = pbsServiceFactory.getService(pbdConfig)
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
@@ -250,8 +244,11 @@ class DebugSpec extends BaseSpec {
         and: "Response should not contain ext.warnings"
         assert !response.ext?.warnings
 
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
+
         where:
-        debugAllowedConfig | debugAllowedAccount | pbdConfig
+        debugAllowedConfig | debugAllowedAccount | pbsConfig
         false              | true                | ["debug.override-token"        : overrideToken,
                                                     "adapters.generic.debug.allow": "false"]
         true               | false               | ["debug.override-token"        : overrideToken,

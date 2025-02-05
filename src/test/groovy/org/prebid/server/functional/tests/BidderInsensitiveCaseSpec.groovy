@@ -282,9 +282,9 @@ class BidderInsensitiveCaseSpec extends BaseSpec {
 
     def "PBS should respond errors with same bidder name which bidder name came in request with another case strategy"() {
         given: "PBS with adapter configuration"
-        def pbsService = pbsServiceFactory.getService(
-                ["adapter-defaults.enabled": "false",
-                 "adapters.generic.enabled": "false"])
+        def pbsConfig = ["adapter-defaults.enabled": "false",
+                        "adapters.generic.enabled": "false"]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -299,13 +299,15 @@ class BidderInsensitiveCaseSpec extends BaseSpec {
 
         then: "Response should contain error"
         assert response.ext?.errors[ErrorType.GENERIC_CAMEL_CASE]*.code == [2]
+
+
     }
 
     def "PBS should respond warnings with same bidder name which bidder name came in request with another case strategy"() {
         given: "Pbs config"
-        def pbsService = pbsServiceFactory.getService(
-                ["auction.filter-imp-media-type.enabled"     : "true",
-                 "adapters.generic.meta-info.app-media-types": ""])
+        def pbsConfig = ["auction.filter-imp-media-type.enabled"     : "true",
+                        "adapters.generic.meta-info.app-media-types": ""]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
             imp[0].ext.prebid.bidder.tap {
@@ -324,6 +326,9 @@ class BidderInsensitiveCaseSpec extends BaseSpec {
         assert response.ext?.warnings[ErrorType.GENERIC_CAMEL_CASE]*.code == [2]
         assert response.ext?.warnings[ErrorType.GENERIC_CAMEL_CASE]*.message ==
                 ["Bidder does not support any media types."]
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS should respond responsetimemillis with same bidder name which bidder name came in request with another case strategy"() {

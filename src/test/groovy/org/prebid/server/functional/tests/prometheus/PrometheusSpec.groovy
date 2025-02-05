@@ -19,8 +19,8 @@ class PrometheusSpec extends BaseSpec {
 
     def "PBS should add custom labels to Prometheus metrics when custom labels are enabled in config"() {
         given: "PBS config with set up Prometheus and enabled Promethues custom labels"
-        def prometheusPbsService = pbsServiceFactory.getService(basePrometheusConfig +
-                ["metrics.prometheus.custom-labels-enabled": "true"])
+        def pbsConfig = basePrometheusConfig + ["metrics.prometheus.custom-labels-enabled": "true"]
+        def prometheusPbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Labels config metric matcher and an appropriate PBS metric to it are specified"
         def pbsMetricMatcher = "requests.*.*"
@@ -44,15 +44,19 @@ class PrometheusSpec extends BaseSpec {
         def expectedLabelsString = "$normalizedMapperName$metricLabels"
 
         assert prometheusMetrics.contains(expectedLabelsString)
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS should add namespace, subsystem and custom labels info to Prometheus metrics when those are set in config"() {
         given: "PBS config with set up Prometheus with enabled custom labels"
         def namespace = "namespace_01"
         def subsystem = "subsystem_01"
-        def prometheusPbsService = pbsServiceFactory.getService(basePrometheusConfig +
+        def pbsConfig = basePrometheusConfig +
                 getNamespaceSubsystemConfig(namespace, subsystem) +
-                ["metrics.prometheus.custom-labels-enabled": "true"])
+                ["metrics.prometheus.custom-labels-enabled": "true"]
+        def prometheusPbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Labels config metric matcher and an appropriate PBS metric to it are specified"
         def pbsMetricMatcher = "requests.*.*"
@@ -77,6 +81,9 @@ class PrometheusSpec extends BaseSpec {
         def expectedLabelsString = "$namespaceSubsystemMapperName$metricLabels"
 
         assert prometheusMetrics.contains(expectedLabelsString)
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS should add namespace and subsystem parts to Prometheus metric names when those are config provided"() {
@@ -101,6 +108,10 @@ class PrometheusSpec extends BaseSpec {
 
         then: "Prometheus metrics response contains each of PBS metric with added namespace and subsystem"
         prometheusFormatPbsMetricNames.each { assert prometheusMetrics.contains(it) }
+
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(config)
     }
 
     def "PBS service fails to start when invalid symbols by namespace and subsystem in Prometheus config are present"() {

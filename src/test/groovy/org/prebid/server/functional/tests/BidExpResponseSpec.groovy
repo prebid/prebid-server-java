@@ -2,6 +2,7 @@ package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountConfig
+import org.prebid.server.functional.model.config.ModuleName
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Imp
@@ -32,6 +33,12 @@ class BidExpResponseSpec extends BaseSpec {
     private static def pbsOnlyHostCacheTtlService = pbsServiceFactory.getService(CACHE_TTL_HOST_CONFIG + EMPTY_CACHE_TTL_CONFIG)
     private static def pbsEmptyTtlService = pbsServiceFactory.getService(EMPTY_CACHE_TTL_CONFIG + EMPTY_CACHE_TTL_HOST_CONFIG)
     private static def pbsHostAndDefaultCacheTtlService = pbsServiceFactory.getService(CACHE_TTL_HOST_CONFIG + DEFAULT_CACHE_TTL_CONFIG)
+
+    def cleanupSpec() {
+        pbsServiceFactory.removeContainer(CACHE_TTL_HOST_CONFIG + EMPTY_CACHE_TTL_CONFIG)
+        pbsServiceFactory.removeContainer(EMPTY_CACHE_TTL_CONFIG + EMPTY_CACHE_TTL_HOST_CONFIG)
+        pbsServiceFactory.removeContainer(CACHE_TTL_HOST_CONFIG + DEFAULT_CACHE_TTL_CONFIG)
+    }
 
     def "PBS auction should resolve bid.exp from response that is set by the bidder’s adapter"() {
         given: "Default basicResponse with exp"

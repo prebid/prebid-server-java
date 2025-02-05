@@ -409,6 +409,9 @@ class TargetingSpec extends BaseSpec {
                 .every(list -> list
                         .every(map -> map.keySet()
                                 .every(key -> key.length() <= targetingLength)))
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS should truncate targeting corresponding to value in account config when in account define truncate target attr"() {
@@ -867,8 +870,8 @@ class TargetingSpec extends BaseSpec {
     def "PBS amp should use long account targeting prefix when settings.targeting.truncate-attr-chars override"() {
         given: "PBS config with setting.targeting"
         def prefixMaxChars = PBSUtils.getRandomNumber(35, MAX_TRUNCATE_ATTR_CHARS)
-        def prebidServerService = pbsServiceFactory.getService(
-                ["settings.targeting.truncate-attr-chars": prefixMaxChars as String])
+        def pbsConfig = ["settings.targeting.truncate-attr-chars": prefixMaxChars as String]
+        def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default AmpRequest"
         def ampRequest = AmpRequest.defaultAmpRequest
@@ -893,13 +896,16 @@ class TargetingSpec extends BaseSpec {
         def targeting = ampResponse.targeting
         assert !targeting.isEmpty()
         assert targeting.keySet().every { it -> it.startsWith(prefix) }
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS amp should use long request targeting prefix when settings.targeting.truncate-attr-chars override"() {
         given: "PBS config with setting.targeting"
         def prefixMaxChars = PBSUtils.getRandomNumber(35, MAX_TRUNCATE_ATTR_CHARS)
-        def prebidServerService = pbsServiceFactory.getService(
-                ["settings.targeting.truncate-attr-chars": prefixMaxChars as String])
+        def pbsConfig = ["settings.targeting.truncate-attr-chars": prefixMaxChars as String]
+        def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default AmpRequest"
         def ampRequest = AmpRequest.defaultAmpRequest
@@ -921,13 +927,16 @@ class TargetingSpec extends BaseSpec {
         def targeting = ampResponse.targeting
         assert !targeting.isEmpty()
         assert targeting.keySet().every { it -> it.startsWith(prefix) }
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS auction should use long request targeting prefix when settings.targeting.truncate-attr-chars override"() {
         given: "PBS config with setting.targeting"
         def prefixMaxChars = PBSUtils.getRandomNumber(35, MAX_TRUNCATE_ATTR_CHARS)
-        def prebidServerService = pbsServiceFactory.getService(
-                ["settings.targeting.truncate-attr-chars": prefixMaxChars as String])
+        def pbsConfig = ["settings.targeting.truncate-attr-chars": prefixMaxChars as String]
+        def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Bid request with prefix"
         def prefix = PBSUtils.getRandomString(prefixMaxChars - TARGETING_PREFIX_LENGTH)
@@ -942,13 +951,16 @@ class TargetingSpec extends BaseSpec {
         def targeting = bidResponse.seatbid?.first()?.bid?.first()?.ext?.prebid?.targeting
         assert !targeting.isEmpty()
         assert targeting.keySet().every { it -> it.startsWith(prefix) }
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS auction should use long account targeting prefix when settings.targeting.truncate-attr-chars override"() {
         given: "PBS config with setting.targeting"
         def prefixMaxChars = PBSUtils.getRandomNumber(35, MAX_TRUNCATE_ATTR_CHARS)
-        def prebidServerService = pbsServiceFactory.getService(
-                ["settings.targeting.truncate-attr-chars": prefixMaxChars as String])
+        def pbsConfig = ["settings.targeting.truncate-attr-chars": prefixMaxChars as String]
+        def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Bid request with empty targeting"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -968,13 +980,16 @@ class TargetingSpec extends BaseSpec {
         def targeting = bidResponse.seatbid?.first()?.bid?.first()?.ext?.prebid?.targeting
         assert !targeting.isEmpty()
         assert targeting.keySet().every { it -> it.startsWith(prefix) }
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS amp should ignore and add a warning to ext.warnings when value of the account prefix is longer then settings.targeting.truncate-attr-chars"() {
         given: "PBS config with setting.targeting"
         def targetingChars = PBSUtils.getRandomNumber(2, 10)
-        def prebidServerService = pbsServiceFactory.getService(
-                ["settings.targeting.truncate-attr-chars": targetingChars as String])
+        def pbsConfig = ["settings.targeting.truncate-attr-chars": targetingChars as String]
+        def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default AmpRequest"
         def ampRequest = AmpRequest.defaultAmpRequest
@@ -999,13 +1014,16 @@ class TargetingSpec extends BaseSpec {
         assert ampResponse.ext?.warnings[TARGETING]*.message == ["Key prefix value is dropped to default. " +
                                                                          "Decrease custom prefix length or increase truncateattrchars by " +
                                                                          "${prefix.length() + TARGETING_PREFIX_LENGTH - targetingChars}"]
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS amp should ignore and add a warning to ext.warnings when value of the request prefix is longer then settings.targeting.truncate-attr-chars"() {
         given: "PBS config with setting.targeting"
         def targetingChars = PBSUtils.getRandomNumber(2, 10)
-        def prebidServerService = pbsServiceFactory.getService(
-                ["settings.targeting.truncate-attr-chars": targetingChars as String])
+        def pbsConfig = ["settings.targeting.truncate-attr-chars": targetingChars as String]
+        def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default AmpRequest"
         def ampRequest = AmpRequest.defaultAmpRequest
@@ -1027,13 +1045,16 @@ class TargetingSpec extends BaseSpec {
         assert ampResponse.ext?.warnings[TARGETING]*.message == ["Key prefix value is dropped to default. " +
                                                                          "Decrease custom prefix length or increase truncateattrchars by " +
                                                                          "${prefix.length() + TARGETING_PREFIX_LENGTH - targetingChars}"]
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS auction should ignore and add a warning to ext.warnings when value of the request prefix is longer then settings.targeting.truncate-attr-chars"() {
         given: "PBS config with setting.targeting"
         def targetingChars = PBSUtils.getRandomNumber(2, 10)
-        def prebidServerService = pbsServiceFactory.getService(
-                ["settings.targeting.truncate-attr-chars": targetingChars as String])
+        def pbsConfig = ["settings.targeting.truncate-attr-chars": targetingChars as String]
+        def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Bid request with prefix"
         def prefixSize = targetingChars + 1
@@ -1052,13 +1073,16 @@ class TargetingSpec extends BaseSpec {
         assert bidResponse.ext?.warnings[TARGETING]*.message == ["Key prefix value is dropped to default. " +
                                                                          "Decrease custom prefix length or increase truncateattrchars by " +
                                                                          "${prefix.length() + TARGETING_PREFIX_LENGTH - targetingChars}"]
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS auction should ignore and add a warning to ext.warnings when value of the account prefix is longer then settings.targeting.truncate-attr-chars"() {
         given: "PBS config with setting.targeting"
         def targetingChars = PBSUtils.getRandomNumber(2, 10)
-        def prebidServerService = pbsServiceFactory.getService(
-                ["settings.targeting.truncate-attr-chars": targetingChars as String])
+        def pbsConfig = ["settings.targeting.truncate-attr-chars": targetingChars as String]
+        def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Bid request"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -1081,6 +1105,9 @@ class TargetingSpec extends BaseSpec {
         assert bidResponse.ext?.warnings[TARGETING]*.message == ["Key prefix value is dropped to default. " +
                                                                          "Decrease custom prefix length or increase truncateattrchars by " +
                                                                          "${prefix.length() + TARGETING_PREFIX_LENGTH - targetingChars}"]
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS amp should apply data from query to ext.prebid.amp.data"() {
@@ -1246,8 +1273,8 @@ class TargetingSpec extends BaseSpec {
         def priceGranularity = PBSUtils.getRandomEnum(PriceGranularityType, [UNKNOWN])
         def accountAuctionConfig = new AccountAuctionConfig(priceGranularity: priceGranularity)
         def accountConfig = new AccountConfig(status: ACTIVE, auction: accountAuctionConfig)
-        def pbsService = pbsServiceFactory.getService(
-                ["settings.default-account-config": encode(accountConfig)])
+        def pbsConfig = ["settings.default-account-config": encode(accountConfig)]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default basic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -1260,6 +1287,9 @@ class TargetingSpec extends BaseSpec {
         then: "BidderRequest should include price granularity from account config"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest?.ext?.prebid?.targeting?.priceGranularity == PriceGranularity.getDefault(priceGranularity)
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS auction should include include default price granularity when original request and account config doesn't contain price granularity"() {

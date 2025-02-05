@@ -48,7 +48,8 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
     def "PBS should activate floors feature when price-floors.enabled = true in PBS config"() {
         given: "Pbs with PF configuration"
-        def pbsService = pbsServiceFactory.getService(FLOORS_CONFIG + ["price-floors.enabled": "true"])
+        def pbsConfig = FLOORS_CONFIG + ["price-floors.enabled": "true"]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default BidRequest"
         def bidRequest = BidRequest.getDefaultBidRequest(APP)
@@ -69,11 +70,15 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         and: "PBS should signal bids"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         assert bidderRequest.imp[0].bidFloor
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS should not activate floors feature when price-floors.enabled = false in #description config"() {
         given: "Pbs with PF configuration"
-        def pbsService = pbsServiceFactory.getService(FLOORS_CONFIG + ["price-floors.enabled": pbdConfigEnabled])
+        def pbsConfig = FLOORS_CONFIG + ["price-floors.enabled": pbdConfigEnabled]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default BidRequest"
         def bidRequest = BidRequest.getDefaultBidRequest(APP)
@@ -94,6 +99,9 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         assert floorsProvider.getRequestCount(bidRequest.accountId) == 0
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         assert !bidderRequest.imp[0].bidFloor
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
 
         where:
         description | pbdConfigEnabled | accountConfigEnabled
@@ -341,8 +349,9 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
                 useDynamicDataSnakeCase = pbsConfigUseDynamicDataSnakeCase
             }
         }
-        def pbsService = pbsServiceFactory.getService(FLOORS_CONFIG +
-                ["settings.default-account-config": encode(defaultAccountConfigSettings)])
+        def pbsConfig = FLOORS_CONFIG +
+                ["settings.default-account-config": encode(defaultAccountConfigSettings)]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default BidRequest with ext.prebid.floors"
         def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
@@ -372,6 +381,9 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         and: "Bidder request should contain bidFloor from request"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         assert bidderRequest.imp[0].bidFloor == floorValue
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
 
         where:
         pbsConfigUseDynamicData | accountUseDynamicData | pbsConfigUseDynamicDataSnakeCase | accountUseDynamicDataSnakeCase

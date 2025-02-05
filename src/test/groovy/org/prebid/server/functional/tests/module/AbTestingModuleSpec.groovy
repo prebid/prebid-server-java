@@ -49,7 +49,6 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             ['hooks.host-execution-plan': null]
 
     private static final PrebidServerService ortbModulePbsService = pbsServiceFactory.getService(getModuleBaseSettings(ModuleName.ORTB2_BLOCKING))
-    private static final PrebidServerService pbsServiceWithMultipleModules = pbsServiceFactory.getService(MULTI_MODULE_CONFIG)
 
     def cleanupSpec() {
         pbsServiceFactory.removeContainer(getModuleBaseSettings(ModuleName.ORTB2_BLOCKING))

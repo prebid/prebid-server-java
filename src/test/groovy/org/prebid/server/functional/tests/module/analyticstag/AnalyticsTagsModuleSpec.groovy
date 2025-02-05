@@ -112,6 +112,9 @@ class AnalyticsTagsModuleSpec extends ModuleBaseSpec {
             it.appliedTo.bidders == [GENERIC.value]
             it.appliedTo.impIds == bidRequest.imp.id
         }
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(getRichMediaFilterSettings(PATTERN_NAME))
     }
 
     def "PBS should include analytics tag in response when request and default account allow client details"() {

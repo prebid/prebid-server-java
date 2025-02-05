@@ -332,8 +332,9 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         def defaultAccountConfigSettings = defaultAccountConfigSettings.tap {
             auction.priceFloors.adjustForBidAdjustment = pbsConfigBidAdjustmentFlag
         }
-        def pbsService = pbsServiceFactory.getService(FLOORS_CONFIG +
-                ["settings.default-account-config": encode(defaultAccountConfigSettings)])
+        def pbsConfig = FLOORS_CONFIG +
+                ["settings.default-account-config": encode(defaultAccountConfigSettings)]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "BidRequest with bidAdjustment"
         def floorsProviderFloorValue = PBSUtils.randomFloorValue
@@ -365,6 +366,9 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         and: "Bidder request shouldn't include imp.ext.prebid.floors"
         assert !bidderRequest.imp[0].ext.prebid.floors
 
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
+
         where:
         pbsConfigBidAdjustmentFlag | requestBidAdjustmentFlag | accountBidAdjustmentFlag
         true                       | true                     | null
@@ -380,8 +384,9 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
                 adjustForBidAdjustmentSnakeCase = pbsConfigBidAdjustmentFlagSnakeCase
             }
         }
-        def pbsService = pbsServiceFactory.getService(FLOORS_CONFIG +
-                ["settings.default-account-config": encode(defaultAccountConfigSettings)])
+        def pbsConfig = FLOORS_CONFIG +
+                ["settings.default-account-config": encode(defaultAccountConfigSettings)]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default BidRequest"
         def floorsProviderFloorValue = 0.8
@@ -414,6 +419,9 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
         and: "Bidder request shouldn't include imp.ext.prebid.floors"
         assert !bidderRequest.imp[0].ext.prebid.floors
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
 
         where:
         pbsConfigBidAdjustmentFlagSnakeCase | pbsConfigBidAdjustmentFlag | requestBidAdjustmentFlag | accountBidAdjustmentFlag | accountBidAdjustmentFlagSnakeCase

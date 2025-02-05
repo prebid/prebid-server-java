@@ -1,6 +1,7 @@
 package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.model.UidsCookie
+import org.prebid.server.functional.model.config.ModuleName
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.mock.services.httpsettings.HttpAccountsResponse
 import org.prebid.server.functional.model.request.amp.AmpRequest
@@ -28,6 +29,10 @@ class HttpSettingsSpec extends BaseSpec {
 
     @Shared
     PrebidServerService prebidServerService = pbsServiceFactory.getService(PbsConfig.httpSettingsConfig)
+
+    def cleanupSpec() {
+        pbsServiceFactory.removeContainer(PbsConfig.httpSettingsConfig)
+    }
 
     def "PBS should take account information from http data source on auction request"() {
         given: "Get basic BidRequest with generic bidder and set gdpr = 1"
