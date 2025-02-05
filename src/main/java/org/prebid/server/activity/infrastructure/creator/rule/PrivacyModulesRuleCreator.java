@@ -18,7 +18,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
@@ -84,11 +83,7 @@ public class PrivacyModulesRuleCreator extends AbstractRuleCreator<AccountActivi
     private PrivacyModule createPrivacyModule(PrivacyModuleQualifier privacyModuleQualifier,
                                               ActivityControllerCreationContext creationContext) {
 
-        final boolean isSkipped = Optional.ofNullable(creationContext.getSkipModuleConfigs())
-                .map(configs -> configs.get(privacyModuleQualifier))
-                .orElse(false);
-
-        if (isSkipped) {
+        if (creationContext.getSkipPrivacyModules().contains(privacyModuleQualifier)) {
             return new AbstainPrivacyModule(privacyModuleQualifier);
         }
 

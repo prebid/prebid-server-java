@@ -32,14 +32,12 @@ import java.util.Map;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
-import static org.prebid.server.activity.infrastructure.privacy.PrivacyModuleQualifier.US_CUSTOM_LOGIC;
 import static org.prebid.server.activity.infrastructure.privacy.PrivacyModuleQualifier.US_NAT;
 
 @ExtendWith(MockitoExtension.class)
@@ -96,8 +94,8 @@ public class ActivityInfrastructureCreatorTest {
                         .activities(Map.of(Activity.SYNC_USER, AccountActivityConfiguration.of(
                                 null, singletonList(AccountActivityConditionsRuleConfig.of(null, null)))))
                         .modules(asList(
-                                AccountUSNatModuleConfig.of(null, null, null),
-                                AccountUSNatModuleConfig.of(null, null, null)))
+                                AccountUSNatModuleConfig.of(null, 0, null),
+                                AccountUSNatModuleConfig.of(null, 0, null)))
                         .build())
                 .build();
 
@@ -129,8 +127,7 @@ public class ActivityInfrastructureCreatorTest {
         final ArgumentCaptor<ActivityControllerCreationContext> captor =
                 ArgumentCaptor.forClass(ActivityControllerCreationContext.class);
         verify(activityRuleFactory).from(any(), captor.capture());
-        assertThat(captor.getValue().getSkipModuleConfigs())
-                .containsOnly(entry(US_NAT, true), entry(US_CUSTOM_LOGIC, false));
+        assertThat(captor.getValue().getSkipPrivacyModules()).containsOnly(US_NAT);
     }
 
     @Test

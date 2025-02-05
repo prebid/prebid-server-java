@@ -20,7 +20,7 @@ public class ActivityControllerCreationContext {
 
     Map<PrivacyModuleQualifier, AccountPrivacyModuleConfig> privacyModulesConfigs;
 
-    Map<PrivacyModuleQualifier, Boolean> skipModuleConfigs;
+    Set<PrivacyModuleQualifier> skipPrivacyModules;
 
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
