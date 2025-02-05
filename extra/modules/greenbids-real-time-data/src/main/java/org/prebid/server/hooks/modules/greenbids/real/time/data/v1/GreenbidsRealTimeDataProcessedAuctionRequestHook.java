@@ -189,22 +189,34 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
 
     private List<Result> toResults(List<AnalyticsResult> analyticsResults) {
         return analyticsResults.stream()
-                .map(this::toResult)
+                .flatMap(analyticsResult -> {
+                    Map<String, Ortb2ImpExtResult> values = analyticsResult.getValues();
+
+                    if (values == null || values.isEmpty()) {
+                        return java.util.stream.Stream.empty();
+                    }
+
+                    return values.entrySet().stream().map(entry -> {
+                        String impId = entry.getKey();
+                        Ortb2ImpExtResult ortb2ImpExtResult = entry.getValue();
+                        ObjectNode objectNode = toObjectNode(impId, ortb2ImpExtResult);
+
+                        return (Result) ResultImpl.of(
+                                analyticsResult.getStatus(),
+                                objectNode,
+                                AppliedToImpl.builder()
+                                        .impIds(Collections.singletonList(impId))
+                                        .build());
+                    });
+                })
                 .toList();
     }
 
-    private Result toResult(AnalyticsResult analyticsResult) {
-        return ResultImpl.of(
-                analyticsResult.getStatus(),
-                toObjectNode(analyticsResult.getValues()),
-                AppliedToImpl.builder()
-                        .bidders(Collections.singletonList(analyticsResult.getBidder()))
-                        .impIds(Collections.singletonList(analyticsResult.getImpId()))
-                        .build());
-    }
-
-    private ObjectNode toObjectNode(Map<String, Ortb2ImpExtResult> values) {
-        return values != null ? mapper.valueToTree(values) : null;
+    private ObjectNode toObjectNode(String key, Ortb2ImpExtResult value) {
+        ObjectNode root = mapper.createObjectNode();
+        JsonNode node = value != null ? mapper.valueToTree(value) : null;
+        root.set(key, node);
+        return root;
     }
 
     @Override

@@ -507,8 +507,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 analyticsResult.getStatus(),
                 toObjectNode(analyticsResult.getValues()),
                 AppliedToImpl.builder()
-                        .bidders(Collections.singletonList(analyticsResult.getBidder()))
-                        .impIds(Collections.singletonList(analyticsResult.getImpId()))
+                        .impIds(Collections.singletonList("adunitcodevalue"))
                         .build());
     }
 
