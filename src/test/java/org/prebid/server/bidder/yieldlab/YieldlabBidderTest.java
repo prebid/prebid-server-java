@@ -11,6 +11,9 @@ import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.Source;
+import com.iab.openrtb.request.SupplyChain;
+import com.iab.openrtb.request.SupplyChainNode;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
@@ -29,6 +32,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.DsaTransparency;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsa;
+import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.yieldlab.ExtImpYieldlab;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -118,6 +122,18 @@ public class YieldlabBidderTest extends VertxTest {
                 .regs(Regs.builder().coppa(1).ext(ExtRegs.of(1, "usPrivacy", null, null)).build())
                 .user(User.builder().buyeruid("buyeruid").ext(ExtUser.builder().consent("consent").build()).build())
                 .site(Site.builder().page("http://www.example.com").build())
+                .source(Source.builder().ext(ExtSource.of(SupplyChain.of(1, List.of(
+                        SupplyChainNode.of(
+                                "exchange1.com",
+                                "1234!abcd",
+                                "bid request&%1",
+                                "publisher",
+                                "publisher.com",
+                                1,
+                                mapper.createObjectNode()
+                                        .put("freeFormData", 1)
+                                        .set("nested", mapper.createObjectNode().put("isTrue", true)))
+                ), "1.0", null))).build())
                 .build();
 
         // when
@@ -131,8 +147,11 @@ public class YieldlabBidderTest extends VertxTest {
                 .extracting(HttpRequest::getUri)
                 .allSatisfy(uri -> {
                     assertThat(uri).startsWith("https://test.endpoint.com/1?content=json&pvid=true&ts=");
-                    assertThat(uri).endsWith("&t=key1%3Dvalue1%26key2%3Dvalue2&sizes=1%3A1%7C1%2C1%3A2%7C2&"
-                            + "ids=buyeruid&yl_rtb_ifa&yl_rtb_devicetype=1&gdpr=1&gdpr_consent=consent");
+                    assertThat(uri).endsWith("&t=key1%3Dvalue1%26key2%3Dvalue2&sizes=1%3A1x1%7C2x2&"
+                            + "ids=buyeruid&yl_rtb_ifa&yl_rtb_devicetype=1&gdpr=1&gdpr_consent=consent&"
+                            + "schain=1.0%2C1%21exchange1.com%2C1234%2521abcd%2C1%2Cbid%2Brequest%2526%25251%2C"
+                            + "publisher%2Cpublisher.com%2C%257B%2522freeFormData%2522%253A1%252C%2522"
+                            + "nested%2522%253A%257B%2522isTrue%2522%253Atrue%257D%257D");
                     final String ts = uri.substring(54, uri.indexOf("&t="));
                     assertThat(Long.parseLong(ts)).isEqualTo(expectedTime);
                 });
@@ -192,7 +211,7 @@ public class YieldlabBidderTest extends VertxTest {
                 .extracting(HttpRequest::getUri)
                 .allSatisfy(uri -> {
                     assertThat(uri).startsWith("https://test.endpoint.com/1,2?content=json&pvid=true&ts=");
-                    assertThat(uri).endsWith("&t=key1%3Dvalue1&ids=buyeruid&yl_rtb_ifa&"
+                    assertThat(uri).endsWith("&t=key1%3Dvalue1&sizes=1%3A%2C2%3A&ids=buyeruid&yl_rtb_ifa&"
                             + "yl_rtb_devicetype=1&gdpr=1&gdpr_consent=consent");
                 });
     }
