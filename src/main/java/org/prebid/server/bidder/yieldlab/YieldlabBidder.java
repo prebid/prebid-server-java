@@ -46,6 +46,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.yieldlab.ExtImpYieldlab;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
@@ -56,12 +57,12 @@ import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class YieldlabBidder implements Bidder<Void> {
 
@@ -99,11 +100,12 @@ public class YieldlabBidder implements Bidder<Void> {
 
     @Override
     public Result<List<HttpRequest<Void>>> makeHttpRequests(BidRequest request) {
-        final ExtImpYieldlab modifiedExtImp = constructExtImp(request.getImp());
+        final Map<String, ExtImpYieldlab> extImps = collectImpExt(request.getImp());
+        final ExtImpYieldlab modifiedExtImp = mergeExtImps(extImps.values());
 
         final String uri;
         try {
-            uri = makeUrl(modifiedExtImp, request);
+            uri = makeUrl(modifiedExtImp, request, extImps);
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
@@ -111,36 +113,32 @@ public class YieldlabBidder implements Bidder<Void> {
         return Result.withValue(HttpRequest.<Void>builder()
                 .method(HttpMethod.GET)
                 .uri(uri)
-                .impIds(request.getImp().stream().map(Imp::getId).collect(Collectors.toSet()))
+                .impIds(BidderUtil.impIds(request))
                 .headers(resolveHeaders(request.getSite(), request.getDevice(), request.getUser()))
                 .build());
     }
 
-    private ExtImpYieldlab constructExtImp(List<Imp> imps) {
-        final List<ExtImpYieldlab> extImps = collectImpExt(imps);
-
-        final List<String> adSlotIds = extImps.stream()
+    private static ExtImpYieldlab mergeExtImps(Collection<ExtImpYieldlab> extImps) {
+        final String adSlotIdsParams = extImps.stream()
                 .map(ExtImpYieldlab::getAdslotId)
-                .filter(Objects::nonNull)
-                .toList();
+                .map(StringUtils::defaultString)
+                .collect(Collectors.joining(AD_SLOT_ID_SEPARATOR));
 
-        final Map<String, String> targeting = extImps.stream()
+        final Map<String, String> targeting = new HashMap<>();
+        extImps.stream()
                 .map(ExtImpYieldlab::getTargeting)
                 .filter(Objects::nonNull)
-                .flatMap(map -> map.entrySet().stream())
-                .filter(entry -> entry.getKey() != null)
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (channel1, channel2) -> channel1));
+                .forEach(targeting::putAll);
 
-        final String adSlotIdsParams = adSlotIds.stream().sorted().collect(Collectors.joining(AD_SLOT_ID_SEPARATOR));
         return ExtImpYieldlab.builder().adslotId(adSlotIdsParams).targeting(targeting).build();
     }
 
-    private List<ExtImpYieldlab> collectImpExt(List<Imp> imps) {
-        final List<ExtImpYieldlab> extImps = new ArrayList<>();
+    private Map<String, ExtImpYieldlab> collectImpExt(List<Imp> imps) {
+        final Map<String, ExtImpYieldlab> extImps = new HashMap<>();
         for (Imp imp : imps) {
             final ExtImpYieldlab extImpYieldlab = parseImpExt(imp);
             if (extImpYieldlab != null) {
-                extImps.add(extImpYieldlab);
+                extImps.put(imp.getId(), extImpYieldlab);
             }
         }
         return extImps;
@@ -154,7 +152,7 @@ public class YieldlabBidder implements Bidder<Void> {
         }
     }
 
-    private String makeUrl(ExtImpYieldlab extImpYieldlab, BidRequest request) {
+    private String makeUrl(ExtImpYieldlab extImpYieldlab, BidRequest request, Map<String, ExtImpYieldlab> extImps) {
         // for passing validation tests
         final String timestamp = isDebugEnabled(request) ? "200000" : String.valueOf(clock.instant().getEpochSecond());
 
@@ -173,7 +171,7 @@ public class YieldlabBidder implements Bidder<Void> {
                 .addParameter("ts", timestamp)
                 .addParameter("t", getTargetingValues(extImpYieldlab));
 
-        final String formats = makeFormats(request);
+        final String formats = makeFormats(request, extImps);
 
         if (formats != null) {
             uriBuilder.addParameter("sizes", formats);
@@ -181,7 +179,7 @@ public class YieldlabBidder implements Bidder<Void> {
 
         final User user = request.getUser();
         if (user != null && StringUtils.isNotBlank(user.getBuyeruid())) {
-            uriBuilder.addParameter("ids", String.join("ylid:", user.getBuyeruid()));
+            uriBuilder.addParameter("ids", "ylid:" + StringUtils.defaultString(user.getBuyeruid()));
         }
 
         final Device device = request.getDevice();
@@ -196,8 +194,8 @@ public class YieldlabBidder implements Bidder<Void> {
 
             final Geo geo = device.getGeo();
             if (geo != null) {
-                uriBuilder.addParameter("lat", resolveNumberParameter(geo.getLat()));
-                uriBuilder.addParameter("lon", resolveNumberParameter(geo.getLon()));
+                uriBuilder.addParameter("lat", ObjectUtils.defaultIfNull(geo.getLat(), 0f).toString());
+                uriBuilder.addParameter("lon", ObjectUtils.defaultIfNull(geo.getLon(), 0f).toString());
             }
         }
 
@@ -217,36 +215,31 @@ public class YieldlabBidder implements Bidder<Void> {
             uriBuilder.addParameter("gdpr_consent", consent);
         }
 
-        Optional.ofNullable(request.getSource())
-                .map(Source::getExt)
-                .map(ExtSource::getSchain)
-                .map(this::resolveSupplyChain)
-                .ifPresent(sChain -> uriBuilder.addParameter("schain", sChain));
+        final String schain = getSchainParameter(request.getSource());
+        if (schain != null) {
+            uriBuilder.addParameter("schain", schain);
+        }
 
         extractDsaRequestParamsFromBidRequest(request).forEach(uriBuilder::addParameter);
 
         return uriBuilder.toString();
     }
 
-    private String makeFormats(BidRequest request) {
-        final List<String> formats = new ArrayList<>();
+    private String makeFormats(BidRequest request, Map<String, ExtImpYieldlab> extImps) {
+        final List<String> formats = new LinkedList<>();
         for (Imp imp: request.getImp()) {
             if (!isBanner(imp)) {
                 continue;
-
             }
-            final ExtImpYieldlab extImp = parseImpExt(imp);
+            final ExtImpYieldlab extImp = extImps.get(imp.getId());
             if (extImp == null) {
                 continue;
             }
 
-            final List<String> formatsPerAdSlot = new ArrayList<>();
-            Stream.ofNullable(imp.getBanner().getFormat())
-                    .flatMap(Collection::stream)
+            final String formatsPerAdSlotString = CollectionUtils.emptyIfNull(imp.getBanner().getFormat()).stream()
                     .map(format -> "%dx%d".formatted(format.getW(), format.getH()))
-                    .forEach(formatsPerAdSlot::add);
+                    .collect(Collectors.joining("|"));
 
-            final String formatsPerAdSlotString = String.join("|", formatsPerAdSlot);
             formats.add("%s:%s".formatted(extImp.getAdslotId(), formatsPerAdSlotString));
         }
 
@@ -281,46 +274,66 @@ public class YieldlabBidder implements Bidder<Void> {
     }
 
     private static String getGdprParameter(Regs regs) {
-        if (regs != null) {
-            final Integer gdpr = regs.getExt() != null ? regs.getExt().getGdpr() : null;
-            if (gdpr != null && (gdpr == 0 || gdpr == 1)) {
-                return gdpr.toString();
-            }
-        }
-        return "";
+        return Optional.ofNullable(regs)
+                .map(Regs::getExt)
+                .map(ExtRegs::getGdpr)
+                .filter(gdpr -> gdpr == 0 || gdpr == 1)
+                .map(Object::toString)
+                .orElse(StringUtils.EMPTY);
     }
 
     private static String getConsentParameter(User user) {
-        final ExtUser extUser = user != null ? user.getExt() : null;
-        final String consent = extUser != null ? extUser.getConsent() : null;
-        return ObjectUtils.defaultIfNull(consent, "");
+        return Optional.ofNullable(user)
+                .map(User::getExt)
+                .map(ExtUser::getConsent)
+                .orElse(StringUtils.EMPTY);
+    }
+
+    private String getSchainParameter(Source source) {
+        return Optional.ofNullable(source)
+                .map(Source::getExt)
+                .map(ExtSource::getSchain)
+                .map(this::resolveSupplyChain)
+                .orElse(null);
     }
 
     private String resolveSupplyChain(SupplyChain schain) {
         final List<SupplyChainNode> nodes = schain.getNodes();
         if (CollectionUtils.isEmpty(nodes)) {
-            return StringUtils.EMPTY;
+            return null;
         }
 
-        final String sChainPrefix = "%s,%d".formatted(schain.getVer(), schain.getComplete());
+        final StringBuilder schainBuilder = new StringBuilder();
 
-        final StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append(sChainPrefix);
-
+        schainBuilder.append(schain.getVer());
+        schainBuilder.append(",");
+        schainBuilder.append(ObjectUtils.defaultIfNull(schain.getComplete(), 0));
         for (SupplyChainNode node : schain.getNodes()) {
-            stringBuilder.append("!%s,%s,%s,%s,%s,%s,%s".formatted(
-                    encodeValue(node.getAsi()),
-                    encodeValue(node.getSid()),
-                    node.getHp() == null ? StringUtils.EMPTY : node.getHp(),
-                    encodeValue(node.getRid()),
-                    encodeValue(node.getName()),
-                    encodeValue(node.getDomain()),
-                    node.getExt() == null
-                            ? StringUtils.EMPTY
-                            : HttpUtil.encodeUrl(mapper.encodeToString(node.getExt()))));
+            schainBuilder.append("!");
+            schainBuilder.append(encodeValue(node.getAsi()));
+            schainBuilder.append(",");
+
+            schainBuilder.append(encodeValue(node.getSid()));
+            schainBuilder.append(",");
+
+            schainBuilder.append(node.getHp() == null ? StringUtils.EMPTY : node.getHp());
+            schainBuilder.append(",");
+
+            schainBuilder.append(encodeValue(node.getRid()));
+            schainBuilder.append(",");
+
+            schainBuilder.append(encodeValue(node.getName()));
+            schainBuilder.append(",");
+
+            schainBuilder.append(encodeValue(node.getDomain()));
+            schainBuilder.append(",");
+
+            schainBuilder.append(node.getExt() == null
+                    ? StringUtils.EMPTY
+                    : HttpUtil.encodeUrl(mapper.encodeToString(node.getExt())));
         }
 
-        return stringBuilder.toString();
+        return schainBuilder.toString();
     }
 
     private static String encodeValue(String value) {
@@ -363,25 +376,29 @@ public class YieldlabBidder implements Bidder<Void> {
 
     private static String encodeTransparenciesAsString(List<DsaTransparency> transparencies) {
         return transparencies.stream()
-            .filter(YieldlabBidder::isTransparencyValid)
-            .map(YieldlabBidder::encodeTransparency)
-            .collect(Collectors.joining(TRANSPARENCY_TEMPLATE_DELIMITER));
-    }
-
-    private static boolean isTransparencyValid(DsaTransparency transparency) {
-        return StringUtils.isNotBlank(transparency.getDomain())
-                && transparency.getDsaParams() != null
-                && CollectionUtils.isNotEmpty(transparency.getDsaParams());
+                .map(YieldlabBidder::encodeTransparency)
+                .collect(Collectors.joining(TRANSPARENCY_TEMPLATE_DELIMITER));
     }
 
     private static String encodeTransparency(DsaTransparency transparency) {
-        return TRANSPARENCY_TEMPLATE.formatted(transparency.getDomain(),
-            encodeTransparencyParams(transparency.getDsaParams()));
+        final String domain = transparency.getDomain();
+        if (StringUtils.isBlank(domain)) {
+            return StringUtils.EMPTY;
+        }
+
+        final List<Integer> dsaParams = transparency.getDsaParams();
+        if (CollectionUtils.isEmpty(dsaParams)) {
+            return domain;
+        }
+
+        return TRANSPARENCY_TEMPLATE.formatted(domain, encodeTransparencyParams(dsaParams));
     }
 
     private static String encodeTransparencyParams(List<Integer> dsaParams) {
-        return dsaParams.stream().map(Objects::toString).collect(Collectors.joining(
-            TRANSPARENCY_TEMPLATE_PARAMS_DELIMITER));
+        return dsaParams.stream()
+                .map(param -> ObjectUtils.defaultIfNull(param, 0))
+                .map(Object::toString)
+                .collect(Collectors.joining(TRANSPARENCY_TEMPLATE_PARAMS_DELIMITER));
     }
 
     private static MultiMap resolveHeaders(Site site, Device device, User user) {
@@ -389,16 +406,17 @@ public class YieldlabBidder implements Bidder<Void> {
                 .add(HttpUtil.ACCEPT_HEADER, HttpHeaderValues.APPLICATION_JSON);
 
         if (site != null) {
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.REFERER_HEADER.toString(), site.getPage());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.REFERER_HEADER, site.getPage());
         }
 
         if (device != null) {
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER.toString(), device.getUa());
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER.toString(), device.getIp());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
         }
 
-        if (user != null && StringUtils.isNotBlank(user.getBuyeruid())) {
-            headers.add(HttpUtil.COOKIE_HEADER.toString(), "id=" + user.getBuyeruid());
+        final String buyerUid = user != null ? user.getBuyeruid() : null;
+        if (StringUtils.isNotBlank(buyerUid)) {
+            headers.add(HttpUtil.COOKIE_HEADER, "id=" + buyerUid);
         }
 
         return headers;
@@ -413,7 +431,7 @@ public class YieldlabBidder implements Bidder<Void> {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
 
-        final List<ExtImpYieldlab> extImpYieldlabs = collectImpExt(bidRequest.getImp());
+        final Collection<ExtImpYieldlab> extImpYieldlabs = collectImpExt(bidRequest.getImp()).values();
         final List<BidderBid> bidderBids = new ArrayList<>();
         for (int i = 0; i < yieldlabResponses.size(); i++) {
             final BidderBid bidderBid;
@@ -433,7 +451,7 @@ public class YieldlabBidder implements Bidder<Void> {
     private BidderBid resolveBidderBid(List<YieldlabResponse> yieldlabResponses,
                                        int currentImpIndex,
                                        BidRequest bidRequest,
-                                       List<ExtImpYieldlab> extImpYieldlabs) {
+                                       Collection<ExtImpYieldlab> extImpYieldlabs) {
 
         final YieldlabResponse yieldlabResponse = yieldlabResponses.get(currentImpIndex);
 
@@ -476,7 +494,7 @@ public class YieldlabBidder implements Bidder<Void> {
         }
     }
 
-    private ExtImpYieldlab getMatchedExtImp(Integer responseId, List<ExtImpYieldlab> extImpYieldlabs) {
+    private ExtImpYieldlab getMatchedExtImp(Integer responseId, Collection<ExtImpYieldlab> extImpYieldlabs) {
         return extImpYieldlabs.stream()
                 .filter(ext -> ext.getAdslotId().equals(String.valueOf(responseId)))
                 .findFirst()
@@ -486,7 +504,7 @@ public class YieldlabBidder implements Bidder<Void> {
     private Bid.BidBuilder addBidParams(YieldlabResponse yieldlabResponse,
                                         BidRequest bidRequest,
                                         Bid.BidBuilder updatedBid,
-                                        List<ExtImpYieldlab> extImpYieldlabs) {
+                                        Collection<ExtImpYieldlab> extImpYieldlabs) {
 
         final ExtImpYieldlab matchedExtImp = getMatchedExtImp(yieldlabResponse.getId(), extImpYieldlabs);
 
@@ -553,7 +571,7 @@ public class YieldlabBidder implements Bidder<Void> {
 
         final User user = bidRequest.getUser();
         if (user != null && StringUtils.isNotBlank(user.getBuyeruid())) {
-            uriBuilder.addParameter("ids", String.join("ylid:", user.getBuyeruid()));
+            uriBuilder.addParameter("ids", "ylid:" + StringUtils.defaultString(user.getBuyeruid()));
         }
 
         final String gdpr = getGdprParameter(bidRequest.getRegs());

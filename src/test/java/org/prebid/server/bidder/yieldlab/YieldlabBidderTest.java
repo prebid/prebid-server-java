@@ -148,7 +148,7 @@ public class YieldlabBidderTest extends VertxTest {
                 .allSatisfy(uri -> {
                     assertThat(uri).startsWith("https://test.endpoint.com/1?content=json&pvid=true&ts=");
                     assertThat(uri).endsWith("&t=key1%3Dvalue1%26key2%3Dvalue2&sizes=1%3A1x1%7C2x2&"
-                            + "ids=buyeruid&yl_rtb_ifa&yl_rtb_devicetype=1&gdpr=1&gdpr_consent=consent&"
+                            + "ids=ylid%3Abuyeruid&yl_rtb_ifa&yl_rtb_devicetype=1&gdpr=1&gdpr_consent=consent&"
                             + "schain=1.0%2C1%21exchange1.com%2C1234%2521abcd%2C1%2Cbid%2Brequest%2526%25251%2C"
                             + "publisher%2Cpublisher.com%2C%257B%2522freeFormData%2522%253A1%252C%2522"
                             + "nested%2522%253A%257B%2522isTrue%2522%253Atrue%257D%257D");
@@ -175,6 +175,7 @@ public class YieldlabBidderTest extends VertxTest {
 
         final List<Imp> imps = new ArrayList<>();
         imps.add(Imp.builder()
+                .id("impId1")
                 .banner(Banner.builder().w(1).h(1).build())
                 .ext(mapper.valueToTree(ExtPrebid.of(null,
                         ExtImpYieldlab.builder()
@@ -185,6 +186,7 @@ public class YieldlabBidderTest extends VertxTest {
                                 .build())))
                 .build());
         imps.add(Imp.builder()
+                .id("impId2")
                 .banner(Banner.builder().w(1).h(1).build())
                 .ext(mapper.valueToTree(ExtPrebid.of(null,
                         ExtImpYieldlab.builder()
@@ -211,7 +213,7 @@ public class YieldlabBidderTest extends VertxTest {
                 .extracting(HttpRequest::getUri)
                 .allSatisfy(uri -> {
                     assertThat(uri).startsWith("https://test.endpoint.com/1,2?content=json&pvid=true&ts=");
-                    assertThat(uri).endsWith("&t=key1%3Dvalue1&sizes=1%3A%2C2%3A&ids=buyeruid&yl_rtb_ifa&"
+                    assertThat(uri).endsWith("&t=key1%3Dvalue1&sizes=1%3A%2C2%3A&ids=ylid%3Abuyeruid&yl_rtb_ifa&"
                             + "yl_rtb_devicetype=1&gdpr=1&gdpr_consent=consent");
                 });
     }
@@ -247,7 +249,7 @@ public class YieldlabBidderTest extends VertxTest {
                         .build()))
                 .device(Device.builder().ip("ip").ua("Agent").language("fr").devicetype(1).build())
                 .regs(Regs.builder().coppa(1).ext(ExtRegs.of(1, "usPrivacy", null, null)).build())
-                .user(User.builder().buyeruid("buyeruid").ext(ExtUser.builder().consent("consent").build()).build())
+                .user(User.builder().ext(ExtUser.builder().consent("consent").build()).build())
                 .site(Site.builder().page("http://www.example.com").build())
                 .build();
 
@@ -264,7 +266,7 @@ public class YieldlabBidderTest extends VertxTest {
         final int weekNumber = Calendar.getInstance().get(Calendar.WEEK_OF_YEAR);
         final String adm = """
                 <script src="https://ad.yieldlab.net/d/1/2/728x90?ts=%s\
-                &id=extId&pvid=40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5&ids=buyeruid&gdpr=1&gdpr_consent=consent">\
+                &id=extId&pvid=40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5&gdpr=1&gdpr_consent=consent">\
                 </script>""".formatted(timestamp);
         final BidderBid expected = BidderBid.of(
                 Bid.builder()
