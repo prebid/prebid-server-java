@@ -2,10 +2,12 @@ package org.prebid.server.bidder.admatic;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.vertx.core.MultiMap;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -55,7 +57,10 @@ public class AdmaticBidder implements Bidder<BidRequest> {
             try {
                 final AdmaticImpExt impExt = parseImpExt(imp);
                 final BidRequest modifiedBidRequest = request.toBuilder().imp(Collections.singletonList(imp)).build();
-                requests.add(BidderUtil.defaultRequest(modifiedBidRequest, resolveEndpoint(impExt), mapper));
+                requests.add(BidderUtil.defaultRequest(
+                        modifiedBidRequest,
+                        headers(modifiedBidRequest.getDevice()),
+                        resolveEndpoint(impExt), mapper));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -74,6 +79,18 @@ public class AdmaticBidder implements Bidder<BidRequest> {
 
     private String resolveEndpoint(AdmaticImpExt impExt) {
         return endpointUrl.replace(HOST_MACRO, HttpUtil.encodeUrl(impExt.getHost()));
+    }
+
+    private MultiMap headers(Device device) {
+        final MultiMap headers = HttpUtil.headers();
+
+        if (device != null) {
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIpv6());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
+        }
+
+        return headers;
     }
 
     @Override

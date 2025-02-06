@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Video;
@@ -36,6 +37,8 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 import static org.prebid.server.util.HttpUtil.ACCEPT_HEADER;
 import static org.prebid.server.util.HttpUtil.APPLICATION_JSON_CONTENT_TYPE;
 import static org.prebid.server.util.HttpUtil.CONTENT_TYPE_HEADER;
+import static org.prebid.server.util.HttpUtil.USER_AGENT_HEADER;
+import static org.prebid.server.util.HttpUtil.X_FORWARDED_FOR_HEADER;
 import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
 
 public class AdmaticBidderTest extends VertxTest {
@@ -99,6 +102,32 @@ public class AdmaticBidderTest extends VertxTest {
                         .isEqualTo(APPLICATION_JSON_CONTENT_TYPE))
                 .satisfies(headers -> assertThat(headers.get(ACCEPT_HEADER))
                         .isEqualTo(APPLICATION_JSON_VALUE));
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnRequestsWithHeadersIfDeviceIsPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity())
+                .toBuilder()
+                .device(Device.builder().ua("ua").ip("ip").ipv6("ipv6").build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).first()
+                .extracting(HttpRequest::getHeaders)
+                .satisfies(headers -> assertThat(headers.get(CONTENT_TYPE_HEADER))
+                        .isEqualTo(APPLICATION_JSON_CONTENT_TYPE))
+                .satisfies(headers -> assertThat(headers.get(ACCEPT_HEADER))
+                        .isEqualTo(APPLICATION_JSON_VALUE))
+                .satisfies(headers -> assertThat(headers.get(USER_AGENT_HEADER))
+                        .isEqualTo("ua"))
+                .satisfies(headers -> assertThat(headers.get(X_FORWARDED_FOR_HEADER))
+                        .isEqualTo("ip"));
         assertThat(result.getErrors()).isEmpty();
     }
 
