@@ -85,6 +85,6 @@ public class ConditionsRuleCreatorTest {
     }
 
     private static ActivityControllerCreationContext creationContext(GppContext gppContext) {
-        return ActivityControllerCreationContext.of(null, null, gppContext);
+        return ActivityControllerCreationContext.of(null, null, null, gppContext);
     }
 }

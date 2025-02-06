@@ -27,10 +27,13 @@ import org.prebid.server.settings.model.activity.privacy.AccountPrivacyModuleCon
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -40,6 +43,8 @@ import java.util.stream.Collectors;
 public class ActivityInfrastructureCreator {
 
     private static final Logger logger = LoggerFactory.getLogger(ActivityInfrastructureCreator.class);
+
+    private static final int MODULE_MAX_SKIP_RATE = 100;
 
     private final ActivityRuleFactory activityRuleFactory;
     private final Purpose defaultPurpose4;
@@ -75,14 +80,21 @@ public class ActivityInfrastructureCreator {
         final Map<Activity, AccountActivityConfiguration> activitiesConfiguration = accountPrivacyConfig
                 .map(AccountPrivacyConfig::getActivities)
                 .orElseGet(Collections::emptyMap);
+
         final Map<PrivacyModuleQualifier, AccountPrivacyModuleConfig> modulesConfigs = accountPrivacyConfig
                 .map(AccountPrivacyConfig::getModules)
                 .orElseGet(Collections::emptyList)
                 .stream()
+                .filter(Objects::nonNull)
                 .collect(Collectors.toMap(
                         AccountPrivacyModuleConfig::getCode,
                         UnaryOperator.identity(),
                         takeFirstAndLogDuplicates(account.getId())));
+
+        final Set<PrivacyModuleQualifier> skipPrivacyModules = modulesConfigs.entrySet().stream()
+                .filter(entry -> shouldSkipPrivacyModule(entry.getValue()))
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toCollection(() -> EnumSet.noneOf(PrivacyModuleQualifier.class)));
 
         return Arrays.stream(Activity.values()).collect(Collectors.toMap(
                 UnaryOperator.identity(),
@@ -93,6 +105,7 @@ public class ActivityInfrastructureCreator {
                                 activity,
                                 activitiesConfiguration.get(activity),
                                 modulesConfigs,
+                                skipPrivacyModules,
                                 gppContext,
                                 debug)),
                 (oldValue, newValue) -> oldValue,
@@ -131,9 +144,14 @@ public class ActivityInfrastructureCreator {
                 : activityControllerCreator.apply(originalActivity);
     }
 
+    private static boolean shouldSkipPrivacyModule(AccountPrivacyModuleConfig config) {
+        return ThreadLocalRandom.current().nextInt(MODULE_MAX_SKIP_RATE) < config.getSkipRate();
+    }
+
     private ActivityController from(Activity activity,
                                     AccountActivityConfiguration activityConfiguration,
                                     Map<PrivacyModuleQualifier, AccountPrivacyModuleConfig> modulesConfigs,
+                                    Set<PrivacyModuleQualifier> skipPrivacyModules,
                                     GppContext gppContext,
                                     ActivityInfrastructureDebug debug) {
 
@@ -147,6 +165,7 @@ public class ActivityInfrastructureCreator {
         final ActivityControllerCreationContext creationContext = ActivityControllerCreationContext.of(
                 activity,
                 modulesConfigs,
+                skipPrivacyModules,
                 gppContext);
 
         final boolean allow = allowFromConfig(activityConfiguration.getAllow());
