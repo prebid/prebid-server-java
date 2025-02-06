@@ -1,6 +1,8 @@
 package org.prebid.server.functional.tests.pricefloors
 
 import org.prebid.server.functional.model.Currency
+import org.prebid.server.functional.model.config.AccountPriceFloorsConfig
+import org.prebid.server.functional.model.config.PriceFloorsFetch
 import org.prebid.server.functional.model.mock.services.currencyconversion.CurrencyConversionRatesResponse
 import org.prebid.server.functional.model.pricefloors.PriceFloorData
 import org.prebid.server.functional.model.request.auction.ImpExtPrebidFloors
@@ -60,7 +62,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
         and: "PBS fetch rules from floors provider"
-        cacheFloorsProviderRules(currencyFloorsPbsService, bidRequest)
+        cacheFloorsProviderRules(bidRequest, currencyFloorsPbsService)
 
         when: "PBS processes auction request"
         currencyFloorsPbsService.sendAuctionRequest(bidRequest)
@@ -92,7 +94,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
         and: "PBS fetch rules from floors provider"
-        cacheFloorsProviderRules(currencyFloorsPbsService, bidRequest)
+        cacheFloorsProviderRules(bidRequest, currencyFloorsPbsService)
 
         and: "Get currency rates"
         def currencyRatesResponse = currencyFloorsPbsService.sendCurrencyRatesRequest()
@@ -147,7 +149,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
         and: "PBS fetch rules from floors provider"
-        cacheFloorsProviderRules(currencyFloorsPbsService, bidRequest)
+        cacheFloorsProviderRules(bidRequest, currencyFloorsPbsService)
 
         when: "PBS processes auction request"
         currencyFloorsPbsService.sendAuctionRequest(bidRequest)
@@ -191,7 +193,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
         and: "PBS fetch rules from floors provider"
-        cacheFloorsProviderRules(pbsService, bidRequest)
+        cacheFloorsProviderRules(bidRequest, pbsService)
 
         and: "Flush metrics"
         flushMetrics(pbsService)
@@ -238,8 +240,10 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         }
 
         and: "Account with disabled fetch in the DB"
-        def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id).tap {
-            config.auction.priceFloors.fetch.enabled = false
+        def account = getAccountWithEnabledFetch(bidRequest.accountId).tap {
+            config.auction.priceFloors.fetch.enabled = priceFloors
+            config.auction.priceFloorsSnakeCase = new AccountPriceFloorsConfig(enabled: true,
+                    fetch: new PriceFloorsFetch(url: BASIC_FETCH_URL + bidRequest.accountId, enabled: priceFloorsSnakeCase))
         }
         accountDao.save(account)
 
@@ -253,6 +257,11 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
             imp[0].bidFloorCur == floorCur
             ext?.prebid?.floors?.fetchStatus == NONE
         }
+
+        where:
+        priceFloors | priceFloorsSnakeCase
+        false       | null
+        null        | false
     }
 
     def "PBS should prefer ext.prebid.floors for setting bidFloor, bidFloorCur for signalling"() {
@@ -307,7 +316,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
         and: "PBS fetch rules from floors provider"
-        cacheFloorsProviderRules(currencyFloorsPbsService, bidRequest)
+        cacheFloorsProviderRules(bidRequest, currencyFloorsPbsService)
 
         and: "Get currency rates"
         def currencyRatesResponse = currencyFloorsPbsService.sendCurrencyRatesRequest()
@@ -367,7 +376,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
         and: "PBS fetch rules from floors provider"
-        cacheFloorsProviderRules(currencyFloorsPbsService, bidRequest)
+        cacheFloorsProviderRules(bidRequest, currencyFloorsPbsService)
 
         and: "Flush metrics"
         flushMetrics(currencyFloorsPbsService)
@@ -408,12 +417,14 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         currencyFloorsPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain floorMin, floorMinCur, currency from request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            imp[0].ext.prebid.floors.floorMinCur == EUR
-            imp[0].ext.prebid.floors.floorMin == FLOOR_MIN
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        verifyAll(bidderRequest) {
             ext.prebid.floors.floorMinCur == EUR
             ext.prebid.floors.floorMin == FLOOR_MIN
         }
+
+        and: "Bidder request shouldn't include imp.ext.prebid.floors"
+        assert !bidderRequest.imp[0].ext.prebid.floors
     }
 
     def "PBS should return warning when both floorMinCur and floorMinCur exist and they're different"() {
@@ -436,12 +447,14 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
                 ["imp[].ext.prebid.floors.floorMinCur and ext.prebid.floors.floorMinCur has different values"]
 
         and: "Bidder request should contain floorMinCur, floorMin from request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            imp[0].ext.prebid.floors.floorMinCur == EUR
-            imp[0].ext.prebid.floors.floorMin == FLOOR_MIN
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        verifyAll(bidderRequest) {
             ext.prebid.floors.floorMinCur == JPY
             ext.prebid.floors.floorMin == FLOOR_MIN
         }
+
+        and: "Bidder request shouldn't include imp.ext.prebid.floors"
+        assert !bidderRequest.imp[0].ext.prebid.floors
     }
 
     def "PBS should choose floorMin from imp[0].ext.prebid.floors when imp[0].ext.prebid.floors is present"() {
@@ -461,13 +474,14 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         currencyFloorsPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain floorMin, floorValue, bidFloor, bidFloorCur"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            imp[0].ext.prebid.floors.floorMinCur == USD
-            imp[0].ext.prebid.floors.floorMin == impExtPrebidFloorMin
-            imp[0].ext.prebid.floors.floorValue == impExtPrebidFloorMin
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        verifyAll(bidderRequest) {
             imp[0].bidFloor == impExtPrebidFloorMin
             imp[0].bidFloorCur == USD
         }
+
+        and: "Bidder request shouldn't include imp.ext.prebid.floors"
+        assert !bidderRequest.imp[0].ext.prebid.floors
     }
 
     def "PBS should choose floorMin from ext.prebid.floors when imp[0].ext.prebid.floor.floorMin is absent"() {
@@ -486,12 +500,13 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         currencyFloorsPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain bidFloorCur, bidFloor, floorValue"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            !imp[0].ext.prebid.floors.floorMinCur
-            !imp[0].ext.prebid.floors.floorMin
-            imp[0].ext.prebid.floors.floorValue == extPrebidFloorMin
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        verifyAll(bidderRequest) {
             imp[0].bidFloor == extPrebidFloorMin
             imp[0].bidFloorCur == USD
         }
+
+        and: "Bidder request shouldn't include imp.ext.prebid.floors"
+        assert !bidderRequest.imp[0].ext.prebid.floors
     }
 }

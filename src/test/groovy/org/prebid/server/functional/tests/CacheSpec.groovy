@@ -1,5 +1,9 @@
 package org.prebid.server.functional.tests
 
+import org.prebid.server.functional.model.config.AccountAuctionConfig
+import org.prebid.server.functional.model.config.AccountConfig
+import org.prebid.server.functional.model.config.AccountEventsConfig
+import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.Asset
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Imp
@@ -14,6 +18,8 @@ import static org.prebid.server.functional.model.response.auction.MediaType.BANN
 import static org.prebid.server.functional.model.response.auction.MediaType.VIDEO
 
 class CacheSpec extends BaseSpec {
+
+    private final static String PBS_API_HEADER = 'x-pbc-api-key'
 
     def "PBS should update prebid_cache.creative_size.xml metric when xml creative is received"() {
         given: "Current value of metric prebid_cache.requests.ok"
@@ -83,6 +89,51 @@ class CacheSpec extends BaseSpec {
 
         then: "PBS should call PBC"
         assert prebidCache.getRequestCount(bidRequest.imp[0].id) == 1
+
+        and: "PBS call shouldn't include api-key"
+        assert !prebidCache.getRequestHeaders(bidRequest.imp[0].id)[PBS_API_HEADER]
+    }
+
+    def "PBS should cache bids without api-key header when targeting is specified and api-key-secured disabled"() {
+        given: "Pbs config with disabled api-key-secured and pbc.api.key"
+        def apiKey = PBSUtils.randomString
+        def pbsService = pbsServiceFactory.getService(['pbc.api.key': apiKey, 'cache.api-key-secured': 'false'])
+
+        and: "Default BidRequest with cache, targeting"
+        def bidRequest = BidRequest.defaultBidRequest
+        bidRequest.enableCache()
+        bidRequest.ext.prebid.targeting = new Targeting()
+
+        when: "PBS processes auction request"
+        pbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS should call PBC"
+        prebidCache.getRequest()
+        assert prebidCache.getRequestCount(bidRequest.imp[0].id) == 1
+
+        and: "PBS call shouldn't include api-key"
+        assert !prebidCache.getRequestHeaders(bidRequest.imp[0].id)[PBS_API_HEADER]
+    }
+
+    def "PBS should cache bids with api-key header when targeting is specified and api-key-secured enabled"() {
+        given: "Pbs config with api-key-secured and pbc.api.key"
+        def apiKey = PBSUtils.randomString
+        def pbsService = pbsServiceFactory.getService(['pbc.api.key': apiKey, 'cache.api-key-secured': 'true'])
+
+        and: "Default BidRequest with cache, targeting"
+        def bidRequest = BidRequest.defaultBidRequest
+        bidRequest.enableCache()
+        bidRequest.ext.prebid.targeting = new Targeting()
+
+        when: "PBS processes auction request"
+        pbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS should call PBC"
+        prebidCache.getRequest()
+        assert prebidCache.getRequestCount(bidRequest.imp[0].id) == 1
+
+        and: "PBS call should include api-key"
+        assert prebidCache.getRequestHeaders(bidRequest.imp[0].id)[PBS_API_HEADER] == [apiKey]
     }
 
     def "PBS should not cache bids when targeting isn't specified"() {
@@ -191,5 +242,51 @@ class CacheSpec extends BaseSpec {
         returnCreative | mediaType
         false          | BANNER
         true           | VIDEO
+    }
+
+    def "PBS should update prebid_cache.creative_size.xml metric and adding tracking xml when xml creative contain #wrapper and impression are valid xml value"() {
+        given: "Current value of metric prebid_cache.requests.ok"
+        def initialValue = getCurrentMetricValue(defaultPbsService, "prebid_cache.requests.ok")
+
+        and: "Create and save enabled events config in account"
+        def accountId = PBSUtils.randomNumber.toString()
+        def account = new Account().tap {
+            uuid = accountId
+            config = new AccountConfig().tap {
+                auction = new AccountAuctionConfig(events: new AccountEventsConfig(enabled: true))
+            }
+        }
+        accountDao.save(account)
+
+        and: "Vtrack request with custom tags"
+        def payload = PBSUtils.randomString
+        def creative = "<VAST version=\"3.0\"><Ad><${wrapper}><AdSystem>prebid.org wrapper</AdSystem>" +
+                "<VASTAdTagURI>&lt;![CDATA[//${payload}]]&gt;</VASTAdTagURI>" +
+                "<${impression}> &lt;![CDATA[ ]]&gt; </${impression}><Creatives></Creatives></${wrapper}></Ad></VAST>"
+        def request = VtrackRequest.getDefaultVtrackRequest(creative)
+
+        when: "PBS processes vtrack request"
+        defaultPbsService.sendVtrackRequest(request, accountId)
+
+        then: "Vast xml is modified"
+        def prebidCacheRequest = prebidCache.getXmlRecordedRequestsBody(payload)
+        assert prebidCacheRequest.size() == 1
+        assert prebidCacheRequest[0].contains("/event?t=imp&b=${request.puts[0].bidid}&a=$accountId&bidder=${request.puts[0].bidder}")
+
+        and: "prebid_cache.creative_size.xml metric should be updated"
+        def metrics = defaultPbsService.sendCollectedMetricsRequest()
+        assert metrics["prebid_cache.requests.ok"] == initialValue + 1
+
+        and: "account.<account-id>.prebid_cache.creative_size.xml should be updated"
+        assert metrics["account.${accountId}.prebid_cache.requests.ok" as String] == 1
+
+        where:
+        wrapper                                     | impression
+        " wrapper "                                 | " impression "
+        PBSUtils.getRandomCase(" wrapper ")         | PBSUtils.getRandomCase(" impression ")
+        "  wraPPer ${PBSUtils.getRandomString()}  " | "  imPreSSion ${PBSUtils.getRandomString()}"
+        "    inLine    "                            | " ImpreSSion $PBSUtils.randomNumber"
+        PBSUtils.getRandomCase(" inline ")          | " ${PBSUtils.getRandomCase(" impression ")} $PBSUtils.randomNumber "
+        "  inline ${PBSUtils.getRandomString()}  "  | "   ImpreSSion    "
     }
 }

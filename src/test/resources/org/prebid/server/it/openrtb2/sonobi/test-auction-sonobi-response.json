@@ -6,6 +6,7 @@
         {
           "id": "bid_id",
           "impid": "imp_id",
+          "exp": 300,
           "price": 1.25,
           "adm": "adm001",
           "crid": "crid",
@@ -15,7 +16,8 @@
             "prebid": {
               "type": "banner"
             },
-            "origbidcpm": 1.25
+            "origbidcpm": 1.25,
+            "origbidcur": "USD"
           }
         }
       ],

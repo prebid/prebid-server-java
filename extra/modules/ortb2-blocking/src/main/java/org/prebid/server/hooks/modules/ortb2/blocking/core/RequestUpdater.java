@@ -1,11 +1,14 @@
 package org.prebid.server.hooks.modules.ortb2.blocking.core;
 
+import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Video;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.model.BlockedAttributes;
+import org.prebid.server.spring.config.bidder.model.MediaType;
 
 import java.util.List;
 import java.util.Map;
@@ -40,39 +43,99 @@ public class RequestUpdater {
 
     private List<Imp> updateImps(List<Imp> imps) {
         final Map<String, List<Integer>> blockedBannerType = blockedAttributes.getBtype();
-        final Map<String, List<Integer>> blockedBannerAttr = blockedAttributes.getBattr();
+        final Map<MediaType, Map<String, List<Integer>>> blockedAttr = blockedAttributes.getBattr();
 
-        if (MapUtils.isEmpty(blockedBannerType) && MapUtils.isEmpty(blockedBannerAttr)) {
+        if (MapUtils.isEmpty(blockedBannerType) && MapUtils.isEmpty(blockedAttr)) {
             return imps;
         }
 
         return imps.stream()
-                .map(imp -> updateImp(imp, blockedBannerType, blockedBannerAttr))
+                .map(imp -> updateImp(imp, blockedBannerType, blockedAttr))
                 .toList();
     }
 
     private Imp updateImp(Imp imp,
                           Map<String, List<Integer>> blockedBannerType,
-                          Map<String, List<Integer>> blockedBannerAttr) {
+                          Map<MediaType, Map<String, List<Integer>>> blockedAttr) {
 
         final String impId = imp.getId();
         final List<Integer> btypeForImp = blockedBannerType != null ? blockedBannerType.get(impId) : null;
-        final List<Integer> battrForImp = blockedBannerAttr != null ? blockedBannerAttr.get(impId) : null;
+        final List<Integer> bannerBattrForImp = extractBattr(blockedAttr, MediaType.BANNER, impId);
+        final List<Integer> videoBattrForImp = extractBattr(blockedAttr, MediaType.VIDEO, impId);
+        final List<Integer> audioBattrForImp = extractBattr(blockedAttr, MediaType.AUDIO, impId);
 
-        if (CollectionUtils.isEmpty(btypeForImp) && CollectionUtils.isEmpty(battrForImp)) {
+        if (CollectionUtils.isEmpty(btypeForImp)
+                && CollectionUtils.isEmpty(bannerBattrForImp)
+                && CollectionUtils.isEmpty(videoBattrForImp)
+                && CollectionUtils.isEmpty(audioBattrForImp)) {
+
             return imp;
         }
 
         final Banner banner = imp.getBanner();
-        final List<Integer> existingBtype = banner != null ? banner.getBtype() : null;
-        final List<Integer> existingBattr = banner != null ? banner.getBattr() : null;
-        final Banner.BannerBuilder bannerBuilder = banner != null ? banner.toBuilder() : Banner.builder();
+        final Video video = imp.getVideo();
+        final Audio audio = imp.getAudio();
 
         return imp.toBuilder()
-                .banner(bannerBuilder
-                        .btype(CollectionUtils.isNotEmpty(existingBtype) ? existingBtype : btypeForImp)
-                        .battr(CollectionUtils.isNotEmpty(existingBattr) ? existingBattr : battrForImp)
-                        .build())
+                .banner(CollectionUtils.isNotEmpty(btypeForImp) || CollectionUtils.isNotEmpty(bannerBattrForImp)
+                        ? updateBanner(banner, btypeForImp, bannerBattrForImp)
+                        : banner)
+                .video(CollectionUtils.isNotEmpty(videoBattrForImp)
+                        ? updateVideo(imp.getVideo(), videoBattrForImp)
+                        : video)
+                .audio(CollectionUtils.isNotEmpty(audioBattrForImp)
+                        ? updateAudio(imp.getAudio(), audioBattrForImp)
+                        : audio)
                 .build();
+    }
+
+    private static List<Integer> extractBattr(Map<MediaType, Map<String, List<Integer>>> blockedAttr,
+                                              MediaType mediaType,
+                                              String impId) {
+
+        final Map<String, List<Integer>> impIdToBattr = blockedAttr != null ? blockedAttr.get(mediaType) : null;
+        return impIdToBattr != null ? impIdToBattr.get(impId) : null;
+    }
+
+    private static Banner updateBanner(Banner banner, List<Integer> btype, List<Integer> battr) {
+        if (banner == null) {
+            return null;
+        }
+
+        final List<Integer> existingBtype = banner.getBtype();
+        final List<Integer> existingBattr = banner.getBattr();
+
+        return CollectionUtils.isEmpty(existingBtype) || CollectionUtils.isEmpty(existingBattr)
+                ? banner.toBuilder()
+                .btype(CollectionUtils.isNotEmpty(existingBtype) ? existingBtype : btype)
+                .battr(CollectionUtils.isNotEmpty(existingBattr) ? existingBattr : battr)
+                .build()
+                : banner;
+    }
+
+    private static Video updateVideo(Video video, List<Integer> battr) {
+        if (video == null) {
+            return null;
+        }
+
+        final List<Integer> existingBattr = video.getBattr();
+        return CollectionUtils.isEmpty(existingBattr)
+                ? video.toBuilder()
+                .battr(battr)
+                .build()
+                : video;
+    }
+
+    private static Audio updateAudio(Audio audio, List<Integer> battr) {
+        if (audio == null) {
+            return null;
+        }
+
+        final List<Integer> existingBattr = audio.getBattr();
+        return CollectionUtils.isEmpty(existingBattr)
+                ? audio.toBuilder()
+                .battr(battr)
+                .build()
+                : audio;
     }
 }

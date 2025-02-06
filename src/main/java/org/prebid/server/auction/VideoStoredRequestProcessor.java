@@ -17,8 +17,6 @@ import com.iab.openrtb.request.video.PodError;
 import com.iab.openrtb.request.video.Podconfig;
 import io.vertx.core.Future;
 import io.vertx.core.file.FileSystem;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
@@ -26,9 +24,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.auction.model.WithPodErrors;
 import org.prebid.server.exception.InvalidRequestException;
-import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
@@ -59,7 +59,7 @@ public class VideoStoredRequestProcessor {
     private static final String DEFAULT_CURRENCY = "USD";
 
     private final boolean enforceStoredRequest;
-    private final List<String> blacklistedAccounts;
+    private final List<String> blocklistedAccounts;
     private final long defaultTimeout;
     private final String currency;
     private final BidRequest defaultBidRequest;
@@ -71,7 +71,7 @@ public class VideoStoredRequestProcessor {
     private final JsonMerger jsonMerger;
 
     public VideoStoredRequestProcessor(boolean enforceStoredRequest,
-                                       List<String> blacklistedAccounts,
+                                       List<String> blocklistedAccounts,
                                        long defaultTimeout,
                                        String adServerCurrency,
                                        String defaultBidRequestPath,
@@ -84,7 +84,7 @@ public class VideoStoredRequestProcessor {
                                        JsonMerger jsonMerger) {
 
         this.enforceStoredRequest = enforceStoredRequest;
-        this.blacklistedAccounts = Objects.requireNonNull(blacklistedAccounts);
+        this.blocklistedAccounts = Objects.requireNonNull(blocklistedAccounts);
         this.defaultTimeout = defaultTimeout;
         this.currency = StringUtils.isBlank(adServerCurrency) ? DEFAULT_CURRENCY : adServerCurrency;
         this.defaultBidRequest = readBidRequest(
@@ -147,7 +147,7 @@ public class VideoStoredRequestProcessor {
                                                                 String storedBidRequestId) {
 
         final BidRequestVideo mergedStoredRequest = mergeBidRequest(videoRequest, storedBidRequestId, storedResult);
-        validator.validateStoredBidRequest(mergedStoredRequest, enforceStoredRequest, blacklistedAccounts);
+        validator.validateStoredBidRequest(mergedStoredRequest, enforceStoredRequest, blocklistedAccounts);
 
         final Podconfig podconfig = mergedStoredRequest.getPodconfig();
         final Video video = mergedStoredRequest.getVideo();

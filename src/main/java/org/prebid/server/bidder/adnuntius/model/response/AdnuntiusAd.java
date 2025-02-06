@@ -13,10 +13,10 @@ public class AdnuntiusAd {
     AdnuntiusBid bid;
 
     @JsonProperty("netBid")
-    AdnuntiusNetBid adnuntiusNetBid;
+    AdnuntiusNetBid netBid;
 
     @JsonProperty("grossBid")
-    AdnuntiusGrossBid adnuntiusGrossBid;
+    AdnuntiusGrossBid grossBid;
 
     @JsonProperty("dealId")
     String dealId;
@@ -36,6 +36,10 @@ public class AdnuntiusAd {
     @JsonProperty("lineItemId")
     String lineItemId;
 
+    String html;
+
     @JsonProperty("destinationUrls")
     Map<String, String> destinationUrls;
+
+    AdnuntiusAdvertiser advertiser;
 }

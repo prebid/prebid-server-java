@@ -1,14 +1,15 @@
 //file:noinspection GroovyGStringKey
 package org.prebid.server.functional.tests
 
-import org.prebid.server.functional.model.AccountStatus
 import org.prebid.server.functional.model.UidsCookie
 import org.prebid.server.functional.model.bidder.BidderName
+import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountCcpaConfig
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountCookieSyncConfig
 import org.prebid.server.functional.model.config.AccountCoopSyncConfig
 import org.prebid.server.functional.model.config.AccountPrivacyConfig
+import org.prebid.server.functional.model.config.PrivacySandbox
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.cookiesync.CookieSyncRequest
 import org.prebid.server.functional.model.request.cookiesync.FilterSettings
@@ -23,13 +24,15 @@ import org.prebid.server.functional.util.privacy.CcpaConsent
 import org.prebid.server.functional.util.privacy.TcfConsent
 
 import java.time.Instant
+import java.util.concurrent.TimeUnit
 
+import static org.prebid.server.functional.model.AccountStatus.ACTIVE
+import static org.prebid.server.functional.model.bidder.BidderName.AAX
 import static org.prebid.server.functional.model.bidder.BidderName.ACEEX
 import static org.prebid.server.functional.model.bidder.BidderName.ACUITYADS
 import static org.prebid.server.functional.model.bidder.BidderName.ADKERNEL
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
-import static org.prebid.server.functional.model.bidder.BidderName.AAX
 import static org.prebid.server.functional.model.bidder.BidderName.BOGUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
@@ -43,6 +46,7 @@ import static org.prebid.server.functional.model.response.cookiesync.UserSyncInf
 import static org.prebid.server.functional.model.response.cookiesync.UserSyncInfo.Type.IFRAME
 import static org.prebid.server.functional.model.response.cookiesync.UserSyncInfo.Type.REDIRECT
 import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
+import static org.prebid.server.functional.util.HttpUtil.SET_COOKIE_HEADER
 import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.ENFORCED
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
@@ -391,8 +395,6 @@ class CookieSyncSpec extends BaseSpec {
         }
 
         and: "Save account with cookie config"
-        def cookieSyncConfig = new AccountCookieSyncConfig(defaultLimit: 1)
-        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig)
         def account = new Account(uuid: accountId, config: accountConfig)
         accountDao.save(account)
 
@@ -410,6 +412,10 @@ class CookieSyncSpec extends BaseSpec {
         assert bogusBidderStatus?.error == "Unsupported bidder"
         assert bogusBidderStatus?.noCookie == null
         assert bogusBidderStatus?.userSync == null
+
+        where:
+        accountConfig << [new AccountConfig(status: ACTIVE, cookieSync: new AccountCookieSyncConfig(defaultLimit: 1)),
+                          new AccountConfig(status: ACTIVE, cookieSyncSnakeCase: new AccountCookieSyncConfig(defaultLimit: 1))]
     }
 
     def "PBS cookie sync request should reflect error even when response is full by PBS config limit"() {
@@ -841,7 +847,7 @@ class CookieSyncSpec extends BaseSpec {
 
         and: "Save account with cookie sync config"
         def cookieSyncConfig = new AccountCookieSyncConfig(defaultLimit: 2)
-        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig)
+        def accountConfig = new AccountConfig(status: ACTIVE, cookieSync: cookieSyncConfig)
         def account = new Account(uuid: accountId, config: accountConfig)
         accountDao.save(account)
 
@@ -868,7 +874,7 @@ class CookieSyncSpec extends BaseSpec {
         and: "Save account with cookie config"
         def accountDefaultLimit = 1
         def cookieSyncConfig = new AccountCookieSyncConfig(defaultLimit: accountDefaultLimit)
-        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig)
+        def accountConfig = new AccountConfig(status: ACTIVE, cookieSync: cookieSyncConfig)
         def account = new Account(uuid: accountId, config: accountConfig)
         accountDao.save(account)
 
@@ -955,9 +961,8 @@ class CookieSyncSpec extends BaseSpec {
         }
 
         and: "Save account with cookie sync config"
-        def maxLimit = 2
-        def cookieSyncConfig = new AccountCookieSyncConfig(maxLimit: maxLimit)
-        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig)
+        def cookieSyncConfig = new AccountCookieSyncConfig(maxLimit: accountMaxLimit, maxLimitSnakeCase: accountMaxLimitSnakeCase)
+        def accountConfig = new AccountConfig(status: ACTIVE, cookieSync: cookieSyncConfig)
         def account = new Account(uuid: accountId, config: accountConfig)
         accountDao.save(account)
 
@@ -965,7 +970,12 @@ class CookieSyncSpec extends BaseSpec {
         def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
 
         then: "Response should contain only two synced bidder"
-        assert response.bidderStatus.size() == maxLimit
+        assert response.bidderStatus.size() == 2
+
+        where:
+        accountMaxLimit | accountMaxLimitSnakeCase
+        2               | null
+        null            | 2
     }
 
     def "PBS cookie sync with cookie-sync.pri and enabled coop-sync in config should sync bidder which present in cookie-sync.pri config"() {
@@ -1027,7 +1037,7 @@ class CookieSyncSpec extends BaseSpec {
 
         and: "Save account with cookie config"
         def cookieSyncConfig = new AccountCookieSyncConfig(coopSync: new AccountCoopSyncConfig(enabled: false))
-        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig)
+        def accountConfig = new AccountConfig(status: ACTIVE, cookieSync: cookieSyncConfig)
         def account = new Account(uuid: accountId, config: accountConfig)
         accountDao.save(account)
 
@@ -1141,7 +1151,7 @@ class CookieSyncSpec extends BaseSpec {
 
         and: "Save account with cookie config"
         def cookieSyncConfig = new AccountCookieSyncConfig(coopSync: new AccountCoopSyncConfig(enabled: false))
-        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig)
+        def accountConfig = new AccountConfig(status: ACTIVE, cookieSync: cookieSyncConfig)
         def account = new Account(uuid: accountId, config: accountConfig)
         accountDao.save(account)
 
@@ -1200,7 +1210,7 @@ class CookieSyncSpec extends BaseSpec {
 
         and: "Save account with cookie config"
         def cookieSyncConfig = new AccountCookieSyncConfig(pri: [bidderName.value], coopSync: new AccountCoopSyncConfig(enabled: true))
-        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig)
+        def accountConfig = new AccountConfig(status: ACTIVE, cookieSync: cookieSyncConfig)
         def account = new Account(uuid: accountId, config: accountConfig)
         accountDao.save(account)
 
@@ -1230,7 +1240,7 @@ class CookieSyncSpec extends BaseSpec {
 
         and: "Save account with cookie config"
         def cookieSyncConfig = new AccountCookieSyncConfig(pri: [bidderName.value])
-        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig)
+        def accountConfig = new AccountConfig(status: ACTIVE, cookieSync: cookieSyncConfig)
         def account = new Account(uuid: accountId, config: accountConfig)
         accountDao.save(account)
 
@@ -1260,7 +1270,7 @@ class CookieSyncSpec extends BaseSpec {
 
         and: "Save account with cookie config"
         def cookieSyncConfig = new AccountCookieSyncConfig(coopSync: new AccountCoopSyncConfig(enabled: true))
-        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig)
+        def accountConfig = new AccountConfig(status: ACTIVE, cookieSync: cookieSyncConfig)
         def account = new Account(uuid: accountId, config: accountConfig)
         accountDao.save(account)
 
@@ -1994,7 +2004,7 @@ class CookieSyncSpec extends BaseSpec {
 
         and: "Save account with cookie config"
         def cookieSyncConfig = new AccountCookieSyncConfig(defaultLimit: 0)
-        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig)
+        def accountConfig = new AccountConfig(status: ACTIVE, cookieSync: cookieSyncConfig)
         def account = new Account(uuid: accountId, config: accountConfig)
         accountDao.save(account)
 
@@ -2017,7 +2027,7 @@ class CookieSyncSpec extends BaseSpec {
         and: "Save account with cookie config"
         def maxLimit = 1
         def cookieSyncConfig = new AccountCookieSyncConfig(maxLimit: maxLimit, defaultLimit: 2)
-        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig)
+        def accountConfig = new AccountConfig(status: ACTIVE, cookieSync: cookieSyncConfig)
         def account = new Account(uuid: accountId, config: accountConfig)
         accountDao.save(account)
 
@@ -2032,16 +2042,13 @@ class CookieSyncSpec extends BaseSpec {
         given: "Default cookie sync request"
         def accountId = PBSUtils.randomNumber
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
-            bidders = [GENERIC, BOGUS]
+            bidders = [GENERIC, APPNEXUS, ADKERNEL]
             account = accountId
-            limit = 2
+            limit = null
             debug = false
         }
 
         and: "Save account with cookie config"
-        def maxLimit = 1
-        def cookieSyncConfig = new AccountCookieSyncConfig(maxLimit: maxLimit)
-        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig)
         def account = new Account(uuid: accountId, config: accountConfig)
         accountDao.save(account)
 
@@ -2049,7 +2056,11 @@ class CookieSyncSpec extends BaseSpec {
         def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
 
         then: "Response should contain corresponding bidders size due to config"
-        assert response.bidderStatus.size() == maxLimit
+        assert response.bidderStatus.size() == 2
+
+        where:
+        accountConfig << [new AccountConfig(status: ACTIVE, cookieSyncSnakeCase: new AccountCookieSyncConfig(maxLimit: 2)),
+                          new AccountConfig(status: ACTIVE, cookieSync: new AccountCookieSyncConfig(maxLimit: 2))]
     }
 
     def "PBS cookie sync request should capped to max limit"() {
@@ -2065,7 +2076,7 @@ class CookieSyncSpec extends BaseSpec {
         and: "Save account with cookie config"
         def maxLimit = 1
         def cookieSyncConfig = new AccountCookieSyncConfig(maxLimit: maxLimit)
-        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig)
+        def accountConfig = new AccountConfig(status: ACTIVE, cookieSync: cookieSyncConfig)
         def account = new Account(uuid: accountId, config: accountConfig)
         accountDao.save(account)
 
@@ -2090,9 +2101,8 @@ class CookieSyncSpec extends BaseSpec {
         }
 
         and: "Save account with cookie config"
-        def defaultLimit = 1
-        def cookieSyncConfig = new AccountCookieSyncConfig(defaultLimit: defaultLimit)
-        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig)
+        def cookieSyncConfig = new AccountCookieSyncConfig(defaultLimit: accountDefaultLimit, defaultLimitSnakeCase: accountDefaultLimitSnakeCase)
+        def accountConfig = new AccountConfig(status: ACTIVE, cookieSync: cookieSyncConfig)
         def account = new Account(uuid: accountId, config: accountConfig)
         accountDao.save(account)
 
@@ -2100,7 +2110,12 @@ class CookieSyncSpec extends BaseSpec {
         def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
 
         then: "Response should contain corresponding bidders size due to config"
-        assert response.bidderStatus.size() == defaultLimit
+        assert response.bidderStatus.size() == 1
+
+        where:
+        accountDefaultLimit | accountDefaultLimitSnakeCase
+        1                   | null
+        null                | 1
     }
 
     def "PBS cookie sync request should take precedence request limit over account and global config"() {
@@ -2119,7 +2134,7 @@ class CookieSyncSpec extends BaseSpec {
 
         and: "Save account with cookie config"
         def cookieSyncConfig = new AccountCookieSyncConfig(defaultLimit: 2)
-        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig)
+        def accountConfig = new AccountConfig(status: ACTIVE, cookieSync: cookieSyncConfig)
         def account = new Account(uuid: accountId, config: accountConfig)
         accountDao.save(account)
 
@@ -2140,8 +2155,7 @@ class CookieSyncSpec extends BaseSpec {
         }
 
         and: "Save account with cookie config"
-        def cookieSyncConfig = new AccountCookieSyncConfig(coopSync: new AccountCoopSyncConfig(enabled: accountCoopSyncConfig))
-        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig)
+        def accountConfig = new AccountConfig(status: ACTIVE, cookieSync: cookieSyncConfig)
         def account = new Account(uuid: accountId, config: accountConfig)
         accountDao.save(account)
 
@@ -2152,7 +2166,12 @@ class CookieSyncSpec extends BaseSpec {
         assert response.bidderStatus.size() == 9
 
         where:
-        accountCoopSyncConfig << [false, true, null]
+        cookieSyncConfig << [new AccountCookieSyncConfig(coopSync: new AccountCoopSyncConfig(enabled: true)),
+                             new AccountCookieSyncConfig(coopSync: new AccountCoopSyncConfig(enabled: false)),
+                             new AccountCookieSyncConfig(coopSync: new AccountCoopSyncConfig(enabled: null)),
+                             new AccountCookieSyncConfig(coopSyncSnakeCase: new AccountCoopSyncConfig(enabled: true)),
+                             new AccountCookieSyncConfig(coopSyncSnakeCase: new AccountCoopSyncConfig(enabled: false)),
+                             new AccountCookieSyncConfig(coopSyncSnakeCase: new AccountCoopSyncConfig(enabled: null))]
     }
 
     def "PBS cookie sync request should respond with an error when gdpr param is 1 and consent isn't specified"() {
@@ -2170,15 +2189,164 @@ class CookieSyncSpec extends BaseSpec {
         assert serverException.responseBody == "Invalid request format: gdpr_consent is required if gdpr is 1"
     }
 
+    def "PBS shouldn't set cookie deprecation header from the account when privacySandbox is #privacySandbox"() {
+        given: "Default cookie sync request with account"
+        def accountId = PBSUtils.randomNumber
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            account = accountId
+        }
+
+        and: "Set up generic uids cookie"
+        def uidsCookie = UidsCookie.defaultUidsCookie
+
+        and: "Save account with cookie and privacySandbox configs"
+        def accountAuctionConfig = new AccountAuctionConfig(privacySandbox: privacySandbox)
+        def accountConfig = new AccountConfig(status: ACTIVE, auction: accountAuctionConfig)
+        def account = new Account(uuid: accountId, config: accountConfig)
+        accountDao.save(account)
+
+        when: "PBS processes cookie sync request"
+        def response = prebidServerService.sendCookieSyncRequestRaw(cookieSyncRequest, uidsCookie)
+
+        then: "Response shouldn't contain cookie header"
+        assert !response.headers[SET_COOKIE_HEADER]
+
+        where:
+        privacySandbox << [null,
+                           PrivacySandbox.getDefaultPrivacySandbox(null),
+                           PrivacySandbox.getDefaultPrivacySandbox(false)]
+    }
+
+    def "PBS shouldn't set cookie deprecation header from the account when cookies is included in original request"() {
+        given: "Default cookie sync request with account"
+        def accountId = PBSUtils.randomNumber
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            account = accountId
+        }
+
+        and: "Set up generic uids cookie"
+        def uidsCookie = UidsCookie.defaultUidsCookie
+
+        and: "Save account with cookie and privacySandbox configs"
+        def privacySandbox = PrivacySandbox.defaultPrivacySandbox
+        def accountAuctionConfig = new AccountAuctionConfig(privacySandbox: privacySandbox)
+        def accountConfig = new AccountConfig(status: ACTIVE, auction: accountAuctionConfig)
+        def account = new Account(uuid: accountId, config: accountConfig)
+        accountDao.save(account)
+
+        when: "PBS processes cookie sync request"
+        def setCookieDefaultHeader = ['receive-cookie-deprecation': '1']
+        def response = prebidServerService.sendCookieSyncRequestRaw(cookieSyncRequest, uidsCookie, setCookieDefaultHeader)
+
+        then: "Response shouldn't contain cookie header"
+        assert !response.headers[SET_COOKIE_HEADER]
+    }
+
+    def "PBS should set cookie deprecation header from the account when cookies is not included in original request"() {
+        given: "Default cookie sync request with account"
+        def accountId = PBSUtils.randomNumber
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            account = accountId
+        }
+
+        and: "Set up generic uids cookie"
+        def uidsCookie = UidsCookie.defaultUidsCookie
+
+        and: "Save account with cookie and privacySandbox configs"
+        def accountAuctionConfig = new AccountAuctionConfig(privacySandbox: privacySandbox)
+        def accountConfig = new AccountConfig(status: ACTIVE, auction: accountAuctionConfig)
+        def account = new Account(uuid: accountId, config: accountConfig)
+        accountDao.save(account)
+
+        when: "PBS processes cookie sync request"
+        def response = prebidServerService.sendCookieSyncRequestRaw(cookieSyncRequest, uidsCookie)
+
+        then: "Response should contain cookie header"
+        assert removeExpiresValue(response.headers[SET_COOKIE_HEADER]) ==
+                ["receive-cookie-deprecation=1; Max-Age=${privacySandbox.cookieDeprecation.ttlSeconds}; Expires=*; Path=/; Secure; HTTPOnly; SameSite=None; Partitioned"]
+
+        where:
+        privacySandbox << [PrivacySandbox.defaultPrivacySandbox, PrivacySandbox.getDefaultPrivacySandbox(true, -PBSUtils.randomNumber)]
+    }
+
+    def "PBS should set cookie deprecation header on default value of week when ttlSec is not specified in privacy sandbox settings"() {
+        given: "Default cookie sync request with account"
+        def accountId = PBSUtils.randomNumber
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            account = accountId
+        }
+
+        and: "Set up generic uids cookie"
+        def uidsCookie = UidsCookie.defaultUidsCookie
+
+        and: "Save account with cookie and privacySandbox configs"
+        def accountAuctionConfig = new AccountAuctionConfig(privacySandbox: PrivacySandbox.getDefaultPrivacySandbox(true, null))
+        def accountConfig = new AccountConfig(status: ACTIVE, auction: accountAuctionConfig)
+        def account = new Account(uuid: accountId, config: accountConfig)
+        accountDao.save(account)
+
+        when: "PBS processes cookie sync request"
+        def response = prebidServerService.sendCookieSyncRequestRaw(cookieSyncRequest, uidsCookie)
+
+        then: "Response should contain cookie header"
+        assert removeExpiresValue(response.headers[SET_COOKIE_HEADER]) ==
+                ["receive-cookie-deprecation=1; Max-Age=${TimeUnit.DAYS.toSeconds(7)}; Expires=*; Path=/; Secure; HTTPOnly; SameSite=None; Partitioned"]
+    }
+
+    def "PBS should set cookie deprecation header from the default account when default account contain privacy sandbox and request account is empty"() {
+        given: "Pbs with PF configuration with privacySandbox"
+        def privacySandbox = PrivacySandbox.defaultPrivacySandbox
+        def defaultAccountConfigSettings = AccountConfig.defaultAccountConfig.tap {
+            auction = new AccountAuctionConfig(privacySandbox: privacySandbox)
+        }
+        def pbsService = pbsServiceFactory.getService(PBS_CONFIG +
+                ["settings.default-account-config": encode(defaultAccountConfigSettings)])
+
+        and: "Set up generic uids cookie"
+        def uidsCookie = UidsCookie.defaultUidsCookie
+
+        and: "Cookie sync request body"
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            account = null
+        }
+
+        when: "PBS processes cookie sync request"
+        def response = pbsService.sendCookieSyncRequestRaw(cookieSyncRequest, uidsCookie)
+
+        then: "Response should contain cookie header"
+        assert removeExpiresValue(response.headers[SET_COOKIE_HEADER]) ==
+                ["receive-cookie-deprecation=1; Max-Age=${privacySandbox.cookieDeprecation.ttlSeconds}; Expires=*; Path=/; Secure; HTTPOnly; SameSite=None; Partitioned"]
+    }
+
+    def "PBS shouldn't set cookie deprecation header when cookie sync request doesn't contain account"() {
+        given: "Set up generic uids cookie"
+        def uidsCookie = UidsCookie.defaultUidsCookie
+
+        and: "Cookie sync request body"
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            account = null
+        }
+
+        when: "PBS processes cookie sync request"
+        def response = prebidServerService.sendCookieSyncRequestRaw(cookieSyncRequest, uidsCookie)
+
+        then: "Response shouldn't contain cookie header"
+        assert !response.headers[SET_COOKIE_HEADER]
+    }
+
     private static Map<BidderName, UserSyncInfo> getValidBidderUserSyncs(CookieSyncResponse cookieSyncResponse) {
         cookieSyncResponse.bidderStatus
-                          .findAll { it.userSync }
-                          .collectEntries { [it.bidder, it.userSync] }
+                .findAll { it.userSync }
+                .collectEntries { [it.bidder, it.userSync] }
     }
 
     private static Map<BidderName, String> getRejectedBidderUserSyncs(CookieSyncResponse cookieSyncResponse) {
         cookieSyncResponse.bidderStatus
-                          .findAll { it.error }
-                          .collectEntries { [it.bidder, it.error] }
+                .findAll { it.error }
+                .collectEntries { [it.bidder, it.error] }
+    }
+
+    private static List<String> removeExpiresValue(List<String> cookies) {
+        cookies.collect { it.replaceFirst(/Expires=[^;]+;/, "Expires=*;") }
     }
 }

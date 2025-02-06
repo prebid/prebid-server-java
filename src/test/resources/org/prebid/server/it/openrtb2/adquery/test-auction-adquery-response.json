@@ -1,0 +1,41 @@
+{
+  "id": "22e26bd9a702bc",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "22e26bd9a702bc1",
+          "impid": "22e26bd9a702bc",
+          "exp": 300,
+          "price": 1.090,
+          "adm": "<script src=\"AdqLib_Example\"></script>Tag_Example",
+          "adomain": [
+            "unknownDomains"
+          ],
+          "crid": "7211",
+          "w": 320,
+          "h": 50,
+          "ext": {
+            "origbidcpm": 4.14,
+            "origbidcur": "PLN",
+            "prebid": {
+              "type": "banner"
+            }
+          }
+        }
+      ],
+      "seat": "adquery",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "adquery": "{{ adquery.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}

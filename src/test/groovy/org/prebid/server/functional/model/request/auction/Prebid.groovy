@@ -10,11 +10,12 @@ import org.prebid.server.functional.model.bidder.BidderName
 @ToString(includeNames = true, ignoreNulls = true)
 class Prebid {
 
-    Integer debug
+    DebugCondition debug
     Boolean returnAllBidStatus
     Map<String, BidderName> aliases
     Map<String, Integer> aliasgvlids
     BidAdjustmentFactors bidAdjustmentFactors
+    BidAdjustment bidAdjustments
     PrebidCurrency currency
     Targeting targeting
     TraceLevel trace
@@ -28,7 +29,7 @@ class Prebid {
     List<MultiBid> multibid
     Pbs pbs
     Server server
-    Map<BidderName, Map<String, Integer>> bidderParams
+    Map bidderParams
     ExtPrebidFloors floors
     Map passThrough
     Events events
@@ -36,6 +37,10 @@ class Prebid {
     Sdk sdk
     List<AdServerTargeting> adServerTargeting
     BidderControls bidderControls
+    PrebidModulesConfig modules
+    PrebidAnalytics analytics
+    StoredAuctionResponse storedAuctionResponse
+    PaaFormat paaFormat
 
     static class Channel {
 

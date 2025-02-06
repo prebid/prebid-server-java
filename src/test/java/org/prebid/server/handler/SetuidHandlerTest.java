@@ -7,22 +7,21 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.function.Executable;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
 import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
-import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.gpp.SetuidGppService;
+import org.prebid.server.auction.privacy.contextfactory.SetuidPrivacyContextFactory;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.UsersyncMethod;
 import org.prebid.server.bidder.UsersyncMethodType;
@@ -30,11 +29,10 @@ import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.cookie.model.UidWithExpiry;
-import org.prebid.server.cookie.model.UidsCookieUpdateResult;
 import org.prebid.server.cookie.proto.Uids;
 import org.prebid.server.exception.InvalidAccountConfigException;
 import org.prebid.server.exception.InvalidRequestException;
-import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.HostVendorTcfDefinerService;
 import org.prebid.server.privacy.gdpr.model.HostVendorTcfResponse;
@@ -53,46 +51,50 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.Base64;
-import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singleton;
+import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anySet;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.prebid.server.model.UpdateResult.unaltered;
+import static org.prebid.server.model.UpdateResult.updated;
 
+@ExtendWith(MockitoExtension.class)
 public class SetuidHandlerTest extends VertxTest {
 
     private static final String RUBICON = "rubicon";
     private static final String FACEBOOK = "audienceNetwork";
     private static final String ADNXS = "adnxs";
+    private static final String APPNEXUS = "appnexus";
 
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
-    @Mock
+    @Mock(strictness = LENIENT)
     private UidsCookieService uidsCookieService;
-    @Mock
+    @Mock(strictness = LENIENT)
     private ApplicationSettings applicationSettings;
-    @Mock
+    @Mock(strictness = LENIENT)
     private BidderCatalog bidderCatalog;
-    @Mock
-    private PrivacyEnforcementService privacyEnforcementService;
-    @Mock
+    @Mock(strictness = LENIENT)
+    private SetuidPrivacyContextFactory setuidPrivacyContextFactory;
+    @Mock(strictness = LENIENT)
     private SetuidGppService gppService;
-    @Mock
+    @Mock(strictness = LENIENT)
     private ActivityInfrastructureCreator activityInfrastructureCreator;
-    @Mock
+    @Mock(strictness = LENIENT)
     private HostVendorTcfDefinerService tcfDefinerService;
     @Mock
     private AnalyticsReporterDelegator analyticsReporterDelegator;
@@ -100,32 +102,35 @@ public class SetuidHandlerTest extends VertxTest {
     private Metrics metrics;
 
     private SetuidHandler setuidHandler;
-    @Mock
+
+    @Mock(strictness = LENIENT)
     private RoutingContext routingContext;
-    @Mock
+    @Mock(strictness = LENIENT)
     private HttpServerRequest httpRequest;
-    @Mock
+    @Mock(strictness = LENIENT)
     private HttpServerResponse httpResponse;
-    @Mock
+    @Mock(strictness = LENIENT)
     private ActivityInfrastructure activityInfrastructure;
 
     private TcfContext tcfContext;
 
-    @Before
+    @BeforeEach
     public void setUp() {
-        final Map<Integer, PrivacyEnforcementAction> vendorIdToGdpr = singletonMap(1,
-                PrivacyEnforcementAction.allowAll());
+        final Map<String, PrivacyEnforcementAction> bidderToGdpr = Map.of(
+                RUBICON, PrivacyEnforcementAction.allowAll(),
+                APPNEXUS, PrivacyEnforcementAction.allowAll(),
+                FACEBOOK, PrivacyEnforcementAction.allowAll());
 
         tcfContext = TcfContext.builder().inGdprScope(false).build();
-        given(privacyEnforcementService.contextFromSetuidRequest(any(), any(), any()))
+        given(setuidPrivacyContextFactory.contextFrom(any(), any(), any()))
                 .willReturn(Future.succeededFuture(PrivacyContext.of(null, tcfContext)));
         given(gppService.contextFrom(any())).willReturn(Future.succeededFuture());
         given(gppService.updateSetuidContext(any()))
                 .willAnswer(invocation -> invocation.getArgument(0));
         given(activityInfrastructureCreator.create(any(), any(), any()))
                 .willReturn(activityInfrastructure);
-        given(tcfDefinerService.resultForVendorIds(anySet(), any()))
-                .willReturn(Future.succeededFuture(TcfResponse.of(true, vendorIdToGdpr, null)));
+        given(tcfDefinerService.resultForBidderNames(anySet(), any(), any()))
+                .willReturn(Future.succeededFuture(TcfResponse.of(true, bidderToGdpr, null)));
         given(tcfDefinerService.isAllowedForHostVendorId(any()))
                 .willReturn(Future.succeededFuture(HostVendorTcfResponse.allowedVendor()));
         given(tcfDefinerService.getGdprHostVendorId()).willReturn(1);
@@ -138,18 +143,32 @@ public class SetuidHandlerTest extends VertxTest {
         given(httpResponse.putHeader(any(CharSequence.class), any(CharSequence.class))).willReturn(httpResponse);
         given(httpResponse.closed()).willReturn(false);
 
-        given(uidsCookieService.toCookie(any())).willReturn(Cookie.cookie("test", "test"));
+        given(uidsCookieService.splitUidsIntoCookies(any())).willAnswer(invocation -> singletonList(
+                Cookie.cookie(
+                        "uids",
+                        Base64.getUrlEncoder().encodeToString(((UidsCookie) invocation.getArgument(0))
+                                .toJson().getBytes()))));
 
-        given(bidderCatalog.names()).willReturn(new HashSet<>(asList("rubicon", "audienceNetwork")));
-        given(bidderCatalog.isActive(any())).willReturn(true);
+        given(bidderCatalog.usersyncReadyBidders()).willReturn(Set.of(RUBICON, FACEBOOK, APPNEXUS));
+        given(bidderCatalog.isAlias(any())).willReturn(false);
 
         given(bidderCatalog.usersyncerByName(eq(RUBICON))).willReturn(
                 Optional.of(Usersyncer.of(RUBICON, null, redirectMethod())));
+        given(bidderCatalog.cookieFamilyName(eq(RUBICON))).willReturn(Optional.of(RUBICON));
+
         given(bidderCatalog.usersyncerByName(eq(FACEBOOK))).willReturn(
                 Optional.of(Usersyncer.of(FACEBOOK, null, redirectMethod())));
+        given(bidderCatalog.cookieFamilyName(eq(FACEBOOK))).willReturn(Optional.of(FACEBOOK));
+
+        given(bidderCatalog.usersyncerByName(eq(APPNEXUS))).willReturn(
+                Optional.of(Usersyncer.of(ADNXS, null, redirectMethod())));
+        given(bidderCatalog.cookieFamilyName(eq(APPNEXUS))).willReturn(Optional.of(ADNXS));
 
         given(activityInfrastructure.isAllowed(any(), any()))
                 .willReturn(true);
+
+        given(applicationSettings.getAccountById(any(), any()))
+                .willReturn(Future.succeededFuture(Account.builder().build()));
 
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
@@ -158,7 +177,7 @@ public class SetuidHandlerTest extends VertxTest {
                 uidsCookieService,
                 applicationSettings,
                 bidderCatalog,
-                privacyEnforcementService,
+                setuidPrivacyContextFactory,
                 gppService,
                 activityInfrastructureCreator,
                 tcfDefinerService,
@@ -230,7 +249,7 @@ public class SetuidHandlerTest extends VertxTest {
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
         tcfContext = TcfContext.builder().inGdprScope(true).consentValid(false).build();
-        given(privacyEnforcementService.contextFromSetuidRequest(any(), any(), any()))
+        given(setuidPrivacyContextFactory.contextFrom(any(), any(), any()))
                 .willReturn(Future.succeededFuture(PrivacyContext.of(null, tcfContext)));
 
         // when
@@ -291,7 +310,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(uidsCookie);
         given(uidsCookieService.updateUidsCookie(uidsCookie, RUBICON, null))
-                .willReturn(UidsCookieUpdateResult.unaltered(uidsCookie));
+                .willReturn(unaltered(uidsCookie));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
 
@@ -311,9 +330,9 @@ public class SetuidHandlerTest extends VertxTest {
     public void shouldRespondWithoutCookieIfGdprProcessingPreventsCookieSetting() {
         // given
         final PrivacyEnforcementAction privacyEnforcementAction = PrivacyEnforcementAction.restrictAll();
-        given(tcfDefinerService.resultForVendorIds(anySet(), any()))
+        given(tcfDefinerService.resultForBidderNames(anySet(), any(), any()))
                 .willReturn(Future.succeededFuture(
-                        TcfResponse.of(true, singletonMap(null, privacyEnforcementAction), null)));
+                        TcfResponse.of(true, singletonMap(RUBICON, privacyEnforcementAction), null)));
 
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
@@ -337,7 +356,7 @@ public class SetuidHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithBadRequestStatusIfGdprProcessingFailsWithInvalidRequestException() {
         // given
-        given(tcfDefinerService.resultForVendorIds(anySet(), any()))
+        given(tcfDefinerService.resultForBidderNames(anySet(), any(), any()))
                 .willReturn(Future.failedFuture(new InvalidRequestException("gdpr exception")));
 
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
@@ -360,7 +379,7 @@ public class SetuidHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithInternalServerErrorStatusIfGdprProcessingFailsWithUnexpectedException() {
         // given
-        given(tcfDefinerService.resultForVendorIds(anySet(), any()))
+        given(tcfDefinerService.resultForBidderNames(anySet(), any(), any()))
                 .willReturn(Future.failedFuture("unexpected error TCF"));
 
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
@@ -385,7 +404,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(uidsCookie);
         given(uidsCookieService.updateUidsCookie(uidsCookie, RUBICON, null))
-                .willReturn(UidsCookieUpdateResult.updated(uidsCookie));
+                .willReturn(updated(uidsCookie));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
         given(httpRequest.getParam("account")).willReturn("accId");
@@ -394,7 +413,7 @@ public class SetuidHandlerTest extends VertxTest {
                 .enabledForRequestType(EnabledForRequestType.of(true, true, true, true, true))
                 .build();
         final Account account = Account.builder()
-                .privacy(AccountPrivacyConfig.of(accountGdprConfig, null, null, null))
+                .privacy(AccountPrivacyConfig.builder().gdpr(accountGdprConfig).build())
                 .build();
         final Future<Account> accountFuture = Future.succeededFuture(account);
         given(applicationSettings.getAccountById(any(), any())).willReturn(accountFuture);
@@ -404,7 +423,7 @@ public class SetuidHandlerTest extends VertxTest {
 
         // then
         verify(applicationSettings).getAccountById(eq("accId"), any());
-        verify(privacyEnforcementService).contextFromSetuidRequest(any(), eq(account), any());
+        verify(setuidPrivacyContextFactory).contextFrom(any(), eq(account), any());
     }
 
     @Test
@@ -414,7 +433,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(uidsCookie);
         given(uidsCookieService.updateUidsCookie(uidsCookie, RUBICON, null))
-                .willReturn(UidsCookieUpdateResult.updated(uidsCookie));
+                .willReturn(updated(uidsCookie));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
         given(httpRequest.getParam("account")).willReturn("accId");
@@ -426,7 +445,7 @@ public class SetuidHandlerTest extends VertxTest {
 
         // then
         verify(applicationSettings).getAccountById(eq("accId"), any());
-        verify(privacyEnforcementService).contextFromSetuidRequest(any(), eq(Account.empty("accId")), any());
+        verify(setuidPrivacyContextFactory).contextFrom(any(), eq(Account.empty("accId")), any());
     }
 
     @Test
@@ -435,12 +454,9 @@ public class SetuidHandlerTest extends VertxTest {
         final UidsCookie uidsCookie = emptyUidsCookie();
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(uidsCookie);
-        given(uidsCookieService.updateUidsCookie(uidsCookie, RUBICON, "J5VLCWQP-26-CWFT"))
-                .willReturn(UidsCookieUpdateResult.updated(uidsCookie));
 
-        // {"tempUIDs":{"rubicon":{"uid":"J5VLCWQP-26-CWFT"}}}
-        given(uidsCookieService.toCookie(any())).willReturn(Cookie
-                .cookie("uids", "eyJ0ZW1wVUlEcyI6eyJydWJpY29uIjp7InVpZCI6Iko1VkxDV1FQLTI2LUNXRlQifX19"));
+        given(uidsCookieService.updateUidsCookie(uidsCookie, RUBICON, "J5VLCWQP-26-CWFT"))
+                .willReturn(updated(uidsCookie.updateUid(RUBICON, "J5VLCWQP-26-CWFT")));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
         given(httpRequest.getParam("uid")).willReturn("J5VLCWQP-26-CWFT");
@@ -457,16 +473,36 @@ public class SetuidHandlerTest extends VertxTest {
     }
 
     @Test
+    public void shouldRespondWithCookieFromRequestParamWhenBidderAndCookieFamilyAreDifferent() throws IOException {
+        // given
+        final UidsCookie uidsCookie = emptyUidsCookie();
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
+                .willReturn(uidsCookie);
+        given(uidsCookieService.updateUidsCookie(uidsCookie, ADNXS, "J5VLCWQP-26-CWFT"))
+                .willReturn(updated(uidsCookie.updateUid(ADNXS, "J5VLCWQP-26-CWFT")));
+
+        given(httpRequest.getParam("bidder")).willReturn(ADNXS);
+        given(httpRequest.getParam("uid")).willReturn("J5VLCWQP-26-CWFT");
+
+        // when
+        setuidHandler.handle(routingContext);
+
+        // then
+        verify(routingContext, never()).addCookie(any(Cookie.class));
+        final String encodedUidsCookie = getUidsCookie();
+        final Uids decodedUids = decodeUids(encodedUidsCookie);
+        assertThat(decodedUids.getUids()).hasSize(1);
+        assertThat(decodedUids.getUids().get(ADNXS).getUid()).isEqualTo("J5VLCWQP-26-CWFT");
+    }
+
+    @Test
     public void shouldSendPixelWhenFParamIsEqualToIWhenTypeIsIframe() {
         // given
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
-        // {"tempUIDs":{"rubicon":{"uid":"J5VLCWQP-26-CWFT"}}}
-        given(uidsCookieService.toCookie(any())).willReturn(Cookie
-                .cookie("uids", "eyJ0ZW1wVUlEcyI6eyJydWJpY29uIjp7InVpZCI6Iko1VkxDV1FQLTI2LUNXRlQifX19"));
         given(uidsCookieService.updateUidsCookie(any(), any(), any()))
-                .willReturn(UidsCookieUpdateResult.updated(emptyUidsCookie()));
+                .willReturn(updated(emptyUidsCookie()));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
         given(httpRequest.getParam("f")).willReturn("i");
@@ -489,16 +525,12 @@ public class SetuidHandlerTest extends VertxTest {
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(uidsCookie);
         given(uidsCookieService.updateUidsCookie(uidsCookie, RUBICON, "J5VLCWQP-26-CWFT"))
-                .willReturn(UidsCookieUpdateResult.updated(uidsCookie));
-
-        // {"tempUIDs":{"rubicon":{"uid":"J5VLCWQP-26-CWFT"}}}
-        given(uidsCookieService.toCookie(any())).willReturn(Cookie
-                .cookie("uids", "eyJ0ZW1wVUlEcyI6eyJydWJpY29uIjp7InVpZCI6Iko1VkxDV1FQLTI2LUNXRlQifX19"));
+                .willReturn(updated(uidsCookie));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
         given(httpRequest.getParam("f")).willReturn("b");
         given(httpRequest.getParam("uid")).willReturn("J5VLCWQP-26-CWFT");
-        given(bidderCatalog.names()).willReturn(singleton(RUBICON));
+        given(bidderCatalog.usersyncReadyBidders()).willReturn(singleton(RUBICON));
         given(bidderCatalog.usersyncerByName(any()))
                 .willReturn(Optional.of(Usersyncer.of(RUBICON, null, redirectMethod())));
 
@@ -507,7 +539,7 @@ public class SetuidHandlerTest extends VertxTest {
                 uidsCookieService,
                 applicationSettings,
                 bidderCatalog,
-                privacyEnforcementService,
+                setuidPrivacyContextFactory,
                 gppService,
                 activityInfrastructureCreator,
                 tcfDefinerService,
@@ -534,11 +566,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(uidsCookie);
         given(uidsCookieService.updateUidsCookie(uidsCookie, RUBICON, "J5VLCWQP-26-CWFT"))
-                .willReturn(UidsCookieUpdateResult.updated(uidsCookie));
-
-        // {"tempUIDs":{"rubicon":{"uid":"J5VLCWQP-26-CWFT"}}}
-        given(uidsCookieService.toCookie(any())).willReturn(Cookie
-                .cookie("uids", "eyJ0ZW1wVUlEcyI6eyJydWJpY29uIjp7InVpZCI6Iko1VkxDV1FQLTI2LUNXRlQifX19"));
+                .willReturn(updated(uidsCookie));
 
         given(bidderCatalog.usersyncerByName(eq(RUBICON))).willReturn(
                 Optional.of(Usersyncer.of(RUBICON, iframeMethod(), null)));
@@ -551,7 +579,7 @@ public class SetuidHandlerTest extends VertxTest {
                 uidsCookieService,
                 applicationSettings,
                 bidderCatalog,
-                privacyEnforcementService,
+                setuidPrivacyContextFactory,
                 gppService,
                 activityInfrastructureCreator,
                 tcfDefinerService,
@@ -578,13 +606,10 @@ public class SetuidHandlerTest extends VertxTest {
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(uidsCookie);
         given(uidsCookieService.updateUidsCookie(uidsCookie, RUBICON, "J5VLCWQP-26-CWFT"))
-                .willReturn(UidsCookieUpdateResult.updated(uidsCookie));
+                .willReturn(updated(uidsCookie));
 
-        // {"tempUIDs":{"rubicon":{"uid":"J5VLCWQP-26-CWFT"}}}
-        given(uidsCookieService.toCookie(any())).willReturn(Cookie
-                .cookie("uids", "eyJ0ZW1wVUlEcyI6eyJydWJpY29uIjp7InVpZCI6Iko1VkxDV1FQLTI2LUNXRlQifX19"));
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
-        given(bidderCatalog.names()).willReturn(singleton(RUBICON));
+        given(bidderCatalog.usersyncReadyBidders()).willReturn(singleton(RUBICON));
         given(bidderCatalog.usersyncerByName(any()))
                 .willReturn(Optional.of(Usersyncer.of(RUBICON, null, redirectMethod())));
         given(httpRequest.getParam("uid")).willReturn("J5VLCWQP-26-CWFT");
@@ -594,7 +619,7 @@ public class SetuidHandlerTest extends VertxTest {
                 uidsCookieService,
                 applicationSettings,
                 bidderCatalog,
-                privacyEnforcementService,
+                setuidPrivacyContextFactory,
                 gppService,
                 activityInfrastructureCreator,
                 tcfDefinerService,
@@ -621,16 +646,10 @@ public class SetuidHandlerTest extends VertxTest {
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(uidsCookie);
         given(uidsCookieService.updateUidsCookie(uidsCookie, RUBICON, "updatedUid"))
-                .willReturn(UidsCookieUpdateResult.updated(uidsCookie.updateUid(RUBICON, "updatedUid")));
+                .willReturn(updated(uidsCookie.updateUid(RUBICON, "updatedUid")));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
         given(httpRequest.getParam("uid")).willReturn("updatedUid");
-
-        // {"tempUIDs":{"adnxs":{"uid":"12345"}, "rubicon":{"uid":"updatedUid"}}}
-        given(uidsCookieService.toCookie(any()))
-                .willReturn(Cookie.cookie("uids",
-                        "eyJ0ZW1wVUlEcyI6eyJhZG54cyI6eyJ1aWQiOiIxMjM0NSJ9LCAicnViaWNvbiI6eyJ1aWQiOiJ1cGRhdGVkVW"
-                                + "lkIn19fQ=="));
 
         // when
         setuidHandler.handle(routingContext);
@@ -647,6 +666,54 @@ public class SetuidHandlerTest extends VertxTest {
     }
 
     @Test
+    public void shouldReturnMultipleCookies() throws IOException {
+        // given
+        final Map<String, UidWithExpiry> uids = Map.of(
+                RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"),
+                ADNXS, UidWithExpiry.live("12345"));
+        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(uids).build(), jacksonMapper);
+
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
+                .willReturn(uidsCookie);
+        final UidsCookie givenUidsCookie = uidsCookie
+                .updateUid(RUBICON, "updatedUid")
+                .updateUid(ADNXS, "12345");
+
+        given(uidsCookieService.updateUidsCookie(uidsCookie, RUBICON, "updatedUid"))
+                .willReturn(updated(givenUidsCookie));
+
+        given(httpRequest.getParam("bidder")).willReturn(RUBICON);
+        given(httpRequest.getParam("uid")).willReturn("updatedUid");
+
+        // {"tempUIDs":{"adnxs":{"uid":"12345"}, "rubicon":{"uid":"updatedUid"}}}
+        given(uidsCookieService.splitUidsIntoCookies(givenUidsCookie)).willReturn(List.of(
+                Cookie.cookie("uids", "eyJ0ZW1wVUlEcyI6eyJydWJpY29uIjp7InVpZCI6InVwZGF0ZWRVaWQifX19"),
+                Cookie.cookie("uids2", "eyJ0ZW1wVUlEcyI6eyJhZG54cyI6eyJ1aWQiOiIxMjM0NSJ9fX0")));
+
+        // when
+        setuidHandler.handle(routingContext);
+
+        // then
+        verify(httpResponse).sendFile(any());
+        verify(routingContext, never()).addCookie(any(Cookie.class));
+
+        final Map<String, String> encodedUidsCookie = httpResponse.headers().getAll("Set-Cookie").stream()
+                .collect(Collectors.toMap(value -> value.split("=")[0], value -> value.split("=")[1]));
+
+        assertThat(encodedUidsCookie).hasSize(2);
+        final Uids decodedUids1 = mapper.readValue(Base64.getUrlDecoder()
+                .decode(encodedUidsCookie.get("uids")), Uids.class);
+        final Uids decodedUids2 = mapper.readValue(Base64.getUrlDecoder()
+                .decode(encodedUidsCookie.get("uids2")), Uids.class);
+
+        assertThat(decodedUids1.getUids()).hasSize(1);
+        assertThat(decodedUids1.getUids().get(RUBICON).getUid()).isEqualTo("updatedUid");
+
+        assertThat(decodedUids2.getUids()).hasSize(1);
+        assertThat(decodedUids2.getUids().get(ADNXS).getUid()).isEqualTo("12345");
+    }
+
+    @Test
     public void shouldRespondWithCookieIfUserIsNotInGdprScope() throws IOException {
         // given
         given(tcfDefinerService.resultForVendorIds(anySet(), any()))
@@ -656,11 +723,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(uidsCookie);
         given(uidsCookieService.updateUidsCookie(uidsCookie, RUBICON, "J5VLCWQP-26-CWFT"))
-                .willReturn(UidsCookieUpdateResult.updated(uidsCookie));
-
-        // {"tempUIDs":{"rubicon":{"uid":"J5VLCWQP-26-CWFT"}}}
-        given(uidsCookieService.toCookie(any())).willReturn(Cookie
-                .cookie("uids", "eyJ0ZW1wVUlEcyI6eyJydWJpY29uIjp7InVpZCI6Iko1VkxDV1FQLTI2LUNXRlQifX19"));
+                .willReturn(updated(uidsCookie.updateUid(RUBICON, "J5VLCWQP-26-CWFT")));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
         given(httpRequest.getParam("uid")).willReturn("J5VLCWQP-26-CWFT");
@@ -687,7 +750,7 @@ public class SetuidHandlerTest extends VertxTest {
                 uidsCookieService,
                 applicationSettings,
                 bidderCatalog,
-                privacyEnforcementService,
+                setuidPrivacyContextFactory,
                 gppService,
                 activityInfrastructureCreator,
                 tcfDefinerService,
@@ -701,11 +764,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(uidsCookie);
         given(uidsCookieService.updateUidsCookie(uidsCookie, RUBICON, "J5VLCWQP-26-CWFT"))
-                .willReturn(UidsCookieUpdateResult.updated(uidsCookie));
-
-        // {"tempUIDs":{"rubicon":{"uid":"J5VLCWQP-26-CWFT"}}}
-        given(uidsCookieService.toCookie(any())).willReturn(Cookie
-                .cookie("uids", "eyJ0ZW1wVUlEcyI6eyJydWJpY29uIjp7InVpZCI6Iko1VkxDV1FQLTI2LUNXRlQifX19"));
+                .willReturn(updated(uidsCookie.updateUid(RUBICON, "J5VLCWQP-26-CWFT")));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
         given(httpRequest.getParam("uid")).willReturn("J5VLCWQP-26-CWFT");
@@ -731,7 +790,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(uidsCookie);
         given(uidsCookieService.updateUidsCookie(uidsCookie, RUBICON, "uid"))
-                .willReturn(UidsCookieUpdateResult.updated(uidsCookie));
+                .willReturn(updated(uidsCookie));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
         given(httpRequest.getParam("uid")).willReturn("uid");
@@ -755,7 +814,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(uidsCookie);
         given(uidsCookieService.updateUidsCookie(uidsCookie, RUBICON, "updatedUid"))
-                .willReturn(UidsCookieUpdateResult.updated(uidsCookie));
+                .willReturn(updated(uidsCookie));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
         given(httpRequest.getParam("uid")).willReturn("updatedUid");
@@ -774,23 +833,29 @@ public class SetuidHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldThrowExceptionInCaseOfCookieFamilyNameDuplicates() {
+    public void shouldThrowExceptionInCaseOfBaseBidderCookieFamilyNameDuplicates() {
         // given
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final String firstDuplicateName = "firstBidderWithDuplicate";
         final String secondDuplicateName = "secondBidderWithDuplicate";
-        given(bidderCatalog.names())
-                .willReturn(new HashSet<>(asList(RUBICON, FACEBOOK, firstDuplicateName, secondDuplicateName)));
+        final String thirdDuplicateName = "thirdDuplicateName";
+
+        given(bidderCatalog.usersyncReadyBidders())
+                .willReturn(Set.of(RUBICON, FACEBOOK, firstDuplicateName, secondDuplicateName, thirdDuplicateName));
+        given(bidderCatalog.isAlias(thirdDuplicateName)).willReturn(true);
         given(bidderCatalog.usersyncerByName(eq(firstDuplicateName))).willReturn(
                 Optional.of(Usersyncer.of(RUBICON, iframeMethod(), redirectMethod())));
         given(bidderCatalog.usersyncerByName(eq(secondDuplicateName))).willReturn(
                 Optional.of(Usersyncer.of(FACEBOOK, iframeMethod(), redirectMethod())));
+        given(bidderCatalog.usersyncerByName(eq(thirdDuplicateName))).willReturn(
+                Optional.of(Usersyncer.of(FACEBOOK, iframeMethod(), redirectMethod())));
+
         final Executable exceptionSource = () -> new SetuidHandler(
                 2000,
                 uidsCookieService,
                 applicationSettings,
                 bidderCatalog,
-                privacyEnforcementService,
+                setuidPrivacyContextFactory,
                 gppService,
                 activityInfrastructureCreator,
                 tcfDefinerService,
@@ -803,7 +868,13 @@ public class SetuidHandlerTest extends VertxTest {
                 Assertions.assertThrows(IllegalArgumentException.class, exceptionSource);
 
         //then
-        assertThat(exception).hasMessage("Duplicated \"cookie-family-name\" found, values: audienceNetwork, rubicon");
+        final String expectedPrefix = "Duplicated \"cookie-family-name\" found, values: ";
+        final String actualMessage = exception.getMessage();
+
+        assertThat(actualMessage).startsWith(expectedPrefix);
+
+        final String[] values = actualMessage.substring(expectedPrefix.length()).split(", ");
+        assertThat(values).containsExactlyInAnyOrder("audienceNetwork", "rubicon");
     }
 
     private String getUidsCookie() {

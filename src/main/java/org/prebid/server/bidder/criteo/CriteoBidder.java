@@ -4,13 +4,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.Bid;
-import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
+import org.prebid.server.bidder.model.CompositeBidderResponse;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -19,6 +19,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidMeta;
+import org.prebid.server.proto.openrtb.ext.response.ExtIgi;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
@@ -44,16 +45,27 @@ public class CriteoBidder implements Bidder<BidRequest> {
     }
 
     @Override
+    @Deprecated(forRemoval = true)
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
+        return Result.withError(BidderError.generic("Deprecated adapter method invoked"));
+    }
+
+    @Override
+    public CompositeBidderResponse makeBidderResponse(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.withValues(extractBidsFromResponse(bidResponse));
+            final CriteoBidResponse bidResponse = mapper.decodeValue(
+                    httpCall.getResponse().getBody(), CriteoBidResponse.class);
+
+            return CompositeBidderResponse.builder()
+                    .bids(extractBids(bidResponse))
+                    .igi(extractIgi(bidResponse))
+                    .build();
         } catch (DecodeException | PreBidException e) {
-            return Result.withError(BidderError.badServerResponse(e.getMessage()));
+            return CompositeBidderResponse.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private List<BidderBid> extractBidsFromResponse(BidResponse bidResponse) {
+    private List<BidderBid> extractBids(CriteoBidResponse bidResponse) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
@@ -93,5 +105,13 @@ public class CriteoBidder implements Bidder<BidRequest> {
         return mapper.mapper().valueToTree(ExtBidPrebid.builder()
                 .meta(ExtBidPrebidMeta.builder().networkName(networkName).build())
                 .build());
+    }
+
+    private static List<ExtIgi> extractIgi(CriteoBidResponse bidResponse) {
+        return Optional.ofNullable(bidResponse)
+                .map(CriteoBidResponse::getExt)
+                .map(CriteoExtBidResponse::getIgi)
+                .filter(CollectionUtils::isNotEmpty)
+                .orElse(Collections.emptyList());
     }
 }

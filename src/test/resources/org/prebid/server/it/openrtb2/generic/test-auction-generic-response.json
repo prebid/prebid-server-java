@@ -6,12 +6,17 @@
         {
           "id": "bid_id",
           "impid": "imp_id",
+          "exp": 300,
           "price": 3.33,
           "crid": "creativeId",
           "ext": {
             "origbidcpm": 3.33,
             "prebid": {
-              "type": "banner"
+              "type": "banner",
+              "meta": {
+                "mediaType": "banner",
+                "adaptercode": "adaptercode"
+              }
             }
           }
         }

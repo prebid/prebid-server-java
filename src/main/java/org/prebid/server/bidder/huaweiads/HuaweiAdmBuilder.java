@@ -210,13 +210,13 @@ public class HuaweiAdmBuilder {
         final String contentId = content.getContentId();
 
         final List<Icon> iconList = metaData.getIconList();
-        final Icon firstIcon = CollectionUtils.isNotEmpty(iconList) ? iconList.get(0) : null;
+        final Icon firstIcon = CollectionUtils.isNotEmpty(iconList) ? iconList.getFirst() : null;
         if (firstIcon != null && StringUtils.isNotBlank(firstIcon.getUrl())) {
             return buildIconRewardedPart(contentId, clickUrl, adWidth, adHeight, firstIcon);
         }
 
         final List<ImageInfo> imageInfoList = metaData.getImageInfoList();
-        final ImageInfo firstImage = CollectionUtils.isNotEmpty(imageInfoList) ? imageInfoList.get(0) : null;
+        final ImageInfo firstImage = CollectionUtils.isNotEmpty(imageInfoList) ? imageInfoList.getFirst() : null;
         if (firstImage != null && StringUtils.isNotBlank(firstImage.getUrl())) {
             return buildImageRewardedPart(contentId, clickUrl, adWidth, adHeight, firstImage);
         }

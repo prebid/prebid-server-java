@@ -13,7 +13,7 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -107,7 +107,7 @@ public class UnicornBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfGdprIsOne() {
         // given
         final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
-                .regs(Regs.builder().coppa(0).ext(ExtRegs.of(1, null, null)).build()), identity());
+                .regs(Regs.builder().coppa(0).ext(ExtRegs.of(1, null, null, null)).build()), identity());
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
@@ -119,7 +119,7 @@ public class UnicornBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfUsPrivacyIsPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
-                .regs(Regs.builder().coppa(0).ext(ExtRegs.of(0, "privacy", null)).build()), identity());
+                .regs(Regs.builder().coppa(0).ext(ExtRegs.of(0, "privacy", null, null)).build()), identity());
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 

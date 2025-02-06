@@ -29,6 +29,10 @@ trait ObjectMapperWrapper {
         mapper.readValue(jsonString, typeReference)
     }
 
+    final static <T> T decodeWithBase64(String base64String, Class<T> clazz) {
+        mapper.readValue(new String(Base64.decoder.decode(base64String)), clazz)
+    }
+
     final static Map<String, String> toMap(Object object) {
         mapper.convertValue(object, Map)
     }

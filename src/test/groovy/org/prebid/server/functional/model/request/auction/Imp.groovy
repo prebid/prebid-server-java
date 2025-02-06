@@ -1,11 +1,13 @@
 package org.prebid.server.functional.model.request.auction
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.databind.annotation.JsonNaming
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 import org.prebid.server.functional.model.Currency
+import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.response.auction.MediaType
 
 import static org.prebid.server.functional.model.response.auction.MediaType.AUDIO
@@ -28,12 +30,12 @@ class Imp {
     Pmp pmp
     String displayManager
     String displayManagerVer
-    Integer instl
+    OperationState instl
     String tagId
     BigDecimal bidFloor
     Currency bidFloorCur
     Integer clickBrowser
-    Integer secure
+    SecurityLevel secure
     List<String> iframeBuster
     Integer rwdd
     Integer ssai
@@ -73,5 +75,39 @@ class Imp {
             id = UUID.randomUUID()
             ext = ImpExt.defaultImpExt
         }
+    }
+
+    @JsonIgnore
+    BidderName getBidderName() {
+        def bidder = ext?.prebid?.bidder
+        if (!bidder) {
+            throw new IllegalStateException("No bidder found")
+        }
+
+        def bidderNames = [
+                (bidder.alias)           : BidderName.ALIAS,
+                (bidder.generic)         : BidderName.GENERIC,
+                (bidder.genericCamelCase): BidderName.GENERIC_CAMEL_CASE,
+                (bidder.rubicon)         : BidderName.RUBICON,
+                (bidder.appNexus)        : BidderName.APPNEXUS,
+                (bidder.openx)           : BidderName.OPENX,
+                (bidder.ix)              : BidderName.IX
+        ].findAll { it.key }
+
+        if (bidderNames.size() != 1) {
+            throw new IllegalStateException("Invalid number of bidders: ${bidderNames.size()}")
+        }
+
+        bidderNames.values().first()
+    }
+
+    @JsonIgnore
+    List<MediaType> getMediaTypes() {
+        return [
+                (banner ? BANNER : null),
+                (video ? VIDEO : null),
+                (nativeObj ? NATIVE : null),
+                (audio ? AUDIO : null)
+        ].findAll { it }
     }
 }

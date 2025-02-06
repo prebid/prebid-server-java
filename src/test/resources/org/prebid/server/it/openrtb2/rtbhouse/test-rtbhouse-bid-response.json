@@ -9,7 +9,7 @@
           "impid": "imp_id",
           "price": 0.500000,
           "adid": "12345678",
-          "adm": "some-test-ad",
+          "adm": "some-test-ad_${AUCTION_PRICE}",
           "cid": "987",
           "crid": "12345678",
           "h": 250,

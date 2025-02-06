@@ -8,7 +8,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.adot.model.AdotBidExt;
 import org.prebid.server.bidder.adot.model.AdotExtAdot;
@@ -37,7 +37,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class AdotBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.endpoint{PUBLISHER_PATH}.com";
+    private static final String ENDPOINT_URL = "https://test.endpoint{{PUBLISHER_PATH}}.com";
 
     private final AdotBidder target = new AdotBidder(ENDPOINT_URL, jacksonMapper);
 
@@ -137,8 +137,8 @@ public class AdotBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors().getFirst().getMessage()).startsWith("Failed to decode: Unrecognized token");
+        assertThat(result.getErrors().getFirst().getType()).isEqualTo(BidderError.Type.bad_server_response);
         assertThat(result.getValue()).isEmpty();
     }
 

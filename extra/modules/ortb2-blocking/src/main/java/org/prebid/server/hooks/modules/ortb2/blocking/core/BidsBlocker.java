@@ -5,6 +5,8 @@ import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.model.BidRejectionReason;
+import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.exception.InvalidAccountConfigurationException;
@@ -16,6 +18,8 @@ import org.prebid.server.hooks.modules.ortb2.blocking.core.model.ExecutionResult
 import org.prebid.server.hooks.modules.ortb2.blocking.core.model.ResponseBlockingConfig;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.model.Result;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.util.MergeUtils;
+import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.spring.config.bidder.model.MediaType;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -45,6 +49,7 @@ public class BidsBlocker {
     private final OrtbVersion ortbVersion;
     private final ObjectNode accountConfig;
     private final BlockedAttributes blockedAttributes;
+    private final BidRejectionTracker bidRejectionTracker;
     private final boolean debugEnabled;
 
     private BidsBlocker(List<BidderBid> bids,
@@ -52,6 +57,7 @@ public class BidsBlocker {
                         OrtbVersion ortbVersion,
                         ObjectNode accountConfig,
                         BlockedAttributes blockedAttributes,
+                        BidRejectionTracker bidRejectionTracker,
                         boolean debugEnabled) {
 
         this.bids = bids;
@@ -59,6 +65,7 @@ public class BidsBlocker {
         this.ortbVersion = ortbVersion;
         this.accountConfig = accountConfig;
         this.blockedAttributes = blockedAttributes;
+        this.bidRejectionTracker = bidRejectionTracker;
         this.debugEnabled = debugEnabled;
     }
 
@@ -67,6 +74,7 @@ public class BidsBlocker {
                                      OrtbVersion ortbVersion,
                                      ObjectNode accountConfig,
                                      BlockedAttributes blockedAttributes,
+                                     BidRejectionTracker bidRejectionTracker,
                                      boolean debugEnabled) {
 
         return new BidsBlocker(
@@ -75,6 +83,7 @@ public class BidsBlocker {
                 Objects.requireNonNull(ortbVersion),
                 accountConfig,
                 blockedAttributes,
+                bidRejectionTracker,
                 debugEnabled);
     }
 
@@ -84,7 +93,6 @@ public class BidsBlocker {
 
         try {
             final List<Result<BlockingResult>> blockedBidResults = bids.stream()
-                    .sequential()
                     .map(bid -> isBlocked(bid, accountConfigReader))
                     .toList();
 
@@ -95,6 +103,11 @@ public class BidsBlocker {
 
             final BlockedBids blockedBids = !blockedBidIndexes.isEmpty() ? BlockedBids.of(blockedBidIndexes) : null;
             final List<String> warnings = MergeUtils.mergeMessages(blockedBidResults);
+
+            if (blockedBids != null) {
+                blockedBidIndexes.forEach(index ->
+                        rejectBlockedBid(blockedBidResults.get(index).getValue(), bids.get(index)));
+            }
 
             return ExecutionResult.<BlockedBids>builder()
                     .value(blockedBids)
@@ -159,11 +172,30 @@ public class BidsBlocker {
     }
 
     private AttributeCheckResult<Integer> checkBattr(BidderBid bidderBid, ResponseBlockingConfig blockingConfig) {
-
+        final MediaType mediaType = mapBidTypeToMediaType(bidderBid.getType());
         return checkAttribute(
                 bidderBid.getBid().getAttr(),
-                blockingConfig.getBattr(),
-                blockedAttributeValues(BlockedAttributes::getBattr, bidderBid.getBid().getImpid()));
+                blockingConfig.getBattr().get(mediaType),
+                blockedAttributeValues(
+                        blockedAttributes -> extractBattrForMediaType(blockedAttributes, mediaType),
+                        bidderBid.getBid().getImpid()));
+    }
+
+    private static MediaType mapBidTypeToMediaType(BidType bidType) {
+        return switch (bidType) {
+            case banner -> MediaType.BANNER;
+            case video -> MediaType.VIDEO;
+            case audio -> MediaType.AUDIO;
+            case xNative -> MediaType.NATIVE;
+            case null -> null;
+        };
+    }
+
+    private static Map<String, List<Integer>> extractBattrForMediaType(BlockedAttributes blockedAttributes,
+                                                                       MediaType mediaType) {
+
+        final Map<MediaType, Map<String, List<Integer>>> battr = blockedAttributes.getBattr();
+        return battr != null ? battr.get(mediaType) : null;
     }
 
     private <T> AttributeCheckResult<T> checkAttribute(List<T> attribute,
@@ -254,6 +286,23 @@ public class BidsBlocker {
                 index,
                 bidder,
                 blockingResult.getFailedChecks());
+    }
+
+    private void rejectBlockedBid(BlockingResult blockingResult, BidderBid blockedBid) {
+        if (blockingResult.getBattrCheckResult().isFailed()
+                || blockingResult.getBappCheckResult().isFailed()
+                || blockingResult.getBcatCheckResult().isFailed()) {
+
+            bidRejectionTracker.rejectBid(
+                    blockedBid,
+                    BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE);
+        }
+
+        if (blockingResult.getBadvCheckResult().isFailed()) {
+            bidRejectionTracker.rejectBid(
+                    blockedBid,
+                    BidRejectionReason.RESPONSE_REJECTED_ADVERTISER_BLOCKED);
+        }
     }
 
     private List<AnalyticsResult> toAnalyticsResults(List<Result<BlockingResult>> blockedBidResults) {

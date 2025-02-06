@@ -1,0 +1,17 @@
+adapters:
+  relevantdigital:
+    endpoint: https://{{Host}}.relevant-digital.com/openrtb2/auction
+    meta-info:
+      maintainer-email: support@relevant-digital.com
+      app-media-types:
+        - banner
+        - video
+        - audio
+        - native
+      site-media-types:
+        - banner
+        - video
+        - audio
+        - native
+      supported-vendors:
+      vendor-id: 1100

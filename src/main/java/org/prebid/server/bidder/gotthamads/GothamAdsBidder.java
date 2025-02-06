@@ -34,7 +34,7 @@ public class GothamAdsBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, GothamAdsImpExt>> TYPE_REFERENCE = new TypeReference<>() {
     };
-    private static final String ACCOUNT_ID_MACRO = "{{AccountId}}";
+    private static final String ACCOUNT_ID_MACRO = "{{AccountID}}";
     private static final String X_OPENRTB_VERSION = "2.5";
 
     private final String endpointUrl;
@@ -48,7 +48,7 @@ public class GothamAdsBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final GothamAdsImpExt impExt;
-        final Imp firstImp = request.getImp().get(0);
+        final Imp firstImp = request.getImp().getFirst();
         try {
             impExt = parseImpExt(firstImp);
         } catch (PreBidException e) {
@@ -77,7 +77,7 @@ public class GothamAdsBidder implements Bidder<BidRequest> {
 
     private static BidRequest cleanUpFirstImpExt(BidRequest request) {
         final List<Imp> imps = new ArrayList<>(request.getImp());
-        imps.set(0, request.getImp().get(0).toBuilder().ext(null).build());
+        imps.set(0, request.getImp().getFirst().toBuilder().ext(null).build());
         return request.toBuilder().imp(imps).build();
     }
 

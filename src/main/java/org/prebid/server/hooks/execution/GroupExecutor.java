@@ -4,45 +4,44 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import io.vertx.core.logging.LoggerFactory;
 import org.prebid.server.hooks.execution.model.ExecutionGroup;
 import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.hooks.execution.model.HookId;
+import org.prebid.server.hooks.execution.provider.HookProvider;
 import org.prebid.server.hooks.v1.Hook;
 import org.prebid.server.hooks.v1.InvocationContext;
 import org.prebid.server.hooks.v1.InvocationResult;
-import org.prebid.server.log.ConditionalLogger;
 
 import java.time.Clock;
+import java.util.Map;
 import java.util.concurrent.TimeoutException;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 class GroupExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
 
-    private static final ConditionalLogger conditionalLogger =
-            new ConditionalLogger(LoggerFactory.getLogger(GroupExecutor.class));
-
     private final Vertx vertx;
     private final Clock clock;
+    private final Map<String, Boolean> modulesExecution;
 
     private ExecutionGroup group;
     private PAYLOAD initialPayload;
-    private Function<HookId, Hook<PAYLOAD, CONTEXT>> hookProvider;
+    private HookProvider<PAYLOAD, CONTEXT> hookProvider;
     private InvocationContextProvider<CONTEXT> invocationContextProvider;
     private HookExecutionContext hookExecutionContext;
     private boolean rejectAllowed;
 
-    private GroupExecutor(Vertx vertx, Clock clock) {
+    private GroupExecutor(Vertx vertx, Clock clock, Map<String, Boolean> modulesExecution) {
         this.vertx = vertx;
         this.clock = clock;
+        this.modulesExecution = modulesExecution;
     }
 
     public static <PAYLOAD, CONTEXT extends InvocationContext> GroupExecutor<PAYLOAD, CONTEXT> create(
             Vertx vertx,
-            Clock clock) {
+            Clock clock,
+            Map<String, Boolean> modulesExecution) {
 
-        return new GroupExecutor<>(vertx, clock);
+        return new GroupExecutor<>(vertx, clock, modulesExecution);
     }
 
     public GroupExecutor<PAYLOAD, CONTEXT> withGroup(ExecutionGroup group) {
@@ -55,7 +54,7 @@ class GroupExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
         return this;
     }
 
-    public GroupExecutor<PAYLOAD, CONTEXT> withHookProvider(Function<HookId, Hook<PAYLOAD, CONTEXT>> hookProvider) {
+    public GroupExecutor<PAYLOAD, CONTEXT> withHookProvider(HookProvider<PAYLOAD, CONTEXT> hookProvider) {
         this.hookProvider = hookProvider;
         return this;
     }
@@ -82,11 +81,15 @@ class GroupExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
         Future<GroupResult<PAYLOAD>> groupFuture = Future.succeededFuture(initialGroupResult);
 
         for (final HookId hookId : group.getHookSequence()) {
-            final Hook<PAYLOAD, CONTEXT> hook = hookProvider.apply(hookId);
+            if (!modulesExecution.get(hookId.getModuleCode())) {
+                continue;
+            }
+
+            final Future<Hook<PAYLOAD, CONTEXT>> hookFuture = hook(hookId);
 
             final long startTime = clock.millis();
-            final Future<InvocationResult<PAYLOAD>> invocationResult =
-                    executeHook(hook, group.getTimeout(), initialGroupResult, hookId);
+            final Future<InvocationResult<PAYLOAD>> invocationResult = hookFuture
+                    .compose(hook -> executeHook(hook, group.getTimeout(), initialGroupResult, hookId));
 
             groupFuture = groupFuture.compose(groupResult ->
                     applyInvocationResult(invocationResult, hookId, startTime, groupResult));
@@ -95,23 +98,21 @@ class GroupExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
         return groupFuture.recover(GroupExecutor::restoreResultFromRejection);
     }
 
-    private Future<InvocationResult<PAYLOAD>> executeHook(
-            Hook<PAYLOAD, CONTEXT> hook,
-            Long timeout,
-            GroupResult<PAYLOAD> groupResult,
-            HookId hookId) {
-
-        if (hook == null) {
-            conditionalLogger.error("Hook implementation %s does not exist or disabled".formatted(hookId), 0.01d);
-
-            return Future.failedFuture(new FailedException("Hook implementation does not exist or disabled"));
+    private Future<Hook<PAYLOAD, CONTEXT>> hook(HookId hookId) {
+        try {
+            return Future.succeededFuture(hookProvider.apply(hookId));
+        } catch (Exception e) {
+            return Future.failedFuture(new FailedException(e.getMessage()));
         }
+    }
 
-        return executeWithTimeout(
-                () -> hook.call(
-                        groupResult.payload(),
-                        invocationContextProvider.apply(timeout, hookId, moduleContextFor(hookId))),
-                timeout);
+    private Future<InvocationResult<PAYLOAD>> executeHook(Hook<PAYLOAD, CONTEXT> hook,
+                                                          Long timeout,
+                                                          GroupResult<PAYLOAD> groupResult,
+                                                          HookId hookId) {
+
+        final CONTEXT invocationContext = invocationContextProvider.apply(timeout, hookId, moduleContextFor(hookId));
+        return executeWithTimeout(() -> hook.call(groupResult.payload(), invocationContext), timeout);
     }
 
     private <T> Future<T> executeWithTimeout(Supplier<Future<T>> action, Long timeout) {

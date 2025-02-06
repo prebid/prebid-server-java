@@ -19,8 +19,7 @@ import io.restassured.specification.RequestSpecification;
 import org.apache.commons.collections4.CollectionUtils;
 import org.hamcrest.Matchers;
 import org.json.JSONException;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.bidder.UsersyncMethodType;
 import org.prebid.server.cookie.model.CookieSyncStatus;
 import org.prebid.server.cookie.proto.Uids;
@@ -31,7 +30,6 @@ import org.prebid.server.proto.response.UsersyncInfo;
 import org.prebid.server.util.ResourceUtil;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
-import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.File;
 import java.io.IOException;
@@ -64,7 +62,6 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 
-@RunWith(SpringRunner.class)
 public class ApplicationTest extends IntegrationTest {
 
     private static final String APPNEXUS = "appnexus";
@@ -420,14 +417,14 @@ public class ApplicationTest extends IntegrationTest {
     public void optionsRequestShouldRespondWithOriginalPolicyHeaders() {
         // when
         final Response response = given(SPEC)
-                .header("Origin", "origin.com")
+                .header("Origin", "http://origin.com")
                 .header("Access-Control-Request-Method", "GET")
                 .when()
                 .options("/");
 
         // then
         assertThat(response.header("Access-Control-Allow-Credentials")).isEqualTo("true");
-        assertThat(response.header("Access-Control-Allow-Origin")).isEqualTo("origin.com");
+        assertThat(response.header("Access-Control-Allow-Origin")).isEqualTo("http://origin.com");
         assertThat(response.header("Access-Control-Allow-Methods")).contains(asList("HEAD", "OPTIONS", "GET", "POST"));
         assertThat(response.header("Access-Control-Allow-Headers"))
                 .isEqualTo("Origin,Accept,X-Requested-With,Content-Type");
@@ -447,6 +444,10 @@ public class ApplicationTest extends IntegrationTest {
 
         final List<String> bidders = getBidderNamesFromParamFiles();
         final Map<String, String> aliases = getBidderAliasesFromConfigFiles();
+        //todo: necessary since the config file is not a source of truth in terms of defining aliases for the bidders
+        // the suggestion is eventually resolving static json file name from the bidder config file
+        // and not from the name hard-coded in the Configuration class
+        aliases.put("cadent_aperture_mx", "emx_digital");
         final Map<String, JsonNode> expectedMap = CollectionUtils.union(bidders, aliases.keySet()).stream()
                 .collect(Collectors.toMap(
                         Function.identity(),
@@ -645,7 +646,6 @@ public class ApplicationTest extends IntegrationTest {
                 .param("duration", "1000")
                 .param("account", "1001")
                 .param("bidderCode", "rubicon")
-                .param("lineitemId", "1001")
                 .post("/pbs-admin/tracelog")
                 .then()
                 .assertThat()

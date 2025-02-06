@@ -1,5 +1,6 @@
 package org.prebid.server.handler.openrtb2;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -10,31 +11,51 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.assertj.core.api.InstanceOfAssertFactories;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.ExchangeService;
+import org.prebid.server.auction.HooksMetricsService;
+import org.prebid.server.auction.SkippedAuctionService;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.TimeoutContext;
+import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
 import org.prebid.server.cookie.UidsCookie;
-import org.prebid.server.exception.BlacklistedAccountException;
-import org.prebid.server.exception.BlacklistedAppException;
+import org.prebid.server.exception.BlocklistedAccountException;
+import org.prebid.server.exception.BlocklistedAppException;
 import org.prebid.server.exception.InvalidAccountConfigException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
-import org.prebid.server.execution.Timeout;
-import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.execution.timeout.Timeout;
+import org.prebid.server.execution.timeout.TimeoutFactory;
+import org.prebid.server.hooks.execution.HookStageExecutor;
+import org.prebid.server.hooks.execution.model.ExecutionAction;
+import org.prebid.server.hooks.execution.model.ExecutionStatus;
+import org.prebid.server.hooks.execution.model.GroupExecutionOutcome;
+import org.prebid.server.hooks.execution.model.HookExecutionContext;
+import org.prebid.server.hooks.execution.model.HookExecutionOutcome;
+import org.prebid.server.hooks.execution.model.HookId;
+import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
+import org.prebid.server.hooks.execution.model.Stage;
+import org.prebid.server.hooks.execution.model.StageExecutionOutcome;
+import org.prebid.server.hooks.execution.v1.analytics.ActivityImpl;
+import org.prebid.server.hooks.execution.v1.analytics.AppliedToImpl;
+import org.prebid.server.hooks.execution.v1.analytics.ResultImpl;
+import org.prebid.server.hooks.execution.v1.analytics.TagsImpl;
+import org.prebid.server.hooks.execution.v1.exitpoint.ExitpointPayloadImpl;
 import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
+import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
@@ -42,18 +63,36 @@ import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
+import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
+import org.prebid.server.proto.openrtb.ext.response.ExtAnalytics;
+import org.prebid.server.proto.openrtb.ext.response.ExtAnalyticsTags;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidResponsePrebid;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTrace;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceAnalyticsActivity;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceAnalyticsAppliedTo;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceAnalyticsResult;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceAnalyticsTags;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceGroup;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceInvocationResult;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceStage;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceStageOutcome;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
+import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.version.PrebidVersionProvider;
 
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.UnaryOperator;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
@@ -67,19 +106,20 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
+@ExtendWith(MockitoExtension.class)
 public class AuctionHandlerTest extends VertxTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private AuctionRequestFactory auctionRequestFactory;
     @Mock
     private ExchangeService exchangeService;
+    @Mock(strictness = LENIENT)
+    private SkippedAuctionService skippedAuctionService;
     @Mock
     private AnalyticsReporterDelegator analyticsReporterDelegator;
     @Mock
@@ -90,20 +130,24 @@ public class AuctionHandlerTest extends VertxTest {
     private HttpInteractionLogger httpInteractionLogger;
     @Mock
     private PrebidVersionProvider prebidVersionProvider;
+    @Mock(strictness = LENIENT)
+    private HooksMetricsService hooksMetricsService;
+    @Mock(strictness = LENIENT)
+    private HookStageExecutor hookStageExecutor;
 
-    private AuctionHandler auctionHandler;
+    private AuctionHandler target;
     @Mock
     private RoutingContext routingContext;
     @Mock
     private HttpServerRequest httpRequest;
-    @Mock
+    @Mock(strictness = LENIENT)
     private HttpServerResponse httpResponse;
     @Mock
     private UidsCookie uidsCookie;
 
     private Timeout timeout;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);
@@ -115,34 +159,49 @@ public class AuctionHandlerTest extends VertxTest {
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
         given(httpResponse.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
 
+        given(skippedAuctionService.skipAuction(any()))
+                .willReturn(Future.failedFuture("Auction cannot be skipped"));
+
         given(clock.millis()).willReturn(Instant.now().toEpochMilli());
 
         given(prebidVersionProvider.getNameVersionRecord()).willReturn("pbs-java/1.00");
 
+        given(hookStageExecutor.executeExitpointStage(any(), any(), any()))
+                .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
+                        false,
+                        ExitpointPayloadImpl.of(invocation.getArgument(0), invocation.getArgument(1)))));
+
+        given(hooksMetricsService.updateHooksMetrics(any())).willAnswer(invocation -> invocation.getArgument(0));
+
         timeout = new TimeoutFactory(clock).create(2000L);
 
-        auctionHandler = new AuctionHandler(
+        target = new AuctionHandler(
                 0.01,
                 auctionRequestFactory,
                 exchangeService,
+                skippedAuctionService,
                 analyticsReporterDelegator,
                 metrics,
+                hooksMetricsService,
                 clock,
                 httpInteractionLogger,
                 prebidVersionProvider,
+                hookStageExecutor,
                 jacksonMapper);
     }
 
     @Test
     public void shouldSetRequestTypeMetricToAuctionContext() {
         // given
-        given(auctionRequestFactory.fromRequest(any(), anyLong()))
+        given(auctionRequestFactory.parseRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
+        given(auctionRequestFactory.enrichAuctionContext(any()))
+                .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
 
         givenHoldAuction(BidResponse.builder().build());
 
         // when
-        auctionHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         final AuctionContext auctionContext = captureAuctionContext();
@@ -152,16 +211,22 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldUseTimeoutFromAuctionContext() {
         // given
-        given(auctionRequestFactory.fromRequest(any(), anyLong()))
+        given(auctionRequestFactory.parseRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
+        given(auctionRequestFactory.enrichAuctionContext(any()))
+                .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
 
         givenHoldAuction(BidResponse.builder().build());
 
         // when
-        auctionHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
-        assertThat(captureAuctionContext().getTimeout().remaining()).isEqualTo(2000L);
+        assertThat(captureAuctionContext())
+                .extracting(AuctionContext::getTimeoutContext)
+                .extracting(TimeoutContext::getTimeout)
+                .extracting(Timeout::remaining)
+                .isEqualTo(2000L);
     }
 
     @Test
@@ -169,8 +234,10 @@ public class AuctionHandlerTest extends VertxTest {
         // given
         given(prebidVersionProvider.getNameVersionRecord()).willReturn("pbs-java/1.00");
 
-        given(auctionRequestFactory.fromRequest(any(), anyLong()))
+        given(auctionRequestFactory.parseRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
+        given(auctionRequestFactory.enrichAuctionContext(any()))
+                .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
 
         given(exchangeService.holdAuction(any()))
                 .willAnswer(inv -> Future.succeededFuture(((AuctionContext) inv.getArgument(0)).toBuilder()
@@ -178,7 +245,7 @@ public class AuctionHandlerTest extends VertxTest {
                         .build()));
 
         // when
-        auctionHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         assertThat(httpResponse.headers())
@@ -187,10 +254,36 @@ public class AuctionHandlerTest extends VertxTest {
     }
 
     @Test
+    public void shouldAddObserveBrowsingTopicsResponseHeader() {
+        // given
+        httpRequest.headers().add(HttpUtil.SEC_BROWSING_TOPICS_HEADER, "");
+
+        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
+        given(auctionRequestFactory.enrichAuctionContext(any()))
+                .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
+
+        given(exchangeService.holdAuction(any()))
+                .willAnswer(inv -> Future.succeededFuture(((AuctionContext) inv.getArgument(0)).toBuilder()
+                        .bidResponse(BidResponse.builder().build())
+                        .build()));
+
+        // when
+        target.handle(routingContext);
+
+        // then
+        assertThat(httpResponse.headers())
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .contains(tuple("Observe-Browsing-Topics", "?1"));
+    }
+
+    @Test
     public void shouldComputeTimeoutBasedOnRequestProcessingStartTime() {
         // given
-        given(auctionRequestFactory.fromRequest(any(), anyLong()))
+        given(auctionRequestFactory.parseRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
+        given(auctionRequestFactory.enrichAuctionContext(any()))
+                .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
 
         givenHoldAuction(BidResponse.builder().build());
 
@@ -198,139 +291,164 @@ public class AuctionHandlerTest extends VertxTest {
         given(clock.millis()).willReturn(now.toEpochMilli()).willReturn(now.plusMillis(50L).toEpochMilli());
 
         // when
-        auctionHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
-        assertThat(captureAuctionContext().getTimeout().remaining()).isLessThanOrEqualTo(1950L);
+        assertThat(captureAuctionContext())
+                .extracting(AuctionContext::getTimeoutContext)
+                .extracting(TimeoutContext::getTimeout)
+                .extracting(Timeout::remaining)
+                .asInstanceOf(InstanceOfAssertFactories.LONG)
+                .isLessThanOrEqualTo(1950L);
     }
 
     @Test
-    public void shouldRespondWithServiceUnavailableIfBidRequestHasAccountBlacklisted() {
+    public void shouldRespondWithServiceUnavailableIfBidRequestHasAccountBlocklisted() {
         // given
-        given(auctionRequestFactory.fromRequest(any(), anyLong()))
-                .willReturn(Future.failedFuture(new BlacklistedAccountException("Blacklisted account")));
+        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
+        given(auctionRequestFactory.enrichAuctionContext(any()))
+                .willReturn(Future.failedFuture(new BlocklistedAccountException("Blocklisted account")));
 
         // when
-        auctionHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(httpResponse).setStatusCode(eq(403));
-        verify(httpResponse).end(eq("Blacklisted: Blacklisted account"));
+        verify(httpResponse).end(eq("Blocklisted: Blocklisted account"));
 
-        verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.blacklisted_account));
+        verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.blocklisted_account));
+        verifyNoInteractions(hooksMetricsService, hookStageExecutor);
     }
 
     @Test
     public void shouldRespondWithBadRequestIfBidRequestHasAccountWithInvalidConfig() {
         // given
-        given(auctionRequestFactory.fromRequest(any(), anyLong()))
+        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
+        given(auctionRequestFactory.enrichAuctionContext(any()))
                 .willReturn(Future.failedFuture(new InvalidAccountConfigException("Invalid config")));
 
         // when
-        auctionHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(httpResponse).setStatusCode(eq(400));
         verify(httpResponse).end(eq("Invalid config"));
 
         verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.bad_requests));
+        verifyNoInteractions(hooksMetricsService, hookStageExecutor);
     }
 
     @Test
-    public void shouldRespondWithServiceUnavailableIfBidRequestHasAppBlacklisted() {
+    public void shouldRespondWithServiceUnavailableIfBidRequestHasAppBlocklisted() {
         // given
-        given(auctionRequestFactory.fromRequest(any(), anyLong()))
-                .willReturn(Future.failedFuture(new BlacklistedAppException("Blacklisted app")));
+        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
+        given(auctionRequestFactory.enrichAuctionContext(any()))
+                .willReturn(Future.failedFuture(new BlocklistedAppException("Blocklisted app")));
 
         // when
-        auctionHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(httpResponse).setStatusCode(eq(403));
-        verify(httpResponse).end(eq("Blacklisted: Blacklisted app"));
+        verify(httpResponse).end(eq("Blocklisted: Blocklisted app"));
 
-        verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.blacklisted_app));
+        verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.blocklisted_app));
+        verifyNoInteractions(hooksMetricsService, hookStageExecutor);
     }
 
     @Test
     public void shouldRespondWithBadRequestIfBidRequestIsInvalid() {
         // given
-        given(auctionRequestFactory.fromRequest(any(), anyLong()))
+        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
+        given(auctionRequestFactory.enrichAuctionContext(any()))
                 .willReturn(Future.failedFuture(new InvalidRequestException("Request is invalid")));
 
         // when
-        auctionHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(httpResponse).setStatusCode(eq(400));
         verify(httpResponse).end(eq("Invalid request format: Request is invalid"));
 
         verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.badinput));
+        verifyNoInteractions(hooksMetricsService, hookStageExecutor);
     }
 
     @Test
     public void shouldRespondWithUnauthorizedIfAccountIdIsInvalid() {
         // given
-        given(auctionRequestFactory.fromRequest(any(), anyLong()))
+        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
+        given(auctionRequestFactory.enrichAuctionContext(any()))
                 .willReturn(Future.failedFuture(new UnauthorizedAccountException("Account id is not provided", null)));
 
         // when
-        auctionHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verifyNoInteractions(exchangeService);
         verify(httpResponse).setStatusCode(eq(401));
         verify(httpResponse).end(eq("Account id is not provided"));
+        verifyNoInteractions(hooksMetricsService, hookStageExecutor);
     }
 
     @Test
     public void shouldRespondWithInternalServerErrorIfAuctionFails() {
         // given
-        given(auctionRequestFactory.fromRequest(any(), anyLong()))
+        given(auctionRequestFactory.parseRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
+        given(auctionRequestFactory.enrichAuctionContext(any()))
+                .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
 
         given(exchangeService.holdAuction(any()))
                 .willThrow(new RuntimeException("Unexpected exception"));
 
         // when
-        auctionHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(httpResponse).setStatusCode(eq(500));
         verify(httpResponse).end(eq("Critical error while running the auction: Unexpected exception"));
 
         verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.err));
+        verifyNoInteractions(hooksMetricsService, hookStageExecutor);
     }
 
     @Test
     public void shouldNotSendResponseIfClientClosedConnection() {
         // given
-        given(auctionRequestFactory.fromRequest(any(), anyLong()))
+        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
+        given(auctionRequestFactory.enrichAuctionContext(any()))
                 .willReturn(Future.failedFuture(new RuntimeException()));
 
         given(routingContext.response().closed()).willReturn(true);
 
         // when
-        auctionHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(httpResponse, never()).end(anyString());
+        verifyNoInteractions(hooksMetricsService, hookStageExecutor);
     }
 
     @Test
     public void shouldRespondWithBidResponse() {
         // given
-        given(auctionRequestFactory.fromRequest(any(), anyLong()))
-                .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
-
-        final AuctionContext auctionContext = AuctionContext.builder()
-                .bidResponse(BidResponse.builder().build())
-                .build();
-        given(exchangeService.holdAuction(any()))
+        final AuctionContext auctionContext = givenAuctionContext(identity());
+        given(auctionRequestFactory.parseRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(auctionContext));
+        given(auctionRequestFactory.enrichAuctionContext(any()))
+                .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
+        given(exchangeService.holdAuction(any()))
+                .willReturn(Future.succeededFuture(auctionContext.with(BidResponse.builder().build())));
 
         // when
-        auctionHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(exchangeService).holdAuction(any());
@@ -341,13 +459,72 @@ public class AuctionHandlerTest extends VertxTest {
                         tuple("x-prebid", "pbs-java/1.00"));
 
         verify(httpResponse).end(eq("{}"));
+
+        final ArgumentCaptor<MultiMap> responseHeadersCaptor = ArgumentCaptor.forClass(MultiMap.class);
+        verify(hookStageExecutor).executeExitpointStage(
+                responseHeadersCaptor.capture(),
+                eq("{}"),
+                any());
+
+        assertThat(responseHeadersCaptor.getValue()).hasSize(2)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsOnly(
+                        tuple("Content-Type", "application/json"),
+                        tuple("x-prebid", "pbs-java/1.00"));
+
+        verify(hooksMetricsService).updateHooksMetrics(any());
+    }
+
+    @Test
+    public void shouldRespondWithBidResponseWhenExitpointChangesHeadersAndResponse() {
+        // given
+        final AuctionContext auctionContext = givenAuctionContext(identity());
+        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(auctionContext));
+        given(auctionRequestFactory.enrichAuctionContext(any()))
+                .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
+        given(exchangeService.holdAuction(any()))
+                .willReturn(Future.succeededFuture(auctionContext.with(BidResponse.builder().build())));
+        given(hookStageExecutor.executeExitpointStage(any(), any(), any()))
+                .willReturn(Future.succeededFuture(HookStageExecutionResult.success(
+                        ExitpointPayloadImpl.of(
+                                MultiMap.caseInsensitiveMultiMap().add("New-Header", "New-Header-Value"),
+                                "{\"response\":{}}"))));
+
+        // when
+        target.handle(routingContext);
+
+        // then
+        verify(exchangeService).holdAuction(any());
+        assertThat(httpResponse.headers()).hasSize(1)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsExactlyInAnyOrder(tuple("New-Header", "New-Header-Value"));
+
+        verify(httpResponse).end(eq("{\"response\":{}}"));
+
+        final ArgumentCaptor<MultiMap> responseHeadersCaptor = ArgumentCaptor.forClass(MultiMap.class);
+        verify(hookStageExecutor).executeExitpointStage(
+                responseHeadersCaptor.capture(),
+                eq("{}"),
+                any());
+
+        assertThat(responseHeadersCaptor.getValue()).hasSize(2)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsOnly(
+                        tuple("Content-Type", "application/json"),
+                        tuple("x-prebid", "pbs-java/1.00"));
+
+        verify(hooksMetricsService).updateHooksMetrics(any());
     }
 
     @Test
     public void shouldRespondWithCorrectResolvedRequestMediaTypePriceGranularity() {
         // given
-        given(auctionRequestFactory.fromRequest(any(), anyLong()))
-                .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
+        final AuctionContext auctionContext = givenAuctionContext(identity());
+        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(auctionContext));
+        given(auctionRequestFactory.enrichAuctionContext(any()))
+                .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
 
         final ExtGranularityRange granularityRange = ExtGranularityRange.of(BigDecimal.TEN, BigDecimal.ONE);
         final ExtPriceGranularity priceGranularity = ExtPriceGranularity.of(1, singletonList(granularityRange));
@@ -362,36 +539,43 @@ public class AuctionHandlerTest extends VertxTest {
 
         final BidResponse bidResponse = BidResponse.builder()
                 .ext(ExtBidResponse.builder()
-                        .debug(ExtResponseDebug.of(null, resolvedRequest,
-                                null, null))
+                        .debug(ExtResponseDebug.of(null, resolvedRequest, null))
                         .build())
                 .build();
-        final AuctionContext auctionContext = AuctionContext.builder()
-                .bidResponse(bidResponse)
-                .build();
         given(exchangeService.holdAuction(any()))
-                .willReturn(Future.succeededFuture(auctionContext));
+                .willReturn(Future.succeededFuture(auctionContext.with(bidResponse)));
 
         // when
-        auctionHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(exchangeService).holdAuction(any());
         verify(httpResponse).end(eq("{\"ext\":{\"debug\":{\"resolvedrequest\":{\"ext\":{\"prebid\":"
                 + "{\"targeting\":{\"mediatypepricegranularity\":{\"banner\":{\"precision\":1,\"ranges\":"
                 + "[{\"max\":10,\"increment\":1}]},\"native\":{}}},\"auctiontimestamp\":0}}}}}}"));
+
+        verify(hookStageExecutor).executeExitpointStage(
+                any(),
+                eq("{\"ext\":{\"debug\":{\"resolvedrequest\":{\"ext\":{\"prebid\":"
+                        + "{\"targeting\":{\"mediatypepricegranularity\":{\"banner\":{\"precision\":1,\"ranges\":"
+                        + "[{\"max\":10,\"increment\":1}]},\"native\":{}}},\"auctiontimestamp\":0}}}}}}"),
+                any());
+
+        verify(hooksMetricsService).updateHooksMetrics(any());
     }
 
     @Test
     public void shouldIncrementOkOpenrtb2WebRequestMetrics() {
         // given
-        given(auctionRequestFactory.fromRequest(any(), anyLong()))
+        given(auctionRequestFactory.parseRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
+        given(auctionRequestFactory.enrichAuctionContext(any()))
+                .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
 
         givenHoldAuction(BidResponse.builder().build());
 
         // when
-        auctionHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.ok));
@@ -400,13 +584,16 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldIncrementOkOpenrtb2AppRequestMetrics() {
         // given
-        given(auctionRequestFactory.fromRequest(any(), anyLong())).willReturn(Future.succeededFuture(
-                givenAuctionContext(identity(), builder -> builder.requestTypeMetric(MetricName.openrtb2app))));
+        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
+        given(auctionRequestFactory.enrichAuctionContext(any()))
+                .willReturn(Future.succeededFuture(
+                        givenAuctionContext(identity(), builder -> builder.requestTypeMetric(MetricName.openrtb2app))));
 
         givenHoldAuction(BidResponse.builder().build());
 
         // when
-        auctionHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2app), eq(MetricName.ok));
@@ -417,11 +604,13 @@ public class AuctionHandlerTest extends VertxTest {
         // given
         givenHoldAuction(BidResponse.builder().build());
 
-        given(auctionRequestFactory.fromRequest(any(), anyLong()))
+        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
+        given(auctionRequestFactory.enrichAuctionContext(any()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(builder -> builder.app(App.builder().build()))));
 
         // when
-        auctionHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(metrics).updateAppAndNoCookieAndImpsRequestedMetrics(eq(true), anyBoolean(), anyInt());
@@ -430,8 +619,10 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldIncrementNoCookieMetrics() {
         // given
-        given(auctionRequestFactory.fromRequest(any(), anyLong()))
+        given(auctionRequestFactory.parseRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
+        given(auctionRequestFactory.enrichAuctionContext(any()))
+                .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
 
         givenHoldAuction(BidResponse.builder().build());
 
@@ -441,7 +632,7 @@ public class AuctionHandlerTest extends VertxTest {
                 + "AppleWebKit/601.7.7 (KHTML, like Gecko) Version/9.1.2 Safari/601.7.7");
 
         // when
-        auctionHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(metrics).updateAppAndNoCookieAndImpsRequestedMetrics(eq(false), eq(false), anyInt());
@@ -450,14 +641,16 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldIncrementImpsRequestedMetrics() {
         // given
-        given(auctionRequestFactory.fromRequest(any(), anyLong()))
+        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
+        given(auctionRequestFactory.enrichAuctionContext(any()))
                 .willReturn(Future.succeededFuture(
                         givenAuctionContext(builder -> builder.imp(singletonList(Imp.builder().build())))));
 
         givenHoldAuction(BidResponse.builder().build());
 
         // when
-        auctionHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(metrics).updateAppAndNoCookieAndImpsRequestedMetrics(anyBoolean(), anyBoolean(), eq(1));
@@ -468,26 +661,28 @@ public class AuctionHandlerTest extends VertxTest {
         // given
         final List<Imp> imps = singletonList(Imp.builder().build());
 
-        given(auctionRequestFactory.fromRequest(any(), anyLong()))
+        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
+        given(auctionRequestFactory.enrichAuctionContext(any()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(builder -> builder.imp(imps))));
 
         givenHoldAuction(BidResponse.builder().build());
 
         // when
-        auctionHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(metrics).updateImpTypesMetrics(same(imps));
     }
 
     @Test
-    public void shouldIncrementBadinputOpenrtb2WebRequestMetrics() {
+    public void shouldIncrementBadinputOnParsingRequestOpenrtb2WebRequestMetrics() {
         // given
-        given(auctionRequestFactory.fromRequest(any(), anyLong()))
+        given(auctionRequestFactory.parseRequest(any(), anyLong()))
                 .willReturn(Future.failedFuture(new InvalidRequestException("Request is invalid")));
 
         // when
-        auctionHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.badinput));
@@ -496,11 +691,11 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldIncrementErrOpenrtb2WebRequestMetrics() {
         // given
-        given(auctionRequestFactory.fromRequest(any(), anyLong()))
+        given(auctionRequestFactory.parseRequest(any(), anyLong()))
                 .willReturn(Future.failedFuture(new RuntimeException()));
 
         // when
-        auctionHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.err));
@@ -510,12 +705,13 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldUpdateRequestTimeMetric() {
         // given
-
         // set up clock mock to check that request_time metric has been updated with expected value
         given(clock.millis()).willReturn(5000L).willReturn(5500L);
 
-        given(auctionRequestFactory.fromRequest(any(), anyLong()))
+        given(auctionRequestFactory.parseRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
+        given(auctionRequestFactory.enrichAuctionContext(any()))
+                .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
 
         givenHoldAuction(BidResponse.builder().build());
 
@@ -526,7 +722,7 @@ public class AuctionHandlerTest extends VertxTest {
         });
 
         // when
-        auctionHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(metrics).updateRequestTimeMetric(eq(MetricName.request_time), eq(500L));
@@ -535,11 +731,11 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldNotUpdateRequestTimeMetricIfRequestFails() {
         // given
-        given(auctionRequestFactory.fromRequest(any(), anyLong()))
+        given(auctionRequestFactory.parseRequest(any(), anyLong()))
                 .willReturn(Future.failedFuture(new InvalidRequestException("Request is invalid")));
 
         // when
-        auctionHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(httpResponse, never()).endHandler(any());
@@ -549,8 +745,10 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldUpdateNetworkErrorMetric() {
         // given
-        given(auctionRequestFactory.fromRequest(any(), anyLong()))
+        given(auctionRequestFactory.parseRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
+        given(auctionRequestFactory.enrichAuctionContext(any()))
+                .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
 
         givenHoldAuction(BidResponse.builder().build());
 
@@ -561,7 +759,7 @@ public class AuctionHandlerTest extends VertxTest {
         });
 
         // when
-        auctionHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.networkerr));
@@ -570,13 +768,15 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldNotUpdateNetworkErrorMetricIfResponseSucceeded() {
         // given
-        given(auctionRequestFactory.fromRequest(any(), anyLong()))
+        given(auctionRequestFactory.parseRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
+        given(auctionRequestFactory.enrichAuctionContext(any()))
+                .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
 
         givenHoldAuction(BidResponse.builder().build());
 
         // when
-        auctionHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(metrics, never()).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.networkerr));
@@ -585,15 +785,17 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldUpdateNetworkErrorMetricIfClientClosedConnection() {
         // given
-        given(auctionRequestFactory.fromRequest(any(), anyLong()))
+        given(auctionRequestFactory.parseRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
+        given(auctionRequestFactory.enrichAuctionContext(any()))
+                .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
 
         givenHoldAuction(BidResponse.builder().build());
 
         given(routingContext.response().closed()).willReturn(true);
 
         // when
-        auctionHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.networkerr));
@@ -602,11 +804,11 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldPassBadRequestEventToAnalyticsReporterIfBidRequestIsInvalid() {
         // given
-        given(auctionRequestFactory.fromRequest(any(), anyLong()))
+        given(auctionRequestFactory.parseRequest(any(), anyLong()))
                 .willReturn(Future.failedFuture(new InvalidRequestException("Request is invalid")));
 
         // when
-        auctionHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         final AuctionEvent auctionEvent = captureAuctionEvent();
@@ -615,20 +817,23 @@ public class AuctionHandlerTest extends VertxTest {
                 .status(400)
                 .errors(singletonList("Invalid request format: Request is invalid"))
                 .build());
+        verifyNoInteractions(hooksMetricsService, hookStageExecutor);
     }
 
     @Test
     public void shouldPassInternalServerErrorEventToAnalyticsReporterIfAuctionFails() {
         // given
         final AuctionContext auctionContext = givenAuctionContext(identity());
-        given(auctionRequestFactory.fromRequest(any(), anyLong()))
+        given(auctionRequestFactory.parseRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(auctionContext));
+        given(auctionRequestFactory.enrichAuctionContext(any()))
+                .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
 
         given(exchangeService.holdAuction(any()))
                 .willThrow(new RuntimeException("Unexpected exception"));
 
         // when
-        auctionHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         final AuctionEvent auctionEvent = captureAuctionEvent();
@@ -642,41 +847,96 @@ public class AuctionHandlerTest extends VertxTest {
                 .status(500)
                 .errors(singletonList("Unexpected exception"))
                 .build());
+
+        verifyNoInteractions(hooksMetricsService, hookStageExecutor);
     }
 
     @Test
     public void shouldPassSuccessfulEventToAnalyticsReporter() {
         // given
         final AuctionContext auctionContext = givenAuctionContext(identity());
-        given(auctionRequestFactory.fromRequest(any(), anyLong()))
+        given(auctionRequestFactory.parseRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(auctionContext));
+        given(auctionRequestFactory.enrichAuctionContext(any()))
+                .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
 
         givenHoldAuction(BidResponse.builder().build());
 
         // when
-        auctionHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         final AuctionEvent auctionEvent = captureAuctionEvent();
-        final AuctionContext expectedAuctionContext = auctionContext.toBuilder()
-                .requestTypeMetric(MetricName.openrtb2web)
-                .bidResponse(BidResponse.builder().build())
-                .build();
+        assertThat(auctionEvent.getHttpContext()).isEqualTo(givenHttpContext());
+        assertThat(auctionEvent.getBidResponse()).isEqualTo(BidResponse.builder().build());
+        assertThat(auctionEvent.getStatus()).isEqualTo(200);
+        assertThat(auctionEvent.getAuctionContext().getRequestTypeMetric()).isEqualTo(MetricName.openrtb2web);
+        assertThat(auctionEvent.getAuctionContext().getBidResponse()).isEqualTo(BidResponse.builder().build());
 
-        assertThat(auctionEvent).isEqualTo(AuctionEvent.builder()
-                .httpContext(givenHttpContext())
-                .auctionContext(expectedAuctionContext)
-                .bidResponse(BidResponse.builder().build())
-                .status(200)
-                .errors(emptyList())
-                .build());
+        final ArgumentCaptor<MultiMap> responseHeadersCaptor = ArgumentCaptor.forClass(MultiMap.class);
+        verify(hookStageExecutor).executeExitpointStage(
+                responseHeadersCaptor.capture(),
+                eq("{}"),
+                any());
+
+        assertThat(responseHeadersCaptor.getValue()).hasSize(2)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsOnly(
+                        tuple("Content-Type", "application/json"),
+                        tuple("x-prebid", "pbs-java/1.00"));
+
+        verify(hooksMetricsService).updateHooksMetrics(any());
+    }
+
+    @Test
+    public void shouldPassSuccessfulEventToAnalyticsReporterWhenExitpointHookChangesResponseAndHeaders() {
+        // given
+        final AuctionContext auctionContext = givenAuctionContext(identity());
+        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(auctionContext));
+        given(auctionRequestFactory.enrichAuctionContext(any()))
+                .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
+        given(hookStageExecutor.executeExitpointStage(any(), any(), any()))
+                .willReturn(Future.succeededFuture(HookStageExecutionResult.success(
+                        ExitpointPayloadImpl.of(
+                                MultiMap.caseInsensitiveMultiMap().add("New-Header", "New-Header-Value"),
+                                "{\"response\":{}}"))));
+
+        givenHoldAuction(BidResponse.builder().build());
+
+        // when
+        target.handle(routingContext);
+
+        // then
+        final AuctionEvent auctionEvent = captureAuctionEvent();
+        assertThat(auctionEvent.getHttpContext()).isEqualTo(givenHttpContext());
+        assertThat(auctionEvent.getBidResponse()).isEqualTo(BidResponse.builder().build());
+        assertThat(auctionEvent.getStatus()).isEqualTo(200);
+        assertThat(auctionEvent.getAuctionContext().getRequestTypeMetric()).isEqualTo(MetricName.openrtb2web);
+        assertThat(auctionEvent.getAuctionContext().getBidResponse()).isEqualTo(BidResponse.builder().build());
+
+        final ArgumentCaptor<MultiMap> responseHeadersCaptor = ArgumentCaptor.forClass(MultiMap.class);
+        verify(hookStageExecutor).executeExitpointStage(
+                responseHeadersCaptor.capture(),
+                eq("{}"),
+                any());
+
+        assertThat(responseHeadersCaptor.getValue()).hasSize(2)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsOnly(
+                        tuple("Content-Type", "application/json"),
+                        tuple("x-prebid", "pbs-java/1.00"));
+
+        verify(hooksMetricsService).updateHooksMetrics(any());
     }
 
     @Test
     public void shouldTolerateDuplicateQueryParamNames() {
         // given
-        given(auctionRequestFactory.fromRequest(any(), anyLong()))
+        given(auctionRequestFactory.parseRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
+        given(auctionRequestFactory.enrichAuctionContext(any()))
+                .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
 
         final MultiMap params = MultiMap.caseInsensitiveMultiMap();
         params.add("param", "value1");
@@ -684,7 +944,7 @@ public class AuctionHandlerTest extends VertxTest {
         givenHoldAuction(BidResponse.builder().build());
 
         // when
-        auctionHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         final AuctionEvent auctionEvent = captureAuctionEvent();
@@ -697,8 +957,10 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldTolerateDuplicateHeaderNames() {
         // given
-        given(auctionRequestFactory.fromRequest(any(), anyLong()))
+        given(auctionRequestFactory.parseRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
+        given(auctionRequestFactory.enrichAuctionContext(any()))
+                .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
 
         final MultiMap headers = MultiMap.caseInsensitiveMultiMap();
         headers.add("header", "value1");
@@ -706,7 +968,7 @@ public class AuctionHandlerTest extends VertxTest {
         givenHoldAuction(BidResponse.builder().build());
 
         // when
-        auctionHandler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         final AuctionEvent auctionEvent = captureAuctionEvent();
@@ -715,6 +977,247 @@ public class AuctionHandlerTest extends VertxTest {
                 .add("header", "value2")
                 .build();
         assertThat(auctionEvent.getHttpContext().getHeaders()).isEqualTo(expectedHeaders);
+    }
+
+    @Test
+    public void shouldSkipAuction() {
+        // given
+        final AuctionContext givenAuctionContext = givenAuctionContext(identity());
+        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(givenAuctionContext));
+        given(skippedAuctionService.skipAuction(any()))
+                .willReturn(Future.succeededFuture(
+                        givenAuctionContext.skipAuction().with(BidResponse.builder().build())));
+
+        // when
+        target.handle(routingContext);
+
+        // then
+        verify(auctionRequestFactory, never()).enrichAuctionContext(any());
+        verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.ok));
+        verifyNoInteractions(exchangeService, analyticsReporterDelegator, hookStageExecutor);
+        verify(hooksMetricsService).updateHooksMetrics(any());
+        verify(httpResponse).setStatusCode(eq(200));
+        verify(httpResponse).end("{}");
+    }
+
+    @Test
+    public void shouldReturnSendAuctionEventWithAuctionContextBidResponseDebugInfoHoldingExitpointHookOutcome() {
+        // given
+        final AuctionContext auctionContext = givenAuctionContext(identity()).toBuilder()
+                .hookExecutionContext(HookExecutionContext.of(
+                        Endpoint.openrtb2_amp,
+                        stageOutcomes()))
+                .build();
+
+        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(auctionContext));
+        given(auctionRequestFactory.enrichAuctionContext(any()))
+                .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
+
+        given(hookStageExecutor.executeExitpointStage(any(), any(), any()))
+                .willAnswer(invocation -> {
+                    final AuctionContext context = invocation.getArgument(2, AuctionContext.class);
+                    final HookExecutionContext hookExecutionContext = context.getHookExecutionContext();
+                    hookExecutionContext.getStageOutcomes().put(Stage.exitpoint, singletonList(StageExecutionOutcome.of(
+                            "http-response",
+                            singletonList(
+                                    GroupExecutionOutcome.of(singletonList(
+                                            HookExecutionOutcome.builder()
+                                                    .hookId(HookId.of(
+                                                            "exitpoint-module",
+                                                            "exitpoint-hook"))
+                                                    .executionTime(4L)
+                                                    .status(ExecutionStatus.success)
+                                                    .message("exitpoint hook has been executed")
+                                                    .action(ExecutionAction.update)
+                                                    .analyticsTags(TagsImpl.of(singletonList(
+                                                            ActivityImpl.of(
+                                                                    "some-activity",
+                                                                    "success",
+                                                                    singletonList(ResultImpl.of(
+                                                                            "success",
+                                                                            mapper.createObjectNode(),
+                                                                            givenAppliedToImpl()))))))
+                                                    .build()))))));
+                    return Future.succeededFuture(HookStageExecutionResult.success(
+                            ExitpointPayloadImpl.of(invocation.getArgument(0), invocation.getArgument(1))));
+                });
+
+        givenHoldAuction(BidResponse.builder().build());
+
+        // when
+        target.handle(routingContext);
+
+        // then
+        final AuctionEvent auctionEvent = captureAuctionEvent();
+        final BidResponse bidResponse = auctionEvent.getBidResponse();
+        final ExtModulesTraceAnalyticsTags expectedAnalyticsTags = ExtModulesTraceAnalyticsTags.of(singletonList(
+                ExtModulesTraceAnalyticsActivity.of(
+                        "some-activity",
+                        "success",
+                        singletonList(ExtModulesTraceAnalyticsResult.of(
+                                "success",
+                                mapper.createObjectNode(),
+                                givenExtModulesTraceAnalyticsAppliedTo())))));
+        assertThat(bidResponse.getExt().getPrebid().getModules().getTrace()).isEqualTo(ExtModulesTrace.of(
+                8L,
+                List.of(
+                        ExtModulesTraceStage.of(
+                                Stage.auction_response,
+                                4L,
+                                singletonList(ExtModulesTraceStageOutcome.of(
+                                        "auction-response",
+                                        4L,
+                                        singletonList(
+                                                ExtModulesTraceGroup.of(
+                                                        4L,
+                                                        asList(
+                                                                ExtModulesTraceInvocationResult.builder()
+                                                                        .hookId(HookId.of("module1", "hook1"))
+                                                                        .executionTime(4L)
+                                                                        .status(ExecutionStatus.success)
+                                                                        .message("module1 hook1")
+                                                                        .action(ExecutionAction.update)
+                                                                        .build(),
+                                                                ExtModulesTraceInvocationResult.builder()
+                                                                        .hookId(HookId.of("module1", "hook2"))
+                                                                        .executionTime(4L)
+                                                                        .status(ExecutionStatus.success)
+                                                                        .message("module1 hook2")
+                                                                        .action(ExecutionAction.no_action)
+                                                                        .build())))))),
+
+                        ExtModulesTraceStage.of(
+                                Stage.exitpoint,
+                                4L,
+                                singletonList(ExtModulesTraceStageOutcome.of(
+                                        "http-response",
+                                        4L,
+                                        singletonList(
+                                                ExtModulesTraceGroup.of(
+                                                        4L,
+                                                        singletonList(
+                                                                ExtModulesTraceInvocationResult.builder()
+                                                                        .hookId(HookId.of(
+                                                                                "exitpoint-module",
+                                                                                "exitpoint-hook"))
+                                                                        .executionTime(4L)
+                                                                        .status(ExecutionStatus.success)
+                                                                        .message("exitpoint hook has been executed")
+                                                                        .action(ExecutionAction.update)
+                                                                        .analyticsTags(expectedAnalyticsTags)
+                                                                        .build())))))))));
+    }
+
+    @Test
+    public void shouldReturnSendAuctionEventWithAuctionContextBidResponseAnalyticsTagsHoldingExitpointHookOutcome() {
+        // given
+        final ObjectNode analyticsNode = mapper.createObjectNode();
+        final ObjectNode optionsNode = analyticsNode.putObject("options");
+        optionsNode.put("enableclientdetails", true);
+
+        final AuctionContext givenAuctionContext = givenAuctionContext(
+                request -> request.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .analytics(analyticsNode)
+                        .build()))).toBuilder()
+                .hookExecutionContext(HookExecutionContext.of(
+                        Endpoint.openrtb2_amp,
+                        stageOutcomes()))
+                .build();
+
+        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(givenAuctionContext));
+        given(auctionRequestFactory.enrichAuctionContext(any()))
+                .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
+
+        given(hookStageExecutor.executeExitpointStage(any(), any(), any()))
+                .willAnswer(invocation -> {
+                    final AuctionContext context = invocation.getArgument(2, AuctionContext.class);
+                    final HookExecutionContext hookExecutionContext = context.getHookExecutionContext();
+                    hookExecutionContext.getStageOutcomes().put(Stage.exitpoint, singletonList(StageExecutionOutcome.of(
+                            "http-response",
+                            singletonList(
+                                    GroupExecutionOutcome.of(singletonList(
+                                            HookExecutionOutcome.builder()
+                                                    .hookId(HookId.of(
+                                                            "exitpoint-module",
+                                                            "exitpoint-hook"))
+                                                    .executionTime(4L)
+                                                    .status(ExecutionStatus.success)
+                                                    .message("exitpoint hook has been executed")
+                                                    .action(ExecutionAction.update)
+                                                    .analyticsTags(TagsImpl.of(singletonList(
+                                                            ActivityImpl.of(
+                                                                    "some-activity",
+                                                                    "success",
+                                                                    singletonList(ResultImpl.of(
+                                                                            "success",
+                                                                            mapper.createObjectNode(),
+                                                                            givenAppliedToImpl()))))))
+                                                    .build()))))));
+                    return Future.succeededFuture(HookStageExecutionResult.success(
+                            ExitpointPayloadImpl.of(invocation.getArgument(0), invocation.getArgument(1))));
+                });
+
+        givenHoldAuction(BidResponse.builder().build());
+
+        // when
+        target.handle(routingContext);
+
+        // then
+        final AuctionEvent auctionEvent = captureAuctionEvent();
+        final BidResponse bidResponse = auctionEvent.getBidResponse();
+        assertThat(bidResponse.getExt())
+                .extracting(ExtBidResponse::getPrebid)
+                .extracting(ExtBidResponsePrebid::getAnalytics)
+                .extracting(ExtAnalytics::getTags)
+                .asInstanceOf(InstanceOfAssertFactories.list(ExtAnalyticsTags.class))
+                .hasSize(1)
+                .allSatisfy(extAnalyticsTags -> {
+                    assertThat(extAnalyticsTags.getStage()).isEqualTo(Stage.exitpoint);
+                    assertThat(extAnalyticsTags.getModule()).isEqualTo("exitpoint-module");
+                    assertThat(extAnalyticsTags.getAnalyticsTags()).isNotNull();
+                });
+    }
+
+    private static AppliedToImpl givenAppliedToImpl() {
+        return AppliedToImpl.builder()
+                .impIds(asList("impId1", "impId2"))
+                .request(true)
+                .build();
+    }
+
+    private static ExtModulesTraceAnalyticsAppliedTo givenExtModulesTraceAnalyticsAppliedTo() {
+        return ExtModulesTraceAnalyticsAppliedTo.builder()
+                .impIds(asList("impId1", "impId2"))
+                .request(true)
+                .build();
+    }
+
+    private static EnumMap<Stage, List<StageExecutionOutcome>> stageOutcomes() {
+        final Map<Stage, List<StageExecutionOutcome>> stageOutcomes = new HashMap<>();
+
+        stageOutcomes.put(Stage.auction_response, singletonList(StageExecutionOutcome.of(
+                "auction-response",
+                singletonList(
+                        GroupExecutionOutcome.of(asList(
+                                HookExecutionOutcome.builder()
+                                        .hookId(HookId.of("module1", "hook1"))
+                                        .executionTime(4L)
+                                        .status(ExecutionStatus.success)
+                                        .message("module1 hook1")
+                                        .action(ExecutionAction.update)
+                                        .build(),
+                                HookExecutionOutcome.builder()
+                                        .hookId(HookId.of("module1", "hook2"))
+                                        .executionTime(4L)
+                                        .message("module1 hook2")
+                                        .status(ExecutionStatus.success)
+                                        .action(ExecutionAction.no_action)
+                                        .build()))))));
+
+        return new EnumMap<>(stageOutcomes);
     }
 
     private AuctionContext captureAuctionContext() {
@@ -748,10 +1251,15 @@ public class AuctionHandlerTest extends VertxTest {
                 .imp(emptyList())).build();
 
         final AuctionContext.AuctionContextBuilder auctionContextBuilder = AuctionContext.builder()
+                .account(Account.builder()
+                        .analytics(AccountAnalyticsConfig.of(true, null, null))
+                        .build())
                 .uidsCookie(uidsCookie)
                 .bidRequest(bidRequest)
                 .requestTypeMetric(MetricName.openrtb2web)
-                .timeout(this.timeout);
+                .debugContext(DebugContext.of(true, false, TraceLevel.verbose))
+                .hookExecutionContext(HookExecutionContext.of(Endpoint.openrtb2_auction))
+                .timeoutContext(TimeoutContext.of(0, timeout, 0));
 
         return auctionContextCustomizer.apply(auctionContextBuilder)
                 .build();

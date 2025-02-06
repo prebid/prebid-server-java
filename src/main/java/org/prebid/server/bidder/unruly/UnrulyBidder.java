@@ -1,6 +1,8 @@
 package org.prebid.server.bidder.unruly;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
@@ -19,6 +21,8 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.unruly.ExtImpUnruly;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
@@ -84,18 +88,18 @@ public class UnrulyBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static List<BidderBid> extractBids(BidRequest bidRequest,
-                                               BidResponse bidResponse,
-                                               List<BidderError> errors) {
+    private List<BidderBid> extractBids(BidRequest bidRequest,
+                                        BidResponse bidResponse,
+                                        List<BidderError> errors) {
 
         return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
                 ? Collections.emptyList()
                 : bidsFromResponse(bidRequest, bidResponse, errors);
     }
 
-    private static List<BidderBid> bidsFromResponse(BidRequest bidRequest,
-                                                    BidResponse bidResponse,
-                                                    List<BidderError> errors) {
+    private List<BidderBid> bidsFromResponse(BidRequest bidRequest,
+                                             BidResponse bidResponse,
+                                             List<BidderError> errors) {
 
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
@@ -107,9 +111,13 @@ public class UnrulyBidder implements Bidder<BidRequest> {
                 .toList();
     }
 
-    private static BidderBid resolveBidderBid(Bid bid, String currency, List<Imp> imps, List<BidderError> errors) {
+    private BidderBid resolveBidderBid(Bid bid, String currency, List<Imp> imps, List<BidderError> errors) {
         try {
-            return BidderBid.of(bid, getBidType(bid.getImpid(), imps), currency);
+            final BidType bidType = getBidType(bid.getImpid(), imps);
+            return BidderBid.of(
+                    bidType == BidType.video ? resolveBid(bid) : bid,
+                    getBidType(bid.getImpid(), imps),
+                    currency);
         } catch (PreBidException e) {
             errors.add(BidderError.badServerResponse(e.getMessage()));
             return BidderBid.of(bid, BidType.banner, currency);
@@ -134,5 +142,33 @@ public class UnrulyBidder implements Bidder<BidRequest> {
 
         throw new PreBidException(
                 "Bid response imp ID " + impId + " not found in bid request containing imps" + unmatchedImpIds);
+    }
+
+    private Bid resolveBid(Bid bid) {
+        final Integer duration = bid.getDur();
+        if (duration == null || duration <= 0) {
+            return bid;
+        }
+
+        return bid.toBuilder().ext(resolveBidExt(duration, bid.getExt())).build();
+    }
+
+    private ObjectNode resolveBidExt(Integer duration, ObjectNode bidExt) {
+        final ObjectNode bidExtUpdated = bidExt != null && !bidExt.isMissingNode()
+                ? bidExt
+                : mapper.mapper().createObjectNode();
+        final JsonNode bidExtPrebid = resolveBidExtPrebid(duration, bidExtUpdated.get("prebid"));
+
+        return bidExtUpdated.set("prebid", bidExtPrebid);
+    }
+
+    private ObjectNode resolveBidExtPrebid(Integer duration, JsonNode bidExtPrebid) {
+        final ExtBidPrebidVideo extBidPrebidVideo = ExtBidPrebidVideo.of(duration, null);
+        if (bidExtPrebid == null || bidExtPrebid.isMissingNode()) {
+            return mapper.mapper().valueToTree(ExtBidPrebid.builder().video(extBidPrebidVideo).build());
+        }
+
+        final ObjectNode bidExtPrebidCasted = (ObjectNode) bidExtPrebid;
+        return bidExtPrebidCasted.set("video", mapper.mapper().valueToTree(extBidPrebidVideo));
     }
 }

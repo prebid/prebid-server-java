@@ -3,14 +3,13 @@ package org.prebid.server.health;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
-import org.prebid.server.execution.TimeoutFactory;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.health.model.StatusResponse;
@@ -27,12 +26,10 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+@ExtendWith(MockitoExtension.class)
 public class GeoLocationHealthCheckerTest {
 
     private static final String NAME = "geolocation";
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private Vertx vertx;
@@ -43,7 +40,7 @@ public class GeoLocationHealthCheckerTest {
 
     private GeoLocationHealthChecker geoLocationHealthChecker;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);

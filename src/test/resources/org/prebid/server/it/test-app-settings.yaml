@@ -60,6 +60,12 @@ accounts:
                     hook-sequence:
                       - module-code: sample-it-module
                         hook-impl-code: auction-response
+              exitpoint:
+                groups:
+                  - timeout: 5
+                    hook-sequence:
+                      - module-code: sample-it-module
+                        hook-impl-code: exitpoint
   - id: 7001
     hooks:
       execution-plan:
@@ -120,11 +126,23 @@ accounts:
                     hook-sequence:
                       - module-code: sample-it-module
                         hook-impl-code: rejecting-processed-bidder-response
+  - id: 13001
+    hooks:
+      execution-plan:
+        endpoints:
+          /openrtb2/auction:
+            stages:
+              exitpoint:
+                groups:
+                  - timeout: 5
+                    hook-sequence:
+                      - module-code: sample-it-module
+                        hook-impl-code: exitpoint
   - id: 12001
     auction:
       price-floors:
         fetch:
-          url: http://localhost:8090/floors-provider
+          url: http://localhost:8100/floors-provider
           enabled: true
 domains:
   - rubiconproject.com

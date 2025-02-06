@@ -1,0 +1,39 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "exp": 1500,
+          "price": 5.78,
+          "adm": "adm",
+          "crid": "crid",
+          "w": 300,
+          "h": 250,
+          "mtype": 2,
+          "ext": {
+            "creative_type": 1,
+            "prebid": {
+              "type": "video"
+            },
+            "origbidcpm": 5.78
+          }
+        }
+      ],
+      "seat": "sovrnXsp",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "sovrnXsp": "{{ sovrnXsp.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}

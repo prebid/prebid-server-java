@@ -16,11 +16,13 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.DebugResolver;
-import org.prebid.server.auction.PrivacyEnforcementService;
+import org.prebid.server.auction.GeoLocationServiceWrapper;
 import org.prebid.server.auction.VideoStoredRequestProcessor;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.CachedDebugLog;
 import org.prebid.server.auction.model.WithPodErrors;
+import org.prebid.server.auction.model.debug.DebugContext;
+import org.prebid.server.auction.privacy.contextfactory.AuctionPrivacyContextFactory;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.DecodeException;
@@ -56,9 +58,10 @@ public class VideoRequestFactory {
     private final VideoStoredRequestProcessor storedRequestProcessor;
     private final BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
     private final Ortb2ImplicitParametersResolver paramsResolver;
-    private final PrivacyEnforcementService privacyEnforcementService;
+    private final AuctionPrivacyContextFactory auctionPrivacyContextFactory;
     private final DebugResolver debugResolver;
     private final JacksonMapper mapper;
+    private final GeoLocationServiceWrapper geoLocationServiceWrapper;
 
     public VideoRequestFactory(int maxRequestSize,
                                boolean enforceStoredRequest,
@@ -67,9 +70,10 @@ public class VideoRequestFactory {
                                VideoStoredRequestProcessor storedRequestProcessor,
                                BidRequestOrtbVersionConversionManager ortbVersionConversionManager,
                                Ortb2ImplicitParametersResolver paramsResolver,
-                               PrivacyEnforcementService privacyEnforcementService,
+                               AuctionPrivacyContextFactory auctionPrivacyContextFactory,
                                DebugResolver debugResolver,
-                               JacksonMapper mapper) {
+                               JacksonMapper mapper,
+                               GeoLocationServiceWrapper geoLocationServiceWrapper) {
 
         this.enforceStoredRequest = enforceStoredRequest;
         this.maxRequestSize = maxRequestSize;
@@ -77,9 +81,10 @@ public class VideoRequestFactory {
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.ortbVersionConversionManager = Objects.requireNonNull(ortbVersionConversionManager);
         this.paramsResolver = Objects.requireNonNull(paramsResolver);
-        this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
+        this.auctionPrivacyContextFactory = Objects.requireNonNull(auctionPrivacyContextFactory);
         this.debugResolver = Objects.requireNonNull(debugResolver);
         this.mapper = Objects.requireNonNull(mapper);
+        this.geoLocationServiceWrapper = Objects.requireNonNull(geoLocationServiceWrapper);
 
         this.escapeLogCacheRegexPattern = StringUtils.isNotBlank(escapeLogCacheRegex)
                 ? Pattern.compile(escapeLogCacheRegex)
@@ -103,48 +108,60 @@ public class VideoRequestFactory {
                 Endpoint.openrtb2_video, MetricName.video);
 
         return ortb2RequestFactory.executeEntrypointHooks(routingContext, body, initialAuctionContext)
-                .compose(httpRequest ->
-                        createBidRequest(httpRequest)
+                .compose(httpRequest -> createBidRequest(httpRequest)
+                        .map(bidRequest -> removeEmptyEids(bidRequest, initialAuctionContext.getDebugWarnings()))
 
-                                .compose(bidRequest -> validateRequest(
-                                                bidRequest,
-                                                httpRequest,
-                                                initialAuctionContext.getDebugWarnings()))
+                        .map(bidRequestWithErrors -> populatePodErrors(
+                                bidRequestWithErrors.getPodErrors(), podErrors, bidRequestWithErrors))
 
-                                .map(bidRequestWithErrors -> populatePodErrors(
-                                        bidRequestWithErrors.getPodErrors(), podErrors, bidRequestWithErrors))
+                        .map(bidRequestWithErrors -> ortb2RequestFactory.enrichAuctionContext(
+                                initialAuctionContext, httpRequest, bidRequestWithErrors.getData(), startTime)))
 
-                                .map(bidRequestWithErrors -> ortb2RequestFactory.enrichAuctionContext(
-                                        initialAuctionContext, httpRequest, bidRequestWithErrors.getData(), startTime)))
+                .map(auctionContext -> auctionContext.with(debugResolver.debugContextFrom(auctionContext)))
+
+                .compose(auctionContext -> ortb2RequestFactory.validateRequest(
+                                auctionContext.getBidRequest(),
+                                auctionContext.getHttpRequest(),
+                                auctionContext.getDebugContext(),
+                                auctionContext.getDebugWarnings())
+                        .map(auctionContext::with))
 
                 .compose(auctionContext -> ortb2RequestFactory.fetchAccountWithoutStoredRequestLookup(auctionContext)
                         .map(auctionContext::with))
 
-                .map(auctionContext -> auctionContext.with(debugResolver.debugContextFrom(auctionContext)))
+                .compose(auctionContext -> geoLocationServiceWrapper.lookup(auctionContext)
+                        .map(auctionContext::with))
+
+                .compose(auctionContext -> ortb2RequestFactory.enrichBidRequestWithGeolocationData(auctionContext)
+                        .map(auctionContext::with))
 
                 .compose(auctionContext -> ortb2RequestFactory.activityInfrastructureFrom(auctionContext)
                         .map(auctionContext::with))
 
-                .compose(auctionContext -> privacyEnforcementService.contextFromBidRequest(auctionContext)
+                .compose(auctionContext -> auctionPrivacyContextFactory.contextFrom(auctionContext)
                         .map(auctionContext::with))
 
-                .map(auctionContext -> auctionContext.with(
-                        ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(auctionContext)))
+                .compose(auctionContext -> ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(auctionContext)
+                        .map(auctionContext::with))
 
                 .compose(auctionContext -> ortb2RequestFactory.executeProcessedAuctionRequestHooks(auctionContext)
                         .map(auctionContext::with))
 
-                .compose(ortb2RequestFactory::populateUserAdditionalInfo)
-
-                .map(ortb2RequestFactory::enrichWithPriceFloors)
-
-                .map(auctionContext -> ortb2RequestFactory.updateTimeout(auctionContext, startTime))
+                .map(ortb2RequestFactory::updateTimeout)
 
                 .recover(ortb2RequestFactory::restoreResultFromRejection)
 
                 .map(this::updateContextWithDebugLog)
 
                 .map(auctionContext -> WithPodErrors.of(auctionContext, podErrors));
+    }
+
+    private WithPodErrors<BidRequest> removeEmptyEids(WithPodErrors<BidRequest> requestWithPodErrors,
+                                                      List<String> debugWarnings) {
+
+        return WithPodErrors.of(
+                ortb2RequestFactory.removeEmptyEids(requestWithPodErrors.getData(), debugWarnings),
+                requestWithPodErrors.getPodErrors());
     }
 
     private String extractAndValidateBody(RoutingContext routingContext) {
@@ -297,7 +314,10 @@ public class VideoRequestFactory {
         final BidRequest bidRequest = bidRequestToErrors.getData();
         final BidRequest updatedBidRequest = paramsResolver.resolve(
                 bidRequest,
-                httpRequest,
+                AuctionContext.builder()
+                        .httpRequest(httpRequest)
+                        .debugContext(DebugContext.empty())
+                        .build(),
                 ENDPOINT,
                 false);
         final BidRequest updatedWithDebugBidRequest = debugEnabled
@@ -305,13 +325,5 @@ public class VideoRequestFactory {
                 : updatedBidRequest;
 
         return WithPodErrors.of(updatedWithDebugBidRequest, bidRequestToErrors.getPodErrors());
-    }
-
-    private Future<WithPodErrors<BidRequest>> validateRequest(WithPodErrors<BidRequest> requestWithPodErrors,
-                                                              HttpRequestContext httpRequestContext,
-                                                              List<String> warnings) {
-
-        return ortb2RequestFactory.validateRequest(requestWithPodErrors.getData(), httpRequestContext, warnings)
-                .map(bidRequest -> requestWithPodErrors);
     }
 }

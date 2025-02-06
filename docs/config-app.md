@@ -20,12 +20,17 @@ This parameter exists to allow to change the location of the directory Vert.x wi
 - `server.ssl` - enable SSL/TLS support.
 - `server.jks-path` - path to the java keystore (if ssl is enabled).
 - `server.jks-password` - password for the keystore (if ssl is enabled).
+- `server.cpu-load-monitoring.measurement-interval-ms` - the CPU load monitoring interval (milliseconds)
 
 ## HTTP Server
-- `http.max-headers-size` - set the maximum length of all headers, deprecated(use server.max-headers-size instead).
-- `http.ssl` - enable SSL/TLS support, deprecated(use server.ssl instead).
-- `http.jks-path` - path to the java keystore (if ssl is enabled), deprecated(use server.jks-path instead).
-- `http.jks-password` - password for the keystore (if ssl is enabled), deprecated(use server.jks-password instead).
+- `server.max-headers-size` - set the maximum length of all headers, deprecated(use server.max-headers-size instead).
+- `server.ssl` - enable SSL/TLS support, deprecated(use server.ssl instead).
+- `server.jks-path` - path to the java keystore (if ssl is enabled), deprecated(use server.jks-path instead).
+- `server.jks-password` - password for the keystore (if ssl is enabled), deprecated(use server.jks-password instead).
+- `server.max-initial-line-length` - set the maximum length of the initial line
+- `server.idle-timeout` - set the maximum time idle connections could exist before being reaped
+- `server.enable-quickack` - enables the TCP_QUICKACK option - only with linux native transport.
+- `server.enable-reuseport` - set the value of reuse port
 - `server.http.server-instances` - how many http server instances should be created.
   This parameter affects how many CPU cores will be utilized by the application. Rough assumption - one http server instance will keep 1 CPU core busy.
 - `server.http.enabled` - if set to `true` enables http server
@@ -61,6 +66,10 @@ Removes and downloads file again if depending service cant process probably corr
 - `<SERVICE>.remote-file-syncer.tmp-filepath` - full path to the temporary file.
 - `<SERVICE>.remote-file-syncer.retry-count` - how many times try to download.
 - `<SERVICE>.remote-file-syncer.retry-interval-ms` - how long to wait between failed retries.
+- `<SERVICE>.remote-file-syncer.retry.delay-millis` - initial time of how long to wait between failed retries.
+- `<SERVICE>.remote-file-syncer.retry.max-delay-millis` - maximum allowed value for `delay-millis`.
+- `<SERVICE>.remote-file-syncer.retry.factor` - factor for the `delay-millis` value, that will be applied after each failed retry to modify `delay-millis` value. 
+- `<SERVICE>.remote-file-syncer.retry.jitter` - jitter (multiplicative) for `delay-millis` parameter.
 - `<SERVICE>.remote-file-syncer.timeout-ms` - default operation timeout for obtaining database file.
 - `<SERVICE>.remote-file-syncer.update-interval-ms` - time interval between updates of the usable file.
 - `<SERVICE>.remote-file-syncer.http-client.connect-timeout-ms` - set the connect timeout.
@@ -75,9 +84,8 @@ Removes and downloads file again if depending service cant process probably corr
 - `default-request.file.path` - path to a JSON file containing the default request
 
 ## Auction (OpenRTB)
-- `auction.blacklisted-accounts` - comma separated list of blacklisted account IDs.
-- `auction.blacklisted-apps` - comma separated list of blacklisted applications IDs, requests from which should not be processed.
-- `auction.max-timeout-ms` - maximum operation timeout for OpenRTB Auction requests. Deprecated.
+- `auction.blocklisted-accounts` - comma separated list of blocklisted account IDs.
+- `auction.blocklisted-apps` - comma separated list of blocklisted applications IDs, requests from which should not be processed.
 - `auction.biddertmax.min` - minimum operation timeout for OpenRTB Auction requests.
 - `auction.biddertmax.max` - maximum operation timeout for OpenRTB Auction requests.
 - `auction.biddertmax.percent` - adjustment factor for `request.tmax` for bidders.
@@ -92,6 +100,7 @@ Removes and downloads file again if depending service cant process probably corr
 - `auction.validations.secure-markup` - enables secure markup validation. Possible values: `skip`, `enforce`, `warn`. Default is `skip`.
 - `auction.host-schain-node` - defines global schain node that will be appended to `request.source.ext.schain.nodes` passed to bidders
 - `auction.category-mapping-enabled` - if equals to `true` the category mapping feature will be active while auction.
+- `auction.strict-app-site-dooh` - if set to `true`, it will reject requests that contain more than one of app/site/dooh. Defaults to `false`.
 
 ## Event
 - `event.default-timeout-ms` - timeout for event notifications
@@ -103,14 +112,15 @@ Removes and downloads file again if depending service cant process probably corr
 - `auction.timeout-notification.log-sampling-rate` - instructs apply sampling when logging bidder timeout notification results
 
 ## Video
-- `auction.video.stored-required` - flag forces to merge with stored request
-- `auction.blacklisted-accounts` - comma separated list of blacklisted account IDs.
+- `video.stored-request-required` - flag forces to merge with stored request
 - `video.stored-requests-timeout-ms` - timeout for stored requests fetching.
-- `auction.ad-server-currency` - default currency for video auction, if its value was not specified in request. Important note: PBS uses ISO-4217 codes for the representation of currencies.
+- `auction.blocklisted-accounts` - comma separated list of blocklisted account IDs.
 - `auction.video.escape-log-cache-regex` - regex to remove from cache debug log xml.
+- `auction.ad-server-currency` - default currency for video auction, if its value was not specified in request. Important note: PBS uses ISO-4217 codes for the representation of currencies.
 
 ## Setuid
 - `setuid.default-timeout-ms` - default operation timeout for requests to `/setuid` endpoint.
+- `setuid.number-of-uid-cookies` - specifies the maximum number of UID cookies that can be returned in the `/setuid` endpoint response. If it's not specified `1` will be taken as the default value.
 
 ## Cookie Sync
 - `cookie-sync.default-timeout-ms` - default operation timeout for requests to `/cookie_sync` endpoint.
@@ -122,6 +132,7 @@ Removes and downloads file again if depending service cant process probably corr
 ## Vtrack
 - `vtrack.allow-unknown-bidder` - flag that allows servicing requests with bidders who were not configured in Prebid Server.
 - `vtrack.modify-vast-for-unknown-bidder` - flag that allows modifying the VAST value and adding the impression tag to it, for bidders who were not configured in Prebid Server.
+- `vtrack.default-timeout-ms` - a default timeout in ms for the vtrack request
 
 ## Adapters
 - `adapters.*` - the section for bidder specific configuration options.
@@ -143,6 +154,7 @@ There are several typical keys:
 - `adapters.<BIDDER_NAME>.usersync.type` - usersync type (i.e. redirect, iframe).
 - `adapters.<BIDDER_NAME>.usersync.support-cors` - flag signals if CORS supported by usersync.
 - `adapters.<BIDDER_NAME>.debug.allow` - enables debug output in the auction response for the given bidder. Default `true`.
+- `adapters.<BIDDER_NAME>.tmax-deduction-ms` - adjusts the tmax sent to the bidder by deducting the provided value (ms). Default `0 ms` - no deduction.
 
 In addition, each bidder could have arbitrary aliases configured that will look and act very much the same as the bidder itself.
 Aliases are configured by adding child configuration object at `adapters.<BIDDER_NAME>.aliases.<BIDDER_ALIAS>.`, aliases 
@@ -156,9 +168,8 @@ Also, each bidder could have its own bidder-specific options.
 
 ## Logging
 - `logging.http-interaction.max-limit` - maximum value for the number of interactions to log in one take.
-
-## Logging
 - `logging.change-level.max-duration-ms` - maximum duration (in milliseconds) for which logging level could be changed.
+- `logging.sampling-rate` - a percentage of messages that are logged
 
 ## Currency Converter
 - `currency-converter.external-rates.enabled` - if equals to `true` the currency conversion service will be enabled to fetch updated rates and convert bid currencies from external source. Also enables `/currency-rates` endpoint on admin port.
@@ -202,32 +213,17 @@ Also, each bidder could have its own bidder-specific options.
 - `admin-endpoints.tracelog.enabled` - if equals to `true` the endpoint will be available.
 - `admin-endpoints.tracelog.path` - the server context path where the endpoint will be accessible.
 - `admin-endpoints.tracelog.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
-- `admin-endpoints.tracelog.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials` 
-
-- `admin-endpoints.deals-status.enabled` - if equals to `true` the endpoint will be available.
-- `admin-endpoints.deals-status.path` - the server context path where the endpoint will be accessible.
-- `admin-endpoints.deals-status.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
-- `admin-endpoints.deals-status.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials` 
-
-- `admin-endpoints.lineitem-status.enabled` - if equals to `true` the endpoint will be available.
-- `admin-endpoints.lineitem-status.path` - the server context path where the endpoint will be accessible.
-- `admin-endpoints.lineitem-status.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
-- `admin-endpoints.lineitem-status.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials` 
-
-- `admin-endpoints.e2eadmin.enabled` - if equals to `true` the endpoint will be available.
-- `admin-endpoints.e2eadmin.path` - the server context path where the endpoint will be accessible.
-- `admin-endpoints.e2eadmin.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
-- `admin-endpoints.e2eadmin.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials` 
+- `admin-endpoints.tracelog.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials`
 
 - `admin-endpoints.collected-metrics.enabled` - if equals to `true` the endpoint will be available.
 - `admin-endpoints.collected-metrics.path` - the server context path where the endpoint will be accessible.
 - `admin-endpoints.collected-metrics.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
 - `admin-endpoints.collected-metrics.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials`
 
-- `admin-endpoints.force-deals-update.enabled` - if equals to `true` the endpoint will be available.
-- `admin-endpoints.force-deals-update.path` - the server context path where the endpoint will be accessible.
-- `admin-endpoints.force-deals-update.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
-- `admin-endpoints.force-deals-update.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials`
+- `admin-endpoints.logging-changelevel.enabled` - if equals to `true` the endpoint will be available.
+- `admin-endpoints.logging-changelevel.path` - the server context path where the endpoint will be accessible
+- `admin-endpoints.logging-changelevel.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
+- `admin-endpoints.logging-changelevel.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials`
 
 - `admin-endpoints.credentials` - user and password for access to admin endpoints if `admin-endpoints.[NAME].protected` is true`.
 
@@ -236,6 +232,12 @@ Also, each bidder could have its own bidder-specific options.
 
 So far metrics cannot be submitted simultaneously to many backends. Currently we support `graphite` and `influxdb`. 
 Also, for debug purposes you can use `console` as metrics backend.
+
+For `logback` backend type available next options:
+- `metrics.logback.enabled` - if equals to `true` then logback reporter will be started.
+- `metrics.logback.name` - name of logger element in the logback configuration file.
+- `metrics.logback.interval` - interval in seconds between successive sending metrics.
+
 
 For `graphite` backend type available next options:
 - `metrics.graphite.enabled` - if equals to `true` then `graphite` will be used to submit metrics.
@@ -274,10 +276,16 @@ See [metrics documentation](metrics.md) for complete list of metrics submitted a
 - `metrics.accounts.basic-verbosity` - a list of accounts for which only basic metrics will be submitted.
 - `metrics.accounts.detailed-verbosity` - a list of accounts for which all metrics will be submitted. 
 
+For `JVM` metrics
+- `metrics.jmx.enabled` - if equals to `true` then `jvm.gc` and `jvm.memory` metrics will be submitted
+
 ## Cache
 - `cache.scheme` - set the external Cache Service protocol: `http`, `https`, etc.
 - `cache.host` - set the external Cache Service destination in format `host:port`.
 - `cache.path` - set the external Cache Service path, for example `/cache`.
+- `storage.pbc.enabled` - If set to true, this will allow storing modules’ data in third-party storage.
+- `storage.pbc.path` - set the external Cache Service path for module caching, for example `/pbc-storage`.
+- `pbc.api.key` - set the external Cache Service api key for secured calls.
 - `cache.query` - appends to the cache path as query string params (used for legacy Auction requests).
 - `cache.banner-ttl-seconds` - how long (in seconds) banner will be available via the external Cache Service.
 - `cache.video-ttl-seconds` - how long (in seconds) video creative will be available via the external Cache Service.
@@ -285,6 +293,7 @@ See [metrics documentation](metrics.md) for complete list of metrics submitted a
 for particular publisher account. Overrides `cache.banner-ttl-seconds` property.
 - `cache.account.<ACCOUNT>.video-ttl-seconds` - how long (in seconds) video creative will be available in Cache Service 
 for particular publisher account. Overrides `cache.video-ttl-seconds` property.
+- `cache.default-ttl-seconds.{banner, video, audio, native}` - a default value how long (in seconds) a creative of the specific type will be available in Cache Service
 
 ## Application settings (account configuration, stored ad unit configurations, stored requests)
 Preconfigured application settings can be obtained from multiple data sources consequently: 
@@ -309,8 +318,10 @@ For database data source available next options:
 - `settings.database.user` - database user.
 - `settings.database.password` - database password.
 - `settings.database.pool-size` - set the initial/min/max pool size of database connections.
+- `settings.database.idle-connection-timeout` - Set the idle timeout, time unit is seconds. Zero means don't timeout. This determines if a connection will timeout and be closed and get back to the pool if no data is received nor sent within the timeout.
+- `settings.database.enable-prepared-statement-caching` - Enable caching of the prepared statements so that they can be reused. Defaults to `false`. Please be vary of the DB server limitations as cache instances is per-database-connection.
+- `settings.database.max-prepared-statement-cache-size` - Set the maximum size of the prepared statement cache. Defaults to `256`. Has any effect only when `settings.database.enable-prepared-statement-caching` is set to `true`. Please note that the cache size is multiplied by `settings.database.pool-size`.  
 - `settings.database.account-query` - the SQL query to fetch account.
-- `settings.database.provider-class` - type of connection pool to be used: `hikari` or `c3p0`.
 - `settings.database.stored-requests-query` - the SQL query to fetch stored requests.
 - `settings.database.amp-stored-requests-query` - the SQL query to fetch AMP stored requests.
 - `settings.database.stored-responses-query` - the SQL query to fetch stored responses.
@@ -353,6 +364,7 @@ See [application settings](application-settings.md) for full reference of availa
 For caching available next options:
 - `settings.in-memory-cache.ttl-seconds` - how long (in seconds) data will be available in LRU cache.
 - `settings.in-memory-cache.cache-size` - the size of LRU cache.
+- `settings.in-memory-cache.jitter-seconds` - jitter (in seconds) for `settings.in-memory-cache.ttl-seconds` parameter.
 - `settings.in-memory-cache.notification-endpoints-enabled` - if equals to `true` two additional endpoints will be
 available: [/storedrequests/openrtb2](endpoints/storedrequests/openrtb2.md) and [/storedrequests/amp](endpoints/storedrequests/amp.md).
 - `settings.in-memory-cache.account-invalidation-enabled` - if equals to `true` additional admin protected endpoints will be
@@ -361,14 +373,27 @@ available: `/cache/invalidate?account={accountId}` which remove account from the
 - `settings.in-memory-cache.http-update.amp-endpoint` - the url to fetch AMP stored request updates.
 - `settings.in-memory-cache.http-update.refresh-rate` - refresh period in ms for stored request updates.
 - `settings.in-memory-cache.http-update.timeout` - timeout for obtaining stored request updates.
-- `settings.in-memory-cache.jdbc-update.init-query` - initial query for fetching all stored requests at the startup.
-- `settings.in-memory-cache.jdbc-update.update-query` - a query for periodical update of stored requests, that should
-contain 'WHERE last_updated > ?' to fetch only the records that were updated since previous check.
-- `settings.in-memory-cache.jdbc-update.amp-init-query` - initial query for fetching all AMP stored requests at the startup.
-- `settings.in-memory-cache.jdbc-update.amp-update-query` - a query for periodical update of AMP stored requests, that should
-contain 'WHERE last_updated > ?' to fetch only the records that were updated since previous check.
-- `settings.in-memory-cache.jdbc-update.refresh-rate` - refresh period in ms for stored request updates.
-- `settings.in-memory-cache.jdbc-update.timeout` - timeout for obtaining stored request updates.
+- `settings.in-memory-cache.database-update.init-query` - initial query for fetching all stored requests at the startup.
+- `settings.in-memory-cache.database-update.update-query` - a query for periodical update of stored requests, that should
+contain 'WHERE last_updated > ?' for MySQL and 'WHERE last_updated > $1' for Postgresql to fetch only the records that were updated since previous check.
+- `settings.in-memory-cache.database-update.amp-init-query` - initial query for fetching all AMP stored requests at the startup.
+- `settings.in-memory-cache.database-update.amp-update-query` - a query for periodical update of AMP stored requests, that should
+contain 'WHERE last_updated > ?' for MySQL and 'WHERE last_updated > $1' for Postgresql to fetch only the records that were updated since previous check.
+- `settings.in-memory-cache.database-update.refresh-rate` - refresh period in ms for stored request updates.
+- `settings.in-memory-cache.database-update.timeout` - timeout for obtaining stored request updates.
+
+For S3 storage configuration
+- `settings.in-memory-cache.s3-update.refresh-rate` - refresh period in ms for stored request updates in S3
+- `settings.s3.access-key-id` - an access key
+- `settings.s3.secret-access-key` - a secret access key
+- `settings.s3.region` - a region, AWS_GLOBAL by default
+- `settings.s3.endpoint` - an endpoint
+- `settings.s3.bucket` - a bucket name
+- `settings.s3.force-path-style` - forces the S3 client to use path-style addressing for buckets.
+- `settings.s3.accounts-dir` - a directory with stored accounts
+- `settings.s3.stored-imps-dir` - a directory with stored imps
+- `settings.s3.stored-requests-dir` - a directory with stored requests
+- `settings.s3.stored-responses-dir` - a directory with stored responses
 
 For targeting available next options:
 - `settings.targeting.truncate-attr-chars` - set the max length for names of targeting keywords (0 means no truncation).
@@ -402,6 +427,7 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 - `gdpr.eea-countries` - comma separated list of countries in European Economic Area (EEA).
 - `gdpr.default-value` - determines GDPR in scope default value (if no information in request and no geolocation data).
 - `gdpr.host-vendor-id` - the organization running a cluster of Prebid Servers.
+- `datacenter-region` - the datacenter region of a cluster of Prebid Servers
 - `gdpr.enabled` - gdpr feature switch. Default `true`.
 - `gdpr.purposes.pN.enforce-purpose` - define type of enforcement confirmation: `no`/`basic`/`full`. Default `full`
 - `gdpr.purposes.pN.enforce-vendors` - if equals to `true`, user must give consent to use vendors. Purposes will be omitted. Default `true`
@@ -431,8 +457,30 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 - `geolocation.type` - set the geo location service provider, can be `maxmind` or custom provided by hosting company.
 - `geolocation.maxmind` - section for [MaxMind](https://www.maxmind.com) configuration as geo location service provider.
 - `geolocation.maxmind.remote-file-syncer` - use RemoteFileSyncer component for downloading/updating MaxMind database file. See [RemoteFileSyncer](#remote-file-syncer) section for its configuration.
+- `geolocation.configurations[]` - a list of geo-lookup configurations for the `configuration` `geolocation.type`
+- `geolocation.configurations[].address-pattern` - an address pattern for matching an IP to look up
+- `geolocation.configurations[].geo-info.continent` - a continent to return on the `configuration` geo-lookup
+- `geolocation.configurations[].geo-info.country` - a country to return on the `configuration` geo-lookup
+- `geolocation.configurations[].geo-info.region` - a region to return on the `configuration` geo-lookup
+- `geolocation.configurations[].geo-info.region-code` - a region code to return on the `configuration` geo-lookup
+- `geolocation.configurations[].geo-info.city` - a city to return on the `configuration` geo-lookup
+- `geolocation.configurations[].geo-info.metro-google` - a metro Google to return on the `configuration` geo-lookup
+- `geolocation.configurations[].geo-info.metro-nielsen` - a metro Nielsen to return on the `configuration` geo-lookup
+- `geolocation.configurations[].geo-info.zip` - a zip to return on the `configuration` geo-lookup
+- `geolocation.configurations[].geo-info.connection-speed` - a connection-speed to return on the `configuration` geo-lookup
+- `geolocation.configurations[].geo-info.lat` - a lat to return on the `configuration` geo-lookup
+- `geolocation.configurations[].geo-info.lon` - a lon to return on the `configuration` geo-lookup
+- `geolocation.configurations[].geo-info.time-zone` - a time zone to return on the `configuration` geo-lookup
+
+## IPv6
+- `ipv6.always-mask-right` - a bit mask for masking an IPv6 address of the device
+- `ipv6.anon-left-mask-bits` - a bit mask for anonymizing an IPv6 address of the device
+- `ipv6.private-networks` - a list of known private/local networks to skip masking of an IP address of the device
 
 ## Analytics
+- `analytics.global.adapters` - Names of analytics adapters that will work for each request, except those disabled at the account level.
+
+For the `pubstack` analytics adapter
 - `analytics.pubstack.enabled` - if equals to `true` the Pubstack analytics module will be enabled. Default value is `false`. 
 - `analytics.pubstack.endpoint` - url for reporting events and fetching configuration. 
 - `analytics.pubstack.scopeid` - defined the scope provided by the Pubstack Support Team.
@@ -442,40 +490,29 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 - `analytics.pubstack.buffers.count` - threshold in events count for buffer to send events
 - `analytics.pubstack.buffers.report-ttl-ms` - max period between two reports.
 
-## Programmatic Guaranteed Delivery
-- `deals.planner.plan-endpoint` - planner endpoint to get plans from.
-- `deals.planner.update-period` - cron expression to start job for requesting Line Item metadata updates from the Planner.
-- `deals.planner.plan-advance-period` - cron expression to start job for advancing Line Items to the next plan.
-- `deals.planner.retry-period-sec` - how long (in seconds) to wait before re-sending a request to the Planner that previously failed with 5xx HTTP error code.
-- `deals.planner.timeout-ms` - default operation timeout for requests to planner's endpoints.
-- `deals.planner.register-endpoint` - register endpoint to get plans from.
-- `deals.planner.register-period-sec` - time period (in seconds) to send register request to the Planner.
-- `deals.planner.username` - username for planner BasicAuth.
-- `deals.planner.password` - password for planner BasicAuth.
-- `deals.delivery-stats.delivery-period` - cron expression to start job for sending delivery progress to planner.
-- `deals.delivery-stats.cached-reports-number` - how many reports to cache while planner is unresponsive.
-- `deals.delivery-stats.timeout-ms` - default operation timeout for requests to delivery progress endpoints.
-- `deals.delivery-stats.username` - username for delivery progress BasicAuth.
-- `deals.delivery-stats.password` - password for delivery progress BasicAuth.
-- `deals.delivery-stats.line-items-per-report` - max number of line items in each report to split for batching. Default is 25.
-- `deals.delivery-stats.reports-interval-ms` - interval in ms between consecutive reports. Default is 0.
-- `deals.delivery-stats.batches-interval-ms` - interval in ms between consecutive batches. Default is 1000.
-- `deals.delivery-stats.request-compression-enabled` - enables request gzip compression when set to true.
-- `deals.delivery-progress.line-item-status-ttl-sec` - how long to store line item's metrics after it was expired.
-- `deals.delivery-progress.cached-plans-number` -  how many plans to store in metrics per line item.
-- `deals.delivery-progress.report-reset-period`- cron expression to start job for closing current delivery progress and starting new one.
-- `deals.delivery-progress-report.competitors-number`- number of line items top competitors to send in delivery progress report.
-- `deals.user-data.user-details-endpoint` - user Data Store endpoint to get user details from.
-- `deals.user-data.win-event-endpoint` - user Data Store endpoint to which win events should be sent.
-- `deals.user-data.timeout` - time to wait (in milliseconds) for User Data Service response.
-- `deals.user-data.user-ids` - list of Rules for determining user identifiers to send to User Data Store.
-- `deals.max-deals-per-bidder` - maximum number of deals to send to each bidder.
-- `deals.alert-proxy.enabled` - enable alert proxy service if `true`.
-- `deals.alert-proxy.url` - alert service endpoint to send alerts to.
-- `deals.alert-proxy.timeout-sec` - default operation timeout for requests to alert service endpoint.
-- `deals.alert-proxy.username` - username for alert proxy BasicAuth.
-- `deals.alert-proxy.password` - password for alert proxy BasicAuth.
-- `deals.alert-proxy.alert-types` - key value pair of alert type and sampling factor to send high priority alert.
+For the `greenbids` analytics adapter
+- `analytics.greenbids.enabled` - if equals to `true` the Greenbids analytics module will be enabled. Default value is `false`.
+- `analytics.greenbids.analytics-server-version` - a server version to add to the event
+- `analytics.greenbids.analytics-server` - url for reporting events
+- `analytics.greenbids.timeout-ms` - timeout in milliseconds for report requests.
+- `analytics.greenbids.exploratory-sampling-split` - a sampling rate for report requests
+- `analytics.greenbids.default-sampling-rate` - a default sampling rate for report requests
+
+For the `agma` analytics adapter
+- `analytics.agma.enabled` - if equals to `true` the Agma analytics module will be enabled. Default value is `false`.
+- `analytics.agma.endpoint.url` - url for reporting events
+- `analytics.agma.endpoint.timeout-ms` - timeout in milliseconds for report requests.
+- `analytics.agma.endpoint.gzip` - if equals to `true` the Agma analytics module enables gzip encoding. Default value is `false`.
+- `analytics.agma.buffers.size-bytes` - threshold in bytes for buffer to send events.
+- `analytics.agma.buffers.count` - threshold in events count for buffer to send events.
+- `analytics.agma.buffers.timeout-ms` - max period between two reports.
+- `analytics.agma.accounts[].code` - an account code to send with an event
+- `analytics.agma.accounts[].publisher-id` - a publisher id to match an event to send
+- `analytics.agma.accounts[].site-app-id` - a site or app id to match an event to send
+
+## Modules
+- `hooks.admin.module-execution` - a key-value map, where a key is a module name and a value is a boolean, that defines whether modules hooks should/should not be always executed; if the module is not specified it is executed by default when it's present in the execution plan
+- `settings.modules.require-config-to-invoke` - when enabled it requires a runtime config to exist for a module.
 
 ## Debugging
 - `debug.override-token` - special string token for overriding Prebid Server account and/or adapter debug information presence in the auction response.
@@ -483,3 +520,20 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 To override (force enable) account and/or bidder adapter debug setting, a client must include `x-pbs-debug-override`
 HTTP header in the auction call containing same token as in the `debug.override-token` property. This will make Prebid
 Server ignore account `auction.debug-allow` and/or `adapters.<BIDDER_NAME>.debug.allow` properties.
+
+## Privacy Sandbox
+- `auction.privacysandbox.topicsdomain` - the list of Sec-Browsing-Topics for the Privacy Sandbox
+
+## AMP
+- `amp.custom-targeting` - a list of bidders that support custom targeting
+
+## Hooks
+- `hooks.host-execution-plan` - a host execution plan for modules
+- `hooks.default-account-execution-plan` - a default account execution plan
+
+## Price Floors Debug
+- `price-floors.enabled` - enables price floors for account if true. Defaults to true.
+- `price-floors.min-max-age-sec` - a price floors fetch data time to live in cache.
+- `price-floors.min-period-sec` - a refresh period for fetching price floors data.
+- `price-floors.min-timeout-ms` - a min timeout in ms for fetching price floors data.
+- `price-floors.max-timeout-ms` - a max timeout in ms for fetching price floors data.

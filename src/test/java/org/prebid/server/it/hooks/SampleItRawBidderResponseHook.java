@@ -4,7 +4,7 @@ import io.vertx.core.Future;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.hooks.execution.v1.bidder.BidderResponsePayloadImpl;
 import org.prebid.server.hooks.v1.InvocationResult;
-import org.prebid.server.hooks.v1.InvocationResultImpl;
+import org.prebid.server.hooks.v1.InvocationResultUtils;
 import org.prebid.server.hooks.v1.bidder.BidderInvocationContext;
 import org.prebid.server.hooks.v1.bidder.BidderResponsePayload;
 import org.prebid.server.hooks.v1.bidder.RawBidderResponseHook;
@@ -21,7 +21,7 @@ public class SampleItRawBidderResponseHook implements RawBidderResponseHook {
 
         final List<BidderBid> updatedBids = updateBids(originalBids);
 
-        return Future.succeededFuture(InvocationResultImpl.succeeded(payload ->
+        return Future.succeededFuture(InvocationResultUtils.succeeded(payload ->
                 BidderResponsePayloadImpl.of(updatedBids)));
     }
 

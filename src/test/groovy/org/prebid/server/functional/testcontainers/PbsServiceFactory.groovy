@@ -48,6 +48,12 @@ class PbsServiceFactory {
         remove(containers)
     }
 
+    static void removeContainer(Map<String, String> config) {
+        def container = containers.get(config)
+        container.stop()
+        containers.remove(config)
+    }
+
     private static void remove(Map<Map<String, String>, PrebidServerContainer> map) {
         map.each { key, value ->
             value.stop()
@@ -58,6 +64,6 @@ class PbsServiceFactory {
     private static int getMaxContainerCount() {
         USE_FIXED_CONTAINER_PORTS
                 ? 1
-                : SystemProperties.getPropertyOrDefault("tests.max-container-count", 2)
+                : SystemProperties.getPropertyOrDefault("tests.max-container-count", 5)
     }
 }

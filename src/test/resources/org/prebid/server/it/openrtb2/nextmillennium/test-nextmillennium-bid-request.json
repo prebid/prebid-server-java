@@ -13,6 +13,11 @@
           "storedrequest": {
             "id": "placement_id"
           }
+        },
+        "nextMillennium": {
+          "nmmFlags": [
+            "1"
+          ]
         }
       }
     }
@@ -48,6 +53,12 @@
     "prebid": {
       "storedrequest": {
         "id": "placement_id"
+      },
+      "server": {
+        "externalurl": "http://localhost:8080",
+        "gvlid": 1,
+        "datacenter": "local",
+        "endpoint": "/openrtb2/auction"
       }
     }
   }

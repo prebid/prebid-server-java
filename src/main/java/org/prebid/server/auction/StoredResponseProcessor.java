@@ -12,6 +12,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionParticipation;
+import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.StoredResponseResult;
@@ -20,7 +21,7 @@ import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.execution.Timeout;
+import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
@@ -38,6 +39,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -67,40 +69,237 @@ public class StoredResponseProcessor {
 
     Future<StoredResponseResult> getStoredResponseResult(List<Imp> imps, Timeout timeout) {
         final Map<String, ExtImpPrebid> impExtPrebids = getImpsExtPrebid(imps);
-        final Map<String, String> auctionStoredResponseToImpId = getAuctionStoredResponses(impExtPrebids);
-        final List<Imp> requiredRequestImps = excludeStoredAuctionResponseImps(imps, auctionStoredResponseToImpId);
+        final Map<String, StoredResponse> impIdsToStoredResponses = getAuctionStoredResponses(impExtPrebids);
+        final List<Imp> requiredRequestImps = excludeStoredAuctionResponseImps(imps, impIdsToStoredResponses);
 
-        final Map<String, Map<String, String>> impToBidderToStoredBidResponseId = getStoredBidResponses(impExtPrebids,
-                requiredRequestImps);
+        final Map<String, Map<String, StoredResponse.StoredResponseId>> impToBidderToStoredBidResponseId =
+                getStoredBidResponses(impExtPrebids, requiredRequestImps);
 
-        final Set<String> storedIds = new HashSet<>(auctionStoredResponseToImpId.keySet());
+        final Set<StoredResponse> storedResponses = new HashSet<>(impIdsToStoredResponses.values());
 
-        storedIds.addAll(
-                impToBidderToStoredBidResponseId.values().stream()
-                        .flatMap(bidderToId -> bidderToId.values().stream())
-                        .collect(Collectors.toSet()));
+        impToBidderToStoredBidResponseId.values()
+                .forEach(bidderToStoredResponse -> storedResponses.addAll(bidderToStoredResponse.values()));
 
-        if (storedIds.isEmpty()) {
-            return Future.succeededFuture(StoredResponseResult.of(imps, Collections.emptyList(),
-                    Collections.emptyMap()));
+        if (storedResponses.isEmpty()) {
+            return Future.succeededFuture(
+                    StoredResponseResult.of(imps, Collections.emptyList(), Collections.emptyMap()));
         }
 
-        return applicationSettings.getStoredResponses(storedIds, timeout)
+        return getStoredResponses(storedResponses, timeout)
                 .recover(exception -> Future.failedFuture(new InvalidRequestException(
                         "Stored response fetching failed with reason: " + exception.getMessage())))
                 .map(storedResponseDataResult -> StoredResponseResult.of(
                         requiredRequestImps,
-                        convertToSeatBid(storedResponseDataResult, auctionStoredResponseToImpId),
-                        mapStoredBidResponseIdsToValues(storedResponseDataResult.getIdToStoredResponses(),
+                        convertToSeatBid(storedResponseDataResult, impIdsToStoredResponses),
+                        mapStoredBidResponseIdsToValues(
+                                storedResponseDataResult.getIdToStoredResponses(),
                                 impToBidderToStoredBidResponseId)));
     }
 
+    Future<StoredResponseResult> getStoredResponseResult(String storedId, Timeout timeout) {
+        return applicationSettings.getStoredResponses(Collections.singleton(storedId), timeout)
+                .recover(exception -> Future.failedFuture(new InvalidRequestException(
+                        "Stored response fetching failed with reason: " + exception.getMessage())))
+                .map(storedResponseDataResult -> StoredResponseResult.of(
+                        Collections.emptyList(),
+                        convertToSeatBid(storedResponseDataResult),
+                        Collections.emptyMap()));
+    }
+
+    private Map<String, ExtImpPrebid> getImpsExtPrebid(List<Imp> imps) {
+        return imps.stream()
+                .collect(Collectors.toMap(Imp::getId, imp -> getExtImp(imp.getExt(), imp.getId()).getPrebid()));
+    }
+
+    private ExtImp getExtImp(ObjectNode extImpNode, String impId) {
+        try {
+            return mapper.mapper().treeToValue(extImpNode, ExtImp.class);
+        } catch (JsonProcessingException e) {
+            throw new InvalidRequestException(
+                    "Error decoding bidRequest.imp.ext for impId = %s : %s".formatted(impId, e.getMessage()));
+        }
+    }
+
+    private Map<String, StoredResponse> getAuctionStoredResponses(Map<String, ExtImpPrebid> extImpPrebids) {
+        return extImpPrebids.entrySet().stream()
+                .map(impIdToExtPrebid -> Tuple2.of(
+                        impIdToExtPrebid.getKey(),
+                        extractAuctionStoredResponseId(impIdToExtPrebid.getValue())))
+                .filter(impIdToStoredResponseId -> impIdToStoredResponseId.getRight() != null)
+                .collect(Collectors.toMap(Tuple2::getLeft, Tuple2::getRight));
+    }
+
+    private StoredResponse extractAuctionStoredResponseId(ExtImpPrebid extImpPrebid) {
+        final ExtStoredAuctionResponse storedAuctionResponse = extImpPrebid.getStoredAuctionResponse();
+        return Optional.ofNullable(storedAuctionResponse)
+                .map(ExtStoredAuctionResponse::getSeatBid)
+                .<StoredResponse>map(StoredResponse.StoredResponseObject::new)
+                .or(() -> Optional.ofNullable(storedAuctionResponse)
+                        .map(ExtStoredAuctionResponse::getId)
+                        .map(StoredResponse.StoredResponseId::new))
+                .orElse(null);
+    }
+
     private List<Imp> excludeStoredAuctionResponseImps(List<Imp> imps,
-                                                       Map<String, String> auctionStoredResponseToImpId) {
+                                                       Map<String, StoredResponse> impIdToStoredResponse) {
 
         return imps.stream()
-                .filter(imp -> !auctionStoredResponseToImpId.containsValue(imp.getId()))
+                .filter(imp -> !impIdToStoredResponse.containsKey(imp.getId()))
                 .toList();
+    }
+
+    private Map<String, Map<String, StoredResponse.StoredResponseId>> getStoredBidResponses(
+            Map<String, ExtImpPrebid> extImpPrebids,
+            List<Imp> imps) {
+
+        // PBS supports stored bid response only for requests with single impression, but it can be changed in future
+        if (imps.size() != 1) {
+            return Collections.emptyMap();
+        }
+
+        return extImpPrebids.entrySet().stream()
+                .filter(impIdToExtPrebid ->
+                        CollectionUtils.isNotEmpty(impIdToExtPrebid.getValue().getStoredBidResponse()))
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        impIdToStoredResponses ->
+                                resolveStoredBidResponse(impIdToStoredResponses.getValue().getStoredBidResponse())));
+    }
+
+    private Map<String, StoredResponse.StoredResponseId> resolveStoredBidResponse(
+            List<ExtStoredBidResponse> storedBidResponse) {
+
+        return storedBidResponse.stream()
+                .collect(Collectors.toMap(
+                        ExtStoredBidResponse::getBidder,
+                        extStoredBidResponse -> new StoredResponse.StoredResponseId(extStoredBidResponse.getId())));
+    }
+
+    private Future<StoredResponseDataResult> getStoredResponses(Set<StoredResponse> storedResponses, Timeout timeout) {
+        return applicationSettings.getStoredResponses(
+                storedResponses.stream()
+                        .filter(StoredResponse.StoredResponseId.class::isInstance)
+                        .map(StoredResponse.StoredResponseId.class::cast)
+                        .map(StoredResponse.StoredResponseId::id)
+                        .collect(Collectors.toSet()),
+                timeout);
+    }
+
+    private List<SeatBid> convertToSeatBid(StoredResponseDataResult storedResponseDataResult,
+                                           Map<String, StoredResponse> impIdsToStoredResponses) {
+
+        final List<SeatBid> resolvedSeatBids = new ArrayList<>();
+        final Map<String, String> idToStoredResponses = storedResponseDataResult.getIdToStoredResponses();
+        for (Map.Entry<String, StoredResponse> impIdToStoredResponse : impIdsToStoredResponses.entrySet()) {
+            final String impId = impIdToStoredResponse.getKey();
+            final StoredResponse storedResponse = impIdToStoredResponse.getValue();
+            final List<SeatBid> seatBids = resolveSeatBids(storedResponse, idToStoredResponses, impId);
+
+            validateStoredSeatBid(seatBids);
+            resolvedSeatBids.addAll(seatBids.stream()
+                    .map(seatBid -> updateSeatBidBids(seatBid, impId))
+                    .toList());
+        }
+        return mergeSameBidderSeatBid(resolvedSeatBids);
+    }
+
+    private List<SeatBid> convertToSeatBid(StoredResponseDataResult storedResponseDataResult) {
+        final List<SeatBid> resolvedSeatBids = new ArrayList<>();
+        final Map<String, String> idToStoredResponses = storedResponseDataResult.getIdToStoredResponses();
+        for (Map.Entry<String, String> storedIdToImpId : idToStoredResponses.entrySet()) {
+            final String id = storedIdToImpId.getKey();
+            final String rowSeatBid = storedIdToImpId.getValue();
+            if (rowSeatBid == null) {
+                throw new InvalidRequestException(
+                        "Failed to fetch stored auction response for storedAuctionResponse id = %s.".formatted(id));
+            }
+            final List<SeatBid> seatBids = parseSeatBid(id, rowSeatBid);
+            validateStoredSeatBid(seatBids);
+            resolvedSeatBids.addAll(seatBids);
+        }
+        return mergeSameBidderSeatBid(resolvedSeatBids);
+    }
+
+    private List<SeatBid> resolveSeatBids(StoredResponse storedResponse,
+                                          Map<String, String> idToStoredResponses,
+                                          String impId) {
+
+        if (storedResponse instanceof StoredResponse.StoredResponseObject storedResponseObject) {
+            return Collections.singletonList(storedResponseObject.seatBid());
+        }
+
+        final String storedResponseId = ((StoredResponse.StoredResponseId) storedResponse).id();
+        final String rowSeatBid = idToStoredResponses.get(storedResponseId);
+        if (rowSeatBid == null) {
+            throw new InvalidRequestException(
+                    "Failed to fetch stored auction response for impId = %s and storedAuctionResponse id = %s."
+                            .formatted(impId, storedResponseId));
+        }
+
+        return parseSeatBid(storedResponseId, rowSeatBid);
+    }
+
+    private List<SeatBid> parseSeatBid(String id, String rowSeatBid) {
+        try {
+            return mapper.mapper().readValue(rowSeatBid, SEATBID_LIST_TYPE);
+        } catch (IOException e) {
+            throw new InvalidRequestException("Can't parse Json for stored response with id " + id);
+        }
+    }
+
+    private void validateStoredSeatBid(List<SeatBid> seatBids) {
+        for (final SeatBid seatBid : seatBids) {
+            if (StringUtils.isEmpty(seatBid.getSeat())) {
+                throw new InvalidRequestException("Seat can't be empty in stored response seatBid");
+            }
+
+            if (CollectionUtils.isEmpty(seatBid.getBid())) {
+                throw new InvalidRequestException("There must be at least one bid in stored response seatBid");
+            }
+        }
+    }
+
+    private SeatBid updateSeatBidBids(SeatBid seatBid, String impId) {
+        return seatBid.toBuilder().bid(updateBidsWithImpId(seatBid.getBid(), impId)).build();
+    }
+
+    private List<Bid> updateBidsWithImpId(List<Bid> bids, String impId) {
+        return bids.stream().map(bid -> updateBidWithImpId(bid, impId)).toList();
+    }
+
+    private static Bid updateBidWithImpId(Bid bid, String impId) {
+        return bid.toBuilder().impid(impId).build();
+    }
+
+    private List<SeatBid> mergeSameBidderSeatBid(List<SeatBid> seatBids) {
+        return seatBids.stream().collect(Collectors.groupingBy(SeatBid::getSeat, Collectors.toList()))
+                .entrySet().stream()
+                .map(bidderToSeatBid -> makeMergedSeatBid(bidderToSeatBid.getKey(), bidderToSeatBid.getValue()))
+                .toList();
+    }
+
+    private SeatBid makeMergedSeatBid(String seat, List<SeatBid> storedSeatBids) {
+        return SeatBid.builder()
+                .bid(storedSeatBids.stream().map(SeatBid::getBid).flatMap(List::stream).toList())
+                .seat(seat)
+                .ext(storedSeatBids.stream().map(SeatBid::getExt).filter(Objects::nonNull).findFirst().orElse(null))
+                .build();
+    }
+
+    private Map<String, Map<String, String>> mapStoredBidResponseIdsToValues(
+            Map<String, String> idToStoredResponses,
+            Map<String, Map<String, StoredResponse.StoredResponseId>> impToBidderToStoredBidResponseId) {
+
+        return impToBidderToStoredBidResponseId.entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        entry -> entry.getValue().entrySet().stream()
+                                .filter(bidderToId -> idToStoredResponses.containsKey(bidderToId.getValue().id()))
+                                .collect(Collectors.toMap(
+                                        Map.Entry::getKey,
+                                        bidderToId -> idToStoredResponses.get(bidderToId.getValue().id()),
+                                        (first, second) -> second,
+                                        CaseInsensitiveMap::new))));
     }
 
     public List<AuctionParticipation> updateStoredBidResponse(List<AuctionParticipation> auctionParticipations) {
@@ -121,7 +320,7 @@ public class StoredResponseProcessor {
 
         final BidderResponse bidderResponse = auctionParticipation.getBidderResponse();
         final BidderSeatBid initialSeatBid = bidderResponse.getSeatBid();
-        final BidderSeatBid adjustedSeatBid = updateSeatBid(initialSeatBid, imps.get(0).getId());
+        final BidderSeatBid adjustedSeatBid = updateSeatBid(initialSeatBid, imps.getFirst().getId());
 
         return auctionParticipation.with(bidderResponse.with(adjustedSeatBid));
     }
@@ -148,7 +347,9 @@ public class StoredResponseProcessor {
 
     List<AuctionParticipation> mergeWithBidderResponses(List<AuctionParticipation> auctionParticipations,
                                                         List<SeatBid> storedAuctionResponses,
-                                                        List<Imp> imps) {
+                                                        List<Imp> imps,
+                                                        Map<String, BidRejectionTracker> bidRejectionTrackers) {
+
         if (CollectionUtils.isEmpty(storedAuctionResponses)) {
             return auctionParticipations;
         }
@@ -163,149 +364,32 @@ public class StoredResponseProcessor {
         responseBidders.addAll(bidderToSeatBid.keySet());
 
         return responseBidders.stream()
-                .map(bidder -> updateBidderResponse(bidderToAuctionParticipation.get(bidder),
-                        bidderToSeatBid.get(bidder), impIdToBidType))
+                .map(bidder -> updateBidderResponse(
+                        bidderToAuctionParticipation.get(bidder),
+                        bidderToSeatBid.get(bidder),
+                        impIdToBidType))
+                .map(auctionParticipation -> restoreStoredBidsFromRejection(bidRejectionTrackers, auctionParticipation))
                 .toList();
     }
 
-    private Map<String, ExtImpPrebid> getImpsExtPrebid(List<Imp> imps) {
-        return imps.stream()
-                .collect(Collectors.toMap(Imp::getId, imp -> getExtImp(imp.getExt(), imp.getId()).getPrebid()));
-    }
-
-    private Map<String, String> getAuctionStoredResponses(Map<String, ExtImpPrebid> extImpPrebids) {
-        return extImpPrebids.entrySet().stream()
-                .map(impIdToExtPrebid -> Tuple2.of(impIdToExtPrebid.getKey(),
-                        extractAuctionStoredResponseId(impIdToExtPrebid.getValue())))
-                .filter(impIdToStoredResponseId -> impIdToStoredResponseId.getRight() != null)
-                .collect(Collectors.toMap(Tuple2::getRight, Tuple2::getLeft));
-    }
-
-    private String extractAuctionStoredResponseId(ExtImpPrebid extImpPrebid) {
-        final ExtStoredAuctionResponse storedAuctionResponse = extImpPrebid.getStoredAuctionResponse();
-        return storedAuctionResponse != null ? storedAuctionResponse.getId() : null;
-    }
-
-    private Map<String, Map<String, String>> getStoredBidResponses(Map<String, ExtImpPrebid> extImpPrebids,
-                                                                   List<Imp> imps) {
-        // PBS supports stored bid response only for requests with single impression, but it can be changed in future
-        if (imps.size() != 1) {
-            return Collections.emptyMap();
+    private BidType resolveBidType(Imp imp) {
+        BidType bidType = BidType.banner;
+        if (imp.getBanner() != null) {
+            return bidType;
+        } else if (imp.getVideo() != null) {
+            bidType = BidType.video;
+        } else if (imp.getXNative() != null) {
+            bidType = BidType.xNative;
+        } else if (imp.getAudio() != null) {
+            bidType = BidType.audio;
         }
-
-        final Set<String> impsIds = imps.stream().map(Imp::getId).collect(Collectors.toSet());
-
-        return extImpPrebids.entrySet().stream()
-                .filter(impIdToExtPrebid -> impsIds.contains(impIdToExtPrebid.getKey()))
-                .filter(impIdToExtPrebid -> CollectionUtils
-                        .isNotEmpty(impIdToExtPrebid.getValue().getStoredBidResponse()))
-                .collect(Collectors.toMap(Map.Entry::getKey,
-                        impIdToStoredResponses ->
-                                resolveStoredBidResponse(impIdToStoredResponses.getValue().getStoredBidResponse())));
-    }
-
-    private ExtImp getExtImp(ObjectNode extImpNode, String impId) {
-        try {
-            return mapper.mapper().treeToValue(extImpNode, ExtImp.class);
-        } catch (JsonProcessingException e) {
-            throw new InvalidRequestException(
-                    "Error decoding bidRequest.imp.ext for impId = %s : %s".formatted(impId, e.getMessage()));
-        }
-    }
-
-    private Map<String, String> resolveStoredBidResponse(List<ExtStoredBidResponse> storedBidResponse) {
-        return storedBidResponse.stream()
-                .collect(Collectors.toMap(ExtStoredBidResponse::getBidder, ExtStoredBidResponse::getId));
-    }
-
-    private List<SeatBid> convertToSeatBid(StoredResponseDataResult storedResponseDataResult,
-                                           Map<String, String> auctionStoredResponses) {
-        final List<SeatBid> resolvedSeatBids = new ArrayList<>();
-        final Map<String, String> idToStoredResponses = storedResponseDataResult.getIdToStoredResponses();
-        for (final Map.Entry<String, String> storedIdToImpId : auctionStoredResponses.entrySet()) {
-            final String id = storedIdToImpId.getKey();
-            final String impId = storedIdToImpId.getValue();
-            final String rowSeatBid = idToStoredResponses.get(id);
-            if (rowSeatBid == null) {
-                throw new InvalidRequestException(
-                        "Failed to fetch stored auction response for impId = %s and storedAuctionResponse id = %s."
-                                .formatted(impId, id));
-            }
-            final List<SeatBid> seatBids = parseSeatBid(id, rowSeatBid);
-            validateStoredSeatBid(seatBids);
-            resolvedSeatBids.addAll(seatBids.stream()
-                    .map(seatBid -> updateSeatBidBids(seatBid, impId))
-                    .toList());
-        }
-        return mergeSameBidderSeatBid(resolvedSeatBids);
-    }
-
-    private List<SeatBid> parseSeatBid(String id, String rowSeatBid) {
-        try {
-            return mapper.mapper().readValue(rowSeatBid, SEATBID_LIST_TYPE);
-        } catch (IOException e) {
-            throw new InvalidRequestException("Can't parse Json for stored response with id " + id);
-        }
-    }
-
-    private SeatBid updateSeatBidBids(SeatBid seatBid, String impId) {
-        return seatBid.toBuilder().bid(updateBidsWithImpId(seatBid.getBid(), impId)).build();
-    }
-
-    private List<Bid> updateBidsWithImpId(List<Bid> bids, String impId) {
-        return bids.stream().map(bid -> updateBidWithImpId(bid, impId)).toList();
-    }
-
-    private static Bid updateBidWithImpId(Bid bid, String impId) {
-        return bid.toBuilder().impid(impId).build();
-    }
-
-    private void validateStoredSeatBid(List<SeatBid> seatBids) {
-        for (final SeatBid seatBid : seatBids) {
-            if (StringUtils.isEmpty(seatBid.getSeat())) {
-                throw new InvalidRequestException("Seat can't be empty in stored response seatBid");
-            }
-
-            if (CollectionUtils.isEmpty(seatBid.getBid())) {
-                throw new InvalidRequestException("There must be at least one bid in stored response seatBid");
-            }
-        }
-    }
-
-    private List<SeatBid> mergeSameBidderSeatBid(List<SeatBid> seatBids) {
-        return seatBids.stream().collect(Collectors.groupingBy(SeatBid::getSeat, Collectors.toList()))
-                .entrySet().stream()
-                .map(bidderToSeatBid -> makeMergedSeatBid(bidderToSeatBid.getKey(), bidderToSeatBid.getValue()))
-                .toList();
-    }
-
-    private SeatBid makeMergedSeatBid(String seat, List<SeatBid> storedSeatBids) {
-        return SeatBid.builder()
-                .bid(storedSeatBids.stream().map(SeatBid::getBid).flatMap(List::stream).toList())
-                .seat(seat)
-                .ext(storedSeatBids.stream().map(SeatBid::getExt).filter(Objects::nonNull).findFirst().orElse(null))
-                .build();
-    }
-
-    private Map<String, Map<String, String>> mapStoredBidResponseIdsToValues(
-            Map<String, String> idToStoredResponses,
-            Map<String, Map<String, String>> impToBidderToStoredBidResponseId) {
-
-        return impToBidderToStoredBidResponseId.entrySet().stream()
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        entry -> entry.getValue().entrySet().stream()
-                                .filter(bidderToId -> idToStoredResponses.containsKey(bidderToId.getValue()))
-                                .collect(Collectors.toMap(
-                                        Map.Entry::getKey,
-                                        bidderToId -> idToStoredResponses.get(bidderToId.getValue()),
-                                        (first, second) -> second,
-                                        CaseInsensitiveMap::new))));
+        return bidType;
     }
 
     private AuctionParticipation updateBidderResponse(AuctionParticipation auctionParticipation,
                                                       SeatBid storedSeatBid,
                                                       Map<String, BidType> impIdToBidType) {
+
         if (auctionParticipation != null) {
             if (auctionParticipation.isRequestBlocked()) {
                 return auctionParticipation;
@@ -330,13 +414,17 @@ public class StoredResponseProcessor {
         }
     }
 
-    private BidderSeatBid makeBidderSeatBid(BidderSeatBid bidderSeatBid, SeatBid seatBid,
+    private BidderSeatBid makeBidderSeatBid(BidderSeatBid bidderSeatBid,
+                                            SeatBid seatBid,
                                             Map<String, BidType> impIdToBidType) {
+
         final boolean nonNullBidderSeatBid = bidderSeatBid != null;
         final String bidCurrency = nonNullBidderSeatBid
                 ? bidderSeatBid.getBids().stream()
-                .map(BidderBid::getBidCurrency).filter(Objects::nonNull)
-                .findAny().orElse(DEFAULT_BID_CURRENCY)
+                .map(BidderBid::getBidCurrency)
+                .filter(Objects::nonNull)
+                .findAny()
+                .orElse(DEFAULT_BID_CURRENCY)
                 : DEFAULT_BID_CURRENCY;
         final List<BidderBid> bidderBids = seatBid != null
                 ? seatBid.getBid().stream()
@@ -369,17 +457,28 @@ public class StoredResponseProcessor {
         }
     }
 
-    private BidType resolveBidType(Imp imp) {
-        BidType bidType = BidType.banner;
-        if (imp.getBanner() != null) {
-            return bidType;
-        } else if (imp.getVideo() != null) {
-            bidType = BidType.video;
-        } else if (imp.getXNative() != null) {
-            bidType = BidType.xNative;
-        } else if (imp.getAudio() != null) {
-            bidType = BidType.audio;
+    private static AuctionParticipation restoreStoredBidsFromRejection(
+            Map<String, BidRejectionTracker> bidRejectionTrackers,
+            AuctionParticipation auctionParticipation) {
+
+        final BidRejectionTracker bidRejectionTracker = bidRejectionTrackers.get(auctionParticipation.getBidder());
+
+        if (bidRejectionTracker != null) {
+            Optional.ofNullable(auctionParticipation.getBidderResponse())
+                    .map(BidderResponse::getSeatBid)
+                    .map(BidderSeatBid::getBids)
+                    .ifPresent(bidRejectionTracker::restoreFromRejection);
         }
-        return bidType;
+
+        return auctionParticipation;
+    }
+
+    private sealed interface StoredResponse {
+
+        record StoredResponseId(String id) implements StoredResponse {
+        }
+
+        record StoredResponseObject(SeatBid seatBid) implements StoredResponse {
+        }
     }
 }

@@ -28,6 +28,8 @@ public class BidderInfo {
 
     List<String> vendors;
 
+    List<String> currencyAccepted;
+
     GdprInfo gdpr;
 
     boolean ccpaEnforced;
@@ -37,6 +39,8 @@ public class BidderInfo {
     CompressionType compressionType;
 
     Ortb ortb;
+
+    long tmaxDeductionMs;
 
     public static BidderInfo create(boolean enabled,
                                     OrtbVersion ortbVersion,
@@ -49,10 +53,12 @@ public class BidderInfo {
                                     List<MediaType> doohMediaTypes,
                                     List<String> supportedVendors,
                                     int vendorId,
+                                    List<String> currencyAccepted,
                                     boolean ccpaEnforced,
                                     boolean modifyingVastXmlAllowed,
                                     CompressionType compressionType,
-                                    org.prebid.server.spring.config.bidder.model.Ortb ortb) {
+                                    org.prebid.server.spring.config.bidder.model.Ortb ortb,
+                                    long tmaxDeductionMs) {
 
         return of(
                 enabled,
@@ -66,11 +72,13 @@ public class BidderInfo {
                         platformInfo(siteMediaTypes),
                         platformInfo(doohMediaTypes)),
                 supportedVendors,
+                currencyAccepted,
                 new GdprInfo(vendorId),
                 ccpaEnforced,
                 modifyingVastXmlAllowed,
                 compressionType,
-                Ortb.of(ortb.getMultiFormatSupported()));
+                Ortb.of(ortb.getMultiFormatSupported()),
+                tmaxDeductionMs);
     }
 
     private static PlatformInfo platformInfo(List<MediaType> mediaTypes) {

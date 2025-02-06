@@ -1,0 +1,38 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "exp": 1500,
+          "price": 1.25,
+          "adm": "adm001",
+          "crid": "crid",
+          "w": 800,
+          "h": 600,
+          "ext": {
+            "prebid": {
+              "type": "video"
+            },
+            "origbidcpm": 1.25
+          },
+          "mtype": 2
+        }
+      ],
+      "seat": "oraki",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "oraki": "{{ oraki.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}

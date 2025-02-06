@@ -13,7 +13,7 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -409,7 +409,7 @@ public class SovrnBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
@@ -527,7 +527,7 @@ public class SovrnBidderTest extends VertxTest {
         return bidRequestCustomizer.apply(BidRequest.builder()
                         .imp(singletonList(givenImp(impCustomizer)))
                         .user(User.builder().ext(ExtUser.builder().consent("consent").build()).build())
-                        .regs(Regs.builder().ext(ExtRegs.of(1, null, null)).build()))
+                        .regs(Regs.builder().ext(ExtRegs.of(1, null, null, null)).build()))
                 .build();
     }
 

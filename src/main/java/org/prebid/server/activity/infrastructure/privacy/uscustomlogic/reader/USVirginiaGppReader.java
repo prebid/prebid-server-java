@@ -1,7 +1,7 @@
 package org.prebid.server.activity.infrastructure.privacy.uscustomlogic.reader;
 
 import com.iab.gpp.encoder.GppModel;
-import com.iab.gpp.encoder.section.UspVaV1;
+import com.iab.gpp.encoder.section.UsVaV1;
 import org.prebid.server.activity.infrastructure.privacy.uscustomlogic.USCustomLogicGppReader;
 import org.prebid.server.util.ObjectUtil;
 
@@ -9,15 +9,15 @@ import java.util.List;
 
 public class USVirginiaGppReader implements USCustomLogicGppReader {
 
-    private final UspVaV1 consent;
+    private final UsVaV1 consent;
 
     public USVirginiaGppReader(GppModel gppModel) {
-        this.consent = gppModel != null ? gppModel.getUspVaV1Section() : null;
+        this.consent = gppModel != null ? gppModel.getUsVaV1Section() : null;
     }
 
     @Override
     public Integer getVersion() {
-        return ObjectUtil.getIfNotNull(consent, UspVaV1::getVersion);
+        return ObjectUtil.getIfNotNull(consent, UsVaV1::getVersion);
     }
 
     @Override
@@ -37,17 +37,17 @@ public class USVirginiaGppReader implements USCustomLogicGppReader {
 
     @Override
     public Integer getSaleOptOut() {
-        return ObjectUtil.getIfNotNull(consent, UspVaV1::getSaleOptOut);
+        return ObjectUtil.getIfNotNull(consent, UsVaV1::getSaleOptOut);
     }
 
     @Override
     public Integer getSaleOptOutNotice() {
-        return ObjectUtil.getIfNotNull(consent, UspVaV1::getSaleOptOutNotice);
+        return ObjectUtil.getIfNotNull(consent, UsVaV1::getSaleOptOutNotice);
     }
 
     @Override
     public Integer getSharingNotice() {
-        return ObjectUtil.getIfNotNull(consent, UspVaV1::getSharingNotice);
+        return ObjectUtil.getIfNotNull(consent, UsVaV1::getSharingNotice);
     }
 
     @Override
@@ -62,12 +62,12 @@ public class USVirginiaGppReader implements USCustomLogicGppReader {
 
     @Override
     public Integer getTargetedAdvertisingOptOut() {
-        return ObjectUtil.getIfNotNull(consent, UspVaV1::getTargetedAdvertisingOptOut);
+        return ObjectUtil.getIfNotNull(consent, UsVaV1::getTargetedAdvertisingOptOut);
     }
 
     @Override
     public Integer getTargetedAdvertisingOptOutNotice() {
-        return ObjectUtil.getIfNotNull(consent, UspVaV1::getTargetedAdvertisingOptOutNotice);
+        return ObjectUtil.getIfNotNull(consent, UsVaV1::getTargetedAdvertisingOptOutNotice);
     }
 
     @Override
@@ -77,7 +77,7 @@ public class USVirginiaGppReader implements USCustomLogicGppReader {
 
     @Override
     public List<Integer> getSensitiveDataProcessing() {
-        return ObjectUtil.getIfNotNull(consent, UspVaV1::getSensitiveDataProcessing);
+        return ObjectUtil.getIfNotNull(consent, UsVaV1::getSensitiveDataProcessing);
     }
 
     @Override
@@ -87,7 +87,7 @@ public class USVirginiaGppReader implements USCustomLogicGppReader {
 
     @Override
     public Integer getKnownChildSensitiveDataConsents() {
-        return ObjectUtil.getIfNotNull(consent, UspVaV1::getKnownChildSensitiveDataConsents);
+        return ObjectUtil.getIfNotNull(consent, UsVaV1::getKnownChildSensitiveDataConsents);
     }
 
     @Override
@@ -97,16 +97,16 @@ public class USVirginiaGppReader implements USCustomLogicGppReader {
 
     @Override
     public Integer getMspaCoveredTransaction() {
-        return ObjectUtil.getIfNotNull(consent, UspVaV1::getMspaCoveredTransaction);
+        return ObjectUtil.getIfNotNull(consent, UsVaV1::getMspaCoveredTransaction);
     }
 
     @Override
     public Integer getMspaServiceProviderMode() {
-        return ObjectUtil.getIfNotNull(consent, UspVaV1::getMspaServiceProviderMode);
+        return ObjectUtil.getIfNotNull(consent, UsVaV1::getMspaServiceProviderMode);
     }
 
     @Override
     public Integer getMspaOptOutOptionMode() {
-        return ObjectUtil.getIfNotNull(consent, UspVaV1::getMspaOptOutOptionMode);
+        return ObjectUtil.getIfNotNull(consent, UsVaV1::getMspaOptOutOptionMode);
     }
 }

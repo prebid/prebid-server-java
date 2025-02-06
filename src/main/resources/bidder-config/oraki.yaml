@@ -1,0 +1,21 @@
+adapters:
+  oraki:
+    endpoint: https://eu1.oraki.io/pserver
+    meta-info:
+      maintainer-email: prebid@oraki.io
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 0
+    usersync:
+      cookie-family-name: oraki
+      redirect:
+        support-cors: false
+        url: https://sync.oraki.io/pbserver?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redir={{redirect_url}}
+        uid-macro: '[UID]'

@@ -3,12 +3,11 @@ package org.prebid.server.auction.gpp.processor.uspv1;
 import com.iab.gpp.encoder.GppModel;
 import com.iab.gpp.encoder.error.EncodingException;
 import com.iab.gpp.encoder.section.UspV1;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.auction.gpp.model.GppContext;
 import org.prebid.server.auction.gpp.model.GppContextWrapper;
 import org.prebid.server.auction.gpp.model.privacy.UspV1Privacy;
@@ -19,18 +18,17 @@ import static java.util.Collections.emptySet;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 
+@ExtendWith(MockitoExtension.class)
 public class UspV1ContextProcessorTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     private UspV1ContextProcessor uspV1ContextProcessor;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private GppModel gppModel;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(gppModel.hasSection(UspV1.ID)).willReturn(false);
 

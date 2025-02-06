@@ -1,8 +1,11 @@
 package org.prebid.server.settings.model;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
 import lombok.Value;
+import org.prebid.server.auction.model.PaaFormat;
 import org.prebid.server.spring.config.bidder.model.MediaType;
 
 import java.util.Map;
@@ -11,34 +14,43 @@ import java.util.Map;
 @Value
 public class AccountAuctionConfig {
 
-    @JsonProperty("price-granularity")
+    @JsonAlias("price-granularity")
     String priceGranularity;
 
-    @JsonProperty("banner-cache-ttl")
+    @JsonAlias("banner-cache-ttl")
     Integer bannerCacheTtl;
 
-    @JsonProperty("video-cache-ttl")
+    @JsonAlias("video-cache-ttl")
     Integer videoCacheTtl;
 
-    @JsonProperty("truncate-target-attr")
+    @JsonAlias("truncate-target-attr")
     Integer truncateTargetAttr;
 
-    @JsonProperty("default-integration")
+    @JsonAlias("default-integration")
     String defaultIntegration;
 
-    @JsonProperty("debug-allow")
+    @JsonAlias("debug-allow")
     Boolean debugAllow;
 
-    @JsonProperty("bid-validations")
+    @JsonAlias("bid-validations")
     AccountBidValidationConfig bidValidations;
+
+    @JsonProperty("bidadjustments")
+    ObjectNode bidAdjustments;
 
     AccountEventsConfig events;
 
-    @JsonProperty("price-floors")
+    @JsonAlias("price-floors")
     AccountPriceFloorsConfig priceFloors;
 
     AccountTargetingConfig targeting;
 
     @JsonProperty("preferredmediatype")
     Map<String, MediaType> preferredMediaTypes;
+
+    @JsonProperty("privacysandbox")
+    AccountPrivacySandboxConfig privacySandbox;
+
+    @JsonProperty("paaformat")
+    PaaFormat paaFormat;
 }

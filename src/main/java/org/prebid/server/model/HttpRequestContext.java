@@ -2,6 +2,7 @@ package org.prebid.server.model;
 
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import lombok.Builder;
 import lombok.Value;
@@ -15,6 +16,8 @@ import java.util.stream.Collectors;
 @Builder
 @Value
 public class HttpRequestContext {
+
+    HttpMethod httpMethod;
 
     String absoluteUri;
 
@@ -30,6 +33,7 @@ public class HttpRequestContext {
 
     public static HttpRequestContext from(RoutingContext context) {
         return HttpRequestContext.builder()
+                .httpMethod(context.request().method())
                 .absoluteUri(context.request().uri())
                 .queryParams(CaseInsensitiveMultiMap.builder().addAll(toMap(context.request().params())).build())
                 .headers(headers(context))

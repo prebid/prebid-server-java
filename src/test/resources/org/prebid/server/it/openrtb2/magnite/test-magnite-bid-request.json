@@ -17,14 +17,18 @@
           "target": {
             "page": [
               "http://www.example.com"
-            ]
+            ],
+            "pbs_version": "{{ pbs.java.version }}",
+            "pbs_login": "rubicon_user",
+            "pbs_url": "http://localhost:8080"
           },
           "track": {
             "mint": "",
             "mint_version": ""
           }
         },
-        "maxbids": 1
+        "maxbids": 1,
+        "tid": "${json-unit.any-string}"
       }
     }
   ],
@@ -50,8 +54,8 @@
         "site_id": 3001,
         "target": {
           "iab": [
-            "segmentId1",
             "segmentId2",
+            "segmentId1",
             "segmentId3"
           ]
         }

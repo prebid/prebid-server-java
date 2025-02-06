@@ -15,6 +15,10 @@
         "h": 250
       },
       "ext": {
+        "ae": 1,
+        "igs": {
+          "ae": 1
+        },
         "tid": "${json-unit.any-string}",
         "bidder": {
           "siteId": "10002"
@@ -46,9 +50,7 @@
     "USD"
   ],
   "regs": {
-    "ext": {
-      "gdpr": 0
-    }
+    "gdpr": 0
   },
   "ext": {
     "prebid": {
@@ -60,7 +62,7 @@
       }
     },
     "ixdiag": {
-        "pbsv": "{{ pbs.java.version }}"
+      "pbsv": "{{ pbs.java.version }}"
     }
   }
 }

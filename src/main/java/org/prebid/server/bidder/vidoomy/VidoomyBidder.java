@@ -72,7 +72,7 @@ public class VidoomyBidder implements Bidder<BidRequest> {
         validateBannerSizes(width, height, formats);
 
         final boolean useFormatSize = width == null || height == null;
-        final Format firstFormat = useFormatSize ? formats.get(0) : null;
+        final Format firstFormat = useFormatSize ? formats.getFirst() : null;
         return imp.toBuilder()
                 .banner(banner.toBuilder()
                         .w(useFormatSize ? zeroIfFormatMeasureNull(firstFormat, Format::getW) : width)

@@ -2,6 +2,8 @@ package org.prebid.server.bidder.yieldlab;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -14,6 +16,7 @@ import com.iab.openrtb.response.Bid;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
@@ -23,11 +26,17 @@ import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.bidder.yieldlab.model.YieldlabDigitalServicesActResponse;
 import org.prebid.server.bidder.yieldlab.model.YieldlabResponse;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsa;
+import org.prebid.server.proto.openrtb.ext.request.DsaTransparency;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
@@ -40,14 +49,19 @@ import java.net.URISyntaxException;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class YieldlabBidder implements Bidder<Void> {
 
+    private static final Logger logger = LoggerFactory.getLogger(YieldlabBidder.class);
     private static final TypeReference<ExtPrebid<?, ExtImpYieldlab>> YIELDLAB_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
@@ -58,6 +72,9 @@ public class YieldlabBidder implements Bidder<Void> {
     private static final String CREATIVE_ID = "%s%s%s";
     private static final String AD_SOURCE_BANNER = "<script src=\"%s\"></script>";
     private static final String AD_SOURCE_URL = "https://ad.yieldlab.net/d/%s/%s/%s?%s";
+    private static final String TRANSPARENCY_TEMPLATE = "%s~%s";
+    private static final String TRANSPARENCY_TEMPLATE_PARAMS_DELIMITER = "_";
+    private static final String TRANSPARENCY_TEMPLATE_DELIMITER = "~~";
     private static final String VAST_MARKUP = """
             <VAST version="2.0"><Ad id="%s"><Wrapper>
             <AdSystem>Yieldlab</AdSystem>
@@ -151,6 +168,12 @@ public class YieldlabBidder implements Bidder<Void> {
                 .addParameter("ts", timestamp)
                 .addParameter("t", getTargetingValues(extImpYieldlab));
 
+        final String formats = makeFormats(request, extImpYieldlab);
+
+        if (formats != null) {
+            uriBuilder.addParameter("sizes", formats);
+        }
+
         final User user = request.getUser();
         if (user != null && StringUtils.isNotBlank(user.getBuyeruid())) {
             uriBuilder.addParameter("ids", String.join("ylid:", user.getBuyeruid()));
@@ -189,7 +212,27 @@ public class YieldlabBidder implements Bidder<Void> {
             uriBuilder.addParameter("consent", consent);
         }
 
+        extractDsaRequestParamsFromBidRequest(request).forEach(uriBuilder::addParameter);
+
         return uriBuilder.toString();
+    }
+
+    private String makeFormats(BidRequest request, ExtImpYieldlab extImp) {
+        final List<String> formats = new ArrayList<>();
+        for (Imp imp: request.getImp()) {
+            if (isBanner(imp)) {
+                Stream.ofNullable(imp.getBanner().getFormat())
+                        .flatMap(Collection::stream)
+                        .map(format -> "%s:%d|%d".formatted(extImp.getAdslotId(), format.getW(), format.getH()))
+                        .forEach(formats::add);
+            }
+        }
+
+        return formats.isEmpty() ? null : String.join(",", formats);
+    }
+
+    private boolean isBanner(Imp imp) {
+        return imp.getBanner() != null && imp.getXNative() == null && imp.getVideo() == null && imp.getAudio() == null;
     }
 
     /**
@@ -229,6 +272,63 @@ public class YieldlabBidder implements Bidder<Void> {
         final ExtUser extUser = user != null ? user.getExt() : null;
         final String consent = extUser != null ? extUser.getConsent() : null;
         return ObjectUtils.defaultIfNull(consent, "");
+    }
+
+    private static Map<String, String> extractDsaRequestParamsFromBidRequest(BidRequest request) {
+        return Optional.ofNullable(request.getRegs())
+            .map(Regs::getExt)
+            .map(ExtRegs::getDsa)
+            .map(YieldlabBidder::extractDsaRequestParamsFromDsaRegsExtension)
+            .orElse(Collections.emptyMap());
+    }
+
+    private static Map<String, String> extractDsaRequestParamsFromDsaRegsExtension(final ExtRegsDsa dsa) {
+        final Map<String, String> dsaRequestParams = new HashMap<>();
+
+        if (dsa.getDsaRequired() != null) {
+            dsaRequestParams.put("dsarequired", dsa.getDsaRequired().toString());
+        }
+
+        if (dsa.getPubRender() != null) {
+            dsaRequestParams.put("dsapubrender", dsa.getPubRender().toString());
+        }
+
+        if (dsa.getDataToPub() != null) {
+            dsaRequestParams.put("dsadatatopub", dsa.getDataToPub().toString());
+        }
+
+        final List<DsaTransparency> dsaTransparency = dsa.getTransparency();
+        if (CollectionUtils.isNotEmpty(dsaTransparency)) {
+            final String encodedTransparencies = encodeTransparenciesAsString(dsaTransparency);
+            if (StringUtils.isNotBlank(encodedTransparencies)) {
+                dsaRequestParams.put("dsatransparency", encodedTransparencies);
+            }
+        }
+
+        return dsaRequestParams;
+    }
+
+    private static String encodeTransparenciesAsString(List<DsaTransparency> transparencies) {
+        return transparencies.stream()
+            .filter(YieldlabBidder::isTransparencyValid)
+            .map(YieldlabBidder::encodeTransparency)
+            .collect(Collectors.joining(TRANSPARENCY_TEMPLATE_DELIMITER));
+    }
+
+    private static boolean isTransparencyValid(DsaTransparency transparency) {
+        return StringUtils.isNotBlank(transparency.getDomain())
+                && transparency.getDsaParams() != null
+                && CollectionUtils.isNotEmpty(transparency.getDsaParams());
+    }
+
+    private static String encodeTransparency(DsaTransparency transparency) {
+        return TRANSPARENCY_TEMPLATE.formatted(transparency.getDomain(),
+            encodeTransparencyParams(transparency.getDsaParams()));
+    }
+
+    private static String encodeTransparencyParams(List<Integer> dsaParams) {
+        return dsaParams.stream().map(Objects::toString).collect(Collectors.joining(
+            TRANSPARENCY_TEMPLATE_PARAMS_DELIMITER));
     }
 
     private static MultiMap resolveHeaders(Site site, Device device, User user) {
@@ -339,7 +439,8 @@ public class YieldlabBidder implements Bidder<Void> {
                 .dealid(resolveNumberParameter(yieldlabResponse.getPid()))
                 .crid(makeCreativeId(bidRequest, yieldlabResponse, matchedExtImp))
                 .w(resolveSizeParameter(yieldlabResponse.getAdSize(), true))
-                .h(resolveSizeParameter(yieldlabResponse.getAdSize(), false));
+                .h(resolveSizeParameter(yieldlabResponse.getAdSize(), false))
+                .ext(resolveExtParameter(yieldlabResponse));
 
         return updatedBid;
     }
@@ -407,5 +508,22 @@ public class YieldlabBidder implements Bidder<Void> {
                 extImpYieldlab.getSupplyId(),
                 yieldlabResponse.getAdSize(),
                 uriBuilder.toString().replace("?", ""));
+    }
+
+    private ObjectNode resolveExtParameter(YieldlabResponse yieldlabResponse) {
+        final YieldlabDigitalServicesActResponse dsa = yieldlabResponse.getDsa();
+        if (dsa == null) {
+            return null;
+        }
+        final ObjectNode ext = mapper.mapper().createObjectNode();
+        final JsonNode dsaNode;
+        try {
+            dsaNode = mapper.mapper().valueToTree(dsa);
+        } catch (IllegalArgumentException e) {
+            logger.error("Failed to serialize DSA object for adslot {}", yieldlabResponse.getId(), e);
+            return null;
+        }
+        ext.set("dsa", dsaNode);
+        return ext;
     }
 }

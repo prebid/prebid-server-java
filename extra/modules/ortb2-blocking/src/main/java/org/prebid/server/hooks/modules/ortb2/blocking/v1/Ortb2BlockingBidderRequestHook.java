@@ -5,13 +5,13 @@ import io.vertx.core.Future;
 import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
+import org.prebid.server.hooks.execution.v1.bidder.BidderRequestPayloadImpl;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.BlockedAttributesResolver;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.RequestUpdater;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.model.BlockedAttributes;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.model.ExecutionResult;
 import org.prebid.server.hooks.modules.ortb2.blocking.model.ModuleContext;
-import org.prebid.server.hooks.modules.ortb2.blocking.v1.model.BidderRequestPayloadImpl;
-import org.prebid.server.hooks.modules.ortb2.blocking.v1.model.InvocationResultImpl;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
@@ -42,7 +42,8 @@ public class Ortb2BlockingBidderRequestHook implements BidderRequestHook {
         final BidRequest bidRequest = bidderRequestPayload.bidRequest();
 
         final ModuleContext moduleContext = moduleContext(invocationContext)
-                .with(bidder, bidderSupportedOrtbVersion(bidder, aliases(bidRequest)));
+                .with(bidder, bidderSupportedOrtbVersion(
+                        bidder, aliases(invocationContext.auctionContext().getBidRequest())));
 
         final ExecutionResult<BlockedAttributes> blockedAttributesResult = BlockedAttributesResolver
                 .create(

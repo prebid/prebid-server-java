@@ -11,7 +11,7 @@ import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.CcpaConsent
 import org.prebid.server.functional.util.privacy.TcfConsent
 import org.prebid.server.functional.util.privacy.gpp.TcfEuV2Consent
-import org.prebid.server.functional.util.privacy.gpp.UspV1Consent
+import org.prebid.server.functional.util.privacy.gpp.UsV1Consent
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.request.GppSectionId.TCF_EU_V2
@@ -33,7 +33,11 @@ class GppCookieSyncSpec extends BaseSpec {
             "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url"         : USER_SYNC_URL,
             "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.support-cors": CORS_SUPPORT.toString()]
 
-    private PrebidServerService prebidServerService = pbsServiceFactory.getService(GENERIC_CONFIG)
+    private static PrebidServerService prebidServerService = pbsServiceFactory.getService(GENERIC_CONFIG)
+
+    def cleanupSpec() {
+        pbsServiceFactory.removeContainer(GENERIC_CONFIG)
+    }
 
     def "PBS cookie sync request should set GDPR to 1 when gpp_sid contains 2"() {
         given: "Request without GDPR and GPP SID"
@@ -186,7 +190,7 @@ class GppCookieSyncSpec extends BaseSpec {
         given: "Cookie sync request"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             it.gppSid = USP_V1.value
-            it.gpp = new UspV1Consent.Builder().build()
+            it.gpp = new UsV1Consent.Builder().build()
             it.gdpr = null
             it.usPrivacy = new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)
         }
@@ -204,9 +208,9 @@ class GppCookieSyncSpec extends BaseSpec {
 
     def "PBS should return empty gpp and gppSid in usersync url when gpp and gppSid is not present in request"() {
         given: "Pbs config with usersync.#userSyncFormat.url"
-        def prebidServerService = pbsServiceFactory.getService(
-                ["adapters.generic.usersync.${userSyncFormat.value}.url"         : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
-                 "adapters.generic.usersync.${userSyncFormat.value}.support-cors": "false"])
+        def pbsConfig = ["adapters.generic.usersync.${userSyncFormat.value}.url"         : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
+                         "adapters.generic.usersync.${userSyncFormat.value}.support-cors": "false"]
+        def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default CookieSyncRequest without gpp and gppSid"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
@@ -222,15 +226,18 @@ class GppCookieSyncSpec extends BaseSpec {
         assert HttpUtil.findUrlParameterValue(bidderStatus.userSync?.url, "gpp").isEmpty()
         assert HttpUtil.findUrlParameterValue(bidderStatus.userSync?.url, "gpp_sid").isEmpty()
 
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
+
         where:
         userSyncFormat << [REDIRECT, IFRAME]
     }
 
     def "PBS should populate gpp and gppSid in usersync url when gpp and gppSid is present in request"() {
         given: "Pbs config with usersync.#userSyncFormat.url"
-        def prebidServerService = pbsServiceFactory.getService(
-                ["adapters.generic.usersync.${userSyncFormat.value}.url"         : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
-                 "adapters.generic.usersync.${userSyncFormat.value}.support-cors": "false"])
+        def pbsConfig = ["adapters.generic.usersync.${userSyncFormat.value}.url"         : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
+                         "adapters.generic.usersync.${userSyncFormat.value}.support-cors": "false"]
+        def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default CookieSyncRequest with gpp and gppSid"
         def gpp = PBSUtils.randomString
@@ -247,6 +254,9 @@ class GppCookieSyncSpec extends BaseSpec {
         def bidderStatus = response.getBidderUserSync(GENERIC)
         assert HttpUtil.findUrlParameterValue(bidderStatus.userSync?.url, "gpp") == gpp
         assert HttpUtil.findUrlParameterValue(bidderStatus.userSync?.url, "gpp_sid") == gppSid
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
 
         where:
         userSyncFormat << [REDIRECT, IFRAME]

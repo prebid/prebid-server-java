@@ -9,4 +9,7 @@ class BidRequestExt {
     Prebid prebid
     SupplyChain schain
     AppNexus appnexus
+    String bc
+    String platform
+    IxDiag ixdiag
 }

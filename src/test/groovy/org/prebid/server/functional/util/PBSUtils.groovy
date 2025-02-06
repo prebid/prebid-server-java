@@ -28,6 +28,11 @@ class PBSUtils implements ObjectMapperWrapper {
         value == excludedValue ? getRandomNumberWithExclusion(excludedValue, min, max) : value
     }
 
+    static int getRandomNumberWithExclusion(List<Integer> excludedValues, int min = 0, int max = MAX_VALUE) {
+        def value = getRandomNumber(min, max)
+        excludedValues.contains(value) ? getRandomNumberWithExclusion(excludedValues, min, max) : value
+    }
+
     static int getRandomNegativeNumber(int min = MIN_VALUE + 1, int max = 0) {
         getRandomNumber(max, min * -1) * -1
     }
@@ -43,6 +48,10 @@ class PBSUtils implements ObjectMapperWrapper {
 
     static String getRandomString(int stringLength = 20) {
         RandomStringUtils.randomAlphanumeric(stringLength)
+    }
+
+    static Boolean getRandomBoolean() {
+        new Random().nextBoolean()
     }
 
     static <T> T getRandomElement(List<T> list) {
@@ -102,8 +111,48 @@ class PBSUtils implements ObjectMapperWrapper {
         getRandomDecimal(min, max).setScale(scale, HALF_UP)
     }
 
-    static <T extends Enum<T>> T getRandomEnum(Class<T> anEnum) {
-        def values = anEnum.enumConstants
-        values[getRandomNumber(0, values.length - 1)]
+    static <T extends Enum<T>> T getRandomEnum(Class<T> anEnum, List<T> exclude = []) {
+        def values = anEnum.enumConstants.findAll { !exclude.contains(it) } as T[]
+        values[getRandomNumber(0, values.size() - 1)]
+    }
+
+    static String convertCase(String input, Case caseType) {
+        def words = input.replaceAll(/([a-z])([A-Z])/) { match, p1, p2 -> "${p1}_${p2.toLowerCase()}" }
+                .split(/[_\-\s]+|\B(?=[A-Z])/).collect { it.toLowerCase() }
+
+        switch (caseType) {
+            case Case.KEBAB:
+                return words.join('-')
+            case Case.SNAKE:
+                return words.join('_')
+            case Case.CAMEL:
+                def camelCase = words.head() + words.tail().collect { it.capitalize() }.join('')
+                return camelCase
+            default:
+                throw new IllegalArgumentException("Unknown case type: $caseType")
+        }
+    }
+
+    static String getRandomVersion(String minVersion = "0.0.0", String maxVersion = "99.99.99") {
+        def minParts = minVersion.split('\\.').collect { it.toInteger() }
+        def maxParts = maxVersion.split('\\.').collect { it.toInteger() }
+        def versionParts = []
+
+        def major = getRandomNumber(minParts[0], maxParts[0])
+        versionParts << major
+
+        def minorMin = (major == minParts[0]) ? minParts[1] : 0
+        def minorMax = (major == maxParts[0]) ? maxParts[1] : 99
+        def minor = getRandomNumber(minorMin, minorMax)
+        versionParts << minor
+
+        if (minParts.size() > 2 || maxParts.size() > 2) {
+            def patchMin = (major == minParts[0] && minor == minParts[1]) ? minParts[2] : 0
+            def patchMax = (major == maxParts[0] && minor == maxParts[1]) ? maxParts[2] : 99
+            def patch = getRandomNumber(patchMin, patchMax)
+            versionParts << patch
+        }
+        def version = versionParts.join('.')
+        return (version >= minVersion && version <= maxVersion) ? version : getRandomVersion(minVersion, maxVersion)
     }
 }

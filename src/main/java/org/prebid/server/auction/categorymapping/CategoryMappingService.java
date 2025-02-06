@@ -4,7 +4,7 @@ import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Future;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.CategoryMappingResult;
-import org.prebid.server.execution.Timeout;
+import org.prebid.server.execution.timeout.Timeout;
 
 import java.util.List;
 

@@ -11,7 +11,7 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -143,7 +143,7 @@ public class BidmachineBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getImp)
-                .extracting(imps -> imps.get(0))
+                .extracting(imps -> imps.getFirst())
                 .flatExtracting(currImp -> currImp.getBanner().getBattr())
                 .containsExactly(1, 16);
     }
@@ -169,7 +169,7 @@ public class BidmachineBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getImp)
-                .extracting(imps -> imps.get(0))
+                .extracting(imps -> imps.getFirst())
                 .flatExtracting(currImp -> currImp.getVideo().getBattr())
                 .containsExactly(1, 16);
     }

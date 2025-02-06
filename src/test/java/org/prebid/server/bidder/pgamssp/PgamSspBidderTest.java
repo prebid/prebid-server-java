@@ -8,16 +8,23 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
-import org.junit.Test;
+import org.assertj.core.api.BDDAssertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.pgamssp.PgamSspImpExt;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -27,6 +34,9 @@ import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.BDDMockito.given;
 import static org.prebid.server.bidder.model.BidderError.badInput;
 import static org.prebid.server.bidder.model.BidderError.badServerResponse;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
@@ -37,15 +47,46 @@ import static org.prebid.server.util.HttpUtil.APPLICATION_JSON_CONTENT_TYPE;
 import static org.prebid.server.util.HttpUtil.CONTENT_TYPE_HEADER;
 import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
 
+@ExtendWith(MockitoExtension.class)
 public class PgamSspBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "http://test-url.com";
 
-    private final PgamSspBidder target = new PgamSspBidder(ENDPOINT_URL, jacksonMapper);
+    @Mock
+    private CurrencyConversionService currencyConversionService;
+
+    private PgamSspBidder target;
+
+    @BeforeEach
+    public void setUp() {
+        target = new PgamSspBidder(ENDPOINT_URL, currencyConversionService, jacksonMapper);
+    }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new PgamSspBidder("invalid_url", jacksonMapper));
+        assertThatIllegalArgumentException().isThrownBy(() ->
+                new PgamSspBidder("invalid_url", currencyConversionService, jacksonMapper));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldConvertCurrencyIfRequestCurrencyDoesNotMatchBidderCurrency() {
+        // given
+        given(currencyConversionService.convertCurrency(any(), any(), anyString(), anyString()))
+                .willReturn(BigDecimal.TEN);
+
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.bidfloor(BigDecimal.ONE).bidfloorcur("EUR"));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBidfloor, Imp::getBidfloorcur)
+                .containsExactly(BDDAssertions.tuple(BigDecimal.TEN, "USD"));
     }
 
     @Test

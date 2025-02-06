@@ -45,7 +45,7 @@ public class AceexBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final Imp firstImp = request.getImp().get(0);
+        final Imp firstImp = request.getImp().getFirst();
         final ExtImpAceex extImpAceex;
 
         try {
@@ -96,7 +96,7 @@ public class AceexBidder implements Bidder<BidRequest> {
 
     private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
         final List<SeatBid> seatBids = ObjectUtil.getIfNotNull(bidResponse, BidResponse::getSeatbid);
-        final SeatBid firstSeatBid = CollectionUtils.isNotEmpty(seatBids) ? seatBids.get(0) : null;
+        final SeatBid firstSeatBid = CollectionUtils.isNotEmpty(seatBids) ? seatBids.getFirst() : null;
         if (firstSeatBid == null) {
             throw new PreBidException("Empty SeatBid array");
         }

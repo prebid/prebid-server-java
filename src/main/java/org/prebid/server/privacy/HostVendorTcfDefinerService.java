@@ -1,9 +1,9 @@
 package org.prebid.server.privacy;
 
 import io.vertx.core.Future;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import lombok.experimental.Delegate;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.privacy.gdpr.model.HostVendorTcfResponse;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
@@ -51,10 +51,10 @@ public class HostVendorTcfDefinerService {
         return HostVendorTcfResponse.of(
                 tcfResponse.getUserInGdprScope(),
                 tcfResponse.getCountry(),
-                isCookieSyncAllowed(tcfResponse));
+                isVendorAllowed(tcfResponse));
     }
 
-    private boolean isCookieSyncAllowed(TcfResponse<Integer> hostTcfResponse) {
+    private boolean isVendorAllowed(TcfResponse<Integer> hostTcfResponse) {
         return Optional.ofNullable(hostTcfResponse.getActions())
                 .map(vendorIdToAction -> vendorIdToAction.get(gdprHostVendorId))
                 .map(hostActions -> !hostActions.isBlockPixelSync())

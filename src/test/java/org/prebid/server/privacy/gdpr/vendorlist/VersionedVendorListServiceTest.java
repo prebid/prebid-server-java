@@ -2,22 +2,18 @@ package org.prebid.server.privacy.gdpr.vendorlist;
 
 import com.iabtcf.decoder.TCString;
 import com.iabtcf.encoder.TCStringEncoder;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.concurrent.ThreadLocalRandom;
 
 import static org.mockito.Mockito.verify;
-import static org.prebid.server.assertion.FutureAssertion.assertThat;
 
+@ExtendWith(MockitoExtension.class)
 public class VersionedVendorListServiceTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     private VersionedVendorListService versionedVendorListService;
 
@@ -26,7 +22,7 @@ public class VersionedVendorListServiceTest {
     @Mock
     private VendorListService vendorListServiceV3;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         versionedVendorListService = new VersionedVendorListService(vendorListServiceV2, vendorListServiceV3);
     }
@@ -49,11 +45,12 @@ public class VersionedVendorListServiceTest {
     }
 
     @Test
-    public void versionedVendorListServiceShouldTreatTcfPolicyFourAsVendorListSpecificationThree() {
+    public void versionedVendorListServiceShouldTreatTcfPolicyGreaterOrEqualFourAsVendorListSpecificationThree() {
         // given
+        final int tcfPolicyVersion = ThreadLocalRandom.current().nextInt(4, 64);
         final TCString consent = TCStringEncoder.newBuilder()
                 .version(2)
-                .tcfPolicyVersion(4)
+                .tcfPolicyVersion(tcfPolicyVersion)
                 .vendorListVersion(12)
                 .toTCString();
 
@@ -62,21 +59,5 @@ public class VersionedVendorListServiceTest {
 
         // then
         verify(vendorListServiceV3).forVersion(12);
-    }
-
-    @Test
-    public void versionedVendorListServiceShouldTreatTcfPolicyGreaterThanFourAsInvalidVersion() {
-        // given
-        final int tcfPolicyVersion = ThreadLocalRandom.current().nextInt(5, 63);
-        final TCString consent = TCStringEncoder.newBuilder()
-                .version(2)
-                .tcfPolicyVersion(tcfPolicyVersion)
-                .vendorListVersion(12)
-                .toTCString();
-
-        // when and then
-        assertThat(versionedVendorListService.forConsent(consent))
-                .isFailed()
-                .hasMessage("Invalid tcf policy version: " + tcfPolicyVersion);
     }
 }

@@ -8,11 +8,9 @@ import lombok.Value;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.auction.gpp.model.GppContext;
 import org.prebid.server.auction.model.debug.DebugContext;
+import org.prebid.server.bidadjustments.model.BidAdjustments;
 import org.prebid.server.cache.model.DebugHttpCall;
 import org.prebid.server.cookie.UidsCookie;
-import org.prebid.server.deals.model.DeepDebugLog;
-import org.prebid.server.deals.model.TxnLog;
-import org.prebid.server.execution.Timeout;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.metric.MetricName;
@@ -20,6 +18,7 @@ import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.settings.model.Account;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -40,12 +39,6 @@ public class AuctionContext {
     @JsonIgnore
     List<AuctionParticipation> auctionParticipations;
 
-    @JsonIgnore
-    long startTime;
-
-    @JsonIgnore
-    Timeout timeout;
-
     Account account;
 
     MetricName requestTypeMetric;
@@ -58,12 +51,16 @@ public class AuctionContext {
 
     Map<String, BidRejectionTracker> bidRejectionTrackers;
 
+    @JsonIgnore
+    TimeoutContext timeoutContext;
+
     GppContext gppContext;
 
     PrivacyContext privacyContext;
 
     ActivityInfrastructure activityInfrastructure;
 
+    @JsonIgnore
     GeoInfo geoInfo;
 
     HookExecutionContext hookExecutionContext;
@@ -72,13 +69,13 @@ public class AuctionContext {
 
     boolean requestRejected;
 
-    @JsonIgnore
-    TxnLog txnLog;
-
-    @JsonIgnore
-    DeepDebugLog deepDebugLog;
+    boolean auctionSkipped;
 
     CachedDebugLog cachedDebugLog;
+
+    @JsonIgnore
+    @Builder.Default
+    BidAdjustments bidAdjustments = BidAdjustments.of(Collections.emptyMap());
 
     public AuctionContext with(Account account) {
         return this.toBuilder().account(account).build();
@@ -127,9 +124,27 @@ public class AuctionContext {
                 .build();
     }
 
+    public AuctionContext with(GeoInfo geoInfo) {
+        return this.toBuilder()
+                .geoInfo(geoInfo)
+                .build();
+    }
+
+    public AuctionContext with(BidAdjustments bidAdjustments) {
+        return this.toBuilder()
+                .bidAdjustments(bidAdjustments)
+                .build();
+    }
+
     public AuctionContext withRequestRejected() {
         return this.toBuilder()
                 .requestRejected(true)
+                .build();
+    }
+
+    public AuctionContext skipAuction() {
+        return this.toBuilder()
+                .auctionSkipped(true)
                 .build();
     }
 }

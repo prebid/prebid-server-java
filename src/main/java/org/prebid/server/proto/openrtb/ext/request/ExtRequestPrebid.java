@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
 import lombok.Value;
+import org.prebid.server.auction.model.PaaFormat;
 import org.prebid.server.floors.model.PriceFloorRules;
 import org.prebid.server.json.deserializer.IntegerFlagDeserializer;
 
@@ -51,6 +52,11 @@ public class ExtRequestPrebid {
     ExtRequestBidAdjustmentFactors bidadjustmentfactors;
 
     /**
+     * Defines the contract for bidrequest.ext.prebid.bidadjustments
+     */
+    ObjectNode bidadjustments;
+
+    /**
      * Defines the contract for bidrequest.ext.prebid.currency
      */
     ExtRequestCurrency currency;
@@ -69,6 +75,12 @@ public class ExtRequestPrebid {
      * Defines the contract for bidrequest.ext.prebid.storedrequest
      */
     ExtStoredRequest storedrequest;
+
+    /**
+     * Defines the contract for bidrequest.ext.prebid.storedauctionresponse
+     */
+    @JsonProperty("storedauctionresponse")
+    ExtStoredAuctionResponse storedAuctionResponse;
 
     /**
      * Defines the contract for bidrequest.ext.prebid.cache
@@ -173,4 +185,9 @@ public class ExtRequestPrebid {
      */
     ExtRequestPrebidSdk sdk;
 
+    /**
+     * Defines the contract for bidrequest.ext.prebid.paaformat
+     */
+    @JsonProperty("paaformat")
+    PaaFormat paaFormat;
 }

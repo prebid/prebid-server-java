@@ -20,14 +20,14 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.EventTracker;
 import com.iab.openrtb.response.Response;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.ix.model.request.IxDiag;
+import org.prebid.server.bidder.ix.model.response.AuctionConfigExtBidResponse;
 import org.prebid.server.bidder.ix.model.response.IxBidResponse;
 import org.prebid.server.bidder.ix.model.response.IxExtBidResponse;
 import org.prebid.server.bidder.ix.model.response.NativeV11Wrapper;
@@ -46,11 +46,11 @@ import org.prebid.server.proto.openrtb.ext.request.ix.ExtImpIx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
-import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
+import org.prebid.server.proto.openrtb.ext.response.ExtIgi;
+import org.prebid.server.proto.openrtb.ext.response.ExtIgiIgs;
 import org.prebid.server.version.PrebidVersionProvider;
 
 import java.util.List;
-import java.util.Map;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
@@ -61,22 +61,21 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 
+@ExtendWith(MockitoExtension.class)
 public class IxBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "http://exchange.org/";
     private static final String SITE_ID = "site id";
 
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
-    @Mock
+    @Mock(strictness = LENIENT)
     private PrebidVersionProvider prebidVersionProvider;
 
     private IxBidder target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new IxBidder(ENDPOINT_URL, prebidVersionProvider, jacksonMapper);
         given(prebidVersionProvider.getNameVersionRecord()).willReturn(null);
@@ -101,7 +100,7 @@ public class IxBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize value");
+        assertThat(result.getErrors().getFirst().getMessage()).startsWith("Cannot deserialize value");
     }
 
     @Test
@@ -320,8 +319,8 @@ public class IxBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors().getFirst().getMessage()).startsWith("Failed to decode: Unrecognized token");
+        assertThat(result.getErrors().getFirst().getType()).isEqualTo(BidderError.Type.bad_server_response);
         assertThat(result.getBids()).isEmpty();
     }
 
@@ -433,7 +432,7 @@ public class IxBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidderResponseShouldReturnBidWithVideoExt() throws JsonProcessingException {
+    public void makeBidderResponseShouldReturnBidWithVideoInfo() throws JsonProcessingException {
         // given
         final Video video = Video.builder().build();
         final BidRequest bidRequest = BidRequest.builder()
@@ -445,7 +444,7 @@ public class IxBidderTest extends VertxTest {
                         givenBidResponse(
                                 bidBuilder -> bidBuilder
                                         .impid("123")
-                                        .ext(mapper.valueToTree(ExtBidPrebid.builder()
+                                        .ext(mapper.createObjectNode().putPOJO("prebid", ExtBidPrebid.builder()
                                                 .video(ExtBidPrebidVideo.of(1, "cat"))
                                                 .build())))));
 
@@ -455,10 +454,7 @@ public class IxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getBids())
-                .extracting(BidderBid::getBid)
-                .extracting(Bid::getExt)
-                .extracting(node -> mapper.treeToValue(node, ExtBidPrebid.class))
-                .extracting(ExtBidPrebid::getVideo)
+                .extracting(BidderBid::getVideoInfo)
                 .extracting(ExtBidPrebidVideo::getDuration, ExtBidPrebidVideo::getPrimaryCategory)
                 .containsExactly(tuple(1, null));
     }
@@ -662,7 +658,8 @@ public class IxBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .id("123")
                         .banner(banner)
-                        .video(video).build()))
+                        .video(video)
+                        .build()))
                 .build();
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 bidRequest,
@@ -775,14 +772,14 @@ public class IxBidderTest extends VertxTest {
         // given
         final String impId = "imp_id";
         final BidResponse bidResponse = givenBidResponse(bidBuilder -> bidBuilder.impid(impId).mtype(1));
-        final ObjectNode fledgeAuctionConfig = mapper.createObjectNode();
+        final ObjectNode auctionConfig = mapper.createObjectNode();
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(List.of(Imp.builder().id(impId).build()))
                 .build();
         final IxBidResponse bidResponseWithFledge = IxBidResponse.builder()
                 .cur(bidResponse.getCur())
                 .seatbid(bidResponse.getSeatbid())
-                .ext(IxExtBidResponse.of(Map.of(impId, fledgeAuctionConfig)))
+                .ext(IxExtBidResponse.of(List.of(AuctionConfigExtBidResponse.of(impId, auctionConfig))))
                 .build();
         final BidderCall<BidRequest> httpCall =
                 givenHttpCall(bidRequest, mapper.writeValueAsString(bidResponseWithFledge));
@@ -791,14 +788,15 @@ public class IxBidderTest extends VertxTest {
         final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
 
         // then
+        final ExtIgiIgs igs = ExtIgiIgs.builder()
+                .impId(impId)
+                .config(auctionConfig)
+                .build();
+
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getBids())
                 .containsOnly(BidderBid.of(Bid.builder().impid(impId).mtype(1).build(), banner, bidResponse.getCur()));
-        final FledgeAuctionConfig expectedFledge = FledgeAuctionConfig.builder()
-                .impId(impId)
-                .config(fledgeAuctionConfig)
-                .build();
-        assertThat(result.getFledgeAuctionConfigs()).containsExactly(expectedFledge);
+        assertThat(result.getIgi()).containsExactly(ExtIgi.builder().igs(singletonList(igs)).build());
     }
 
     private static ExtRequest givenExtRequest(String pbjsv) {

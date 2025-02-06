@@ -154,7 +154,7 @@ public class SilverPushBidder implements Bidder<BidRequest> {
         }
         for (Eid eid : eids) {
             final List<Uid> uids = eid.getUids();
-            if (CollectionUtils.isNotEmpty(uids) && StringUtils.isNotBlank(uids.get(0).getId())) {
+            if (CollectionUtils.isNotEmpty(uids) && StringUtils.isNotBlank(uids.getFirst().getId())) {
                 return true;
             }
         }
@@ -230,7 +230,7 @@ public class SilverPushBidder implements Bidder<BidRequest> {
             throw new PreBidException("No sizes provided for Banner.");
         }
 
-        final Format firstFormat = banner.getFormat().get(0);
+        final Format firstFormat = banner.getFormat().getFirst();
         return banner.toBuilder()
                 .w(firstFormat.getW())
                 .h(firstFormat.getH())

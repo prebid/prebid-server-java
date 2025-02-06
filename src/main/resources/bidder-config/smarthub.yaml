@@ -1,8 +1,24 @@
 adapters:
   smarthub:
-    endpoint: http://{{Host}}-prebid.smart-hub.io/?seat={{AccountId}}&token={{SourceId}}
+    endpoint: https://prebid.attekmi.com/pbserver?partnerName={{Host}}&seat={{AccountID}}&token={{SourceId}}
+    aliases:
+      markapp:
+        enabled: false
+        endpoint: https://markapp-prebid.attekmi.com/pbserver/?seat={{AccountID}}&token={{SourceId}}
+      jdpmedia:
+        enabled: false
+        endpoint: https://jdpmedia-prebid.attekmi.com/pbserver/?seat={{AccountID}}&token={{SourceId}}
+      tredio:
+        enabled: false
+        endpoint: https://tredio-prebid.attekmi.com/pbserver/?seat={{AccountID}}&token={{SourceId}}
+      vimayx:
+        enabled: false
+        endpoint: https://vimayx-prebid.attekmi.com/pbserver/?seat={{AccountID}}&token={{SourceId}}
+      felixads:
+        enabled: false
+        endpoint: https://felixads-prebid.attekmi.com/pbserver/?seat={{AccountID}}&token={{SourceId}}
     meta-info:
-      maintainer-email: support@smart-hub.io
+      maintainer-email: prebid@attekmi.com
       app-media-types:
         - banner
         - video

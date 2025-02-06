@@ -18,6 +18,7 @@ import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
@@ -39,6 +40,10 @@ import java.util.stream.IntStream;
 
 public class EpsilonBidder implements Bidder<BidRequest> {
 
+    private static final String BIDDER_CURRENCY = "USD";
+
+    private final CurrencyConversionService currencyConversionService;
+
     private static final TypeReference<ExtPrebid<?, ExtImpEpsilon>> EPSILON_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
@@ -59,10 +64,14 @@ public class EpsilonBidder implements Bidder<BidRequest> {
     private final boolean generateBidId;
     private final JacksonMapper mapper;
 
-    public EpsilonBidder(String endpointUrl, boolean generateBidId, JacksonMapper mapper) {
+    public EpsilonBidder(String endpointUrl,
+                         boolean generateBidId,
+                         JacksonMapper mapper,
+                         CurrencyConversionService currencyConversionService) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.generateBidId = generateBidId;
         this.mapper = Objects.requireNonNull(mapper);
+        this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
     }
 
     @Override
@@ -84,20 +93,33 @@ public class EpsilonBidder implements Bidder<BidRequest> {
         for (int i = 0; i < requestImps.size(); i++) {
             final Imp imp = requestImps.get(i);
             final ExtImpEpsilon impExt = parseImpExt(imp, i);
-            modifiedImps.add(modifyImp(imp, impExt));
+            final BigDecimal bidFloor = resolveBidFloor(bidRequest,
+                    imp.getBidfloorcur(),
+                    getBidFloor(imp.getBidfloor(), impExt.getBidfloor()));
+            modifiedImps.add(modifyImp(imp, impExt, bidFloor));
         }
 
-        final Imp firstImp = requestImps.get(0);
+        final Imp firstImp = requestImps.getFirst();
         final ExtImpEpsilon extImp = parseImpExt(firstImp, 0);
         final String siteId = extImp.getSiteId();
         final Site requestSite = bidRequest.getSite();
         final App requestApp = bidRequest.getApp();
-
+        final List<String> cur = bidRequest.getCur();
         return bidRequest.toBuilder()
                 .site(updateSite(requestSite, siteId))
                 .app(requestSite == null ? updateApp(requestApp, siteId) : requestApp)
                 .imp(modifiedImps)
+                .cur(Collections.singletonList(BIDDER_CURRENCY))
                 .build();
+    }
+
+    private BigDecimal resolveBidFloor(BidRequest bidRequest, String bidfloorcur, BigDecimal bidfloor) {
+        if (BidderUtil.isValidPrice(bidfloor)
+                && !StringUtils.equalsIgnoreCase(bidfloorcur, BIDDER_CURRENCY)
+                && StringUtils.isNotBlank(bidfloorcur)) {
+            return currencyConversionService.convertCurrency(bidfloor, bidRequest, bidfloorcur, BIDDER_CURRENCY);
+        }
+        return bidfloor;
     }
 
     private ExtImpEpsilon parseImpExt(Imp imp, int impIndex) {
@@ -122,14 +144,15 @@ public class EpsilonBidder implements Bidder<BidRequest> {
         return app == null ? null : app.toBuilder().id(siteId).build();
     }
 
-    private static Imp modifyImp(Imp imp, ExtImpEpsilon impExt) {
+    private static Imp modifyImp(Imp imp, ExtImpEpsilon impExt, BigDecimal bidfloor) {
         final Banner banner = imp.getBanner();
         final Video video = imp.getVideo();
 
         return imp.toBuilder()
                 .displaymanager(DISPLAY_MANAGER)
                 .displaymanagerver(DISPLAY_MANAGER_VER)
-                .bidfloor(getBidFloor(imp.getBidfloor(), impExt.getBidfloor()))
+                .bidfloor(bidfloor)
+                .bidfloorcur(BIDDER_CURRENCY)
                 .tagid(getTagId(imp.getTagid(), impExt.getTagId()))
                 .secure(getSecure(imp, impExt))
                 .banner(modifyBanner(banner, impExt.getPosition()))
@@ -217,7 +240,7 @@ public class EpsilonBidder implements Bidder<BidRequest> {
     }
 
     private List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
-        final SeatBid firstSeatBid = bidResponse.getSeatbid().get(0);
+        final SeatBid firstSeatBid = bidResponse.getSeatbid().getFirst();
         final List<Bid> bids = firstSeatBid.getBid();
 
         if (CollectionUtils.isEmpty(bids)) {
@@ -239,7 +262,13 @@ public class EpsilonBidder implements Bidder<BidRequest> {
     private static BidType getType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
-                return imp.getVideo() != null ? BidType.video : BidType.banner;
+                if (imp.getVideo() != null) {
+                    return BidType.video;
+                } else if (imp.getAudio() != null) {
+                    return BidType.audio;
+                } else {
+                    return BidType.banner;
+                }
             }
         }
         return BidType.banner;

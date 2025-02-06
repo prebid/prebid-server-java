@@ -6,6 +6,7 @@
         {
           "id": "bid_id",
           "impid": "imp_id",
+          "exp": 300,
           "price": 0.5,
           "adm": "some-test-ad",
           "adid": "12345678",
@@ -13,6 +14,7 @@
           "crid": "12345678",
           "w": 300,
           "h": 250,
+          "mtype": 1,
           "ext": {
             "prebid": {
               "type": "banner"

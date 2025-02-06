@@ -4,13 +4,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.bidder.model.Price;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.floors.model.PriceFloorData;
@@ -22,6 +19,8 @@ import org.prebid.server.floors.proto.FetchResult;
 import org.prebid.server.floors.proto.FetchStatus;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebidFloors;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -30,12 +29,14 @@ import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountPriceFloorsConfig;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.ObjectUtil;
+import org.prebid.server.util.algorithms.random.RandomPositiveWeightedEntrySupplier;
+import org.prebid.server.util.algorithms.random.RandomWeightedEntrySupplier;
 
 import java.math.BigDecimal;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class BasicPriceFloorProcessor implements PriceFloorProcessor {
@@ -45,12 +46,15 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
 
     private static final int SKIP_RATE_MIN = 0;
     private static final int SKIP_RATE_MAX = 100;
+    private static final int USE_FETCH_DATA_RATE_MAX = 100;
     private static final int MODEL_WEIGHT_MAX_VALUE = 100;
     private static final int MODEL_WEIGHT_MIN_VALUE = 1;
 
     private final PriceFloorFetcher floorFetcher;
     private final PriceFloorResolver floorResolver;
     private final JacksonMapper mapper;
+
+    private final RandomWeightedEntrySupplier<PriceFloorModelGroup> modelPicker;
 
     public BasicPriceFloorProcessor(PriceFloorFetcher floorFetcher,
                                     PriceFloorResolver floorResolver,
@@ -59,23 +63,27 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         this.floorFetcher = Objects.requireNonNull(floorFetcher);
         this.floorResolver = Objects.requireNonNull(floorResolver);
         this.mapper = Objects.requireNonNull(mapper);
+
+        modelPicker = new RandomPositiveWeightedEntrySupplier<>(BasicPriceFloorProcessor::resolveModelGroupWeight);
+    }
+
+    private static int resolveModelGroupWeight(PriceFloorModelGroup modelGroup) {
+        return ObjectUtils.defaultIfNull(modelGroup.getModelWeight(), 1);
     }
 
     @Override
-    public AuctionContext enrichWithPriceFloors(AuctionContext auctionContext) {
-        final Account account = auctionContext.getAccount();
-        final BidRequest bidRequest = auctionContext.getBidRequest();
-        final List<String> errors = auctionContext.getPrebidErrors();
-        final List<String> warnings = auctionContext.getDebugWarnings();
+    public BidRequest enrichWithPriceFloors(BidRequest bidRequest,
+                                            Account account,
+                                            String bidder,
+                                            List<String> errors,
+                                            List<String> warnings) {
 
         if (isPriceFloorsDisabled(account, bidRequest)) {
-            return auctionContext.with(disableFloorsForRequest(bidRequest));
+            return disableFloorsForRequest(bidRequest);
         }
 
         final PriceFloorRules floors = resolveFloors(account, bidRequest, errors);
-        final BidRequest updatedBidRequest = updateBidRequestWithFloors(bidRequest, floors, errors, warnings);
-
-        return auctionContext.with(updatedBidRequest);
+        return updateBidRequestWithFloors(bidRequest, bidder, floors, errors, warnings);
     }
 
     private static boolean isPriceFloorsDisabled(Account account, BidRequest bidRequest) {
@@ -120,19 +128,32 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         final FetchResult fetchResult = floorFetcher.fetch(account);
         final FetchStatus fetchStatus = ObjectUtil.getIfNotNull(fetchResult, FetchResult::getFetchStatus);
 
-        if (shouldUseDynamicData(account) && fetchResult != null && fetchStatus == FetchStatus.success) {
+        if (fetchResult != null && fetchStatus == FetchStatus.success && shouldUseDynamicData(account, fetchResult)) {
             final PriceFloorRules mergedFloors = mergeFloors(requestFloors, fetchResult.getRulesData());
             return createFloorsFrom(mergedFloors, fetchStatus, PriceFloorLocation.fetch);
         }
 
         if (requestFloors != null) {
             try {
-                PriceFloorRulesValidator.validateRules(requestFloors, Integer.MAX_VALUE);
+                final Optional<AccountPriceFloorsConfig> priceFloorsConfig = Optional.ofNullable(account)
+                        .map(Account::getAuction)
+                        .map(AccountAuctionConfig::getPriceFloors);
+
+                final Long maxRules = priceFloorsConfig.map(AccountPriceFloorsConfig::getMaxRules)
+                        .orElse(null);
+                final Long maxDimensions = priceFloorsConfig.map(AccountPriceFloorsConfig::getMaxSchemaDims)
+                        .orElse(null);
+
+                PriceFloorRulesValidator.validateRules(
+                        requestFloors,
+                        PriceFloorsConfigResolver.resolveMaxValue(maxRules),
+                        PriceFloorsConfigResolver.resolveMaxValue(maxDimensions));
+
                 return createFloorsFrom(requestFloors, fetchStatus, PriceFloorLocation.request);
             } catch (PreBidException e) {
-                errors.add("Failed to parse price floors from request, with a reason : %s ".formatted(e.getMessage()));
+                errors.add("Failed to parse price floors from request, with a reason: %s".formatted(e.getMessage()));
                 conditionalLogger.error(
-                        "Failed to parse price floors from request with id: '%s', with a reason : %s "
+                        "Failed to parse price floors from request with id: '%s', with a reason: %s"
                                 .formatted(bidRequest.getId(), e.getMessage()),
                         0.01d);
             }
@@ -141,13 +162,20 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         return createFloorsFrom(null, fetchStatus, PriceFloorLocation.noData);
     }
 
-    private static boolean shouldUseDynamicData(Account account) {
-        final AccountAuctionConfig auctionConfig = ObjectUtil.getIfNotNull(account, Account::getAuction);
-        final AccountPriceFloorsConfig floorsConfig =
-                ObjectUtil.getIfNotNull(auctionConfig, AccountAuctionConfig::getPriceFloors);
+    private static boolean shouldUseDynamicData(Account account, FetchResult fetchResult) {
+        final boolean isUsingDynamicDataAllowed = Optional.ofNullable(account)
+                .map(Account::getAuction)
+                .map(AccountAuctionConfig::getPriceFloors)
+                .map(AccountPriceFloorsConfig::getUseDynamicData)
+                .map(BooleanUtils::isNotFalse)
+                .orElse(true);
 
-        return BooleanUtils.isNotFalse(
-                ObjectUtil.getIfNotNull(floorsConfig, AccountPriceFloorsConfig::getUseDynamicData));
+        final boolean shouldUseDynamicData = Optional.ofNullable(fetchResult.getRulesData())
+                .map(PriceFloorData::getUseFetchDataRate)
+                .map(rate -> ThreadLocalRandom.current().nextInt(USE_FETCH_DATA_RATE_MAX) < rate)
+                .orElse(true);
+
+        return isUsingDynamicDataAllowed && shouldUseDynamicData;
     }
 
     private PriceFloorRules mergeFloors(PriceFloorRules requestFloors,
@@ -178,9 +206,9 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         return Price.of(null, requestFloorMin);
     }
 
-    private static PriceFloorRules createFloorsFrom(PriceFloorRules floors,
-                                                    FetchStatus fetchStatus,
-                                                    PriceFloorLocation location) {
+    private PriceFloorRules createFloorsFrom(PriceFloorRules floors,
+                                             FetchStatus fetchStatus,
+                                             PriceFloorLocation location) {
 
         final PriceFloorData floorData = ObjectUtil.getIfNotNull(floors, PriceFloorRules::getData);
         final PriceFloorData updatedFloorData = floorData != null ? updateFloorData(floorData) : null;
@@ -193,7 +221,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
                 .build();
     }
 
-    private static PriceFloorData updateFloorData(PriceFloorData floorData) {
+    private PriceFloorData updateFloorData(PriceFloorData floorData) {
         final List<PriceFloorModelGroup> modelGroups = floorData.getModelGroups();
 
         final PriceFloorModelGroup modelGroup = CollectionUtils.isNotEmpty(modelGroups)
@@ -205,29 +233,11 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
                 : floorData;
     }
 
-    private static PriceFloorModelGroup selectFloorModelGroup(List<PriceFloorModelGroup> modelGroups) {
-        final int overallModelWeight = modelGroups.stream()
-                .filter(BasicPriceFloorProcessor::isValidModelGroup)
-                .mapToInt(BasicPriceFloorProcessor::resolveModelGroupWeight)
-                .sum();
-
-        Collections.shuffle(modelGroups);
-
-        final List<PriceFloorModelGroup> groupsByWeight = modelGroups.stream()
-                .filter(BasicPriceFloorProcessor::isValidModelGroup)
-                .sorted(Comparator.comparing(BasicPriceFloorProcessor::resolveModelGroupWeight))
-                .toList();
-
-        int winWeight = ThreadLocalRandom.current().nextInt(overallModelWeight);
-        for (PriceFloorModelGroup modelGroup : groupsByWeight) {
-            winWeight -= resolveModelGroupWeight(modelGroup);
-
-            if (winWeight <= 0) {
-                return modelGroup;
-            }
-        }
-
-        return groupsByWeight.get(groupsByWeight.size() - 1);
+    private PriceFloorModelGroup selectFloorModelGroup(List<PriceFloorModelGroup> modelGroups) {
+        return modelPicker.get(
+                modelGroups.stream()
+                        .filter(BasicPriceFloorProcessor::isValidModelGroup)
+                        .toList());
     }
 
     private static boolean isValidModelGroup(PriceFloorModelGroup modelGroup) {
@@ -241,10 +251,6 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
                 || (modelWeight >= MODEL_WEIGHT_MIN_VALUE && modelWeight <= MODEL_WEIGHT_MAX_VALUE);
     }
 
-    private static int resolveModelGroupWeight(PriceFloorModelGroup modelGroup) {
-        return ObjectUtils.defaultIfNull(modelGroup.getModelWeight(), 1);
-    }
-
     private static String resolveFloorProvider(PriceFloorRules rules) {
         final PriceFloorData floorData = ObjectUtil.getIfNotNull(rules, PriceFloorRules::getData);
         final String dataLevelProvider = ObjectUtil.getIfNotNull(floorData, PriceFloorData::getFloorProvider);
@@ -255,6 +261,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
     }
 
     private BidRequest updateBidRequestWithFloors(BidRequest bidRequest,
+                                                  String bidder,
                                                   PriceFloorRules floors,
                                                   List<String> errors,
                                                   List<String> warnings) {
@@ -264,7 +271,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
 
         final List<Imp> imps = skipFloors
                 ? bidRequest.getImp()
-                : updateImpsWithFloors(floors, bidRequest, errors, warnings);
+                : updateImpsWithFloors(floors, bidRequest, bidder, errors, warnings);
         final ExtRequest extRequest = updateExtRequestWithFloors(bidRequest, floors, requestSkipRate, skipFloors);
 
         return bidRequest.toBuilder()
@@ -304,22 +311,24 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
 
     private List<Imp> updateImpsWithFloors(PriceFloorRules effectiveFloors,
                                            BidRequest bidRequest,
+                                           String bidder,
                                            List<String> errors,
                                            List<String> warnings) {
 
         final List<Imp> imps = bidRequest.getImp();
 
         final ExtRequestPrebid prebid = ObjectUtil.getIfNotNull(bidRequest.getExt(), ExtRequest::getPrebid);
-        final PriceFloorRules floors =
-                ObjectUtils.defaultIfNull(effectiveFloors,
-                        ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getFloors));
+        final PriceFloorRules floors = ObjectUtils.defaultIfNull(
+                effectiveFloors,
+                ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getFloors));
+
         final PriceFloorModelGroup modelGroup = extractFloorModelGroup(floors);
         if (modelGroup == null) {
             return imps;
         }
 
         return CollectionUtils.emptyIfNull(imps).stream()
-                .map(imp -> updateImpWithFloors(imp, floors, bidRequest, errors, warnings))
+                .map(imp -> updateImpWithFloors(imp, bidder, floors, bidRequest, errors, warnings))
                 .toList();
     }
 
@@ -327,10 +336,11 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         final PriceFloorData data = ObjectUtil.getIfNotNull(floors, PriceFloorRules::getData);
         final List<PriceFloorModelGroup> modelGroups = ObjectUtil.getIfNotNull(data, PriceFloorData::getModelGroups);
 
-        return CollectionUtils.isNotEmpty(modelGroups) ? modelGroups.get(0) : null;
+        return CollectionUtils.isNotEmpty(modelGroups) ? modelGroups.getFirst() : null;
     }
 
     private Imp updateImpWithFloors(Imp imp,
+                                    String bidder,
                                     PriceFloorRules floorRules,
                                     BidRequest bidRequest,
                                     List<String> errors,
@@ -338,7 +348,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
 
         final PriceFloorResult priceFloorResult;
         try {
-            priceFloorResult = floorResolver.resolve(bidRequest, floorRules, imp, warnings);
+            priceFloorResult = floorResolver.resolve(bidRequest, floorRules, imp, bidder, warnings);
         } catch (IllegalStateException e) {
             errors.add("Cannot resolve bid floor, error: " + e.getMessage());
             return imp;

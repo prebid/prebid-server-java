@@ -6,7 +6,9 @@
         {
           "id": "bid_id",
           "impid": "imp_id",
+          "exp": 300,
           "price": 0.01,
+          "mtype": 1,
           "adid": "adid001",
           "cid": "cid001",
           "crid": "crid001",
@@ -25,7 +27,7 @@
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "nextmillennium" : "{{ nextmillennium.response_time_ms }}"
+      "nextmillennium": "{{ nextmillennium.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 0

@@ -1,6 +1,6 @@
 package org.prebid.server.settings.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonAlias;
 import lombok.Builder;
 import lombok.Value;
 
@@ -20,14 +20,14 @@ public class Account {
 
     AccountMetricsConfig metrics;
 
-    @JsonProperty("cookie-sync")
+    @JsonAlias("cookie-sync")
     AccountCookieSyncConfig cookieSync;
 
     AccountHooksConfiguration hooks;
 
+    AccountSettings settings;
+
     public static Account empty(String id) {
-        return Account.builder()
-                .id(id)
-                .build();
+        return Account.builder().id(id).build();
     }
 }

@@ -7,8 +7,6 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.BidderAliases;
@@ -26,14 +24,18 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.execution.Timeout;
+import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
+import org.prebid.server.proto.openrtb.ext.response.ExtIgi;
 import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
 import org.prebid.server.util.HttpUtil;
-import org.prebid.server.vertx.http.HttpClient;
-import org.prebid.server.vertx.http.model.HttpClientResponse;
+import org.prebid.server.vertx.httpclient.HttpClient;
+import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -62,24 +64,28 @@ import java.util.zip.GZIPOutputStream;
 public class HttpBidderRequester {
 
     private static final Logger logger = LoggerFactory.getLogger(HttpBidderRequester.class);
+    private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
 
     private final HttpClient httpClient;
     private final BidderRequestCompletionTrackerFactory completionTrackerFactory;
     private final BidderErrorNotifier bidderErrorNotifier;
     private final HttpBidderRequestEnricher requestEnricher;
     private final JacksonMapper mapper;
+    private final double logSamplingRate;
 
     public HttpBidderRequester(HttpClient httpClient,
                                BidderRequestCompletionTrackerFactory completionTrackerFactory,
                                BidderErrorNotifier bidderErrorNotifier,
                                HttpBidderRequestEnricher requestEnricher,
-                               JacksonMapper mapper) {
+                               JacksonMapper mapper,
+                               double logSamplingRate) {
 
         this.httpClient = Objects.requireNonNull(httpClient);
         this.completionTrackerFactory = completionTrackerFactoryOrFallback(completionTrackerFactory);
         this.bidderErrorNotifier = Objects.requireNonNull(bidderErrorNotifier);
         this.requestEnricher = Objects.requireNonNull(requestEnricher);
         this.mapper = Objects.requireNonNull(mapper);
+        this.logSamplingRate = logSamplingRate;
     }
 
     /**
@@ -100,7 +106,8 @@ public class HttpBidderRequester {
         final List<BidderError> errors = httpRequestsWithErrors.getErrors();
         final List<HttpRequest<T>> httpRequests = enrichRequests(
                 bidderName, httpRequestsWithErrors.getValue(), requestHeaders, aliases, bidRequest);
-        recordBidderProvidedErrors(bidRejectionTracker, errors);
+
+        rejectErrors(bidRejectionTracker, errors, BidRejectionReason.REQUEST_BLOCKED_GENERAL);
 
         if (CollectionUtils.isEmpty(httpRequests)) {
             return emptyBidderSeatBidWithErrors(errors);
@@ -110,7 +117,7 @@ public class HttpBidderRequester {
 
         // stored response available only for single request interaction for the moment.
         final Stream<Future<BidderCall<T>>> httpCalls = isStoredResponse(httpRequests, storedResponse, bidderName)
-                ? Stream.of(makeStoredHttpCall(httpRequests.get(0), storedResponse))
+                ? Stream.of(makeStoredHttpCall(httpRequests.getFirst(), storedResponse))
                 : httpRequests.stream().map(httpRequest -> doRequest(httpRequest, timeout));
 
         // httpCalls contains recovered and mapped to succeeded Future<BidderHttpCall> with error inside
@@ -144,11 +151,13 @@ public class HttpBidderRequester {
                 .toList();
     }
 
-    private static void recordBidderProvidedErrors(BidRejectionTracker rejectionTracker, List<BidderError> errors) {
-        errors.stream()
+    private static void rejectErrors(BidRejectionTracker bidRejectionTracker,
+                                     List<BidderError> bidderErrors,
+                                     BidRejectionReason reason) {
+
+        bidderErrors.stream()
                 .filter(error -> CollectionUtils.isNotEmpty(error.getImpIds()))
-                .forEach(error -> rejectionTracker.reject(
-                        error.getImpIds(), BidRejectionReason.fromBidderError(error)));
+                .forEach(error -> bidRejectionTracker.rejectImps(error.getImpIds(), reason));
     }
 
     private <T> boolean isStoredResponse(List<HttpRequest<T>> httpRequests, String storedResponse, String bidder) {
@@ -159,7 +168,7 @@ public class HttpBidderRequester {
         if (httpRequests.size() > 1) {
             logger.warn("""
                             More than one request was created for stored response, when only single stored response \
-                            per bidder is supported for the moment. Request to real {0} bidder will be performed.""",
+                            per bidder is supported for the moment. Request to real {} bidder will be performed.""",
                     bidder);
             return false;
         }
@@ -238,10 +247,10 @@ public class HttpBidderRequester {
     /**
      * Produces {@link Future} with {@link BidderCall} containing request and error description.
      */
-    private static <T> Future<BidderCall<T>> failResponse(Throwable exception, HttpRequest<T> httpRequest) {
-        logger.warn("Error occurred while sending HTTP request to a bidder url: {0} with message: {1}",
-                httpRequest.getUri(), exception.getMessage());
-        logger.debug("Error occurred while sending HTTP request to a bidder url: {0}",
+    private <T> Future<BidderCall<T>> failResponse(Throwable exception, HttpRequest<T> httpRequest) {
+        conditionalLogger.warn("Error occurred while sending HTTP request to a bidder url: %s with message: %s"
+                .formatted(httpRequest.getUri(), exception.getMessage()), logSamplingRate);
+        logger.debug("Error occurred while sending HTTP request to a bidder url: {}",
                 exception, httpRequest.getUri());
 
         final BidderError.Type errorType =
@@ -338,6 +347,7 @@ public class HttpBidderRequester {
         private final Map<HttpRequest<T>, BidderCall<T>> bidderCallsRecorded = new HashMap<>();
         private final List<BidderBid> bidsRecorded = new ArrayList<>();
         private final List<BidderError> errorsRecorded = new ArrayList<>();
+        private final List<ExtIgi> igiRecorded = new ArrayList<>();
         private final List<FledgeAuctionConfig> fledgeRecorded = new ArrayList<>();
 
         ResultBuilder(List<HttpRequest<T>> httpRequests,
@@ -358,6 +368,7 @@ public class HttpBidderRequester {
             handleBids(bidderResponse);
             handleBidderErrors(bidderResponse);
             handleBidderCallError(bidderCall);
+            handleIgis(bidderResponse);
             handleFledgeAuctionConfigs(bidderResponse);
         }
 
@@ -374,16 +385,44 @@ public class HttpBidderRequester {
             final List<BidderError> bidderErrors = bidderResponse != null ? bidderResponse.getErrors() : null;
             if (bidderErrors != null) {
                 errorsRecorded.addAll(bidderErrors);
-                recordBidderProvidedErrors(bidRejectionTracker, bidderErrors);
+                rejectErrors(bidRejectionTracker, bidderErrors, BidRejectionReason.ERROR_GENERAL);
             }
         }
 
         private void handleBidderCallError(BidderCall<T> bidderCall) {
+            final Set<String> requestedImpIds = bidderCall.getRequest().getImpIds();
+            if (CollectionUtils.isEmpty(requestedImpIds)) {
+                return;
+            }
+
+            final Integer statusCode = Optional.ofNullable(bidderCall.getResponse())
+                    .map(HttpResponse::getStatusCode)
+                    .orElse(null);
+
+            if (statusCode != null && statusCode == HttpResponseStatus.SERVICE_UNAVAILABLE.code()) {
+                bidRejectionTracker.rejectImps(requestedImpIds, BidRejectionReason.ERROR_BIDDER_UNREACHABLE);
+                return;
+            }
+
+            if (statusCode != null
+                    && (statusCode < HttpResponseStatus.OK.code()
+                    || statusCode >= HttpResponseStatus.BAD_REQUEST.code())) {
+
+                bidRejectionTracker.rejectImps(requestedImpIds, BidRejectionReason.ERROR_INVALID_BID_RESPONSE);
+                return;
+            }
+
             final BidderError callError = bidderCall.getError();
             final BidderError.Type callErrorType = callError != null ? callError.getType() : null;
-            final Set<String> requestedImpIds = bidderCall.getRequest().getImpIds();
-            if (callErrorType != null && CollectionUtils.isNotEmpty(requestedImpIds)) {
-                bidRejectionTracker.reject(requestedImpIds, BidRejectionReason.fromBidderError(callError));
+
+            if (callErrorType == null) {
+                return;
+            }
+
+            if (callErrorType == BidderError.Type.timeout) {
+                bidRejectionTracker.rejectImps(requestedImpIds, BidRejectionReason.ERROR_TIMED_OUT);
+            } else {
+                bidRejectionTracker.rejectImps(requestedImpIds, BidRejectionReason.ERROR_GENERAL);
             }
         }
 
@@ -391,6 +430,12 @@ public class HttpBidderRequester {
             Optional.ofNullable(bidderResponse)
                     .map(CompositeBidderResponse::getFledgeAuctionConfigs)
                     .ifPresent(fledgeRecorded::addAll);
+        }
+
+        private void handleIgis(CompositeBidderResponse bidderResponse) {
+            Optional.ofNullable(bidderResponse)
+                    .map(CompositeBidderResponse::getIgi)
+                    .ifPresent(igiRecorded::addAll);
         }
 
         BidderSeatBid toBidderSeatBid(boolean debugEnabled) {
@@ -410,6 +455,7 @@ public class HttpBidderRequester {
                     .bids(bidsRecorded)
                     .httpCalls(extHttpCalls)
                     .errors(errors)
+                    .igi(igiRecorded)
                     .fledgeAuctionConfigs(fledgeRecorded)
                     .build();
         }

@@ -13,12 +13,11 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.auction.versionconverter.OrtbVersion;
@@ -30,6 +29,7 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsa;
 import org.prebid.server.proto.openrtb.ext.request.yahooads.ExtImpYahooAds;
 
 import java.util.List;
@@ -45,23 +45,22 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.when;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
+@ExtendWith(MockitoExtension.class)
 public class YahooAdsBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
 
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
-    @Mock
+    @Mock(strictness = LENIENT)
     private BidRequestOrtbVersionConversionManager conversionManager;
 
     private YahooAdsBidder target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         when(conversionManager.convertFromAuctionSupportedVersion(any(BidRequest.class), eq(OrtbVersion.ORTB_2_5)))
                 .thenAnswer(answer -> answer.getArgument(0));
@@ -87,7 +86,7 @@ public class YahooAdsBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("imp #0: Cannot deserialize value");
+        assertThat(result.getErrors().getFirst().getMessage()).startsWith("imp #0: Cannot deserialize value");
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -280,7 +279,7 @@ public class YahooAdsBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue().get(0).getHeaders())
+        assertThat(result.getValue().getFirst().getHeaders())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(tuple("User-Agent", "UA"),
                         tuple("x-openrtb-version", "2.5"),
@@ -298,8 +297,8 @@ public class YahooAdsBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors().getFirst().getMessage()).startsWith("Failed to decode: Unrecognized token");
+        assertThat(result.getErrors().getFirst().getType()).isEqualTo(BidderError.Type.bad_server_response);
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -328,21 +327,6 @@ public class YahooAdsBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnErrorIfBidResponseSeatBidIsEmpty() throws JsonProcessingException {
-        // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
-                mapper.writeValueAsString(BidResponse.builder().seatbid(emptyList()).build()));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badServerResponse("Invalid SeatBids count: 0"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -420,13 +404,14 @@ public class YahooAdsBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldRemoveTheOpenRTB26Regs() {
         // given
+        final ExtRegsDsa dsa = ExtRegsDsa.of(2, 2, 3, emptyList());
         final BidRequest bidRequest = givenBidRequest(identity(),
                 requestBuilder -> requestBuilder.regs(Regs.builder()
                         .gdpr(1)
                         .usPrivacy("1YNN")
                         .gpp("gppconsent")
                         .gppSid(List.of(6))
-                        .ext(ExtRegs.of(null, null, "1"))
+                        .ext(ExtRegs.of(null, null, "1", dsa))
                         .build()).device(Device.builder().ua("UA").build()));
 
         // when
@@ -434,7 +419,7 @@ public class YahooAdsBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        final Regs regs = result.getValue().get(0).getPayload().getRegs();
+        final Regs regs = result.getValue().getFirst().getPayload().getRegs();
         assertThat(regs.getGdpr()).isNull();
         assertThat(regs.getUsPrivacy()).isNull();
         assertThat(regs.getGpp()).isNull();
@@ -443,6 +428,7 @@ public class YahooAdsBidderTest extends VertxTest {
         assertThat(regs.getExt().getGdpr()).isEqualTo(1);
         assertThat(regs.getExt().getUsPrivacy()).isEqualTo("1YNN");
         assertThat(regs.getExt().getGpc()).isEqualTo("1");
+        assertThat(regs.getExt().getDsa()).isEqualTo(dsa);
         assertThat(regs.getExt().getProperty("gpp").asText()).isEqualTo("gppconsent");
         assertThat(regs.getExt().getProperty("gpp_sid").get(0).asText()).isEqualTo("6");
     }
@@ -453,7 +439,7 @@ public class YahooAdsBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity(),
                 requestBuilder -> requestBuilder.regs(Regs.builder()
                         .gdpr(1)
-                        .ext(ExtRegs.of(0, "1YNN", null))
+                        .ext(ExtRegs.of(0, "1YNN", null, null))
                         .build()).device(Device.builder().ua("UA").build()));
 
         // when
@@ -461,11 +447,12 @@ public class YahooAdsBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        final Regs regs = result.getValue().get(0).getPayload().getRegs();
+        final Regs regs = result.getValue().getFirst().getPayload().getRegs();
         assertThat(regs.getGdpr()).isNull();
         assertThat(regs.getUsPrivacy()).isNull();
         assertThat(regs.getExt().getGdpr()).isEqualTo(1);
         assertThat(regs.getExt().getUsPrivacy()).isEqualTo("1YNN");
+        assertThat(regs.getExt().getDsa()).isNull();
     }
 
     private static BidRequest givenBidRequest(

@@ -17,16 +17,17 @@ jobs:
 
     strategy:
       matrix:
-        java: [ 17 ]
+        java: [ 21 ]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up JDK
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
           cache: 'maven'
+          cache-dependency-path: extra/pom.xml
           java-version: ${{ matrix.java }}
 
       - name: Build with Maven

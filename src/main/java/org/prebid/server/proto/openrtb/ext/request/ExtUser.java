@@ -2,7 +2,6 @@ package org.prebid.server.proto.openrtb.ext.request;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Eid;
 import lombok.Builder;
@@ -55,14 +54,14 @@ public class ExtUser extends FlexibleExtension {
     ObjectNode data;
 
     /**
-     * Defines the contract for bidrequest.user.ext.digitrust
-     */
-    JsonNode digitrust;
-
-    /**
      * Defines the contract for bidrequest.user.ext.ConsentedProvidersSettings
+     * <p>
+     * TODO: Remove after PBS 4.0
      */
+    @Deprecated(forRemoval = true)
     @JsonProperty("ConsentedProvidersSettings")
+    ConsentedProvidersSettings deprecatedConsentedProvidersSettings;
+
     ConsentedProvidersSettings consentedProvidersSettings;
 
     @JsonIgnore

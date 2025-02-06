@@ -1,12 +1,16 @@
 package org.prebid.server.hooks.modules.ortb2.blocking.core;
 
+import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
-import org.junit.Test;
+import com.iab.openrtb.request.Video;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.model.BlockedAttributes;
+import org.prebid.server.spring.config.bidder.model.MediaType;
 
 import java.util.List;
+import java.util.Map;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
@@ -138,10 +142,12 @@ public class RequestUpdaterTest {
     }
 
     @Test
-    public void shouldReplaceImpBattrWhenAbsent() {
+    public void shouldReplaceImpBannerBattrWhenAbsent() {
         // given
         final RequestUpdater updater = RequestUpdater.create(
-                BlockedAttributes.builder().battr(singletonMap("impId1", asList(1, 2))).build());
+                BlockedAttributes.builder()
+                        .battr(singletonMap(MediaType.BANNER, singletonMap("impId1", asList(1, 2))))
+                        .build());
         final BidRequest request = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .id("impId1")
@@ -154,6 +160,56 @@ public class RequestUpdaterTest {
                 .imp(singletonList(Imp.builder()
                         .id("impId1")
                         .banner(Banner.builder()
+                                .battr(asList(1, 2))
+                                .build())
+                        .build()))
+                .build());
+    }
+
+    @Test
+    public void shouldReplaceImpVideoBattrWhenAbsent() {
+        // given
+        final RequestUpdater updater = RequestUpdater.create(
+                BlockedAttributes.builder()
+                        .battr(singletonMap(MediaType.VIDEO, singletonMap("impId1", asList(1, 2))))
+                        .build());
+        final BidRequest request = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .id("impId1")
+                        .video(Video.builder().build())
+                        .build()))
+                .build();
+
+        // when and then
+        assertThat(updater.update(request)).isEqualTo(BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .id("impId1")
+                        .video(Video.builder()
+                                .battr(asList(1, 2))
+                                .build())
+                        .build()))
+                .build());
+    }
+
+    @Test
+    public void shouldReplaceImpAudioBattrWhenAbsent() {
+        // given
+        final RequestUpdater updater = RequestUpdater.create(
+                BlockedAttributes.builder()
+                        .battr(singletonMap(MediaType.AUDIO, singletonMap("impId1", asList(1, 2))))
+                        .build());
+        final BidRequest request = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .id("impId1")
+                        .audio(Audio.builder().build())
+                        .build()))
+                .build();
+
+        // when and then
+        assertThat(updater.update(request)).isEqualTo(BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .id("impId1")
+                        .audio(Audio.builder()
                                 .battr(asList(1, 2))
                                 .build())
                         .build()))
@@ -180,7 +236,43 @@ public class RequestUpdaterTest {
         final RequestUpdater updater = RequestUpdater.create(
                 BlockedAttributes.builder()
                         .btype(singletonMap("impId2", singletonList(1)))
-                        .battr(singletonMap("impId2", singletonList(1)))
+                        .battr(singletonMap(MediaType.BANNER, singletonMap("impId2", singletonList(1))))
+                        .build());
+        final Imp imp = Imp.builder().build();
+        final BidRequest request = BidRequest.builder()
+                .imp(singletonList(imp))
+                .build();
+
+        // when and then
+        final BidRequest updatedRequest = updater.update(request);
+        assertThat(updatedRequest.getImp()).hasSize(1);
+        assertThat(updatedRequest.getImp().get(0)).isSameAs(imp);
+    }
+
+    @Test
+    public void shouldNotChangeImpWhenNoBlockedVideoAttrForImp() {
+        // given
+        final RequestUpdater updater = RequestUpdater.create(
+                BlockedAttributes.builder()
+                        .battr(singletonMap(MediaType.VIDEO, singletonMap("impId2", singletonList(1))))
+                        .build());
+        final Imp imp = Imp.builder().build();
+        final BidRequest request = BidRequest.builder()
+                .imp(singletonList(imp))
+                .build();
+
+        // when and then
+        final BidRequest updatedRequest = updater.update(request);
+        assertThat(updatedRequest.getImp()).hasSize(1);
+        assertThat(updatedRequest.getImp().get(0)).isSameAs(imp);
+    }
+
+    @Test
+    public void shouldNotChangeImpWhenNoBlockedAudioAttrForImp() {
+        // given
+        final RequestUpdater updater = RequestUpdater.create(
+                BlockedAttributes.builder()
+                        .battr(singletonMap(MediaType.AUDIO, singletonMap("impId2", singletonList(1))))
                         .build());
         final Imp imp = Imp.builder().build();
         final BidRequest request = BidRequest.builder()
@@ -198,7 +290,7 @@ public class RequestUpdaterTest {
         // given
         final RequestUpdater updater = RequestUpdater.create(
                 BlockedAttributes.builder()
-                        .battr(singletonMap("impId1", singletonList(1)))
+                        .battr(singletonMap(MediaType.BANNER, singletonMap("impId1", singletonList(1))))
                         .build());
         final Imp imp = Imp.builder()
                 .id("impId1")
@@ -256,10 +348,18 @@ public class RequestUpdaterTest {
                         .bcat(asList("cat1", "cat2"))
                         .bapp(asList("app1", "app2"))
                         .btype(singletonMap("impId1", asList(1, 2)))
-                        .battr(singletonMap("impId1", asList(1, 2)))
+                        .battr(Map.of(
+                                MediaType.BANNER, singletonMap("impId1", asList(1, 2)),
+                                MediaType.VIDEO, singletonMap("impId1", asList(3, 4)),
+                                MediaType.AUDIO, singletonMap("impId1", asList(5, 6))))
                         .build());
         final BidRequest request = BidRequest.builder()
-                .imp(singletonList(Imp.builder().id("impId1").build()))
+                .imp(singletonList(Imp.builder()
+                        .id("impId1")
+                        .banner(Banner.builder().build())
+                        .video(Video.builder().build())
+                        .audio(Audio.builder().build())
+                        .build()))
                 .build();
 
         // when and then
@@ -273,6 +373,119 @@ public class RequestUpdaterTest {
                                 .btype(asList(1, 2))
                                 .battr(asList(1, 2))
                                 .build())
+                        .video(Video.builder().battr(asList(3, 4)).build())
+                        .audio(Audio.builder().battr(asList(5, 6)).build())
+                        .build()))
+                .build());
+    }
+
+    @Test
+    public void shouldNotUpdateMissingBanner() {
+        // given
+        final RequestUpdater updater = RequestUpdater.create(
+                BlockedAttributes.builder()
+                        .badv(asList("domain1.com", "domain2.com"))
+                        .bcat(asList("cat1", "cat2"))
+                        .bapp(asList("app1", "app2"))
+                        .btype(singletonMap("impId1", asList(1, 2)))
+                        .battr(Map.of(
+                                MediaType.BANNER, singletonMap("impId1", asList(1, 2)),
+                                MediaType.VIDEO, singletonMap("impId1", asList(3, 4)),
+                                MediaType.AUDIO, singletonMap("impId1", asList(5, 6))))
+                        .build());
+        final BidRequest request = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .id("impId1")
+                        .video(Video.builder().build())
+                        .audio(Audio.builder().build())
+                        .build()))
+                .build();
+
+        // when and then
+        assertThat(updater.update(request)).isEqualTo(BidRequest.builder()
+                .badv(asList("domain1.com", "domain2.com"))
+                .bcat(asList("cat1", "cat2"))
+                .bapp(asList("app1", "app2"))
+                .imp(singletonList(Imp.builder()
+                        .id("impId1")
+                        .video(Video.builder().battr(asList(3, 4)).build())
+                        .audio(Audio.builder().battr(asList(5, 6)).build())
+                        .build()))
+                .build());
+    }
+
+    @Test
+    public void shouldNotUpdateMissingVideo() {
+        // given
+        final RequestUpdater updater = RequestUpdater.create(
+                BlockedAttributes.builder()
+                        .badv(asList("domain1.com", "domain2.com"))
+                        .bcat(asList("cat1", "cat2"))
+                        .bapp(asList("app1", "app2"))
+                        .btype(singletonMap("impId1", asList(1, 2)))
+                        .battr(Map.of(
+                                MediaType.BANNER, singletonMap("impId1", asList(1, 2)),
+                                MediaType.VIDEO, singletonMap("impId1", asList(3, 4)),
+                                MediaType.AUDIO, singletonMap("impId1", asList(5, 6))))
+                        .build());
+        final BidRequest request = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .id("impId1")
+                        .banner(Banner.builder().build())
+                        .audio(Audio.builder().build())
+                        .build()))
+                .build();
+
+        // when and then
+        assertThat(updater.update(request)).isEqualTo(BidRequest.builder()
+                .badv(asList("domain1.com", "domain2.com"))
+                .bcat(asList("cat1", "cat2"))
+                .bapp(asList("app1", "app2"))
+                .imp(singletonList(Imp.builder()
+                        .id("impId1")
+                        .banner(Banner.builder()
+                                .btype(asList(1, 2))
+                                .battr(asList(1, 2))
+                                .build())
+                        .audio(Audio.builder().battr(asList(5, 6)).build())
+                        .build()))
+                .build());
+    }
+
+    @Test
+    public void shouldNotUpdateMissingAudio() {
+        // given
+        final RequestUpdater updater = RequestUpdater.create(
+                BlockedAttributes.builder()
+                        .badv(asList("domain1.com", "domain2.com"))
+                        .bcat(asList("cat1", "cat2"))
+                        .bapp(asList("app1", "app2"))
+                        .btype(singletonMap("impId1", asList(1, 2)))
+                        .battr(Map.of(
+                                MediaType.BANNER, singletonMap("impId1", asList(1, 2)),
+                                MediaType.VIDEO, singletonMap("impId1", asList(3, 4)),
+                                MediaType.AUDIO, singletonMap("impId1", asList(5, 6))))
+                        .build());
+        final BidRequest request = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .id("impId1")
+                        .banner(Banner.builder().build())
+                        .video(Video.builder().build())
+                        .build()))
+                .build();
+
+        // when and then
+        assertThat(updater.update(request)).isEqualTo(BidRequest.builder()
+                .badv(asList("domain1.com", "domain2.com"))
+                .bcat(asList("cat1", "cat2"))
+                .bapp(asList("app1", "app2"))
+                .imp(singletonList(Imp.builder()
+                        .id("impId1")
+                        .banner(Banner.builder()
+                                .btype(asList(1, 2))
+                                .battr(asList(1, 2))
+                                .build())
+                        .video(Video.builder().battr(asList(3, 4)).build())
                         .build()))
                 .build());
     }

@@ -13,7 +13,7 @@ import java.util.Map;
 /**
  * Represents a transaction at /openrtb2/amp endpoint.
  */
-@Builder
+@Builder(toBuilder = true)
 @Value
 public class AmpEvent {
 

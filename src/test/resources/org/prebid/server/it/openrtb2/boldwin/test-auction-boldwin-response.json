@@ -6,6 +6,7 @@
         {
           "id": "bid_id",
           "impid": "imp_id",
+          "exp": 1500,
           "price": 1.25,
           "adm": "adm001",
           "crid": "crid",
@@ -16,7 +17,8 @@
               "type": "video"
             },
             "origbidcpm": 1.25
-          }
+          },
+          "mtype": 2
         }
       ],
       "seat": "boldwin",

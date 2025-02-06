@@ -4,9 +4,12 @@ import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.db.StoredResponse
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
+import org.prebid.server.functional.model.request.auction.ConsentedProvidersSettings
 import org.prebid.server.functional.model.request.auction.DistributionChannel
 import org.prebid.server.functional.model.request.auction.Site
 import org.prebid.server.functional.model.request.auction.StoredAuctionResponse
+import org.prebid.server.functional.model.request.auction.User
+import org.prebid.server.functional.model.request.auction.UserExt
 import org.prebid.server.functional.model.response.auction.SeatBid
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
@@ -29,7 +32,7 @@ class AmpSpec extends BaseSpec {
         def response = defaultPbsService.sendAmpRequestRaw(ampRequest)
 
         then: "Response header should contain PBS version"
-        assert response.headers["x-prebid"] == "pbs-java/$PBS_VERSION"
+        assert response.headers["x-prebid"] == ["pbs-java/$PBS_VERSION"]
 
         where:
         ampRequest                   || description
@@ -56,7 +59,7 @@ class AmpSpec extends BaseSpec {
         assert exception.responseBody == "Invalid request format: request.${channel.value.toLowerCase()} must not exist in AMP stored requests."
 
         where:
-        channel  << [DistributionChannel.APP, DistributionChannel.DOOH]
+        channel << [DistributionChannel.APP, DistributionChannel.DOOH]
     }
 
     def "PBS should return info from the stored response when it's defined in the stored request"() {
@@ -84,7 +87,7 @@ class AmpSpec extends BaseSpec {
         then: "Response should contain information from stored response"
         def price = storedAuctionResponse.bid[0].price
         assert response.targeting["hb_pb"] == getRoundedTargetingValueWithDefaultPrecision(price)
-        assert response.targeting["hb_size"] == "${storedAuctionResponse.bid[0].w}x${storedAuctionResponse.bid[0].h}"
+        assert response.targeting["hb_size"] == "${storedAuctionResponse.bid[0].weight}x${storedAuctionResponse.bid[0].height}"
 
         and: "PBS not send request to bidder"
         assert bidder.getRequestCount(ampStoredRequest.id) == 0
@@ -107,7 +110,7 @@ class AmpSpec extends BaseSpec {
 
         and: "Default stored request with specified: gdpr, debug"
         def ampStoredRequest = BidRequest.defaultStoredRequest
-        ampStoredRequest.regs.ext.gdpr = 1
+        ampStoredRequest.regs.gdpr = 1
 
         and: "Stored request in DB"
         def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
@@ -122,8 +125,8 @@ class AmpSpec extends BaseSpec {
         assert bidderRequest.site?.page == ampRequest.curl
         assert bidderRequest.site?.publisher?.id == ampRequest.account.toString()
         assert bidderRequest.imp[0]?.tagId == ampRequest.slot
-        assert bidderRequest.imp[0]?.banner?.format*.h == [ampRequest.h, msH]
-        assert bidderRequest.imp[0]?.banner?.format*.w == [ampRequest.w, msW]
+        assert bidderRequest.imp[0]?.banner?.format*.height == [ampRequest.h, msH]
+        assert bidderRequest.imp[0]?.banner?.format*.weight == [ampRequest.w, msW]
         assert bidderRequest.regs?.gdpr == (ampRequest.gdprApplies ? 1 : 0)
     }
 
@@ -150,8 +153,8 @@ class AmpSpec extends BaseSpec {
         then: "Bidder request should contain parameters from request"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
 
-        assert bidderRequest.imp[0]?.banner?.format*.h == [ampRequest.oh]
-        assert bidderRequest.imp[0]?.banner?.format*.w == [ampRequest.ow]
+        assert bidderRequest.imp[0]?.banner?.format*.height == [ampRequest.oh]
+        assert bidderRequest.imp[0]?.banner?.format*.weight == [ampRequest.ow]
     }
 
     def "PBS should take parameters from the stored request when it's not specified in the request"() {
@@ -176,8 +179,83 @@ class AmpSpec extends BaseSpec {
         assert bidderRequest.site?.page == ampStoredRequest.site.page
         assert bidderRequest.site?.publisher?.id == ampStoredRequest.site.publisher.id
         assert !bidderRequest.imp[0]?.tagId
-        assert bidderRequest.imp[0]?.banner?.format[0]?.h == ampStoredRequest.imp[0].banner.format[0].h
-        assert bidderRequest.imp[0]?.banner?.format[0]?.w == ampStoredRequest.imp[0].banner.format[0].w
-        assert bidderRequest.regs?.gdpr == ampStoredRequest.regs.ext.gdpr
+        assert bidderRequest.imp[0]?.banner?.format[0]?.height == ampStoredRequest.imp[0].banner.format[0].height
+        assert bidderRequest.imp[0]?.banner?.format[0]?.weight == ampStoredRequest.imp[0].banner.format[0].weight
+        assert bidderRequest.regs?.gdpr == ampStoredRequest.regs.gdpr
+    }
+
+    def "PBS should pass addtl_consent to user.ext.{consented_providers_settings/ConsentedProvidersSettings}.consented_providers"() {
+        given: "Default amp request with addtlConsent"
+        def randomAddtlConsent = PBSUtils.randomString
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            addtlConsent = randomAddtlConsent
+        }
+
+        and: "Save storedRequest into DB"
+        def ampStoredRequest = BidRequest.defaultBidRequest.tap {
+            user = new User(ext: new UserExt(
+                    consentedProvidersSettingsCamelCase: new ConsentedProvidersSettings(consentedProviders: PBSUtils.randomString),
+                    consentedProvidersSettings: new ConsentedProvidersSettings(consentedProviders: PBSUtils.randomString)))
+        }
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        defaultPbsService.sendAmpRequest(ampRequest)
+
+        then: "Bidder request should contain addtl consent"
+        def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
+        assert bidderRequest.user.ext.consentedProvidersSettingsCamelCase.consentedProviders == randomAddtlConsent
+        assert bidderRequest.user.ext.consentedProvidersSettings.consentedProviders == randomAddtlConsent
+    }
+
+    def "PBS should process original user.ext.{consented_providers_settings/ConsentedProvidersSettings}.consented_providers when ampRequest doesn't contain addtl_consent"() {
+        given: "Default amp request with addtlConsent"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            addtlConsent = null
+        }
+
+        and: "Save storedRequest into DB"
+        def consentProvidersKebabCase = PBSUtils.randomString
+        def consentProviders = PBSUtils.randomString
+        def ampStoredRequest = BidRequest.defaultBidRequest.tap {
+            user = new User(ext: new UserExt(
+                    consentedProvidersSettingsCamelCase: new ConsentedProvidersSettings(consentedProviders: consentProvidersKebabCase),
+                    consentedProvidersSettings: new ConsentedProvidersSettings(consentedProviders: consentProviders)))
+        }
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        defaultPbsService.sendAmpRequest(ampRequest)
+
+        then: "Bidder request should contain requested consent"
+        def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
+        assert bidderRequest.user.ext.consentedProvidersSettingsCamelCase.consentedProviders == consentProvidersKebabCase
+        assert bidderRequest.user.ext.consentedProvidersSettings.consentedProviders == consentProviders
+    }
+
+    def "PBS should left user.ext.{consented_providers_settings/ConsentedProvidersSettings}.consented_providers empty when addtl_consent and original fields are empty"() {
+        given: "Default amp request with addtlConsent"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            addtlConsent = null
+        }
+
+        and: "Save storedRequest into DB"
+        def ampStoredRequest = BidRequest.defaultBidRequest.tap {
+            user = new User(ext: new UserExt(
+                    consentedProvidersSettingsCamelCase: new ConsentedProvidersSettings(consentedProviders: null),
+                    consentedProvidersSettings: new ConsentedProvidersSettings(consentedProviders: null)))
+        }
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        defaultPbsService.sendAmpRequest(ampRequest)
+
+        then: "Bidder request shouldn't contain consent"
+        def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
+        assert !bidderRequest.user.ext.consentedProvidersSettingsCamelCase.consentedProviders
+        assert !bidderRequest.user.ext.consentedProvidersSettings.consentedProviders
     }
 }

@@ -8,9 +8,26 @@
           "mimes"
         ],
         "w": 300,
-        "h": 250
+        "h": 250,
+        "placement": 1
       },
       "ext": {
+        "prebid": {
+          "imp": {
+            "generic": {
+              "pmp": {
+                "deals": [
+                  {
+                    "id": "dealId"
+                  }
+                ]
+              },
+              "ext": {
+                "someExt": "someExt"
+              }
+            }
+          }
+        },
         "generic": {
           "accountId": 2001,
           "siteId": 3001,
@@ -72,7 +89,27 @@
       7
     ],
     "ext": {
-      "gdpr": 0
+      "gdpr": 0,
+      "dsa": {
+        "dsarequired": 1,
+        "pubrender": 0,
+        "datatopub": 2,
+        "transparency": [
+          {
+            "domain": "platform1domain.com",
+            "dsaparams": [
+              1
+            ]
+          },
+          {
+            "domain": "SSP2domain.com",
+            "dsaparams": [
+              1,
+              2
+            ]
+          }
+        ]
+      }
     }
   }
 }

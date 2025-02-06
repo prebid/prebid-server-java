@@ -1,10 +1,9 @@
 package org.prebid.server.auction;
 
 import com.iab.openrtb.response.Bid;
-import org.junit.Rule;
-import org.junit.Test;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 
@@ -20,10 +19,9 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 
+@ExtendWith(MockitoExtension.class)
 public class TargetingKeywordsCreatorTest {
 
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
     private final String defaultKeyPrefix = "hb";
 
     @Test
@@ -41,7 +39,7 @@ public class TargetingKeywordsCreatorTest {
                         true,
                         false,
                         false,
-                        false,
+                        null,
                         0,
                         null,
                         null,
@@ -72,7 +70,7 @@ public class TargetingKeywordsCreatorTest {
                         true,
                         false,
                         false,
-                        false,
+                        null,
                         0,
                         null,
                         null,
@@ -107,7 +105,7 @@ public class TargetingKeywordsCreatorTest {
                         true,
                         false,
                         true,
-                        false,
+                        null,
                         0,
                         null,
                         null,
@@ -150,7 +148,7 @@ public class TargetingKeywordsCreatorTest {
                         true,
                         false,
                         true,
-                        false,
+                        null,
                         0,
                         null,
                         null,
@@ -176,7 +174,7 @@ public class TargetingKeywordsCreatorTest {
                         true,
                         false,
                         false,
-                        false,
+                        null,
                         0,
                         null,
                         null,
@@ -203,7 +201,7 @@ public class TargetingKeywordsCreatorTest {
                         true,
                         false,
                         false,
-                        true,
+                        "mobile-app",
                         0,
                         null,
                         null,
@@ -231,7 +229,7 @@ public class TargetingKeywordsCreatorTest {
                         true,
                         false,
                         false,
-                        false,
+                        null,
                         0,
                         null,
                         null,
@@ -257,7 +255,7 @@ public class TargetingKeywordsCreatorTest {
                         true,
                         false,
                         false,
-                        false,
+                        null,
                         0,
                         null,
                         null,
@@ -283,7 +281,7 @@ public class TargetingKeywordsCreatorTest {
                         false,
                         false,
                         false,
-                        false,
+                        null,
                         0,
                         null,
                         null,
@@ -309,7 +307,7 @@ public class TargetingKeywordsCreatorTest {
                         true,
                         false,
                         false,
-                        false,
+                        null,
                         0,
                         null,
                         null,
@@ -335,7 +333,7 @@ public class TargetingKeywordsCreatorTest {
                         true,
                         false,
                         false,
-                        false,
+                        null,
                         20,
                         null,
                         null,
@@ -362,7 +360,7 @@ public class TargetingKeywordsCreatorTest {
                         false,
                         false,
                         false,
-                        false,
+                        null,
                         7,
                         null,
                         null,
@@ -389,7 +387,7 @@ public class TargetingKeywordsCreatorTest {
                         true,
                         false,
                         true,
-                        true,
+                        "mobile-app",
                         6,
                         null,
                         null,
@@ -417,7 +415,7 @@ public class TargetingKeywordsCreatorTest {
                         true,
                         false,
                         false,
-                        false,
+                        null,
                         0,
                         null,
                         null,
@@ -450,7 +448,7 @@ public class TargetingKeywordsCreatorTest {
                         true,
                         false,
                         false,
-                        false,
+                        null,
                         20,
                         null,
                         null,
@@ -482,7 +480,7 @@ public class TargetingKeywordsCreatorTest {
                         true,
                         false,
                         false,
-                        false,
+                        null,
                         0,
                         null,
                         null,
@@ -508,7 +506,7 @@ public class TargetingKeywordsCreatorTest {
                         false,
                         true,
                         false,
-                        false,
+                        null,
                         0,
                         null,
                         null,
@@ -534,7 +532,7 @@ public class TargetingKeywordsCreatorTest {
                         false,
                         false,
                         false,
-                        false,
+                        null,
                         0,
                         null,
                         null,

@@ -2,27 +2,28 @@ package org.prebid.server.hooks.execution;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
+import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import io.vertx.ext.unit.Async;
-import io.vertx.ext.unit.TestContext;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
+import io.vertx.junit5.Checkpoint;
+import io.vertx.junit5.VertxExtension;
+import io.vertx.junit5.VertxTestContext;
 import lombok.Value;
 import lombok.experimental.NonFinal;
 import org.apache.commons.lang3.StringUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderRequest;
@@ -30,7 +31,8 @@ import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderSeatBid;
-import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.execution.timeout.TimeoutFactory;
+import org.prebid.server.hooks.execution.model.ABTest;
 import org.prebid.server.hooks.execution.model.EndpointExecutionPlan;
 import org.prebid.server.hooks.execution.model.ExecutionAction;
 import org.prebid.server.hooks.execution.model.ExecutionGroup;
@@ -45,21 +47,23 @@ import org.prebid.server.hooks.execution.model.Stage;
 import org.prebid.server.hooks.execution.model.StageExecutionOutcome;
 import org.prebid.server.hooks.execution.model.StageExecutionPlan;
 import org.prebid.server.hooks.execution.model.StageWithHookType;
+import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
+import org.prebid.server.hooks.execution.v1.analytics.ActivityImpl;
+import org.prebid.server.hooks.execution.v1.analytics.AppliedToImpl;
+import org.prebid.server.hooks.execution.v1.analytics.ResultImpl;
+import org.prebid.server.hooks.execution.v1.analytics.TagsImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionResponsePayloadImpl;
 import org.prebid.server.hooks.execution.v1.bidder.AllProcessedBidResponsesPayloadImpl;
 import org.prebid.server.hooks.execution.v1.bidder.BidderRequestPayloadImpl;
 import org.prebid.server.hooks.execution.v1.bidder.BidderResponsePayloadImpl;
 import org.prebid.server.hooks.execution.v1.entrypoint.EntrypointPayloadImpl;
+import org.prebid.server.hooks.execution.v1.exitpoint.ExitpointPayloadImpl;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationContext;
 import org.prebid.server.hooks.v1.InvocationResult;
-import org.prebid.server.hooks.v1.InvocationResultImpl;
+import org.prebid.server.hooks.v1.InvocationResultUtils;
 import org.prebid.server.hooks.v1.InvocationStatus;
-import org.prebid.server.hooks.v1.analytics.ActivityImpl;
-import org.prebid.server.hooks.v1.analytics.AppliedToImpl;
-import org.prebid.server.hooks.v1.analytics.ResultImpl;
-import org.prebid.server.hooks.v1.analytics.TagsImpl;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.AuctionResponseHook;
@@ -76,14 +80,18 @@ import org.prebid.server.hooks.v1.bidder.ProcessedBidderResponseHook;
 import org.prebid.server.hooks.v1.bidder.RawBidderResponseHook;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointHook;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointPayload;
+import org.prebid.server.hooks.v1.exitpoint.ExitpointHook;
+import org.prebid.server.hooks.v1.exitpoint.ExitpointPayload;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountHooksConfiguration;
+import org.prebid.server.settings.model.HooksAdminConfig;
 
 import java.time.Clock;
 import java.time.ZoneOffset;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -94,43 +102,43 @@ import java.util.function.UnaryOperator;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
+import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.entry;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.prebid.server.assertion.FutureAssertion.assertThat;
 import static org.prebid.server.hooks.v1.PayloadUpdate.identity;
 
-@RunWith(VertxUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
+@ExtendWith(VertxExtension.class)
 public class HookStageExecutorTest extends VertxTest {
 
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
-    @Mock
+    @Mock(strictness = LENIENT)
     private HookCatalog hookCatalog;
     private TimeoutFactory timeoutFactory;
     private Vertx vertx;
     private Clock clock;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         vertx = Vertx.vertx();
         clock = Clock.systemUTC();
         timeoutFactory = new TimeoutFactory(Clock.fixed(clock.instant(), ZoneOffset.UTC));
     }
 
-    @After
-    public void tearDown(TestContext context) {
-        vertx.close(context.asyncAssertSuccess());
+    @AfterEach
+    public void tearDown(VertxTestContext context) {
+        vertx.close(context.succeedingThenComplete());
     }
 
     @Test
@@ -152,10 +160,10 @@ public class HookStageExecutorTest extends VertxTest {
                                                 HookId.of("module-alpha", "hook-a"),
                                                 HookId.of("module-beta", "hook-a")))))))));
 
-        given(hookCatalog.hookById(eq("module-alpha"), eq("hook-a"), eq(StageWithHookType.ENTRYPOINT)))
-                .willReturn(null);
+        given(hookCatalog.hookById(eqHook("module-alpha", "hook-a"), eq(StageWithHookType.ENTRYPOINT)))
+                .willThrow(new IllegalArgumentException("Exception."));
 
-        givenEntrypointHook("module-beta", "hook-a", immediateHook(InvocationResultImpl.noAction()));
+        givenEntrypointHook("module-beta", "hook-a", immediateHook(InvocationResultUtils.noAction()));
 
         assertThatThrownBy(() -> createExecutor(hostPlan))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -175,10 +183,10 @@ public class HookStageExecutorTest extends VertxTest {
                                                 HookId.of("module-alpha", "hook-a"),
                                                 HookId.of("module-beta", "hook-a")))))))));
 
-        given(hookCatalog.hookById(eq("module-alpha"), eq("hook-a"), eq(StageWithHookType.ENTRYPOINT)))
-                .willReturn(null);
+        given(hookCatalog.hookById(eqHook("module-alpha", "hook-a"), eq(StageWithHookType.ENTRYPOINT)))
+                .willThrow(new IllegalArgumentException("Exception."));
 
-        givenEntrypointHook("module-beta", "hook-a", immediateHook(InvocationResultImpl.noAction()));
+        givenEntrypointHook("module-beta", "hook-a", immediateHook(InvocationResultUtils.noAction()));
 
         assertThatThrownBy(() -> createExecutor(null, defaultAccountPlan))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -231,12 +239,12 @@ public class HookStageExecutorTest extends VertxTest {
     }
 
     @Test
-    public void shouldExecuteEntrypointHooksHappyPath(TestContext context) {
+    public void shouldExecuteEntrypointHooksHappyPath(VertxTestContext context) {
         // given
         givenEntrypointHook(
                 "module-alpha",
                 "hook-a",
-                immediateHook(InvocationResultImpl.succeeded(
+                immediateHook(InvocationResultUtils.succeeded(
                         payload -> EntrypointPayloadImpl.of(
                                 payload.queryParams(), payload.headers(), payload.body() + "-abc"),
                         "moduleAlphaContext")));
@@ -244,19 +252,19 @@ public class HookStageExecutorTest extends VertxTest {
         givenEntrypointHook(
                 "module-alpha",
                 "hook-b",
-                delayedHook(InvocationResultImpl.succeeded(payload -> EntrypointPayloadImpl.of(
+                delayedHook(InvocationResultUtils.succeeded(payload -> EntrypointPayloadImpl.of(
                         payload.queryParams(), payload.headers(), payload.body() + "-def")), 40));
 
         givenEntrypointHook(
                 "module-beta",
                 "hook-a",
-                delayedHook(InvocationResultImpl.succeeded(payload -> EntrypointPayloadImpl.of(
+                delayedHook(InvocationResultUtils.succeeded(payload -> EntrypointPayloadImpl.of(
                         payload.queryParams(), payload.headers(), payload.body() + "-ghi")), 80));
 
         givenEntrypointHook(
                 "module-beta",
                 "hook-b",
-                immediateHook(InvocationResultImpl.succeeded(
+                immediateHook(InvocationResultUtils.succeeded(
                         payload -> EntrypointPayloadImpl.of(
                                 payload.queryParams(), payload.headers(), payload.body() + "-jkl"),
                         "moduleBetaContext")));
@@ -276,8 +284,7 @@ public class HookStageExecutorTest extends VertxTest {
                 hookExecutionContext);
 
         // then
-        final Async async = context.async();
-        future.onComplete(context.asyncAssertSuccess(result -> {
+        future.onComplete(context.succeeding(result -> {
             assertThat(result).isNotNull();
             assertThat(result.isShouldReject()).isFalse();
             assertThat(result.getPayload()).isNotNull().satisfies(payload ->
@@ -295,7 +302,7 @@ public class HookStageExecutorTest extends VertxTest {
                                         final List<GroupExecutionOutcome> groups = stageOutcome.getGroups();
                                         assertThat(groups).hasSize(2);
 
-                                        final List<HookExecutionOutcome> group0Hooks = groups.get(0).getHooks();
+                                        final List<HookExecutionOutcome> group0Hooks = groups.getFirst().getHooks();
                                         assertThat(group0Hooks).hasSize(2);
 
                                         assertThat(group0Hooks.get(0)).satisfies(hookOutcome -> {
@@ -339,14 +346,12 @@ public class HookStageExecutorTest extends VertxTest {
             expectedModuleContexts.put("module-beta", "moduleBetaContext");
             assertThat(hookExecutionContext.getModuleContexts()).containsExactlyEntriesOf(expectedModuleContexts);
 
-            async.complete();
+            context.completeNow();
         }));
-
-        async.awaitSuccess();
     }
 
     @Test
-    public void shouldBypassEntrypointHooksWhenNoPlanForEndpoint(TestContext context) {
+    public void shouldBypassEntrypointHooksWhenNoPlanForEndpoint(VertxTestContext context) {
         // given
         final HookStageExecutor executor = createExecutor(
                 executionPlan(emptyMap()));
@@ -361,8 +366,7 @@ public class HookStageExecutorTest extends VertxTest {
                 hookExecutionContext);
 
         // then
-        final Async async = context.async();
-        future.onComplete(context.asyncAssertSuccess(result -> {
+        future.onComplete(context.succeeding(result -> {
             assertThat(result.getPayload()).satisfies(payload ->
                     assertThat(payload.body()).isEqualTo("body"));
 
@@ -372,14 +376,12 @@ public class HookStageExecutorTest extends VertxTest {
                             Stage.entrypoint,
                             singletonList(StageExecutionOutcome.of("http-request", emptyList())));
 
-            async.complete();
+            context.completeNow();
         }));
-
-        async.awaitSuccess();
     }
 
     @Test
-    public void shouldBypassEntrypointHooksWhenNoPlanForStage(TestContext context) {
+    public void shouldBypassEntrypointHooksWhenNoPlanForStage(VertxTestContext context) {
         // given
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
@@ -396,8 +398,7 @@ public class HookStageExecutorTest extends VertxTest {
                 hookExecutionContext);
 
         // then
-        final Async async = context.async();
-        future.onComplete(context.asyncAssertSuccess(result -> {
+        future.onComplete(context.succeeding(result -> {
             assertThat(result.getPayload()).satisfies(payload ->
                     assertThat(payload.body()).isEqualTo("body"));
 
@@ -407,14 +408,76 @@ public class HookStageExecutorTest extends VertxTest {
                             Stage.entrypoint,
                             singletonList(StageExecutionOutcome.of("http-request", emptyList())));
 
-            async.complete();
+            context.completeNow();
         }));
-
-        async.awaitSuccess();
     }
 
     @Test
-    public void shouldExecuteEntrypointHooksToleratingMisbehavingHooks(TestContext context) {
+    public void shouldBypassEntrypointHooksThatAreDisabled(VertxTestContext context) {
+        // given
+        givenEntrypointHook(
+                "module-alpha",
+                "hook-a",
+                immediateHook(InvocationResultUtils.succeeded(
+                        payload -> EntrypointPayloadImpl.of(
+                                payload.queryParams(), payload.headers(), payload.body() + "-abc"),
+                        "moduleAlphaContext")));
+
+        givenEntrypointHook(
+                "module-alpha",
+                "hook-b",
+                delayedHook(InvocationResultUtils.succeeded(payload -> EntrypointPayloadImpl.of(
+                        payload.queryParams(), payload.headers(), payload.body() + "-def")), 40));
+
+        givenEntrypointHook(
+                "module-beta",
+                "hook-a",
+                delayedHook(InvocationResultUtils.succeeded(payload -> EntrypointPayloadImpl.of(
+                        payload.queryParams(), payload.headers(), payload.body() + "-ghi")), 80));
+
+        givenEntrypointHook(
+                "module-beta",
+                "hook-b",
+                immediateHook(InvocationResultUtils.succeeded(
+                        payload -> EntrypointPayloadImpl.of(
+                                payload.queryParams(), payload.headers(), payload.body() + "-jkl"),
+                        "moduleBetaContext")));
+
+        final HookStageExecutor executor = HookStageExecutor.create(
+                executionPlan(singletonMap(
+                        Endpoint.openrtb2_auction,
+                        EndpointExecutionPlan.of(singletonMap(Stage.entrypoint, execPlanTwoGroupsTwoHooksEach())))),
+                null,
+                Map.of("module-alpha", false),
+                hookCatalog,
+                timeoutFactory,
+                vertx,
+                clock,
+                jacksonMapper,
+                false);
+
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+
+        // when
+        final Future<HookStageExecutionResult<EntrypointPayload>> future = executor.executeEntrypointStage(
+                CaseInsensitiveMultiMap.empty(),
+                CaseInsensitiveMultiMap.empty(),
+                "body",
+                hookExecutionContext);
+
+        // then
+        future.onComplete(context.succeeding(result -> {
+            assertThat(result).isNotNull();
+            assertThat(result.isShouldReject()).isFalse();
+            assertThat(result.getPayload()).isNotNull().satisfies(payload ->
+                    assertThat(payload.body()).isEqualTo("body-ghi-jkl"));
+
+            context.completeNow();
+        }));
+    }
+
+    @Test
+    public void shouldExecuteEntrypointHooksToleratingMisbehavingHooks(VertxTestContext context) {
         // given
         // hook implementation returns null
         givenEntrypointHook(
@@ -439,7 +502,7 @@ public class HookStageExecutorTest extends VertxTest {
         givenEntrypointHook(
                 "module-beta",
                 "hook-b",
-                immediateHook(InvocationResultImpl.succeeded(payload -> EntrypointPayloadImpl.of(
+                immediateHook(InvocationResultUtils.succeeded(payload -> EntrypointPayloadImpl.of(
                         payload.queryParams(), payload.headers(), payload.body() + "-jkl"))));
 
         final HookStageExecutor executor = createExecutor(
@@ -457,8 +520,7 @@ public class HookStageExecutorTest extends VertxTest {
                 hookExecutionContext);
 
         // then
-        final Async async = context.async();
-        future.onComplete(context.asyncAssertSuccess(result -> {
+        future.onComplete(context.succeeding(result -> {
             assertThat(result).isNotNull();
             assertThat(result.getPayload()).isNotNull().satisfies(payload ->
                     assertThat(payload.body()).isEqualTo("body-jkl"));
@@ -473,7 +535,7 @@ public class HookStageExecutorTest extends VertxTest {
 
                                         final List<GroupExecutionOutcome> groups = stageOutcome.getGroups();
 
-                                        final List<HookExecutionOutcome> group0Hooks = groups.get(0).getHooks();
+                                        final List<HookExecutionOutcome> group0Hooks = groups.getFirst().getHooks();
                                         assertThat(group0Hooks.get(0)).satisfies(hookOutcome -> {
                                             assertThat(hookOutcome.getHookId())
                                                     .isEqualTo(HookId.of("module-alpha", "hook-a"));
@@ -514,14 +576,12 @@ public class HookStageExecutorTest extends VertxTest {
                                         });
                                     }));
 
-            async.complete();
+            context.completeNow();
         }));
-
-        async.awaitSuccess();
     }
 
     @Test
-    public void shouldExecuteEntrypointHooksToleratingTimeoutAndFailedFuture(TestContext context) {
+    public void shouldExecuteEntrypointHooksToleratingTimeoutAndFailedFuture(VertxTestContext context) {
         // given
         // hook implementation returns future failing after a while
         givenEntrypointHook(
@@ -538,7 +598,7 @@ public class HookStageExecutorTest extends VertxTest {
                 "module-alpha",
                 "hook-b",
                 delayedHook(
-                        InvocationResultImpl.succeeded(payload -> EntrypointPayloadImpl.of(
+                        InvocationResultUtils.succeeded(payload -> EntrypointPayloadImpl.of(
                                 payload.queryParams(), payload.headers(), payload.body() + "-def")),
                         250));
 
@@ -547,14 +607,14 @@ public class HookStageExecutorTest extends VertxTest {
                 "module-beta",
                 "hook-a",
                 delayedHook(
-                        InvocationResultImpl.succeeded(payload -> EntrypointPayloadImpl.of(
+                        InvocationResultUtils.succeeded(payload -> EntrypointPayloadImpl.of(
                                 payload.queryParams(), payload.headers(), payload.body() + "-ghi")),
                         250));
 
         givenEntrypointHook(
                 "module-beta",
                 "hook-b",
-                immediateHook(InvocationResultImpl.succeeded(payload -> EntrypointPayloadImpl.of(
+                immediateHook(InvocationResultUtils.succeeded(payload -> EntrypointPayloadImpl.of(
                         payload.queryParams(), payload.headers(), payload.body() + "-jkl"))));
 
         final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
@@ -572,8 +632,7 @@ public class HookStageExecutorTest extends VertxTest {
                 hookExecutionContext);
 
         // then
-        final Async async = context.async();
-        future.onComplete(context.asyncAssertSuccess(result -> {
+        future.onComplete(context.succeeding(result -> {
             assertThat(result).isNotNull();
             assertThat(result.getPayload()).isNotNull().satisfies(payload ->
                     assertThat(payload.body()).isEqualTo("body-jkl"));
@@ -588,7 +647,7 @@ public class HookStageExecutorTest extends VertxTest {
 
                                         final List<GroupExecutionOutcome> groups = stageOutcome.getGroups();
 
-                                        final List<HookExecutionOutcome> group0Hooks = groups.get(0).getHooks();
+                                        final List<HookExecutionOutcome> group0Hooks = groups.getFirst().getHooks();
                                         assertThat(group0Hooks.get(0)).satisfies(hookOutcome -> {
                                             assertThat(hookOutcome.getHookId())
                                                     .isEqualTo(HookId.of("module-alpha", "hook-a"));
@@ -628,35 +687,33 @@ public class HookStageExecutorTest extends VertxTest {
                                         });
                                     }));
 
-            async.complete();
+            context.completeNow();
         }));
-
-        async.awaitSuccess();
     }
 
     @Test
-    public void shouldExecuteEntrypointHooksHonoringStatusAndAction(TestContext context) {
+    public void shouldExecuteEntrypointHooksHonoringStatusAndAction(VertxTestContext context) {
         // given
         givenEntrypointHook(
                 "module-alpha",
                 "hook-a",
-                immediateHook(InvocationResultImpl.failed("Failed to contact service ACME")));
+                immediateHook(InvocationResultUtils.failed("Failed to contact service ACME")));
 
         givenEntrypointHook(
                 "module-alpha",
                 "hook-b",
-                immediateHook(InvocationResultImpl.noAction()));
+                immediateHook(InvocationResultUtils.noAction()));
 
         givenEntrypointHook(
                 "module-beta",
                 "hook-a",
-                immediateHook(InvocationResultImpl.succeeded(payload -> EntrypointPayloadImpl.of(
+                immediateHook(InvocationResultUtils.succeeded(payload -> EntrypointPayloadImpl.of(
                         payload.queryParams(), payload.headers(), payload.body() + "-ghi"))));
 
         givenEntrypointHook(
                 "module-beta",
                 "hook-b",
-                immediateHook(InvocationResultImpl.succeeded(payload -> EntrypointPayloadImpl.of(
+                immediateHook(InvocationResultUtils.succeeded(payload -> EntrypointPayloadImpl.of(
                         payload.queryParams(), payload.headers(), payload.body() + "-jkl"))));
 
         final HookStageExecutor executor = createExecutor(
@@ -674,8 +731,7 @@ public class HookStageExecutorTest extends VertxTest {
                 hookExecutionContext);
 
         // then
-        final Async async = context.async();
-        future.onComplete(context.asyncAssertSuccess(result -> {
+        future.onComplete(context.succeeding(result -> {
             assertThat(result.getPayload()).satisfies(payload ->
                     assertThat(payload.body()).isEqualTo("body-ghi-jkl"));
 
@@ -689,7 +745,7 @@ public class HookStageExecutorTest extends VertxTest {
 
                                         final List<GroupExecutionOutcome> groups = stageOutcome.getGroups();
 
-                                        final List<HookExecutionOutcome> group0Hooks = groups.get(0).getHooks();
+                                        final List<HookExecutionOutcome> group0Hooks = groups.getFirst().getHooks();
                                         assertThat(group0Hooks.get(0)).satisfies(hookOutcome -> {
                                             assertThat(hookOutcome.getHookId())
                                                     .isEqualTo(HookId.of("module-alpha", "hook-a"));
@@ -723,25 +779,23 @@ public class HookStageExecutorTest extends VertxTest {
                                         });
                                     }));
 
-            async.complete();
+            context.completeNow();
         }));
-
-        async.awaitSuccess();
     }
 
     @Test
-    public void shouldExecuteEntrypointHooksWhenRequestIsRejectedByFirstGroup(TestContext context) {
+    public void shouldExecuteEntrypointHooksWhenRequestIsRejectedByFirstGroup(VertxTestContext context) {
         // given
         givenEntrypointHook(
                 "module-alpha",
                 "hook-a",
-                immediateHook(InvocationResultImpl.succeeded(payload -> EntrypointPayloadImpl.of(
+                immediateHook(InvocationResultUtils.succeeded(payload -> EntrypointPayloadImpl.of(
                         payload.queryParams(), payload.headers(), payload.body() + "-abc"))));
 
         givenEntrypointHook(
                 "module-beta",
                 "hook-a",
-                immediateHook(InvocationResultImpl.rejected("Request is of low quality")));
+                immediateHook(InvocationResultUtils.rejected("Request is of low quality")));
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
@@ -765,8 +819,7 @@ public class HookStageExecutorTest extends VertxTest {
                 hookExecutionContext);
 
         // then
-        final Async async = context.async();
-        future.onComplete(context.asyncAssertSuccess(result -> {
+        future.onComplete(context.succeeding(result -> {
             assertThat(result.isShouldReject()).isTrue();
             assertThat(result.getPayload()).isNull();
 
@@ -781,7 +834,7 @@ public class HookStageExecutorTest extends VertxTest {
                                         final List<GroupExecutionOutcome> groups = stageOutcome.getGroups();
                                         assertThat(groups).hasSize(1);
 
-                                        final List<HookExecutionOutcome> group0Hooks = groups.get(0).getHooks();
+                                        final List<HookExecutionOutcome> group0Hooks = groups.getFirst().getHooks();
                                         assertThat(group0Hooks.get(0)).satisfies(hookOutcome -> {
                                             assertThat(hookOutcome.getHookId())
                                                     .isEqualTo(HookId.of("module-alpha", "hook-a"));
@@ -798,36 +851,34 @@ public class HookStageExecutorTest extends VertxTest {
                                         });
                                     }));
 
-            async.complete();
+            context.completeNow();
         }));
-
-        async.awaitSuccess();
     }
 
     @Test
-    public void shouldExecuteEntrypointHooksWhenRequestIsRejectedBySecondGroup(TestContext context) {
+    public void shouldExecuteEntrypointHooksWhenRequestIsRejectedBySecondGroup(VertxTestContext context) {
         // given
         givenEntrypointHook(
                 "module-alpha",
                 "hook-a",
-                immediateHook(InvocationResultImpl.succeeded(payload -> EntrypointPayloadImpl.of(
+                immediateHook(InvocationResultUtils.succeeded(payload -> EntrypointPayloadImpl.of(
                         payload.queryParams(), payload.headers(), payload.body() + "-abc"))));
 
         givenEntrypointHook(
                 "module-alpha",
                 "hook-b",
-                immediateHook(InvocationResultImpl.rejected("Request is of low quality")));
+                immediateHook(InvocationResultUtils.rejected("Request is of low quality")));
 
         givenEntrypointHook(
                 "module-beta",
                 "hook-a",
-                immediateHook(InvocationResultImpl.succeeded(payload -> EntrypointPayloadImpl.of(
+                immediateHook(InvocationResultUtils.succeeded(payload -> EntrypointPayloadImpl.of(
                         payload.queryParams(), payload.headers(), payload.body() + "-def"))));
 
         givenEntrypointHook(
                 "module-beta",
                 "hook-b",
-                immediateHook(InvocationResultImpl.succeeded(payload -> EntrypointPayloadImpl.of(
+                immediateHook(InvocationResultUtils.succeeded(payload -> EntrypointPayloadImpl.of(
                         payload.queryParams(), payload.headers(), payload.body() + "-jkl"))));
 
         final HookStageExecutor executor = createExecutor(
@@ -845,8 +896,7 @@ public class HookStageExecutorTest extends VertxTest {
                 hookExecutionContext);
 
         // then
-        final Async async = context.async();
-        future.onComplete(context.asyncAssertSuccess(result -> {
+        future.onComplete(context.succeeding(result -> {
             assertThat(result.isShouldReject()).isTrue();
             assertThat(result.getPayload()).isNull();
 
@@ -861,7 +911,7 @@ public class HookStageExecutorTest extends VertxTest {
                                         final List<GroupExecutionOutcome> groups = stageOutcome.getGroups();
                                         assertThat(groups).hasSize(2);
 
-                                        final List<HookExecutionOutcome> group0Hooks = groups.get(0).getHooks();
+                                        final List<HookExecutionOutcome> group0Hooks = groups.getFirst().getHooks();
                                         assertThat(group0Hooks).hasSize(2);
 
                                         assertThat(group0Hooks.get(0)).satisfies(hookOutcome -> {
@@ -897,14 +947,12 @@ public class HookStageExecutorTest extends VertxTest {
                                         });
                                     }));
 
-            async.complete();
+            context.completeNow();
         }));
-
-        async.awaitSuccess();
     }
 
     @Test
-    public void shouldExecuteEntrypointHooksToleratingMisbehavingInvocationResult(TestContext context) {
+    public void shouldExecuteEntrypointHooksToleratingMisbehavingInvocationResult(VertxTestContext context) {
         // given
         givenEntrypointHook(
                 "module-alpha",
@@ -929,7 +977,7 @@ public class HookStageExecutorTest extends VertxTest {
         givenEntrypointHook(
                 "module-beta",
                 "hook-b",
-                immediateHook(InvocationResultImpl.succeeded(payload -> {
+                immediateHook(InvocationResultUtils.succeeded(payload -> {
                     throw new RuntimeException("Can not alter payload");
                 })));
 
@@ -948,8 +996,7 @@ public class HookStageExecutorTest extends VertxTest {
                 hookExecutionContext);
 
         // then
-        final Async async = context.async();
-        future.onComplete(context.asyncAssertSuccess(result -> {
+        future.onComplete(context.succeeding(result -> {
             assertThat(result.getPayload()).isNotNull().satisfies(payload ->
                     assertThat(payload.body()).isEqualTo("body"));
 
@@ -963,7 +1010,7 @@ public class HookStageExecutorTest extends VertxTest {
 
                                         final List<GroupExecutionOutcome> groups = stageOutcome.getGroups();
 
-                                        final List<HookExecutionOutcome> group0Hooks = groups.get(0).getHooks();
+                                        final List<HookExecutionOutcome> group0Hooks = groups.getFirst().getHooks();
                                         assertThat(group0Hooks.get(0)).satisfies(hookOutcome -> {
                                             assertThat(hookOutcome.getHookId())
                                                     .isEqualTo(HookId.of("module-alpha", "hook-a"));
@@ -998,14 +1045,12 @@ public class HookStageExecutorTest extends VertxTest {
                                         });
                                     }));
 
-            async.complete();
+            context.completeNow();
         }));
-
-        async.awaitSuccess();
     }
 
     @Test
-    public void shouldExecuteEntrypointHooksAndStoreResultInExecutionContext(TestContext context) {
+    public void shouldExecuteEntrypointHooksAndStoreResultInExecutionContext(VertxTestContext context) {
         // given
         final TagsImpl analyticsTags = TagsImpl.of(singletonList(ActivityImpl.of(
                 "update",
@@ -1045,13 +1090,12 @@ public class HookStageExecutorTest extends VertxTest {
                 hookExecutionContext);
 
         // then
-        final Async async = context.async();
-        future.onComplete(context.asyncAssertSuccess(result -> {
+        future.onComplete(context.succeeding(result -> {
             assertThat(hookExecutionContext.getStageOutcomes())
                     .hasEntrySatisfying(
                             Stage.entrypoint,
                             stageOutcomes ->
-                                    assertThat(stageOutcomes.get(0).getGroups().get(0).getHooks().get(0))
+                                    assertThat(stageOutcomes.getFirst().getGroups().getFirst().getHooks().getFirst())
                                             .satisfies(hookOutcome -> {
                                                 assertThat(hookOutcome.getHookId())
                                                         .isEqualTo(HookId.of("module-alpha", "hook-a"));
@@ -1067,24 +1111,22 @@ public class HookStageExecutorTest extends VertxTest {
                                                 assertThat(hookOutcome.getAnalyticsTags()).isSameAs(analyticsTags);
                                             }));
 
-            async.complete();
+            context.completeNow();
         }));
-
-        async.awaitSuccess();
     }
 
     @Test
-    public void shouldExecuteEntrypointHooksAndPassInvocationContext(TestContext context) {
+    public void shouldExecuteEntrypointHooksAndPassInvocationContext(VertxTestContext context) {
         // given
         final EntrypointHookImpl hookImpl = spy(
-                EntrypointHookImpl.of(immediateHook(InvocationResultImpl.succeeded(identity()))));
-        given(hookCatalog.hookById(eq("module-alpha"), eq("hook-a"), eq(StageWithHookType.ENTRYPOINT)))
+                EntrypointHookImpl.of(immediateHook(InvocationResultUtils.succeeded(identity()))));
+        given(hookCatalog.hookById(eqHook("module-alpha", "hook-a"), eq(StageWithHookType.ENTRYPOINT)))
                 .willReturn(hookImpl);
-        given(hookCatalog.hookById(eq("module-alpha"), eq("hook-b"), eq(StageWithHookType.ENTRYPOINT)))
+        given(hookCatalog.hookById(eqHook("module-alpha", "hook-b"), eq(StageWithHookType.ENTRYPOINT)))
                 .willReturn(hookImpl);
-        given(hookCatalog.hookById(eq("module-beta"), eq("hook-a"), eq(StageWithHookType.ENTRYPOINT)))
+        given(hookCatalog.hookById(eqHook("module-beta", "hook-a"), eq(StageWithHookType.ENTRYPOINT)))
                 .willReturn(hookImpl);
-        given(hookCatalog.hookById(eq("module-beta"), eq("hook-b"), eq(StageWithHookType.ENTRYPOINT)))
+        given(hookCatalog.hookById(eqHook("module-beta", "hook-b"), eq(StageWithHookType.ENTRYPOINT)))
                 .willReturn(hookImpl);
 
         final HookStageExecutor executor = createExecutor(
@@ -1102,8 +1144,7 @@ public class HookStageExecutorTest extends VertxTest {
                 hookExecutionContext);
 
         // then
-        final Async async = context.async();
-        future.onComplete(context.asyncAssertSuccess(result -> {
+        future.onComplete(context.succeeding(result -> {
             final ArgumentCaptor<InvocationContext> invocationContextCaptor =
                     ArgumentCaptor.forClass(InvocationContext.class);
             verify(hookImpl, times(4)).call(any(), invocationContextCaptor.capture());
@@ -1133,18 +1174,16 @@ public class HookStageExecutorTest extends VertxTest {
                 assertThat(invocationContext.timeout().remaining()).isEqualTo(200L);
             });
 
-            async.complete();
+            context.completeNow();
         }));
-
-        async.awaitSuccess();
     }
 
     @Test
-    public void shouldExecuteRawAuctionRequestHooksWhenNoExecutionPlanInAccount(TestContext context) {
+    public void shouldExecuteRawAuctionRequestHooksWhenNoExecutionPlanInAccount(VertxTestContext context) {
         // given
         final RawAuctionRequestHookImpl hookImpl = spy(
-                RawAuctionRequestHookImpl.of(immediateHook(InvocationResultImpl.noAction())));
-        given(hookCatalog.hookById(anyString(), anyString(), eq(StageWithHookType.RAW_AUCTION_REQUEST)))
+                RawAuctionRequestHookImpl.of(immediateHook(InvocationResultUtils.noAction())));
+        given(hookCatalog.hookById(any(), eq(StageWithHookType.RAW_AUCTION_REQUEST)))
                 .willReturn(hookImpl);
 
         final String hostPlan = executionPlan(singletonMap(
@@ -1170,29 +1209,26 @@ public class HookStageExecutorTest extends VertxTest {
                         .build());
 
         // then
-        final Async async = context.async();
-        future.onComplete(context.asyncAssertSuccess(result -> {
+        future.onComplete(context.succeeding(result -> {
             assertThat(result.getPayload()).isNotNull().satisfies(payload ->
                     assertThat(payload.bidRequest()).isSameAs(bidRequest));
 
             verify(hookImpl, times(2)).call(any(), any());
             verify(hookCatalog, times(2))
-                    .hookById(eq("module-alpha"), eq("hook-a"), eq(StageWithHookType.RAW_AUCTION_REQUEST));
+                    .hookById(eqHook("module-alpha", "hook-a"), eq(StageWithHookType.RAW_AUCTION_REQUEST));
             verify(hookCatalog, times(2))
-                    .hookById(eq("module-alpha"), eq("hook-b"), eq(StageWithHookType.RAW_AUCTION_REQUEST));
+                    .hookById(eqHook("module-alpha", "hook-b"), eq(StageWithHookType.RAW_AUCTION_REQUEST));
 
-            async.complete();
+            context.completeNow();
         }));
-
-        async.awaitSuccess();
     }
 
     @Test
-    public void shouldExecuteRawAuctionRequestHooksWhenAccountOverridesExecutionPlan(TestContext context) {
+    public void shouldExecuteRawAuctionRequestHooksWhenAccountOverridesExecutionPlan(VertxTestContext context) {
         // given
         final RawAuctionRequestHookImpl hookImpl = spy(
-                RawAuctionRequestHookImpl.of(immediateHook(InvocationResultImpl.noAction())));
-        given(hookCatalog.hookById(anyString(), anyString(), eq(StageWithHookType.RAW_AUCTION_REQUEST)))
+                RawAuctionRequestHookImpl.of(immediateHook(InvocationResultUtils.noAction())));
+        given(hookCatalog.hookById(any(), eq(StageWithHookType.RAW_AUCTION_REQUEST)))
                 .willReturn(hookImpl);
 
         final String hostPlan = executionPlan(singletonMap(
@@ -1208,14 +1244,14 @@ public class HookStageExecutorTest extends VertxTest {
         final HookStageExecutor executor = createExecutor(hostPlan, defaultAccountPlan);
 
         final BidRequest bidRequest = BidRequest.builder().build();
-        final ExecutionPlan accountPlan = ExecutionPlan.of(singletonMap(
+        final ExecutionPlan accountPlan = ExecutionPlan.of(emptyList(), singletonMap(
                 Endpoint.openrtb2_auction,
                 EndpointExecutionPlan.of(singletonMap(
                         Stage.raw_auction_request,
                         execPlanOneGroupOneHook("module-beta", "hook-b")))));
         final Account account = Account.builder()
                 .id("accountId")
-                .hooks(AccountHooksConfiguration.of(accountPlan, null))
+                .hooks(AccountHooksConfiguration.of(accountPlan, null, null))
                 .build();
         final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
 
@@ -1229,40 +1265,37 @@ public class HookStageExecutorTest extends VertxTest {
                         .build());
 
         // then
-        final Async async = context.async();
-        future.onComplete(context.asyncAssertSuccess(result -> {
+        future.onComplete(context.succeeding(result -> {
             assertThat(result.getPayload()).isNotNull().satisfies(payload ->
                     assertThat(payload.bidRequest()).isSameAs(bidRequest));
 
             verify(hookImpl, times(2)).call(any(), any());
             verify(hookCatalog, times(2))
-                    .hookById(eq("module-alpha"), eq("hook-a"), eq(StageWithHookType.RAW_AUCTION_REQUEST));
+                    .hookById(eqHook("module-alpha", "hook-a"), eq(StageWithHookType.RAW_AUCTION_REQUEST));
             verify(hookCatalog)
-                    .hookById(eq("module-alpha"), eq("hook-b"), eq(StageWithHookType.RAW_AUCTION_REQUEST));
+                    .hookById(eqHook("module-alpha", "hook-b"), eq(StageWithHookType.RAW_AUCTION_REQUEST));
             verify(hookCatalog)
-                    .hookById(eq("module-beta"), eq("hook-b"), eq(StageWithHookType.RAW_AUCTION_REQUEST));
+                    .hookById(eqHook("module-beta", "hook-b"), eq(StageWithHookType.RAW_AUCTION_REQUEST));
 
-            async.complete();
+            context.completeNow();
         }));
-
-        async.awaitSuccess();
     }
 
     @Test
-    public void shouldExecuteRawAuctionRequestHooksToleratingUnknownHookInAccountPlan(TestContext context) {
+    public void shouldExecuteRawAuctionRequestHooksToleratingUnknownHookInAccountPlan(VertxTestContext context) {
         // given
-        given(hookCatalog.hookById(eq("module-alpha"), eq("hook-a"), eq(StageWithHookType.RAW_AUCTION_REQUEST)))
-                .willReturn(null);
+        given(hookCatalog.hookById(eqHook("module-alpha", "hook-a"), eq(StageWithHookType.RAW_AUCTION_REQUEST)))
+                .willThrow(new IllegalArgumentException("Hook implementation does not exist or disabled"));
 
         givenRawAuctionRequestHook(
                 "module-beta",
                 "hook-a",
-                immediateHook(InvocationResultImpl.succeeded(payload -> AuctionRequestPayloadImpl.of(
+                immediateHook(InvocationResultUtils.succeeded(payload -> AuctionRequestPayloadImpl.of(
                         payload.bidRequest().toBuilder().id("id").build()))));
 
         final HookStageExecutor executor = createExecutor(null, null);
 
-        final ExecutionPlan accountPlan = ExecutionPlan.of(singletonMap(
+        final ExecutionPlan accountPlan = ExecutionPlan.of(emptyList(), singletonMap(
                 Endpoint.openrtb2_auction,
                 EndpointExecutionPlan.of(singletonMap(
                         Stage.raw_auction_request,
@@ -1274,7 +1307,7 @@ public class HookStageExecutorTest extends VertxTest {
                                                 HookId.of("module-beta", "hook-a")))))))));
         final Account account = Account.builder()
                 .id("accountId")
-                .hooks(AccountHooksConfiguration.of(accountPlan, null))
+                .hooks(AccountHooksConfiguration.of(accountPlan, null, null))
                 .build();
         final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
 
@@ -1288,8 +1321,7 @@ public class HookStageExecutorTest extends VertxTest {
                         .build());
 
         // then
-        final Async async = context.async();
-        future.onComplete(context.asyncAssertSuccess(result -> {
+        future.onComplete(context.succeeding(result -> {
             assertThat(result).isNotNull();
             assertThat(result.getPayload()).isNotNull().satisfies(payload ->
                     assertThat(payload.bidRequest()).isEqualTo(BidRequest.builder()
@@ -1306,7 +1338,7 @@ public class HookStageExecutorTest extends VertxTest {
 
                                         final List<GroupExecutionOutcome> groups = stageOutcome.getGroups();
 
-                                        final List<HookExecutionOutcome> group0Hooks = groups.get(0).getHooks();
+                                        final List<HookExecutionOutcome> group0Hooks = groups.getFirst().getHooks();
                                         assertThat(group0Hooks.get(0)).satisfies(hookOutcome -> {
                                             assertThat(hookOutcome.getHookId())
                                                     .isEqualTo(HookId.of("module-alpha", "hook-a"));
@@ -1326,37 +1358,268 @@ public class HookStageExecutorTest extends VertxTest {
                                         });
                                     }));
 
-            async.complete();
+            context.completeNow();
         }));
-
-        async.awaitSuccess();
     }
 
     @Test
-    public void shouldExecuteRawAuctionRequestHooksHappyPath(TestContext context) {
+    public void shouldNotExecuteRawAuctionRequestHooksWhenAccountConfigIsNotRequired(VertxTestContext context) {
         // given
         givenRawAuctionRequestHook(
                 "module-alpha",
                 "hook-a",
-                immediateHook(InvocationResultImpl.succeeded(payload -> AuctionRequestPayloadImpl.of(
+                immediateHook(InvocationResultUtils.succeeded(payload -> AuctionRequestPayloadImpl.of(
+                        payload.bidRequest().toBuilder().at(1).build()))));
+
+        givenRawAuctionRequestHook(
+                "module-beta",
+                "hook-a",
+                immediateHook(InvocationResultUtils.succeeded(payload -> AuctionRequestPayloadImpl.of(
+                        payload.bidRequest().toBuilder().test(1).build()))));
+
+        givenRawAuctionRequestHook(
+                "module-gamma",
+                "hook-b",
+                immediateHook(InvocationResultUtils.succeeded(payload -> AuctionRequestPayloadImpl.of(
+                        payload.bidRequest().toBuilder().id("id").build()))));
+
+        givenRawAuctionRequestHook(
+                "module-delta",
+                "hook-b",
+                immediateHook(InvocationResultUtils.succeeded(payload -> AuctionRequestPayloadImpl.of(
+                        payload.bidRequest().toBuilder().tmax(1000L).build()))));
+
+        givenRawAuctionRequestHook(
+                "module-epsilon",
+                "hook-a",
+                immediateHook(InvocationResultUtils.succeeded(payload -> AuctionRequestPayloadImpl.of(
+                        payload.bidRequest().toBuilder().site(Site.builder().build()).build()))));
+
+        givenRawAuctionRequestHook(
+                "module-zeta",
+                "hook-b",
+                immediateHook(InvocationResultUtils.succeeded(payload -> AuctionRequestPayloadImpl.of(
+                        payload.bidRequest().toBuilder().user(User.builder().build()).build()))));
+
+        final StageExecutionPlan stageExecutionPlan = StageExecutionPlan.of(asList(
+                ExecutionGroup.of(
+                        200L,
+                        asList(
+                                HookId.of("module-alpha", "hook-a"),
+                                HookId.of("module-beta", "hook-a"),
+                                HookId.of("module-epsilon", "hook-a"))),
+                ExecutionGroup.of(
+                        200L,
+                        asList(
+                                HookId.of("module-gamma", "hook-b"),
+                                HookId.of("module-delta", "hook-b"),
+                                HookId.of("module-zeta", "hook-b")))));
+
+        final String hostExecutionPlan = executionPlan(singletonMap(
+                Endpoint.openrtb2_auction,
+                EndpointExecutionPlan.of(singletonMap(Stage.raw_auction_request, stageExecutionPlan))));
+
+        final HookStageExecutor executor = HookStageExecutor.create(
+                hostExecutionPlan,
+                null,
+                Map.of("module-epsilon", true, "module-zeta", false),
+                hookCatalog,
+                timeoutFactory,
+                vertx,
+                clock,
+                jacksonMapper,
+                false);
+
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+
+        // when
+        final BidRequest givenBidRequest = BidRequest.builder().build();
+        final Future<HookStageExecutionResult<AuctionRequestPayload>> future = executor.executeRawAuctionRequestStage(
+                AuctionContext.builder()
+                        .bidRequest(givenBidRequest)
+                        .account(Account.builder()
+                                .id("accountId")
+                                .hooks(AccountHooksConfiguration.of(
+                                        null,
+                                        Map.of("module-alpha", mapper.createObjectNode(),
+                                                "module-beta", mapper.createObjectNode(),
+                                                "module-gamma", mapper.createObjectNode(),
+                                                "module-zeta", mapper.createObjectNode()),
+                                        HooksAdminConfig.builder()
+                                                .moduleExecution(Map.of(
+                                                        "module-alpha", true,
+                                                        "module-beta", false,
+                                                        "module-epsilon", false))
+                                                .build()))
+                                .build())
+                        .hookExecutionContext(hookExecutionContext)
+                        .debugContext(DebugContext.empty())
+                        .build());
+
+        // then
+        future.onComplete(context.succeeding(result -> {
+            assertThat(result).isNotNull();
+            assertThat(result.getPayload()).isNotNull().satisfies(payload ->
+                    assertThat(payload.bidRequest()).isEqualTo(BidRequest.builder()
+                            .at(1)
+                            .id("id")
+                            .tmax(1000L)
+                            .site(Site.builder().build())
+                            .build()));
+
+            assertThat(hookExecutionContext.getStageOutcomes())
+                    .hasEntrySatisfying(
+                            Stage.raw_auction_request,
+                            stageOutcomes -> assertThat(stageOutcomes)
+                                    .hasSize(1)
+                                    .extracting(StageExecutionOutcome::getEntity)
+                                    .containsOnly("auction-request"));
+
+            context.completeNow();
+        }));
+    }
+
+    @Test
+    public void shouldExecuteRawAuctionRequestHooksWhenAccountConfigIsRequired(VertxTestContext context) {
+        // given
+        givenRawAuctionRequestHook(
+                "module-alpha",
+                "hook-a",
+                immediateHook(InvocationResultUtils.succeeded(payload -> AuctionRequestPayloadImpl.of(
+                        payload.bidRequest().toBuilder().at(1).build()))));
+
+        givenRawAuctionRequestHook(
+                "module-beta",
+                "hook-a",
+                immediateHook(InvocationResultUtils.succeeded(payload -> AuctionRequestPayloadImpl.of(
+                        payload.bidRequest().toBuilder().test(1).build()))));
+
+        givenRawAuctionRequestHook(
+                "module-gamma",
+                "hook-b",
+                immediateHook(InvocationResultUtils.succeeded(payload -> AuctionRequestPayloadImpl.of(
+                        payload.bidRequest().toBuilder().id("id").build()))));
+
+        givenRawAuctionRequestHook(
+                "module-delta",
+                "hook-b",
+                immediateHook(InvocationResultUtils.succeeded(payload -> AuctionRequestPayloadImpl.of(
+                        payload.bidRequest().toBuilder().tmax(1000L).build()))));
+
+        givenRawAuctionRequestHook(
+                "module-epsilon",
+                "hook-a",
+                immediateHook(InvocationResultUtils.succeeded(payload -> AuctionRequestPayloadImpl.of(
+                        payload.bidRequest().toBuilder().site(Site.builder().build()).build()))));
+
+        givenRawAuctionRequestHook(
+                "module-zeta",
+                "hook-b",
+                immediateHook(InvocationResultUtils.succeeded(payload -> AuctionRequestPayloadImpl.of(
+                        payload.bidRequest().toBuilder().user(User.builder().build()).build()))));
+
+        final StageExecutionPlan stageExecutionPlan = StageExecutionPlan.of(asList(
+                ExecutionGroup.of(
+                        200L,
+                        asList(
+                                HookId.of("module-alpha", "hook-a"),
+                                HookId.of("module-beta", "hook-a"),
+                                HookId.of("module-epsilon", "hook-a"))),
+                ExecutionGroup.of(
+                        200L,
+                        asList(
+                                HookId.of("module-gamma", "hook-b"),
+                                HookId.of("module-delta", "hook-b"),
+                                HookId.of("module-zeta", "hook-b")))));
+
+        final String hostExecutionPlan = executionPlan(singletonMap(
+                Endpoint.openrtb2_auction,
+                EndpointExecutionPlan.of(singletonMap(Stage.raw_auction_request, stageExecutionPlan))));
+
+        final HookStageExecutor executor = HookStageExecutor.create(
+                hostExecutionPlan,
+                null,
+                Map.of("module-epsilon", true, "module-zeta", false),
+                hookCatalog,
+                timeoutFactory,
+                vertx,
+                clock,
+                jacksonMapper,
+                true);
+
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+
+        // when
+        final BidRequest givenBidRequest = BidRequest.builder().build();
+        final Future<HookStageExecutionResult<AuctionRequestPayload>> future = executor.executeRawAuctionRequestStage(
+                AuctionContext.builder()
+                        .bidRequest(givenBidRequest)
+                        .account(Account.builder()
+                                .id("accountId")
+                                .hooks(AccountHooksConfiguration.of(
+                                        null,
+                                        Map.of("module-alpha", mapper.createObjectNode(),
+                                                "module-beta", mapper.createObjectNode(),
+                                                "module-gamma", mapper.createObjectNode(),
+                                                "module-zeta", mapper.createObjectNode()),
+                                        HooksAdminConfig.builder()
+                                                .moduleExecution(Map.of(
+                                                        "module-alpha", true,
+                                                        "module-beta", false,
+                                                        "module-epsilon", false))
+                                                .build()))
+                                .build())
+                        .hookExecutionContext(hookExecutionContext)
+                        .debugContext(DebugContext.empty())
+                        .build());
+
+        // then
+        future.onComplete(context.succeeding(result -> {
+            assertThat(result).isNotNull();
+            assertThat(result.getPayload()).isNotNull().satisfies(payload ->
+                    assertThat(payload.bidRequest()).isEqualTo(BidRequest.builder()
+                            .at(1)
+                            .id("id")
+                            .site(Site.builder().build())
+                            .build()));
+
+            assertThat(hookExecutionContext.getStageOutcomes())
+                    .hasEntrySatisfying(
+                            Stage.raw_auction_request,
+                            stageOutcomes -> assertThat(stageOutcomes)
+                                    .hasSize(1)
+                                    .extracting(StageExecutionOutcome::getEntity)
+                                    .containsOnly("auction-request"));
+
+            context.completeNow();
+        }));
+    }
+
+    @Test
+    public void shouldExecuteRawAuctionRequestHooksHappyPath(VertxTestContext context) {
+        // given
+        givenRawAuctionRequestHook(
+                "module-alpha",
+                "hook-a",
+                immediateHook(InvocationResultUtils.succeeded(payload -> AuctionRequestPayloadImpl.of(
                         payload.bidRequest().toBuilder().at(1).build()))));
 
         givenRawAuctionRequestHook(
                 "module-alpha",
                 "hook-b",
-                immediateHook(InvocationResultImpl.succeeded(payload -> AuctionRequestPayloadImpl.of(
+                immediateHook(InvocationResultUtils.succeeded(payload -> AuctionRequestPayloadImpl.of(
                         payload.bidRequest().toBuilder().id("id").build()))));
 
         givenRawAuctionRequestHook(
                 "module-beta",
                 "hook-a",
-                immediateHook(InvocationResultImpl.succeeded(payload -> AuctionRequestPayloadImpl.of(
+                immediateHook(InvocationResultUtils.succeeded(payload -> AuctionRequestPayloadImpl.of(
                         payload.bidRequest().toBuilder().test(1).build()))));
 
         givenRawAuctionRequestHook(
                 "module-beta",
                 "hook-b",
-                immediateHook(InvocationResultImpl.succeeded(payload -> AuctionRequestPayloadImpl.of(
+                immediateHook(InvocationResultUtils.succeeded(payload -> AuctionRequestPayloadImpl.of(
                         payload.bidRequest().toBuilder().tmax(1000L).build()))));
 
         final HookStageExecutor executor = createExecutor(
@@ -1378,8 +1641,7 @@ public class HookStageExecutorTest extends VertxTest {
                         .build());
 
         // then
-        final Async async = context.async();
-        future.onComplete(context.asyncAssertSuccess(result -> {
+        future.onComplete(context.succeeding(result -> {
             assertThat(result).isNotNull();
             assertThat(result.getPayload()).isNotNull().satisfies(payload ->
                     assertThat(payload.bidRequest()).isEqualTo(BidRequest.builder()
@@ -1397,24 +1659,22 @@ public class HookStageExecutorTest extends VertxTest {
                                     .extracting(StageExecutionOutcome::getEntity)
                                     .containsOnly("auction-request"));
 
-            async.complete();
+            context.completeNow();
         }));
-
-        async.awaitSuccess();
     }
 
     @Test
-    public void shouldExecuteRawAuctionRequestHooksAndPassAuctionInvocationContext(TestContext context) {
+    public void shouldExecuteRawAuctionRequestHooksAndPassAuctionInvocationContext(VertxTestContext context) {
         // given
         final RawAuctionRequestHookImpl hookImpl = spy(
-                RawAuctionRequestHookImpl.of(immediateHook(InvocationResultImpl.succeeded(identity()))));
-        given(hookCatalog.hookById(eq("module-alpha"), eq("hook-a"), eq(StageWithHookType.RAW_AUCTION_REQUEST)))
+                RawAuctionRequestHookImpl.of(immediateHook(InvocationResultUtils.succeeded(identity()))));
+        given(hookCatalog.hookById(eqHook("module-alpha", "hook-a"), eq(StageWithHookType.RAW_AUCTION_REQUEST)))
                 .willReturn(hookImpl);
-        given(hookCatalog.hookById(eq("module-alpha"), eq("hook-b"), eq(StageWithHookType.RAW_AUCTION_REQUEST)))
+        given(hookCatalog.hookById(eqHook("module-alpha", "hook-b"), eq(StageWithHookType.RAW_AUCTION_REQUEST)))
                 .willReturn(hookImpl);
-        given(hookCatalog.hookById(eq("module-beta"), eq("hook-a"), eq(StageWithHookType.RAW_AUCTION_REQUEST)))
+        given(hookCatalog.hookById(eqHook("module-beta", "hook-a"), eq(StageWithHookType.RAW_AUCTION_REQUEST)))
                 .willReturn(hookImpl);
-        given(hookCatalog.hookById(eq("module-beta"), eq("hook-b"), eq(StageWithHookType.RAW_AUCTION_REQUEST)))
+        given(hookCatalog.hookById(eqHook("module-beta", "hook-b"), eq(StageWithHookType.RAW_AUCTION_REQUEST)))
                 .willReturn(hookImpl);
 
         final HookStageExecutor executor = createExecutor(
@@ -1437,15 +1697,14 @@ public class HookStageExecutorTest extends VertxTest {
                 AuctionContext.builder()
                         .bidRequest(BidRequest.builder().build())
                         .account(Account.builder()
-                                .hooks(AccountHooksConfiguration.of(null, accountModulesConfiguration))
+                                .hooks(AccountHooksConfiguration.of(null, accountModulesConfiguration, null))
                                 .build())
                         .hookExecutionContext(hookExecutionContext)
                         .debugContext(DebugContext.empty())
                         .build());
 
         // then
-        final Async async = context.async();
-        future.onComplete(context.asyncAssertSuccess(result -> {
+        future.onComplete(context.succeeding(result -> {
             final ArgumentCaptor<AuctionInvocationContext> invocationContextCaptor =
                     ArgumentCaptor.forClass(AuctionInvocationContext.class);
             verify(hookImpl, times(4)).call(any(), invocationContextCaptor.capture());
@@ -1479,14 +1738,12 @@ public class HookStageExecutorTest extends VertxTest {
                 assertThat(invocationContext.accountConfig()).isSameAs(moduleAlphaConfiguration);
             });
 
-            async.complete();
+            context.completeNow();
         }));
-
-        async.awaitSuccess();
     }
 
     @Test
-    public void shouldExecuteRawAuctionRequestHooksAndPassModuleContextBetweenHooks(TestContext context) {
+    public void shouldExecuteRawAuctionRequestHooksAndPassModuleContextBetweenHooks(VertxTestContext context) {
         // given
         final RawAuctionRequestHookImpl hookImpl = spy(RawAuctionRequestHookImpl.of(
                 (payload, invocationContext) -> {
@@ -1501,17 +1758,17 @@ public class HookStageExecutorTest extends VertxTest {
                                     .build()));
                     return promise.future();
                 }));
-        given(hookCatalog.hookById(eq("module-alpha"), eq("hook-a"), eq(StageWithHookType.RAW_AUCTION_REQUEST)))
+        given(hookCatalog.hookById(eqHook("module-alpha", "hook-a"), eq(StageWithHookType.RAW_AUCTION_REQUEST)))
                 .willReturn(hookImpl);
-        given(hookCatalog.hookById(eq("module-alpha"), eq("hook-b"), eq(StageWithHookType.RAW_AUCTION_REQUEST)))
+        given(hookCatalog.hookById(eqHook("module-alpha", "hook-b"), eq(StageWithHookType.RAW_AUCTION_REQUEST)))
                 .willReturn(hookImpl);
-        given(hookCatalog.hookById(eq("module-alpha"), eq("hook-c"), eq(StageWithHookType.RAW_AUCTION_REQUEST)))
+        given(hookCatalog.hookById(eqHook("module-alpha", "hook-c"), eq(StageWithHookType.RAW_AUCTION_REQUEST)))
                 .willReturn(hookImpl);
-        given(hookCatalog.hookById(eq("module-beta"), eq("hook-a"), eq(StageWithHookType.RAW_AUCTION_REQUEST)))
+        given(hookCatalog.hookById(eqHook("module-beta", "hook-a"), eq(StageWithHookType.RAW_AUCTION_REQUEST)))
                 .willReturn(hookImpl);
-        given(hookCatalog.hookById(eq("module-beta"), eq("hook-b"), eq(StageWithHookType.RAW_AUCTION_REQUEST)))
+        given(hookCatalog.hookById(eqHook("module-beta", "hook-b"), eq(StageWithHookType.RAW_AUCTION_REQUEST)))
                 .willReturn(hookImpl);
-        given(hookCatalog.hookById(eq("module-beta"), eq("hook-c"), eq(StageWithHookType.RAW_AUCTION_REQUEST)))
+        given(hookCatalog.hookById(eqHook("module-beta", "hook-c"), eq(StageWithHookType.RAW_AUCTION_REQUEST)))
                 .willReturn(hookImpl);
 
         final HookStageExecutor executor = createExecutor(
@@ -1545,8 +1802,7 @@ public class HookStageExecutorTest extends VertxTest {
                         .build());
 
         // then
-        final Async async = context.async();
-        future.onComplete(context.asyncAssertSuccess(result -> {
+        future.onComplete(context.succeeding(result -> {
             final ArgumentCaptor<AuctionInvocationContext> invocationContextCaptor =
                     ArgumentCaptor.forClass(AuctionInvocationContext.class);
             verify(hookImpl, times(6)).call(any(), invocationContextCaptor.capture());
@@ -1574,19 +1830,17 @@ public class HookStageExecutorTest extends VertxTest {
                     entry("module-alpha", "aa"),
                     entry("module-beta", "aa"));
 
-            async.complete();
+            context.completeNow();
         }));
-
-        async.awaitSuccess();
     }
 
     @Test
-    public void shouldExecuteRawAuctionRequestHooksWhenRequestIsRejected(TestContext context) {
+    public void shouldExecuteRawAuctionRequestHooksWhenRequestIsRejected(VertxTestContext context) {
         // given
         givenRawAuctionRequestHook(
                 "module-alpha",
                 "hook-a",
-                immediateHook(InvocationResultImpl.rejected("Request is no good")));
+                immediateHook(InvocationResultUtils.rejected("Request is no good")));
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
@@ -1606,42 +1860,38 @@ public class HookStageExecutorTest extends VertxTest {
                         .build());
 
         // then
-        final Async async = context.async();
-        future.onComplete(context.asyncAssertSuccess(result -> {
+        future.onComplete(context.succeeding(result -> {
             assertThat(result.isShouldReject()).isTrue();
             assertThat(result.getPayload()).isNull();
-
-            async.complete();
+            context.completeNow();
         }));
-
-        async.awaitSuccess();
     }
 
     @Test
-    public void shouldExecuteProcessedAuctionRequestHooksHappyPath(TestContext context) {
+    public void shouldExecuteProcessedAuctionRequestHooksHappyPath(VertxTestContext context) {
         // given
         givenProcessedAuctionRequestHook(
                 "module-alpha",
                 "hook-a",
-                immediateHook(InvocationResultImpl.succeeded(payload -> AuctionRequestPayloadImpl.of(
+                immediateHook(InvocationResultUtils.succeeded(payload -> AuctionRequestPayloadImpl.of(
                         payload.bidRequest().toBuilder().at(1).build()))));
 
         givenProcessedAuctionRequestHook(
                 "module-alpha",
                 "hook-b",
-                immediateHook(InvocationResultImpl.succeeded(payload -> AuctionRequestPayloadImpl.of(
+                immediateHook(InvocationResultUtils.succeeded(payload -> AuctionRequestPayloadImpl.of(
                         payload.bidRequest().toBuilder().id("id").build()))));
 
         givenProcessedAuctionRequestHook(
                 "module-beta",
                 "hook-a",
-                immediateHook(InvocationResultImpl.succeeded(payload -> AuctionRequestPayloadImpl.of(
+                immediateHook(InvocationResultUtils.succeeded(payload -> AuctionRequestPayloadImpl.of(
                         payload.bidRequest().toBuilder().test(1).build()))));
 
         givenProcessedAuctionRequestHook(
                 "module-beta",
                 "hook-b",
-                immediateHook(InvocationResultImpl.succeeded(payload -> AuctionRequestPayloadImpl.of(
+                immediateHook(InvocationResultUtils.succeeded(payload -> AuctionRequestPayloadImpl.of(
                         payload.bidRequest().toBuilder().tmax(1000L).build()))));
 
         final HookStageExecutor executor = createExecutor(
@@ -1664,8 +1914,7 @@ public class HookStageExecutorTest extends VertxTest {
                                 .build());
 
         // then
-        final Async async = context.async();
-        future.onComplete(context.asyncAssertSuccess(result -> {
+        future.onComplete(context.succeeding(result -> {
             assertThat(result).isNotNull();
             assertThat(result.getPayload()).isNotNull().satisfies(payload ->
                     assertThat(payload.bidRequest()).isEqualTo(BidRequest.builder()
@@ -1683,24 +1932,22 @@ public class HookStageExecutorTest extends VertxTest {
                                     .extracting(StageExecutionOutcome::getEntity)
                                     .containsOnly("auction-request"));
 
-            async.complete();
+            context.completeNow();
         }));
-
-        async.awaitSuccess();
     }
 
     @Test
-    public void shouldExecuteProcessedAuctionRequestHooksAndPassAuctionInvocationContext(TestContext context) {
+    public void shouldExecuteProcessedAuctionRequestHooksAndPassAuctionInvocationContext(VertxTestContext context) {
         // given
         final ProcessedAuctionRequestHookImpl hookImpl = spy(
-                ProcessedAuctionRequestHookImpl.of(immediateHook(InvocationResultImpl.succeeded(identity()))));
-        given(hookCatalog.hookById(eq("module-alpha"), eq("hook-a"), eq(StageWithHookType.PROCESSED_AUCTION_REQUEST)))
+                ProcessedAuctionRequestHookImpl.of(immediateHook(InvocationResultUtils.succeeded(identity()))));
+        given(hookCatalog.hookById(eqHook("module-alpha", "hook-a"), eq(StageWithHookType.PROCESSED_AUCTION_REQUEST)))
                 .willReturn(hookImpl);
-        given(hookCatalog.hookById(eq("module-alpha"), eq("hook-b"), eq(StageWithHookType.PROCESSED_AUCTION_REQUEST)))
+        given(hookCatalog.hookById(eqHook("module-alpha", "hook-b"), eq(StageWithHookType.PROCESSED_AUCTION_REQUEST)))
                 .willReturn(hookImpl);
-        given(hookCatalog.hookById(eq("module-beta"), eq("hook-a"), eq(StageWithHookType.PROCESSED_AUCTION_REQUEST)))
+        given(hookCatalog.hookById(eqHook("module-beta", "hook-a"), eq(StageWithHookType.PROCESSED_AUCTION_REQUEST)))
                 .willReturn(hookImpl);
-        given(hookCatalog.hookById(eq("module-beta"), eq("hook-b"), eq(StageWithHookType.PROCESSED_AUCTION_REQUEST)))
+        given(hookCatalog.hookById(eqHook("module-beta", "hook-b"), eq(StageWithHookType.PROCESSED_AUCTION_REQUEST)))
                 .willReturn(hookImpl);
 
         final HookStageExecutor executor = createExecutor(
@@ -1724,15 +1971,14 @@ public class HookStageExecutorTest extends VertxTest {
                         AuctionContext.builder()
                                 .bidRequest(BidRequest.builder().build())
                                 .account(Account.builder()
-                                        .hooks(AccountHooksConfiguration.of(null, accountModulesConfiguration))
+                                        .hooks(AccountHooksConfiguration.of(null, accountModulesConfiguration, null))
                                         .build())
                                 .hookExecutionContext(hookExecutionContext)
                                 .debugContext(DebugContext.empty())
                                 .build());
 
         // then
-        final Async async = context.async();
-        future.onComplete(context.asyncAssertSuccess(result -> {
+        future.onComplete(context.succeeding(result -> {
             final ArgumentCaptor<AuctionInvocationContext> invocationContextCaptor =
                     ArgumentCaptor.forClass(AuctionInvocationContext.class);
             verify(hookImpl, times(4)).call(any(), invocationContextCaptor.capture());
@@ -1766,14 +2012,12 @@ public class HookStageExecutorTest extends VertxTest {
                 assertThat(invocationContext.accountConfig()).isSameAs(moduleAlphaConfiguration);
             });
 
-            async.complete();
+            context.completeNow();
         }));
-
-        async.awaitSuccess();
     }
 
     @Test
-    public void shouldExecuteProcessedAuctionRequestHooksAndPassModuleContextBetweenHooks(TestContext context) {
+    public void shouldExecuteProcessedAuctionRequestHooksAndPassModuleContextBetweenHooks(VertxTestContext context) {
         // given
         final ProcessedAuctionRequestHookImpl hookImpl = spy(ProcessedAuctionRequestHookImpl.of(
                 (payload, invocationContext) -> {
@@ -1788,17 +2032,17 @@ public class HookStageExecutorTest extends VertxTest {
                                     .build()));
                     return promise.future();
                 }));
-        given(hookCatalog.hookById(eq("module-alpha"), eq("hook-a"), eq(StageWithHookType.PROCESSED_AUCTION_REQUEST)))
+        given(hookCatalog.hookById(eqHook("module-alpha", "hook-a"), eq(StageWithHookType.PROCESSED_AUCTION_REQUEST)))
                 .willReturn(hookImpl);
-        given(hookCatalog.hookById(eq("module-alpha"), eq("hook-b"), eq(StageWithHookType.PROCESSED_AUCTION_REQUEST)))
+        given(hookCatalog.hookById(eqHook("module-alpha", "hook-b"), eq(StageWithHookType.PROCESSED_AUCTION_REQUEST)))
                 .willReturn(hookImpl);
-        given(hookCatalog.hookById(eq("module-alpha"), eq("hook-c"), eq(StageWithHookType.PROCESSED_AUCTION_REQUEST)))
+        given(hookCatalog.hookById(eqHook("module-alpha", "hook-c"), eq(StageWithHookType.PROCESSED_AUCTION_REQUEST)))
                 .willReturn(hookImpl);
-        given(hookCatalog.hookById(eq("module-beta"), eq("hook-a"), eq(StageWithHookType.PROCESSED_AUCTION_REQUEST)))
+        given(hookCatalog.hookById(eqHook("module-beta", "hook-a"), eq(StageWithHookType.PROCESSED_AUCTION_REQUEST)))
                 .willReturn(hookImpl);
-        given(hookCatalog.hookById(eq("module-beta"), eq("hook-b"), eq(StageWithHookType.PROCESSED_AUCTION_REQUEST)))
+        given(hookCatalog.hookById(eqHook("module-beta", "hook-b"), eq(StageWithHookType.PROCESSED_AUCTION_REQUEST)))
                 .willReturn(hookImpl);
-        given(hookCatalog.hookById(eq("module-beta"), eq("hook-c"), eq(StageWithHookType.PROCESSED_AUCTION_REQUEST)))
+        given(hookCatalog.hookById(eqHook("module-beta", "hook-c"), eq(StageWithHookType.PROCESSED_AUCTION_REQUEST)))
                 .willReturn(hookImpl);
 
         final HookStageExecutor executor = createExecutor(
@@ -1833,8 +2077,7 @@ public class HookStageExecutorTest extends VertxTest {
                                 .build());
 
         // then
-        final Async async = context.async();
-        future.onComplete(context.asyncAssertSuccess(result -> {
+        future.onComplete(context.succeeding(result -> {
             final ArgumentCaptor<AuctionInvocationContext> invocationContextCaptor =
                     ArgumentCaptor.forClass(AuctionInvocationContext.class);
             verify(hookImpl, times(6)).call(any(), invocationContextCaptor.capture());
@@ -1862,19 +2105,17 @@ public class HookStageExecutorTest extends VertxTest {
                     entry("module-alpha", "aa"),
                     entry("module-beta", "aa"));
 
-            async.complete();
+            context.completeNow();
         }));
-
-        async.awaitSuccess();
     }
 
     @Test
-    public void shouldExecuteProcessedAuctionRequestHooksWhenRequestIsRejected(TestContext context) {
+    public void shouldExecuteProcessedAuctionRequestHooksWhenRequestIsRejected(VertxTestContext context) {
         // given
         givenProcessedAuctionRequestHook(
                 "module-alpha",
                 "hook-a",
-                immediateHook(InvocationResultImpl.rejected("Request is no good")));
+                immediateHook(InvocationResultUtils.rejected("Request is no good")));
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
@@ -1896,42 +2137,39 @@ public class HookStageExecutorTest extends VertxTest {
                                 .build());
 
         // then
-        final Async async = context.async();
-        future.onComplete(context.asyncAssertSuccess(result -> {
+        future.onComplete(context.succeeding(result -> {
             assertThat(result.isShouldReject()).isTrue();
             assertThat(result.getPayload()).isNull();
 
-            async.complete();
+            context.completeNow();
         }));
-
-        async.awaitSuccess();
     }
 
     @Test
-    public void shouldExecuteBidderRequestHooksHappyPath(TestContext context) {
+    public void shouldExecuteBidderRequestHooksHappyPath(VertxTestContext context) {
         // given
         givenBidderRequestHook(
                 "module-alpha",
                 "hook-a",
-                immediateHook(InvocationResultImpl.succeeded(payload -> BidderRequestPayloadImpl.of(
+                immediateHook(InvocationResultUtils.succeeded(payload -> BidderRequestPayloadImpl.of(
                         payload.bidRequest().toBuilder().at(1).build()))));
 
         givenBidderRequestHook(
                 "module-alpha",
                 "hook-b",
-                immediateHook(InvocationResultImpl.succeeded(payload -> BidderRequestPayloadImpl.of(
+                immediateHook(InvocationResultUtils.succeeded(payload -> BidderRequestPayloadImpl.of(
                         payload.bidRequest().toBuilder().id("id").build()))));
 
         givenBidderRequestHook(
                 "module-beta",
                 "hook-a",
-                immediateHook(InvocationResultImpl.succeeded(payload -> BidderRequestPayloadImpl.of(
+                immediateHook(InvocationResultUtils.succeeded(payload -> BidderRequestPayloadImpl.of(
                         payload.bidRequest().toBuilder().test(1).build()))));
 
         givenBidderRequestHook(
                 "module-beta",
                 "hook-b",
-                immediateHook(InvocationResultImpl.succeeded(payload -> BidderRequestPayloadImpl.of(
+                immediateHook(InvocationResultUtils.succeeded(payload -> BidderRequestPayloadImpl.of(
                         payload.bidRequest().toBuilder().tmax(1000L).build()))));
 
         final HookStageExecutor executor = createExecutor(
@@ -1964,8 +2202,10 @@ public class HookStageExecutorTest extends VertxTest {
                 auctionContext);
 
         // then
-        final Async async = context.async();
-        future1.onComplete(context.asyncAssertSuccess(result -> {
+        final Checkpoint checkpoint1 = context.checkpoint();
+        final Checkpoint checkpoint2 = context.checkpoint();
+
+        future1.onComplete(context.succeeding(result -> {
             assertThat(result).isNotNull();
             assertThat(result.getPayload()).isNotNull().satisfies(payload ->
                     assertThat(payload.bidRequest()).isEqualTo(BidRequest.builder()
@@ -1975,27 +2215,29 @@ public class HookStageExecutorTest extends VertxTest {
                             .tmax(1000L)
                             .build()));
 
-            async.complete();
+            checkpoint1.flag();
         }));
 
-        CompositeFuture.join(future1, future2).onComplete(context.asyncAssertSuccess(result ->
-                assertThat(hookExecutionContext.getStageOutcomes())
-                        .hasEntrySatisfying(
-                                Stage.bidder_request,
-                                stageOutcomes -> assertThat(stageOutcomes)
-                                        .hasSize(2)
-                                        .extracting(StageExecutionOutcome::getEntity)
-                                        .containsOnly("bidder1", "bidder2"))));
+        Future.join(future1, future2).onComplete(context.succeeding(result -> {
+            assertThat(hookExecutionContext.getStageOutcomes())
+                    .hasEntrySatisfying(
+                            Stage.bidder_request,
+                            stageOutcomes -> assertThat(stageOutcomes)
+                                    .hasSize(2)
+                                    .extracting(StageExecutionOutcome::getEntity)
+                                    .containsOnly("bidder1", "bidder2"));
 
-        async.awaitSuccess();
+            checkpoint2.flag();
+        }));
+
     }
 
     @Test
-    public void shouldExecuteBidderRequestHooksAndPassBidderInvocationContext(TestContext context) {
+    public void shouldExecuteBidderRequestHooksAndPassBidderInvocationContext(VertxTestContext context) {
         // given
         final BidderRequestHookImpl hookImpl = spy(
-                BidderRequestHookImpl.of(immediateHook(InvocationResultImpl.succeeded(identity()))));
-        given(hookCatalog.hookById(eq("module-alpha"), eq("hook-a"), eq(StageWithHookType.BIDDER_REQUEST)))
+                BidderRequestHookImpl.of(immediateHook(InvocationResultUtils.succeeded(identity()))));
+        given(hookCatalog.hookById(eqHook("module-alpha", "hook-a"), eq(StageWithHookType.BIDDER_REQUEST)))
                 .willReturn(hookImpl);
 
         final HookStageExecutor executor = createExecutor(
@@ -2016,15 +2258,14 @@ public class HookStageExecutorTest extends VertxTest {
                         .bidRequest(BidRequest.builder().build())
                         .account(Account.builder()
                                 .hooks(AccountHooksConfiguration.of(
-                                        null, singletonMap("module-alpha", mapper.createObjectNode())))
+                                        null, singletonMap("module-alpha", mapper.createObjectNode()), null))
                                 .build())
                         .hookExecutionContext(hookExecutionContext)
                         .debugContext(DebugContext.empty())
                         .build());
 
         // then
-        final Async async = context.async();
-        future.onComplete(context.asyncAssertSuccess(result -> {
+        future.onComplete(context.succeeding(result -> {
             final ArgumentCaptor<BidderInvocationContext> invocationContextCaptor =
                     ArgumentCaptor.forClass(BidderInvocationContext.class);
             verify(hookImpl).call(any(), invocationContextCaptor.capture());
@@ -2036,19 +2277,17 @@ public class HookStageExecutorTest extends VertxTest {
                 assertThat(invocationContext.bidder()).isEqualTo("bidder1");
             });
 
-            async.complete();
+            context.completeNow();
         }));
-
-        async.awaitSuccess();
     }
 
     @Test
-    public void shouldExecuteRawBidderResponseHooksHappyPath(TestContext context) {
+    public void shouldExecuteRawBidderResponseHooksHappyPath(VertxTestContext context) {
         // given
         givenRawBidderResponseHook(
                 "module-alpha",
                 "hook-a",
-                immediateHook(InvocationResultImpl.succeeded(payload -> BidderResponsePayloadImpl.of(
+                immediateHook(InvocationResultUtils.succeeded(payload -> BidderResponsePayloadImpl.of(
                         payload.bids().stream()
                                 .map(bid -> BidderBid.of(
                                         bid.getBid().toBuilder().id("bidId").build(),
@@ -2059,7 +2298,7 @@ public class HookStageExecutorTest extends VertxTest {
         givenRawBidderResponseHook(
                 "module-alpha",
                 "hook-b",
-                immediateHook(InvocationResultImpl.succeeded(payload -> BidderResponsePayloadImpl.of(
+                immediateHook(InvocationResultUtils.succeeded(payload -> BidderResponsePayloadImpl.of(
                         payload.bids().stream()
                                 .map(bid -> BidderBid.of(
                                         bid.getBid().toBuilder().adid("adId").build(),
@@ -2070,7 +2309,7 @@ public class HookStageExecutorTest extends VertxTest {
         givenRawBidderResponseHook(
                 "module-beta",
                 "hook-a",
-                immediateHook(InvocationResultImpl.succeeded(payload -> BidderResponsePayloadImpl.of(
+                immediateHook(InvocationResultUtils.succeeded(payload -> BidderResponsePayloadImpl.of(
                         payload.bids().stream()
                                 .map(bid -> BidderBid.of(
                                         bid.getBid().toBuilder().cid("cid").build(),
@@ -2081,7 +2320,7 @@ public class HookStageExecutorTest extends VertxTest {
         givenRawBidderResponseHook(
                 "module-beta",
                 "hook-b",
-                immediateHook(InvocationResultImpl.succeeded(payload -> BidderResponsePayloadImpl.of(
+                immediateHook(InvocationResultUtils.succeeded(payload -> BidderResponsePayloadImpl.of(
                         payload.bids().stream()
                                 .map(bid -> BidderBid.of(
                                         bid.getBid().toBuilder().adm("adm").build(),
@@ -2116,8 +2355,10 @@ public class HookStageExecutorTest extends VertxTest {
                 auctionContext);
 
         // then
-        final Async async = context.async();
-        future1.onComplete(context.asyncAssertSuccess(result -> {
+        final Checkpoint checkpoint1 = context.checkpoint();
+        final Checkpoint checkpoint2 = context.checkpoint();
+
+        future1.onComplete(context.succeeding(result -> {
             assertThat(result).isNotNull();
             assertThat(result.getPayload()).isNotNull().satisfies(payload ->
                     assertThat(payload.bids()).containsOnly(BidderBid.of(
@@ -2130,27 +2371,28 @@ public class HookStageExecutorTest extends VertxTest {
                             BidType.banner,
                             "USD")));
 
-            async.complete();
+            checkpoint1.flag();
         }));
 
-        CompositeFuture.join(future1, future2).onComplete(context.asyncAssertSuccess(result ->
-                assertThat(hookExecutionContext.getStageOutcomes())
-                        .hasEntrySatisfying(
-                                Stage.raw_bidder_response,
-                                stageOutcomes -> assertThat(stageOutcomes)
-                                        .hasSize(2)
-                                        .extracting(StageExecutionOutcome::getEntity)
-                                        .containsOnly("bidder1", "bidder2"))));
+        Future.join(future1, future2).onComplete(context.succeeding(result -> {
+            assertThat(hookExecutionContext.getStageOutcomes())
+                    .hasEntrySatisfying(
+                            Stage.raw_bidder_response,
+                            stageOutcomes -> assertThat(stageOutcomes)
+                                    .hasSize(2)
+                                    .extracting(StageExecutionOutcome::getEntity)
+                                    .containsOnly("bidder1", "bidder2"));
 
-        async.awaitSuccess();
+            checkpoint2.flag();
+        }));
     }
 
     @Test
-    public void shouldExecuteRawBidderResponseHooksAndPassBidderInvocationContext(TestContext context) {
+    public void shouldExecuteRawBidderResponseHooksAndPassBidderInvocationContext(VertxTestContext context) {
         // given
         final RawBidderResponseHookImpl hookImpl = spy(
-                RawBidderResponseHookImpl.of(immediateHook(InvocationResultImpl.succeeded(identity()))));
-        given(hookCatalog.hookById(eq("module-alpha"), eq("hook-a"), eq(StageWithHookType.RAW_BIDDER_RESPONSE)))
+                RawBidderResponseHookImpl.of(immediateHook(InvocationResultUtils.succeeded(identity()))));
+        given(hookCatalog.hookById(eqHook("module-alpha", "hook-a"), eq(StageWithHookType.RAW_BIDDER_RESPONSE)))
                 .willReturn(hookImpl);
 
         final HookStageExecutor executor = createExecutor(
@@ -2171,15 +2413,14 @@ public class HookStageExecutorTest extends VertxTest {
                         .bidRequest(BidRequest.builder().build())
                         .account(Account.builder()
                                 .hooks(AccountHooksConfiguration.of(
-                                        null, singletonMap("module-alpha", mapper.createObjectNode())))
+                                        null, singletonMap("module-alpha", mapper.createObjectNode()), null))
                                 .build())
                         .hookExecutionContext(hookExecutionContext)
                         .debugContext(DebugContext.empty())
                         .build());
 
         // then
-        final Async async = context.async();
-        future.onComplete(context.asyncAssertSuccess(result -> {
+        future.onComplete(context.succeeding(result -> {
             final ArgumentCaptor<BidderInvocationContext> invocationContextCaptor =
                     ArgumentCaptor.forClass(BidderInvocationContext.class);
             verify(hookImpl).call(any(), invocationContextCaptor.capture());
@@ -2191,19 +2432,17 @@ public class HookStageExecutorTest extends VertxTest {
                 assertThat(invocationContext.bidder()).isEqualTo("bidder1");
             });
 
-            async.complete();
+            context.completeNow();
         }));
-
-        async.awaitSuccess();
     }
 
     @Test
-    public void shouldExecuteProcessedBidderResponseHooksHappyPath(TestContext context) {
+    public void shouldExecuteProcessedBidderResponseHooksHappyPath(VertxTestContext context) {
         // given
         givenProcessedBidderResponseHook(
                 "module-alpha",
                 "hook-a",
-                immediateHook(InvocationResultImpl.succeeded(payload -> BidderResponsePayloadImpl.of(
+                immediateHook(InvocationResultUtils.succeeded(payload -> BidderResponsePayloadImpl.of(
                         payload.bids().stream()
                                 .map(bid -> BidderBid.of(
                                         bid.getBid().toBuilder().id("bidId").build(),
@@ -2214,7 +2453,7 @@ public class HookStageExecutorTest extends VertxTest {
         givenProcessedBidderResponseHook(
                 "module-alpha",
                 "hook-b",
-                immediateHook(InvocationResultImpl.succeeded(payload -> BidderResponsePayloadImpl.of(
+                immediateHook(InvocationResultUtils.succeeded(payload -> BidderResponsePayloadImpl.of(
                         payload.bids().stream()
                                 .map(bid -> BidderBid.of(
                                         bid.getBid().toBuilder().adid("adId").build(),
@@ -2225,7 +2464,7 @@ public class HookStageExecutorTest extends VertxTest {
         givenProcessedBidderResponseHook(
                 "module-beta",
                 "hook-a",
-                immediateHook(InvocationResultImpl.succeeded(payload -> BidderResponsePayloadImpl.of(
+                immediateHook(InvocationResultUtils.succeeded(payload -> BidderResponsePayloadImpl.of(
                         payload.bids().stream()
                                 .map(bid -> BidderBid.of(
                                         bid.getBid().toBuilder().cid("cid").build(),
@@ -2236,7 +2475,7 @@ public class HookStageExecutorTest extends VertxTest {
         givenProcessedBidderResponseHook(
                 "module-beta",
                 "hook-b",
-                immediateHook(InvocationResultImpl.succeeded(payload -> BidderResponsePayloadImpl.of(
+                immediateHook(InvocationResultUtils.succeeded(payload -> BidderResponsePayloadImpl.of(
                         payload.bids().stream()
                                 .map(bid -> BidderBid.of(
                                         bid.getBid().toBuilder().adm("adm").build(),
@@ -2274,8 +2513,10 @@ public class HookStageExecutorTest extends VertxTest {
                         auctionContext);
 
         // then
-        final Async async = context.async();
-        future1.onComplete(context.asyncAssertSuccess(result -> {
+        final Checkpoint checkpoint1 = context.checkpoint();
+        final Checkpoint checkpoint2 = context.checkpoint();
+
+        future1.onComplete(context.succeeding(result -> {
             assertThat(result).isNotNull();
             assertThat(result.getPayload()).isNotNull().satisfies(payload ->
                     assertThat(payload.bids()).containsOnly(BidderBid.of(
@@ -2288,27 +2529,28 @@ public class HookStageExecutorTest extends VertxTest {
                             BidType.banner,
                             "USD")));
 
-            async.complete();
+            checkpoint1.flag();
         }));
 
-        CompositeFuture.join(future1, future2).onComplete(context.asyncAssertSuccess(result ->
-                assertThat(hookExecutionContext.getStageOutcomes())
-                        .hasEntrySatisfying(
-                                Stage.processed_bidder_response,
-                                stageOutcomes -> assertThat(stageOutcomes)
-                                        .hasSize(2)
-                                        .extracting(StageExecutionOutcome::getEntity)
-                                        .containsOnly("bidder1", "bidder2"))));
+        Future.join(future1, future2).onComplete(context.succeeding(result -> {
+            assertThat(hookExecutionContext.getStageOutcomes())
+                    .hasEntrySatisfying(
+                            Stage.processed_bidder_response,
+                            stageOutcomes -> assertThat(stageOutcomes)
+                                    .hasSize(2)
+                                    .extracting(StageExecutionOutcome::getEntity)
+                                    .containsOnly("bidder1", "bidder2"));
 
-        async.awaitSuccess();
+            checkpoint2.flag();
+        }));
     }
 
     @Test
-    public void shouldExecuteProcessedBidderResponseHooksAndPassBidderInvocationContext(TestContext context) {
+    public void shouldExecuteProcessedBidderResponseHooksAndPassBidderInvocationContext(VertxTestContext context) {
         // given
         final ProcessedBidderResponseHookImpl hookImpl = spy(
-                ProcessedBidderResponseHookImpl.of(immediateHook(InvocationResultImpl.succeeded(identity()))));
-        given(hookCatalog.hookById(eq("module-alpha"), eq("hook-a"), eq(StageWithHookType.PROCESSED_BIDDER_RESPONSE)))
+                ProcessedBidderResponseHookImpl.of(immediateHook(InvocationResultUtils.succeeded(identity()))));
+        given(hookCatalog.hookById(eqHook("module-alpha", "hook-a"), eq(StageWithHookType.PROCESSED_BIDDER_RESPONSE)))
                 .willReturn(hookImpl);
 
         final HookStageExecutor executor = createExecutor(
@@ -2332,15 +2574,14 @@ public class HookStageExecutorTest extends VertxTest {
                                 .bidRequest(BidRequest.builder().build())
                                 .account(Account.builder()
                                         .hooks(AccountHooksConfiguration.of(
-                                                null, singletonMap("module-alpha", mapper.createObjectNode())))
+                                                null, singletonMap("module-alpha", mapper.createObjectNode()), null))
                                         .build())
                                 .hookExecutionContext(hookExecutionContext)
                                 .debugContext(DebugContext.empty())
                                 .build());
 
         // then
-        final Async async = context.async();
-        future.onComplete(context.asyncAssertSuccess(result -> {
+        future.onComplete(context.succeeding(result -> {
             final ArgumentCaptor<BidderInvocationContext> invocationContextCaptor =
                     ArgumentCaptor.forClass(BidderInvocationContext.class);
             verify(hookImpl).call(any(), invocationContextCaptor.capture());
@@ -2352,10 +2593,8 @@ public class HookStageExecutorTest extends VertxTest {
                 assertThat(invocationContext.bidder()).isEqualTo("bidder1");
             });
 
-            async.complete();
+            context.completeNow();
         }));
-
-        async.awaitSuccess();
     }
 
     @Test
@@ -2374,7 +2613,7 @@ public class HookStageExecutorTest extends VertxTest {
         givenAllProcessedBidderResponsesHook(
                 "module-alpha",
                 "hook-a",
-                immediateHook(InvocationResultImpl.succeeded(payload -> AllProcessedBidResponsesPayloadImpl.of(
+                immediateHook(InvocationResultUtils.succeeded(payload -> AllProcessedBidResponsesPayloadImpl.of(
                         payload.bidResponses().stream()
                                 .map(bidModifierForResponse.apply(
                                         (bidder, bid) -> BidderBid.of(
@@ -2386,7 +2625,7 @@ public class HookStageExecutorTest extends VertxTest {
         givenAllProcessedBidderResponsesHook(
                 "module-alpha",
                 "hook-b",
-                immediateHook(InvocationResultImpl.succeeded(payload -> AllProcessedBidResponsesPayloadImpl.of(
+                immediateHook(InvocationResultUtils.succeeded(payload -> AllProcessedBidResponsesPayloadImpl.of(
                         payload.bidResponses().stream()
                                 .map(bidModifierForResponse.apply(
                                         (bidder, bid) -> BidderBid.of(
@@ -2398,7 +2637,7 @@ public class HookStageExecutorTest extends VertxTest {
         givenAllProcessedBidderResponsesHook(
                 "module-beta",
                 "hook-a",
-                immediateHook(InvocationResultImpl.succeeded(payload -> AllProcessedBidResponsesPayloadImpl.of(
+                immediateHook(InvocationResultUtils.succeeded(payload -> AllProcessedBidResponsesPayloadImpl.of(
                         payload.bidResponses().stream()
                                 .map(bidModifierForResponse.apply(
                                         (bidder, bid) -> BidderBid.of(
@@ -2410,7 +2649,7 @@ public class HookStageExecutorTest extends VertxTest {
         givenAllProcessedBidderResponsesHook(
                 "module-beta",
                 "hook-b",
-                immediateHook(InvocationResultImpl.succeeded(payload -> AllProcessedBidResponsesPayloadImpl.of(
+                immediateHook(InvocationResultUtils.succeeded(payload -> AllProcessedBidResponsesPayloadImpl.of(
                         payload.bidResponses().stream()
                                 .map(bidModifierForResponse.apply(
                                         (bidder, bid) -> BidderBid.of(
@@ -2472,11 +2711,11 @@ public class HookStageExecutorTest extends VertxTest {
     }
 
     @Test
-    public void shouldExecuteAllProcessedBidResponsesHooksAndPassAuctionInvocationContext(TestContext context) {
+    public void shouldExecuteAllProcessedBidResponsesHooksAndPassAuctionInvocationContext(VertxTestContext context) {
         // given
         final AllProcessedBidResponsesHookImpl hookImpl = spy(
-                AllProcessedBidResponsesHookImpl.of(immediateHook(InvocationResultImpl.succeeded(identity()))));
-        given(hookCatalog.hookById(eq("module-alpha"), eq("hook-a"), eq(StageWithHookType.ALL_PROCESSED_BID_RESPONSES)))
+                AllProcessedBidResponsesHookImpl.of(immediateHook(InvocationResultUtils.succeeded(identity()))));
+        given(hookCatalog.hookById(eqHook("module-alpha", "hook-a"), eq(StageWithHookType.ALL_PROCESSED_BID_RESPONSES)))
                 .willReturn(hookImpl);
 
         final HookStageExecutor executor = createExecutor(
@@ -2500,15 +2739,14 @@ public class HookStageExecutorTest extends VertxTest {
                                 .bidRequest(BidRequest.builder().build())
                                 .account(Account.builder()
                                         .hooks(AccountHooksConfiguration.of(
-                                                null, singletonMap("module-alpha", mapper.createObjectNode())))
+                                                null, singletonMap("module-alpha", mapper.createObjectNode()), null))
                                         .build())
                                 .hookExecutionContext(hookExecutionContext)
                                 .debugContext(DebugContext.empty())
                                 .build());
 
         // then
-        final Async async = context.async();
-        future.onComplete(context.asyncAssertSuccess(result -> {
+        future.onComplete(context.succeeding(result -> {
             final ArgumentCaptor<AuctionInvocationContext> invocationContextCaptor =
                     ArgumentCaptor.forClass(AuctionInvocationContext.class);
             verify(hookImpl).call(any(), invocationContextCaptor.capture());
@@ -2519,19 +2757,17 @@ public class HookStageExecutorTest extends VertxTest {
                 assertThat(invocationContext.accountConfig()).isNotNull();
             });
 
-            async.complete();
+            context.completeNow();
         }));
-
-        async.awaitSuccess();
     }
 
     @Test
-    public void shouldExecuteBidderRequestHooksWhenRequestIsRejected(TestContext context) {
+    public void shouldExecuteBidderRequestHooksWhenRequestIsRejected(VertxTestContext context) {
         // given
         givenBidderRequestHook(
                 "module-alpha",
                 "hook-a",
-                immediateHook(InvocationResultImpl.rejected("Request is no good")));
+                immediateHook(InvocationResultUtils.rejected("Request is no good")));
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
@@ -2554,42 +2790,38 @@ public class HookStageExecutorTest extends VertxTest {
                         .build());
 
         // then
-        final Async async = context.async();
-        future.onComplete(context.asyncAssertSuccess(result -> {
+        future.onComplete(context.succeeding(result -> {
             assertThat(result.isShouldReject()).isTrue();
             assertThat(result.getPayload()).isNull();
-
-            async.complete();
+            context.completeNow();
         }));
-
-        async.awaitSuccess();
     }
 
     @Test
-    public void shouldExecuteAuctionResponseHooksHappyPath(TestContext context) {
+    public void shouldExecuteAuctionResponseHooksHappyPath(VertxTestContext context) {
         // given
         givenAuctionResponseHook(
                 "module-alpha",
                 "hook-a",
-                immediateHook(InvocationResultImpl.succeeded(payload -> AuctionResponsePayloadImpl.of(
+                immediateHook(InvocationResultUtils.succeeded(payload -> AuctionResponsePayloadImpl.of(
                         payload.bidResponse().toBuilder().id("id").build()))));
 
         givenAuctionResponseHook(
                 "module-alpha",
                 "hook-b",
-                immediateHook(InvocationResultImpl.succeeded(payload -> AuctionResponsePayloadImpl.of(
+                immediateHook(InvocationResultUtils.succeeded(payload -> AuctionResponsePayloadImpl.of(
                         payload.bidResponse().toBuilder().bidid("bidid").build()))));
 
         givenAuctionResponseHook(
                 "module-beta",
                 "hook-a",
-                immediateHook(InvocationResultImpl.succeeded(payload -> AuctionResponsePayloadImpl.of(
+                immediateHook(InvocationResultUtils.succeeded(payload -> AuctionResponsePayloadImpl.of(
                         payload.bidResponse().toBuilder().cur("cur").build()))));
 
         givenAuctionResponseHook(
                 "module-beta",
                 "hook-b",
-                immediateHook(InvocationResultImpl.succeeded(payload -> AuctionResponsePayloadImpl.of(
+                immediateHook(InvocationResultUtils.succeeded(payload -> AuctionResponsePayloadImpl.of(
                         payload.bidResponse().toBuilder().nbr(1).build()))));
 
         final HookStageExecutor executor = createExecutor(
@@ -2612,8 +2844,7 @@ public class HookStageExecutorTest extends VertxTest {
                         .build());
 
         // then
-        final Async async = context.async();
-        future.onComplete(context.asyncAssertSuccess(result -> {
+        future.onComplete(context.succeeding(result -> {
             assertThat(result).isNotNull();
             assertThat(result.getPayload()).isNotNull().satisfies(payload ->
                     assertThat(payload.bidResponse()).isEqualTo(BidResponse.builder()
@@ -2623,18 +2854,16 @@ public class HookStageExecutorTest extends VertxTest {
                             .nbr(1)
                             .build()));
 
-            async.complete();
+            context.completeNow();
         }));
-
-        async.awaitSuccess();
     }
 
     @Test
-    public void shouldExecuteAuctionResponseHooksAndPassAuctionInvocationContext(TestContext context) {
+    public void shouldExecuteAuctionResponseHooksAndPassAuctionInvocationContext(VertxTestContext context) {
         // given
         final AuctionResponseHookImpl hookImpl = spy(
-                AuctionResponseHookImpl.of(immediateHook(InvocationResultImpl.succeeded(identity()))));
-        given(hookCatalog.hookById(eq("module-alpha"), eq("hook-a"), eq(StageWithHookType.AUCTION_RESPONSE)))
+                AuctionResponseHookImpl.of(immediateHook(InvocationResultUtils.succeeded(identity()))));
+        given(hookCatalog.hookById(eqHook("module-alpha", "hook-a"), eq(StageWithHookType.AUCTION_RESPONSE)))
                 .willReturn(hookImpl);
 
         final HookStageExecutor executor = createExecutor(
@@ -2652,15 +2881,14 @@ public class HookStageExecutorTest extends VertxTest {
                         .bidRequest(BidRequest.builder().build())
                         .account(Account.builder()
                                 .hooks(AccountHooksConfiguration.of(
-                                        null, singletonMap("module-alpha", mapper.createObjectNode())))
+                                        null, singletonMap("module-alpha", mapper.createObjectNode()), null))
                                 .build())
                         .hookExecutionContext(hookExecutionContext)
                         .debugContext(DebugContext.empty())
                         .build());
 
         // then
-        final Async async = context.async();
-        future.onComplete(context.asyncAssertSuccess(result -> {
+        future.onComplete(context.succeeding(result -> {
             final ArgumentCaptor<AuctionInvocationContext> invocationContextCaptor =
                     ArgumentCaptor.forClass(AuctionInvocationContext.class);
             verify(hookImpl).call(any(), invocationContextCaptor.capture());
@@ -2671,19 +2899,59 @@ public class HookStageExecutorTest extends VertxTest {
                 assertThat(invocationContext.accountConfig()).isNotNull();
             });
 
-            async.complete();
+            context.completeNow();
         }));
-
-        async.awaitSuccess();
     }
 
     @Test
-    public void shouldExecuteAuctionResponseHooksAndIgnoreRejection(TestContext context) {
+    public void shouldExecuteAuctionResponseHooksAndTolerateNullAccount(VertxTestContext context) {
+        // given
+        final AuctionResponseHookImpl hookImpl = spy(
+                AuctionResponseHookImpl.of(immediateHook(InvocationResultUtils.succeeded(identity()))));
+        given(hookCatalog.hookById(eqHook("module-alpha", "hook-a"), eq(StageWithHookType.AUCTION_RESPONSE)))
+                .willReturn(hookImpl);
+
+        final HookStageExecutor executor = createExecutor(
+                executionPlan(singletonMap(
+                        Endpoint.openrtb2_auction,
+                        EndpointExecutionPlan.of(singletonMap(
+                                Stage.auction_response, execPlanOneGroupOneHook("module-alpha", "hook-a"))))));
+
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+
+        // when
+        final Future<HookStageExecutionResult<AuctionResponsePayload>> future = executor.executeAuctionResponseStage(
+                BidResponse.builder().build(),
+                AuctionContext.builder()
+                        .bidRequest(BidRequest.builder().build())
+                        .account(null)
+                        .hookExecutionContext(hookExecutionContext)
+                        .debugContext(DebugContext.empty())
+                        .build());
+
+        // then
+        future.onComplete(context.succeeding(result -> {
+            final ArgumentCaptor<AuctionInvocationContext> invocationContextCaptor =
+                    ArgumentCaptor.forClass(AuctionInvocationContext.class);
+            verify(hookImpl).call(any(), invocationContextCaptor.capture());
+
+            assertThat(invocationContextCaptor.getValue()).satisfies(invocationContext -> {
+                assertThat(invocationContext.endpoint()).isNotNull();
+                assertThat(invocationContext.timeout()).isNotNull();
+                assertThat(invocationContext.accountConfig()).isNull();
+            });
+
+            context.completeNow();
+        }));
+    }
+
+    @Test
+    public void shouldExecuteAuctionResponseHooksAndIgnoreRejection(VertxTestContext context) {
         // given
         givenAuctionResponseHook(
                 "module-alpha",
                 "hook-a",
-                immediateHook(InvocationResultImpl.rejected("Will not apply")));
+                immediateHook(InvocationResultUtils.rejected("Will not apply")));
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
@@ -2703,8 +2971,7 @@ public class HookStageExecutorTest extends VertxTest {
                         .build());
 
         // then
-        final Async async = context.async();
-        future.onComplete(context.asyncAssertSuccess(result -> {
+        future.onComplete(context.succeeding(result -> {
             assertThat(result.isShouldReject()).isFalse();
             assertThat(result.getPayload()).isNotNull().satisfies(payload ->
                     assertThat(payload.bidResponse()).isNotNull());
@@ -2719,8 +2986,8 @@ public class HookStageExecutorTest extends VertxTest {
 
                                         final List<GroupExecutionOutcome> groups = stageOutcome.getGroups();
 
-                                        final List<HookExecutionOutcome> group0Hooks = groups.get(0).getHooks();
-                                        assertThat(group0Hooks.get(0)).satisfies(hookOutcome -> {
+                                        final List<HookExecutionOutcome> group0Hooks = groups.getFirst().getHooks();
+                                        assertThat(group0Hooks.getFirst()).satisfies(hookOutcome -> {
                                             assertThat(hookOutcome.getHookId())
                                                     .isEqualTo(HookId.of("module-alpha", "hook-a"));
                                             assertThat(hookOutcome.getStatus())
@@ -2730,14 +2997,267 @@ public class HookStageExecutorTest extends VertxTest {
                                         });
                                     }));
 
-            async.complete();
+            context.completeNow();
         }));
+    }
 
-        async.awaitSuccess();
+    @Test
+    public void shouldExecuteExitpointHooksHappyPath(VertxTestContext context) {
+        // given
+        givenExitpointHook(
+                "module-alpha",
+                "hook-a",
+                immediateHook(InvocationResultUtils.succeeded(payload -> ExitpointPayloadImpl.of(
+                        payload.responseHeaders().add("Header-alpha-a", "alpha-a"),
+                        "{\"execution1\":\"alpha-a\""))));
+
+        givenExitpointHook(
+                "module-alpha",
+                "hook-b",
+                immediateHook(InvocationResultUtils.succeeded(payload -> ExitpointPayloadImpl.of(
+                        payload.responseHeaders().add("Header-alpha-b", "alpha-b"),
+                        payload.responseBody() + ",\"execution4\":\"alpha-b\"}"))));
+
+        givenExitpointHook(
+                "module-beta",
+                "hook-a",
+                immediateHook(InvocationResultUtils.succeeded(payload -> ExitpointPayloadImpl.of(
+                        payload.responseHeaders().add("Header-beta-a", "beta-a"),
+                        payload.responseBody() + ",\"execution2\":\"beta-a\""))));
+
+        givenExitpointHook(
+                "module-beta",
+                "hook-b",
+                immediateHook(InvocationResultUtils.succeeded(payload -> ExitpointPayloadImpl.of(
+                        payload.responseHeaders().add("Header-beta-b", "beta-b"),
+                        payload.responseBody() + ",\"execution3\":\"beta-b\""))));
+
+        final HookStageExecutor executor = createExecutor(
+                executionPlan(singletonMap(
+                        Endpoint.openrtb2_auction,
+                        EndpointExecutionPlan.of(singletonMap(
+                                Stage.exitpoint,
+                                execPlanTwoGroupsTwoHooksEach())))));
+
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+
+        // when
+        final Future<HookStageExecutionResult<ExitpointPayload>> future = executor.executeExitpointStage(
+                MultiMap.caseInsensitiveMultiMap().add("Header-Name", "Header-Value"),
+                "{}",
+                AuctionContext.builder()
+                        .bidRequest(BidRequest.builder().build())
+                        .account(Account.empty("accountId"))
+                        .hookExecutionContext(hookExecutionContext)
+                        .debugContext(DebugContext.empty())
+                        .build());
+
+        // then
+        future.onComplete(context.succeeding(result -> {
+            assertThat(result).isNotNull();
+            assertThat(result.getPayload()).isNotNull().satisfies(payload -> {
+                assertThat(payload.responseBody())
+                        .isEqualTo("{\"execution1\":\"alpha-a\",\"execution2\":\"beta-a\","
+                                + "\"execution3\":\"beta-b\",\"execution4\":\"alpha-b\"}");
+                assertThat(payload.responseHeaders()).hasSize(5)
+                        .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                        .containsOnly(
+                                tuple("Header-Name", "Header-Value"),
+                                tuple("Header-alpha-a", "alpha-a"),
+                                tuple("Header-alpha-b", "alpha-b"),
+                                tuple("Header-beta-a", "beta-a"),
+                                tuple("Header-beta-b", "beta-b"));
+            });
+
+            context.completeNow();
+        }));
+    }
+
+    @Test
+    public void shouldExecuteExitpointHooksAndPassAuctionInvocationContext(VertxTestContext context) {
+        // given
+        final ExitpointHookImpl hookImpl = spy(
+                ExitpointHookImpl.of(immediateHook(InvocationResultUtils.succeeded(identity()))));
+        given(hookCatalog.hookById(eqHook("module-alpha", "hook-a"), eq(StageWithHookType.EXITPOINT)))
+                .willReturn(hookImpl);
+
+        final HookStageExecutor executor = createExecutor(
+                executionPlan(singletonMap(
+                        Endpoint.openrtb2_auction,
+                        EndpointExecutionPlan.of(singletonMap(
+                                Stage.exitpoint, execPlanOneGroupOneHook("module-alpha", "hook-a"))))));
+
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+
+        // when
+        final Future<HookStageExecutionResult<ExitpointPayload>> future = executor.executeExitpointStage(
+                MultiMap.caseInsensitiveMultiMap().add("Header-Name", "Header-Value"),
+                "{}",
+                AuctionContext.builder()
+                        .bidRequest(BidRequest.builder().build())
+                        .account(Account.builder()
+                                .hooks(AccountHooksConfiguration.of(
+                                        null, singletonMap("module-alpha", mapper.createObjectNode()), null))
+                                .build())
+                        .hookExecutionContext(hookExecutionContext)
+                        .debugContext(DebugContext.empty())
+                        .build());
+
+        // then
+        future.onComplete(context.succeeding(result -> {
+            final ArgumentCaptor<AuctionInvocationContext> invocationContextCaptor =
+                    ArgumentCaptor.forClass(AuctionInvocationContext.class);
+            verify(hookImpl).call(any(), invocationContextCaptor.capture());
+
+            assertThat(invocationContextCaptor.getValue()).satisfies(invocationContext -> {
+                assertThat(invocationContext.endpoint()).isNotNull();
+                assertThat(invocationContext.timeout()).isNotNull();
+                assertThat(invocationContext.accountConfig()).isNotNull();
+            });
+
+            context.completeNow();
+        }));
+    }
+
+    @Test
+    public void shouldExecuteExitpointHooksAndIgnoreRejection(VertxTestContext context) {
+        // given
+        givenExitpointHook(
+                "module-alpha",
+                "hook-a",
+                immediateHook(InvocationResultUtils.rejected("Will not apply")));
+
+        final HookStageExecutor executor = createExecutor(
+                executionPlan(singletonMap(
+                        Endpoint.openrtb2_auction,
+                        EndpointExecutionPlan.of(singletonMap(
+                                Stage.exitpoint, execPlanOneGroupOneHook("module-alpha", "hook-a"))))));
+
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+
+        // when
+        final Future<HookStageExecutionResult<ExitpointPayload>> future = executor.executeExitpointStage(
+                MultiMap.caseInsensitiveMultiMap().add("Header-Name", "Header-Value"),
+                "{}",
+                AuctionContext.builder()
+                        .account(Account.empty("accountId"))
+                        .hookExecutionContext(hookExecutionContext)
+                        .debugContext(DebugContext.empty())
+                        .build());
+
+        // then
+        future.onComplete(context.succeeding(result -> {
+            assertThat(result.isShouldReject()).isFalse();
+            assertThat(result.getPayload()).isNotNull().satisfies(payload -> {
+                assertThat(payload.responseBody()).isNotNull();
+                assertThat(payload.responseBody()).isNotEmpty();
+            });
+
+            assertThat(hookExecutionContext.getStageOutcomes())
+                    .hasEntrySatisfying(
+                            Stage.exitpoint,
+                            stageOutcomes -> assertThat(stageOutcomes)
+                                    .hasSize(1)
+                                    .allSatisfy(stageOutcome -> {
+                                        assertThat(stageOutcome.getEntity()).isEqualTo("http-response");
+
+                                        final List<GroupExecutionOutcome> groups = stageOutcome.getGroups();
+
+                                        final List<HookExecutionOutcome> group0Hooks = groups.getFirst().getHooks();
+                                        assertThat(group0Hooks.getFirst()).satisfies(hookOutcome -> {
+                                            assertThat(hookOutcome.getHookId())
+                                                    .isEqualTo(HookId.of("module-alpha", "hook-a"));
+                                            assertThat(hookOutcome.getStatus())
+                                                    .isEqualTo(ExecutionStatus.execution_failure);
+                                            assertThat(hookOutcome.getMessage())
+                                                    .isEqualTo("Rejection is not supported during this stage");
+                                        });
+                                    }));
+
+            context.completeNow();
+        }));
+    }
+
+    @Test
+    public void abTestsForEntrypointStageShouldReturnEnabledTests() {
+        // given
+        final HookStageExecutor executor = createExecutor(executionPlan(asList(
+                ABTest.builder().enabled(true).accounts(singleton("1")).build(),
+                ABTest.builder().enabled(false).accounts(singleton("1")).build(),
+                ABTest.builder().enabled(false).accounts(singleton("2")).build(),
+                ABTest.builder().enabled(true).build())));
+
+        // when
+        final List<ABTest> abTests = executor.abTestsForEntrypointStage();
+
+        // then
+        assertThat(abTests)
+                .hasSize(2)
+                .extracting(ABTest::isEnabled)
+                .containsOnly(true);
+    }
+
+    @Test
+    public void abTestsShouldReturnEnabledTestsFromAccount() {
+        // given
+        final HookStageExecutor executor = createExecutor(executionPlan(asList(
+                ABTest.builder().enabled(true).accounts(singleton("1")).build(),
+                ABTest.builder().enabled(false).accounts(singleton("1")).build(),
+                ABTest.builder().enabled(false).accounts(singleton("2")).build(),
+                ABTest.builder().enabled(true).build())));
+
+        final Account account = Account.builder()
+                .id("1")
+                .hooks(AccountHooksConfiguration.of(
+                        ExecutionPlan.of(
+                                asList(
+                                        ABTest.builder().enabled(true).accounts(singleton("3")).build(),
+                                        ABTest.builder().enabled(false).accounts(singleton("4")).build(),
+                                        ABTest.builder().enabled(true).build()),
+                                emptyMap()),
+                        emptyMap(),
+                        null))
+                .build();
+
+        // when
+        final List<ABTest> abTests = executor.abTests(account);
+
+        // then
+        assertThat(abTests).containsExactly(
+                ABTest.builder().enabled(true).accounts(singleton("3")).build(),
+                ABTest.builder().enabled(true).build());
+    }
+
+    @Test
+    public void abTestsShouldReturnEnabledTestsFromHost() {
+        // given
+        final HookStageExecutor executor = createExecutor(
+                executionPlan(asList(
+                        ABTest.builder().enabled(true).accounts(singleton("1")).build(),
+                        ABTest.builder().enabled(false).accounts(singleton("1")).build(),
+                        ABTest.builder().enabled(false).accounts(singleton("2")).build(),
+                        ABTest.builder().enabled(true).build())),
+                jacksonMapper.encodeToString(ExecutionPlan.empty()));
+
+        final Account account = Account.builder()
+                .id("1")
+                .build();
+
+        // when
+        final List<ABTest> abTests = executor.abTests(account);
+
+        // then
+        assertThat(abTests).containsExactly(
+                ABTest.builder().enabled(true).accounts(singleton("1")).build(),
+                ABTest.builder().enabled(true).build());
     }
 
     private String executionPlan(Map<Endpoint, EndpointExecutionPlan> endpoints) {
-        return jacksonMapper.encodeToString(ExecutionPlan.of(endpoints));
+        return jacksonMapper.encodeToString(ExecutionPlan.of(null, endpoints));
+    }
+
+    private String executionPlan(List<ABTest> abTests) {
+        return jacksonMapper.encodeToString(ExecutionPlan.of(abTests, emptyMap()));
     }
 
     private static StageExecutionPlan execPlanTwoGroupsTwoHooksEach() {
@@ -2766,7 +3286,7 @@ public class HookStageExecutorTest extends VertxTest {
             String hookImplCode,
             BiFunction<EntrypointPayload, InvocationContext, Future<InvocationResult<EntrypointPayload>>> delegate) {
 
-        given(hookCatalog.hookById(eq(moduleCode), eq(hookImplCode), eq(StageWithHookType.ENTRYPOINT)))
+        given(hookCatalog.hookById(eqHook(moduleCode, hookImplCode), eq(StageWithHookType.ENTRYPOINT)))
                 .willReturn(EntrypointHookImpl.of(delegate));
     }
 
@@ -2778,7 +3298,7 @@ public class HookStageExecutorTest extends VertxTest {
                     AuctionInvocationContext,
                     Future<InvocationResult<AuctionRequestPayload>>> delegate) {
 
-        given(hookCatalog.hookById(eq(moduleCode), eq(hookImplCode), eq(StageWithHookType.RAW_AUCTION_REQUEST)))
+        given(hookCatalog.hookById(eqHook(moduleCode, hookImplCode), eq(StageWithHookType.RAW_AUCTION_REQUEST)))
                 .willReturn(RawAuctionRequestHookImpl.of(delegate));
     }
 
@@ -2790,7 +3310,7 @@ public class HookStageExecutorTest extends VertxTest {
                     AuctionInvocationContext,
                     Future<InvocationResult<AuctionRequestPayload>>> delegate) {
 
-        given(hookCatalog.hookById(eq(moduleCode), eq(hookImplCode), eq(StageWithHookType.PROCESSED_AUCTION_REQUEST)))
+        given(hookCatalog.hookById(eqHook(moduleCode, hookImplCode), eq(StageWithHookType.PROCESSED_AUCTION_REQUEST)))
                 .willReturn(ProcessedAuctionRequestHookImpl.of(delegate));
     }
 
@@ -2802,7 +3322,7 @@ public class HookStageExecutorTest extends VertxTest {
                     BidderInvocationContext,
                     Future<InvocationResult<BidderRequestPayload>>> delegate) {
 
-        given(hookCatalog.hookById(eq(moduleCode), eq(hookImplCode), eq(StageWithHookType.BIDDER_REQUEST)))
+        given(hookCatalog.hookById(eqHook(moduleCode, hookImplCode), eq(StageWithHookType.BIDDER_REQUEST)))
                 .willReturn(BidderRequestHookImpl.of(delegate));
     }
 
@@ -2814,7 +3334,7 @@ public class HookStageExecutorTest extends VertxTest {
                     BidderInvocationContext,
                     Future<InvocationResult<BidderResponsePayload>>> delegate) {
 
-        given(hookCatalog.hookById(eq(moduleCode), eq(hookImplCode), eq(StageWithHookType.RAW_BIDDER_RESPONSE)))
+        given(hookCatalog.hookById(eqHook(moduleCode, hookImplCode), eq(StageWithHookType.RAW_BIDDER_RESPONSE)))
                 .willReturn(RawBidderResponseHookImpl.of(delegate));
     }
 
@@ -2826,7 +3346,7 @@ public class HookStageExecutorTest extends VertxTest {
                     BidderInvocationContext,
                     Future<InvocationResult<BidderResponsePayload>>> delegate) {
 
-        given(hookCatalog.hookById(eq(moduleCode), eq(hookImplCode), eq(StageWithHookType.PROCESSED_BIDDER_RESPONSE)))
+        given(hookCatalog.hookById(eqHook(moduleCode, hookImplCode), eq(StageWithHookType.PROCESSED_BIDDER_RESPONSE)))
                 .willReturn(ProcessedBidderResponseHookImpl.of(delegate));
     }
 
@@ -2838,7 +3358,7 @@ public class HookStageExecutorTest extends VertxTest {
                     AuctionInvocationContext,
                     Future<InvocationResult<AllProcessedBidResponsesPayload>>> delegate) {
 
-        given(hookCatalog.hookById(eq(moduleCode), eq(hookImplCode), eq(StageWithHookType.ALL_PROCESSED_BID_RESPONSES)))
+        given(hookCatalog.hookById(eqHook(moduleCode, hookImplCode), eq(StageWithHookType.ALL_PROCESSED_BID_RESPONSES)))
                 .willReturn(AllProcessedBidResponsesHookImpl.of(delegate));
     }
 
@@ -2850,8 +3370,20 @@ public class HookStageExecutorTest extends VertxTest {
                     AuctionInvocationContext,
                     Future<InvocationResult<AuctionResponsePayload>>> delegate) {
 
-        given(hookCatalog.hookById(eq(moduleCode), eq(hookImplCode), eq(StageWithHookType.AUCTION_RESPONSE)))
+        given(hookCatalog.hookById(eqHook(moduleCode, hookImplCode), eq(StageWithHookType.AUCTION_RESPONSE)))
                 .willReturn(AuctionResponseHookImpl.of(delegate));
+    }
+
+    private void givenExitpointHook(
+            String moduleCode,
+            String hookImplCode,
+            BiFunction<
+                    ExitpointPayload,
+                    AuctionInvocationContext,
+                    Future<InvocationResult<ExitpointPayload>>> delegate) {
+
+        given(hookCatalog.hookById(eqHook(moduleCode, hookImplCode), eq(StageWithHookType.EXITPOINT)))
+                .willReturn(ExitpointHookImpl.of(delegate));
     }
 
     private <PAYLOAD, CONTEXT> BiFunction<PAYLOAD, CONTEXT, Future<InvocationResult<PAYLOAD>>> delayedHook(
@@ -2871,6 +3403,10 @@ public class HookStageExecutorTest extends VertxTest {
         return (payload, context) -> Future.succeededFuture(result);
     }
 
+    private static HookId eqHook(String moduleCode, String hookCode) {
+        return ArgumentMatchers.eq(HookId.of(moduleCode, hookCode));
+    }
+
     private HookStageExecutor createExecutor(String hostExecutionPlan) {
         return createExecutor(hostExecutionPlan, null);
     }
@@ -2879,11 +3415,13 @@ public class HookStageExecutorTest extends VertxTest {
         return HookStageExecutor.create(
                 hostExecutionPlan,
                 defaultAccountExecutionPlan,
+                Collections.emptyMap(),
                 hookCatalog,
                 timeoutFactory,
                 vertx,
                 clock,
-                jacksonMapper);
+                jacksonMapper,
+                false);
     }
 
     @Value(staticConstructor = "of")
@@ -3066,6 +3604,30 @@ public class HookStageExecutorTest extends VertxTest {
         @Override
         public Future<InvocationResult<AuctionResponsePayload>> call(AuctionResponsePayload payload,
                                                                      AuctionInvocationContext invocationContext) {
+
+            return delegate.apply(payload, invocationContext);
+        }
+
+        @Override
+        public String code() {
+            return code;
+        }
+    }
+
+    @Value(staticConstructor = "of")
+    @NonFinal
+    private static class ExitpointHookImpl implements ExitpointHook {
+
+        String code = "hook-code";
+
+        BiFunction<
+                ExitpointPayload,
+                AuctionInvocationContext,
+                Future<InvocationResult<ExitpointPayload>>> delegate;
+
+        @Override
+        public Future<InvocationResult<ExitpointPayload>> call(ExitpointPayload payload,
+                                                               AuctionInvocationContext invocationContext) {
 
             return delegate.apply(payload, invocationContext);
         }

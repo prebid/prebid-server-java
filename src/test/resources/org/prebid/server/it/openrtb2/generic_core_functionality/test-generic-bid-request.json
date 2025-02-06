@@ -1,20 +1,31 @@
 {
   "id" : "tid",
   "imp" : [ {
-    "id" : "impId001",
-    "video" : {
-      "mimes" : [ "mimes" ],
-      "w" : 300,
-      "h" : 250
+    "id": "impId001",
+    "video": {
+      "placement": 1,
+      "mimes": [
+        "mimes"
+      ],
+      "w": 300,
+      "h": 250
     },
-    "secure" : 1,
-    "ext" : {
-      "tid" : "${json-unit.any-string}",
-      "bidder" : {
-        "accountId" : 2001,
-        "siteId" : 3001,
-        "zoneId" : 4001
-      }
+    "pmp": {
+      "deals": [
+        {
+          "id": "dealId"
+        }
+      ]
+    },
+    "secure": 1,
+    "ext": {
+      "tid": "${json-unit.any-string}",
+      "bidder": {
+        "accountId": 2001,
+        "siteId": 3001,
+        "zoneId": 4001
+      },
+      "someExt": "someExt"
     }
   } ],
   "site" : {
@@ -38,8 +49,29 @@
     "tid" : "${json-unit.any-string}"
   },
   "regs" : {
+    "gpp_sid" : [ 1, 3, 7 ],
     "ext" : {
-      "gdpr" : 0
+      "gdpr" : 0,
+      "dsa": {
+        "dsarequired": 1,
+        "pubrender": 0,
+        "datatopub": 2,
+        "transparency": [
+          {
+            "domain": "platform1domain.com",
+            "dsaparams": [
+              1
+            ]
+          },
+          {
+            "domain": "SSP2domain.com",
+            "dsaparams": [
+              1,
+              2
+            ]
+          }
+        ]
+      }
     }
   },
   "ext" : {

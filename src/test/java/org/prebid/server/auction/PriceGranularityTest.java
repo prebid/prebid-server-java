@@ -1,6 +1,6 @@
 package org.prebid.server.auction;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
@@ -24,6 +24,19 @@ public class PriceGranularityTest {
     @Test
     public void createFromStringShouldThrowPrebidExceptionIfInvalidStringType() {
         assertThatExceptionOfType(PreBidException.class).isThrownBy(() -> PriceGranularity.createFromString("invalid"));
+    }
+
+    @Test
+    public void createFromStringOrDefaultShouldCreateMedPriceGranularityWhenInvalidStringType() {
+        // given and when
+        final PriceGranularity defaultPriceGranularity = PriceGranularity.createFromStringOrDefault(
+                "invalid");
+
+        // then
+        assertThat(defaultPriceGranularity.getRangesMax()).isEqualByComparingTo(BigDecimal.valueOf(20));
+        assertThat(defaultPriceGranularity.getPrecision()).isEqualTo(2);
+        assertThat(defaultPriceGranularity.getRanges()).containsOnly(
+                ExtGranularityRange.of(BigDecimal.valueOf(20), BigDecimal.valueOf(0.1)));
     }
 
     @Test

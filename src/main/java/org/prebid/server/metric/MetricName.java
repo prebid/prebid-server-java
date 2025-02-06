@@ -25,6 +25,7 @@ public enum MetricName {
 
     // auction
     requests,
+    debug_requests,
     app_requests,
     no_cookie_requests,
     request_time,
@@ -62,8 +63,8 @@ public enum MetricName {
     nobid,
     gotbids,
     badinput,
-    blacklisted_account,
-    blacklisted_app,
+    blocklisted_account,
+    blocklisted_app,
     badserverresponse,
     failedtorequestbids,
     timeout,
@@ -71,6 +72,7 @@ public enum MetricName {
     unknown_error,
     err,
     networkerr,
+    buyeruid_scrubbed,
 
     // bids validation
     warn,
@@ -86,6 +88,7 @@ public enum MetricName {
     sizedout,
 
     // tcf
+    userfpd_masked,
     userid_removed,
     geo_masked,
     request_blocked,
@@ -137,6 +140,7 @@ public enum MetricName {
     call,
     success,
     noop,
+    no_invocation("no-invocation"),
     reject,
     unknown,
     failure,
@@ -145,32 +149,6 @@ public enum MetricName {
 
     // price-floors
     price_floors("price-floors"),
-
-    // win notifications
-    win_notifications,
-    win_requests,
-    win_request_preparation_failed,
-    win_request_time,
-    win_request_failed,
-    win_request_successful,
-
-    // user details
-    user_details_requests,
-    user_details_request_preparation_failed,
-    user_details_request_time,
-    user_details_request_failed,
-    user_details_request_successful,
-
-    // pg
-    planner_lineitems_received,
-    planner_requests,
-    planner_request_failed,
-    planner_request_successful,
-    planner_request_time,
-    delivery_requests,
-    delivery_request_failed,
-    delivery_request_successful,
-    delivery_request_time,
 
     // activity
     disallowed_count("disallowed.count"),

@@ -28,8 +28,8 @@ import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -130,7 +130,8 @@ public class BidstackBidder implements Bidder<BidRequest> {
     }
 
     private MultiMap constructHeaders(BidRequest bidRequest) {
-        final String publishedId = StringUtils.defaultString(parseExtImp(bidRequest.getImp().get(0)).getPublisherId());
+        final String publishedId = StringUtils.defaultString(
+                parseExtImp(bidRequest.getImp().getFirst()).getPublisherId());
         return HttpUtil.headers()
                 .add(HttpUtil.AUTHORIZATION_HEADER.toString(), "Bearer " + publishedId);
     }

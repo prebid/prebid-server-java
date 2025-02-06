@@ -7,12 +7,11 @@ import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.FileSystem;
 import org.apache.commons.lang3.StringUtils;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.BidderCatalog;
@@ -24,8 +23,8 @@ import org.prebid.server.privacy.gdpr.vendorlist.proto.SpecialFeature;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.SpecialPurpose;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.Vendor;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorList;
-import org.prebid.server.vertx.http.HttpClient;
-import org.prebid.server.vertx.http.model.HttpClientResponse;
+import org.prebid.server.vertx.httpclient.HttpClient;
+import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.io.File;
 import java.util.Date;
@@ -39,10 +38,12 @@ import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -50,6 +51,7 @@ import static org.prebid.server.assertion.FutureAssertion.assertThat;
 import static org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode.ONE;
 import static org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode.TWO;
 
+@ExtendWith(MockitoExtension.class)
 public class VendorListServiceTest extends VertxTest {
 
     private static final String CACHE_DIR = "/cache/dir";
@@ -57,23 +59,22 @@ public class VendorListServiceTest extends VertxTest {
     private static final String FALLBACK_VENDOR_LIST_PATH = "fallback.json";
     private static final String GENERATION_VERSION = "v0";
 
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
     @Mock
     private Vertx vertx;
     @Mock
     private FileSystem fileSystem;
-    @Mock
+    @Mock(strictness = LENIENT)
     private HttpClient httpClient;
     @Mock
     private Metrics metrics;
-    @Mock
+    @Mock(strictness = LENIENT)
     private BidderCatalog bidderCatalog;
+    @Mock(strictness = LENIENT)
+    private VendorListFetchThrottler fetchThrottler;
 
     private VendorListService target;
 
-    @Before
+    @BeforeEach
     public void setUp() throws JsonProcessingException {
         given(fileSystem.existsBlocking(anyString())).willReturn(false); // always create cache dir
 
@@ -81,6 +82,8 @@ public class VendorListServiceTest extends VertxTest {
 
         given(fileSystem.readFileBlocking(eq(FALLBACK_VENDOR_LIST_PATH)))
                 .willReturn(Buffer.buffer(mapper.writeValueAsString(givenVendorList())));
+
+        given(fetchThrottler.registerFetchAttempt(anyInt())).willReturn(true);
 
         target = new VendorListService(
                 0,
@@ -95,7 +98,8 @@ public class VendorListServiceTest extends VertxTest {
                 httpClient,
                 metrics,
                 GENERATION_VERSION,
-                jacksonMapper);
+                jacksonMapper,
+                fetchThrottler);
     }
 
     // Creation related tests
@@ -120,7 +124,8 @@ public class VendorListServiceTest extends VertxTest {
                         httpClient,
                         metrics,
                         GENERATION_VERSION,
-                        jacksonMapper))
+                        jacksonMapper,
+                        fetchThrottler))
                 .hasMessage("dir creation error");
     }
 
@@ -140,7 +145,8 @@ public class VendorListServiceTest extends VertxTest {
                 httpClient,
                 metrics,
                 GENERATION_VERSION,
-                jacksonMapper);
+                jacksonMapper,
+                fetchThrottler);
 
         // when
         final Future<Map<Integer, Vendor>> future = target.forVersion(1);
@@ -175,7 +181,8 @@ public class VendorListServiceTest extends VertxTest {
                 httpClient,
                 metrics,
                 GENERATION_VERSION,
-                jacksonMapper))
+                jacksonMapper,
+                fetchThrottler))
                 .isInstanceOf(PreBidException.class)
                 .hasMessage("No fallback vendorList for deprecated version present");
     }
@@ -200,7 +207,8 @@ public class VendorListServiceTest extends VertxTest {
                         httpClient,
                         metrics,
                         GENERATION_VERSION,
-                        jacksonMapper))
+                        jacksonMapper,
+                        fetchThrottler))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessage("read error");
     }
@@ -226,7 +234,8 @@ public class VendorListServiceTest extends VertxTest {
                         httpClient,
                         metrics,
                         GENERATION_VERSION,
-                        jacksonMapper))
+                        jacksonMapper,
+                        fetchThrottler))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessage("read error");
     }
@@ -252,7 +261,8 @@ public class VendorListServiceTest extends VertxTest {
                         httpClient,
                         metrics,
                         GENERATION_VERSION,
-                        jacksonMapper))
+                        jacksonMapper,
+                        fetchThrottler))
                 .isInstanceOf(PreBidException.class)
                 .hasMessage("Cannot parse vendor list from: invalid");
     }
@@ -260,15 +270,30 @@ public class VendorListServiceTest extends VertxTest {
     // Http related tests
 
     @Test
-    public void shouldPerformHttpRequestWithExpectedQueryIfVendorListNotFound() {
+    public void shouldPerformHttpRequestWithExpectedQueryIfVendorListNotFoundAndFetchAllowed() {
         // given
         givenHttpClientReturnsResponse(200, null);
+        given(fetchThrottler.registerFetchAttempt(1)).willReturn(true);
 
         // when
         target.forVersion(1);
 
         // then
         verify(httpClient).get(eq("http://vendorlist/1"), anyLong());
+    }
+
+    @Test
+    public void shouldNotPerformHttpRequestIfVendorListNotFoundAndFetchNotAllowed() {
+        // given
+        givenHttpClientReturnsResponse(200, null);
+        given(fetchThrottler.registerFetchAttempt(1)).willReturn(false);
+
+        // when
+        target.forVersion(1);
+
+        // then
+        verify(httpClient, never()).get(anyString(), anyLong());
+        verify(fileSystem, never()).writeFile(any(), any(), any());
     }
 
     @Test

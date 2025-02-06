@@ -14,15 +14,19 @@ import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
+import org.prebid.server.bidder.model.Price;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.pgamssp.PgamSspImpExt;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -35,12 +39,18 @@ public class PgamSspBidder implements Bidder<BidRequest> {
     };
     private static final String PUBLISHER_IMP_EXT_TYPE = "publisher";
     private static final String NETWORK_IMP_EXT_TYPE = "network";
+    private static final String DEFAULT_BID_CURRENCY = "USD";
 
     private final String endpointUrl;
+    private final CurrencyConversionService currencyConversionService;
     private final JacksonMapper mapper;
 
-    public PgamSspBidder(String endpointUrl, JacksonMapper mapper) {
+    public PgamSspBidder(String endpointUrl,
+                         CurrencyConversionService currencyConversionService,
+                         JacksonMapper mapper) {
+
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -51,7 +61,7 @@ public class PgamSspBidder implements Bidder<BidRequest> {
         for (Imp imp : request.getImp()) {
             try {
                 final PgamSspImpExt impExt = parseImpExt(imp);
-                final BidRequest modifiedBidRequest = makeRequest(request, imp, impExt);
+                final BidRequest modifiedBidRequest = makeRequest(request, modifyImp(imp, request), impExt);
                 httpRequests.add(makeHttpRequest(modifiedBidRequest, imp.getId()));
             } catch (PreBidException e) {
                 return Result.withError(BidderError.badInput(e.getMessage()));
@@ -59,6 +69,31 @@ public class PgamSspBidder implements Bidder<BidRequest> {
         }
 
         return Result.withValues(httpRequests);
+    }
+
+    private Imp modifyImp(Imp imp, BidRequest bidRequest) {
+        final Price resolvedBidFloor = resolveBidFloor(imp, bidRequest);
+        return imp.toBuilder()
+                .bidfloor(resolvedBidFloor.getValue())
+                .bidfloorcur(resolvedBidFloor.getCurrency())
+                .build();
+    }
+
+    private Price resolveBidFloor(Imp imp, BidRequest bidRequest) {
+        final Price initialBidFloorPrice = Price.of(imp.getBidfloorcur(), imp.getBidfloor());
+        return BidderUtil.shouldConvertBidFloor(initialBidFloorPrice, DEFAULT_BID_CURRENCY)
+                ? convertBidFloor(initialBidFloorPrice, bidRequest)
+                : initialBidFloorPrice;
+    }
+
+    private Price convertBidFloor(Price bidFloorPrice, BidRequest bidRequest) {
+        final BigDecimal convertedPrice = currencyConversionService.convertCurrency(
+                bidFloorPrice.getValue(),
+                bidRequest,
+                bidFloorPrice.getCurrency(),
+                DEFAULT_BID_CURRENCY);
+
+        return Price.of(DEFAULT_BID_CURRENCY, convertedPrice);
     }
 
     private PgamSspImpExt parseImpExt(Imp imp) throws PreBidException {

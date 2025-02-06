@@ -1,0 +1,36 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "request_id",
+          "impid": "imp_id",
+          "exp": 300,
+          "price": 10.2,
+          "adm": "adm",
+          "crid": "id",
+          "ext": {
+            "origbidcpm": 10.2,
+            "origbidcur": "USD",
+            "prebid": {
+              "type": "banner"
+            }
+          }
+        }
+      ],
+      "seat": "missena",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "missena": "{{ missena.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}

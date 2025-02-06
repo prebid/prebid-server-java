@@ -1,12 +1,14 @@
 package org.prebid.server.functional.model.request.auction
 
 import com.fasterxml.jackson.annotation.JsonProperty
+import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 import org.prebid.server.functional.model.bidder.AppNexus
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.bidder.Rubicon
 
 @ToString(includeNames = true, ignoreNulls = true)
+@EqualsAndHashCode
 class ImpExt {
 
     ImpExtPrebid prebid
@@ -20,7 +22,15 @@ class ImpExt {
     ImpExtContextData data
     String tid
     String gpid
-    Integer ae
+    String sid
+    @JsonProperty("ae")
+    AuctionEnvironment auctionEnvironment
+    String all
+    String skadn
+    String general
+    @JsonProperty("igs")
+    InterestGroupAuctionSupport interestGroupAuctionSupports
+    AnyUnsupportedBidder anyUnsupportedBidder
 
     static ImpExt getDefaultImpExt() {
         new ImpExt().tap {

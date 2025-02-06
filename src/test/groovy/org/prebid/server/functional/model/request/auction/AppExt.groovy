@@ -6,4 +6,5 @@ import groovy.transform.ToString
 class AppExt {
 
     AppExtData data
+    AppPrebid prebid
 }

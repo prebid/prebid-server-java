@@ -28,7 +28,7 @@ public class USNatModule implements PrivacyModule, Loggable {
     private static PrivacyModule innerModule(Activity activity, USNatGppReader gppReader) {
         return switch (activity) {
             case SYNC_USER, MODIFY_UFDP -> new USNatSyncUser(gppReader);
-            case TRANSMIT_UFPD -> new USNatTransmitUfpd(gppReader);
+            case TRANSMIT_UFPD, TRANSMIT_EIDS -> new USNatTransmitUfpd(gppReader);
             case TRANSMIT_GEO -> new USNatTransmitGeo(gppReader);
             case CALL_BIDDER, TRANSMIT_TID, REPORT_ANALYTICS -> USNatDefault.instance();
         };

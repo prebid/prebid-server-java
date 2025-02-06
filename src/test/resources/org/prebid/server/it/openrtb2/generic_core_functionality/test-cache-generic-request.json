@@ -13,6 +13,15 @@
         "w": 300,
         "h": 250,
         "ext": {
+          "dsa" : {
+            "behalf" : "Advertiser",
+            "paid" : "Advertiser",
+            "transparency" : {
+              "domain" : "dsp1domain.com",
+              "dsaparams" : [ 1, 2 ]
+            },
+            "adrender" : 1
+          },
           "prebid": {
             "type": "video",
             "meta": {
@@ -27,7 +36,8 @@
           "origbidcpm": 3.33
         }
       },
-      "aid": "tid"
+      "aid": "tid",
+      "ttlseconds" : 1500
     }
   ]
 }

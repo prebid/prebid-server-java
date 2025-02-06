@@ -13,12 +13,17 @@ class Bidder {
 
     Generic alias
     Generic generic
+    @JsonProperty("gener_x")
+    Generic generX
     @JsonProperty("GeNerIc")
     Generic genericCamelCase
     Rubicon rubicon
     @JsonProperty("appnexus")
     AppNexus appNexus
     Openx openx
+    Ix ix
+    @JsonProperty("openxalias")
+    Openx openxAlias
 
     static Bidder getDefaultBidder() {
         new Bidder().tap {

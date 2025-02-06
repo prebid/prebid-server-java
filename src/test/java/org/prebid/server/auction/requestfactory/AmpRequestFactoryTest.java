@@ -17,23 +17,23 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.net.impl.SocketAddressImpl;
 import io.vertx.ext.web.RoutingContext;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.DebugResolver;
 import org.prebid.server.auction.FpdResolver;
+import org.prebid.server.auction.GeoLocationServiceWrapper;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.OrtbTypesResolver;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.gpp.AmpGppService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.debug.DebugContext;
-import org.prebid.server.auction.privacycontextfactory.AmpPrivacyContextFactory;
+import org.prebid.server.auction.privacy.contextfactory.AmpPrivacyContextFactory;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.geolocation.model.GeoInfo;
@@ -62,6 +62,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.request.Targeting;
+import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAuctionConfig;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -85,48 +87,49 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.prebid.server.assertion.FutureAssertion.assertThat;
 
+@ExtendWith(MockitoExtension.class)
 public class AmpRequestFactoryTest extends VertxTest {
 
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
-    @Mock
+    @Mock(strictness = LENIENT)
     private Ortb2RequestFactory ortb2RequestFactory;
-    @Mock
+    @Mock(strictness = LENIENT)
     private StoredRequestProcessor storedRequestProcessor;
-    @Mock
+    @Mock(strictness = LENIENT)
     private BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
-    @Mock
+    @Mock(strictness = LENIENT)
     private AmpGppService ampGppService;
     @Mock
     private OrtbTypesResolver ortbTypesResolver;
     @Mock
     private ImplicitParametersExtractor implicitParametersExtractor;
-    @Mock
+    @Mock(strictness = LENIENT)
     private Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver;
-    @Mock
+    @Mock(strictness = LENIENT)
     private FpdResolver fpdResolver;
-    @Mock
+    @Mock(strictness = LENIENT)
     private AmpPrivacyContextFactory ampPrivacyContextFactory;
-    @Mock
+    @Mock(strictness = LENIENT)
     private DebugResolver debugResolver;
+    @Mock(strictness = LENIENT)
+    private GeoLocationServiceWrapper geoLocationServiceWrapper;
 
     private AmpRequestFactory target;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private HttpServerRequest httpRequest;
-    @Mock
+    @Mock(strictness = LENIENT)
     private RoutingContext routingContext;
 
     private BidRequest defaultBidRequest;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         defaultBidRequest = BidRequest.builder().build();
 
@@ -146,13 +149,15 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         given(ortb2RequestFactory.createAuctionContext(any(), eq(MetricName.amp))).willReturn(AuctionContext.builder()
                 .prebidErrors(new ArrayList<>())
+                .debugWarnings(new ArrayList<>())
                 .build());
         given(ortb2RequestFactory.executeEntrypointHooks(any(), any(), any()))
                 .willAnswer(invocation -> toHttpRequest(invocation.getArgument(0), invocation.getArgument(1)));
         given(ortb2RequestFactory.restoreResultFromRejection(any()))
                 .willAnswer(invocation -> Future.failedFuture((Throwable) invocation.getArgument(0)));
-        given(ortb2RequestFactory.enrichWithPriceFloors(any())).willAnswer(invocation -> invocation.getArgument(0));
-        given(ortb2RequestFactory.updateTimeout(any(), anyLong())).willAnswer(invocation -> invocation.getArgument(0));
+        given(ortb2RequestFactory.updateTimeout(any())).willAnswer(invocation -> invocation.getArgument(0));
+        given(ortb2RequestFactory.removeEmptyEids(any(), any()))
+                .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
 
         given(fpdResolver.resolveApp(any(), any()))
                 .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
@@ -161,12 +166,13 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(fpdResolver.resolveUser(any(), any()))
                 .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
         given(fpdResolver.resolveImpExt(any(), any())).willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
-        given(ortb2RequestFactory.populateUserAdditionalInfo(any()))
-                .willAnswer(invocationOnMock -> Future.succeededFuture(invocationOnMock.getArgument(0)));
         given(ortb2RequestFactory.activityInfrastructureFrom(any()))
                 .willReturn(Future.succeededFuture());
+        given(geoLocationServiceWrapper.lookup(any()))
+                .willReturn(Future.succeededFuture(GeoInfo.builder().vendor("vendor").build()));
 
         given(debugResolver.debugContextFrom(any())).willReturn(DebugContext.of(true, true, null));
+
         final PrivacyContext defaultPrivacyContext = PrivacyContext.of(
                 Privacy.builder()
                         .gdpr("0")
@@ -189,7 +195,8 @@ public class AmpRequestFactoryTest extends VertxTest {
                 fpdResolver,
                 ampPrivacyContextFactory,
                 debugResolver,
-                jacksonMapper);
+                jacksonMapper,
+                geoLocationServiceWrapper);
     }
 
     @Test
@@ -533,6 +540,33 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .containsExactly(
                         tuple(false, mapper.valueToTree(ExtPriceGranularity.of(2, singletonList(
                                 ExtGranularityRange.of(BigDecimal.valueOf(20), BigDecimal.valueOf(0.1)))))));
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithAccountPriceGranularityIfStoredBidRequestExtTargetingHasNoPriceGranularity() {
+        // given
+        givenBidRequest(
+                builder -> builder
+                        .ext(givenRequestExt(ExtRequestTargeting.builder().includewinners(false).build())),
+                Imp.builder().build());
+
+        given(ortb2RequestFactory.fetchAccount(any())).willReturn(Future.succeededFuture(Account.builder()
+                .auction(AccountAuctionConfig.builder().priceGranularity("low").build())
+                .build()));
+
+        // when
+        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(singletonList(request))
+                .extracting(BidRequest::getExt).isNotNull()
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getTargeting)
+                .extracting(ExtRequestTargeting::getIncludewinners, ExtRequestTargeting::getPricegranularity)
+                // assert that priceGranularity was set with default value and includeWinners remained unchanged
+                .containsExactly(
+                        tuple(false, mapper.valueToTree(ExtPriceGranularity.of(2, singletonList(
+                                ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))))));
     }
 
     @Test
@@ -1243,10 +1277,12 @@ public class AmpRequestFactoryTest extends VertxTest {
         final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
+        final ConsentedProvidersSettings settings = ConsentedProvidersSettings.of("someConsent");
         assertThat(result.getUser())
                 .isEqualTo(User.builder()
                         .ext(ExtUser.builder()
-                                .consentedProvidersSettings(ConsentedProvidersSettings.of("someConsent"))
+                                .deprecatedConsentedProvidersSettings(settings)
+                                .consentedProvidersSettings(settings)
                                 .build())
                         .build());
     }
@@ -1491,7 +1527,7 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(result.getRegs()).isEqualTo(Regs.builder()
-                .ext(ExtRegs.of(null, null, "1"))
+                .ext(ExtRegs.of(null, null, "1", null))
                 .build());
     }
 
@@ -1510,6 +1546,21 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(result.getRegs()).isNull();
+    }
+
+    @Test
+    public void shouldomitDebugWarningInDebugModeIfGppSidCouldNotBeParsed() {
+        // given
+        routingContext.queryParams()
+                .add("debug", "1")
+                .add("gpp_sid", "1,2,ab");
+        givenBidRequest();
+
+        // when
+        final List<String> result = target.fromRequest(routingContext, 0L).result().getDebugWarnings();
+
+        // then
+        assertThat(result).containsOnly("Failed to parse gppSid: '1,2,ab'");
     }
 
     @Test
@@ -1568,8 +1619,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                         .build(),
                 TcfContext.builder().geoInfo(geoInfo).build());
 
-        given(ampPrivacyContextFactory.contextFrom(any()))
-                .willReturn(Future.succeededFuture(privacyContext));
+        given(ampPrivacyContextFactory.contextFrom(any())).willReturn(Future.succeededFuture(privacyContext));
 
         // when
         final AuctionContext result = target.fromRequest(routingContext, 0L).result();
@@ -1665,7 +1715,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         // given
         givenBidRequest();
 
-        given(ortb2RequestFactory.updateTimeout(any(), anyLong()))
+        given(ortb2RequestFactory.updateTimeout(any()))
                 .willAnswer(invocation -> {
                     final AuctionContext auctionContext = invocation.getArgument(0);
                     return auctionContext.with(auctionContext.getBidRequest().toBuilder().tmax(10000L).build());
@@ -1703,11 +1753,15 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         given(ortb2ImplicitParametersResolver.resolve(any(), any(), any(), anyBoolean())).willAnswer(
                 answerWithFirstArgument());
-        given(ortb2RequestFactory.validateRequest(any(), any(), any()))
+        given(ortb2RequestFactory.validateRequest(any(), any(), any(), any()))
                 .willAnswer(invocation -> Future.succeededFuture((BidRequest) invocation.getArgument(0)));
 
         given(ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(any()))
-                .willAnswer(invocation -> ((AuctionContext) invocation.getArgument(0)).getBidRequest());
+                .willAnswer(invocation -> Future.succeededFuture(((AuctionContext) invocation.getArgument(0))
+                        .getBidRequest()));
+        given(ortb2RequestFactory.enrichBidRequestWithGeolocationData(any()))
+                .willAnswer(invocation -> Future.succeededFuture(((AuctionContext) invocation.getArgument(0))
+                        .getBidRequest()));
         given(ortb2RequestFactory.executeProcessedAuctionRequestHooks(any()))
                 .willAnswer(invocation -> Future.succeededFuture(
                         ((AuctionContext) invocation.getArgument(0)).getBidRequest()));

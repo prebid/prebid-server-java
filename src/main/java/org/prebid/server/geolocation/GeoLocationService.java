@@ -1,7 +1,7 @@
 package org.prebid.server.geolocation;
 
 import io.vertx.core.Future;
-import org.prebid.server.execution.Timeout;
+import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.geolocation.model.GeoInfo;
 
 /**

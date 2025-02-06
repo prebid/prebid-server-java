@@ -1,6 +1,7 @@
 adapters:
   unruly:
     endpoint: https://targeting.unrulymedia.com/unruly_prebid_server
+    ortb-version: "2.6"
     meta-info:
       maintainer-email: prebidsupport@unrulygroup.com
       app-media-types:

@@ -1,14 +1,17 @@
 package org.prebid.server.bidder.flipp;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
+import com.iabtcf.decoder.TCString;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
@@ -35,7 +38,9 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.flipp.ExtImpFlipp;
 import org.prebid.server.proto.openrtb.ext.request.flipp.ExtImpFlippOptions;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -55,14 +60,18 @@ import java.util.UUID;
 
 public class FlippBidder implements Bidder<CampaignRequestBody> {
 
+    private static final TypeReference<ExtPrebid<?, ExtImpFlipp>> FLIPP_EXT_TYPE_REFERENCE =
+            new TypeReference<>() {
+            };
+
     private static final String INLINE_DIV_NAME = "inline";
     private static final Integer COUNT = 1;
     private static final String CREATIVE_TYPE = "DTX";
     private static final Set<Integer> AD_TYPES = Set.of(4309, 641);
     private static final Set<Integer> DTX_TYPES = Set.of(5061);
-    private static final TypeReference<ExtPrebid<?, ExtImpFlipp>> FLIPP_EXT_TYPE_REFERENCE =
-            new TypeReference<>() {
-            };
+    private static final String EXT_REQUEST_TRANSMIT_EIDS = "transmitEids";
+    private static final int DEFAULT_STANDARD_HEIGHT = 2400;
+    private static final int DEFAULT_COMPACT_HEIGHT = 600;
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -78,12 +87,10 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
         final List<BidderError> errors = new ArrayList<>();
 
         for (Imp imp : bidRequest.getImp()) {
-            final ExtImpFlipp extImpFlipp;
-
             try {
-                extImpFlipp = parseImpExt(imp);
-                final CampaignRequestBody campaignRequest = makeCampaignRequest(bidRequest, imp, extImpFlipp);
-                httpRequests.add(makeHttpRequest(bidRequest.getDevice(), campaignRequest));
+                final ExtImpFlipp extImp = parseImpExt(imp);
+                final CampaignRequestBody campaignRequest = makeCampaignRequest(bidRequest, imp, extImp);
+                httpRequests.add(makeHttpRequest(bidRequest.getDevice().getUa(), campaignRequest));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -105,107 +112,155 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
         }
     }
 
-    private static CampaignRequestBody makeCampaignRequest(BidRequest bidRequest, Imp imp, ExtImpFlipp extImpFlipp) {
+    private static CampaignRequestBody makeCampaignRequest(BidRequest bidRequest, Imp imp, ExtImpFlipp extImp) {
         return CampaignRequestBody.builder()
                 .ip(resolveIpFromDevice(bidRequest.getDevice()))
-                .placements(Collections.singletonList(createPlacement(bidRequest, imp, extImpFlipp)))
+                .placements(Collections.singletonList(createPlacement(bidRequest, imp, extImp)))
                 .url(ObjectUtil.getIfNotNull(bidRequest.getSite(), Site::getPage))
                 .keywords(resolveKeywords(bidRequest))
-                .user(CampaignRequestBodyUser.of(resolveKey(bidRequest, extImpFlipp)))
+                .user(CampaignRequestBodyUser.of(resolveKey(bidRequest, extImp)))
                 .build();
     }
 
-    private static PrebidRequest createPrebidRequest(ExtImpFlipp extImpFlipp, Imp imp) {
-        final PrebidRequest.PrebidRequestBuilder prebidRequest = PrebidRequest.builder()
-                .creativeType(extImpFlipp.getCreativeType())
-                .publisherNameIdentifier(extImpFlipp.getPublisherNameIdentifier())
-                .requestId(imp.getId());
-
-        if (CollectionUtils.isNotEmpty(ObjectUtil.getIfNotNull(imp.getBanner(), Banner::getFormat))) {
-            final Format format = imp.getBanner().getFormat().get(0);
-            prebidRequest.height(format.getH());
-            prebidRequest.width(format.getW());
-        }
-
-        return prebidRequest.build();
+    private static String resolveIpFromDevice(Device device) {
+        return Optional.ofNullable(device)
+                .map(Device::getIp)
+                .filter(StringUtils::isNotEmpty)
+                .orElseThrow(() -> new PreBidException("No IP set in Flipp bidder params or request device"));
     }
 
-    private static List<String> resolveKeywords(BidRequest bidRequest) {
-        return Optional.ofNullable(bidRequest.getUser())
-                .map(User::getKeywords)
-                .map(a -> a.split(","))
-                .map(Arrays::asList)
+    private static Placement createPlacement(BidRequest bidRequest, Imp imp, ExtImpFlipp extImp) {
+        return Placement.builder()
+                .divName(INLINE_DIV_NAME)
+                .siteId(extImp.getSiteId())
+                .adTypes(CREATIVE_TYPE.equals(extImp.getCreativeType()) ? DTX_TYPES : AD_TYPES)
+                .zoneIds(extImp.getZoneIds())
+                .count(COUNT)
+                .prebid(createPrebidRequest(imp, extImp))
+                .properties(Properties.of(resolveContentCode(bidRequest.getSite(), extImp)))
+                .options(extImp.getOptions())
+                .build();
+    }
+
+    private static PrebidRequest createPrebidRequest(Imp imp, ExtImpFlipp extImp) {
+        final Format format = Optional.ofNullable(imp.getBanner())
+                .map(Banner::getFormat)
+                .filter(CollectionUtils::isNotEmpty)
+                .map(List::getFirst)
                 .orElse(null);
+
+        return PrebidRequest.builder()
+                .requestId(imp.getId())
+                .creativeType(extImp.getCreativeType())
+                .publisherNameIdentifier(extImp.getPublisherNameIdentifier())
+                .height(format != null ? format.getH() : null)
+                .width(format != null ? format.getW() : null)
+                .build();
     }
 
-    private static String resolveContentCode(BidRequest bidRequest, ExtImpFlipp extImpFlipp) {
-        final String contentCode =
-                ObjectUtil.getIfNotNull(extImpFlipp.getOptions(), ExtImpFlippOptions::getContentCode);
+    private static String resolveContentCode(Site site, ExtImpFlipp extImp) {
+        final String contentCode = ObjectUtil.getIfNotNull(extImp.getOptions(), ExtImpFlippOptions::getContentCode);
         if (StringUtils.isNotEmpty(contentCode)) {
             return contentCode;
         }
 
-        final String pageUrl = Optional.ofNullable(bidRequest.getSite())
+        final String pageUrl = Optional.ofNullable(site)
                 .map(Site::getPage)
                 .orElse(null);
 
         return URLEncodedUtils.parse(pageUrl, StandardCharsets.UTF_8)
                 .stream()
-                .filter(Objects::nonNull)
                 .filter(nameValuePair -> nameValuePair.getName().contains("flipp-content-code"))
                 .map(NameValuePair::getValue)
                 .findFirst()
                 .orElse(null);
     }
 
-    private static String resolveIpFromDevice(Device device) {
-        return Optional.ofNullable(device)
-                .map(Device::getIp)
-                .filter(StringUtils::isNoneEmpty)
-                .orElseThrow(() -> new PreBidException("No IP set in Flipp bidder params or request device"));
+    private static List<String> resolveKeywords(BidRequest bidRequest) {
+        return Optional.ofNullable(bidRequest.getSite())
+                .map(Site::getKeywords)
+                .map(a -> a.split(","))
+                .map(Arrays::asList)
+                .orElse(null);
     }
 
-    private static Placement createPlacement(BidRequest bidRequest, Imp imp, ExtImpFlipp extImpFlipp) {
-        return Placement.builder()
-                .divName(INLINE_DIV_NAME)
-                .siteId(extImpFlipp.getSiteId())
-                .adTypes(Objects.equals(extImpFlipp.getCreativeType(), CREATIVE_TYPE) ? DTX_TYPES : AD_TYPES)
-                .zoneIds(extImpFlipp.getZoneIds())
-                .count(COUNT)
-                .prebid(createPrebidRequest(extImpFlipp, imp))
-                .properties(Properties.of(resolveContentCode(bidRequest, extImpFlipp)))
-                .options(extImpFlipp.getOptions())
-                .build();
-    }
-
-    private static String resolveKey(BidRequest bidRequest, ExtImpFlipp extImpFlipp) {
-        return Optional.ofNullable(bidRequest.getUser())
-                .map(User::getId)
-                .filter(StringUtils::isNotEmpty)
-                .orElseGet(() -> extractUserKey(extImpFlipp));
-    }
-
-    private static String extractUserKey(ExtImpFlipp extImpFlipp) {
-        return Optional.ofNullable(extImpFlipp.getUserKey())
-                .filter(StringUtils::isNotEmpty)
+    private static String resolveKey(BidRequest bidRequest, ExtImpFlipp extImp) {
+        return keyFromUser(bidRequest.getUser())
+                .or(() -> keyFromExt(bidRequest, extImp))
                 .orElseGet(() -> UUID.randomUUID().toString());
     }
 
-    private HttpRequest<CampaignRequestBody> makeHttpRequest(Device device, CampaignRequestBody campaignRequest) {
+    private static Optional<String> keyFromUser(User user) {
+        return Optional.ofNullable(user)
+                .map(User::getId)
+                .filter(StringUtils::isNotEmpty);
+    }
+
+    private static Optional<String> keyFromExt(BidRequest bidRequest, ExtImpFlipp extImpFlipp) {
+        return Optional.ofNullable(extImpFlipp.getUserKey())
+                .filter(userKey -> StringUtils.isNotEmpty(userKey) && isUserKeyPermitted(bidRequest));
+    }
+
+    private static boolean isUserKeyPermitted(BidRequest request) {
+        final Regs regs = request.getRegs();
+        return !restrictedByCoppa(regs)
+                && !restrictedByGdpr(regs)
+                && !restrictedByExtConfig(request.getExt())
+                && !restrictedByTcf(request.getUser());
+    }
+
+    private static boolean restrictedByCoppa(Regs regs) {
+        return Optional.ofNullable(regs)
+                .map(Regs::getCoppa)
+                .orElse(0) == 1;
+    }
+
+    private static boolean restrictedByGdpr(Regs regs) {
+        return Optional.ofNullable(regs)
+                .map(Regs::getGdpr)
+                .orElse(0) == 1;
+    }
+
+    private static boolean restrictedByExtConfig(ExtRequest extRequest) {
+        return Optional.ofNullable(extRequest)
+                .map(ext -> ext.getProperty(EXT_REQUEST_TRANSMIT_EIDS))
+                .filter(JsonNode::isBoolean)
+                .map(node -> !node.booleanValue())
+                .orElse(false);
+    }
+
+    private static boolean restrictedByTcf(User user) {
+        return Optional.ofNullable(user)
+                .map(User::getConsent)
+                .filter(StringUtils::isNotBlank)
+                .map(FlippBidder::decode)
+                .map(TCString::getPurposesConsent)
+                .map(purposesAllowed -> !purposesAllowed.contains(PurposeCode.FOUR.code()))
+                .orElse(false);
+    }
+
+    private static TCString decode(String consent) {
+        try {
+            return TCString.decode(consent);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    private HttpRequest<CampaignRequestBody> makeHttpRequest(String userAgent, CampaignRequestBody campaignRequest) {
         return HttpRequest.<CampaignRequestBody>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
-                .headers(makeHeaders(device))
+                .headers(makeHeaders(userAgent))
                 .body(mapper.encodeToBytes(campaignRequest))
                 .payload(campaignRequest)
                 .build();
     }
 
-    private static MultiMap makeHeaders(Device device) {
-        return Optional.of(device)
-                .map(Device::getUa)
-                .map(ua -> HttpUtil.headers().add(HttpUtil.USER_AGENT_HEADER, ua))
-                .orElseGet(HttpUtil::headers);
+    private static MultiMap makeHeaders(String userAgent) {
+        final MultiMap headers = HttpUtil.headers();
+        HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, userAgent);
+        return headers;
     }
 
     @Override
@@ -213,54 +268,69 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
         try {
             final CampaignResponseBody campaignResponseBody =
                     mapper.decodeValue(httpCall.getResponse().getBody(), CampaignResponseBody.class);
-            return Result.withValues(extractInline(campaignResponseBody, bidRequest));
+            return Result.withValues(extractBids(campaignResponseBody, bidRequest));
         } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private static List<BidderBid> extractInline(CampaignResponseBody campaignResponseBody, BidRequest bidRequest) {
+    private List<BidderBid> extractBids(CampaignResponseBody campaignResponseBody, BidRequest bidRequest) {
         return Optional.ofNullable(campaignResponseBody)
                 .map(CampaignResponseBody::getDecisions)
                 .map(Decisions::getInline)
                 .stream()
                 .flatMap(Collection::stream)
-                .filter(inline -> isInlineValid(bidRequest, inline))
-                .map(inline -> BidderBid.of(constructBid(inline), BidType.banner, "USD"))
+                .map(inline -> makeBid(inline, getCorrespondingImp(bidRequest, inline)))
+                .filter(Objects::nonNull)
                 .toList();
     }
 
-    private static boolean isInlineValid(BidRequest bidRequest, Inline inline) {
+    private static Imp getCorrespondingImp(BidRequest bidRequest, Inline inline) {
         final String requestId = Optional.ofNullable(inline)
                 .map(Inline::getPrebid)
                 .map(Prebid::getRequestId)
                 .orElse(null);
 
-        return requestId != null && bidRequest.getImp().stream()
-                .map(Imp::getId)
-                .anyMatch(impId -> impId.equals(requestId));
+        return requestId != null
+                ? bidRequest.getImp().stream().filter(imp -> imp.getId().equals(requestId)).findFirst().orElse(null)
+                : null;
     }
 
-    private static Bid constructBid(Inline inline) {
+    private BidderBid makeBid(Inline inline, Imp imp) {
+        return imp == null
+                ? null
+                : BidderBid.of(constructBid(inline, parseImpExt(imp)), BidType.banner, "USD");
+    }
+
+    private static Bid constructBid(Inline inline, ExtImpFlipp extImp) {
         final Prebid prebid = inline.getPrebid();
+        final Data data = Optional.ofNullable(inline.getContents())
+                .map(List::getFirst)
+                .map(Content::getData)
+                .orElse(null);
 
         return Bid.builder()
-                .crid(String.valueOf(inline.getCreativeId()))
+                .crid(Integer.toString(inline.getCreativeId()))
                 .price(prebid.getCpm())
                 .adm(prebid.getCreative())
-                .id(String.valueOf(inline.getAdId()))
+                .id(Integer.toString(inline.getAdId()))
                 .impid(prebid.getRequestId())
-                .w(resolveWidth(inline))
-                .h(CollectionUtils.isNotEmpty(inline.getContents()) ? 0 : null)
+                .w(data != null ? data.getWidth() : null)
+                .h(resolveHeight(data, extImp))
                 .build();
     }
 
-    private static Integer resolveWidth(Inline inline) {
-        return Optional.of(inline)
-                .map(Inline::getContents)
-                .map(content -> content.get(0))
-                .map(Content::getData)
-                .map(Data::getWidth)
-                .orElse(null);
+    private static Integer resolveHeight(Data data, ExtImpFlipp extImp) {
+        final boolean startCompact = Optional.ofNullable(extImp)
+                .map(ExtImpFlipp::getOptions)
+                .map(ExtImpFlippOptions::getStartCompact)
+                .orElse(false);
+
+        return Optional.ofNullable(data)
+                .map(Data::getCustomData)
+                .map(customData -> customData.get(startCompact ? "compactHeight" : "standardHeight"))
+                .filter(JsonNode::isNumber)
+                .map(JsonNode::asInt)
+                .orElse(startCompact ? DEFAULT_COMPACT_HEIGHT : DEFAULT_STANDARD_HEIGHT);
     }
 }

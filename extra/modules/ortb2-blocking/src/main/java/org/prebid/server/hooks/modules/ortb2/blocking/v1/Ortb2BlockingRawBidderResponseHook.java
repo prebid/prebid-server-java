@@ -6,18 +6,18 @@ import io.vertx.core.Future;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.auction.versionconverter.OrtbVersion;
+import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
+import org.prebid.server.hooks.execution.v1.analytics.ActivityImpl;
+import org.prebid.server.hooks.execution.v1.analytics.AppliedToImpl;
+import org.prebid.server.hooks.execution.v1.analytics.ResultImpl;
+import org.prebid.server.hooks.execution.v1.analytics.TagsImpl;
+import org.prebid.server.hooks.execution.v1.bidder.BidderResponsePayloadImpl;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.BidsBlocker;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.ResponseUpdater;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.model.AnalyticsResult;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.model.BlockedBids;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.model.ExecutionResult;
 import org.prebid.server.hooks.modules.ortb2.blocking.model.ModuleContext;
-import org.prebid.server.hooks.modules.ortb2.blocking.v1.model.BidderResponsePayloadImpl;
-import org.prebid.server.hooks.modules.ortb2.blocking.v1.model.InvocationResultImpl;
-import org.prebid.server.hooks.modules.ortb2.blocking.v1.model.analytics.ActivityImpl;
-import org.prebid.server.hooks.modules.ortb2.blocking.v1.model.analytics.AppliedToImpl;
-import org.prebid.server.hooks.modules.ortb2.blocking.v1.model.analytics.ResultImpl;
-import org.prebid.server.hooks.modules.ortb2.blocking.v1.model.analytics.TagsImpl;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
@@ -59,6 +59,7 @@ public class Ortb2BlockingRawBidderResponseHook implements RawBidderResponseHook
                         ObjectUtils.defaultIfNull(moduleContext.ortbVersionOf(bidder), OrtbVersion.ORTB_2_5),
                         invocationContext.accountConfig(),
                         moduleContext.blockedAttributesFor(bidder),
+                        invocationContext.auctionContext().getBidRejectionTrackers().get(bidder),
                         invocationContext.debugEnabled())
                 .block();
 

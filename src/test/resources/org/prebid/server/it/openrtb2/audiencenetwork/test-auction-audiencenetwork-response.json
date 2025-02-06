@@ -6,6 +6,7 @@
         {
           "id": "bid_id",
           "impid": "imp_id",
+          "exp": 300,
           "price": 9.0,
           "adm": "{\"bid_id\":\"10\"}",
           "adid": "10",

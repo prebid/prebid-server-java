@@ -1,30 +1,24 @@
 package org.prebid.server.validation;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Deal;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Pmp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.BidRejectionReason;
+import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.proto.openrtb.ext.request.ExtDeal;
-import org.prebid.server.proto.openrtb.ext.request.ExtDealLine;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
@@ -33,15 +27,11 @@ import org.prebid.server.settings.model.BidValidationEnforcement;
 import org.prebid.server.validation.model.ValidationResult;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Currency;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Validator for response {@link Bid} object.
@@ -58,32 +48,21 @@ public class ResponseBidValidator {
     private static final String[] INSECURE_MARKUP_MARKERS = {"http:", "http%3A"};
     private static final String[] SECURE_MARKUP_MARKERS = {"https:", "https%3A"};
 
-    private static final String PREBID_EXT = "prebid";
-    private static final String BIDDER_EXT = "bidder";
-
-    private static final String DEALS_ONLY = "dealsonly";
-
     private final BidValidationEnforcement bannerMaxSizeEnforcement;
     private final BidValidationEnforcement secureMarkupEnforcement;
     private final Metrics metrics;
 
-    private final JacksonMapper mapper;
-    private final boolean dealsEnabled;
     private final double logSamplingRate;
 
     public ResponseBidValidator(BidValidationEnforcement bannerMaxSizeEnforcement,
                                 BidValidationEnforcement secureMarkupEnforcement,
                                 Metrics metrics,
-                                JacksonMapper mapper,
-                                boolean dealsEnabled,
                                 double logSamplingRate) {
 
         this.bannerMaxSizeEnforcement = Objects.requireNonNull(bannerMaxSizeEnforcement);
         this.secureMarkupEnforcement = Objects.requireNonNull(secureMarkupEnforcement);
         this.metrics = Objects.requireNonNull(metrics);
 
-        this.mapper = Objects.requireNonNull(mapper);
-        this.dealsEnabled = dealsEnabled;
         this.logSamplingRate = logSamplingRate;
     }
 
@@ -95,6 +74,7 @@ public class ResponseBidValidator {
         final Bid bid = bidderBid.getBid();
         final BidRequest bidRequest = auctionContext.getBidRequest();
         final Account account = auctionContext.getAccount();
+        final BidRejectionTracker bidRejectionTracker = auctionContext.getBidRejectionTrackers().get(bidder);
         final List<String> warnings = new ArrayList<>();
 
         try {
@@ -104,14 +84,25 @@ public class ResponseBidValidator {
 
             final Imp correspondingImp = findCorrespondingImp(bid, bidRequest);
             if (bidderBid.getType() == BidType.banner) {
-                warnings.addAll(validateBannerFields(bid, bidder, bidRequest, account, correspondingImp, aliases));
+                warnings.addAll(validateBannerFields(
+                        bidderBid,
+                        bidder,
+                        bidRequest,
+                        account,
+                        correspondingImp,
+                        aliases,
+                        bidRejectionTracker));
             }
 
-            if (dealsEnabled) {
-                validateDealsFor(bidderBid, auctionContext.getBidRequest(), bidder, aliases, warnings);
-            }
+            warnings.addAll(validateSecureMarkup(
+                    bidderBid,
+                    bidder,
+                    bidRequest,
+                    account,
+                    correspondingImp,
+                    aliases,
+                    bidRejectionTracker));
 
-            warnings.addAll(validateSecureMarkup(bid, bidder, bidRequest, account, correspondingImp, aliases));
         } catch (ValidationException e) {
             return ValidationResult.error(warnings, e.getMessage());
         }
@@ -170,17 +161,18 @@ public class ResponseBidValidator {
         return new ValidationException(message);
     }
 
-    private List<String> validateBannerFields(Bid bid,
+    private List<String> validateBannerFields(BidderBid bidderBid,
                                               String bidder,
                                               BidRequest bidRequest,
                                               Account account,
                                               Imp correspondingImp,
-                                              BidderAliases aliases) throws ValidationException {
+                                              BidderAliases aliases,
+                                              BidRejectionTracker bidRejectionTracker) throws ValidationException {
 
         final BidValidationEnforcement bannerMaxSizeEnforcement = effectiveBannerMaxSizeEnforcement(account);
         if (bannerMaxSizeEnforcement != BidValidationEnforcement.skip) {
             final Format maxSize = maxSizeForBanner(correspondingImp);
-
+            final Bid bid = bidderBid.getBid();
             if (bannerSizeIsNotValid(bid, maxSize)) {
                 final String accountId = account.getId();
                 final String message = """
@@ -201,7 +193,11 @@ public class ResponseBidValidator {
                         bannerMaxSizeEnforcement,
                         metricName -> metrics.updateSizeValidationMetrics(
                                 aliases.resolveBidder(bidder), accountId, metricName),
-                        CREATIVE_SIZE_LOGGER, message);
+                        CREATIVE_SIZE_LOGGER,
+                        message,
+                        bidRejectionTracker,
+                        bidderBid,
+                        BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_SIZE_NOT_ALLOWED);
             }
         }
         return Collections.emptyList();
@@ -240,12 +236,13 @@ public class ResponseBidValidator {
                 || bidH == null || bidH > maxSize.getH();
     }
 
-    private List<String> validateSecureMarkup(Bid bid,
+    private List<String> validateSecureMarkup(BidderBid bidderBid,
                                               String bidder,
                                               BidRequest bidRequest,
                                               Account account,
                                               Imp correspondingImp,
-                                              BidderAliases aliases) throws ValidationException {
+                                              BidderAliases aliases,
+                                              BidRejectionTracker bidRejectionTracker) throws ValidationException {
 
         if (secureMarkupEnforcement == BidValidationEnforcement.skip) {
             return Collections.emptyList();
@@ -253,6 +250,7 @@ public class ResponseBidValidator {
 
         final String accountId = account.getId();
         final String referer = getReferer(bidRequest);
+        final Bid bid = bidderBid.getBid();
         final String adm = bid.getAdm();
 
         if (isImpSecure(correspondingImp) && markupIsNotSecure(adm)) {
@@ -265,7 +263,11 @@ public class ResponseBidValidator {
                     secureMarkupEnforcement,
                     metricName -> metrics.updateSecureValidationMetrics(
                             aliases.resolveBidder(bidder), accountId, metricName),
-                    SECURE_CREATIVE_LOGGER, message);
+                    SECURE_CREATIVE_LOGGER,
+                    message,
+                    bidRejectionTracker,
+                    bidderBid,
+                    BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_NOT_SECURE);
         }
 
         return Collections.emptyList();
@@ -280,12 +282,18 @@ public class ResponseBidValidator {
                 || !StringUtils.containsAny(adm, SECURE_MARKUP_MARKERS);
     }
 
-    private List<String> singleWarningOrValidationException(BidValidationEnforcement enforcement,
-                                                                   Consumer<MetricName> metricsRecorder,
-                                                                   ConditionalLogger conditionalLogger,
-                                                                   String message) throws ValidationException {
+    private List<String> singleWarningOrValidationException(
+            BidValidationEnforcement enforcement,
+            Consumer<MetricName> metricsRecorder,
+            ConditionalLogger conditionalLogger,
+            String message,
+            BidRejectionTracker bidRejectionTracker,
+            BidderBid bidderBid,
+            BidRejectionReason bidRejectionReason) throws ValidationException {
+
         return switch (enforcement) {
             case enforce -> {
+                bidRejectionTracker.rejectBid(bidderBid, bidRejectionReason);
                 metricsRecorder.accept(MetricName.err);
                 conditionalLogger.warn(message, logSamplingRate);
                 throw new ValidationException(message);
@@ -302,166 +310,5 @@ public class ResponseBidValidator {
     private static String getReferer(BidRequest bidRequest) {
         final Site site = bidRequest.getSite();
         return site != null ? site.getPage() : "unknown";
-    }
-
-    private void validateDealsFor(BidderBid bidderBid,
-                                  BidRequest bidRequest,
-                                  String bidder,
-                                  BidderAliases aliases,
-                                  List<String> warnings) throws ValidationException {
-
-        final Bid bid = bidderBid.getBid();
-        final String bidId = bid.getId();
-
-        final Imp imp = bidRequest.getImp().stream()
-                .filter(curImp -> Objects.equals(curImp.getId(), bid.getImpid()))
-                .findFirst()
-                .orElseThrow(() -> new ValidationException("Bid \"%s\" has no corresponding imp in request", bidId));
-
-        final String dealId = bid.getDealid();
-
-        if (isDealsOnlyImp(imp, bidder) && dealId == null) {
-            throw new ValidationException("Bid \"%s\" missing required field 'dealid'", bidId);
-        }
-
-        if (dealId != null) {
-            final Set<String> dealIdsFromImp = getDealIdsFromImp(imp, bidder, aliases);
-            if (CollectionUtils.isNotEmpty(dealIdsFromImp) && !dealIdsFromImp.contains(dealId)) {
-                warnings.add("""
-                        WARNING: Bid "%s" has 'dealid' not present in corresponding imp in request. \
-                        'dealid' in bid: '%s', deal Ids in imp: '%s'"""
-                        .formatted(bidId, dealId, String.join(",", dealIdsFromImp)));
-            }
-            if (bidderBid.getType() == BidType.banner) {
-                if (imp.getBanner() == null) {
-                    throw new ValidationException("""
-                            Bid "%s" has banner media type but corresponding imp \
-                            in request is missing 'banner' object""",
-                            bidId);
-                }
-
-                final List<Format> bannerFormats = getBannerFormats(imp);
-                if (bidSizeNotInFormats(bid, bannerFormats)) {
-                    throw new ValidationException("""
-                            Bid "%s" has 'w' and 'h' not supported by corresponding imp in \
-                            request. Bid dimensions: '%dx%d', formats in imp: '%s'""",
-                            bidId,
-                            bid.getW(),
-                            bid.getH(),
-                            formatSizes(bannerFormats));
-                }
-
-                if (isPgDeal(imp, dealId)) {
-                    validateIsInLineItemSizes(bid, bidId, dealId, imp);
-                }
-            }
-        }
-    }
-
-    private void validateIsInLineItemSizes(Bid bid, String bidId, String dealId, Imp imp) throws ValidationException {
-        final List<Format> lineItemSizes = getLineItemSizes(imp, dealId);
-        if (lineItemSizes.isEmpty()) {
-            throw new ValidationException(
-                    "Line item sizes were not found for bidId %s and dealId %s", bid.getId(), dealId);
-        }
-
-        if (bidSizeNotInFormats(bid, lineItemSizes)) {
-            throw new ValidationException(
-                    """
-                            Bid "%s" has 'w' and 'h' not matched to Line Item. \
-                            Bid dimensions: '%dx%d', Line Item sizes: '%s'""",
-                    bidId, bid.getW(), bid.getH(), formatSizes(lineItemSizes));
-        }
-    }
-
-    private static boolean isDealsOnlyImp(Imp imp, String bidder) {
-        final JsonNode dealsOnlyNode = bidderParamsFromImp(imp).path(bidder).path(DEALS_ONLY);
-        return dealsOnlyNode.isBoolean() && dealsOnlyNode.asBoolean();
-    }
-
-    private static JsonNode bidderParamsFromImp(Imp imp) {
-        return imp.getExt().path(PREBID_EXT).path(BIDDER_EXT);
-    }
-
-    private Set<String> getDealIdsFromImp(Imp imp, String bidder, BidderAliases aliases) {
-        return getDeals(imp)
-                .filter(Objects::nonNull)
-                .filter(deal -> isBidderHasDeal(bidder, dealExt(deal.getExt()), aliases))
-                .map(Deal::getId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
-    }
-
-    private static Stream<Deal> getDeals(Imp imp) {
-        final Pmp pmp = imp.getPmp();
-        return pmp != null ? pmp.getDeals().stream() : Stream.empty();
-    }
-
-    private static boolean isBidderHasDeal(String bidder, ExtDeal extDeal, BidderAliases aliases) {
-        final ExtDealLine extDealLine = extDeal != null ? extDeal.getLine() : null;
-        final String dealLineBidder = extDealLine != null ? extDealLine.getBidder() : null;
-        return dealLineBidder == null || aliases.isSame(bidder, dealLineBidder);
-    }
-
-    private static boolean bidSizeNotInFormats(Bid bid, List<Format> formats) {
-        return formats.stream()
-                .noneMatch(format -> sizesEqual(bid, format));
-    }
-
-    private static boolean sizesEqual(Bid bid, Format format) {
-        return Objects.equals(format.getH(), bid.getH()) && Objects.equals(format.getW(), bid.getW());
-    }
-
-    private static List<Format> getBannerFormats(Imp imp) {
-        return ListUtils.emptyIfNull(imp.getBanner().getFormat());
-    }
-
-    private List<Format> getLineItemSizes(Imp imp, String dealId) {
-        return getDeals(imp)
-                .filter(deal -> dealId.equals(deal.getId()))
-                .map(Deal::getExt)
-                .filter(Objects::nonNull)
-                .map(this::dealExt)
-                .filter(Objects::nonNull)
-                .map(ExtDeal::getLine)
-                .filter(Objects::nonNull)
-                .map(ExtDealLine::getSizes)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .filter(Objects::nonNull)
-                .toList();
-    }
-
-    private boolean isPgDeal(Imp imp, String dealId) {
-        return getDeals(imp)
-                .filter(Objects::nonNull)
-                .filter(deal -> Objects.equals(deal.getId(), dealId))
-                .map(Deal::getExt)
-                .filter(Objects::nonNull)
-                .map(this::dealExt)
-                .filter(Objects::nonNull)
-                .map(ExtDeal::getLine)
-                .filter(Objects::nonNull)
-                .map(ExtDealLine::getLineItemId)
-                .anyMatch(Objects::nonNull);
-    }
-
-    private ExtDeal dealExt(JsonNode ext) {
-        try {
-            return mapper.mapper().treeToValue(ext, ExtDeal.class);
-        } catch (JsonProcessingException e) {
-            logger.warn("Error decoding deal.ext: {0}", e, e.getMessage());
-            return null;
-        }
-    }
-
-    private static String formatSizes(List<Format> lineItemSizes) {
-        return lineItemSizes.stream()
-                .map(ResponseBidValidator::formatSize)
-                .collect(Collectors.joining(","));
-    }
-
-    private static String formatSize(Format lineItemSize) {
-        return "%dx%d".formatted(lineItemSize.getW(), lineItemSize.getH());
     }
 }

@@ -9,18 +9,18 @@ import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
 import org.prebid.server.activity.infrastructure.payload.impl.ActivityInvocationPayloadImpl;
 import org.prebid.server.activity.infrastructure.payload.impl.BidRequestActivityInvocationPayload;
-import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderResponse;
+import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
 import org.prebid.server.hooks.execution.v1.bidder.AllProcessedBidResponsesPayloadImpl;
 import org.prebid.server.hooks.modules.com.confiant.adquality.core.AnalyticsMapper;
 import org.prebid.server.hooks.modules.com.confiant.adquality.core.BidsMapper;
 import org.prebid.server.hooks.modules.com.confiant.adquality.core.BidsScanResult;
 import org.prebid.server.hooks.modules.com.confiant.adquality.core.BidsScanner;
 import org.prebid.server.hooks.modules.com.confiant.adquality.model.GroupByIssues;
-import org.prebid.server.hooks.modules.com.confiant.adquality.v1.model.InvocationResultImpl;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
+import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.v1.InvocationStatus;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.bidder.AllProcessedBidResponsesHook;
@@ -29,6 +29,7 @@ import org.prebid.server.hooks.v1.bidder.AllProcessedBidResponsesPayload;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -37,19 +38,16 @@ public class ConfiantAdQualityBidResponsesScanHook implements AllProcessedBidRes
     private static final String CODE = "confiant-ad-quality-bid-responses-scan-hook";
 
     private final BidsScanner bidsScanner;
-
     private final List<String> biddersToExcludeFromScan;
+    private final UserFpdActivityMask userFpdActivityMask;
 
-    private final PrivacyEnforcementService privacyEnforcementService;
+    public ConfiantAdQualityBidResponsesScanHook(BidsScanner bidsScanner,
+                                                 List<String> biddersToExcludeFromScan,
+                                                 UserFpdActivityMask userFpdActivityMask) {
 
-    public ConfiantAdQualityBidResponsesScanHook(
-            BidsScanner bidsScanner,
-            List<String> biddersToExcludeFromScan,
-            PrivacyEnforcementService privacyEnforcementService) {
-
-        this.bidsScanner = bidsScanner;
-        this.biddersToExcludeFromScan = biddersToExcludeFromScan;
-        this.privacyEnforcementService = privacyEnforcementService;
+        this.bidsScanner = Objects.requireNonNull(bidsScanner);
+        this.biddersToExcludeFromScan = Objects.requireNonNull(biddersToExcludeFromScan);
+        this.userFpdActivityMask = Objects.requireNonNull(userFpdActivityMask);
     }
 
     @Override
@@ -60,13 +58,18 @@ public class ConfiantAdQualityBidResponsesScanHook implements AllProcessedBidRes
         final BidRequest bidRequest = getBidRequest(auctionInvocationContext);
         final List<BidderResponse> responses = allProcessedBidResponsesPayload.bidResponses();
         final Map<Boolean, List<BidderResponse>> needScanMap = responses.stream()
-                .collect(Collectors.groupingBy(bidderResponse -> !biddersToExcludeFromScan.contains(bidderResponse.getBidder())));
+                .collect(Collectors.groupingBy(this::isScanRequired));
 
         final List<BidderResponse> toScan = needScanMap.getOrDefault(true, Collections.emptyList());
         final List<BidderResponse> avoidScan = needScanMap.getOrDefault(false, Collections.emptyList());
 
         return bidsScanner.submitBids(BidsMapper.toRedisBidsFromBidResponses(bidRequest, toScan))
                 .map(scanResult -> toInvocationResult(scanResult, toScan, avoidScan, auctionInvocationContext));
+    }
+
+    private boolean isScanRequired(BidderResponse bidderResponse) {
+        return !biddersToExcludeFromScan.contains(bidderResponse.getBidder())
+                && !bidderResponse.getSeatBid().getBids().isEmpty();
     }
 
     private BidRequest getBidRequest(AuctionInvocationContext auctionInvocationContext) {
@@ -78,10 +81,8 @@ public class ConfiantAdQualityBidResponsesScanHook implements AllProcessedBidRes
         final boolean disallowTransmitGeo = !auctionContext.getActivityInfrastructure()
                 .isAllowed(Activity.TRANSMIT_GEO, activityInvocationPayload);
 
-        final User maskedUser = privacyEnforcementService
-                .maskUserConsideringActivityRestrictions(bidRequest.getUser(), true, disallowTransmitGeo);
-        final Device maskedDevice = privacyEnforcementService
-                .maskDeviceConsideringActivityRestrictions(bidRequest.getDevice(), true, disallowTransmitGeo);
+        final User maskedUser = userFpdActivityMask.maskUser(bidRequest.getUser(), true, true);
+        final Device maskedDevice = userFpdActivityMask.maskDevice(bidRequest.getDevice(), true, disallowTransmitGeo);
 
         return bidRequest.toBuilder()
                 .user(maskedUser)

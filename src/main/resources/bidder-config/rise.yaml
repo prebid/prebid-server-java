@@ -2,19 +2,22 @@ adapters:
   rise:
     endpoint: https://pbs.yellowblue.io/pbs
     modifying-vast-xml-allowed: true
+    endpoint-compression: gzip
     meta-info:
       maintainer-email: rise-prog-dev@risecodes.com
       app-media-types:
         - banner
         - video
+        - native
       site-media-types:
         - banner
         - video
+        - native
       supported-vendors:
       vendor-id: 1043
     usersync:
       cookie-family-name: rise
       iframe:
-        url: https://pbs-cs.yellowblue.io/pbs-iframe?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+        url: https://pbs-cs.yellowblue.io/pbs-iframe?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redirect={{redirect_url}}
         support-cors: false
         uid-macro: '[PBS_UID]'

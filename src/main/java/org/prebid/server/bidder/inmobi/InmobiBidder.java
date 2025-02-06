@@ -5,6 +5,7 @@ import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
@@ -49,7 +50,7 @@ public class InmobiBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<BidderError> errors = new ArrayList<>();
 
-        final Imp imp = request.getImp().get(FIRST_IMP_INDEX);
+        final Imp imp = request.getImp().getFirst();
         final ExtImpInmobi extImpInmobi;
 
         try {
@@ -84,7 +85,7 @@ public class InmobiBidder implements Bidder<BidRequest> {
         if (banner != null) {
             if ((banner.getW() == null || banner.getH() == null || banner.getW() == 0 || banner.getH() == 0)
                     && CollectionUtils.isNotEmpty(banner.getFormat())) {
-                final Format format = banner.getFormat().get(0);
+                final Format format = banner.getFormat().getFirst();
                 return imp.toBuilder().banner(banner.toBuilder().w(format.getW()).h(format.getH()).build()).build();
             }
         }
@@ -95,40 +96,37 @@ public class InmobiBidder implements Bidder<BidRequest> {
     public final Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
+            return Result.of(extractBids(bidResponse), Collections.emptyList());
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
+    private List<BidderBid> extractBids(BidResponse bidResponse) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
-        return bidsFromResponse(bidRequest, bidResponse);
+        return bidsFromResponse(bidResponse);
     }
 
-    private List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
+    private List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, getBidType(bid), bidResponse.getCur()))
                 .toList();
     }
 
-    private static BidType getBidType(String impId, List<Imp> imps) {
-        for (Imp imp : imps) {
-            if (imp.getId().equals(impId)) {
-                if (imp.getVideo() != null) {
-                    return BidType.video;
-                }
-                if (imp.getXNative() != null) {
-                    return BidType.xNative;
-                }
-            }
-        }
-        return BidType.banner;
+    private static BidType getBidType(Bid bid) {
+        final Integer mtype = bid.getMtype();
+        return switch (mtype) {
+            case 1 -> BidType.banner;
+            case 2 -> BidType.video;
+            case 4 -> BidType.xNative;
+            case null, default -> throw new PreBidException("Unsupported mtype %d for bid %s"
+                    .formatted(mtype, bid.getId()));
+        };
     }
 }

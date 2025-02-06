@@ -6,9 +6,6 @@ import lombok.Value;
 
 import java.util.Map;
 
-/**
- * Defines the contract for bidrequest.imp[i].ext.yieldlab
- */
 @Builder
 @Value
 public class ExtImpYieldlab {
@@ -18,9 +15,6 @@ public class ExtImpYieldlab {
 
     @JsonProperty("supplyId")
     String supplyId;
-
-    @JsonProperty("adSize")
-    String adSize;
 
     Map<String, String> targeting;
 

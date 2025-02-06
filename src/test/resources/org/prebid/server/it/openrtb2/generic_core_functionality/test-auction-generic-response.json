@@ -6,6 +6,7 @@
         {
           "id": "bid001",
           "impid": "impId001",
+          "exp": 1500,
           "price": 2.997,
           "adm": "adm001",
           "adid": "adid001",
@@ -14,6 +15,18 @@
           "w": 300,
           "h": 250,
           "ext": {
+            "dsa": {
+              "behalf": "Advertiser",
+              "paid": "Advertiser",
+              "transparency": {
+                "domain": "dsp1domain.com",
+                "dsaparams": [
+                  1,
+                  2
+                ]
+              },
+              "adrender": 1
+            },
             "prebid": {
               "type": "video",
               "targeting": {

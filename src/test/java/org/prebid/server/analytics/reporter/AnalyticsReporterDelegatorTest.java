@@ -12,14 +12,14 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import org.apache.commons.lang3.StringUtils;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
+import org.prebid.server.VertxTest;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
@@ -27,8 +27,9 @@ import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.AmpEvent;
 import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.model.NotificationEvent;
-import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.privacy.enforcement.TcfEnforcement;
+import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
@@ -36,10 +37,14 @@ import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
+import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAnalyticsConfig;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 
@@ -52,29 +57,29 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willAnswer;
-import static org.mockito.Mockito.mock;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-public class AnalyticsReporterDelegatorTest {
+@ExtendWith(MockitoExtension.class)
+public class AnalyticsReporterDelegatorTest extends VertxTest {
 
     private static final String EVENT = StringUtils.EMPTY;
     private static final Integer FIRST_REPORTER_ID = 1;
     private static final Integer SECOND_REPORTER_ID = 2;
 
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
-    @Mock
+    @Mock(strictness = LENIENT)
     private Vertx vertx;
+    @Mock(strictness = LENIENT)
+    private TcfEnforcement tcfEnforcement;
     @Mock
-    private PrivacyEnforcementService privacyEnforcementService;
+    private UserFpdActivityMask userFpdActivityMask;
     @Mock
     private Metrics metrics;
-
+    @Mock(strictness = LENIENT)
     private AnalyticsReporter firstReporter;
-
+    @Mock(strictness = LENIENT)
     private AnalyticsReporter secondReporter;
 
     private AnalyticsReporterDelegator target;
@@ -82,14 +87,12 @@ public class AnalyticsReporterDelegatorTest {
     @Mock
     private ActivityInfrastructure activityInfrastructure;
 
-    @Before
+    @BeforeEach
     public void setUp() {
-        firstReporter = mock(AnalyticsReporter.class);
         given(firstReporter.vendorId()).willReturn(FIRST_REPORTER_ID);
         given(firstReporter.name()).willReturn("logAnalytics");
         given(firstReporter.processEvent(any())).willReturn(Future.succeededFuture());
 
-        secondReporter = mock(AnalyticsReporter.class);
         given(secondReporter.vendorId()).willReturn(SECOND_REPORTER_ID);
         given(secondReporter.name()).willReturn("adapter");
         given(secondReporter.processEvent(any())).willReturn(Future.succeededFuture());
@@ -98,11 +101,18 @@ public class AnalyticsReporterDelegatorTest {
         final Map<Integer, PrivacyEnforcementAction> enforcementActionMap = new HashMap<>();
         enforcementActionMap.put(SECOND_REPORTER_ID, PrivacyEnforcementAction.allowAll());
         enforcementActionMap.put(FIRST_REPORTER_ID, PrivacyEnforcementAction.allowAll());
-        given(privacyEnforcementService.resultForVendorIds(any(), any()))
+        given(tcfEnforcement.enforce(any(), any()))
                 .willReturn(Future.succeededFuture(enforcementActionMap));
 
         target = new AnalyticsReporterDelegator(
-                0.01, List.of(firstReporter, secondReporter), vertx, privacyEnforcementService, metrics);
+                vertx,
+                List.of(firstReporter, secondReporter),
+                tcfEnforcement,
+                userFpdActivityMask,
+                metrics,
+                0.01,
+                Set.of("logAnalytics", "adapter"),
+                jacksonMapper);
     }
 
     @Test
@@ -251,7 +261,7 @@ public class AnalyticsReporterDelegatorTest {
         enforcementActionMap.put(FIRST_REPORTER_ID, PrivacyEnforcementAction.restrictAll());
         enforcementActionMap.put(SECOND_REPORTER_ID, PrivacyEnforcementAction.allowAll());
 
-        given(privacyEnforcementService.resultForVendorIds(any(), any()))
+        given(tcfEnforcement.enforce(any(), any()))
                 .willReturn(Future.succeededFuture(enforcementActionMap));
 
         willAnswer(withNullAndInvokeHandler()).given(vertx).runOnContext(any());
@@ -271,7 +281,7 @@ public class AnalyticsReporterDelegatorTest {
         enforcementActionMap.put(FIRST_REPORTER_ID, PrivacyEnforcementAction.restrictAll());
         enforcementActionMap.put(SECOND_REPORTER_ID, PrivacyEnforcementAction.restrictAll());
 
-        given(privacyEnforcementService.resultForVendorIds(any(), any()))
+        given(tcfEnforcement.enforce(any(), any()))
                 .willReturn(Future.succeededFuture(enforcementActionMap));
 
         willAnswer(withNullAndInvokeHandler()).given(vertx).runOnContext(any());
@@ -349,11 +359,12 @@ public class AnalyticsReporterDelegatorTest {
         // given
         given(activityInfrastructure.isAllowed(eq(Activity.REPORT_ANALYTICS), any())).willReturn(true);
         given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_UFPD), any())).willReturn(false);
+        given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_EIDS), any())).willReturn(false);
         given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_GEO), any())).willReturn(false);
 
-        given(privacyEnforcementService.maskUserConsideringActivityRestrictions(any(), eq(true), eq(true)))
+        given(userFpdActivityMask.maskUser(any(), eq(true), eq(true)))
                 .willReturn(User.builder().id("masked").build());
-        given(privacyEnforcementService.maskDeviceConsideringActivityRestrictions(any(), eq(true), eq(true)))
+        given(userFpdActivityMask.maskDevice(any(), eq(true), eq(true)))
                 .willReturn(Device.builder().model("masked").build());
 
         final AuctionEvent auctionEvent = AuctionEvent.builder()
@@ -388,6 +399,154 @@ public class AnalyticsReporterDelegatorTest {
                 });
     }
 
+    @Test
+    public void shouldNotCallAnalyticsAdapterIfDisabledByAccount() {
+        // given
+        final ObjectNode moduleConfig = mapper.createObjectNode();
+        moduleConfig.put("enabled", false);
+        moduleConfig.put("property1", "value1");
+        moduleConfig.put("property2", "value2");
+
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .account(Account.builder()
+                        .analytics(AccountAnalyticsConfig.of(
+                                true, null, Map.of("logAnalytics", moduleConfig)))
+                        .build())
+                .bidRequest(BidRequest.builder()
+                        .ext(ExtRequest.of(ExtRequestPrebid.builder().analytics(mapper.createObjectNode()).build()))
+                        .build())
+                .build();
+
+        // when
+        target.processEvent(AuctionEvent.builder().auctionContext(auctionContext).build());
+
+        // then
+        verify(vertx).runOnContext(any());
+        final ArgumentCaptor<AuctionEvent> auctionEventCaptor = ArgumentCaptor.forClass(AuctionEvent.class);
+        verify(firstReporter, never()).processEvent(auctionEventCaptor.capture());
+    }
+
+    @Test
+    public void shouldCallAnalyticsAdapterIfAdapterNodePresentButEnabledPropertyNotPresent() {
+        // given
+        final ObjectNode moduleConfig = mapper.createObjectNode();
+        moduleConfig.put("property1", "value1");
+        moduleConfig.put("property2", "value2");
+
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .account(Account.builder()
+                        .analytics(AccountAnalyticsConfig.of(
+                                true, null, Map.of("logAnalytics", moduleConfig)))
+                        .build())
+                .bidRequest(BidRequest.builder()
+                        .ext(ExtRequest.of(ExtRequestPrebid.builder().analytics(mapper.createObjectNode()).build()))
+                        .build())
+                .build();
+
+        // when
+        target.processEvent(AuctionEvent.builder().auctionContext(auctionContext).build());
+
+        // then
+        verify(vertx, times(2)).runOnContext(any());
+        verify(firstReporter).processEvent(any());
+    }
+
+    @Test
+    public void shouldUpdateAuctionEventWithPropertiesFromAdapterSpecificAccountConfig() {
+        // given
+        final ObjectNode moduleConfig = mapper.createObjectNode();
+        moduleConfig.put("enabled", true);
+        moduleConfig.put("property1", "value1");
+        moduleConfig.put("property2", "value2");
+
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .account(Account.builder()
+                        .analytics(AccountAnalyticsConfig.of(
+                                true, null, Map.of("logAnalytics", moduleConfig)))
+                        .build())
+                .bidRequest(BidRequest.builder()
+                        .ext(ExtRequest.of(ExtRequestPrebid.builder().analytics(mapper.createObjectNode()).build()))
+                        .build())
+                .build();
+
+        // when
+        target.processEvent(AuctionEvent.builder().auctionContext(auctionContext).build());
+
+        // then
+        verify(vertx, times(2)).runOnContext(any());
+
+        final ObjectNode expectedAnalyticsNode = mapper.createObjectNode();
+        final ObjectNode expectedLogAnalyticsNode = mapper.createObjectNode();
+        expectedLogAnalyticsNode.put("property1", "value1");
+        expectedLogAnalyticsNode.put("property2", "value2");
+        expectedAnalyticsNode.set("logAnalytics", expectedLogAnalyticsNode);
+
+        final ArgumentCaptor<AuctionEvent> auctionEventCaptor = ArgumentCaptor.forClass(AuctionEvent.class);
+        verify(firstReporter).processEvent(auctionEventCaptor.capture());
+        assertThat(auctionEventCaptor.getValue())
+                .extracting(AuctionEvent::getAuctionContext)
+                .extracting(AuctionContext::getBidRequest)
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getAnalytics)
+                .isEqualTo(expectedAnalyticsNode);
+    }
+
+    @Test
+    public void shouldUpdateAuctionEventWithPropertiesFromAdapterSpecificAccountConfigWithPrecedenceForRequest() {
+        // given
+        final ObjectNode moduleConfig = mapper.createObjectNode();
+        moduleConfig.put("enabled", true);
+        moduleConfig.put("property1", "value1");
+        moduleConfig.put("property2", "value2");
+
+        final ObjectNode analyticsNode = mapper.createObjectNode();
+        final ObjectNode logAnalyticsNode = mapper.createObjectNode();
+        logAnalyticsNode.put("property1", "requestValue1");
+        logAnalyticsNode.put("property3", "requestValue3");
+        analyticsNode.set("logAnalytics", logAnalyticsNode);
+
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .account(Account.builder()
+                        .analytics(AccountAnalyticsConfig.of(
+                                true, null, Map.of("logAnalytics", moduleConfig)))
+                        .build())
+                .bidRequest(BidRequest.builder()
+                        .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                                .channel(ExtRequestPrebidChannel.of("channel"))
+                                .analytics(analyticsNode)
+                                .build()))
+                        .build())
+                .build();
+
+        // when
+        target.processEvent(AuctionEvent.builder().auctionContext(auctionContext).build());
+
+        // then
+        verify(vertx, times(2)).runOnContext(any());
+
+        final ObjectNode expectedAnalyticsNode = mapper.createObjectNode();
+        final ObjectNode expectedLogAnalyticsNode = mapper.createObjectNode();
+        expectedLogAnalyticsNode.put("property1", "requestValue1");
+        expectedLogAnalyticsNode.put("property2", "value2");
+        expectedLogAnalyticsNode.put("property3", "requestValue3");
+        expectedAnalyticsNode.set("logAnalytics", expectedLogAnalyticsNode);
+
+        final ExtRequestPrebid expectedExtRequestPrebid = ExtRequestPrebid.builder()
+                .analytics(expectedAnalyticsNode)
+                .channel(ExtRequestPrebidChannel.of("channel"))
+                .build();
+
+        final ArgumentCaptor<AuctionEvent> auctionEventCaptor = ArgumentCaptor.forClass(AuctionEvent.class);
+        verify(firstReporter).processEvent(auctionEventCaptor.capture());
+        assertThat(auctionEventCaptor.getValue())
+                .extracting(AuctionEvent::getAuctionContext)
+                .extracting(AuctionContext::getBidRequest)
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .isEqualTo(expectedExtRequestPrebid);
+    }
+
     @SuppressWarnings("unchecked")
     private static Answer<Object> withNullAndInvokeHandler() {
         return invocation -> {
@@ -413,6 +572,7 @@ public class AnalyticsReporterDelegatorTest {
 
         return AuctionEvent.builder()
                 .auctionContext(AuctionContext.builder()
+                        .account(Account.builder().build())
                         .bidRequest(bidRequestCustomizer.apply(BidRequest.builder()).build())
                         .build())
                 .build();

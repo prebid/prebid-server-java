@@ -5,10 +5,12 @@ import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 import org.prebid.server.functional.model.Currency
 
+import static org.prebid.server.functional.model.request.auction.DebugCondition.ENABLED
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.DOOH
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 import static org.prebid.server.functional.model.response.auction.MediaType.AUDIO
+import static org.prebid.server.functional.model.response.auction.MediaType.NATIVE
 import static org.prebid.server.functional.model.response.auction.MediaType.VIDEO
 
 @EqualsAndHashCode
@@ -22,7 +24,7 @@ class BidRequest {
     Dooh dooh
     Device device
     User user
-    Integer test
+    DebugCondition test
     Integer at
     Long tmax
     List<String> wseat
@@ -47,6 +49,10 @@ class BidRequest {
         getDefaultRequest(channel, Imp.getDefaultImpression(VIDEO))
     }
 
+    static BidRequest getDefaultNativeRequest(DistributionChannel channel = SITE) {
+        getDefaultRequest(channel, Imp.getDefaultImpression(NATIVE))
+    }
+
     static BidRequest getDefaultAudioRequest(DistributionChannel channel = SITE) {
         getDefaultRequest(channel, Imp.getDefaultImpression(AUDIO))
     }
@@ -63,7 +69,7 @@ class BidRequest {
             regs = Regs.defaultRegs
             id = UUID.randomUUID()
             tmax = 2500
-            ext = new BidRequestExt(prebid: new Prebid(debug: 1))
+            ext = new BidRequestExt(prebid: new Prebid(debug: ENABLED))
             if (channel == SITE) {
                 site = Site.defaultSite
             }

@@ -8,12 +8,11 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Video;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.versionconverter.OrtbVersion;
@@ -41,12 +40,10 @@ import static org.prebid.server.spring.config.bidder.model.MediaType.BANNER;
 import static org.prebid.server.spring.config.bidder.model.MediaType.NATIVE;
 import static org.prebid.server.spring.config.bidder.model.MediaType.VIDEO;
 
+@ExtendWith(MockitoExtension.class)
 public class BidderMediaTypeProcessorTest extends VertxTest {
 
     private static final String BIDDER = "bidder";
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private BidderCatalog bidderCatalog;
@@ -55,7 +52,7 @@ public class BidderMediaTypeProcessorTest extends VertxTest {
 
     private BidderMediaTypeProcessor target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new BidderMediaTypeProcessor(bidderCatalog);
         when(bidderAliases.resolveBidder(anyString())).thenAnswer(invocation -> invocation.getArgument(0));
@@ -174,10 +171,12 @@ public class BidderMediaTypeProcessorTest extends VertxTest {
                 doohMediaType,
                 emptyList(),
                 0,
+                null,
                 false,
                 false,
                 CompressionType.NONE,
-                Ortb.of(false));
+                Ortb.of(false),
+                0L);
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
