@@ -445,7 +445,7 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
             !genericBidderRequest.user?.ext?.eids
         }
 
-        and: "Bid response should contain verbose info in debug"
+        and: "Bid response should contain info about triggered activity in debug"
         def infrastructure = bidResponse.ext.debug.trace.activityInfrastructure
         def ruleConfigurations = findProcessingRule(infrastructure, TRANSMIT_EIDS).ruleConfiguration.and
         assert ruleConfigurations.size() == 1
@@ -495,7 +495,7 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
         def genericBidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert genericBidderRequest.user.eids[0].source == bidRequest.user.eids[0].source
 
-        and: "Bid response should not contain verbose info in debug"
+        and: "Bid response should not contain info about triggered activity in debug"
         def infrastructure = bidResponse.ext.debug.trace.activityInfrastructure
         def ruleConfigurations = findProcessingRule(infrastructure, TRANSMIT_EIDS).ruleConfiguration.and
         assert ruleConfigurations.size() == 1
@@ -569,8 +569,8 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
         }
     }
 
-    def "PBS auction shouldn't emit errors or warnings when skip rate is out of borders"() {
-        given: "Default bid request"
+    def "PBS auction shouldn't emit errors or warnings when skip rate is at minimum boundary"() {
+        given: "A bid request with verbose tracing and GPC disallow logic"
         def accountId = PBSUtils.randomNumber as String
         def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             ext.prebid.trace = VERBOSE
@@ -578,7 +578,7 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
             regs.gppSid = [US_NAT_V1.intValue]
         }
 
-        and: "Set up activities"
+        and: "An activity rule with GPP SID and privacy regulation setup"
         def condition = Condition.baseCondition.tap {
             it.gppSid = [US_NAT_V1.intValue]
         }
@@ -588,22 +588,91 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
         def activity = Activity.getDefaultActivity([activityRule])
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_EIDS, activity)
 
-        and: "Account gpp configuration"
-        def accountGppConfig = new AccountGppConfig(code: IAB_US_GENERAL, enabled: true, skipRate: skipRate)
+        and: "Account GPP configuration with minimum skip rate"
+        def accountGppConfig = new AccountGppConfig(code: IAB_US_GENERAL, enabled: true, skipRate: Integer.MIN_VALUE)
 
-        and: "Save account with allow activities setup"
+        and: "Save the account with configured activities and privacy module"
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
         accountDao.save(account)
 
-        when: "PBS processes auction requests"
+        when: "PBS processes the auction request"
         def bidResponse = activityPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Response should not contain error"
+        then: "Response should not contain errors or warnings"
         assert !bidResponse.ext?.errors
         assert !bidResponse.ext?.warnings
 
-        where:
-        skipRate << [Integer.MIN_VALUE, Integer.MAX_VALUE]
+        and: "Bid response should contain info about triggered activity in debug"
+        def infrastructure = bidResponse.ext.debug.trace.activityInfrastructure
+        def ruleConfigurations = findProcessingRule(infrastructure, TRANSMIT_EIDS).ruleConfiguration.and
+        assert ruleConfigurations.size() == 1
+        assert ruleConfigurations.first.and.every { it.contains(DISALLOW.toString()) }
+
+        and: "Should not contain information that module was skipped"
+        verifyAll(ruleConfigurations.first) {
+            !it.privacyModule
+            !it.skipped
+            !it.result
+        }
+
+        and: "Generic bidder request should have empty EIDS fields"
+        def genericBidderRequest = bidder.getBidderRequest(bidRequest.id)
+
+        verifyAll {
+            !genericBidderRequest.user.eids
+            !genericBidderRequest.user?.ext?.eids
+        }
+    }
+
+    def "PBS auction shouldn't emit errors or warnings when skip rate is at maximum boundary"() {
+        given: "A bid request with verbose tracing and GPC disallow logic"
+        def accountId = PBSUtils.randomNumber as String
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
+            ext.prebid.trace = VERBOSE
+            regs.gpp = SIMPLE_GPC_DISALLOW_LOGIC
+            regs.gppSid = [US_NAT_V1.intValue]
+        }
+
+        and: "An activity rule with GPP SID and privacy regulation setup"
+        def condition = Condition.baseCondition.tap {
+            it.gppSid = [US_NAT_V1.intValue]
+        }
+        def activityRule = ActivityRule.getDefaultActivityRule(condition).tap {
+            it.privacyRegulation = [IAB_US_GENERAL]
+        }
+        def activity = Activity.getDefaultActivity([activityRule])
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_EIDS, activity)
+
+        and: "Account GPP configuration with maximum skip rate"
+        def accountGppConfig = new AccountGppConfig(code: IAB_US_GENERAL, enabled: true, skipRate: Integer.MAX_VALUE)
+
+        and: "Save the account with configured activities and privacy module"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        when: "PBS processes the auction request"
+        def bidResponse = activityPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should not contain errors or warnings"
+        assert !bidResponse.ext?.errors
+        assert !bidResponse.ext?.warnings
+
+        and: "Bid response should not contain info about triggered activity in debug"
+        def infrastructure = bidResponse.ext.debug.trace.activityInfrastructure
+        def ruleConfigurations = findProcessingRule(infrastructure, TRANSMIT_EIDS).ruleConfiguration.and
+        assert ruleConfigurations.size() == 1
+        assert ruleConfigurations.first.and.every { it == null }
+
+        and: "Should contain information that module was skipped"
+        verifyAll(ruleConfigurations.first) {
+            it.privacyModule == IAB_US_GENERAL
+            it.skipped == true
+            it.result == ABSTAIN
+        }
+
+        and: "Generic bidder request should have data in EIDS fields"
+        def genericBidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert genericBidderRequest.user.eids[0].source == bidRequest.user.eids[0].source
     }
 
     private static List<ActivityInfrastructure> getActivityByName(List<ActivityInfrastructure> activityInfrastructures,
