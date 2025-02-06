@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Future;
 import org.apache.commons.collections4.CollectionUtils;
+import org.prebid.server.analytics.reporter.greenbids.model.ExplorationResult;
 import org.prebid.server.analytics.reporter.greenbids.model.Ortb2ImpExtResult;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.exception.PreBidException;
@@ -198,22 +199,28 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                 .map(entry -> {
                     final String impId = entry.getKey();
                     final Ortb2ImpExtResult ortb2ImpExtResult = entry.getValue();
-                    final ObjectNode objectNode = toObjectNode(impId, ortb2ImpExtResult);
+
+                    final List<String> bidders = Optional.ofNullable(ortb2ImpExtResult)
+                            .map(Ortb2ImpExtResult::getGreenbids)
+                            .map(ExplorationResult::getKeptInAuction)
+                            .orElse(Collections.emptyMap())
+                            .keySet().stream().toList();
+
+                    final ObjectNode objectNode = toObjectNode(entry);
+
                     return (Result) ResultImpl.of(
                             analyticsResult.getStatus(),
                             objectNode,
                             AppliedToImpl.builder()
                                     .impIds(Collections.singletonList(impId))
+                                    .bidders(bidders)
                                     .build());
                 })
                 .toList();
     }
 
-    private ObjectNode toObjectNode(String key, Ortb2ImpExtResult value) {
-        ObjectNode objectNode = mapper.createObjectNode();
-        JsonNode node = value != null ? mapper.valueToTree(value) : null;
-        objectNode.set(key, node);
-        return objectNode;
+    private ObjectNode toObjectNode(Map.Entry<String, Ortb2ImpExtResult> values) {
+        return values != null ? mapper.valueToTree(values) : null;
     }
 
     @Override

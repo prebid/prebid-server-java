@@ -40,11 +40,8 @@ public class GreenbidsInvocationService {
         final InvocationAction invocationAction = isExploration
                 ? InvocationAction.no_action
                 : InvocationAction.update;
-        final Map<String, Map<String, Boolean>> impsBiddersFilterMapToAnalyticsTag = isExploration
-                ? keepAllBiddersForAnalyticsResult(impsBiddersFilterMap)
-                : impsBiddersFilterMap;
         final Map<String, Ortb2ImpExtResult> ort2ImpExtResultMap = createOrtb2ImpExtForImps(
-                bidRequest, impsBiddersFilterMapToAnalyticsTag, greenbidsId, isExploration);
+                bidRequest, impsBiddersFilterMap, greenbidsId, isExploration);
         final AnalyticsResult analyticsResult = AnalyticsResult.of(
                 "success", ort2ImpExtResultMap, null, null);
 
@@ -81,16 +78,6 @@ public class GreenbidsInvocationService {
                                 .map(Map.Entry::getKey)
                                 .forEach(bidderNode::remove));
         return updatedExt;
-    }
-
-    private Map<String, Map<String, Boolean>> keepAllBiddersForAnalyticsResult(
-            Map<String, Map<String, Boolean>> impsBiddersFilterMap) {
-
-        return impsBiddersFilterMap.entrySet().stream()
-                        .collect(Collectors.toMap(
-                                Map.Entry::getKey,
-                                entry -> entry.getValue().entrySet().stream()
-                                        .collect(Collectors.toMap(Map.Entry::getKey, e -> true))));
     }
 
     private Map<String, Ortb2ImpExtResult> createOrtb2ImpExtForImps(

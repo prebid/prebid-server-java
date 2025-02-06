@@ -737,6 +737,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
 
         final AppliedTo appliedTo = AppliedToImpl.builder()
                 .impIds(Collections.singletonList("adunitcodevalue"))
+                .bidders(Collections.singletonList("seat1"))
                 .build();
 
         final ActivityImpl activity = ActivityImpl.of(

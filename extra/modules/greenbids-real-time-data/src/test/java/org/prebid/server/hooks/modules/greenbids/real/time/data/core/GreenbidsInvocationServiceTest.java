@@ -104,8 +104,8 @@ public class GreenbidsInvocationServiceTest {
         assertThat(ortb2ImpExtResult.getGreenbids().getIsExploration()).isTrue();
         assertThat(ortb2ImpExtResult.getGreenbids().getFingerprint()).isNotNull();
         assertThat(keptInAuction.get("rubicon")).isTrue();
-        assertThat(keptInAuction.get("appnexus")).isTrue();
-        assertThat(keptInAuction.get("pubmatic")).isTrue();
+        assertThat(keptInAuction.get("appnexus")).isFalse();
+        assertThat(keptInAuction.get("pubmatic")).isFalse();
     }
 
     private Map<String, Map<String, Boolean>> givenImpsBiddersFilterMap() {

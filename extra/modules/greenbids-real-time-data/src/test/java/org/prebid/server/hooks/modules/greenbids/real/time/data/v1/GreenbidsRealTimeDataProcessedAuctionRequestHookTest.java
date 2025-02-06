@@ -52,8 +52,6 @@ import org.prebid.server.hooks.v1.analytics.Tags;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.model.HttpRequestContext;
-import org.prebid.server.settings.model.Account;
-import org.prebid.server.settings.model.AccountHooksConfiguration;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -216,7 +214,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
     }
 
     @Test
-    public void callShouldNotFilterBiddersAndReturnAnalyticsTagWhenExploration() throws OrtException, IOException {
+    public void callShouldFilterBiddersAndReturnAnalyticsTagWhenExploration() throws OrtException, IOException {
         // given
         final Banner banner = givenBanner();
 
@@ -238,7 +236,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         when(thresholdsCacheWithExpiration.getIfPresent("throttlingThresholds_test-pbuid"))
                 .thenReturn(givenThrottlingThresholds());
 
-        final AnalyticsResult expectedAnalyticsResult = expectedAnalyticsResult(true, true);
+        final AnalyticsResult expectedAnalyticsResult = expectedAnalyticsResult(true, false);
 
         // when
         final Future<InvocationResult<AuctionRequestPayload>> future = target
@@ -508,6 +506,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 toObjectNode(analyticsResult.getValues()),
                 AppliedToImpl.builder()
                         .impIds(Collections.singletonList("adunitcodevalue"))
+                        .bidders(List.of("appnexus", "pubmatic", "rubicon"))
                         .build());
     }
 
