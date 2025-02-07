@@ -1,5 +1,11 @@
 package org.prebid.server.functional.tests.pricefloors
 
+import org.junit.Ignore
+import org.prebid.server.floors.model.PriceFloorModelGroup
+import org.prebid.server.functional.model.config.AccountAuctionConfig
+import org.prebid.server.functional.model.config.AccountConfig
+import org.prebid.server.functional.model.config.AccountPriceFloorsConfig
+import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.pricefloors.Country
 import org.prebid.server.functional.model.pricefloors.ModelGroup
@@ -17,6 +23,7 @@ import org.prebid.server.functional.model.request.auction.Video
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.MediaType
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.IgnoreRest
 
 import java.time.Instant
 
@@ -824,6 +831,163 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         maxRules       | maxRulesSnakeCase
         MAX_RULES_SIZE | null
         null           | MAX_RULES_SIZE
+    }
+
+    def "PBS should emit error in log and response when floors are enabled but data is invalid"() {
+        given: "Default BidRequest with disabled floors"
+        def bidRequest = bidRequestWithFloors.tap {
+            ext.prebid.floors.data = null
+        }
+
+        when: "PBS processes auction request"
+        def bidResponse = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should includer error errors"
+        assert bidResponse.ext?.errors[PREBID]*.code == [999]
+        assert bidResponse.ext?.errors[PREBID]*.message ==
+                ["Failed to parse price floors from request, with a reason: Price floor rules data must be present"]
+
+        and: "PBS should process bidRequest"
+        assert bidder.getBidderRequests(bidRequest.id).size() == 1
+    }
+
+    def "PBS should emit error in log and response when floors skipRate is out of range"() {
+        given: "BidRequest with invalid skipRate"
+        def bidRequest = bidRequestWithFloors.tap {
+            ext.prebid.floors.data.skipRate = requestSkipRate
+        }
+
+        when: "PBS processes auction request"
+        def bidResponse = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should include error"
+        assert bidResponse.ext?.errors[PREBID]*.code == [999]
+        assert bidResponse.ext?.errors[PREBID]*.message ==
+                ["Failed to parse price floors from request, with a reason: Price floor data skipRate must be in range(0-100), but was $requestSkipRate"]
+
+        and: "PBS should process bidRequest"
+        assert bidder.getBidderRequests(bidRequest.id).size() == 1
+
+        where:
+        requestSkipRate << [PBSUtils.randomNegativeNumber, PBSUtils.getRandomNumber(100)]
+    }
+
+    def "PBS should emit error in log and response when floors modelGroups is empty"() {
+        given: "BidRequest with empty modelGroups"
+        def bidRequest = bidRequestWithFloors.tap {
+            ext.prebid.floors.data.modelGroups = requestModelGroups
+        }
+
+        when: "PBS processes auction request"
+        def bidResponse = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should include error"
+        assert bidResponse.ext?.errors[PREBID]*.code == [999]
+        assert bidResponse.ext?.errors[PREBID]*.message == [
+                "Failed to parse price floors from request, with a reason: Price floor rules should contain at least one model group"
+        ]
+
+        and: "PBS should process bidRequest"
+        assert bidder.getBidderRequests(bidRequest.id).size() == 1
+
+        where:
+        requestModelGroups << [null, []]
+    }
+
+    def "PBS should emit error in log and response when modelGroup modelWeight is out of range"() {
+        given: "BidRequest with invalid modelWeight"
+        def bidRequest = bidRequestWithFloors.tap {
+            ext.prebid.floors.data.modelGroups = [
+                    new ModelGroup(modelWeight: requestModelWeight)
+            ]
+        }
+
+        when: "PBS processes auction request"
+        def bidResponse = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should include error"
+        assert bidResponse.ext?.errors[PREBID]*.code == [999]
+        assert bidResponse.ext?.errors[PREBID]*.message ==
+                ["Failed to parse price floors from request, with a reason: Price floor modelGroup " +
+                         "modelWeight must be in range(1-100), but was $requestModelWeight"]
+
+        and: "PBS should process bidRequest"
+        assert bidder.getBidderRequests(bidRequest.id).size() == 1
+
+        where:
+        requestModelWeight << [PBSUtils.randomNegativeNumber, PBSUtils.getRandomNumber(100)]
+    }
+
+    def "PBS should emit error in log and response when modelGroup skipRate is out of range"() {
+        given: "BidRequest with invalid modelGroup skipRate"
+        def requestModelGroupsSkipRate =  PBSUtils.getRandomNumber(100)
+        def bidRequest = bidRequestWithFloors.tap {
+            ext.prebid.floors.data.modelGroups = [
+                    new ModelGroup(skipRate: requestModelGroupsSkipRate)
+            ]
+        }
+
+        when: "PBS processes auction request"
+        def bidResponse = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should include error"
+        assert bidResponse.ext?.errors[PREBID]*.code == [999]
+        assert bidResponse.ext?.errors[PREBID]*.message ==
+                ["Failed to parse price floors from request, with a reason: Price floor modelGroup " +
+                         "skipRate must be in range(0-100), but was $requestModelGroupsSkipRate"]
+
+        and: "PBS should process bidRequest"
+        assert bidder.getBidderRequests(bidRequest.id).size() == 1
+    }
+
+    def "PBS should emit error in log and response when modelGroup defaultFloor is negative"() {
+        given: "BidRequest with negative defaultFloor"
+        def requestModelGroupsSkipRate =  PBSUtils.randomNegativeNumber
+
+        def bidRequest = bidRequestWithFloors.tap {
+            ext.prebid.floors.data.modelGroups = [
+                    new ModelGroup(defaultFloor: requestModelGroupsSkipRate)
+            ]
+        }
+
+        when: "PBS processes auction request"
+        def bidResponse = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should include error"
+        assert bidResponse.ext?.errors[PREBID]*.code == [999]
+        assert bidResponse.ext?.errors[PREBID]*.message == [
+                "Price floor modelGroup default must be positive float, but was $requestModelGroupsSkipRate"
+        ]
+
+        and: "PBS should process bidRequest"
+        assert bidder.getBidderRequests(bidRequest.id).size() == 1
+    }
+
+    def "PBS should use default floors config when original account config is invalid"() {
+        given: "Test start time"
+        def startTime = Instant.now()
+
+        and: "Bid request with floors"
+        def bidRequest = bidRequestWithFloors
+
+        and: "Account with invalid floors config"
+        def accountConfig = new AccountConfig(auction: new AccountAuctionConfig(priceFloors: new AccountPriceFloorsConfig(enabled: false)))
+        def account = new Account(uuid: bidRequest.accountId, config: accountConfig)
+        accountDao.save(account)
+
+        and: "Set bidder response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        and: "PBS floors validation failure should not reject the entire auction"
+        assert !response.seatbid?.isEmpty()
+
+        response.seatbid
+        then: "PBS shouldn't log a errors"
+        assert !response.ext?.errors
     }
 
     private static int getSchemaSize(BidRequest bidRequest) {
