@@ -3349,6 +3349,109 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldSetApexRendererUrlToMetaRendererUrlWhenMetaMediaTypeIsVideoAndVideoIsPresent()
+            throws JsonProcessingException {
+
+        // given
+        final ExtRequest extBidRequest = ExtRequest.of(ExtRequestPrebid.builder()
+                .bidders(mapper.valueToTree(ExtPrebidBidders.of(
+                        mapper.createObjectNode().set("apexRenderer", BooleanNode.valueOf(true)))))
+                .build());
+
+        final BidRequest givenBidRequest = givenBidRequest(
+                builder -> builder.ext(extBidRequest),
+                imp -> imp.id("impId").video(Video.builder().build()),
+                identity());
+
+        final ObjectNode givenBidExt = mapper.valueToTree(
+                ExtPrebid.of(ExtBidPrebid.builder()
+                        .meta(ExtBidPrebidMeta.builder()
+                                .mediaType("video")
+                                .rendererUrl("https://renderer.url.from.bidder")
+                                .build())
+                        .build(), null));
+
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest,
+                mapper.writeValueAsString(RubiconBidResponse.builder()
+                        .cur("USD")
+                        .seatbid(singletonList(RubiconSeatBid.builder()
+                                .bid(singletonList(givenRubiconBid(bid ->
+                                        bid.impid("impId").price(ONE).ext(givenBidExt))))
+                                .build()))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, givenBidRequest);
+
+        // then
+        final ObjectNode expectedBidExt = mapper.valueToTree(
+                ExtPrebid.of(ExtBidPrebid.builder()
+                        .meta(ExtBidPrebidMeta.builder()
+                                .mediaType("video")
+                                .rendererUrl("https://video-outstream.rubiconproject.com/apex-2.2.1.js")
+                                .build())
+                        .build(), null));
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getExt)
+                .containsExactly(expectedBidExt);
+    }
+
+    @Test
+    public void makeBidsShouldNotSetApexRendererUrlToMetaRendererUrlWhenMetaMediaTypeIsVideoAndVideoIsAbsent()
+            throws JsonProcessingException {
+
+        // given
+        final ExtRequest extBidRequest = ExtRequest.of(ExtRequestPrebid.builder()
+                .bidders(mapper.valueToTree(ExtPrebidBidders.of(
+                        mapper.createObjectNode().set("apexRenderer", BooleanNode.valueOf(true)))))
+                .build());
+
+        final BidRequest givenBidRequest = givenBidRequest(
+                builder -> builder.ext(extBidRequest),
+                imp -> imp.id("impId").video(null),
+                identity());
+
+        final ObjectNode givenBidExt = mapper.valueToTree(
+                ExtPrebid.of(ExtBidPrebid.builder()
+                        .meta(ExtBidPrebidMeta.builder()
+                                .mediaType("video")
+                                .rendererUrl("https://renderer.url.from.bidder")
+                                .build())
+                        .build(), null));
+
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest,
+                mapper.writeValueAsString(RubiconBidResponse.builder()
+                        .cur("USD")
+                        .seatbid(singletonList(RubiconSeatBid.builder()
+                                .bid(singletonList(givenRubiconBid(bid ->
+                                        bid.impid("impId").price(ONE).ext(givenBidExt))))
+                                .build()))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, givenBidRequest);
+
+        // then
+        final ObjectNode expectedBidExt = mapper.valueToTree(
+                ExtPrebid.of(ExtBidPrebid.builder()
+                        .meta(ExtBidPrebidMeta.builder()
+                                .rendererUrl("https://video-outstream.rubiconproject.com/apex-2.2.1.js")
+                                .build())
+                        .build(), null));
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getExt)
+                .containsExactly(givenBidExt);
+    }
+
+    @Test
     public void makeBidsShouldNotSetApexRendererUrlToMetaRendererUrlWhenApexRendererIsNotDefined()
             throws JsonProcessingException {
 
@@ -3377,7 +3480,7 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldSetApexRendererUrlToMetaRendererUrlWhenApexRendererIsDefinedAsFalse()
+    public void makeBidsShouldNotSetApexRendererUrlToMetaRendererUrlWhenApexRendererIsDefinedAsFalse()
             throws JsonProcessingException {
 
         // given
@@ -3412,7 +3515,7 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldSetApexRendererUrlToMetaRendererUrlWhenBidResponseIsNotVideo()
+    public void makeBidsShouldNotSetApexRendererUrlToMetaRendererUrlWhenBidResponseIsNotVideo()
             throws JsonProcessingException {
 
         // given
@@ -3447,7 +3550,7 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldSetApexRendererUrlToMetaRendererUrlWhenVideoPlacementIsOne()
+    public void makeBidsShouldNotSetApexRendererUrlToMetaRendererUrlWhenVideoPlacementIsOne()
             throws JsonProcessingException {
 
         // given
@@ -3482,7 +3585,7 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldSetApexRendererUrlToMetaRendererUrlWhenVideoPlcmtIsOne()
+    public void makeBidsShouldNotSetApexRendererUrlToMetaRendererUrlWhenVideoPlcmtIsOne()
             throws JsonProcessingException {
 
         // given

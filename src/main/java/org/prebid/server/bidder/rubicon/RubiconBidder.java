@@ -1689,40 +1689,18 @@ public class RubiconBidder implements Bidder<BidRequest> {
                                      BidType bidType,
                                      boolean hasApexRenderer) {
 
-        final ObjectNode originalBidExt = bid.getExt();
-        final Integer networkId = resolveNetworkId(seatBid);
-        final String seat = seatBid.getSeat();
-        final String rendererUrl = resolveRendererUrl(imp, bidType, hasApexRenderer);
-
-        return ObjectUtils.allNull(networkId, rendererUrl, seat)
-                ? originalBidExt
-                : prepareBidMeta(bid, seat, networkId, rendererUrl);
-    }
-
-    private static Integer resolveNetworkId(RubiconSeatBid seatBid) {
-        final String buyer = seatBid.getBuyer();
-        final int networkId = NumberUtils.toInt(buyer, 0);
-        return networkId <= 0 ? null : networkId;
-    }
-
-    private String resolveRendererUrl(Imp imp, BidType bidType, boolean hasApexRenderer) {
-        if (imp == null) {
-            return null;
-        }
-
-        final Video video = imp.getVideo();
-        return hasApexRenderer
-                && bidType == BidType.video
-                && (!Objects.equals(video.getPlacement(), 1) && !Objects.equals(video.getPlcmt(), 1))
-                ? VIDEO_OUTSTREAM_APEX_META_RENDERER_URL
-                : null;
-    }
-
-    private ObjectNode prepareBidMeta(RubiconBid bid, String seat, Integer networkId, String rendererUrl) {
         final ObjectNode bidExt = bid.getExt();
         final ExtPrebid<ExtBidPrebid, ObjectNode> extPrebid = getExtPrebid(bidExt, bid.getId());
         final ExtBidPrebid extBidPrebid = extPrebid != null ? extPrebid.getPrebid() : null;
         final ExtBidPrebidMeta meta = extBidPrebid != null ? extBidPrebid.getMeta() : null;
+
+        final Integer networkId = resolveNetworkId(seatBid);
+        final String seat = seatBid.getSeat();
+        final String rendererUrl = resolveRendererUrl(imp, meta, bidType, hasApexRenderer);
+
+        if (ObjectUtils.allNull(networkId, rendererUrl, seat)) {
+            return bidExt;
+        }
 
         final ExtBidPrebidMeta updatedMeta = Optional.ofNullable(meta)
                 .map(ExtBidPrebidMeta::toBuilder)
@@ -1748,6 +1726,32 @@ public class RubiconBidder implements Bidder<BidRequest> {
         } catch (IllegalArgumentException e) {
             throw new PreBidException("Invalid ext passed in bid with id: " + bidId);
         }
+    }
+
+    private static Integer resolveNetworkId(RubiconSeatBid seatBid) {
+        final String buyer = seatBid.getBuyer();
+        final int networkId = NumberUtils.toInt(buyer, 0);
+        return networkId <= 0 ? null : networkId;
+    }
+
+    private String resolveRendererUrl(Imp imp, ExtBidPrebidMeta meta, BidType bidType, boolean hasApexRenderer) {
+        if (imp == null) {
+            return null;
+        }
+
+        final Video video = imp.getVideo();
+        return hasApexRenderer
+                && (bidType == BidType.video || isVideoMetaMediaType(meta))
+                && (video != null && !Objects.equals(video.getPlacement(), 1) && !Objects.equals(video.getPlcmt(), 1))
+                ? VIDEO_OUTSTREAM_APEX_META_RENDERER_URL
+                : null;
+    }
+
+    private static Boolean isVideoMetaMediaType(ExtBidPrebidMeta meta) {
+        return Optional.ofNullable(meta)
+                .map(ExtBidPrebidMeta::getMediaType)
+                .map("video"::equalsIgnoreCase)
+                .orElse(false);
     }
 
     private String resolveAdm(String bidAdm, ObjectNode admobject) {
