@@ -158,29 +158,25 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
             AnalyticsResult analyticsResult,
             InvocationAction action) {
 
-        final List<AnalyticsResult> analyticsResults = analyticsResult != null
-                ? Collections.singletonList(analyticsResult)
-                : Collections.emptyList();
-
         return switch (action) {
             case InvocationAction.update -> InvocationResultImpl
                     .<AuctionRequestPayload>builder()
                     .status(InvocationStatus.success)
                     .action(action)
                     .payloadUpdate(payload -> AuctionRequestPayloadImpl.of(bidRequest))
-                    .analyticsTags(toAnalyticsTags(analyticsResults))
+                    .analyticsTags(toAnalyticsTags(analyticsResult))
                     .build();
             default -> InvocationResultImpl
                     .<AuctionRequestPayload>builder()
                     .status(InvocationStatus.success)
                     .action(action)
-                    .analyticsTags(toAnalyticsTags(analyticsResults))
+                    .analyticsTags(toAnalyticsTags(analyticsResult))
                     .build();
         };
     }
 
-    private Tags toAnalyticsTags(List<AnalyticsResult> analyticsResults) {
-        if (CollectionUtils.isEmpty(analyticsResults)) {
+    private Tags toAnalyticsTags(AnalyticsResult analyticsResults) {
+        if (analyticsResults == null) {
             return null;
         }
 
@@ -190,14 +186,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                 toResults(analyticsResults))));
     }
 
-    private List<Result> toResults(List<AnalyticsResult> analyticsResults) {
-        return analyticsResults.stream()
-                .map(this::toResult)
-                .flatMap(Collection::stream)
-                .toList();
-    }
-
-    private List<Result> toResult(AnalyticsResult analyticsResult) {
+    private List<Result> toResults(AnalyticsResult analyticsResult) {
         return analyticsResult.getValues().entrySet().stream()
                 .map(entry -> toResult(analyticsResult.getStatus(), entry))
                 .toList();
@@ -212,7 +201,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                 .map(Map::entrySet)
                 .stream()
                 .flatMap(Collection::stream)
-                .filter(e -> BooleanUtils.isNotTrue(e.getValue()))
+                .filter(e -> BooleanUtils.isFalse(e.getValue()))
                 .map(Map.Entry::getKey)
                 .toList();
 

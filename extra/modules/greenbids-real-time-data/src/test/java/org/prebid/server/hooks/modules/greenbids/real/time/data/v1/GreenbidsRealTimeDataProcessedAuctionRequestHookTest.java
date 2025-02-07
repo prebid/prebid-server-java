@@ -469,9 +469,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
     private AnalyticsResult expectedAnalyticsResult(Boolean isExploration, Boolean isKeptInAuction) {
         return AnalyticsResult.of(
                 "success",
-                Map.of("adunitcodevalue", expectedOrtb2ImpExtResult(isExploration, isKeptInAuction)),
-                null,
-                null);
+                Map.of("adunitcodevalue", expectedOrtb2ImpExtResult(isExploration, isKeptInAuction)));
     }
 
     private Ortb2ImpExtResult expectedOrtb2ImpExtResult(Boolean isExploration, Boolean isKeptInAuction) {

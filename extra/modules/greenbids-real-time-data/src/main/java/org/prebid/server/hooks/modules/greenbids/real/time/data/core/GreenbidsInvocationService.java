@@ -43,7 +43,7 @@ public class GreenbidsInvocationService {
         final Map<String, Ortb2ImpExtResult> ort2ImpExtResultMap = createOrtb2ImpExtForImps(
                 bidRequest, impsBiddersFilterMap, greenbidsId, isExploration);
         final AnalyticsResult analyticsResult = AnalyticsResult.of(
-                "success", ort2ImpExtResultMap, null, null);
+                "success", ort2ImpExtResultMap);
 
         return GreenbidsInvocationResult.of(updatedBidRequest, invocationAction, analyticsResult);
     }

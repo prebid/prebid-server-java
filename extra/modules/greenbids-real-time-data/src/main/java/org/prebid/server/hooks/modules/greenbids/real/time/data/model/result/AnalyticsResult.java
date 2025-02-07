@@ -11,8 +11,4 @@ public class AnalyticsResult {
     String status;
 
     Map<String, Ortb2ImpExtResult> values;
-
-    String bidder;
-
-    String impId;
 }
