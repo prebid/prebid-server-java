@@ -1,0 +1,20 @@
+adapters:
+  connektai:
+    endpoint: http://rtb.connektai.live/?pid={{.SourceId}}&host={{.Host}}&s=pbs
+    aliases:
+      xeworks:
+    meta-info:
+      maintainer-email: adops@connekt.ai
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 0
+    usersync:
+      cookie-family-name: xeworks
+      redirect:
