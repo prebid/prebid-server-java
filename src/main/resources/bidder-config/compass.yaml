@@ -16,6 +16,10 @@ adapters:
     usersync:
       cookie-family-name: compass
       redirect:
-        url: https://sa-cs.deliverimp.com/pserver?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+        url: https://sa-cs.deliverimp.com/pbserver?gdpr={{.GDPR}}&gdpr_consent={{.GDPRConsent}}&us_privacy={{.USPrivacy}}&gpp={{.GPP}}&gpp_sid={{.GPPSID}}&redir={{.RedirectURL}}
         support-cors: false
+        uid-macro: '[UID]'
+      iframe:
+        support-cors: false
+        url: https://sa-cs.deliverimp.com/pbserverIframe?gdpr={{.GDPR}}&gdpr_consent={{.GDPRConsent}}&us_privacy={{.USPrivacy}}&gpp={{.GPP}}&gpp_sid={{.GPPSID}}&pbserverUrl={{.RedirectURL}}
         uid-macro: '[UID]'
