@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Future;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import org.prebid.server.analytics.reporter.greenbids.model.ExplorationResult;
 import org.prebid.server.analytics.reporter.greenbids.model.Ortb2ImpExtResult;
 import org.prebid.server.auction.model.AuctionContext;
@@ -39,6 +40,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountHooksConfiguration;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -190,33 +192,37 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
 
     private List<Result> toResults(List<AnalyticsResult> analyticsResults) {
         return analyticsResults.stream()
-                .flatMap(analyticsResult -> toResult(analyticsResult).stream())
+                .map(this::toResult)
+                .flatMap(Collection::stream)
                 .toList();
     }
 
     private List<Result> toResult(AnalyticsResult analyticsResult) {
         return analyticsResult.getValues().entrySet().stream()
-                .map(entry -> {
-                    final String impId = entry.getKey();
-                    final Ortb2ImpExtResult ortb2ImpExtResult = entry.getValue();
-
-                    final List<String> bidders = Optional.ofNullable(ortb2ImpExtResult)
-                            .map(Ortb2ImpExtResult::getGreenbids)
-                            .map(ExplorationResult::getKeptInAuction)
-                            .orElse(Collections.emptyMap())
-                            .keySet().stream().toList();
-
-                    final ObjectNode objectNode = toObjectNode(entry);
-
-                    return (Result) ResultImpl.of(
-                            analyticsResult.getStatus(),
-                            objectNode,
-                            AppliedToImpl.builder()
-                                    .impIds(Collections.singletonList(impId))
-                                    .bidders(bidders)
-                                    .build());
-                })
+                .map(entry -> toResult(analyticsResult.getStatus(), entry))
                 .toList();
+    }
+
+    private Result toResult(String status, Map.Entry<String, Ortb2ImpExtResult> entry) {
+        final String impId = entry.getKey();
+        final Ortb2ImpExtResult ortb2ImpExtResult = entry.getValue();
+        final List<String> removedBidders = Optional.ofNullable(ortb2ImpExtResult)
+                .map(Ortb2ImpExtResult::getGreenbids)
+                .map(ExplorationResult::getKeptInAuction)
+                .map(Map::entrySet)
+                .stream()
+                .flatMap(Collection::stream)
+                .filter(e -> BooleanUtils.isNotTrue(e.getValue()))
+                .map(Map.Entry::getKey)
+                .toList();
+
+        return ResultImpl.of(
+                status,
+                toObjectNode(entry),
+                AppliedToImpl.builder()
+                        .impIds(Collections.singletonList(impId))
+                        .bidders(removedBidders.isEmpty() ? null: removedBidders)
+                        .build());
     }
 
     private ObjectNode toObjectNode(Map.Entry<String, Ortb2ImpExtResult> values) {

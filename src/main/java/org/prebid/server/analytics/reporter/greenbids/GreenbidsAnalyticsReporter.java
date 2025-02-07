@@ -3,7 +3,6 @@ package org.prebid.server.analytics.reporter.greenbids;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.common.collect.Streams;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -43,6 +42,7 @@ import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.hooks.execution.model.HookExecutionOutcome;
 import org.prebid.server.hooks.execution.model.Stage;
 import org.prebid.server.hooks.execution.model.StageExecutionOutcome;
+import org.prebid.server.hooks.v1.analytics.Activity;
 import org.prebid.server.hooks.v1.analytics.Result;
 import org.prebid.server.hooks.v1.analytics.Tags;
 import org.prebid.server.json.EncodeException;
@@ -58,6 +58,7 @@ import org.prebid.server.proto.openrtb.ext.response.seatnonbid.SeatNonBid;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.StreamUtil;
 import org.prebid.server.version.PrebidVersionProvider;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
@@ -226,7 +227,8 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 .map(Tags::activities)
                 .flatMap(Collection::stream)
                 .filter(activity -> "greenbids-filter".equals(activity.name()))
-                .flatMap(activity -> activity.results().stream())
+                .map(Activity::results)
+                .flatMap(Collection::stream)
                 .map(this::parseAnalyticsResult)
                 .flatMap(map -> map.entrySet().stream())
                 .collect(Collectors.toMap(
@@ -238,13 +240,12 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
     private Map<String, Ortb2ImpExtResult> parseAnalyticsResult(Result result) {
         return Optional.ofNullable(result)
                 .map(Result::values)
-                .filter(valuesNode -> valuesNode.fieldNames().hasNext())
-                .map(valuesNode -> Streams.stream(valuesNode.fields())
-                        .collect(Collectors.toMap(
-                                Map.Entry::getKey,
-                                entry -> parseOrtb2ImpExtResult(entry.getValue()),
-                                (existing, replacement) -> existing)))
-                .orElseGet(Collections::emptyMap);
+                .stream()
+                .flatMap(valuesNode -> StreamUtil.asStream(valuesNode.fields()))
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        entry -> parseOrtb2ImpExtResult(entry.getValue()),
+                                (existing, replacement) -> existing));
     }
 
     private Ortb2ImpExtResult parseOrtb2ImpExtResult(JsonNode node) {
