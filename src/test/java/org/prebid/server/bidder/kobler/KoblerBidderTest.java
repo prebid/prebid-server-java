@@ -30,7 +30,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
-import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -79,23 +78,38 @@ public class KoblerBidderTest extends VertxTest {
 
         // Then
         assertThat(result.getErrors())
-                .hasSize(2)
+                .hasSize(1)
                 .extracting(BidderError::getMessage)
-                .containsExactlyInAnyOrder("Currency conversion failed", "No valid impressions");
+                .containsExactlyInAnyOrder("Currency conversion failed");
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfNoImps() {
+    public void makeBidsShouldReturnEmptyListWhenBidResponseIsNull() {
         // Given
-        final BidRequest bidRequest = BidRequest.builder().cur(singletonList("USD")).imp(emptyList()).build();
+        final BidderCall<BidRequest> httpCall = givenHttpCallWithBody("null");
 
         // When
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, BidRequest.builder().build());
 
         // Then
-        assertThat(result.getErrors())
-                .hasSize(1)
-                .allSatisfy(error -> assertThat(error.getMessage()).contains("No valid impressions"));
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnEmptyListWhenSeatbidIsEmpty() throws JsonProcessingException {
+        // Given
+        final BidResponse bidResponse = BidResponse.builder()
+                .seatbid(Collections.emptyList())
+                .build();
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidResponse);
+
+        // When
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, BidRequest.builder().build());
+
+        // Then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -224,5 +238,12 @@ public class KoblerBidderTest extends VertxTest {
         return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(null).build(),
                 HttpResponse.of(200, null, "invalid"), null);
+    }
+
+    private BidderCall<BidRequest> givenHttpCallWithBody(String body) {
+        return BidderCall.succeededHttp(
+                HttpRequest.<BidRequest>builder().payload(null).build(),
+                HttpResponse.of(200, null, body),
+                null);
     }
 }

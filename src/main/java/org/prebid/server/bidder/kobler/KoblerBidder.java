@@ -19,7 +19,6 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
-import org.prebid.server.json.EncodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.kobler.ExtImpKobler;
@@ -34,6 +33,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 public class KoblerBidder implements Bidder<BidRequest> {
 
@@ -71,24 +71,19 @@ public class KoblerBidder implements Bidder<BidRequest> {
         final List<Imp> imps = bidRequest.getImp();
         if (!imps.isEmpty()) {
             try {
-                testMode = parseImpExt(imps.get(0)).getTest();
+                testMode = parseImpExt(imps.getFirst()).getTest();
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
+                return Result.withErrors(errors);
             }
         }
 
         for (Imp imp : imps) {
             try {
-                final Imp processedImp = processImp(bidRequest, imp);
-                modifiedImps.add(processedImp);
+                modifiedImps.add(processImp(bidRequest, imp));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
-        }
-
-        if (modifiedImps.isEmpty()) {
-            errors.add(BidderError.badInput("No valid impressions"));
-            return Result.withErrors(errors);
         }
 
         final BidRequest modifiedRequest = bidRequest.toBuilder()
@@ -98,13 +93,8 @@ public class KoblerBidder implements Bidder<BidRequest> {
 
         final String endpoint = testMode ? DEV_ENDPOINT : endpointUrl;
 
-        try {
-            final HttpRequest<BidRequest> httpRequest = BidderUtil.defaultRequest(modifiedRequest, endpoint, mapper);
-            return Result.of(Collections.singletonList(httpRequest), errors);
-        } catch (EncodeException e) {
-            errors.add(BidderError.badInput("Failed to encode request: " + e.getMessage()));
-            return Result.withErrors(errors);
-        }
+        final HttpRequest<BidRequest> httpRequest = BidderUtil.defaultRequest(modifiedRequest, endpoint, mapper);
+        return Result.of(Collections.singletonList(httpRequest), errors);
     }
 
     private Imp processImp(BidRequest bidRequest, Imp imp) {
@@ -146,46 +136,34 @@ public class KoblerBidder implements Bidder<BidRequest> {
         try {
             final List<BidderError> errors = new ArrayList<>();
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(bidResponse, errors), errors);
+            return Result.of(extractBids(bidResponse), errors);
         } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private List<BidderBid> extractBids(BidResponse bidResponse, List<BidderError> errors) {
+    private List<BidderBid> extractBids(BidResponse bidResponse) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
-        return bidsFromResponse(bidResponse, errors);
+        return bidsFromResponse(bidResponse);
     }
 
-    private List<BidderBid> bidsFromResponse(BidResponse bidResponse, List<BidderError> errors) {
+    private List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
         return bidResponse.getSeatbid().stream()
-                .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
-                .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> BidderBid.of(bid, getBidType(bid), bidResponse.getCur()))
-                .filter(Objects::nonNull)
                 .toList();
     }
 
     private BidType getBidType(Bid bid) {
-        if (bid.getExt() == null) {
-            return BidType.banner;
-        }
-
-        final ObjectNode prebidNode = (ObjectNode) bid.getExt().get(EXT_PREBID);
-        if (prebidNode == null) {
-            return BidType.banner;
-        }
-
-        final ExtBidPrebid extBidPrebid = parseExtBidPrebid(prebidNode);
-        if (extBidPrebid == null || extBidPrebid.getType() == null) {
-            return BidType.banner;
-        }
-
-        return extBidPrebid.getType(); // jeśli udało się sparsować
+        return Optional.ofNullable(bid.getExt())
+                .map(ext -> ext.get(EXT_PREBID))
+                .map(ObjectNode.class::cast)
+                .map(this::parseExtBidPrebid)
+                .map(ExtBidPrebid::getType)
+                .orElse(BidType.banner);
     }
 
     private ExtBidPrebid parseExtBidPrebid(ObjectNode prebid) {
