@@ -26,8 +26,7 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.bidder.yieldlab.model.YieldlabDigitalServicesActResponse;
-import org.prebid.server.bidder.yieldlab.model.YieldlabResponse;
+import org.prebid.server.bidder.yieldlab.model.YieldlabBid;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.DsaTransparency;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
@@ -36,6 +35,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.yieldlab.ExtImpYieldlab;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidDsa;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -229,7 +229,7 @@ public class YieldlabBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors()).allMatch(error -> error.getType() == BidderError.Type.bad_server_response
-                && error.getMessage().startsWith("Unrecognized token 'invalid"));
+                && error.getMessage().startsWith("Failed to decode: Unrecognized token 'invalid'"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -253,8 +253,8 @@ public class YieldlabBidderTest extends VertxTest {
                 .site(Site.builder().page("http://www.example.com").build())
                 .build();
 
-        final YieldlabResponse yieldlabResponse = YieldlabResponse.of(1, 201d, "yieldlab",
-                "728x90", 1234, 5678, "40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5", null);
+        final YieldlabBid yieldlabResponse = YieldlabBid.of(1L, 201d, "yieldlab",
+                "728x90", 1234L, 5678L, "40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5", null);
 
         final BidderCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(yieldlabResponse));
 
@@ -300,8 +300,8 @@ public class YieldlabBidderTest extends VertxTest {
                         .build()))
                 .build();
 
-        final YieldlabResponse yieldlabResponse = YieldlabResponse.of(12345, 201d, "yieldlab",
-                "728x90", 1234, 5678, "40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5", null);
+        final YieldlabBid yieldlabResponse = YieldlabBid.of(12345L, 201d, "yieldlab",
+                "728x90", 1234L, 5678L, "40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5", null);
 
         final BidderCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(yieldlabResponse));
 
@@ -479,21 +479,15 @@ public class YieldlabBidderTest extends VertxTest {
                     .build()))
                 .build();
 
-        final YieldlabDigitalServicesActResponse dsaResponse = YieldlabDigitalServicesActResponse.of(
-                "yieldlab",
-                "yieldlab",
-                2,
-                List.of(
-                    YieldlabDigitalServicesActResponse.Transparency.of(
-                        "yieldlab.de",
-                        List.of(1, 2, 3)
-                    )
-                )
-        );
+        final ExtBidDsa dsaResponse = ExtBidDsa.builder()
+                .paid("yieldlab")
+                .behalf("yieldlab")
+                .adRender(2)
+                .transparency(List.of(DsaTransparency.of("yieldlab.de", List.of(1, 2, 3))))
+                .build();
 
-        final YieldlabResponse yieldlabResponse = YieldlabResponse.of(1, 201d, "yieldlab",
-                "728x90", 1234, 5678, "40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5", dsaResponse
-        );
+        final YieldlabBid yieldlabResponse = YieldlabBid.of(1L, 201d, "yieldlab",
+                "728x90", 1234L, 5678L, "40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5", dsaResponse);
 
         final BidderCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(yieldlabResponse));
 
