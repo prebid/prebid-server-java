@@ -14,7 +14,8 @@
         "bidder": {
           "zoneid": "testZoneId",
           "host": "eu"
-        }
+        },
+        "mtype": 1
       }
     }
   ],

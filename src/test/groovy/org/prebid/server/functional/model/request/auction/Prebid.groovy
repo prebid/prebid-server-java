@@ -42,6 +42,7 @@ class Prebid {
     PrebidAnalytics analytics
     StoredAuctionResponse storedAuctionResponse
     AlternateBidderCodes alternateBidderCodes
+    PaaFormat paaFormat
 
     static class Channel {
 

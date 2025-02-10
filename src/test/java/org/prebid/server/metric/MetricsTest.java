@@ -539,6 +539,28 @@ public class MetricsTest {
     }
 
     @Test
+    public void updateAdapterRequestBuyerUidScrubbedMetricsShouldIncrementMetrics() {
+        // when
+        metrics.updateAdapterRequestBuyerUidScrubbedMetrics(RUBICON, Account.empty(ACCOUNT_ID));
+        metrics.updateAdapterRequestBuyerUidScrubbedMetrics(CONVERSANT, Account.empty(ACCOUNT_ID));
+        metrics.updateAdapterRequestBuyerUidScrubbedMetrics(CONVERSANT, Account.empty(ACCOUNT_ID));
+
+        // then
+        assertThat(metricRegistry.counter("adapter.rubicon.requests.buyeruid_scrubbed")
+                .getCount())
+                .isOne();
+        assertThat(metricRegistry.counter("account.accountId.adapter.rubicon.requests.buyeruid_scrubbed")
+                .getCount())
+                .isOne();
+        assertThat(metricRegistry.counter("adapter.conversant.requests.buyeruid_scrubbed")
+                .getCount())
+                .isEqualTo(2);
+        assertThat(metricRegistry.counter("account.accountId.adapter.conversant.requests.buyeruid_scrubbed")
+                .getCount())
+                .isEqualTo(2);
+    }
+
+    @Test
     public void updateAdapterRequestNobidMetricsShouldIncrementMetrics() {
         // when
         metrics.updateAdapterRequestNobidMetrics(RUBICON, Account.empty(ACCOUNT_ID));

@@ -9,7 +9,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -22,6 +21,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.metax.ExtImpMetax;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
@@ -106,10 +106,10 @@ public class MetaxBidder implements Bidder<BidRequest> {
     private String resolveEndpoint(ExtImpMetax extImpMetax) {
         final String publisherIdAsString = Optional.ofNullable(extImpMetax.getPublisherId())
                 .map(Object::toString)
-                .orElse(StringUtils.EMPTY);
+                .orElse("0");
         final String adUnitAsString = Optional.ofNullable(extImpMetax.getAdUnit())
                 .map(Object::toString)
-                .orElse(StringUtils.EMPTY);
+                .orElse("0");
 
         return endpointUrl
                 .replace(PUBLISHER_ID_MACRO, publisherIdAsString)
@@ -136,7 +136,12 @@ public class MetaxBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid).filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(bid, getBidType(bid), bidResponse.getCur()))
+                .map(bid -> BidderBid.builder()
+                        .bid(bid)
+                        .type(getBidType(bid))
+                        .bidCurrency(bidResponse.getCur())
+                        .videoInfo(videoInfo(bid))
+                        .build())
                 .toList();
     }
 
@@ -154,5 +159,18 @@ public class MetaxBidder implements Bidder<BidRequest> {
             default -> throw new PreBidException("Unsupported MType: %s"
                     .formatted(bid.getImpid()));
         };
+    }
+
+    private static ExtBidPrebidVideo videoInfo(Bid bid) {
+        final List<String> cat = bid.getCat();
+        final Integer duration = bid.getDur();
+
+        final boolean catNotEmpty = CollectionUtils.isNotEmpty(cat);
+        final boolean durationValid = duration != null && duration > 0;
+        return catNotEmpty || durationValid
+                ? ExtBidPrebidVideo.of(
+                durationValid ? duration : null,
+                catNotEmpty ? cat.getFirst() : null)
+                : null;
     }
 }

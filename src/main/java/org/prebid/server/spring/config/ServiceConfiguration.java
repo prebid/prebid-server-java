@@ -658,6 +658,7 @@ public class ServiceConfiguration {
             @Value("${host-cookie.domain:#{null}}") String hostCookieDomain,
             @Value("${host-cookie.ttl-days}") Integer ttlDays,
             @Value("${host-cookie.max-cookie-size-bytes}") Integer maxCookieSizeBytes,
+            @Value("${setuid.number-of-uid-cookies:1}") int numberOfUidCookies,
             PrioritizedCoopSyncProvider prioritizedCoopSyncProvider,
             Metrics metrics,
             JacksonMapper mapper) {
@@ -670,6 +671,7 @@ public class ServiceConfiguration {
                 hostCookieDomain,
                 ttlDays,
                 maxCookieSizeBytes,
+                numberOfUidCookies,
                 prioritizedCoopSyncProvider,
                 metrics,
                 mapper);
@@ -807,6 +809,7 @@ public class ServiceConfiguration {
 
     @Bean
     BidResponseCreator bidResponseCreator(
+            @Value("${logging.sampling-rate:0.01}") double logSamplingRate,
             CoreCacheService coreCacheService,
             BidderCatalog bidderCatalog,
             VastModifier vastModifier,
@@ -819,11 +822,13 @@ public class ServiceConfiguration {
             @Value("${settings.targeting.truncate-attr-chars}") int truncateAttrChars,
             Clock clock,
             JacksonMapper mapper,
+            Metrics metrics,
             @Value("${cache.banner-ttl-seconds:#{null}}") Integer bannerCacheTtl,
             @Value("${cache.video-ttl-seconds:#{null}}") Integer videoCacheTtl,
             CacheDefaultTtlProperties cacheDefaultTtlProperties) {
 
         return new BidResponseCreator(
+                logSamplingRate,
                 coreCacheService,
                 bidderCatalog,
                 vastModifier,
@@ -836,6 +841,7 @@ public class ServiceConfiguration {
                 truncateAttrChars,
                 clock,
                 mapper,
+                metrics,
                 CacheTtl.of(bannerCacheTtl, videoCacheTtl),
                 cacheDefaultTtlProperties);
     }

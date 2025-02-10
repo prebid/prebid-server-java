@@ -417,6 +417,7 @@ public class AmpRequestFactory {
                 .compose(resolvedBidRequest -> ortb2RequestFactory.validateRequest(
                         resolvedBidRequest,
                         auctionContext.getHttpRequest(),
+                        auctionContext.getDebugContext(),
                         auctionContext.getDebugWarnings()));
     }
 

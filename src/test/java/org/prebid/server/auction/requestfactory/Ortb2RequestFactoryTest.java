@@ -658,7 +658,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     @Test
     public void validateRequestShouldThrowInvalidRequestExceptionIfRequestIsInvalid() {
         // given
-        given(requestValidator.validate(any(), any())).willReturn(ValidationResult.error("error"));
+        given(requestValidator.validate(any(), any(), any())).willReturn(ValidationResult.error("error"));
 
         final BidRequest bidRequest = givenBidRequest(identity());
 
@@ -666,6 +666,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         final Future<BidRequest> result = target.validateRequest(
                 bidRequest,
                 HttpRequestContext.builder().build(),
+                DebugContext.empty(),
                 new ArrayList<>());
 
         // then
@@ -674,13 +675,13 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessage("error");
 
-        verify(requestValidator).validate(eq(bidRequest), any());
+        verify(requestValidator).validate(eq(bidRequest), any(), any());
     }
 
     @Test
     public void validateRequestShouldReturnSameBidRequest() {
         // given
-        given(requestValidator.validate(any(), any())).willReturn(ValidationResult.success());
+        given(requestValidator.validate(any(), any(), any())).willReturn(ValidationResult.success());
 
         final BidRequest bidRequest = givenBidRequest(identity());
 
@@ -688,10 +689,11 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         final BidRequest result = target.validateRequest(
                 bidRequest,
                 HttpRequestContext.builder().build(),
+                DebugContext.empty(),
                 new ArrayList<>()).result();
 
         // then
-        verify(requestValidator).validate(eq(bidRequest), any());
+        verify(requestValidator).validate(eq(bidRequest), any(), any());
 
         assertThat(result).isSameAs(bidRequest);
     }
