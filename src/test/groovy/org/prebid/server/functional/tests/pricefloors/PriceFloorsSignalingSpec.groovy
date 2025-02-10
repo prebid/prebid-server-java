@@ -1,7 +1,5 @@
 package org.prebid.server.functional.tests.pricefloors
 
-import org.junit.Ignore
-import org.prebid.server.floors.model.PriceFloorModelGroup
 import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountPriceFloorsConfig
@@ -23,7 +21,6 @@ import org.prebid.server.functional.model.request.auction.Video
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.MediaType
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.IgnoreRest
 
 import java.time.Instant
 
@@ -956,7 +953,8 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         then: "Response should include error"
         assert bidResponse.ext?.errors[PREBID]*.code == [999]
         assert bidResponse.ext?.errors[PREBID]*.message == [
-                "Price floor modelGroup default must be positive float, but was $requestModelGroupsSkipRate"
+                "Failed to parse price floors from request, with a reason: Price floor modelGroup default must be " +
+                        "positive float, but was $requestModelGroupsSkipRate"
         ]
 
         and: "PBS should process bidRequest"
