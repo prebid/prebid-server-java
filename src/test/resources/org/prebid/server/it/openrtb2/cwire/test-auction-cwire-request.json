@@ -12,7 +12,17 @@
         ]
       },
       "ext": {
-        "cwire": {}
+        "cwire": {
+          "placementId": 123,
+          "domainId": 456,
+          "pageId": 789,
+          "cwcreative": "exampleCreativeId",
+          "cwdebug": false,
+          "cwfeatures": [
+            "featureA",
+            "featureB"
+          ]
+        }
       }
     }
   ],

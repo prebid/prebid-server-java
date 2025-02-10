@@ -14,7 +14,17 @@
       "secure": 1,
       "ext": {
         "tid": "${json-unit.any-string}",
-        "bidder": {}
+        "bidder": {
+          "placementId": 123,
+          "domainId": 456,
+          "pageId": 789,
+          "cwcreative": "exampleCreativeId",
+          "cwdebug": false,
+          "cwfeatures": [
+            "featureA",
+            "featureB"
+          ]
+        }
       }
     }
   ],
