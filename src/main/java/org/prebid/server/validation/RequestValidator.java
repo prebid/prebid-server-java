@@ -134,7 +134,7 @@ public class RequestValidator {
                     validateTargeting(targeting);
                 }
                 aliases = ObjectUtils.defaultIfNull(extRequestPrebid.getAliases(), Collections.emptyMap());
-                validateAliases(aliases, warnings, metrics, account);
+                validateAliases(aliases, warnings, account);
                 validateAliasesGvlIds(extRequestPrebid, aliases);
                 validateBidAdjustmentFactors(extRequestPrebid.getBidadjustmentfactors(), aliases);
                 validateExtBidPrebidData(extRequestPrebid.getData(), aliases, isDebugEnabled, warnings);
@@ -514,7 +514,7 @@ public class RequestValidator {
      * is equals to itself.
      */
     private void validateAliases(Map<String, String> aliases, List<String> warnings,
-                                 Metrics metrics, Account account) throws ValidationException {
+                                 Account account) throws ValidationException {
 
         for (final Map.Entry<String, String> aliasToBidder : aliases.entrySet()) {
             final String alias = aliasToBidder.getKey();
@@ -522,8 +522,8 @@ public class RequestValidator {
             if (!bidderCatalog.isValidName(coreBidder)) {
                 metrics.updateUnknownBidderMetric(account);
 
-                final String message = String.format("request.ext.prebid.aliases.%s refers to unknown bidder: %s",
-                        alias, coreBidder);
+                final String message = "request.ext.prebid.aliases.%s refers to unknown bidder: %s".formatted(alias,
+                        coreBidder);
                 if (failOnUnknownBidders) {
                     throw new ValidationException(message);
                 } else {
@@ -532,8 +532,8 @@ public class RequestValidator {
             } else if (!bidderCatalog.isActive(coreBidder)) {
                 metrics.updateDisabledBidderMetric(account);
 
-                final String message = String.format("request.ext.prebid.aliases.%s refers to disabled bidder: %s",
-                        alias, coreBidder);
+                final String message = "request.ext.prebid.aliases.%s refers to disabled bidder: %s".formatted(alias,
+                        coreBidder);
                 if (failOnDisabledBidders) {
                     throw new ValidationException(message);
                 } else {
