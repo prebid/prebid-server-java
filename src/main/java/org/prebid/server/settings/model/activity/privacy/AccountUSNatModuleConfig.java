@@ -14,6 +14,8 @@ public class AccountUSNatModuleConfig implements AccountPrivacyModuleConfig {
     @Accessors(fluent = true)
     Boolean enabled;
 
+    int skipRate;
+
     Config config;
 
     @Override

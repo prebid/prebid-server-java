@@ -6,5 +6,5 @@ import groovy.transform.ToString
 class RawAmpResponse {
 
     String responseBody
-    Map<String, String> headers
+    Map<String, List<String>> headers
 }

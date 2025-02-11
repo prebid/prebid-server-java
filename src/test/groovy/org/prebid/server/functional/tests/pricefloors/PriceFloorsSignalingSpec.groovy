@@ -360,11 +360,10 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
         then: "Bidder request bidFloor should be update according to bidAdjustment"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
-        verifyAll(bidderRequest) {
-            imp[0].bidFloor == floorsProviderFloorValue / bidAdjustment
-            imp[0].ext.prebid.floors.floorRuleValue == floorsProviderFloorValue
-            imp[0].ext.prebid.floors.floorValue == imp[0].bidFloor
-        }
+        assert bidderRequest.imp[0].bidFloor == floorsProviderFloorValue / bidAdjustment
+
+        and: "Bidder request shouldn't include imp.ext.prebid.floors"
+        assert !bidderRequest.imp[0].ext.prebid.floors
 
         where:
         pbsConfigBidAdjustmentFlag | requestBidAdjustmentFlag | accountBidAdjustmentFlag
@@ -412,8 +411,9 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         then: "Bidder request bidFloor should be changed"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         assert bidderRequest.imp[0].bidFloor == floorsProviderFloorValue
-        assert bidderRequest.imp[0].ext.prebid.floors.floorRuleValue == floorsProviderFloorValue
-        assert bidderRequest.imp[0].ext.prebid.floors.floorValue == floorsProviderFloorValue
+
+        and: "Bidder request shouldn't include imp.ext.prebid.floors"
+        assert !bidderRequest.imp[0].ext.prebid.floors
 
         where:
         pbsConfigBidAdjustmentFlagSnakeCase | pbsConfigBidAdjustmentFlag | requestBidAdjustmentFlag | accountBidAdjustmentFlag | accountBidAdjustmentFlagSnakeCase
@@ -454,8 +454,9 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         then: "Bidder request bidFloor should be update according to bidAdjustment"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         assert bidderRequest.imp[0].bidFloor == getAdjustedValue(floorValue, bidAdjustment)
-        assert bidderRequest.imp[0].ext.prebid.floors.floorRuleValue == floorValue
-        assert bidderRequest.imp[0].ext.prebid.floors.floorValue == bidderRequest.imp[0].bidFloor
+
+        and: "Bidder request shouldn't include imp.ext.prebid.floors"
+        assert !bidderRequest.imp[0].ext.prebid.floors
     }
 
     def "PBS should remove non-selected models"() {

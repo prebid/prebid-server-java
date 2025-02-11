@@ -47,10 +47,6 @@ public class BidRejectionTracker {
         rejectedBids = new HashMap<>();
     }
 
-    /**
-     * Restores ONLY imps from rejection, rejected bids are preserved for analytics.
-     * A bid can be rejected only once.
-     */
     public void succeed(Collection<BidderBid> bids) {
         bids.stream()
                 .map(BidderBid::getBid)
@@ -124,10 +120,6 @@ public class BidRejectionTracker {
         involvedImpIds.forEach(impId -> rejectImp(impId, reason));
     }
 
-    /**
-     * If an impression has at least one valid bid, it's not considered rejected.
-     * If no valid bids are returned for the impression, only the first one rejected reason will be returned
-     */
     public Map<String, BidRejectionReason> getRejectedImps() {
         final Map<String, BidRejectionReason> rejectedImpIds = new HashMap<>();
         for (String impId : involvedImpIds) {
@@ -144,9 +136,6 @@ public class BidRejectionTracker {
         return rejectedImpIds;
     }
 
-    /**
-     * Bid is absent for the non-bid code from 0 to 299
-     */
     public Map<String, List<Pair<BidderBid, BidRejectionReason>>> getRejectedBids() {
         final Map<String, List<Pair<BidderBid, BidRejectionReason>>> missingImpIds = new HashMap<>();
         for (String impId : involvedImpIds) {

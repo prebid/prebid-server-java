@@ -4,6 +4,7 @@ import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
+import org.prebid.server.proto.openrtb.ext.response.ExtIgi;
 import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
 
 import java.util.Collections;
@@ -53,8 +54,12 @@ public class BidderSeatBid {
     @Builder.Default
     List<BidderError> warnings = Collections.emptyList();
 
+    @Deprecated
     @Builder.Default
     List<FledgeAuctionConfig> fledgeAuctionConfigs = Collections.emptyList();
+
+    @Builder.Default
+    List<ExtIgi> igi = Collections.emptyList();
 
     public BidderSeatBid with(List<BidderBid> bids) {
         return toBuilder().bids(bids).build();
