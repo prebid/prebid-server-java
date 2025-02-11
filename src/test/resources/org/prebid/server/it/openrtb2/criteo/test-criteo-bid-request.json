@@ -11,7 +11,9 @@
       "ext": {
         "tid": "${json-unit.any-string}",
         "bidder": {
-          "zoneId": 1
+          "zoneId": 1,
+          "pubid": "pubid",
+          "uid": 2
         }
       }
     }

@@ -22,6 +22,7 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.metax.ExtImpMetax;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 
 import java.util.Collections;
 import java.util.List;
@@ -336,6 +337,38 @@ public class MetaxBidderTest extends VertxTest {
                     assertThat(error.getMessage()).startsWith("Missing MType for bid: null");
                     assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
                 });
+    }
+
+    @Test
+    public void makeBidsShouldReturnVideoInfoWithDuration() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidResponse(bid -> bid.dur(1).mtype(2)));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(BidderBid::getVideoInfo)
+                .containsExactly(ExtBidPrebidVideo.of(1, null));
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnVideoInfoWithPrimaryCategory() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidResponse(bid -> bid.cat(List.of("1", "2")).mtype(2)));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(BidderBid::getVideoInfo)
+                .containsExactly(ExtBidPrebidVideo.of(null, "1"));
+        assertThat(result.getErrors()).isEmpty();
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {

@@ -1,6 +1,7 @@
 adapters:
   vrtcal:
     endpoint: http://rtb.vrtcal.com/bidder_prebid.vap?ssp=1804
+    ortb-version: "2.6"
     meta-info:
       maintainer-email: support@vrtcal.com
       app-media-types:

@@ -17,7 +17,7 @@ class ActivityInfrastructure {
     RuleConfiguration ruleConfiguration
     Boolean allowByDefault
     Boolean allowed
-    String result
+    RuleResult result
     String region
     String country
 }

@@ -19,6 +19,9 @@ class ImpExtPrebid {
     ImpExtPrebidFloors floors
     Map passThrough
     Map<BidderName, Imp> imp
+    String adUnitCode
+    PrebidOptions options
+
 
     static ImpExtPrebid getDefaultImpExtPrebid() {
         new ImpExtPrebid().tap {
