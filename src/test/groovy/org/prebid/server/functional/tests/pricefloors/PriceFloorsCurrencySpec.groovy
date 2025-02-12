@@ -2,7 +2,6 @@ package org.prebid.server.functional.tests.pricefloors
 
 import org.prebid.server.functional.model.Currency
 import org.prebid.server.functional.model.config.AccountPriceFloorsConfig
-import org.prebid.server.functional.model.config.ModuleName
 import org.prebid.server.functional.model.config.PriceFloorsFetch
 import org.prebid.server.functional.model.mock.services.currencyconversion.CurrencyConversionRatesResponse
 import org.prebid.server.functional.model.pricefloors.PriceFloorData

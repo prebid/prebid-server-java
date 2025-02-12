@@ -781,13 +781,13 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
 
     def "PBS should suppress deal that are below the matched floor when enforce-deal-floors = true"() {
         given: "Pbs with PF configuration with enforceDealFloors"
-        def defaultAccountConfigSettings = defaultAccountConfigSettings.tap {
+        def accountConfig = defaultAccountConfigSettings.tap {
             auction.priceFloors.tap {
                 enforceDealFloors = defaultAccountEnforeDealFloors
                 enforceDealFloorsSnakeCase = defaultAccountEnforeDealFloorsSnakeCase
             }
         }
-        def pbsConfig = FLOORS_CONFIG + ["settings.default-account-config": encode(defaultAccountConfigSettings)]
+        def pbsConfig = FLOORS_CONFIG + ["settings.default-account-config": encode(accountConfig)]
         def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default basic  BidRequest with generic bidder with preferdeals = true"
@@ -846,10 +846,10 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
 
     def "PBS should not suppress deal that are below the matched floor according to ext.prebid.floors.enforcement.enforcePBS"() {
         given: "Pbs with PF configuration with enforceDealFloors"
-        def defaultAccountConfigSettings = defaultAccountConfigSettings.tap {
+        def accountConfig = defaultAccountConfigSettings.tap {
             auction.priceFloors.enforceDealFloors = pbsConfigEnforceDealFloors
         }
-        def pbsConfig = FLOORS_CONFIG + ["settings.default-account-config": encode(defaultAccountConfigSettings)]
+        def pbsConfig = FLOORS_CONFIG + ["settings.default-account-config": encode(accountConfig)]
         def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default basic BidRequest with generic bidder with preferdeals = true"
@@ -905,10 +905,10 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
 
     def "PBS should suppress any bids below the matched floor when fetch.enforce-floors-rate = 100 in account config"() {
         given: "Pbs with PF configuration with minMaxAgeSec"
-        def defaultAccountConfigSettings = defaultAccountConfigSettings.tap {
+        def accountConfig = defaultAccountConfigSettings.tap {
             auction.priceFloors.enforceFloorsRate = pbsConfigEnforceRate
         }
-        def pbsConfig = FLOORS_CONFIG + ["settings.default-account-config": encode(defaultAccountConfigSettings)]
+        def pbsConfig = FLOORS_CONFIG + ["settings.default-account-config": encode(accountConfig)]
         def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default BidRequest"
@@ -963,10 +963,10 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
 
     def "PBS should not suppress any bids below the matched floor when fetch.enforce-floors-rate = 0 in account config"() {
         given: "Pbs with PF configuration with minMaxAgeSec"
-        def defaultAccountConfigSettings = defaultAccountConfigSettings.tap {
+        def accountConfig = defaultAccountConfigSettings.tap {
             auction.priceFloors.enforceFloorsRate = pbsConfigEnforceFloorsRate
         }
-        def pbsConfig = FLOORS_CONFIG + ["settings.default-account-config": encode(defaultAccountConfigSettings)]
+        def pbsConfig = FLOORS_CONFIG + ["settings.default-account-config": encode(accountConfig)]
         def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default BidRequest"

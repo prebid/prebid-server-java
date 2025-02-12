@@ -106,9 +106,9 @@ class CookieSyncSpec extends BaseSpec {
     def "PBS cookie sync request should replace synced as family bidder and fill up response with enabled bidders to the limit in request"() {
         given: "PBS config with alias bidder without cookie family name"
         def bidderAlias = ALIAS
-        def pbsConfig = GENERIC_CONFIG + APPNEXUS_CONFIG
-        +["adapters.${GENERIC.value}.aliases.${bidderAlias.value}.enabled"                    : "true",
-          "adapters.${GENERIC.value}.aliases.${bidderAlias.value}.usersync.cookie-family-name": null]
+        def pbsConfig = GENERIC_CONFIG + APPNEXUS_CONFIG +
+                ["adapters.${GENERIC.value}.aliases.${bidderAlias.value}.enabled"                    : "true",
+                 "adapters.${GENERIC.value}.aliases.${bidderAlias.value}.usersync.cookie-family-name": null]
         def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default cookie sync request"
@@ -377,9 +377,10 @@ class CookieSyncSpec extends BaseSpec {
         def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Cookie sync request with account and privacy"
+        def accountId = PBSUtils.randomString
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             bidders = []
-            account = PBSUtils.randomString
+            account = accountId
             usPrivacy = new CcpaConsent(optOutSale: ENFORCED)
             coopSync = true
         }
@@ -387,7 +388,7 @@ class CookieSyncSpec extends BaseSpec {
         and: "Save account config into DB"
         def ccpaConfig = new AccountCcpaConfig(enabled: true)
         def accountConfig = new AccountConfig(privacy: new AccountPrivacyConfig(ccpa: ccpaConfig))
-        def account = new Account(uuid: cookieSyncRequest.account, config: accountConfig)
+        def account = new Account(uuid: accountId, config: accountConfig)
         accountDao.save(account)
 
         when: "PBS processes cookie sync request"
@@ -934,15 +935,15 @@ class CookieSyncSpec extends BaseSpec {
 
     def "PBS cookie sync with cookie-sync.default-limit config should use limit from cookie sync account config"() {
         given: "PBS bidders config"
-        def pbsConfig = ["cookie-sync.default-limit": "2"] + PBS_CONFIG
+        def pbsConfig = ['cookie-sync.default-limit': '2'] + PBS_CONFIG
         def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default cookie sync request with 3 bidders"
         def accountId = PBSUtils.randomNumber
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
-            bidders = [RUBICON, APPNEXUS, GENERIC]
-            account = accountId
-            debug = false
+            it.bidders = [RUBICON, APPNEXUS, GENERIC]
+            it.account = accountId
+            it.debug = false
         }
 
         and: "Save account with cookie config"
@@ -956,7 +957,7 @@ class CookieSyncSpec extends BaseSpec {
         def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
 
         then: "Response should contain one synced bidder"
-        assert response.bidderStatus.size() == accountDefaultLimit
+        assert response.bidderStatus.size() == 1
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsConfig)
@@ -1112,9 +1113,9 @@ class CookieSyncSpec extends BaseSpec {
     def "PBS cookie sync with cookie-sync.pri and in all places disabled coop sync in account shouldn't sync bidder which present in cookie-sync.pir config"() {
         given: "PBS bidders config"
         def bidderName = GENERIC
-        def prebidServerService = pbsServiceFactory.getService(
-                ["cookie-sync.pri"              : bidderName.value,
-                 "cookie-sync.coop-sync.default": "false"] + GENERIC_CONFIG)
+        def pbsConfig = ["cookie-sync.pri"              : bidderName.value,
+                         "cookie-sync.coop-sync.default": "false"] + GENERIC_CONFIG
+        def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default cookie sync request without coop-sync and bidders"
         def accountId = PBSUtils.randomNumber
@@ -1295,9 +1296,9 @@ class CookieSyncSpec extends BaseSpec {
         and: "Default cookie sync request without coop-sync and bidders"
         def accountId = PBSUtils.randomNumber
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
-            bidders = null
-            coopSync = null
-            account = accountId
+            it.bidders = null
+            it.coopSync = null
+            it.account = accountId
         }
 
         and: "Save account with cookie config"
@@ -1361,9 +1362,9 @@ class CookieSyncSpec extends BaseSpec {
         and: "Default cookie sync request without coop-sync and bidders"
         def accountId = PBSUtils.randomNumber
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
-            bidders = null
-            coopSync = null
-            account = accountId
+            it.bidders = null
+            it.coopSync = null
+            it.account = accountId
         }
 
         and: "Save account with cookie config"
@@ -1460,8 +1461,8 @@ class CookieSyncSpec extends BaseSpec {
 
         and: "Cookie sync request with account and privacy"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
-            account = PBSUtils.randomString
-            usPrivacy = new CcpaConsent(optOutSale: ENFORCED)
+            it.account = PBSUtils.randomString
+            it.usPrivacy = new CcpaConsent(optOutSale: ENFORCED)
         }
 
         and: "Save account config into DB"

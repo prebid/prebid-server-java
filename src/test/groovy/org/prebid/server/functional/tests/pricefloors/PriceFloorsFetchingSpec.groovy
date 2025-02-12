@@ -343,14 +343,14 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
     def "PBS should fetch data from provider when use-dynamic-data enabled"() {
         given: "Pbs with PF configuration with useDynamicData"
-        def defaultAccountConfigSettings = defaultAccountConfigSettings.tap {
+        def accountConfig = defaultAccountConfigSettings.tap {
             auction.priceFloors.tap {
                 useDynamicData = pbsConfigUseDynamicData
                 useDynamicDataSnakeCase = pbsConfigUseDynamicDataSnakeCase
             }
         }
         def pbsConfig = FLOORS_CONFIG +
-                ["settings.default-account-config": encode(defaultAccountConfigSettings)]
+                ["settings.default-account-config": encode(accountConfig)]
         def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default BidRequest with ext.prebid.floors"
