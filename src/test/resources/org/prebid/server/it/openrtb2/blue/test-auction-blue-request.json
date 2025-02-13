@@ -9,7 +9,8 @@
       },
       "ext": {
         "blue": {
-          "publisherId": "testPublisherId"
+          "publisherId": "testPublisherId",
+          "placementId": "testPlacementId"
         }
       }
     }
