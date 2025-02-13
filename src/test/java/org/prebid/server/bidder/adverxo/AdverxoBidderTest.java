@@ -61,15 +61,15 @@ public class AdverxoBidderTest extends VertxTest {
 
     @Test
     public void makeHttpRequestsShouldReturnErrorIfImpExtInvalid() {
-        // Given
+        // given
         final BidRequest bidRequest = givenBidRequest(impBuilder ->
                 impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
         );
 
-        // When
+        // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
-        // Then
+        // then
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().get(0).getMessage()).startsWith("Error parsing ext.imp.bidder");
         assertThat(result.getValue()).isEmpty();
@@ -77,13 +77,13 @@ public class AdverxoBidderTest extends VertxTest {
 
     @Test
     public void makeHttpRequestsShouldReplaceMacrosInEndpointUrl() {
-        // Given
+        // given
         final BidRequest bidRequest = givenBidRequest(identity());
 
-        // When
+        // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
-        // Then
+        // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
@@ -92,7 +92,7 @@ public class AdverxoBidderTest extends VertxTest {
 
     @Test
     public void makeHttpRequestsShouldConvertCurrencyIfNeeded() {
-        // Given
+        // given
         final BigDecimal bidFloor = BigDecimal.ONE;
         final String bidFloorCur = "EUR";
         final BigDecimal convertedPrice = BigDecimal.TEN;
@@ -106,10 +106,10 @@ public class AdverxoBidderTest extends VertxTest {
                         .bidfloorcur(bidFloorCur)
         );
 
-        // When
+        // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
-        // Then
+        // then
         verify(currencyConversionService).convertCurrency(
                 eq(bidFloor),
                 any(),
@@ -124,67 +124,132 @@ public class AdverxoBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldCreateMultipleRequestsForMultipleImps() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(List.of(
+                        givenImp("imp1"),
+                        givenImp("imp2"),
+                        givenImp("imp3")
+                ))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(3);
+    }
+
+    @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
-        // Given
+        // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
-        // When
+        // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
-        // Then
+        // then
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode");
     }
 
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
-        // Given
+        // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(null));
 
-        // When
+        // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
-        // Then
+        // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).isEmpty();
     }
 
     @Test
-    public void makeBidsShouldCorrectlyResolveBidTypes() throws JsonProcessingException {
-        // Given
+    public void makeBidsShouldResolveBannerBidType() throws JsonProcessingException {
+        // given
+        final BidResponse bidResponse = givenBidResponse(
+                Bid.builder().impid("123").mtype(1).adm("bannerAdm").build());
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder().build(), mapper.writeValueAsString(bidResponse));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).extracting(BidderBid::getType).containsExactly(BidType.banner);
+    }
+
+    @Test
+    public void makeBidsShouldResolveVideoBidType() throws JsonProcessingException {
+        // given
+        final BidResponse bidResponse = givenBidResponse(
+                Bid.builder().impid("456").mtype(2).adm("videoAdm").build());
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder().build(), mapper.writeValueAsString(bidResponse));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).extracting(BidderBid::getType).containsExactly(BidType.video);
+    }
+
+    @Test
+    public void makeBidsShouldResolveNativeBidType() throws JsonProcessingException {
+        // given
+        final BidResponse bidResponse = givenBidResponse(
+                Bid.builder().impid("789").mtype(4).adm("{\"native\":{\"assets\":[]}}").build());
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder().build(), mapper.writeValueAsString(bidResponse));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).extracting(BidderBid::getType).containsExactly(BidType.xNative);
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorWhenMTypeIsUnsupported() throws JsonProcessingException {
+        // given
+        final Bid bid = Bid.builder()
+                .impid("999")
+                .mtype(99)
+                .adm("unsupportedAdm")
+                .build();
+
         final BidResponse bidResponse = BidResponse.builder()
-                .cur("USD")
-                .seatbid(List.of(SeatBid.builder()
-                        .bid(List.of(
-                                Bid.builder().impid("123").mtype(1).adm("bannerAdm").build(),
-                                Bid.builder().impid("456").mtype(2).adm("videoAdm").build(),
-                                Bid.builder().impid("789").mtype(4).adm("{\"native\":{\"assets\":[]}}").build()))
-                        .build()))
+                .seatbid(List.of(SeatBid.builder().bid(List.of(bid)).build()))
                 .build();
 
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder().build(),
                 mapper.writeValueAsString(bidResponse));
 
-        // When
+        // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
-        // Then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(BidderBid::getType)
-                .containsExactly(BidType.banner, BidType.video, BidType.xNative);
+        // then
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors().get(0).getMessage()).contains("Unsupported mType 99");
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
     public void makeBidsShouldReplacePriceMacroInAdmAndNurl() throws JsonProcessingException {
-        // Given
+        // given
         final Bid bid = Bid.builder()
                 .impid("123")
                 .mtype(1)
                 .adm("Price is ${AUCTION_PRICE}")
-                .nurl("nurl?price=${AUCTION_PRICE}")
                 .price(BigDecimal.valueOf(5.55))
                 .build();
 
@@ -196,18 +261,17 @@ public class AdverxoBidderTest extends VertxTest {
                 BidRequest.builder().build(),
                 mapper.writeValueAsString(bidResponse));
 
-        // When
+        // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
-        // Then
+        // then
         final BidderBid bidderBid = result.getValue().get(0);
         assertThat(bidderBid.getBid().getAdm()).isEqualTo("Price is 5.55");
-        assertThat(bidderBid.getBid().getNurl()).isEqualTo("nurl?price=5.55");
     }
 
     @Test
     public void makeBidsShouldHandleNativeAdmParsing() throws JsonProcessingException {
-        // Given
+        // given
         final String adm = "{\"native\": {\"key\": \"value\"}}";
         final Bid bid = Bid.builder()
                 .impid("123")
@@ -223,11 +287,38 @@ public class AdverxoBidderTest extends VertxTest {
                 BidRequest.builder().build(),
                 mapper.writeValueAsString(bidResponse));
 
-        // When
+        // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
-        // Then
+        // then
         assertThat(result.getValue().get(0).getBid().getAdm()).isEqualTo("{\"key\":\"value\"}");
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorWhenNativeAdmIsInvalid() throws JsonProcessingException {
+        // given
+        final String invalidAdm = "{invalid_json";
+        final Bid bid = Bid.builder()
+                .impid("123")
+                .mtype(4)
+                .adm(invalidAdm)
+                .build();
+
+        final BidResponse bidResponse = BidResponse.builder()
+                .seatbid(List.of(SeatBid.builder().bid(List.of(bid)).build()))
+                .build();
+
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder().build(),
+                mapper.writeValueAsString(bidResponse));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors().get(0).getMessage()).contains("Error parsing native ADM");
+        assertThat(result.getValue()).isEmpty();
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
@@ -253,4 +344,19 @@ public class AdverxoBidderTest extends VertxTest {
                 HttpResponse.of(200, null, body),
                 null);
     }
+
+    private static Imp givenImp(String impId) {
+        return Imp.builder()
+                .id(impId)
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdverxo.of(123, "testAuth"))))
+                .build();
+    }
+
+    private static BidResponse givenBidResponse(Bid bid) {
+        return BidResponse.builder()
+                .cur("USD")
+                .seatbid(List.of(SeatBid.builder().bid(List.of(bid)).build()))
+                .build();
+    }
+
 }

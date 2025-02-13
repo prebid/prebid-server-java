@@ -8,15 +8,14 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
+import org.prebid.server.bidder.model.Price;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
@@ -25,14 +24,16 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.adverxo.ExtImpAdverxo;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class AdverxoBidder implements Bidder<BidRequest> {
 
@@ -64,10 +65,10 @@ public class AdverxoBidder implements Bidder<BidRequest> {
             try {
                 final ExtImpAdverxo extImp = parseImpExt(imp);
                 final String endpoint = resolveEndpoint(extImp);
-                final Imp modifiedImp = modifyImp(imp, request);
+                final Imp modifiedImp = modifyImp(request, imp);
                 final BidRequest outgoingRequest = createRequest(request, modifiedImp);
 
-                requests.add(createHttpRequest(outgoingRequest, endpoint, imp.getId()));
+                requests.add(createHttpRequest(outgoingRequest, endpoint));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -84,108 +85,91 @@ public class AdverxoBidder implements Bidder<BidRequest> {
         }
     }
 
-    private String resolveEndpoint(ExtImpAdverxo extImpAdverxo) {
-        final String adUnitAsString = Optional.of(extImpAdverxo.getAdUnitId())
-                .map(Object::toString)
-                .orElse(StringUtils.EMPTY);
-        final String authAsString = Optional.ofNullable(extImpAdverxo.getAuth())
-                .map(Object::toString)
-                .orElse(StringUtils.EMPTY);
-
+    private String resolveEndpoint(ExtImpAdverxo extImp) {
         return endpointUrl
-                .replace(ADUNIT_MACROS_ENDPOINT, adUnitAsString)
-                .replace(AUTH_MACROS_ENDPOINT, authAsString);
+                .replace(ADUNIT_MACROS_ENDPOINT,
+                        extImp.getAdUnitId() == null ? StringUtils.EMPTY : String.valueOf(extImp.getAdUnitId()))
+                .replace(AUTH_MACROS_ENDPOINT, HttpUtil.encodeUrl(StringUtils.defaultString(extImp.getAuth())));
     }
 
-    private Imp modifyImp(Imp imp, BidRequest request) {
-        final BigDecimal bidFloor = imp.getBidfloor();
-        final String bidFloorCur = imp.getBidfloorcur();
+    private Imp modifyImp(BidRequest bidRequest, Imp imp) {
+        final Price resolvedBidFloor = resolveBidFloor(imp, bidRequest);
 
-        if (bidFloor != null && bidFloor.compareTo(BigDecimal.ZERO) > 0
-                && StringUtils.isNotBlank(bidFloorCur)
-                && !StringUtils.equalsIgnoreCase(bidFloorCur, DEFAULT_BID_CURRENCY)) {
-
-            final BigDecimal convertedPrice = currencyConversionService.convertCurrency(
-                    bidFloor,
-                    request,
-                    bidFloorCur,
-                    DEFAULT_BID_CURRENCY
-            );
-
-            return imp.toBuilder()
-                    .bidfloor(convertedPrice)
-                    .bidfloorcur(DEFAULT_BID_CURRENCY)
-                    .build();
-        }
-        return imp;
+        return imp.toBuilder()
+                .bidfloor(resolvedBidFloor.getValue())
+                .bidfloorcur(resolvedBidFloor.getCurrency())
+                .build();
     }
 
-    private BidRequest createRequest(BidRequest originalRequest, Imp modifiedImp) {
+    private Price resolveBidFloor(Imp imp, BidRequest bidRequest) {
+        final Price initialBidFloorPrice = Price.of(imp.getBidfloorcur(), imp.getBidfloor());
+        return BidderUtil.shouldConvertBidFloor(initialBidFloorPrice, DEFAULT_BID_CURRENCY)
+                ? convertBidFloor(initialBidFloorPrice, bidRequest)
+                : initialBidFloorPrice;
+    }
+
+    private Price convertBidFloor(Price bidFloorPrice, BidRequest bidRequest) {
+        final BigDecimal convertedPrice = currencyConversionService.convertCurrency(
+                bidFloorPrice.getValue(),
+                bidRequest,
+                bidFloorPrice.getCurrency(),
+                DEFAULT_BID_CURRENCY);
+
+        return Price.of(DEFAULT_BID_CURRENCY, convertedPrice);
+    }
+
+    private static BidRequest createRequest(BidRequest originalRequest, Imp modifiedImp) {
         return originalRequest.toBuilder()
                 .imp(Collections.singletonList(modifiedImp))
                 .build();
     }
 
-    private HttpRequest<BidRequest> createHttpRequest(BidRequest outgoingRequest,
-                                                      String endpoint,
-                                                      String impId) {
-        return HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(endpoint)
-                .headers(HttpUtil.headers())
-                .body(mapper.encodeToBytes(outgoingRequest))
-                .impIds(Collections.singleton(impId))
-                .payload(outgoingRequest)
-                .build();
+    private HttpRequest<BidRequest> createHttpRequest(BidRequest outgoingRequest, String endpoint) {
+        return BidderUtil.defaultRequest(outgoingRequest, endpoint, mapper);
     }
 
     @Override
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            final List<BidderError> bidderErrors = new ArrayList<>();
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.withValues(extractBids(bidResponse, bidderErrors));
+            return Result.withValues(extractBids(bidResponse));
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private List<BidderBid> extractBids(BidResponse bidResponse,
-                                        List<BidderError> bidderErrors) {
+    private List<BidderBid> extractBids(BidResponse bidResponse) {
 
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
 
-        final String currency = bidResponse.getCur();
-        final List<BidderBid> bidderBids = new ArrayList<>();
-
-        for (SeatBid seatBid : bidResponse.getSeatbid()) {
-            if (CollectionUtils.isEmpty(seatBid.getBid())) {
-                continue;
-            }
-
-            for (Bid bid : seatBid.getBid()) {
-                final BidType bidType = getBidType(bid);
-                final String resolvedAdm = resolveAdmForBidType(bid, bidType);
-                final Bid processedBid = processBidMacros(bid, resolvedAdm);
-
-                bidderBids.add(BidderBid.of(processedBid, bidType, currency));
-            }
-        }
-
-        return bidderBids;
+        return bidResponse.getSeatbid().stream()
+                .filter(Objects::nonNull)
+                .map(SeatBid::getBid)
+                .filter(Objects::nonNull)
+                .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
+                .map(bid -> makeBid(bid, bidResponse.getCur()))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
     }
 
-    private BidType getBidType(Bid bid) {
-        final Integer markupType = ObjectUtils.defaultIfNull(bid.getMtype(), 0);
+    private BidderBid makeBid(Bid bid, String currency) {
+        final BidType bidType = getBidType(bid.getMtype());
+        final String resolvedAdm = resolveAdmForBidType(bid, bidType);
+        final Bid processedBid = processBidMacros(bid, resolvedAdm);
 
-        return switch (markupType) {
+        return BidderBid.of(processedBid, bidType, currency);
+    }
+
+    private static BidType getBidType(Integer mType) {
+        return switch (mType) {
             case 1 -> BidType.banner;
             case 2 -> BidType.video;
             case 4 -> BidType.xNative;
-            default -> throw new PreBidException(
-                    "could not define media type for impression: " + bid.getImpid());
+            case null, default ->
+                    throw new PreBidException("Unsupported mType " + mType);
         };
     }
 
@@ -203,12 +187,11 @@ public class AdverxoBidder implements Bidder<BidRequest> {
         }
     }
 
-    private Bid processBidMacros(Bid bid, String adm) {
+    private static Bid processBidMacros(Bid bid, String adm) {
         final String price = bid.getPrice() != null ? bid.getPrice().toPlainString() : "0";
 
         return bid.toBuilder()
                 .adm(replaceMacro(adm, price))
-                .nurl(replaceMacro(bid.getNurl(), price))
                 .build();
     }
 

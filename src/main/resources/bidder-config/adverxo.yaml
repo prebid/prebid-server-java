@@ -1,6 +1,6 @@
 adapters:
   adverxo:
-    endpoint: "https://pbsadverxo.com/auction?adUnitId={{adUnitId}}&auth={{auth}}"
+    endpoint: https://pbsadverxo.com/auction?adUnitId={{adUnitId}}&auth={{auth}}
     endpoint-compression: gzip
     meta-info:
       maintainer-email: developer@adverxo.com
@@ -19,7 +19,7 @@ adapters:
       iframe:
         url: https://pbsadverxo.com/usync?type=iframe&gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
         support-cors: false
-        userMacro: $UID
+        userMacro: '$UID'
       redirect:
         url: https://pbsadverxo.com/usync?type=image&gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
         support-cors: false

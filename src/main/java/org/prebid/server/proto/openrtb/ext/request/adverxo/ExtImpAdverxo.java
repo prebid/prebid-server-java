@@ -9,7 +9,7 @@ import lombok.Value;
 public class ExtImpAdverxo {
 
     @JsonProperty("adUnitId")
-    int adUnitId;
+    Integer adUnitId;
     @JsonProperty("auth")
     String auth;
 }
