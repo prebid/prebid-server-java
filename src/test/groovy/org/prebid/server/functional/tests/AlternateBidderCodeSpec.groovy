@@ -1,104 +1,53 @@
 package org.prebid.server.functional.tests
 
-import org.prebid.server.functional.model.bidder.Openx
+import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AlternateBidderCodes
 import org.prebid.server.functional.model.config.BidderConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.BidRequest
+import org.prebid.server.functional.util.PBSUtils
 
+import static org.prebid.server.functional.model.AccountStatus.ACTIVE
+import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
+import static org.prebid.server.functional.model.bidder.BidderName.BOGUS
 import static org.prebid.server.functional.model.bidder.BidderName.EMPTY
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.bidder.BidderName.GENERIC_CAMEL_CASE
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.bidder.BidderName.UNKNOWN
 import static org.prebid.server.functional.model.bidder.BidderName.WILDCARD
 import static org.prebid.server.functional.model.privacy.Metric.ALERT_GENERAL
-import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
+import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 
 class AlternateBidderCodeSpec extends BaseSpec {
 
-    def "PBS shouldn't throw out bid and emit response warning when alternate bidder codes disabled"() {
-        given: "Pbs config with alternate bidder codes"
-        def pbsService = pbsServiceFactory.getService(
-                ["settings.default-account-config": encode(AccountConfig.defaultAccountConfig.tap {
-                    alternateBidderCodes = configuredBidderCode(defaultAccountAlternateBidderCodes)
-                })])
-
-        and: "Default bid request with alternate bidder codes"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.alternateBidderCodes.enabled = configuredBidderCode(requestedAlternateBidderCodes)
-        }
-
-        and: "Save account config into DB with alternate bidder codes"
-        def account = new Account().tap {
-            uuid = bidRequest.accountId
-            alternateBidderCodes = configuredBidderCode(accountAlternateBidderCodes)
-        }
-        accountDao.save(account)
-
-        and: "Flash metrics"
-        flushMetrics(pbsService)
-
-        when: "PBS processes auction request"
-        def response = pbsService.sendAuctionRequest(bidRequest)
-
-        then: "Response should contain adapter code"
-        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [GENERIC]
-
-        and: "Response should contain seatbid.seat"
-        assert response.seatbid[0].seat = GENERIC
-
-        and: "Bidder request should be valid"
-        assert bidder.getBidderRequests(bidRequest.id)
-
-        and: "Response shouldn't contain warnings"
-        assert !response.ext?.warnings
-
-        and: "Alert.general metric shouldn't be updated"
-        def metrics = pbsService.sendCollectedMetricsRequest()
-        assert !metrics[ALERT_GENERAL]
-
-        where:
-        requestedAlternateBidderCodes | defaultAccountAlternateBidderCodes | accountAlternateBidderCodes
-        false                         | false                              | false
-        null                          | false                              | false
-        false                         | null                               | false
-        false                         | false                              | null
-        false                         | true                               | false
-        true                          | true                               | false
-        true                          | null                               | false
-    }
+    private static final WARNING_MESSAGE = "HERE SHOULD BE WARNING"
 
     def "PBS shouldn't throw out bid and emit response warning when alternate bidder codes not fully configured"() {
-        given: "Pbs config with alternate bidder codes"
-        def pbsService = pbsServiceFactory.getService(
-                ["settings.default-account-config": encode(AccountConfig.defaultAccountConfig.tap {
-                    alternateBidderCodes = configuredBidderCode(defaultAccountAlternateBidderCodes)
-                })])
-
-        and: "Default bid request with alternate bidder codes"
+        given: "Default bid request with alternate bidder codes"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.alternateBidderCodes.enabled = configuredBidderCode(requestedAlternateBidderCodes)
+            ext.prebid.alternateBidderCodes = requestedAlternateBidderCodes
+            setAccountId(PBSUtils.randomString)
         }
 
         and: "Save account config into DB with alternate bidder codes"
-        def account = new Account().tap {
-            uuid = bidRequest.accountId
-            alternateBidderCodes = configuredBidderCode(accountAlternateBidderCodes)
+        def account = accountWithAlternateBidderCode(bidRequest).tap {
+            config.alternateBidderCodes = accountAlternateBidderCodes
         }
         accountDao.save(account)
 
         and: "Flash metrics"
-        flushMetrics(pbsService)
+        flushMetrics(defaultPbsService)
 
         when: "PBS processes auction request"
-        def response = pbsService.sendAuctionRequest(bidRequest)
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should contain adapter code"
         assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [GENERIC]
 
         and: "Response should contain seatbid.seat"
-        assert response.seatbid[0].seat = GENERIC
+        assert response.seatbid[0].seat == GENERIC
 
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -107,44 +56,284 @@ class AlternateBidderCodeSpec extends BaseSpec {
         assert !response.ext?.warnings
 
         and: "Alert.general metric shouldn't be updated"
-        def metrics = pbsService.sendCollectedMetricsRequest()
+        def metrics = defaultPbsService.sendCollectedMetricsRequest()
         assert !metrics[ALERT_GENERAL]
 
         where:
-        requestedAlternateBidderCodes                                                                                   | defaultAccountAlternateBidderCodes                                                                              | accountAlternateBidderCodes
-        new AlternateBidderCodes()                                                                                      | null                                                                                                            | null
-        null                                                                                                            | new AlternateBidderCodes()                                                                                      | null
-        null                                                                                                            | null                                                                                                            | new AlternateBidderCodes()
-        new AlternateBidderCodes(enabled: true)                                                                         | null                                                                                                            | null
-        null                                                                                                            | new AlternateBidderCodes(enabled: true)                                                                         | null
-        null                                                                                                            | null                                                                                                            | new AlternateBidderCodes(enabled: true)
-        null                                                                                                            | null                                                                                                            | null
-        new AlternateBidderCodes(bidders: [(GENERIC): new BidderConfig()])                                              | null                                                                                                            | null
-        null                                                                                                            | new AlternateBidderCodes(bidders: [(GENERIC): new BidderConfig()])                                              | null
-        null                                                                                                            | null                                                                                                            | new AlternateBidderCodes(bidders: [(GENERIC): new BidderConfig()])
-        new AlternateBidderCodes(bidders: [(GENERIC): new BidderConfig(enabled: false, allowedBidderCodes: [UNKNOWN])]) | null                                                                                                            | null
-        null                                                                                                            | new AlternateBidderCodes(bidders: [(GENERIC): new BidderConfig(enabled: false, allowedBidderCodes: [UNKNOWN])]) | null
-        null                                                                                                            | null                                                                                                            | new AlternateBidderCodes(bidders: [(GENERIC): new BidderConfig(enabled: false, allowedBidderCodes: [UNKNOWN])])
+        requestedAlternateBidderCodes                                                                                                          | accountAlternateBidderCodes
+        null                                                                                                                                   | null
+        new AlternateBidderCodes()                                                                                                      | null
+        null                                                                                                                            | new AlternateBidderCodes()
+        new AlternateBidderCodes(enabled: true)                                                                                         | null
+        new AlternateBidderCodes(enabled: false)                                                                                        | null
+        null                                                                                                                            | new AlternateBidderCodes(enabled: true)
+        null                                                                                                                            | new AlternateBidderCodes(enabled: false)
+        new AlternateBidderCodes(bidders: [(GENERIC): new BidderConfig()])                                                              | null
+        new AlternateBidderCodes(bidders: [(UNKNOWN): new BidderConfig()])                                                              | null
+        new AlternateBidderCodes(enabled: false, bidders: [(GENERIC): new BidderConfig()])                                              | null
+        new AlternateBidderCodes(enabled: false, bidders: [(UNKNOWN): new BidderConfig()])                                              | null
+        new AlternateBidderCodes(enabled: true, bidders: [(UNKNOWN): new BidderConfig()])                                               | null
+        new AlternateBidderCodes(enabled: true, bidders: [(GENERIC): new BidderConfig()])                                               | null
+        null                                                                                                                            | new AlternateBidderCodes(bidders: [(GENERIC): new BidderConfig()])
+        null                                                                                                                            | new AlternateBidderCodes(bidders: [(UNKNOWN): new BidderConfig()])
+        null                                                                                                                            | new AlternateBidderCodes(enabled: true, bidders: [(GENERIC): new BidderConfig()])
+        null                                                                                                                            | new AlternateBidderCodes(enabled: true, bidders: [(UNKNOWN): new BidderConfig()])
+        null                                                                                                                            | new AlternateBidderCodes(enabled: false, bidders: [(UNKNOWN): new BidderConfig()])
+        null                                                                                                                            | new AlternateBidderCodes(enabled: false, bidders: [(GENERIC): new BidderConfig()])
+        new AlternateBidderCodes(bidders: [(GENERIC): new BidderConfig(enabled: false, allowedBidderCodes: [UNKNOWN])])                 | null
+        new AlternateBidderCodes(bidders: [(UNKNOWN): new BidderConfig(enabled: false, allowedBidderCodes: [GENERIC])])                 | null
+        new AlternateBidderCodes(enabled: false, bidders: [(GENERIC): new BidderConfig(enabled: false, allowedBidderCodes: [UNKNOWN])]) | null
+        new AlternateBidderCodes(enabled: false, bidders: [(UNKNOWN): new BidderConfig(enabled: false, allowedBidderCodes: [GENERIC])]) | null
+        new AlternateBidderCodes(enabled: true, bidders: [(GENERIC): new BidderConfig(enabled: false, allowedBidderCodes: [UNKNOWN])])  | null
+        new AlternateBidderCodes(enabled: true, bidders: [(UNKNOWN): new BidderConfig(enabled: false, allowedBidderCodes: [GENERIC])])  | null
+        null                                                                                                                            | new AlternateBidderCodes(bidders: [(GENERIC): new BidderConfig(enabled: false, allowedBidderCodes: [UNKNOWN])])
+        null                                                                                                                            | new AlternateBidderCodes(bidders: [(UNKNOWN): new BidderConfig(enabled: false, allowedBidderCodes: [GENERIC])])
+        null                                                                                                                            | new AlternateBidderCodes(enabled: false, bidders: [(GENERIC): new BidderConfig(enabled: false, allowedBidderCodes: [UNKNOWN])])
+        null                                                                                                                            | new AlternateBidderCodes(enabled: false, bidders: [(UNKNOWN): new BidderConfig(enabled: false, allowedBidderCodes: [GENERIC])])
+        null                                                                                                                            | new AlternateBidderCodes(enabled: true, bidders: [(GENERIC): new BidderConfig(enabled: false, allowedBidderCodes: [UNKNOWN])])
+        null                                                                                                                            | new AlternateBidderCodes(enabled: true, bidders: [(UNKNOWN): new BidderConfig(enabled: false, allowedBidderCodes: [GENERIC])])
     }
 
-    def "PBS shouldn't throw out bid and emit response warning when alternate bidder codes enabled and bidder disabled "() {
-        given: "Pbs config with alternate bidder codes"
-        def pbsService = pbsServiceFactory.getService(
-                ["settings.default-account-config": encode(AccountConfig.defaultAccountConfig.tap {
-                    alternateBidderCodes = defaultAccountAlternateBidderCodes
-                })])
+    def "PBS shouldn't throw out bid and emit response warning when alternate bidder codes disabled"() {
+        given: "Default bid request with alternate bidder codes"
+        def bidRequest = bidRequestWithAlternateBidderCode().tap {
+            ext.prebid.alternateBidderCodes.enabled = requestedAlternateBidderCodes
+            setAccountId(PBSUtils.randomString)
+        }
 
-        and: "Default bid request with alternate bidder codes"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.alternateBidderCodes = requestedAlternateBidderCodes
+        and: "Save account config into DB with alternate bidder codes"
+        def account = accountWithAlternateBidderCode(bidRequest).tap {
+            config.alternateBidderCodes.enabled = accountAlternateBidderCodes
+        }
+        accountDao.save(account)
+
+        and: "Flash metrics"
+        flushMetrics(defaultPbsService)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain adapter code"
+        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [GENERIC]
+
+        and: "Response should contain seatBid.seat"
+        assert response.seatbid.seat.flatten() == [GENERIC]
+
+        and: "Bidder request should be valid"
+        assert bidder.getBidderRequests(bidRequest.id)
+
+        and: "Response shouldn't contain warnings"
+        assert !response.ext?.warnings
+
+        and: "Alert.general metric shouldn't be updated"
+        def metrics = defaultPbsService.sendCollectedMetricsRequest()
+        assert !metrics[ALERT_GENERAL]
+
+        where:
+        requestedAlternateBidderCodes | accountAlternateBidderCodes
+        false                         | false
+        false                         | null
+        null                          | false
+        false                         | true
+    }
+
+    def "PBS shouldn't discard the bid or emit a response warning warning when alternate bidder codes disabled for bidder"() {
+        given: "Default bid request with alternate bidder codes"
+        def bidRequest = bidRequestWithAlternateBidderCode().tap {
+            ext.prebid.alternateBidderCodes.bidders[GENERIC].enabled = requestedAlternateBidderCodes
+            setAccountId(PBSUtils.randomString)
+        }
+
+        and: "Save account config into DB with alternate bidder codes"
+        def account = accountWithAlternateBidderCode(bidRequest).tap {
+            config.alternateBidderCodes.bidders[GENERIC].enabled = accountAlternateBidderCodes
+        }
+        accountDao.save(account)
+
+        and: "Flash metrics"
+        flushMetrics(defaultPbsService)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain adapter code"
+        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [GENERIC]
+
+        and: "Response should contain seatBid.seat"
+        assert response.seatbid.seat.flatten() == [GENERIC]
+
+        and: "Bidder request should be valid"
+        assert bidder.getBidderRequests(bidRequest.id)
+
+        and: "Response shouldn't contain warnings"
+        assert !response.ext?.warnings
+
+        and: "Alert.general metric shouldn't be updated"
+        def metrics = defaultPbsService.sendCollectedMetricsRequest()
+        assert !metrics[ALERT_GENERAL]
+
+        where:
+        requestedAlternateBidderCodes | accountAlternateBidderCodes
+        false                         | false
+        false                         | null
+        null                          | false
+        false                         | true
+    }
+
+    def "PBS shouldn't discard the bid or emit a response warning when configured alternate bidder codes with the requested mismatched bidder"() {
+        given: "Default bid request with alternate bidder codes"
+        def bidRequest = bidRequestWithAlternateBidderCode().tap {
+            ext.prebid.alternateBidderCodes.bidders = requestedAlternateBidderCodes
+            setAccountId(PBSUtils.randomString)
+        }
+
+        and: "Save account config into DB with alternate bidder codes"
+        def account = accountWithAlternateBidderCode(bidRequest).tap {
+            config.alternateBidderCodes.bidders = accountAlternateBidderCodes
+        }
+        accountDao.save(account)
+
+        and: "Flash metrics"
+        flushMetrics(defaultPbsService)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain adapter code"
+        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [GENERIC]
+
+        and: "Response should contain seatbid.seat"
+        assert response.seatbid.seat.flatten() == [GENERIC]
+
+        and: "Response shouldn't contain warnings"
+        assert !response.ext?.warnings
+
+        and: "Bidder request should be valid"
+        assert bidder.getBidderRequests(bidRequest.id)
+
+        and: "Alert.general metric shouldn't be updated"
+        def metrics = defaultPbsService.sendCollectedMetricsRequest()
+        assert !metrics[ALERT_GENERAL]
+
+        where:
+        requestedAlternateBidderCodes                                             | accountAlternateBidderCodes
+        [(OPENX): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])] | null
+        null                                                                      | [(OPENX): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])]
+        [(OPENX): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])] | [(GENERIC): new BidderConfig(enabled: true, allowedBidderCodes: [UNKNOWN])]
+    }
+
+    def "PBS shouldn't discard the bid or emit a response warning when alternate bidder codes are enabled and allowed bidder codes are either a wildcard or empty"() {
+        given: "Default bid request with alternate bidder codes"
+        def bidRequest = bidRequestWithAlternateBidderCode().tap {
+            ext.prebid.alternateBidderCodes.bidders[GENERIC].allowedBidderCodes = requestedAllowedBidderCodes
+            setAccountId(PBSUtils.randomString)
+        }
+
+        and: "Save account config into DB with alternate bidder codes"
+        def account = accountWithAlternateBidderCode(bidRequest).tap {
+            config.alternateBidderCodes.bidders[GENERIC].allowedBidderCodes = accountAllowedBidderCodes
+        }
+        accountDao.save(account)
+
+        and: "Flash metrics"
+        flushMetrics(defaultPbsService)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain adapter code"
+        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [GENERIC]
+
+        and: "Response should contain seatbid.seat"
+        assert response.seatbid.seat.flatten() == [GENERIC]
+
+        and: "Bidder request should be valid"
+        assert bidder.getBidderRequests(bidRequest.id)
+
+        and: "Response shouldn't contain warnings"
+        assert !response.ext?.warnings
+
+        and: "Alert.general metric shouldn't be updated"
+        def metrics = defaultPbsService.sendCollectedMetricsRequest()
+        assert !metrics[ALERT_GENERAL]
+
+        where:
+        requestedAllowedBidderCodes | accountAllowedBidderCodes
+        []                          | null
+        null                        | []
+        [WILDCARD]                  | null
+        [WILDCARD, EMPTY]           | null
+        [WILDCARD, EMPTY]           | [WILDCARD, EMPTY]
+        null                        | [WILDCARD]
+        null                        | [WILDCARD, EMPTY]
+        null                        | null
+        [WILDCARD]                  | [WILDCARD]
+        []                          | []
+        [EMPTY]                     | [EMPTY]
+        [EMPTY]                     | null
+        null                        | [EMPTY]
+    }
+
+    def "PBS shouldn't discard the bid or emit a response warning when alternate bidder codes are enabled and the allowed bidder codes is same as bidder's request"() {
+        given: "Default bid request with alternate bidder codes"
+        def bidRequest = bidRequestWithAlternateBidderCode().tap {
+            ext.prebid.alternateBidderCodes.bidders = requestAlternateBidders
+            setAccountId(PBSUtils.randomString)
         }
 
         and: "Save account config into DB with alternate bidder codes"
         def account = new Account().tap {
-            uuid = bidRequest.accountId
-            alternateBidderCodes = accountAlternateBidderCodes
+            it.uuid = bidRequest.accountId
+            it.config = new AccountConfig(status: ACTIVE)
+            it.alternateBidderCodes = new AlternateBidderCodes(enabled: true, bidders: accountAlternateBidders)
         }
         accountDao.save(account)
+
+        and: "Flash metrics"
+        flushMetrics(defaultPbsService)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain adapter code"
+        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [GENERIC]
+
+        and: "Response should contain seatbid.seat"
+        assert response.seatbid.seat.flatten() == [GENERIC]
+
+        and: "Bidder request should be valid"
+        assert bidder.getBidderRequests(bidRequest.id)
+
+        and: "Response shouldn't contain warnings"
+        assert !response.ext?.warnings
+
+        and: "Alert.general metric shouldn't be updated"
+        def metrics = defaultPbsService.sendCollectedMetricsRequest()
+        assert !metrics[ALERT_GENERAL]
+
+        where:
+        accountAlternateBidders                                                                           | requestAlternateBidders
+        [(GENERIC): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC_CAMEL_CASE])]            | null
+        [(GENERIC_CAMEL_CASE): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])]            | null
+        [(GENERIC_CAMEL_CASE): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC_CAMEL_CASE])] | null
+        null                                                                                              | [(GENERIC): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC_CAMEL_CASE])]
+        null                                                                                              | [(GENERIC_CAMEL_CASE): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])]
+        null                                                                                              | [(GENERIC_CAMEL_CASE): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC_CAMEL_CASE])]
+    }
+
+    def "PBS shouldn't discard the bid and emit a response warning when default account alternate bidder codes are enabled and the allowed bidder codes does match the bidder's request"() {
+        given: "Pbs config with default-account-config"
+        def defaultAccountConfig = AccountConfig.defaultAccountConfig.tap {
+            alternateBidderCodes = new AlternateBidderCodes().tap {
+                it.enabled = true
+                it.bidders = [(GENERIC): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])]
+            }
+        }
+        def pbsService = pbsServiceFactory.getService(
+                ["settings.default-account-config": encode(defaultAccountConfig)])
+
+        and: "Default bid request"
+        def bidRequest = BidRequest.getDefaultBidRequest()
 
         and: "Flash metrics"
         flushMetrics(pbsService)
@@ -156,359 +345,186 @@ class AlternateBidderCodeSpec extends BaseSpec {
         assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [GENERIC]
 
         and: "Response should contain seatbid.seat"
-        assert response.seatbid[0].seat = GENERIC
+        assert response.seatbid.seat.flatten() == [GENERIC]
 
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
 
         and: "Response shouldn't contain warnings"
-        assert !response.ext?.warnings
+        assert !response.ext?.warnings[PREBID]
 
         and: "Alert.general metric shouldn't be updated"
         def metrics = pbsService.sendCollectedMetricsRequest()
         assert !metrics[ALERT_GENERAL]
-
-        where:
-        requestedAlternateBidderCodes               | defaultAccountAlternateBidderCodes          | accountAlternateBidderCodes
-        disabledGenericBidderConfiguredBidderCode() | disabledGenericBidderConfiguredBidderCode() | disabledGenericBidderConfiguredBidderCode()
-        null                                        | disabledGenericBidderConfiguredBidderCode() | disabledGenericBidderConfiguredBidderCode()
-        disabledGenericBidderConfiguredBidderCode() | null                                        | disabledGenericBidderConfiguredBidderCode()
-        disabledGenericBidderConfiguredBidderCode() | disabledGenericBidderConfiguredBidderCode() | null
-        disabledGenericBidderConfiguredBidderCode() | null                                        | null
-        null                                        | disabledGenericBidderConfiguredBidderCode() | null
-        null                                        | null                                        | disabledGenericBidderConfiguredBidderCode()
     }
 
-    def "PBS shouldn't throw out bid and emit response warning when configured alternate bidder codes with requested mismatch bidder"() {
-        given: "Pbs config with alternate bidder codes and openx"
-        def pbsService = pbsServiceFactory.getService(
-                ["adapters.openx.enabled"         : "true",
-                 "adapters.openx.endpoint"        : "$networkServiceContainer.rootUri/auction".toString(),
-                 "settings.default-account-config": encode(AccountConfig.defaultAccountConfig.tap {
-                     alternateBidderCodes = defaultAccountAlternateBidderCodes
-                 })])
-
-        and: "Default bid request with openx bidder and alternate bidder codes"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
+    def "PBS shouldn't discard bid and not emit a response warning when requested alternate bidder codes are enabled and the allowed bidder code doesn't match with alias of specified bidders"() {
+        given: "Default bid request with alias and alternate bidder code"
+        def bidRequest = bidRequestWithAlternateBidderCode().tap {
+            ext.prebid.aliases = [(ALIAS.value): GENERIC]
+            imp[0].ext.prebid.bidder.alias = new Generic()
             imp[0].ext.prebid.bidder.generic = null
-            imp[0].ext.prebid.bidder.openx = Openx.defaultOpenx
-            ext.prebid.alternateBidderCodes = requestedAlternateBidderCodes
         }
-
-        and: "Save account config into DB with alternate bidder codes"
-        def account = new Account().tap {
-            uuid = bidRequest.accountId
-            alternateBidderCodes = accountAlternateBidderCodes
-        }
-        accountDao.save(account)
-
-        and: "Flash metrics"
-        flushMetrics(pbsService)
 
         when: "PBS processes auction request"
-        def response = pbsService.sendAuctionRequest(bidRequest)
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Response should contain adapter code"
-        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [OPENX]
+        then: "Resolved request should contain aliases as in request"
+        assert response.ext.debug.resolvedRequest.ext.prebid.aliases == bidRequest.ext.prebid.aliases
 
-        and: "Response should contain seatbid.seat"
-        assert response.seatbid[0].seat = OPENX
+        and: "Bidder request should contain request per-alies"
+        assert bidder.getBidderRequest(bidRequest.id)
 
-        and: "Response shouldn't contain warnings"
-        assert !response.ext?.warnings
-
-        and: "Bidder request should be valid"
-        assert bidder.getBidderRequests(bidRequest.id)
-
-        and: "Alert.general metric shouldn't be updated"
-        def metrics = pbsService.sendCollectedMetricsRequest()
-        assert !metrics[ALERT_GENERAL]
-
-        where:
-        requestedAlternateBidderCodes                             | defaultAccountAlternateBidderCodes                        | accountAlternateBidderCodes
-        enabledConfiguredBidderCodeWithUnknownAllowedBidderCode() | enabledConfiguredBidderCodeWithUnknownAllowedBidderCode() | enabledConfiguredBidderCodeWithUnknownAllowedBidderCode()
-        null                                                      | enabledConfiguredBidderCodeWithUnknownAllowedBidderCode() | enabledConfiguredBidderCodeWithUnknownAllowedBidderCode()
-        enabledConfiguredBidderCodeWithUnknownAllowedBidderCode() | null                                                      | enabledConfiguredBidderCodeWithUnknownAllowedBidderCode()
-        enabledConfiguredBidderCodeWithUnknownAllowedBidderCode() | enabledConfiguredBidderCodeWithUnknownAllowedBidderCode() | null
-        enabledConfiguredBidderCodeWithUnknownAllowedBidderCode() | null                                                      | null
-        null                                                      | enabledConfiguredBidderCodeWithUnknownAllowedBidderCode() | null
-        null                                                      | null                                                      | enabledConfiguredBidderCodeWithUnknownAllowedBidderCode()
-    }
-
-    def "PBS shouldn't throw out bid and emit response warning when alternate bidder codes enabled and bidder disabled"() {
-        given: "Pbs config with alternate bidder codes"
-        def pbsService = pbsServiceFactory.getService(
-                ["settings.default-account-config": encode(AccountConfig.defaultAccountConfig.tap {
-                    alternateBidderCodes = defaultAccountAlternateBidderCodes
-                })])
-
-        and: "Default bid request with alternate bidder codes"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.alternateBidderCodes = requestedAlternateBidderCodes
-        }
-
-        and: "Save account config into DB with alternate bidder codes"
-        def account = new Account().tap {
-            uuid = bidRequest.accountId
-            alternateBidderCodes = accountAlternateBidderCodes
-        }
-        accountDao.save(account)
-
-        and: "Flash metrics"
-        flushMetrics(pbsService)
-
-        when: "PBS processes auction request"
-        def response = pbsService.sendAuctionRequest(bidRequest)
-
-        then: "Response should contain adapter code"
-        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [GENERIC]
+        and: "Response should contain adapter code"
+        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [ALIAS]
 
         and: "Response should contain seatbid.seat"
-        assert response.seatbid[0].seat = GENERIC
-
-        and: "Response shouldn't contain warnings"
-        assert !response.ext?.warnings
-
-        and: "Bidder request should be valid"
-        assert bidder.getBidderRequests(bidRequest.id)
-
-        and: "Alert.general metric shouldn't be updated"
-        def metrics = pbsService.sendCollectedMetricsRequest()
-        assert !metrics[ALERT_GENERAL]
-
-        where:
-        requestedAlternateBidderCodes               | defaultAccountAlternateBidderCodes          | accountAlternateBidderCodes
-        disabledGenericBidderConfiguredBidderCode() | disabledGenericBidderConfiguredBidderCode() | disabledGenericBidderConfiguredBidderCode()
-        null                                        | disabledGenericBidderConfiguredBidderCode() | disabledGenericBidderConfiguredBidderCode()
-        disabledGenericBidderConfiguredBidderCode() | null                                        | disabledGenericBidderConfiguredBidderCode()
-        disabledGenericBidderConfiguredBidderCode() | disabledGenericBidderConfiguredBidderCode() | null
-    }
-
-    def "PBS shouldn't throw out bid and emit response warning when alternate bidder codes enabled and allowed bidder codes is wildcard"() {
-        given: "Pbs config with alternate bidder codes"
-        def pbsService = pbsServiceFactory.getService(
-                ["settings.default-account-config": encode(AccountConfig.defaultAccountConfig.tap {
-                    alternateBidderCodes = defaultAccountAlternateBidderCodes
-                })])
-
-        and: "Default bid request with alternate bidder codes"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.alternateBidderCodes = requestedAlternateBidderCodes
-        }
-
-        and: "Save account config into DB with alternate bidder codes"
-        def account = new Account().tap {
-            uuid = bidRequest.accountId
-            alternateBidderCodes = accountAlternateBidderCodes
-        }
-        accountDao.save(account)
-
-        and: "Flash metrics"
-        flushMetrics(pbsService)
-
-        when: "PBS processes auction request"
-        def response = pbsService.sendAuctionRequest(bidRequest)
-
-        then: "Response should contain adapter code"
-        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [GENERIC]
-
-        and: "Response should contain seatbid.seat"
-        assert response.seatbid[0].seat = GENERIC
+        assert response.seatbid.seat.flatten() == [ALIAS]
 
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
 
         and: "Response shouldn't contain warnings"
-        assert !response.ext?.warnings
+        assert !response.ext?.warnings[PREBID]
 
         and: "Alert.general metric shouldn't be updated"
-        def metrics = pbsService.sendCollectedMetricsRequest()
+        def metrics = defaultPbsService.sendCollectedMetricsRequest()
         assert !metrics[ALERT_GENERAL]
-
-        where:
-        requestedAlternateBidderCodes                               | defaultAccountAlternateBidderCodes                          | accountAlternateBidderCodes
-        enabledConfiguredBidderCodeWithWildcardAllowedBidderCodes() | null                                                        | null
-        null                                                        | enabledConfiguredBidderCodeWithWildcardAllowedBidderCodes() | null
-        null                                                        | null                                                        | enabledConfiguredBidderCodeWithWildcardAllowedBidderCodes()
-        enabledConfiguredBidderCodeWithWildcardAllowedBidderCodes() | enabledConfiguredBidderCodeWithWildcardAllowedBidderCodes() | enabledConfiguredBidderCodeWithWildcardAllowedBidderCodes()
     }
 
-    def "PBS shouldn't throw out bid and emit response warning when alternate bidder codes enabled and allowed bidder codes is same as bidder requested"() {
-        given: "Pbs config with alternate bidder codes"
-        def pbsService = pbsServiceFactory.getService(
-                ["settings.default-account-config": encode(AccountConfig.defaultAccountConfig.tap {
-                    alternateBidderCodes = defaultAccountAlternateBidderCodes
-                })])
-
-        and: "Default bid request with alternate bidder codes"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.alternateBidderCodes = requestedAlternateBidderCodes
+    def "PBS should discard the bid and emit a response warning when account alternate bidder codes are enabled and the allowed bidder codes doesn't match the bidder's request"() {
+        given: "Default bid request with alternate bidder codes"
+        def bidRequest = bidRequestWithAlternateBidderCode().tap {
+            ext.prebid.alternateBidderCodes.bidders[GENERIC].allowedBidderCodes = requestedAllowedBidderCode
+            setAccountId(PBSUtils.randomString)
         }
 
         and: "Save account config into DB with alternate bidder codes"
-        def account = new Account().tap {
-            uuid = bidRequest.accountId
-            alternateBidderCodes = accountAlternateBidderCodes
+        def account = accountWithAlternateBidderCode(bidRequest).tap {
+            config.alternateBidderCodes.bidders[GENERIC].allowedBidderCodes = accountAllowedBidderCode
         }
         accountDao.save(account)
 
         and: "Flash metrics"
-        flushMetrics(pbsService)
+        flushMetrics(defaultPbsService)
 
         when: "PBS processes auction request"
-        def response = pbsService.sendAuctionRequest(bidRequest)
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Response should contain adapter code"
-        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [GENERIC]
-
-        and: "Response should contain seatbid.seat"
-        assert response.seatbid[0].seat = GENERIC
+        then: "Response shouldn't contain seat bid"
+        assert !response.seatbid
 
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
-
-        and: "Response shouldn't contain warnings"
-        assert !response.ext?.warnings
-
-        and: "Alert.general metric shouldn't be updated"
-        def metrics = pbsService.sendCollectedMetricsRequest()
-        assert !metrics[ALERT_GENERAL]
-
-        where:
-        requestedAlternateBidderCodes                              | defaultAccountAlternateBidderCodes                         | accountAlternateBidderCodes
-        enabledConfiguredBidderCodeWithGenericAllowedBidderCodes() | null                                                       | null
-        null                                                       | enabledConfiguredBidderCodeWithGenericAllowedBidderCodes() | null
-        null                                                       | null                                                       | enabledConfiguredBidderCodeWithGenericAllowedBidderCodes()
-        enabledConfiguredBidderCodeWithGenericAllowedBidderCodes() | enabledConfiguredBidderCodeWithGenericAllowedBidderCodes() | enabledConfiguredBidderCodeWithGenericAllowedBidderCodes()
-    }
-
-    def "PBS should throw out bid and emit response warning when alternate bidder codes enabled and allowed bidder codes is empty"() {
-        given: "Pbs config with alternate bidder codes"
-        def pbsService = pbsServiceFactory.getService(
-                ["settings.default-account-config": encode(AccountConfig.defaultAccountConfig.tap {
-                    alternateBidderCodes = defaultAccountAlternateBidderCodes
-                })])
-
-        and: "Default bid request with alternate bidder codes"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.alternateBidderCodes = requestedAlternateBidderCodes
-        }
-
-        and: "Save account config into DB with alternate bidder codes"
-        def account = new Account().tap {
-            uuid = bidRequest.accountId
-            alternateBidderCodes = accountAlternateBidderCodes
-        }
-        accountDao.save(account)
-
-        and: "Flash metrics"
-        flushMetrics(pbsService)
-
-        when: "PBS processes auction request"
-        def response = pbsService.sendAuctionRequest(bidRequest)
-
-        then: "Response should contain empty seatbid"
-        assert response.seatbid.isEmpty()
-
-        and: "Bidder request shouldn't be valid"
-        assert !bidder.getBidderRequests(bidRequest.id)
 
         and: "Response should contain warnings"
-        assert response.ext?.warnings
+        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE]
+
+        and: "Alert.general metric should be updated"
+        def metrics = defaultPbsService.sendCollectedMetricsRequest()
+        assert metrics[ALERT_GENERAL]
+
+        where:
+        requestedAllowedBidderCode | accountAllowedBidderCode
+        [UNKNOWN]                  | null
+        [BOGUS]                    | null
+        null                       | [BOGUS]
+        null                       | [UNKNOWN]
+        null                       | [UNKNOWN, BOGUS]
+        [UNKNOWN, BOGUS]           | [GENERIC]
+        [UNKNOWN]                  | [GENERIC]
+    }
+
+    def "PBS should discard the bid and emit a response warning when default account alternate bidder codes are enabled and the allowed bidder codes doesn't match the bidder's request"() {
+        given: "Pbs config with default-account-config"
+        def defaultAccountConfig = AccountConfig.defaultAccountConfig.tap {
+            alternateBidderCodes = new AlternateBidderCodes().tap {
+                it.enabled = true
+                it.bidders = [(GENERIC): new BidderConfig(enabled: true, allowedBidderCodes: allowedBidderCodes)]
+            }
+        }
+        def pbsService = pbsServiceFactory.getService(
+                ["settings.default-account-config": encode(defaultAccountConfig)])
+
+        and: "Default bid request"
+        def bidRequest = BidRequest.getDefaultBidRequest()
+
+        and: "Flash metrics"
+        flushMetrics(pbsService)
+
+        when: "PBS processes auction request"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response shouldn't contain seat bid"
+        assert !response.seatbid
+
+        and: "Bidder request should be valid"
+        assert bidder.getBidderRequests(bidRequest.id)
+
+        and: "Response should contain warnings"
+        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE]
 
         and: "Alert.general metric should be updated"
         def metrics = pbsService.sendCollectedMetricsRequest()
         assert metrics[ALERT_GENERAL]
 
         where:
-        requestedAlternateBidderCodes                            | defaultAccountAlternateBidderCodes                       | accountAlternateBidderCodes
-        enabledConfiguredBidderCodeWithEmptyAllowedBidderCodes() | null                                                     | null
-        null                                                     | enabledConfiguredBidderCodeWithEmptyAllowedBidderCodes() | null
-        null                                                     | null                                                     | enabledConfiguredBidderCodeWithEmptyAllowedBidderCodes()
-        enabledConfiguredBidderCodeWithEmptyAllowedBidderCodes() | enabledConfiguredBidderCodeWithEmptyAllowedBidderCodes() | enabledConfiguredBidderCodeWithEmptyAllowedBidderCodes()
+        allowedBidderCodes << [[BOGUS], [BOGUS, UNKNOWN]]
     }
 
-    def "PBS should throw out bid and emit response warning when alternate bidder codes enabled and allowed bidder codes is unknown"() {
-        given: "Pbs config with alternate bidder codes"
-        def pbsService = pbsServiceFactory.getService(
-                ["settings.default-account-config": encode(AccountConfig.defaultAccountConfig.tap {
-                    alternateBidderCodes = defaultAccountAlternateBidderCodes
-                })])
-
-        and: "Default bid request with alternate bidder codes"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.alternateBidderCodes = requestedAlternateBidderCodes
+    def "PBS should discard bid and not emit a response warning when requested alternate bidder codes are enabled and the allowed bidder code does match with alias of specified bidders"() {
+        given: "Default bid request with alias and alternate bidder code"
+        def bidRequest = bidRequestWithAlternateBidderCode().tap {
+            ext.prebid.aliases = [(ALIAS.value): GENERIC]
+            ext.prebid.alternateBidderCodes.bidders = [(ALIAS): new BidderConfig(enabled: true, allowedBidderCodes: [UNKNOWN])]
+            imp[0].ext.prebid.bidder.alias = new Generic()
+            imp[0].ext.prebid.bidder.generic = null
         }
-
-        and: "Save account config into DB with alternate bidder codes"
-        def account = new Account().tap {
-            uuid = bidRequest.accountId
-            alternateBidderCodes = accountAlternateBidderCodes
-        }
-        accountDao.save(account)
-
-        and: "Flash metrics"
-        flushMetrics(pbsService)
 
         when: "PBS processes auction request"
-        def response = pbsService.sendAuctionRequest(bidRequest)
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Response should contain empty seatbid"
-        assert response.seatbid.isEmpty()
+        then: "Resolved request should contain aliases as in request"
+        assert response.ext.debug.resolvedRequest.ext.prebid.aliases == bidRequest.ext.prebid.aliases
 
-        and: "Bidder request shouldn't be valid"
-        assert !bidder.getBidderRequests(bidRequest.id)
+        and: "Response shouldn't contain seat bid"
+        assert !response.seatbid
+
+        and: "Bidder request should be valid"
+        assert bidder.getBidderRequests(bidRequest.id)
 
         and: "Response should contain warnings"
-        assert response.ext?.warnings
+        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE]
 
         and: "Alert.general metric should be updated"
-        def metrics = pbsService.sendCollectedMetricsRequest()
+        def metrics = defaultPbsService.sendCollectedMetricsRequest()
         assert metrics[ALERT_GENERAL]
-
-        where:
-        requestedAlternateBidderCodes                             | defaultAccountAlternateBidderCodes                        | accountAlternateBidderCodes
-        enabledConfiguredBidderCodeWithUnknownAllowedBidderCode() | enabledConfiguredBidderCodeWithUnknownAllowedBidderCode() | enabledConfiguredBidderCodeWithUnknownAllowedBidderCode()
-        null                                                      | enabledConfiguredBidderCodeWithUnknownAllowedBidderCode() | enabledConfiguredBidderCodeWithUnknownAllowedBidderCode()
-        enabledConfiguredBidderCodeWithUnknownAllowedBidderCode() | enabledConfiguredBidderCodeWithUnknownAllowedBidderCode() | null
-        null                                                      | enabledConfiguredBidderCodeWithUnknownAllowedBidderCode() | null
-        enabledConfiguredBidderCodeWithUnknownAllowedBidderCode() | null                                                      | null
-        null                                                      | null                                                      | enabledConfiguredBidderCodeWithUnknownAllowedBidderCode()
-        enabledConfiguredBidderCodeWithUnknownAllowedBidderCode() | enabledConfiguredBidderCodeWithUnknownAllowedBidderCode() | enabledConfiguredBidderCodeWithUnknownAllowedBidderCode()
     }
 
-    private static AlternateBidderCodes enabledConfiguredBidderCodeWithUnknownAllowedBidderCode(Boolean alternateBidderCodesEnabled = true) {
-        new AlternateBidderCodes().tap {
-            it.enabled = alternateBidderCodesEnabled
-            it.bidders = [(GENERIC): new BidderConfig(enabled: true, allowedBidderCodes: [UNKNOWN])]
+    //todo: ADD test for it, if pubmatic bidder will be updated with logic for different seat name
+    // check for the existence of the seat-defined-bidderCode in the bidadjustmentfactors object. If it exists, apply the adjustment and we're done.
+    // otherwise, check for the existence of the adaptercode (seatbid.bid.ext.prebid.meta.adaptercode) in the bidadjustmentfactors object. If it exists, apply the adjustment
+
+    private static Account accountWithAlternateBidderCode(BidRequest bidRequest) {
+        new Account().tap {
+            it.uuid = bidRequest.accountId
+            it.config = new AccountConfig(status: ACTIVE)
+            it.config = new AccountConfig(alternateBidderCodes: new AlternateBidderCodes().tap {
+                it.enabled = true
+                it.bidders = [(GENERIC): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])]
+            })
         }
     }
 
-    private static AlternateBidderCodes enabledConfiguredBidderCodeWithWildcardAllowedBidderCodes(Boolean alternateBidderCodesEnabled = true) {
-        new AlternateBidderCodes().tap {
-            it.enabled = alternateBidderCodesEnabled
-            it.bidders = [(GENERIC): new BidderConfig(enabled: true, allowedBidderCodes: [WILDCARD])]
-        }
-    }
-
-    private static AlternateBidderCodes enabledConfiguredBidderCodeWithEmptyAllowedBidderCodes(Boolean alternateBidderCodesEnabled = true) {
-        new AlternateBidderCodes().tap {
-            it.enabled = alternateBidderCodesEnabled
-            it.bidders = [(GENERIC): new BidderConfig(enabled: true, allowedBidderCodes: [EMPTY])]
-        }
-    }
-
-    private static AlternateBidderCodes enabledConfiguredBidderCodeWithGenericAllowedBidderCodes(Boolean alternateBidderCodesEnabled = true) {
-        new AlternateBidderCodes().tap {
-            it.enabled = alternateBidderCodesEnabled
-            it.bidders = [(GENERIC): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])]
-        }
-    }
-
-    private static AlternateBidderCodes disabledGenericBidderConfiguredBidderCode() {
-        new AlternateBidderCodes().tap {
-            it.enabled = true
-            it.bidders = [(GENERIC): new BidderConfig(enabled: false, allowedBidderCodes: [UNKNOWN])]
+    private static BidRequest bidRequestWithAlternateBidderCode() {
+        BidRequest.defaultBidRequest.tap {
+            it.ext.prebid.alternateBidderCodes = new AlternateBidderCodes().tap {
+                it.enabled = true
+                it.bidders = [(GENERIC): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])]
+            }
         }
     }
 }
