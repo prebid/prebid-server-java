@@ -24,7 +24,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
     private static final WARNING_MESSAGE = "HERE SHOULD BE WARNING"
 
-    def "PBS shouldn't throw out bid and emit response warning when alternate bidder codes not fully configured"() {
+    def "PBS shouldn't discard the bid or emit a response warning when alternate bidder codes not fully configured"() {
         given: "Default bid request with alternate bidder codes"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.alternateBidderCodes = requestedAlternateBidderCodes
@@ -94,7 +94,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
         null                                                                                                                            | new AlternateBidderCodes(enabled: true, bidders: [(UNKNOWN): new BidderConfig(enabled: false, allowedBidderCodes: [GENERIC])])
     }
 
-    def "PBS shouldn't throw out bid and emit response warning when alternate bidder codes disabled"() {
+    def "PBS shouldn't discard the bid or emit a response warning when alternate bidder codes disabled"() {
         given: "Default bid request with alternate bidder codes"
         def bidRequest = bidRequestWithAlternateBidderCode().tap {
             ext.prebid.alternateBidderCodes.enabled = requestedAlternateBidderCodes
@@ -321,7 +321,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
         null                                                                                              | [(GENERIC_CAMEL_CASE): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC_CAMEL_CASE])]
     }
 
-    def "PBS shouldn't discard the bid and emit a response warning when default account alternate bidder codes are enabled and the allowed bidder codes does match the bidder's request"() {
+    def "PBS shouldn't discard the bid or emit a response warning when default account alternate bidder codes are enabled and the allowed bidder codes does match the bidder's request"() {
         given: "Pbs config with default-account-config"
         def defaultAccountConfig = AccountConfig.defaultAccountConfig.tap {
             alternateBidderCodes = new AlternateBidderCodes().tap {
