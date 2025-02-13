@@ -80,9 +80,10 @@ public class KoblerBidder implements Bidder<BidRequest> {
 
         for (Imp imp : imps) {
             try {
-                modifiedImps.add(processImp(bidRequest, imp));
+                modifiedImps.add(modifyImp(bidRequest, imp));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
+                return Result.withErrors(errors);
             }
         }
 
@@ -97,7 +98,7 @@ public class KoblerBidder implements Bidder<BidRequest> {
         return Result.of(Collections.singletonList(httpRequest), errors);
     }
 
-    private Imp processImp(BidRequest bidRequest, Imp imp) {
+    private Imp modifyImp(BidRequest bidRequest, Imp imp) {
         final Price resolvedBidFloor = resolveBidFloor(imp, bidRequest);
 
         return imp.toBuilder()
@@ -134,9 +135,8 @@ public class KoblerBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            final List<BidderError> errors = new ArrayList<>();
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(bidResponse), errors);
+            return Result.withValues(extractBids(bidResponse));
         } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
@@ -151,7 +151,9 @@ public class KoblerBidder implements Bidder<BidRequest> {
 
     private List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
         return bidResponse.getSeatbid().stream()
+                .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
+                .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> BidderBid.of(bid, getBidType(bid), bidResponse.getCur()))
                 .toList();

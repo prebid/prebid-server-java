@@ -30,9 +30,9 @@ public class KoblerConfiguration {
 
     @Bean
     BidderDeps koblerBidderDeps(BidderConfigurationProperties koblerConfigurationProperties,
-                                 CurrencyConversionService currencyConversionService,
-                                 @NotBlank @Value("${external-url}") String externalUrl,
-                                 JacksonMapper mapper) {
+                                CurrencyConversionService currencyConversionService,
+                                @NotBlank @Value("${external-url}") String externalUrl,
+                                JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(koblerConfigurationProperties)
