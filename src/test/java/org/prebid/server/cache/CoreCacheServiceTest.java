@@ -939,7 +939,7 @@ public class CoreCacheServiceTest extends VertxTest {
                 "ApiKey",
                 false,
                 true,
-                "apac",
+                "apacific",
                 vastModifier,
                 eventsService,
                 metrics,
