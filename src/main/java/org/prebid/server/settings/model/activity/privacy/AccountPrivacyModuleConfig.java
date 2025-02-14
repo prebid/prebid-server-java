@@ -23,6 +23,9 @@ public sealed interface AccountPrivacyModuleConfig permits
 
     PrivacyModuleQualifier getCode();
 
+    @JsonProperty("skipRate")
+    int getSkipRate();
+
     @JsonProperty
     Boolean enabled();
 }

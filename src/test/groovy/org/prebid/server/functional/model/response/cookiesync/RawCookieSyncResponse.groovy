@@ -6,5 +6,5 @@ import groovy.transform.ToString
 class RawCookieSyncResponse {
 
     String responseBody
-    Map<String, String> headers
+    Map<String, List<String>> headers
 }

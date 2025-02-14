@@ -61,4 +61,10 @@ public class ExtImpPrebid {
      * Defines the contract for bidrequest.imp[i].ext.prebid.imp
      */
     ObjectNode imp;
+
+    /**
+     * Defines the contract for bidrequest.imp[i].ext.prebid.adunitcode
+     */
+    @JsonProperty("adunitcode")
+    String adUnitCode;
 }

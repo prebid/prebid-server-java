@@ -8,5 +8,6 @@ class AccountGppConfig {
 
     PrivacyModule code
     Boolean enabled
+    Integer skipRate
     GppModuleConfig config
 }

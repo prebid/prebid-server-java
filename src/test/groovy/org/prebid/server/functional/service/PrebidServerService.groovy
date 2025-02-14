@@ -167,12 +167,21 @@ class PrebidServerService implements ObjectMapperWrapper {
     }
 
     SetuidResponse sendSetUidRequest(SetuidRequest request, UidsCookie uidsCookie, Map header = [:]) {
-        def uidsCookieAsJson = encode(uidsCookie)
-        def uidsCookieAsEncodedJson = Base64.urlEncoder.encodeToString(uidsCookieAsJson.bytes)
-        def response = given(requestSpecification).cookie(UIDS_COOKIE_NAME, uidsCookieAsEncodedJson)
-                                                  .queryParams(toMap(request))
-                                                  .headers(header)
-                                                  .get(SET_UID_ENDPOINT)
+        sendSetUidRequest(request, [uidsCookie], header)
+    }
+
+    SetuidResponse sendSetUidRequest(SetuidRequest request, List<UidsCookie> uidsCookies, Map header = [:]) {
+        def cookies = uidsCookies.withIndex().collectEntries { group, index ->
+            def uidsCookieAsJson = encode(group)
+            def uidsCookieAsEncodedJson = Base64.urlEncoder.encodeToString(uidsCookieAsJson.bytes)
+            ["${UIDS_COOKIE_NAME}${index > 0 ? index + 1 : ''}": uidsCookieAsEncodedJson]
+        }
+
+        def response = given(requestSpecification)
+                .cookies(cookies)
+                .queryParams(toMap(request))
+                .headers(header)
+                .get(SET_UID_ENDPOINT)
 
         checkResponseStatusCode(response)
 
@@ -344,16 +353,32 @@ class PrebidServerService implements ObjectMapperWrapper {
         }
     }
 
-    private static Map<String, String> getHeaders(Response response) {
-        response.headers().collectEntries { [it.name, it.value] }
+    private static Map<String, List<String>> getHeaders(Response response) {
+        response.headers().groupBy { it.name }.collectEntries { [(it.key): it.value*.value] }
     }
 
     private static UidsCookie getDecodedUidsCookie(Response response) {
-        def uids = response.detailedCookie(UIDS_COOKIE_NAME)?.value
-        if (uids) {
-            return decode(new String(Base64.urlDecoder.decode(uids)), UidsCookie)
-        } else {
-            throw new IllegalStateException("uids cookie is missing in response")
+        def sortedCookies = response.detailedCookies()
+                .findAll { cookie -> !(cookie =~ /\buids\d*=\s*;/) }
+                .sort { a, b ->
+                    def aMatch = (a.name =~ /uids(\d*)/)[0]
+                    def bMatch = (b.name =~ /uids(\d*)/)[0]
+
+                    def aNumber = (aMatch?.getAt(1) ? aMatch[1].toInteger() : 0)
+                    def bNumber = (bMatch?.getAt(1) ? bMatch[1].toInteger() : 0)
+
+                    aNumber <=> bNumber
+                }
+
+        def decodedCookiesList = sortedCookies.collect { cookie ->
+            def uid = (cookie =~ /uids\d*=(\S+?);/)[0][1]
+            decodeWithBase64(uid as String, UidsCookie)
+        }
+
+        decodedCookiesList.inject(new UidsCookie()) { uidsCookie, decodedCookie ->
+            uidsCookie.uids = (uidsCookie.uids ?: new LinkedHashMap()) + (decodedCookie.uids ?: new LinkedHashMap())
+            uidsCookie.tempUIDs = (uidsCookie.tempUIDs ?: new LinkedHashMap()) + (decodedCookie.tempUIDs ?: new LinkedHashMap())
+            uidsCookie
         }
     }
 

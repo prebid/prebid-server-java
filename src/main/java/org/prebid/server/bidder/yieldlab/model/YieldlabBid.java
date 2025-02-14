@@ -3,12 +3,13 @@ package org.prebid.server.bidder.yieldlab.model;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Value;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidDsa;
 
 @AllArgsConstructor(staticName = "of")
 @Value
-public class YieldlabResponse {
+public class YieldlabBid {
 
-    Integer id;
+    Long id;
 
     Double price;
 
@@ -17,11 +18,11 @@ public class YieldlabResponse {
     @JsonProperty("adsize")
     String adSize;
 
-    Integer pid;
+    Long pid;
 
-    Integer did;
+    Long did;
 
     String pvid;
 
-    YieldlabDigitalServicesActResponse dsa;
+    ExtBidDsa dsa;
 }

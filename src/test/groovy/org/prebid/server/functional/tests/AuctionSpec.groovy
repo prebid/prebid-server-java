@@ -58,7 +58,7 @@ class AuctionSpec extends BaseSpec {
         def response = defaultPbsService.sendAuctionRequestRaw(bidRequest)
 
         then: "Response header should contain PBS version"
-        assert response.headers["x-prebid"] == "pbs-java/$PBS_VERSION"
+        assert response.headers["x-prebid"] == ["pbs-java/$PBS_VERSION"]
 
         where:
         bidRequest                   || description

@@ -43,7 +43,7 @@ class TopicsHeaderSpec extends BaseSpec {
         assert bidderRequest.user.data[0].segment.id.sort().containsAll(firstSecBrowsingTopic.segments)
 
         and: "Response should contain Observe-Browsing-Topics header"
-        assert response.headers["Observe-Browsing-Topics"] == "?1"
+        assert response.headers["Observe-Browsing-Topics"] == ["?1"]
     }
 
     def "PBS should populate headers with Observe-Browsing-Topics and emit warning when Sec-Browsing-Topics invalid header present in request"() {
@@ -63,7 +63,7 @@ class TopicsHeaderSpec extends BaseSpec {
         assert !bidderRequest.user.data
 
         and: "Response should contain Observe-Browsing-Topics header"
-        assert response.headers["Observe-Browsing-Topics"] == "?1"
+        assert response.headers["Observe-Browsing-Topics"] == ["?1"]
 
         and: "Response should contain Observe-Browsing-Topics header"
         assert response.responseBody.contains("\"warnings\":{\"prebid\":[{\"code\":999,\"message\":\"Invalid field " +
@@ -94,7 +94,7 @@ class TopicsHeaderSpec extends BaseSpec {
         assert !bidderRequest.user.data
 
         and: "Response should contain Observe-Browsing-Topics header"
-        assert response.headers["Observe-Browsing-Topics"] == "?1"
+        assert response.headers["Observe-Browsing-Topics"] == ["?1"]
 
         and: "Response should contain Observe-Browsing-Topics header"
         assert response.responseBody.contains("\"warnings\":{\"prebid\":[{\"code\":999,\"message\":\"Invalid field " +
@@ -128,7 +128,7 @@ class TopicsHeaderSpec extends BaseSpec {
         assert bidderRequest.user.data.size() == 10
 
         and: "Response should contain Observe-Browsing-Topics header"
-        assert response.headers["Observe-Browsing-Topics"] == "?1"
+        assert response.headers["Observe-Browsing-Topics"] == ["?1"]
     }
 
     def "PBS shouldn't populate user.data when header Sec-Browsing-Topics contain 10 `p=` value and 11 valid"() {
@@ -155,7 +155,7 @@ class TopicsHeaderSpec extends BaseSpec {
         assert response.responseBody.contains("Invalid field in Sec-Browsing-Topics header: ${header.replace(", ", "")} discarded due to limit reached.")
 
         and: "Response should contain Observe-Browsing-Topics header"
-        assert response.headers["Observe-Browsing-Topics"] == "?1"
+        assert response.headers["Observe-Browsing-Topics"] == ["?1"]
     }
 
     def "PBS should update user.data when Sec-Browsing-Topics header present in request"() {
@@ -193,7 +193,7 @@ class TopicsHeaderSpec extends BaseSpec {
                                                                       secBrowsingTopic.segments].sort())
 
         and: "Response should contain Observe-Browsing-Topics header"
-        assert response.headers["Observe-Browsing-Topics"] == "?1"
+        assert response.headers["Observe-Browsing-Topics"] == ["?1"]
     }
 
     def "PBS should overlap segments when Sec-Browsing-Topics header present in request"() {
@@ -229,7 +229,7 @@ class TopicsHeaderSpec extends BaseSpec {
                 [randomSegment as String, firstSecBrowsingTopic.segments[0], secondSecBrowsingTopic.segments[0]]
 
         and: "Response should contain Observe-Browsing-Topics header"
-        assert response.headers["Observe-Browsing-Topics"] == "?1"
+        assert response.headers["Observe-Browsing-Topics"] == ["?1"]
     }
 
     def "PBS should multiple taxonomies when Sec-Browsing-Topics header present in request"() {
@@ -255,7 +255,7 @@ class TopicsHeaderSpec extends BaseSpec {
                 .containsAll([firstSecBrowsingTopic.segments[0], secondSecBrowsingTopic.segments[0]])
 
         and: "Response should contain Observe-Browsing-Topics header"
-        assert response.headers["Observe-Browsing-Topics"] == "?1"
+        assert response.headers["Observe-Browsing-Topics"] == ["?1"]
     }
 
     def "PBS should populate user.data with empty name when privacy sand box present with empty name"() {
@@ -282,7 +282,7 @@ class TopicsHeaderSpec extends BaseSpec {
         assert bidderRequest.user.data[0].segment.id.sort() == secBrowsingTopic.segments.sort()
 
         and: "Response should contain Observe-Browsing-Topics header"
-        assert response.headers["Observe-Browsing-Topics"] == "?1"
+        assert response.headers["Observe-Browsing-Topics"] == ["?1"]
 
         where:
         topicsdomain << [null, ""]

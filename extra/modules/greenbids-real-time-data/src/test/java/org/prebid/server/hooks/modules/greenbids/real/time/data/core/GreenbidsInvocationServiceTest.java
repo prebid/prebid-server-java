@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.analytics.reporter.greenbids.model.Ortb2ImpExtResult;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.model.data.Partner;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.model.data.GreenbidsConfig;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.result.GreenbidsInvocationResult;
 import org.prebid.server.hooks.v1.InvocationAction;
 
@@ -45,13 +45,13 @@ public class GreenbidsInvocationServiceTest {
                 .banner(banner)
                 .build();
         final Device device = givenDevice(identity());
-        final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device, null);
+        final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device);
         final Map<String, Map<String, Boolean>> impsBiddersFilterMap = givenImpsBiddersFilterMap();
-        final Partner partner = givenPartner(0.0);
+        final GreenbidsConfig greenbidsConfig = givenPartner(0.0);
 
         // when
         final GreenbidsInvocationResult result = target.createGreenbidsInvocationResult(
-                partner, bidRequest, impsBiddersFilterMap);
+                greenbidsConfig, bidRequest, impsBiddersFilterMap);
 
         // then
         final JsonNode updatedBidRequestExtPrebidBidders = result.getUpdatedBidRequest().getImp().getFirst().getExt()
@@ -82,13 +82,13 @@ public class GreenbidsInvocationServiceTest {
                 .banner(banner)
                 .build();
         final Device device = givenDevice(identity());
-        final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device, null);
+        final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device);
         final Map<String, Map<String, Boolean>> impsBiddersFilterMap = givenImpsBiddersFilterMap();
-        final Partner partner = givenPartner(1.0);
+        final GreenbidsConfig greenbidsConfig = givenPartner(1.0);
 
         // when
         final GreenbidsInvocationResult result = target.createGreenbidsInvocationResult(
-                partner, bidRequest, impsBiddersFilterMap);
+                greenbidsConfig, bidRequest, impsBiddersFilterMap);
 
         // then
         final JsonNode updatedBidRequestExtPrebidBidders = result.getUpdatedBidRequest().getImp().getFirst().getExt()
@@ -120,7 +120,7 @@ public class GreenbidsInvocationServiceTest {
         return impsBiddersFilterMap;
     }
 
-    private Partner givenPartner(Double explorationRate) {
-        return Partner.of("test-pbuid", 0.60, explorationRate);
+    private GreenbidsConfig givenPartner(Double explorationRate) {
+        return GreenbidsConfig.of("test-pbuid", 0.60, explorationRate);
     }
 }

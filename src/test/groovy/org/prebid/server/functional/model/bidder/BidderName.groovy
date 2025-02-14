@@ -18,6 +18,7 @@ enum BidderName {
     APPNEXUS("appnexus"),
     RUBICON_ALIAS("rubiconAlias"),
     OPENX("openx"),
+    OPENX_ALIAS("openxalias"),
     ACEEX("aceex"),
     ACUITYADS("acuityads"),
     AAX("aax"),

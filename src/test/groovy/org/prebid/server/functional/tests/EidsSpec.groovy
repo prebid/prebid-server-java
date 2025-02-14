@@ -16,13 +16,17 @@ import org.prebid.server.functional.util.PBSUtils
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
+import static org.prebid.server.functional.model.bidder.BidderName.UNKNOWN
 import static org.prebid.server.functional.model.bidder.BidderName.WILDCARD
+import static org.prebid.server.functional.model.request.auction.DebugCondition.DISABLED
+import static org.prebid.server.functional.model.request.auction.DebugCondition.ENABLED
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 
 class EidsSpec extends BaseSpec {
 
     private static final String EMPTY_STRING = ""
+    private static final String RANDOM_SOURCE_ID = PBSUtils.randomString
 
     def "PBS shouldn't populate user.id from user.ext data"() {
         given: "Default basic BidRequest with generic bidder"
@@ -89,6 +93,68 @@ class EidsSpec extends BaseSpec {
         then: "Bidder request shouldn't contain requested eids"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert !bidderRequest.user.eids
+    }
+
+    def "PBS eids shouldn't include warning for unknown bidder when test and debug disabled"() {
+        given: "Default bid request with generic bidder"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            user = requestUser
+            ext.prebid.data = new ExtRequestPrebidData(eidpermissions: [new EidPermission(source: RANDOM_SOURCE_ID, bidders: [UNKNOWN])])
+            it.ext.prebid.debug = DISABLED
+            it.test = DISABLED
+        }
+
+        when: "PBS processes auction request"
+        def bidResponse = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request shouldn't contain requested eids"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert !bidderRequest.user.eids
+
+        and: "Bid response shouldn't contain warning"
+        assert !bidResponse.ext.warnings
+
+        where:
+        requestUser << [new User(eids: [Eid.getDefaultEid(RANDOM_SOURCE_ID)]),
+                        new User(ext: new UserExt(eids: [Eid.getDefaultEid(RANDOM_SOURCE_ID)])),
+                        new User(eids: [Eid.getDefaultEid(RANDOM_SOURCE_ID)],
+                                ext: new UserExt(eids: [Eid.getDefaultEid(RANDOM_SOURCE_ID)]))]
+    }
+
+    def "PBS eids should include warning for unknown bidder when request in debug mode"() {
+        given: "Default bid request with generic bidder"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            user = requestUser
+            ext.prebid.data = new ExtRequestPrebidData(eidpermissions: [new EidPermission(source: RANDOM_SOURCE_ID, bidders: [UNKNOWN])])
+            it.ext.prebid.debug = debug
+            it.test = test
+        }
+
+        when: "PBS processes auction request"
+        def bidResponse = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request shouldn't contain requested eids"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert !bidderRequest.user.eids
+
+        and: "Bid response should contain warning"
+        assert bidResponse.ext.warnings[PREBID]?.code == [999]
+        assert bidResponse.ext.warnings[PREBID]?.message ==
+                ["request.ext.prebid.data.eidPermissions[].bidders[] unrecognized biddercode: '$UNKNOWN'"]
+
+        where:
+        debug    | test     | requestUser
+        DISABLED | ENABLED  | new User(eids: [Eid.getDefaultEid(RANDOM_SOURCE_ID)])
+        DISABLED | ENABLED  | new User(ext: new UserExt(eids: [Eid.getDefaultEid(RANDOM_SOURCE_ID)]))
+        DISABLED | ENABLED  | new User(eids: [Eid.getDefaultEid(RANDOM_SOURCE_ID)], ext: new UserExt(eids: [Eid.getDefaultEid(RANDOM_SOURCE_ID)]))
+
+        ENABLED  | DISABLED | new User(eids: [Eid.getDefaultEid(RANDOM_SOURCE_ID)])
+        ENABLED  | DISABLED | new User(ext: new UserExt(eids: [Eid.getDefaultEid(RANDOM_SOURCE_ID)]))
+        ENABLED  | DISABLED | new User(eids: [Eid.getDefaultEid(RANDOM_SOURCE_ID)], ext: new UserExt(eids: [Eid.getDefaultEid(RANDOM_SOURCE_ID)]))
+
+        ENABLED  | ENABLED  | new User(eids: [Eid.getDefaultEid(RANDOM_SOURCE_ID)])
+        ENABLED  | ENABLED  | new User(ext: new UserExt(eids: [Eid.getDefaultEid(RANDOM_SOURCE_ID)]))
+        ENABLED  | ENABLED  | new User(eids: [Eid.getDefaultEid(RANDOM_SOURCE_ID)], ext: new UserExt(eids: [Eid.getDefaultEid(RANDOM_SOURCE_ID)]))
     }
 
     def "PBs eid permissions should affect only specified on source"() {
