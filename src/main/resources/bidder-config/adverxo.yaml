@@ -2,6 +2,37 @@ adapters:
   adverxo:
     endpoint: https://pbsadverxo.com/auction?adUnitId={{adUnitId}}&auth={{auth}}
     endpoint-compression: gzip
+    aliases:
+      adport:
+        enabled: false
+        endpoint: https://adport.pbsadverxo.com/auction?id={{adUnit}}&auth={{auth}}
+        userSync:
+          iframe:
+            url: https://adport.pbsadverxo.com/usync?type=iframe&gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+            userMacro: '[UID]'
+          redirect:
+            url: https://adport.pbsadverxo.com/usync?type=image&gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+            userMacro: '[UID]'
+      bidsmind:
+        enabled: false
+        endpoint: https://bidsmind.pbsadverxo.com/auction?id={{adUnit}}&auth={{auth}}
+        userSync:
+          iframe:
+            url: https://bidsmind.pbsadverxo.com/usync?type=iframe&gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+            userMacro: '[UID]'
+          redirect:
+            url: https://bidsmind.pbsadverxo.com/usync?type=image&gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+            userMacro: '[UID]'
+      mobupps:
+        enabled: false
+        endpoint: https://mobupps.pbsadverxo.com/auction?id={{adUnit}}&auth={{auth}}
+        userSync:
+          iframe:
+            url: https://mobupps.pbsadverxo.com/usync?type=iframe&gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+            userMacro: '[UID]'
+          redirect:
+            url: https://mobupps.pbsadverxo.com/usync?type=image&gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+            userMacro: '[UID]'
     meta-info:
       maintainer-email: developer@adverxo.com
       app-media-types:

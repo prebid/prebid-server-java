@@ -68,7 +68,7 @@ public class AdverxoBidder implements Bidder<BidRequest> {
                 final Imp modifiedImp = modifyImp(request, imp);
                 final BidRequest outgoingRequest = createRequest(request, modifiedImp);
 
-                requests.add(createHttpRequest(outgoingRequest, endpoint));
+                requests.add(BidderUtil.defaultRequest(outgoingRequest, endpoint, mapper));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -124,10 +124,6 @@ public class AdverxoBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private HttpRequest<BidRequest> createHttpRequest(BidRequest outgoingRequest, String endpoint) {
-        return BidderUtil.defaultRequest(outgoingRequest, endpoint, mapper);
-    }
-
     @Override
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
@@ -151,7 +147,6 @@ public class AdverxoBidder implements Bidder<BidRequest> {
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
                 .map(bid -> makeBid(bid, bidResponse.getCur()))
-                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
@@ -168,8 +163,7 @@ public class AdverxoBidder implements Bidder<BidRequest> {
             case 1 -> BidType.banner;
             case 2 -> BidType.video;
             case 4 -> BidType.xNative;
-            case null, default ->
-                    throw new PreBidException("Unsupported mType " + mType);
+            case null, default -> throw new PreBidException("Unsupported mType " + mType);
         };
     }
 
