@@ -111,6 +111,8 @@ public class CoreCacheServiceTest extends VertxTest {
                 100L,
                 null,
                 false,
+                false,
+                null,
                 vastModifier,
                 eventsService,
                 metrics,
@@ -385,6 +387,8 @@ public class CoreCacheServiceTest extends VertxTest {
                 100L,
                 "ApiKey",
                 true,
+                false,
+                null,
                 vastModifier,
                 eventsService,
                 metrics,
@@ -810,6 +814,8 @@ public class CoreCacheServiceTest extends VertxTest {
                 100L,
                 "ApiKey",
                 true,
+                false,
+                null,
                 vastModifier,
                 eventsService,
                 metrics,
@@ -827,7 +833,7 @@ public class CoreCacheServiceTest extends VertxTest {
 
         // when
         target.cachePutObjects(
-                asList(firstBidPutObject),
+                singletonList(firstBidPutObject),
                 true,
                 singleton("bidder1"),
                 "account",
@@ -837,6 +843,172 @@ public class CoreCacheServiceTest extends VertxTest {
         // then
         assertThat(captureBidCacheRequestHeaders().get(HttpUtil.X_PBC_API_KEY_HEADER.toString()))
                 .isEqualTo("ApiKey");
+    }
+
+    @Test
+    public void cachePutObjectsShouldPrependTraceInfoWhenEnabled() throws IOException {
+        // given
+        target = new CoreCacheService(
+                httpClient,
+                new URL("http://cache-service/cache"),
+                "http://cache-service-host/cache?uuid=",
+                100L,
+                "ApiKey",
+                false,
+                true,
+                null,
+                vastModifier,
+                eventsService,
+                metrics,
+                clock,
+                idGenerator,
+                jacksonMapper);
+
+        given(idGenerator.generateId()).willReturn("high-entropy-cache-id");
+
+        final BidPutObject firstBidPutObject = BidPutObject.builder()
+                .type("json")
+                .bidid("bidId1")
+                .bidder("bidder1")
+                .timestamp(1L)
+                .value(new TextNode("vast"))
+                .build();
+        final BidPutObject secondBidPutObject = BidPutObject.builder()
+                .type("xml")
+                .bidid("bidId2")
+                .bidder("bidder2")
+                .timestamp(1L)
+                .value(new TextNode("VAST"))
+                .build();
+        final BidPutObject thirdBidPutObject = BidPutObject.builder()
+                .type("text")
+                .bidid("bidId3")
+                .bidder("bidder3")
+                .timestamp(1L)
+                .value(new TextNode("VAST"))
+                .build();
+
+        given(vastModifier.modifyVastXml(any(), any(), any(), any(), anyString()))
+                .willReturn(new TextNode("modifiedVast"))
+                .willReturn(new TextNode("VAST"))
+                .willReturn(new TextNode("updatedVast"));
+
+        // when
+        target.cachePutObjects(
+                asList(firstBidPutObject, secondBidPutObject, thirdBidPutObject),
+                true,
+                singleton("bidder1"),
+                "account",
+                "pbjs",
+                timeout);
+
+        // then
+        final BidPutObject modifiedFirstBidPutObject = firstBidPutObject.toBuilder()
+                .bidid(null)
+                .bidder(null)
+                .timestamp(null)
+                .key("account-high-entropy-")
+                .value(new TextNode("modifiedVast"))
+                .build();
+        final BidPutObject modifiedSecondBidPutObject = secondBidPutObject.toBuilder()
+                .bidid(null)
+                .bidder(null)
+                .timestamp(null)
+                .key("account-high-entropy-")
+                .build();
+        final BidPutObject modifiedThirdBidPutObject = thirdBidPutObject.toBuilder()
+                .bidid(null)
+                .bidder(null)
+                .timestamp(null)
+                .key("account-high-entropy-")
+                .value(new TextNode("updatedVast"))
+                .build();
+
+        assertThat(captureBidCacheRequest().getPuts())
+                .containsExactly(modifiedFirstBidPutObject, modifiedSecondBidPutObject, modifiedThirdBidPutObject);
+    }
+
+    @Test
+    public void cachePutObjectsShouldPrependTraceInfoWithDatacenterWhenEnabled() throws IOException {
+        // given
+        target = new CoreCacheService(
+                httpClient,
+                new URL("http://cache-service/cache"),
+                "http://cache-service-host/cache?uuid=",
+                100L,
+                "ApiKey",
+                false,
+                true,
+                "apac",
+                vastModifier,
+                eventsService,
+                metrics,
+                clock,
+                idGenerator,
+                jacksonMapper);
+
+        given(idGenerator.generateId()).willReturn("high-entropy-cache-id");
+
+        final BidPutObject firstBidPutObject = BidPutObject.builder()
+                .type("json")
+                .bidid("bidId1")
+                .bidder("bidder1")
+                .timestamp(1L)
+                .value(new TextNode("vast"))
+                .build();
+        final BidPutObject secondBidPutObject = BidPutObject.builder()
+                .type("xml")
+                .bidid("bidId2")
+                .bidder("bidder2")
+                .timestamp(1L)
+                .value(new TextNode("VAST"))
+                .build();
+        final BidPutObject thirdBidPutObject = BidPutObject.builder()
+                .type("text")
+                .bidid("bidId3")
+                .bidder("bidder3")
+                .timestamp(1L)
+                .value(new TextNode("VAST"))
+                .build();
+
+        given(vastModifier.modifyVastXml(any(), any(), any(), any(), anyString()))
+                .willReturn(new TextNode("modifiedVast"))
+                .willReturn(new TextNode("VAST"))
+                .willReturn(new TextNode("updatedVast"));
+
+        // when
+        target.cachePutObjects(
+                asList(firstBidPutObject, secondBidPutObject, thirdBidPutObject),
+                true,
+                singleton("bidder1"),
+                "account",
+                "pbjs",
+                timeout);
+
+        // then
+        final BidPutObject modifiedFirstBidPutObject = firstBidPutObject.toBuilder()
+                .bidid(null)
+                .bidder(null)
+                .timestamp(null)
+                .key("account-apac-high-ent")
+                .value(new TextNode("modifiedVast"))
+                .build();
+        final BidPutObject modifiedSecondBidPutObject = secondBidPutObject.toBuilder()
+                .bidid(null)
+                .bidder(null)
+                .timestamp(null)
+                .key("account-apac-high-ent")
+                .build();
+        final BidPutObject modifiedThirdBidPutObject = thirdBidPutObject.toBuilder()
+                .bidid(null)
+                .bidder(null)
+                .timestamp(null)
+                .key("account-apac-high-ent")
+                .value(new TextNode("updatedVast"))
+                .build();
+
+        assertThat(captureBidCacheRequest().getPuts())
+                .containsExactly(modifiedFirstBidPutObject, modifiedSecondBidPutObject, modifiedThirdBidPutObject);
     }
 
     private AuctionContext givenAuctionContext(UnaryOperator<Account.AccountBuilder> accountCustomizer,

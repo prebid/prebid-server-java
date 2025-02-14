@@ -63,6 +63,8 @@ public class CoreCacheService {
     private static final Logger logger = LoggerFactory.getLogger(CoreCacheService.class);
 
     private static final String BID_WURL_ATTRIBUTE = "wurl";
+    private static final String TRACE_INFO_SEPARATOR = "-";
+    private static final int MAX_DATACENTER_REGION_LENGTH = 4;
 
     private final HttpClient httpClient;
     private final URL endpointUrl;
@@ -78,6 +80,9 @@ public class CoreCacheService {
     private final MultiMap cacheHeaders;
     private final Map<String, List<String>> debugHeaders;
 
+    private final boolean appendTraceInfoToCacheId;
+    private final String datacenterRegion;
+
     public CoreCacheService(
             HttpClient httpClient,
             URL endpointUrl,
@@ -85,6 +90,8 @@ public class CoreCacheService {
             long expectedCacheTimeMs,
             String apiKey,
             boolean isApiKeySecured,
+            boolean appendTraceInfoToCacheId,
+            String datacenterRegion,
             VastModifier vastModifier,
             EventsService eventsService,
             Metrics metrics,
@@ -107,6 +114,9 @@ public class CoreCacheService {
                 ? HttpUtil.headers().add(HttpUtil.X_PBC_API_KEY_HEADER, Objects.requireNonNull(apiKey))
                 : HttpUtil.headers();
         debugHeaders = HttpUtil.toDebugHeaders(cacheHeaders);
+
+        this.appendTraceInfoToCacheId = appendTraceInfoToCacheId;
+        this.datacenterRegion = normalizeDatacenterRegion(datacenterRegion);
     }
 
     public String getEndpointHost() {
@@ -211,6 +221,7 @@ public class CoreCacheService {
                         .bidid(null)
                         .bidder(null)
                         .timestamp(null)
+                        .key(resolveCacheKey(accountId, putObject.getKey()))
                         .value(vastModifier.modifyVastXml(isEventsEnabled,
                                 allowedBidders,
                                 putObject,
@@ -268,7 +279,8 @@ public class CoreCacheService {
         final List<CachedCreative> cachedCreatives = Stream.concat(
                         bids.stream().map(cacheBid ->
                                 createJsonPutObjectOpenrtb(cacheBid, accountId, eventsContext)),
-                        videoBids.stream().map(videoBid -> createXmlPutObjectOpenrtb(videoBid, requestId, hbCacheId)))
+                        videoBids.stream().map(videoBid ->
+                                createXmlPutObjectOpenrtb(videoBid, requestId, hbCacheId, accountId)))
                 .collect(Collectors.toCollection(ArrayList::new));
 
         if (cachedCreatives.isEmpty()) {
@@ -385,9 +397,12 @@ public class CoreCacheService {
             bidObjectNode.put(BID_WURL_ATTRIBUTE, eventUrl);
         }
 
+        final String resolvedCacheKey = resolveCacheKey(accountId);
+
         final BidPutObject payload = BidPutObject.builder()
                 .aid(eventsContext.getAuctionId())
                 .type("json")
+                .key(resolvedCacheKey)
                 .value(bidObjectNode)
                 .ttlseconds(cacheBid.getTtl())
                 .build();
@@ -395,16 +410,21 @@ public class CoreCacheService {
         return CachedCreative.of(payload, creativeSizeFromAdm(bid.getAdm()));
     }
 
-    private CachedCreative createXmlPutObjectOpenrtb(CacheBid cacheBid, String requestId, String hbCacheId) {
+    private CachedCreative createXmlPutObjectOpenrtb(CacheBid cacheBid,
+                                                     String requestId,
+                                                     String hbCacheId,
+                                                     String accountId) {
         final BidInfo bidInfo = cacheBid.getBidInfo();
         final Bid bid = bidInfo.getBid();
         final String vastXml = bid.getAdm();
 
-        final String customCacheKey = resolveCustomCacheKey(hbCacheId, bidInfo.getCategory());
+        final String resolvedCacheKey = resolveCacheKey(accountId, hbCacheId);
+        final String customCacheKey = resolveCustomCacheKey(resolvedCacheKey, bidInfo.getCategory());
 
         final BidPutObject payload = BidPutObject.builder()
                 .aid(requestId)
                 .type("xml")
+                .key(customCacheKey != null ? customCacheKey : resolvedCacheKey)
                 .value(vastXml != null ? new TextNode(vastXml) : null)
                 .ttlseconds(cacheBid.getTtl())
                 .key(customCacheKey)
@@ -552,5 +572,45 @@ public class CoreCacheService {
         return BidCacheRequest.of(cachedCreatives.stream()
                 .map(CachedCreative::getPayload)
                 .toList());
+    }
+
+    private String resolveCacheKey(String accountId) {
+        return resolveCacheKey(accountId, null);
+    }
+
+    // hbCacheId is accepted here to have a backwards-compatibility with video category mapping
+    private String resolveCacheKey(String accountId, String hbCacheId) {
+        if (!appendTraceInfoToCacheId) {
+            return hbCacheId;
+        }
+
+        // no need to have additional separator if datacenter name won't be added
+        final boolean isDatacenterNamePopulated = StringUtils.isNotBlank(datacenterRegion);
+        final int separatorCount = isDatacenterNamePopulated ? 2 : 1;
+        final int accountIdLength = accountId.length();
+        final int traceInfoLength = isDatacenterNamePopulated
+                ? accountIdLength + datacenterRegion.length() + separatorCount
+                : accountIdLength + separatorCount;
+
+        final String cacheKey = hbCacheId != null ? hbCacheId : idGenerator.generateId();
+        if (cacheKey != null && traceInfoLength < cacheKey.length()) {
+            final String substring = cacheKey.substring(0, cacheKey.length() - traceInfoLength);
+            return isDatacenterNamePopulated
+                    ? accountId + TRACE_INFO_SEPARATOR + datacenterRegion + TRACE_INFO_SEPARATOR + substring
+                    : accountId + TRACE_INFO_SEPARATOR + substring;
+        } else {
+            return hbCacheId;
+        }
+    }
+
+    private String normalizeDatacenterRegion(String datacenterRegion) {
+        if (datacenterRegion == null) {
+            return null;
+        }
+
+        final String trimmedDatacenterRegion = datacenterRegion.trim();
+        return trimmedDatacenterRegion.length() > MAX_DATACENTER_REGION_LENGTH
+                ? trimmedDatacenterRegion.substring(0, MAX_DATACENTER_REGION_LENGTH)
+                : trimmedDatacenterRegion;
     }
 }
