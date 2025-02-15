@@ -33,7 +33,7 @@ import static org.prebid.server.functional.model.Currency.CHF
 import static org.prebid.server.functional.model.Currency.EUR
 import static org.prebid.server.functional.model.Currency.JPY
 import static org.prebid.server.functional.model.Currency.USD
-import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
+import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.bidder.CompressionType.GZIP
 import static org.prebid.server.functional.model.bidder.CompressionType.NONE
 import static org.prebid.server.functional.model.request.auction.Asset.titleAsset
@@ -1025,9 +1025,10 @@ class BidderParamsSpec extends BaseSpec {
 
     def "PBS should send request to bidder when adapters.bidder.aliases.bidder.meta-info.currency-accepted not specified"() {
         given: "PBS with adapter configuration"
-        def pbsConfig = ["adapters.generic.aliases.alias.enabled"                    : "true",
-                         "adapters.generic.aliases.alias.endpoint"                   : "$networkServiceContainer.rootUri/auction".toString(),
-                         "adapters.generic.aliases.alias.meta-info.currency-accepted": ""]
+        def pbsConfig = [
+                "adapters.generic.aliases.alias.enabled": "true",
+                "adapters.generic.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString(),
+                "adapters.generic.aliases.alias.meta-info.currency-accepted": ""]
         def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request with alias bidder"
@@ -1144,9 +1145,10 @@ class BidderParamsSpec extends BaseSpec {
 
     def "PBS should send request to bidder when adapters.bidder.aliases.bidder.meta-info.currency-accepted intersect with requested currency"() {
         given: "PBS with adapter configuration"
-        def pbsConfig = ["adapters.generic.aliases.alias.enabled"                    : "true",
-                         "adapters.generic.aliases.alias.endpoint"                   : "$networkServiceContainer.rootUri/auction".toString(),
-                         "adapters.generic.aliases.alias.meta-info.currency-accepted": "${USD},${EUR}".toString()]
+        def pbsConfig = [
+                "adapters.generic.aliases.alias.enabled": "true",
+                "adapters.generic.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString(),
+                "adapters.generic.aliases.alias.meta-info.currency-accepted": "${USD},${EUR}".toString()]
         def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default basic BidRequest with alias bidder"
@@ -1188,9 +1190,10 @@ class BidderParamsSpec extends BaseSpec {
 
     def "PBS shouldn't send request to bidder and emit warning when adapters.bidder.aliases.bidder.meta-info.currency-accepted not intersect with requested currency"() {
         given: "PBS with adapter configuration"
-        def pbsConfig = ["adapters.generic.aliases.alias.enabled"                    : "true",
-                         "adapters.generic.aliases.alias.endpoint"                   : "$networkServiceContainer.rootUri/auction".toString(),
-                         "adapters.generic.aliases.alias.meta-info.currency-accepted": "${JPY},${CHF}".toString()]
+        def pbsConfig = [
+                "adapters.generic.aliases.alias.enabled": "true",
+                "adapters.generic.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString(),
+                "adapters.generic.aliases.alias.meta-info.currency-accepted": "${JPY},${CHF}".toString()]
         def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default basic BidRequest with alias bidder"
@@ -1297,5 +1300,45 @@ class BidderParamsSpec extends BaseSpec {
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp[0].ext.auctionEnvironment == extAuctionEnv
         assert bidderRequest.imp[0].ext.interestGroupAuctionSupports.auctionEnvironment == extIgsAuctionEnv
+    }
+
+    def "PBS should send bidder code from imp[].ext.prebid.bidder to seatbid.bid.ext.prebid.meta.adapterCode"() {
+        given: "Default basic bid request"
+        def bidRequest = BidRequest.defaultBidRequest
+
+        and: "Default bid response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid[0].seat = OPENX
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain adapter code"
+        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [BidderName.GENERIC]
+
+        and: "Bidder request should be valid"
+        assert bidder.getBidderRequest(bidRequest.id)
+    }
+
+    def "PBS should send bidder code from imp[].ext.prebid.bidder to seatbid.bid.ext.prebid.meta.adapterCode when requested alias"() {
+        given: "Default bid request with alias"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.aliases = [(ALIAS.value): BidderName.GENERIC]
+            imp[0].ext.prebid.bidder.tap {
+                generic = null
+                alias = new Generic()
+            }
+        }
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain adapter code"
+        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [BidderName.ALIAS]
+
+        and: "Bidder request should be valid"
+        assert bidder.getBidderRequests(bidRequest.id)
     }
 }
