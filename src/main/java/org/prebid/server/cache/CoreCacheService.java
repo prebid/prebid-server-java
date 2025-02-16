@@ -148,7 +148,8 @@ public class CoreCacheService {
         return cacheKey;
     }
 
-    private CachedCreative makeDebugCacheCreative(CachedDebugLog videoCacheDebugLog, String hbCacheId,
+    private CachedCreative makeDebugCacheCreative(CachedDebugLog videoCacheDebugLog,
+                                                  String hbCacheId,
                                                   Integer videoCacheTtl) {
         final JsonNode value = mapper.mapper().valueToTree(videoCacheDebugLog.buildCacheBody());
         videoCacheDebugLog.setCacheKey(hbCacheId);
@@ -535,10 +536,21 @@ public class CoreCacheService {
     }
 
     private void updateCreativeMetrics(String accountId, List<CachedCreative> cachedCreatives) {
-        for (final CachedCreative cachedCreative : cachedCreatives) {
+        for (CachedCreative cachedCreative : cachedCreatives) {
+            final MetricName creativeType = resolveCreativeTypeName(cachedCreative.getPayload());
+            final Integer creativeTtl = cachedCreative.getPayload().getTtlseconds() != null
+                    ? cachedCreative.getPayload().getTtlseconds()
+                    : cachedCreative.getPayload().getExpiry();
+
+            if (creativeTtl != null) {
+                metrics.updateCacheCreativeTtl(accountId,
+                        creativeTtl,
+                        creativeType);
+            }
+
             metrics.updateCacheCreativeSize(accountId,
                     cachedCreative.getSize(),
-                    resolveCreativeTypeName(cachedCreative.getPayload()));
+                    creativeType);
         }
     }
 

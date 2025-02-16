@@ -73,6 +73,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
@@ -440,9 +441,10 @@ public class CoreCacheServiceTest extends VertxTest {
                 ExtPrebid.of(ExtBidPrebid.builder().bidid("generatedId").build(),
                         emptyMap()));
         final String receivedBid2Adm = "adm2";
-        final BidInfo bidInfo1 = givenBidInfo(builder -> builder.id("bidId1"), BidType.banner, "bidder1");
+        final BidInfo bidInfo1 = givenBidInfo(builder -> builder.id("bidId1"), BidType.banner, "bidder1")
+                .toBuilder().ttl(1).build();
         final BidInfo bidInfo2 = givenBidInfo(builder -> builder.id("bidId2").adm(receivedBid2Adm).ext(bidExt2),
-                BidType.video, "bidder2");
+                BidType.video, "bidder2").toBuilder().ttl(2).build();
 
         final EventsContext eventsContext = EventsContext.builder()
                 .auctionId("auctionId")
@@ -465,6 +467,10 @@ public class CoreCacheServiceTest extends VertxTest {
         verify(metrics).updateCacheCreativeSize(eq("accountId"), eq(4), eq(MetricName.json));
         verify(metrics).updateCacheCreativeSize(eq("accountId"), eq(4), eq(MetricName.xml));
 
+        verify(metrics).updateCacheCreativeTtl(eq("accountId"), eq(1), eq(MetricName.json));
+        verify(metrics).updateCacheCreativeTtl(eq("accountId"), eq(2), eq(MetricName.json));
+
+
         final Bid bid1 = bidInfo1.getBid();
         final Bid bid2 = bidInfo2.getBid();
 
@@ -472,9 +478,9 @@ public class CoreCacheServiceTest extends VertxTest {
         assertThat(bidCacheRequest.getPuts())
                 .containsExactly(
                         BidPutObject.builder().aid("auctionId").type("json")
-                                .value(mapper.valueToTree(bid1)).build(),
+                                .value(mapper.valueToTree(bid1)).ttlseconds(1).build(),
                         BidPutObject.builder().aid("auctionId").type("json")
-                                .value(mapper.valueToTree(bid2)).build(),
+                                .value(mapper.valueToTree(bid2)).ttlseconds(2).build(),
                         BidPutObject.builder().aid("auctionId").type("xml")
                                 .value(new TextNode(receivedBid2Adm)).build());
     }
@@ -744,6 +750,7 @@ public class CoreCacheServiceTest extends VertxTest {
                 .bidder("bidder1")
                 .timestamp(1L)
                 .value(new TextNode("vast"))
+                .ttlseconds(1)
                 .build();
         final BidPutObject secondBidPutObject = BidPutObject.builder()
                 .type("xml")
@@ -751,6 +758,7 @@ public class CoreCacheServiceTest extends VertxTest {
                 .bidder("bidder2")
                 .timestamp(1L)
                 .value(new TextNode("VAST"))
+                .ttlseconds(2)
                 .build();
         final BidPutObject thirdBidPutObject = BidPutObject.builder()
                 .type("text")
@@ -758,6 +766,7 @@ public class CoreCacheServiceTest extends VertxTest {
                 .bidder("bidder3")
                 .timestamp(1L)
                 .value(new TextNode("VAST"))
+                .ttlseconds(3)
                 .build();
 
         given(vastModifier.modifyVastXml(any(), any(), any(), any(), anyString()))
@@ -778,6 +787,10 @@ public class CoreCacheServiceTest extends VertxTest {
         verify(metrics).updateCacheCreativeSize(eq("account"), eq(12), eq(MetricName.json));
         verify(metrics).updateCacheCreativeSize(eq("account"), eq(4), eq(MetricName.xml));
         verify(metrics).updateCacheCreativeSize(eq("account"), eq(11), eq(MetricName.unknown));
+
+        verify(metrics).updateCacheCreativeTtl(eq("account"), eq(1), eq(MetricName.json));
+        verify(metrics).updateCacheCreativeTtl(eq("account"), eq(2), eq(MetricName.xml));
+        verify(metrics).updateCacheCreativeTtl(eq("account"), eq(3), eq(MetricName.unknown));
 
         verify(vastModifier).modifyVastXml(true, singleton("bidder1"), firstBidPutObject, "account", "pbjs");
         verify(vastModifier).modifyVastXml(true, singleton("bidder1"), secondBidPutObject, "account", "pbjs");
@@ -1009,6 +1022,75 @@ public class CoreCacheServiceTest extends VertxTest {
 
         assertThat(captureBidCacheRequest().getPuts())
                 .containsExactly(modifiedFirstBidPutObject, modifiedSecondBidPutObject, modifiedThirdBidPutObject);
+    }
+
+    @Test
+    public void cacheBidsOpenrtbShouldNotEmitEmptyTtlMetrics() {
+        // given
+        final BidInfo bidInfo1 = givenBidInfo(builder -> builder.id("bidId1"), BidType.banner, "bidder1")
+                .toBuilder()
+                .ttl(null)
+                .build();
+        final BidInfo bidInfo2 = givenBidInfo(builder -> builder.id("bidId2"), BidType.video, "bidder2")
+                .toBuilder()
+                .ttl(null)
+                .build();
+
+        final EventsContext eventsContext = EventsContext.builder()
+                .auctionId("auctionId")
+                .auctionTimestamp(1000L)
+                .build();
+
+        // when
+        target.cacheBidsOpenrtb(
+                asList(bidInfo1, bidInfo2),
+                givenAuctionContext(),
+                CacheContext.builder()
+                        .shouldCacheBids(true)
+                        .shouldCacheVideoBids(true)
+                        .build(),
+                eventsContext);
+
+        // then
+        verify(metrics, never()).updateCacheCreativeTtl(any(), any(), any());
+    }
+
+    @Test
+    public void cachePutObjectsShouldPrependTraceInfo() {
+        // given
+        final BidPutObject firstBidPutObject = BidPutObject.builder()
+                .type("json")
+                .bidid("bidId1")
+                .bidder("bidder1")
+                .timestamp(1L)
+                .value(new TextNode("vast"))
+                .ttlseconds(null)
+                .build();
+        final BidPutObject secondBidPutObject = BidPutObject.builder()
+                .type("xml")
+                .bidid("bidId2")
+                .bidder("bidder2")
+                .timestamp(1L)
+                .value(new TextNode("VAST"))
+                .ttlseconds(null)
+                .build();
+
+        given(vastModifier.modifyVastXml(any(), any(), any(), any(), anyString()))
+                .willReturn(new TextNode("modifiedVast"))
+                .willReturn(new TextNode("VAST"))
+                .willReturn(new TextNode("updatedVast"));
+
+        // when
+        target.cachePutObjects(
+                asList(firstBidPutObject, secondBidPutObject),
+                true,
+                singleton("bidder1"),
+                "account",
+                "pbjs",
+                timeout);
+
+        // then
+        verify(metrics, never()).updateCacheCreativeTtl(any(), any(), any());
     }
 
     private AuctionContext givenAuctionContext(UnaryOperator<Account.AccountBuilder> accountCustomizer,

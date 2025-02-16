@@ -1532,6 +1532,25 @@ public class MetricsTest {
                 .isEqualTo(1);
     }
 
+    @Test
+    public void shouldIncrementPrebidCacheCreativeTtlHistogram() {
+        // when
+        metrics.updateCacheCreativeTtl("accountId", 123, MetricName.json);
+        metrics.updateCacheCreativeTtl("accountId", 456, MetricName.xml);
+        metrics.updateCacheCreativeTtl("accountId", 789, MetricName.unknown);
+
+        // then
+        assertThat(metricRegistry.histogram("prebid_cache.creative_ttl.json").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.histogram("account.accountId.prebid_cache.creative_ttl.json").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.histogram("prebid_cache.creative_ttl.xml").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.histogram("account.accountId.prebid_cache.creative_ttl.xml").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.histogram("prebid_cache.creative_ttl.unknown").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.histogram("account.accountId.prebid_cache.creative_ttl.unknown").getCount())
+                .isEqualTo(1);
+    }
+
     private void verifyCreatesConfiguredCounterType(Consumer<Metrics> metricsConsumer) {
         final EnumMap<CounterType, Class<? extends Metric>> counterTypeClasses = new EnumMap<>(CounterType.class);
         counterTypeClasses.put(CounterType.counter, Counter.class);

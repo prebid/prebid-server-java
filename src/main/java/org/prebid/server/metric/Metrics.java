@@ -694,6 +694,11 @@ public class Metrics extends UpdatableMetrics {
         }
     }
 
+    public void updateCacheCreativeTtl(String accountId, Integer creativeTtl, MetricName creativeType) {
+        cache().creativeTtl().updateHistogram(creativeType, creativeTtl);
+        forAccount(accountId).cache().creativeTtl().updateHistogram(creativeType, creativeTtl);
+    }
+
     private static class HookMetricMapper {
 
         private static final EnumMap<ExecutionStatus, MetricName> STATUS_TO_METRIC =
