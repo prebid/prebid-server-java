@@ -98,10 +98,10 @@ public class AdmaticBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).hasSize(1).first()
                 .extracting(HttpRequest::getHeaders)
-                .satisfies(headers -> assertThat(headers.get(CONTENT_TYPE_HEADER))
-                        .isEqualTo(APPLICATION_JSON_CONTENT_TYPE))
-                .satisfies(headers -> assertThat(headers.get(ACCEPT_HEADER))
-                        .isEqualTo(APPLICATION_JSON_VALUE));
+                .satisfies(headers -> {
+                    assertThat(headers.get(CONTENT_TYPE_HEADER)).isEqualTo(APPLICATION_JSON_CONTENT_TYPE);
+                    assertThat(headers.get(ACCEPT_HEADER)).isEqualTo(APPLICATION_JSON_VALUE);
+                });
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -120,14 +120,12 @@ public class AdmaticBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1).first()
                 .extracting(HttpRequest::getHeaders)
-                .satisfies(headers -> assertThat(headers.get(CONTENT_TYPE_HEADER))
-                        .isEqualTo(APPLICATION_JSON_CONTENT_TYPE))
-                .satisfies(headers -> assertThat(headers.get(ACCEPT_HEADER))
-                        .isEqualTo(APPLICATION_JSON_VALUE))
-                .satisfies(headers -> assertThat(headers.get(USER_AGENT_HEADER))
-                        .isEqualTo("ua"))
-                .satisfies(headers -> assertThat(headers.get(X_FORWARDED_FOR_HEADER))
-                        .isEqualTo("ip"));
+                .satisfies(headers -> {
+                    assertThat(headers.get(CONTENT_TYPE_HEADER)).isEqualTo(APPLICATION_JSON_CONTENT_TYPE);
+                    assertThat(headers.get(ACCEPT_HEADER)).isEqualTo(APPLICATION_JSON_VALUE);
+                    assertThat(headers.get(USER_AGENT_HEADER)).isEqualTo("ua");
+                    assertThat(headers.get(X_FORWARDED_FOR_HEADER)).isEqualTo("ipv6");
+                });
         assertThat(result.getErrors()).isEmpty();
     }
 

@@ -60,7 +60,8 @@ public class AdmaticBidder implements Bidder<BidRequest> {
                 requests.add(BidderUtil.defaultRequest(
                         modifiedBidRequest,
                         headers(modifiedBidRequest.getDevice()),
-                        resolveEndpoint(impExt), mapper));
+                        resolveEndpoint(impExt),
+                        mapper));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -85,8 +86,8 @@ public class AdmaticBidder implements Bidder<BidRequest> {
         final MultiMap headers = HttpUtil.headers();
 
         if (device != null) {
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIpv6());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
         }
 
