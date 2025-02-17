@@ -109,7 +109,7 @@ public class InsticatorBidder implements Bidder<BidRequest> {
 
         if (isInvalidDimension(video.getH())
                 || isInvalidDimension(video.getW())
-                || CollectionUtils.isNotEmpty(video.getMimes())) {
+                || CollectionUtils.isEmpty(video.getMimes())) {
 
             throw new PreBidException("One or more invalid or missing video field(s) w, h, mimes");
         }

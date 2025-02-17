@@ -7,10 +7,12 @@ import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
+import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import org.prebid.server.json.ObjectMapperProvider;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 
 import java.util.Collections;
 import java.util.List;
@@ -25,15 +27,41 @@ public class TestBidRequestProvider {
     public static BidRequest givenBidRequest(
             UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
             List<Imp> imps,
-            Device device,
-            ExtRequest extRequest) {
+            Device device) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
                 .id("request")
                 .imp(imps)
                 .site(givenSite(site -> site))
-                .device(device)
-                .ext(extRequest)).build();
+                .device(device)).build();
+    }
+
+    public static BidRequest givenBidRequestWithExtension(
+            UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
+            List<Imp> imps) {
+        final BidRequest.BidRequestBuilder bidRequestBuilder = BidRequest.builder()
+                .id("request")
+                .imp(imps)
+                .site(givenSite(site -> site))
+                .device(givenDevice(device -> device))
+                .ext(givenExtRequest());
+
+        return bidRequestCustomizer.apply(bidRequestBuilder).build();
+    }
+
+    public static ExtRequest givenExtRequest() {
+        final ObjectNode greenbidsNode = new ObjectMapper().createObjectNode();
+        greenbidsNode.put("pbuid", "leparisien");
+        greenbidsNode.put("greenbidsSampling", 1.0);
+
+        final ObjectNode analyticsNode = new ObjectMapper().createObjectNode();
+        analyticsNode.set("greenbids", greenbidsNode);
+
+        return ExtRequest.of(
+                ExtRequestPrebid
+                        .builder()
+                        .analytics(analyticsNode)
+                        .build());
     }
 
     public static Site givenSite(UnaryOperator<Site.SiteBuilder> siteCustomizer) {
@@ -68,10 +96,21 @@ public class TestBidRequestProvider {
         return extNode;
     }
 
+    public static Device givenDevice(UnaryOperator<Device.DeviceBuilder> deviceCustomizer, String countryAlpha3) {
+        final String userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36"
+                + " (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36";
+        final Geo geo = givenGeoWithCountry(countryAlpha3);
+        return deviceCustomizer.apply(Device.builder().ua(userAgent).ip("151.101.194.216").geo(geo)).build();
+    }
+
     public static Device givenDevice(UnaryOperator<Device.DeviceBuilder> deviceCustomizer) {
         final String userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36"
                 + " (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36";
         return deviceCustomizer.apply(Device.builder().ua(userAgent).ip("151.101.194.216")).build();
+    }
+
+    public static Geo givenGeoWithCountry(String countryAlpha3) {
+        return Geo.builder().country(countryAlpha3).build();
     }
 
     public static Device givenDeviceWithoutUserAgent(UnaryOperator<Device.DeviceBuilder> deviceCustomizer) {

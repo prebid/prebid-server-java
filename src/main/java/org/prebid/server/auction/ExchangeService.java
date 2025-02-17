@@ -1,6 +1,5 @@
 package org.prebid.server.auction;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
@@ -56,7 +55,6 @@ import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.bidder.model.Price;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.InvalidRequestException;
-import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.floors.PriceFloorAdjuster;
@@ -79,8 +77,6 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebidBidders;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigOrtb;
 import org.prebid.server.proto.openrtb.ext.request.ExtDooh;
-import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebidFloors;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidBidderConfig;
@@ -126,6 +122,8 @@ public class ExchangeService {
     private static final Integer DEFAULT_MULTIBID_LIMIT_MAX = 9;
     private static final String EID_ALLOWED_FOR_ALL_BIDDERS = "*";
     private static final BigDecimal THOUSAND = BigDecimal.valueOf(1000);
+    private static final Set<String> BIDDER_FIELDS_EXCEPTION_LIST = Set.of(
+            "adunitcode", "storedrequest", "options", "is_rewarded_inventory");
 
     private final double logSamplingRate;
     private final BidderCatalog bidderCatalog;
@@ -275,7 +273,7 @@ public class ExchangeService {
                         .map(auctionParticipations -> updateResponsesMetrics(auctionParticipations, account, aliases))
                         .map(context::with))
                 // produce response from bidder results
-                .compose(context -> bidResponseCreator.create(context, cacheInfo, bidderToMultiBid)
+                .compose(context -> bidResponseCreator.create(context, cacheInfo, aliases, bidderToMultiBid)
                         .map(bidResponse -> criteriaLogManager.traceResponse(
                                 logger,
                                 bidResponse,
@@ -870,7 +868,7 @@ public class ExchangeService {
         return imp.toBuilder()
                 .bidfloor(adjustedPrice.getValue())
                 .bidfloorcur(adjustedPrice.getCurrency())
-                .ext(prepareImpExt(bidder, imp.getExt(), adjustedPrice.getValue(), transmitTid, useFirstPartyData))
+                .ext(prepareImpExt(bidder, imp.getExt(), transmitTid, useFirstPartyData))
                 .build();
     }
 
@@ -885,11 +883,10 @@ public class ExchangeService {
 
     private ObjectNode prepareImpExt(String bidder,
                                      ObjectNode impExt,
-                                     BigDecimal adjustedFloor,
                                      boolean transmitTid,
                                      boolean useFirstPartyData) {
         final JsonNode bidderNode = bidderParamsFromImpExt(impExt).get(bidder);
-        final JsonNode impExtPrebid = prepareImpExt(impExt.get(PREBID_EXT), adjustedFloor);
+        final JsonNode impExtPrebid = cleanUpImpExtPrebid(impExt.get(PREBID_EXT));
         Optional.ofNullable(impExtPrebid).ifPresentOrElse(
                 ext -> impExt.set(PREBID_EXT, ext),
                 () -> impExt.remove(PREBID_EXT));
@@ -901,33 +898,22 @@ public class ExchangeService {
         return fpdResolver.resolveImpExt(impExt, useFirstPartyData);
     }
 
-    private JsonNode prepareImpExt(JsonNode extImpPrebidNode, BigDecimal adjustedFloor) {
-        if (extImpPrebidNode.size() <= 1) {
+    private JsonNode cleanUpImpExtPrebid(JsonNode extImpPrebid) {
+        if (extImpPrebid.size() <= 1) {
             return null;
         }
 
-        final ExtImpPrebid extImpPrebid = extImpPrebid(extImpPrebidNode);
-        final ExtImpPrebidFloors floors = extImpPrebid.getFloors();
-        final ExtImpPrebidFloors updatedFloors = floors != null
-                ? ExtImpPrebidFloors.of(floors.getFloorRule(),
-                floors.getFloorRuleValue(),
-                adjustedFloor,
-                floors.getFloorMin(),
-                floors.getFloorMinCur())
-                : null;
+        final Iterator<String> fieldsIterator = extImpPrebid.fieldNames();
+        final ObjectNode modifiedExtImpPrebid = extImpPrebid.deepCopy();
 
-        return mapper.mapper().valueToTree(extImpPrebid(extImpPrebidNode).toBuilder()
-                .floors(updatedFloors)
-                .bidder(null)
-                .build());
-    }
-
-    private ExtImpPrebid extImpPrebid(JsonNode extImpPrebid) {
-        try {
-            return mapper.mapper().treeToValue(extImpPrebid, ExtImpPrebid.class);
-        } catch (JsonProcessingException e) {
-            throw new PreBidException("Error decoding imp.ext.prebid: " + e.getMessage(), e);
+        while (fieldsIterator.hasNext()) {
+            final String fieldName = fieldsIterator.next();
+            if (!BIDDER_FIELDS_EXCEPTION_LIST.contains(fieldName)) {
+                modifiedExtImpPrebid.remove(fieldName);
+            }
         }
+
+        return modifiedExtImpPrebid;
     }
 
     private App prepareApp(App app, ObjectNode fpdApp, boolean useFirstPartyData) {

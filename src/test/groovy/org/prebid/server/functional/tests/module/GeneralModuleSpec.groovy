@@ -45,8 +45,13 @@ class GeneralModuleSpec extends ModuleBaseSpec {
             getOrtb2BlockingSettings() +
             ['hooks.host-execution-plan': encode(ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, MODULES_STAGES))]
 
-    private final static PrebidServerService pbsServiceWithMultipleModule = pbsServiceFactory.getService(MULTI_MODULE_CONFIG + DISABLED_INVOKE_CONFIG)
-    private final static PrebidServerService pbsServiceWithMultipleModuleWithRequireInvoke = pbsServiceFactory.getService(MULTI_MODULE_CONFIG + ENABLED_INVOKE_CONFIG)
+    private static final PrebidServerService pbsServiceWithMultipleModule = pbsServiceFactory.getService(MULTI_MODULE_CONFIG + DISABLED_INVOKE_CONFIG)
+    private static final PrebidServerService pbsServiceWithMultipleModuleWithRequireInvoke = pbsServiceFactory.getService(MULTI_MODULE_CONFIG + ENABLED_INVOKE_CONFIG)
+
+    def cleanupSpec() {
+        pbsServiceFactory.removeContainer(MULTI_MODULE_CONFIG + DISABLED_INVOKE_CONFIG)
+        pbsServiceFactory.removeContainer(MULTI_MODULE_CONFIG + ENABLED_INVOKE_CONFIG)
+    }
 
     def "PBS should call all modules and traces response when account config is empty and require-config-to-invoke is disabled"() {
         given: "Default bid request with verbose trace"

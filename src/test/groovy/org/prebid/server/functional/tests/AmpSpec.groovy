@@ -32,7 +32,7 @@ class AmpSpec extends BaseSpec {
         def response = defaultPbsService.sendAmpRequestRaw(ampRequest)
 
         then: "Response header should contain PBS version"
-        assert response.headers["x-prebid"] == "pbs-java/$PBS_VERSION"
+        assert response.headers["x-prebid"] == ["pbs-java/$PBS_VERSION"]
 
         where:
         ampRequest                   || description

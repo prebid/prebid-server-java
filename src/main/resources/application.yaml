@@ -133,6 +133,7 @@ event:
   default-timeout-ms: 1000
 setuid:
   default-timeout-ms: 2000
+  number-of-uid-cookies: 1
 vtrack:
   default-timeout-ms: 2000
   allow-unknown-bidder: true
@@ -158,6 +159,8 @@ currency-converter:
 settings:
   generate-storedrequest-bidrequest-id: false
   enforce-valid-account: false
+  fail-on-unknown-bidders: true
+  fail-on-disabled-bidders: true
   database:
     pool-size: 20
     idle-connection-timeout: 300

@@ -393,11 +393,10 @@ public class PrivacyServiceConfiguration {
     @Bean
     TcfEnforcement tcfEnforcement(TcfDefinerService tcfDefinerService,
                                   UserFpdTcfMask userFpdTcfMask,
-                                  BidderCatalog bidderCatalog,
                                   Metrics metrics,
                                   @Value("${lmt.enforce}") boolean lmtEnforce) {
 
-        return new TcfEnforcement(tcfDefinerService, userFpdTcfMask, bidderCatalog, metrics, lmtEnforce);
+        return new TcfEnforcement(tcfDefinerService, userFpdTcfMask, metrics, lmtEnforce);
     }
 
     @Data

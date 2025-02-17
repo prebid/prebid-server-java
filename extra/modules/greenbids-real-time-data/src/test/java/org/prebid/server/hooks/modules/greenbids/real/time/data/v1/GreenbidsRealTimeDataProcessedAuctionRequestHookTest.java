@@ -12,10 +12,12 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.maxmind.geoip2.DatabaseReader;
+import com.maxmind.geoip2.exception.GeoIp2Exception;
+import com.maxmind.geoip2.model.CountryResponse;
+import com.maxmind.geoip2.record.Country;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -23,6 +25,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.analytics.reporter.greenbids.model.ExplorationResult;
 import org.prebid.server.analytics.reporter.greenbids.model.Ortb2ImpExtResult;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.hooks.execution.v1.analytics.ActivityImpl;
 import org.prebid.server.hooks.execution.v1.analytics.AppliedToImpl;
 import org.prebid.server.hooks.execution.v1.analytics.ResultImpl;
@@ -49,15 +52,12 @@ import org.prebid.server.hooks.v1.analytics.Tags;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.model.HttpRequestContext;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountHooksConfiguration;
 
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
+import java.net.InetAddress;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
@@ -66,13 +66,16 @@ import java.util.function.UnaryOperator;
 
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider.givenBanner;
 import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider.givenBidRequest;
+import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider.givenBidRequestWithExtension;
 import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider.givenDevice;
 import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider.givenDeviceWithoutUserAgent;
+import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider.givenExtRequest;
 import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider.givenImpExt;
 import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider.givenSite;
 
@@ -88,15 +91,30 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
     @Mock(strictness = LENIENT)
     private DatabaseReaderFactory databaseReaderFactory;
 
+    @Mock(strictness = LENIENT)
+    private DatabaseReader databaseReader;
+
+    @Mock(strictness = LENIENT)
+    private CountryResponse countryResponse;
+
+    @Mock(strictness = LENIENT)
+    private Country country;
+
     @Mock
-    private DatabaseReader dbReader;
+    private CountryCodeMapper countryCodeMapper;
 
     private GreenbidsRealTimeDataProcessedAuctionRequestHook target;
 
     @BeforeEach
-    public void setUp() throws IOException {
+    public void setUp() throws IOException, GeoIp2Exception {
         final Storage storage = StorageOptions.newBuilder()
                 .setProjectId("test_project").build().getService();
+
+        when(country.getName()).thenReturn("United States");
+        when(countryResponse.getCountry()).thenReturn(country);
+        when(databaseReader.country(any(InetAddress.class))).thenReturn(countryResponse);
+        when(databaseReaderFactory.getDatabaseReader()).thenReturn(databaseReader);
+
         final FilterService filterService = new FilterService();
         final OnnxModelRunnerFactory onnxModelRunnerFactory = new OnnxModelRunnerFactory();
         final ThrottlingThresholdsFactory throttlingThresholdsFactory = new ThrottlingThresholdsFactory();
@@ -118,10 +136,11 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final OnnxModelRunnerWithThresholds onnxModelRunnerWithThresholds = new OnnxModelRunnerWithThresholds(
                 modelCache,
                 thresholdCache);
-        when(databaseReaderFactory.getDatabaseReader()).thenReturn(dbReader);
+
         final GreenbidsInferenceDataService greenbidsInferenceDataService = new GreenbidsInferenceDataService(
                 databaseReaderFactory,
-                TestBidRequestProvider.MAPPER);
+                TestBidRequestProvider.MAPPER,
+                countryCodeMapper);
         final GreenbidsInvocationService greenbidsInvocationService = new GreenbidsInvocationService();
         target = new GreenbidsRealTimeDataProcessedAuctionRequestHook(
                 TestBidRequestProvider.MAPPER,
@@ -132,155 +151,8 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
     }
 
     @Test
-    public void callShouldExitEarlyWhenPartnerNotActivatedInBidRequest() {
-        // given
-        final Banner banner = givenBanner();
-
-        final Imp imp = Imp.builder()
-                .id("adunitcodevalue")
-                .ext(givenImpExt())
-                .banner(banner)
-                .build();
-
-        final Device device = givenDevice(identity());
-        final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device, null);
-        final AuctionContext auctionContext = givenAuctionContext(bidRequest, context -> context);
-        final AuctionInvocationContext invocationContext = givenAuctionInvocationContext(auctionContext);
-        when(invocationContext.auctionContext()).thenReturn(auctionContext);
-
-        // when
-        final Future<InvocationResult<AuctionRequestPayload>> future = target
-                .call(null, invocationContext);
-        final InvocationResult<AuctionRequestPayload> result = future.result();
-
-        // then
-        assertThat(future).isNotNull();
-        assertThat(future.succeeded()).isTrue();
-        assertThat(result).isNotNull();
-        assertThat(result.status()).isEqualTo(InvocationStatus.success);
-        assertThat(result.action()).isEqualTo(InvocationAction.no_action);
-        assertThat(result.analyticsTags()).isNull();
-    }
-
-    @Disabled("Broken until dbReader is mocked")
-    @Test
-    public void callShouldNotFilterBiddersAndReturnAnalyticsTagWhenExploration() throws OrtException, IOException {
-        // given
-        final Banner banner = givenBanner();
-
-        final Imp imp = Imp.builder()
-                .id("adunitcodevalue")
-                .ext(givenImpExt())
-                .banner(banner)
-                .build();
-
-        final Double explorationRate = 1.0;
-        final Device device = givenDevice(identity());
-        final ExtRequest extRequest = givenExtRequest(explorationRate);
-        final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device, extRequest);
-        final AuctionContext auctionContext = givenAuctionContext(bidRequest, context -> context);
-        final AuctionInvocationContext invocationContext = givenAuctionInvocationContext(auctionContext);
-        when(invocationContext.auctionContext()).thenReturn(auctionContext);
-        when(modelCacheWithExpiration.getIfPresent("onnxModelRunner_test-pbuid"))
-                .thenReturn(givenOnnxModelRunner());
-        when(thresholdsCacheWithExpiration.getIfPresent("throttlingThresholds_test-pbuid"))
-                .thenReturn(givenThrottlingThresholds());
-
-        final AnalyticsResult expectedAnalyticsResult = expectedAnalyticsResult(true, true);
-
-        // when
-        final Future<InvocationResult<AuctionRequestPayload>> future = target
-                .call(null, invocationContext);
-        final InvocationResult<AuctionRequestPayload> result = future.result();
-
-        // then
-        final ActivityImpl activity = (ActivityImpl) result.analyticsTags().activities().getFirst();
-        final ResultImpl resultImpl = (ResultImpl) activity.results().getFirst();
-        final String fingerprint = resultImpl.values()
-                .get("adunitcodevalue")
-                .get("greenbids")
-                .get("fingerprint").asText();
-
-        assertThat(future).isNotNull();
-        assertThat(future.succeeded()).isTrue();
-        assertThat(result).isNotNull();
-        assertThat(result.status()).isEqualTo(InvocationStatus.success);
-        assertThat(result.action()).isEqualTo(InvocationAction.no_action);
-        assertThat(result.analyticsTags()).isNotNull();
-        assertThat(result.analyticsTags()).usingRecursiveComparison()
-                .ignoringFields(
-                        "activities.results"
-                                + ".values._children"
-                                + ".adunitcodevalue._children"
-                                + ".greenbids._children.fingerprint")
-                .isEqualTo(toAnalyticsTags(List.of(expectedAnalyticsResult)));
-        assertThat(fingerprint).isNotNull();
-    }
-
-    @Disabled("Broken until dbReader is mocked")
-    @Test
-    public void callShouldFilterBiddersBasedOnModelWhenAnyFeatureNotAvailable() throws OrtException, IOException {
-        // given
-        final Banner banner = givenBanner();
-
-        final Imp imp = Imp.builder()
-                .id("adunitcodevalue")
-                .ext(givenImpExt())
-                .banner(banner)
-                .build();
-
-        final Double explorationRate = 0.0001;
-        final Device device = givenDeviceWithoutUserAgent(identity());
-        final ExtRequest extRequest = givenExtRequest(explorationRate);
-        final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device, extRequest);
-        final AuctionContext auctionContext = givenAuctionContext(bidRequest, context -> context);
-        final AuctionInvocationContext invocationContext = givenAuctionInvocationContext(auctionContext);
-        when(invocationContext.auctionContext()).thenReturn(auctionContext);
-        when(modelCacheWithExpiration.getIfPresent("onnxModelRunner_test-pbuid"))
-                .thenReturn(givenOnnxModelRunner());
-        when(thresholdsCacheWithExpiration.getIfPresent("throttlingThresholds_test-pbuid"))
-                .thenReturn(givenThrottlingThresholds());
-
-        final BidRequest expectedBidRequest = expectedUpdatedBidRequest(request -> request, explorationRate, device);
-        final AnalyticsResult expectedAnalyticsResult = expectedAnalyticsResult(false, false);
-
-        // when
-        final Future<InvocationResult<AuctionRequestPayload>> future = target
-                .call(null, invocationContext);
-        final InvocationResult<AuctionRequestPayload> result = future.result();
-        final BidRequest resultBidRequest = result
-                .payloadUpdate()
-                .apply(AuctionRequestPayloadImpl.of(bidRequest))
-                .bidRequest();
-
-        // then
-        final ActivityImpl activity = (ActivityImpl) result.analyticsTags().activities().getFirst();
-        final ResultImpl resultImpl = (ResultImpl) activity.results().getFirst();
-        final String fingerprint = resultImpl.values()
-                .get("adunitcodevalue")
-                .get("greenbids")
-                .get("fingerprint").asText();
-
-        assertThat(future).isNotNull();
-        assertThat(future.succeeded()).isTrue();
-        assertThat(result).isNotNull();
-        assertThat(result.status()).isEqualTo(InvocationStatus.success);
-        assertThat(result.action()).isEqualTo(InvocationAction.update);
-        assertThat(result.analyticsTags()).isNotNull();
-        assertThat(result.analyticsTags()).usingRecursiveComparison()
-                .ignoringFields(
-                        "activities.results"
-                                + ".values._children"
-                                + ".adunitcodevalue._children"
-                                + ".greenbids._children.fingerprint")
-                .isEqualTo(toAnalyticsTags(List.of(expectedAnalyticsResult)));
-        assertThat(fingerprint).isNotNull();
-        assertThat(resultBidRequest).usingRecursiveComparison().isEqualTo(expectedBidRequest);
-    }
-
-    @Disabled("Broken until dbReader is mocked")
-    @Test
-    public void callShouldFilterBiddersBasedOnModelResults() throws OrtException, IOException {
+    public void callShouldFilterBiddersWhenPartnerActivatedInBidRequest()
+            throws IOException, OrtException {
         // given
         final Banner banner = givenBanner();
 
@@ -292,10 +164,12 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
 
         final Double explorationRate = 0.0001;
         final Device device = givenDevice(identity());
-        final ExtRequest extRequest = givenExtRequest(explorationRate);
-        final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device, extRequest);
-        final AuctionContext auctionContext = givenAuctionContext(bidRequest, context -> context);
-        final AuctionInvocationContext invocationContext = givenAuctionInvocationContext(auctionContext);
+        final BidRequest bidRequest = givenBidRequestWithExtension(identity(), List.of(imp));
+        final AuctionContext auctionContext = givenAuctionContext(
+                bidRequest,
+                context -> context);
+        final AuctionInvocationContext invocationContext = givenAuctionInvocationContext(
+                auctionContext, explorationRate);
         when(invocationContext.auctionContext()).thenReturn(auctionContext);
         when(modelCacheWithExpiration.getIfPresent("onnxModelRunner_test-pbuid"))
                 .thenReturn(givenOnnxModelRunner());
@@ -303,7 +177,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 .thenReturn(givenThrottlingThresholds());
 
         final BidRequest expectedBidRequest = expectedUpdatedBidRequest(
-                request -> request, explorationRate, device);
+                request -> request, device, true);
         final AnalyticsResult expectedAnalyticsResult = expectedAnalyticsResult(false, false);
 
         // when
@@ -341,19 +215,181 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 .isEqualTo(expectedBidRequest);
     }
 
-    static ExtRequest givenExtRequest(Double explorationRate) {
-        final ObjectNode greenbidsNode = TestBidRequestProvider.MAPPER.createObjectNode();
-        greenbidsNode.put("pbuid", "test-pbuid");
-        greenbidsNode.put("targetTpr", 0.60);
-        greenbidsNode.put("explorationRate", explorationRate);
+    @Test
+    public void callShouldNotFilterBiddersAndReturnAnalyticsTagWhenExploration() throws OrtException, IOException {
+        // given
+        final Banner banner = givenBanner();
 
-        final ObjectNode analyticsNode = TestBidRequestProvider.MAPPER.createObjectNode();
-        analyticsNode.set("greenbids-rtd", greenbidsNode);
+        final Imp imp = Imp.builder()
+                .id("adunitcodevalue")
+                .ext(givenImpExt())
+                .banner(banner)
+                .build();
 
-        return ExtRequest.of(ExtRequestPrebid
-                .builder()
-                .analytics(analyticsNode)
-                .build());
+        final Double explorationRate = 1.0;
+        final Device device = givenDevice(identity());
+        final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device);
+        final AuctionContext auctionContext = givenAuctionContext(bidRequest, context -> context);
+        final AuctionInvocationContext invocationContext = givenAuctionInvocationContext(
+                auctionContext, explorationRate);
+        when(invocationContext.auctionContext()).thenReturn(auctionContext);
+        when(modelCacheWithExpiration.getIfPresent("onnxModelRunner_test-pbuid"))
+                .thenReturn(givenOnnxModelRunner());
+        when(thresholdsCacheWithExpiration.getIfPresent("throttlingThresholds_test-pbuid"))
+                .thenReturn(givenThrottlingThresholds());
+
+        final AnalyticsResult expectedAnalyticsResult = expectedAnalyticsResult(true, true);
+
+        // when
+        final Future<InvocationResult<AuctionRequestPayload>> future = target
+                .call(null, invocationContext);
+        final InvocationResult<AuctionRequestPayload> result = future.result();
+
+        // then
+        final ActivityImpl activity = (ActivityImpl) result.analyticsTags().activities().getFirst();
+        final ResultImpl resultImpl = (ResultImpl) activity.results().getFirst();
+        final String fingerprint = resultImpl.values()
+                .get("adunitcodevalue")
+                .get("greenbids")
+                .get("fingerprint").asText();
+
+        assertThat(future).isNotNull();
+        assertThat(future.succeeded()).isTrue();
+        assertThat(result).isNotNull();
+        assertThat(result.status()).isEqualTo(InvocationStatus.success);
+        assertThat(result.action()).isEqualTo(InvocationAction.no_action);
+        assertThat(result.analyticsTags()).isNotNull();
+        assertThat(result.analyticsTags()).usingRecursiveComparison()
+                .ignoringFields(
+                        "activities.results"
+                                + ".values._children"
+                                + ".adunitcodevalue._children"
+                                + ".greenbids._children.fingerprint")
+                .isEqualTo(toAnalyticsTags(List.of(expectedAnalyticsResult)));
+        assertThat(fingerprint).isNotNull();
+    }
+
+    @Test
+    public void callShouldFilterBiddersBasedOnModelWhenAnyFeatureNotAvailable() throws OrtException, IOException {
+        // given
+        final Banner banner = givenBanner();
+
+        final Imp imp = Imp.builder()
+                .id("adunitcodevalue")
+                .ext(givenImpExt())
+                .banner(banner)
+                .build();
+
+        final Double explorationRate = 0.0001;
+        final Device device = givenDeviceWithoutUserAgent(identity());
+        final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device);
+        final AuctionContext auctionContext = givenAuctionContext(bidRequest, context -> context);
+        final AuctionInvocationContext invocationContext = givenAuctionInvocationContext(
+                auctionContext, explorationRate);
+        when(invocationContext.auctionContext()).thenReturn(auctionContext);
+        when(modelCacheWithExpiration.getIfPresent("onnxModelRunner_test-pbuid"))
+                .thenReturn(givenOnnxModelRunner());
+        when(thresholdsCacheWithExpiration.getIfPresent("throttlingThresholds_test-pbuid"))
+                .thenReturn(givenThrottlingThresholds());
+
+        final BidRequest expectedBidRequest = expectedUpdatedBidRequest(
+                request -> request, device, false);
+        final AnalyticsResult expectedAnalyticsResult = expectedAnalyticsResult(false, false);
+
+        // when
+        final Future<InvocationResult<AuctionRequestPayload>> future = target
+                .call(null, invocationContext);
+        final InvocationResult<AuctionRequestPayload> result = future.result();
+        final BidRequest resultBidRequest = result
+                .payloadUpdate()
+                .apply(AuctionRequestPayloadImpl.of(bidRequest))
+                .bidRequest();
+
+        // then
+        final ActivityImpl activity = (ActivityImpl) result.analyticsTags().activities().getFirst();
+        final ResultImpl resultImpl = (ResultImpl) activity.results().getFirst();
+        final String fingerprint = resultImpl.values()
+                .get("adunitcodevalue")
+                .get("greenbids")
+                .get("fingerprint").asText();
+
+        assertThat(future).isNotNull();
+        assertThat(future.succeeded()).isTrue();
+        assertThat(result).isNotNull();
+        assertThat(result.status()).isEqualTo(InvocationStatus.success);
+        assertThat(result.action()).isEqualTo(InvocationAction.update);
+        assertThat(result.analyticsTags()).isNotNull();
+        assertThat(result.analyticsTags()).usingRecursiveComparison()
+                .ignoringFields(
+                        "activities.results"
+                                + ".values._children"
+                                + ".adunitcodevalue._children"
+                                + ".greenbids._children.fingerprint")
+                .isEqualTo(toAnalyticsTags(List.of(expectedAnalyticsResult)));
+        assertThat(fingerprint).isNotNull();
+        assertThat(resultBidRequest).usingRecursiveComparison().isEqualTo(expectedBidRequest);
+    }
+
+    @Test
+    public void callShouldFilterBiddersBasedOnModelResults() throws OrtException, IOException {
+        // given
+        final Banner banner = givenBanner();
+
+        final Imp imp = Imp.builder()
+                .id("adunitcodevalue")
+                .ext(givenImpExt())
+                .banner(banner)
+                .build();
+
+        final Double explorationRate = 0.0001;
+        final Device device = givenDevice(identity());
+        final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device);
+        final AuctionContext auctionContext = givenAuctionContext(bidRequest, context -> context);
+        final AuctionInvocationContext invocationContext = givenAuctionInvocationContext(
+                auctionContext, explorationRate);
+        when(invocationContext.auctionContext()).thenReturn(auctionContext);
+        when(modelCacheWithExpiration.getIfPresent("onnxModelRunner_test-pbuid"))
+                .thenReturn(givenOnnxModelRunner());
+        when(thresholdsCacheWithExpiration.getIfPresent("throttlingThresholds_test-pbuid"))
+                .thenReturn(givenThrottlingThresholds());
+
+        final BidRequest expectedBidRequest = expectedUpdatedBidRequest(
+                request -> request, device, false);
+        final AnalyticsResult expectedAnalyticsResult = expectedAnalyticsResult(false, false);
+
+        // when
+        final Future<InvocationResult<AuctionRequestPayload>> future = target
+                .call(null, invocationContext);
+        final InvocationResult<AuctionRequestPayload> result = future.result();
+        final BidRequest resultBidRequest = result
+                .payloadUpdate()
+                .apply(AuctionRequestPayloadImpl.of(bidRequest))
+                .bidRequest();
+
+        // then
+        final ActivityImpl activityImpl = (ActivityImpl) result.analyticsTags().activities().getFirst();
+        final ResultImpl resultImpl = (ResultImpl) activityImpl.results().getFirst();
+        final String fingerprint = resultImpl.values()
+                .get("adunitcodevalue")
+                .get("greenbids")
+                .get("fingerprint").asText();
+
+        assertThat(future).isNotNull();
+        assertThat(future.succeeded()).isTrue();
+        assertThat(result).isNotNull();
+        assertThat(result.status()).isEqualTo(InvocationStatus.success);
+        assertThat(result.action()).isEqualTo(InvocationAction.update);
+        assertThat(result.analyticsTags()).isNotNull();
+        assertThat(result.analyticsTags()).usingRecursiveComparison()
+                .ignoringFields(
+                        "activities.results"
+                                + ".values._children"
+                                + ".adunitcodevalue._children"
+                                + ".greenbids._children.fingerprint")
+                .isEqualTo(toAnalyticsTags(List.of(expectedAnalyticsResult)));
+        assertThat(fingerprint).isNotNull();
+        assertThat(resultBidRequest).usingRecursiveComparison()
+                .isEqualTo(expectedBidRequest);
     }
 
     private AuctionContext givenAuctionContext(
@@ -367,10 +403,21 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         return auctionContextCustomizer.apply(auctionContextBuilder).build();
     }
 
-    private AuctionInvocationContext givenAuctionInvocationContext(AuctionContext auctionContext) {
+    private AuctionInvocationContext givenAuctionInvocationContext(
+            AuctionContext auctionContext, Double explorationRate) {
         final AuctionInvocationContext invocationContext = mock(AuctionInvocationContext.class);
         when(invocationContext.auctionContext()).thenReturn(auctionContext);
+        when(invocationContext.accountConfig()).thenReturn(givenAccountConfig(explorationRate));
         return invocationContext;
+    }
+
+    private ObjectNode givenAccountConfig(Double explorationRate) {
+        final ObjectNode greenbidsNode = TestBidRequestProvider.MAPPER.createObjectNode();
+        greenbidsNode.put("enabled", true);
+        greenbidsNode.put("pbuid", "test-pbuid");
+        greenbidsNode.put("target-tpr", 0.60);
+        greenbidsNode.put("exploration-rate", explorationRate);
+        return greenbidsNode;
     }
 
     private OnnxModelRunner givenOnnxModelRunner() throws OrtException, IOException {
@@ -389,8 +436,8 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
 
     private BidRequest expectedUpdatedBidRequest(
             UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
-            Double explorationRate,
-            Device device) {
+            Device device,
+            Boolean isExtRequest) {
 
         final Banner banner = givenBanner();
 
@@ -408,12 +455,17 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 .banner(banner)
                 .build();
 
-        return bidRequestCustomizer.apply(BidRequest.builder()
+        final BidRequest.BidRequestBuilder bidRequestBuilder = BidRequest.builder()
                 .id("request")
                 .imp(List.of(imp))
                 .site(givenSite(site -> site))
-                .device(device)
-                .ext(givenExtRequest(explorationRate))).build();
+                .device(device);
+
+        if (isExtRequest) {
+            bidRequestBuilder.ext(givenExtRequest());
+        }
+
+        return bidRequestCustomizer.apply(bidRequestBuilder).build();
     }
 
     private AnalyticsResult expectedAnalyticsResult(Boolean isExploration, Boolean isKeptInAuction) {

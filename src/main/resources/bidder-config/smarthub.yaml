@@ -1,24 +1,24 @@
 adapters:
   smarthub:
-    endpoint: http://prebid.smart-hub.io/pbserver?partnerName={{Host}}&seat={{AccountID}}&token={{SourceId}}
+    endpoint: https://prebid.attekmi.com/pbserver?partnerName={{Host}}&seat={{AccountID}}&token={{SourceId}}
     aliases:
       markapp:
         enabled: false
-        endpoint: http://markapp-prebid.smart-hub.io/pbserver/?seat={{AccountID}}&token={{SourceId}}
+        endpoint: https://markapp-prebid.attekmi.com/pbserver/?seat={{AccountID}}&token={{SourceId}}
       jdpmedia:
         enabled: false
-        endpoint: http://jdpmedia-prebid.smart-hub.io/pbserver/?seat={{AccountID}}&token={{SourceId}}
+        endpoint: https://jdpmedia-prebid.attekmi.com/pbserver/?seat={{AccountID}}&token={{SourceId}}
       tredio:
         enabled: false
-        endpoint: http://tredio-prebid.smart-hub.io/pbserver/?seat={{AccountID}}&token={{SourceId}}
+        endpoint: https://tredio-prebid.attekmi.com/pbserver/?seat={{AccountID}}&token={{SourceId}}
       vimayx:
         enabled: false
-        endpoint: http://vimayx-prebid.smart-hub.io/pbserver/?seat={{AccountID}}&token={{SourceId}}
+        endpoint: https://vimayx-prebid.attekmi.com/pbserver/?seat={{AccountID}}&token={{SourceId}}
       felixads:
         enabled: false
-        endpoint: http://felixads-prebid.smart-hub.io/pbserver/?seat={{AccountID}}&token={{SourceId}}
+        endpoint: https://felixads-prebid.attekmi.com/pbserver/?seat={{AccountID}}&token={{SourceId}}
     meta-info:
-      maintainer-email: support@smart-hub.io
+      maintainer-email: prebid@attekmi.com
       app-media-types:
         - banner
         - video

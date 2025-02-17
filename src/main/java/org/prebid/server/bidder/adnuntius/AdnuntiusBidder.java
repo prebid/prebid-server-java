@@ -213,7 +213,7 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
     private String createUri(BidRequest bidRequest, Boolean noCookies) {
         try {
             final URIBuilder uriBuilder = new URIBuilder(endpointUrl)
-                    .addParameter("format", "prebid")
+                    .addParameter("format", "prebidServer")
                     .addParameter("tzo", getTimeZoneOffset());
 
             final String gdpr = extractGdpr(bidRequest.getRegs());
@@ -394,7 +394,7 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
                 .crid(ad.getCreativeId())
                 .price(resolvePrice(ad, bidType))
                 .adm(adm)
-                .adomain(extractDomain(ad.getDestinationUrls()))
+                .adomain(ad.getAdvertiserDomains())
                 .ext(bidExt == null ? null : mapper.mapper().valueToTree(bidExt))
                 .build();
     }
@@ -443,14 +443,5 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
         }
 
         return amount != null ? amount.multiply(PRICE_MULTIPLIER) : BigDecimal.ZERO;
-    }
-
-    private static List<String> extractDomain(Map<String, String> destinationUrls) {
-        return destinationUrls == null ? Collections.emptyList() : destinationUrls.values().stream()
-                .filter(Objects::nonNull)
-                .map(url -> url.split("/"))
-                .filter(splintedUrl -> splintedUrl.length >= 2)
-                .map(splintedUrl -> StringUtils.replace(splintedUrl[2], "www.", ""))
-                .toList();
     }
 }

@@ -9,6 +9,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderInfo;
+import org.prebid.server.proto.openrtb.ext.request.adrino.ExtImpAdrino;
 import org.prebid.server.proto.openrtb.ext.request.adtelligent.ExtImpAdtelligent;
 import org.prebid.server.proto.openrtb.ext.request.appnexus.ExtImpAppnexus;
 import org.prebid.server.proto.openrtb.ext.request.audiencenetwork.ExtImpAudienceNetwork;
@@ -33,6 +34,7 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 
 @ExtendWith(MockitoExtension.class)
 public class BidderParamValidatorTest extends VertxTest {
@@ -47,8 +49,9 @@ public class BidderParamValidatorTest extends VertxTest {
     private static final String EPLANNING = "eplanning";
     private static final String BEACHFRONT = "beachfront";
     private static final String VISX = "visx";
+    private static final String ADRINO = "adrino";
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private BidderCatalog bidderCatalog;
 
     private BidderParamValidator bidderParamValidator;
@@ -65,7 +68,8 @@ public class BidderParamValidatorTest extends VertxTest {
                 OPENX,
                 EPLANNING,
                 BEACHFRONT,
-                VISX)));
+                VISX,
+                ADRINO)));
         given(bidderCatalog.bidderInfoByName(anyString())).willReturn(givenBidderInfo());
         given(bidderCatalog.bidderInfoByName(eq(APPNEXUS_ALIAS))).willReturn(givenBidderInfo(APPNEXUS));
 
@@ -379,6 +383,20 @@ public class BidderParamValidatorTest extends VertxTest {
         // then
         assertThat(messagesStringUid).isEmpty();
         assertThat(messagesIntegerUid).isEmpty();
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessagesWhenAdrinoImpExtNotValid() {
+        // given
+        final ExtImpAdrino ext = ExtImpAdrino.of(null);
+
+        final JsonNode node = mapper.convertValue(ext, JsonNode.class);
+
+        // when
+        final Set<String> messages = bidderParamValidator.validate(ADRINO, node);
+
+        // then
+        assertThat(messages.size()).isEqualTo(1);
     }
 
     private static BidderInfo givenBidderInfo(String aliasOf) {

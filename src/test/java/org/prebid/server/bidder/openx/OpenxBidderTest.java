@@ -35,7 +35,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.openx.ExtImpOpenx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
-import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
+import org.prebid.server.proto.openrtb.ext.response.ExtIgi;
+import org.prebid.server.proto.openrtb.ext.response.ExtIgiIgs;
 
 import java.math.BigDecimal;
 import java.util.Collections;
@@ -636,6 +637,13 @@ public class OpenxBidderTest extends VertxTest {
         final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
 
         // then
+        final ExtIgi igi = ExtIgi.builder()
+                .igs(singletonList(ExtIgiIgs.builder()
+                        .impId("impId1")
+                        .config(mapper.createObjectNode().put("somevalue", 1))
+                        .build()))
+                .build();
+
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getBids()).hasSize(1)
                 .containsOnly(BidderBid.of(
@@ -648,11 +656,7 @@ public class OpenxBidderTest extends VertxTest {
                                 .adm("<div>This is an Ad</div>")
                                 .build(),
                         BidType.banner, "UAH"));
-        assertThat(result.getFledgeAuctionConfigs())
-                .containsOnly(FledgeAuctionConfig.builder()
-                        .impId("impId1")
-                        .config(mapper.createObjectNode().put("somevalue", 1))
-                        .build());
+        assertThat(result.getIgi()).containsExactly(igi);
     }
 
     @Test
@@ -753,13 +757,16 @@ public class OpenxBidderTest extends VertxTest {
         final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getBids()).isEmpty();
-        assertThat(result.getFledgeAuctionConfigs())
-                .containsOnly(FledgeAuctionConfig.builder()
+        final ExtIgi igi = ExtIgi.builder()
+                .igs(singletonList(ExtIgiIgs.builder()
                         .impId("impId1")
                         .config(mapper.createObjectNode().put("somevalue", 1))
-                        .build());
+                        .build()))
+                .build();
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getBids()).isEmpty();
+        assertThat(result.getIgi()).containsExactly(igi);
     }
 
     @Test

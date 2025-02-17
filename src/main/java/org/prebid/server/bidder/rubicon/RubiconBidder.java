@@ -1,6 +1,5 @@
 package org.prebid.server.bidder.rubicon;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -52,7 +51,6 @@ import org.prebid.server.bidder.rubicon.proto.request.RubiconExtPrebidBidders;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconExtPrebidBiddersBidder;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconExtPrebidBiddersBidderDebug;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconImpExt;
-import org.prebid.server.bidder.rubicon.proto.request.RubiconImpExtPrebid;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconImpExtRp;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconImpExtRpRtb;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconImpExtRpTrack;
@@ -89,7 +87,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtDealLine;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpContextDataAdserver;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebidFloors;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsa;
@@ -510,16 +507,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final Imp.ImpBuilder builder = imp.toBuilder()
                 .metric(makeMetrics(imp))
                 .ext(mapper.mapper().valueToTree(
-                        makeImpExt(
-                                imp,
-                                bidRequest,
-                                extImpRubicon,
-                                resolvedFormats,
-                                site,
-                                app,
-                                extRequest,
-                                ipfCurrency,
-                                priceFloorResult)));
+                        makeImpExt(imp, extImpRubicon, resolvedFormats, site, app, extRequest)));
 
         final BigDecimal resolvedBidFloor = ipfFloor != null
                 ? convertToXAPICurrency(ipfFloor, ipfCurrency, imp, bidRequest)
@@ -675,18 +663,11 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private RubiconImpExt makeImpExt(Imp imp,
-                                     BidRequest bidRequest,
                                      ExtImpRubicon rubiconImpExt,
                                      Set<ImpMediaType> formats,
                                      Site site,
                                      App app,
-                                     ExtRequest extRequest,
-                                     String ipfResolvedCurrency,
-                                     PriceFloorResult priceFloorResult) {
-
-        final RubiconImpExtPrebid rubiconImpExtPrebid = priceFloorResult != null
-                ? makeRubiconExtPrebid(priceFloorResult, ipfResolvedCurrency, imp, bidRequest)
-                : null;
+                                     ExtRequest extRequest) {
 
         final RubiconImpExtRpRtb rubiconImpExtRpRtb = CollectionUtils.isNotEmpty(formats)
                 ? RubiconImpExtRpRtb.of(formats)
@@ -705,7 +686,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .gpid(getGpid(imp.getExt()))
                 .skadn(getSkadn(imp.getExt()))
                 .tid(getTid(imp.getExt()))
-                .prebid(rubiconImpExtPrebid)
                 .build();
     }
 
@@ -723,30 +703,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
         result.put(PBS_URL, externalUrl);
 
         return result;
-    }
-
-    private RubiconImpExtPrebid makeRubiconExtPrebid(PriceFloorResult priceFloorResult,
-                                                     String currency,
-                                                     Imp imp,
-                                                     BidRequest bidRequest) {
-        final ObjectNode impExt = imp.getExt();
-        final ExtImpPrebid extImpPrebid = extImpPrebid(impExt.get(PREBID_EXT));
-        final ExtImpPrebidFloors floors = extImpPrebid != null ? extImpPrebid.getFloors() : null;
-
-        return RubiconImpExtPrebid.of(ExtImpPrebidFloors.of(
-                priceFloorResult.getFloorRule(),
-                convertToXAPICurrency(priceFloorResult.getFloorRuleValue(), currency, imp, bidRequest),
-                convertToXAPICurrency(priceFloorResult.getFloorValue(), currency, imp, bidRequest),
-                floors != null ? floors.getFloorMin() : null,
-                floors != null ? floors.getFloorMinCur() : null));
-    }
-
-    private ExtImpPrebid extImpPrebid(JsonNode extImpPrebid) {
-        try {
-            return mapper.mapper().treeToValue(extImpPrebid, ExtImpPrebid.class);
-        } catch (JsonProcessingException e) {
-            throw new PreBidException("Error decoding imp.ext.prebid: " + e.getMessage(), e);
-        }
     }
 
     private void mergeFirstPartyDataFromSite(Site site, ObjectNode result) {

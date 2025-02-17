@@ -285,6 +285,13 @@ public class Metrics extends UpdatableMetrics {
         }
     }
 
+    public void updateAdapterRequestBuyerUidScrubbedMetrics(String bidder, Account account) {
+        forAdapter(bidder).request().incCounter(MetricName.buyeruid_scrubbed);
+        if (accountMetricsVerbosityResolver.forAccount(account).isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
+            forAccount(account.getId()).adapter().forAdapter(bidder).request().incCounter(MetricName.buyeruid_scrubbed);
+        }
+    }
+
     public void updateAdapterResponseTime(String bidder, Account account, int responseTime) {
         final AdapterTypeMetrics adapterTypeMetrics = forAdapter(bidder);
         adapterTypeMetrics.updateTimer(MetricName.request_time, responseTime);
@@ -327,6 +334,22 @@ public class Metrics extends UpdatableMetrics {
 
     public void updateAdapterRequestErrorMetric(String bidder, MetricName errorMetric) {
         forAdapter(bidder).request().incCounter(errorMetric);
+    }
+
+    public void updateDisabledBidderMetric(Account account) {
+        incCounter(MetricName.disabled_bidder);
+        if (accountMetricsVerbosityResolver.forAccount(account)
+                .isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
+            forAccount(account.getId()).requests().incCounter(MetricName.disabled_bidder);
+        }
+    }
+
+    public void updateUnknownBidderMetric(Account account) {
+        incCounter(MetricName.unknown_bidder);
+        if (accountMetricsVerbosityResolver.forAccount(account)
+                .isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
+            forAccount(account.getId()).requests().incCounter(MetricName.unknown_bidder);
+        }
     }
 
     public void updateAnalyticEventMetric(String analyticCode, MetricName eventType, MetricName result) {
