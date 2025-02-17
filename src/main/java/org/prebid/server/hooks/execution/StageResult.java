@@ -2,11 +2,15 @@ package org.prebid.server.hooks.execution;
 
 import lombok.Getter;
 import lombok.experimental.Accessors;
+import org.prebid.server.auction.model.Rejected;
 import org.prebid.server.hooks.execution.model.GroupExecutionOutcome;
 import org.prebid.server.hooks.execution.model.StageExecutionOutcome;
+import org.prebid.server.util.MapUtil;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 @Accessors(fluent = true)
 @Getter
@@ -46,5 +50,12 @@ class StageResult<T> {
         return groupResults.stream()
                 .map(GroupResult::toGroupExecutionOutcome)
                 .toList();
+    }
+
+    public Map<String, List<Rejected>> rejections() {
+        return groupResults.stream()
+                .map(GroupResult::rejections)
+                .reduce(MapUtil::collectionMerge)
+                .orElse(Collections.emptyMap());
     }
 }

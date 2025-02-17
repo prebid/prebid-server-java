@@ -7,8 +7,14 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Future;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.tuple.Pair;
+import org.prebid.server.analytics.reporter.greenbids.model.ExplorationResult;
 import org.prebid.server.analytics.reporter.greenbids.model.Ortb2ImpExtResult;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.BidRejectionReason;
+import org.prebid.server.auction.model.Rejected;
+import org.prebid.server.auction.model.RejectedImp;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.execution.v1.analytics.ActivityImpl;
@@ -38,11 +44,15 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountHooksConfiguration;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements ProcessedAuctionRequestHook {
 
@@ -166,6 +176,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                     .action(action)
                     .payloadUpdate(payload -> AuctionRequestPayloadImpl.of(bidRequest))
                     .analyticsTags(toAnalyticsTags(analyticsResults))
+                    .rejections(toRejections(analyticsResult))
                     .build();
             default -> InvocationResultImpl
                     .<AuctionRequestPayload>builder()
@@ -205,6 +216,26 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
 
     private ObjectNode toObjectNode(Map<String, Ortb2ImpExtResult> values) {
         return values != null ? mapper.valueToTree(values) : null;
+    }
+
+    private Map<String, List<Rejected>> toRejections(AnalyticsResult analyticsResult) {
+        if (analyticsResult == null) {
+            return null;
+        }
+
+        return analyticsResult.getValues().entrySet().stream()
+                .flatMap(entry ->
+                        Stream.ofNullable(entry.getValue())
+                                .map(Ortb2ImpExtResult::getGreenbids)
+                                .map(ExplorationResult::getKeptInAuction)
+                                .map(Map::entrySet)
+                                .flatMap(Collection::stream)
+                                .filter(e -> BooleanUtils.isFalse(e.getValue()))
+                                .map(Map.Entry::getKey)
+                                .map(bidder -> Pair.of(
+                                        bidder,
+                                        RejectedImp.of(entry.getKey(), BidRejectionReason.REQUEST_BLOCKED_OPTIMIZED))))
+                .collect(Collectors.groupingBy(Pair::getKey, Collectors.mapping(Pair::getValue, Collectors.toList())));
     }
 
     @Override

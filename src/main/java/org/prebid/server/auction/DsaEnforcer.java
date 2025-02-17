@@ -9,6 +9,7 @@ import org.prebid.server.auction.model.AuctionParticipation;
 import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.BidderResponse;
+import org.prebid.server.auction.model.RejectedBid;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
@@ -72,7 +73,7 @@ public class DsaEnforcer {
                 }
             } catch (PreBidException e) {
                 warnings.add(BidderError.invalidBid("Bid \"%s\": %s".formatted(bid.getId(), e.getMessage())));
-                rejectionTracker.rejectBid(bidderBid, BidRejectionReason.RESPONSE_REJECTED_DSA_PRIVACY);
+                rejectionTracker.reject(RejectedBid.of(bidderBid, BidRejectionReason.RESPONSE_REJECTED_DSA_PRIVACY));
                 updatedBidderBids.remove(bidderBid);
             }
         }

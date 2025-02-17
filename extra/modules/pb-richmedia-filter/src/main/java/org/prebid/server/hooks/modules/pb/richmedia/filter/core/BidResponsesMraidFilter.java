@@ -24,8 +24,7 @@ public class BidResponsesMraidFilter {
     private static final Map<String, Object> TAG_VALUES = Map.of("richmedia-format", "mraid");
 
     public MraidFilterResult filterByPattern(String mraidScriptPattern,
-                                             List<BidderResponse> responses,
-                                             Map<String, BidRejectionTracker> bidRejectionTrackers) {
+                                             List<BidderResponse> responses) {
 
         List<BidderResponse> filteredResponses = new ArrayList<>();
         List<AnalyticsResult> analyticsResults = new ArrayList<>();
@@ -53,11 +52,9 @@ public class BidResponsesMraidFilter {
                         TAG_STATUS,
                         TAG_VALUES,
                         bidder,
-                        rejectedImps);
+                        rejectedImps,
+                        BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE);
                 analyticsResults.add(analyticsResult);
-
-                bidRejectionTrackers.get(bidder)
-                        .rejectBids(invalidBids, BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE);
 
                 final List<BidderError> errors = new ArrayList<>(seatBid.getErrors());
                 errors.add(BidderError.of("Invalid bid", BidderError.Type.invalid_bid, new HashSet<>(rejectedImps)));

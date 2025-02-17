@@ -1,6 +1,7 @@
 package org.prebid.server.hooks.modules.pb.richmedia.filter.model;
 
 import lombok.Value;
+import org.prebid.server.auction.model.BidRejectionReason;
 
 import java.util.List;
 import java.util.Map;
@@ -15,4 +16,6 @@ public class AnalyticsResult {
     String bidder;
 
     List<String> impId;
+
+    BidRejectionReason rejectionReason;
 }

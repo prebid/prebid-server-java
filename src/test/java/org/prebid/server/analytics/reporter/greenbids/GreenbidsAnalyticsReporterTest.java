@@ -39,6 +39,7 @@ import org.prebid.server.analytics.reporter.greenbids.model.Ortb2ImpResult;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.auction.model.BidRejectionTracker;
+import org.prebid.server.auction.model.RejectedImp;
 import org.prebid.server.hooks.execution.model.ExecutionStatus;
 import org.prebid.server.hooks.execution.model.GroupExecutionOutcome;
 import org.prebid.server.hooks.execution.model.HookExecutionContext;
@@ -198,7 +199,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .build();
 
         final AuctionContext auctionContext = givenAuctionContextWithAnalyticsTag(
-                context -> context, List.of(imp), true);
+                context -> context, List.of(imp));
         final AuctionEvent event = AuctionEvent.builder()
                 .auctionContext(auctionContext)
                 .bidResponse(auctionContext.getBidResponse())
@@ -640,8 +641,8 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
 
     private static AuctionContext givenAuctionContextWithAnalyticsTag(
             UnaryOperator<AuctionContext.AuctionContextBuilder> auctionContextCustomizer,
-            List<Imp> imps,
-            boolean includeBidResponse) {
+            List<Imp> imps) {
+
         final AuctionContext.AuctionContextBuilder auctionContextBuilder = AuctionContext.builder()
                 .httpRequest(HttpRequestContext.builder().build())
                 .bidRequest(givenBidRequest(request -> request, imps))
@@ -650,11 +651,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
 
         final HookExecutionContext hookExecutionContext = givenHookExecutionContextWithAnalyticsTag();
         auctionContextBuilder.hookExecutionContext(hookExecutionContext);
-
-        if (includeBidResponse) {
-            auctionContextBuilder.bidResponse(givenBidResponse(response -> response));
-        }
-
+        auctionContextBuilder.bidResponse(givenBidResponse(response -> response));
         return auctionContextCustomizer.apply(auctionContextBuilder).build();
     }
 
@@ -813,7 +810,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 "seat3",
                 Set.of("adunitcodevalue"),
                 1.0);
-        bidRejectionTracker.rejectImp("imp1", BidRejectionReason.NO_BID);
+        bidRejectionTracker.reject(RejectedImp.of("imp1", BidRejectionReason.NO_BID));
         return bidRejectionTracker;
     }
 

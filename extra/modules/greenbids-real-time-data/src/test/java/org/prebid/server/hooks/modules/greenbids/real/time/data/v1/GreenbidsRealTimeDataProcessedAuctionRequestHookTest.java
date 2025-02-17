@@ -25,6 +25,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.analytics.reporter.greenbids.model.ExplorationResult;
 import org.prebid.server.analytics.reporter.greenbids.model.Ortb2ImpExtResult;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.BidRejectionReason;
+import org.prebid.server.auction.model.RejectedImp;
 import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.hooks.execution.v1.analytics.ActivityImpl;
 import org.prebid.server.hooks.execution.v1.analytics.AppliedToImpl;
@@ -66,10 +68,12 @@ import java.util.function.UnaryOperator;
 
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.prebid.server.auction.model.BidRejectionReason.*;
 import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider.givenBanner;
 import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider.givenBidRequest;
 import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider.givenBidRequestWithExtension;
@@ -390,6 +394,10 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         assertThat(fingerprint).isNotNull();
         assertThat(resultBidRequest).usingRecursiveComparison()
                 .isEqualTo(expectedBidRequest);
+        assertThat(result.rejections()).containsOnly(
+                entry("appnexus", List.of(RejectedImp.of("adunitcodevalue", REQUEST_BLOCKED_OPTIMIZED))),
+                entry("pubmatic", List.of(RejectedImp.of("adunitcodevalue", REQUEST_BLOCKED_OPTIMIZED))),
+                entry("rubicon", List.of(RejectedImp.of("adunitcodevalue", REQUEST_BLOCKED_OPTIMIZED))));
     }
 
     private AuctionContext givenAuctionContext(

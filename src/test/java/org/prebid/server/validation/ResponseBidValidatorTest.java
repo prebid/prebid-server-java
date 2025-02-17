@@ -14,8 +14,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.auction.model.BidRejectionTracker;
+import org.prebid.server.auction.model.RejectedBid;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
@@ -38,6 +38,8 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.prebid.server.auction.model.BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_NOT_SECURE;
+import static org.prebid.server.auction.model.BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_SIZE_NOT_ALLOWED;
 import static org.prebid.server.settings.model.BidValidationEnforcement.enforce;
 import static org.prebid.server.settings.model.BidValidationEnforcement.skip;
 import static org.prebid.server.settings.model.BidValidationEnforcement.warn;
@@ -151,7 +153,7 @@ public class ResponseBidValidatorTest extends VertxTest {
                         creative size validation for bid bidId1, account=account, referrer=unknown, \
                         max imp size='100x200', bid response size='nullxnull'""");
         verify(bidRejectionTracker)
-                .rejectBid(givenBid, BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_SIZE_NOT_ALLOWED);
+                .reject(RejectedBid.of(givenBid, RESPONSE_REJECTED_INVALID_CREATIVE_SIZE_NOT_ALLOWED));
     }
 
     @Test
@@ -167,7 +169,7 @@ public class ResponseBidValidatorTest extends VertxTest {
                         creative size validation for bid bidId1, account=account, referrer=unknown, \
                         max imp size='100x200', bid response size='150x150'""");
         verify(bidRejectionTracker)
-                .rejectBid(givenBid, BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_SIZE_NOT_ALLOWED);
+                .reject(RejectedBid.of(givenBid, RESPONSE_REJECTED_INVALID_CREATIVE_SIZE_NOT_ALLOWED));
     }
 
     @Test
@@ -183,7 +185,7 @@ public class ResponseBidValidatorTest extends VertxTest {
                         creative size validation for bid bidId1, account=account, referrer=unknown, \
                         max imp size='100x200', bid response size='50x250'""");
         verify(bidRejectionTracker)
-                .rejectBid(givenBid, BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_SIZE_NOT_ALLOWED);
+                .reject(RejectedBid.of(givenBid, RESPONSE_REJECTED_INVALID_CREATIVE_SIZE_NOT_ALLOWED));
     }
 
     @Test
@@ -267,7 +269,7 @@ public class ResponseBidValidatorTest extends VertxTest {
                         secure creative validation for bid bidId1, account=account, referrer=unknown, \
                         adm=<tag>http://site.com/creative.jpg</tag>""");
         verify(bidRejectionTracker)
-                .rejectBid(givenBid, BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_NOT_SECURE);
+                .reject(RejectedBid.of(givenBid, RESPONSE_REJECTED_INVALID_CREATIVE_NOT_SECURE));
     }
 
     @Test
@@ -287,7 +289,7 @@ public class ResponseBidValidatorTest extends VertxTest {
                         secure creative validation for bid bidId1, account=account, referrer=unknown, \
                         adm=<tag>http%3A//site.com/creative.jpg</tag>""");
         verify(bidRejectionTracker)
-                .rejectBid(givenBid, BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_NOT_SECURE);
+                .reject(RejectedBid.of(givenBid, RESPONSE_REJECTED_INVALID_CREATIVE_NOT_SECURE));
     }
 
     @Test
@@ -307,7 +309,7 @@ public class ResponseBidValidatorTest extends VertxTest {
                         secure creative validation for bid bidId1, account=account, referrer=unknown, \
                         adm=<tag>//site.com/creative.jpg</tag>""");
         verify(bidRejectionTracker)
-                .rejectBid(givenBid, BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_NOT_SECURE);
+                .reject(RejectedBid.of(givenBid, RESPONSE_REJECTED_INVALID_CREATIVE_NOT_SECURE));
     }
 
     @Test
@@ -471,7 +473,7 @@ public class ResponseBidValidatorTest extends VertxTest {
         // then
         verify(metrics).updateSizeValidationMetrics(BIDDER_NAME, ACCOUNT_ID, MetricName.err);
         verify(bidRejectionTracker)
-                .rejectBid(givenBid, BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_SIZE_NOT_ALLOWED);
+                .reject(RejectedBid.of(givenBid, RESPONSE_REJECTED_INVALID_CREATIVE_SIZE_NOT_ALLOWED));
     }
 
     @Test
@@ -501,7 +503,7 @@ public class ResponseBidValidatorTest extends VertxTest {
         // then
         verify(metrics).updateSecureValidationMetrics(BIDDER_NAME, ACCOUNT_ID, MetricName.err);
         verify(bidRejectionTracker)
-                .rejectBid(givenBid, BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_NOT_SECURE);
+                .reject(RejectedBid.of(givenBid, RESPONSE_REJECTED_INVALID_CREATIVE_NOT_SECURE));
     }
 
     @Test

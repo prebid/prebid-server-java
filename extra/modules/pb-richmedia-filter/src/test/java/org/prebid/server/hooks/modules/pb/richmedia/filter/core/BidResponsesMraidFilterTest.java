@@ -30,21 +30,14 @@ public class BidResponsesMraidFilterTest {
         // given
         final BidderResponse responseA = givenBidderResponse("bidderA", List.of(givenBid("imp_id", "adm1")));
         final BidderResponse responseB = givenBidderResponse("bidderB", List.of(givenBid("imp_id", "adm2")));
-        final BidRejectionTracker bidRejectionTrackerA = mock(BidRejectionTracker.class);
-        final BidRejectionTracker bidRejectionTrackerB = mock(BidRejectionTracker.class);
-        final Map<String, BidRejectionTracker> givenTrackers = Map.of(
-                "bidderA", bidRejectionTrackerA,
-                "bidderB", bidRejectionTrackerB);
 
         // when
-        final MraidFilterResult filterResult = target.filterByPattern("mraid.js", List.of(responseA, responseB), givenTrackers);
+        final MraidFilterResult filterResult = target.filterByPattern("mraid.js", List.of(responseA, responseB));
 
         // then
         assertThat(filterResult.getFilterResult()).containsExactly(responseA, responseB);
         assertThat(filterResult.getAnalyticsResult()).isEmpty();
         assertThat(filterResult.hasRejectedBids()).isFalse();
-
-        verifyNoInteractions(bidRejectionTrackerA, bidRejectionTrackerB);
     }
 
     @Test
@@ -59,19 +52,10 @@ public class BidResponsesMraidFilterTest {
         final BidderResponse responseB = givenBidderResponse("bidderB", List.of(givenBid1, givenInvalidBid2));
         final BidderResponse responseC = givenBidderResponse("bidderC", List.of(givenInvalidBid1, givenInvalidBid2));
 
-        final BidRejectionTracker bidRejectionTrackerA = mock(BidRejectionTracker.class);
-        final BidRejectionTracker bidRejectionTrackerB = mock(BidRejectionTracker.class);
-        final BidRejectionTracker bidRejectionTrackerC = mock(BidRejectionTracker.class);
-        final Map<String, BidRejectionTracker> givenTrackers = Map.of(
-                "bidderA", bidRejectionTrackerA,
-                "bidderB", bidRejectionTrackerB,
-                "bidderC", bidRejectionTrackerC);
-
         // when
         final MraidFilterResult filterResult = target.filterByPattern(
                 "mraid.js",
-                List.of(responseA, responseB, responseC),
-                givenTrackers);
+                List.of(responseA, responseB, responseC));
 
         // then
         final BidderResponse expectedResponseA = givenBidderResponse(
@@ -90,25 +74,20 @@ public class BidResponsesMraidFilterTest {
                 "success-block",
                 Map.of("richmedia-format", "mraid"),
                 "bidderB",
-                List.of("imp_id2"));
+                List.of("imp_id2"),
+                BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE);
         final AnalyticsResult expectedAnalyticsResultC = AnalyticsResult.of(
                 "success-block",
                 Map.of("richmedia-format", "mraid"),
                 "bidderC",
-                List.of("imp_id1", "imp_id2"));
+                List.of("imp_id1", "imp_id2"),
+                BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE);
 
         assertThat(filterResult.getFilterResult())
                 .containsExactly(expectedResponseA, expectedResponseB, expectedResponseC);
         assertThat(filterResult.getAnalyticsResult())
                 .containsExactlyInAnyOrder(expectedAnalyticsResultB, expectedAnalyticsResultC);
         assertThat(filterResult.hasRejectedBids()).isTrue();
-
-        verifyNoInteractions(bidRejectionTrackerA);
-        verify(bidRejectionTrackerB)
-                .rejectBids(List.of(givenInvalidBid2), BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE);
-        verify(bidRejectionTrackerC)
-                .rejectBids(List.of(givenInvalidBid1, givenInvalidBid2), BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE);
-        verifyNoMoreInteractions(bidRejectionTrackerB, bidRejectionTrackerC);
     }
 
     private static BidderResponse givenBidderResponse(String bidder, List<BidderBid> bids) {
