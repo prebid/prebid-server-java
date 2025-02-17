@@ -150,6 +150,7 @@ public class RubiconBidderTest extends VertxTest {
     private static final String BIDDER_NAME = "bidderName";
     private static final String ENDPOINT_URL = "http://rubiconproject.com/exchange.json?tk_xint=prebid";
     private static final String EXTERNAL_URL = "http://localhost:8080";
+    private static final String APEX_RENDERER_URL = "https://video-outstream.rubiconproject.com/apex-2.2.1.js";
     private static final String USERNAME = "username";
     private static final String PASSWORD = "password";
     private static final String PBS_VERSION = "pbs_version";
@@ -177,6 +178,7 @@ public class RubiconBidderTest extends VertxTest {
                 PASSWORD,
                 SUPPORTED_VENDORS,
                 false,
+                APEX_RENDERER_URL,
                 currencyConversionService,
                 priceFloorResolver,
                 versionProvider,
@@ -195,6 +197,7 @@ public class RubiconBidderTest extends VertxTest {
                         PASSWORD,
                         SUPPORTED_VENDORS,
                         false,
+                        APEX_RENDERER_URL,
                         currencyConversionService,
                         priceFloorResolver,
                         versionProvider,
@@ -874,6 +877,7 @@ public class RubiconBidderTest extends VertxTest {
                 PASSWORD,
                 SUPPORTED_VENDORS,
                 true,
+                APEX_RENDERER_URL,
                 currencyConversionService,
                 priceFloorResolver,
                 versionProvider,
@@ -3337,7 +3341,7 @@ public class RubiconBidderTest extends VertxTest {
         final ObjectNode expectedBidExt = mapper.valueToTree(
                 ExtPrebid.of(ExtBidPrebid.builder()
                         .meta(ExtBidPrebidMeta.builder()
-                                .rendererUrl("https://video-outstream.rubiconproject.com/apex-2.2.1.js")
+                                .rendererUrl(APEX_RENDERER_URL)
                                 .build())
                         .build(), null));
 
@@ -3389,7 +3393,7 @@ public class RubiconBidderTest extends VertxTest {
                 ExtPrebid.of(ExtBidPrebid.builder()
                         .meta(ExtBidPrebidMeta.builder()
                                 .mediaType("video")
-                                .rendererUrl("https://video-outstream.rubiconproject.com/apex-2.2.1.js")
+                                .rendererUrl(APEX_RENDERER_URL)
                                 .build())
                         .build(), null));
 
@@ -3437,13 +3441,6 @@ public class RubiconBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = target.makeBids(httpCall, givenBidRequest);
 
         // then
-        final ObjectNode expectedBidExt = mapper.valueToTree(
-                ExtPrebid.of(ExtBidPrebid.builder()
-                        .meta(ExtBidPrebidMeta.builder()
-                                .rendererUrl("https://video-outstream.rubiconproject.com/apex-2.2.1.js")
-                                .build())
-                        .build(), null));
-
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(BidderBid::getBid)
@@ -4049,7 +4046,7 @@ public class RubiconBidderTest extends VertxTest {
         // given
         target = new RubiconBidder(
                 BIDDER_NAME, ENDPOINT_URL, ENDPOINT_URL, USERNAME, PASSWORD, SUPPORTED_VENDORS, true,
-                currencyConversionService, priceFloorResolver, versionProvider, jacksonMapper);
+                APEX_RENDERER_URL, currencyConversionService, priceFloorResolver, versionProvider, jacksonMapper);
 
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(RubiconBidResponse.builder()
@@ -4075,7 +4072,7 @@ public class RubiconBidderTest extends VertxTest {
         // given
         target = new RubiconBidder(
                 BIDDER_NAME, ENDPOINT_URL, EXTERNAL_URL, USERNAME, PASSWORD, SUPPORTED_VENDORS, true,
-                currencyConversionService, priceFloorResolver, versionProvider, jacksonMapper);
+                APEX_RENDERER_URL, currencyConversionService, priceFloorResolver, versionProvider, jacksonMapper);
 
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(RubiconBidResponse.builder()

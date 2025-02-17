@@ -182,7 +182,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
     private static final boolean DEFAULT_MULTIFORMAT_VALUE = false;
-    private static final String VIDEO_OUTSTREAM_APEX_META_RENDERER_URL = "https://video-outstream.rubiconproject.com/apex-2.2.1.js";
 
     private final String bidderName;
     private final String endpointUrl;
@@ -190,6 +189,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private final String xapiUsername;
     private final Set<String> supportedVendors;
     private final boolean generateBidId;
+    private final String apexRendererUrl;
     private final CurrencyConversionService currencyConversionService;
     private final PriceFloorResolver floorResolver;
     private final PrebidVersionProvider versionProvider;
@@ -204,6 +204,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                          String xapiPassword,
                          List<String> supportedVendors,
                          boolean generateBidId,
+                         String apexRendererUrl,
                          CurrencyConversionService currencyConversionService,
                          PriceFloorResolver floorResolver,
                          PrebidVersionProvider versionProvider,
@@ -215,6 +216,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         this.xapiUsername = Objects.requireNonNull(xapiUsername);
         this.supportedVendors = Set.copyOf(Objects.requireNonNull(supportedVendors));
         this.generateBidId = generateBidId;
+        this.apexRendererUrl = apexRendererUrl;
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
         this.floorResolver = Objects.requireNonNull(floorResolver);
         this.versionProvider = Objects.requireNonNull(versionProvider);
@@ -1743,7 +1745,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return hasApexRenderer
                 && (bidType == BidType.video || isVideoMetaMediaType(meta))
                 && (video != null && !Objects.equals(video.getPlacement(), 1) && !Objects.equals(video.getPlcmt(), 1))
-                ? VIDEO_OUTSTREAM_APEX_META_RENDERER_URL
+                ? apexRendererUrl
                 : null;
     }
 
