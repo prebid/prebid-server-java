@@ -19,8 +19,8 @@ import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.tests.module.ModuleBaseSpec
 import org.prebid.server.functional.util.PBSUtils
 
-import static org.prebid.server.functional.model.ModuleName.ORTB2_BLOCKING
-import static org.prebid.server.functional.model.ModuleName.PB_RICHMEDIA_FILTER
+import static org.prebid.server.functional.model.config.ModuleName.ORTB2_BLOCKING
+import static org.prebid.server.functional.model.config.ModuleName.PB_RICHMEDIA_FILTER
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.config.Endpoint.OPENRTB2_AUCTION
 import static org.prebid.server.functional.model.config.Stage.ALL_PROCESSED_BID_RESPONSES
@@ -29,12 +29,6 @@ import static org.prebid.server.functional.model.request.auction.TraceLevel.VERB
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 
 class AnalyticsTagsModuleSpec extends ModuleBaseSpec {
-
-    private static final PrebidServerService pbsServiceWithEnabledOrtb2Blocking = pbsServiceFactory.getService(getOrtb2BlockingSettings())
-
-    def cleanupSpec() {
-        pbsServiceFactory.removeContainer(getOrtb2BlockingSettings())
-    }
 
     def "PBS should include analytics tag for ortb2-blocking module in response when request and account allow client details"() {
         given: "Default account with module config"
@@ -50,7 +44,7 @@ class AnalyticsTagsModuleSpec extends ModuleBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain ext.prebid.analyticsTags with module record"
         def analyticsTagPrebid = bidResponse.ext.prebid.analytics.tags.first
@@ -118,6 +112,9 @@ class AnalyticsTagsModuleSpec extends ModuleBaseSpec {
             it.appliedTo.bidders == [GENERIC.value]
             it.appliedTo.impIds == bidRequest.imp.id
         }
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(getRichMediaFilterSettings(PATTERN_NAME))
     }
 
     def "PBS should include analytics tag in response when request and default account allow client details"() {
@@ -127,7 +124,7 @@ class AnalyticsTagsModuleSpec extends ModuleBaseSpec {
         def accountConfig = new AccountConfig(hooks: hooksConfiguration, analytics: new AccountAnalyticsConfig(allowClientDetails: true))
 
         and: "Prebid server with proper default account"
-        def pbsConfig = ['settings.default-account-config': encode(accountConfig)] + ortb2BlockingSettings
+        def pbsConfig = ['settings.default-account-config': encode(accountConfig)] + getModuleBaseSettings(ORTB2_BLOCKING)
         def pbsServiceWithDefaultAccount = pbsServiceFactory.getService(pbsConfig)
 
         and: "Bid request with enabled client details"
@@ -166,7 +163,7 @@ class AnalyticsTagsModuleSpec extends ModuleBaseSpec {
         def defaultAccountConfig = new AccountConfig(hooks: defaultHooksConfiguration, analytics: new AccountAnalyticsConfig(allowClientDetails: false))
 
         and: "Prebid server with proper default account"
-        def pbsConfig = ['settings.default-account-config': encode(defaultAccountConfig)] + ortb2BlockingSettings
+        def pbsConfig = ['settings.default-account-config': encode(defaultAccountConfig)] + getModuleBaseSettings(ORTB2_BLOCKING)
         def pbsServiceWithDefaultAccount = pbsServiceFactory.getService(pbsConfig)
 
         and: "Bid request with enabled client details"
@@ -242,7 +239,7 @@ class AnalyticsTagsModuleSpec extends ModuleBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bid response should not contain any analytics tag"
         assert !bidResponse?.ext?.prebid?.analytics?.tags
@@ -265,7 +262,7 @@ class AnalyticsTagsModuleSpec extends ModuleBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bid response should not contain any analytics tag"
         assert !bidResponse?.ext?.prebid?.analytics?.tags
@@ -289,7 +286,7 @@ class AnalyticsTagsModuleSpec extends ModuleBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bid response should not contain any analytics tag"
         assert !bidResponse?.ext?.prebid?.analytics?.tags

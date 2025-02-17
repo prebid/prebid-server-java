@@ -8,8 +8,7 @@ enum State {
     //USA states
     ALABAMA("AL"), ALASKA("AK"), ARIZONA("AZ");
 
-
-    final String abbreviation;
+    final String abbreviation
 
     State(String abbreviation) {
         this.abbreviation = abbreviation

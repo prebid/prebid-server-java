@@ -18,7 +18,11 @@ import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 
 class StoredResponseSpec extends BaseSpec {
 
-    private final PrebidServerService pbsService = pbsServiceFactory.getService(["cache.default-ttl-seconds.banner": ""])
+    private static final PrebidServerService pbsService = pbsServiceFactory.getService(EMPTY_CACHE_TTL_CONFIG)
+
+    def cleanupSpec() {
+        pbsServiceFactory.removeContainer(EMPTY_CACHE_TTL_CONFIG)
+    }
 
     @PendingFeature
     def "PBS should not fail auction with storedAuctionResponse when request bidder params doesn't satisfy json-schema"() {
