@@ -176,7 +176,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
 
         final BidRequest expectedBidRequest = expectedUpdatedBidRequest(
                 request -> request, device, true);
-        final AnalyticsResult expectedAnalyticsResult = expectedAnalyticsResult(false, false);
+        final AnalyticsResult expectedAnalyticsResult = expectedAnalyticsResult(false, true);
 
         // when
         final Future<InvocationResult<AuctionRequestPayload>> future = target
@@ -236,7 +236,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         when(thresholdsCacheWithExpiration.getIfPresent("throttlingThresholds_test-pbuid"))
                 .thenReturn(givenThrottlingThresholds());
 
-        final AnalyticsResult expectedAnalyticsResult = expectedAnalyticsResult(true, false);
+        final AnalyticsResult expectedAnalyticsResult = expectedAnalyticsResult(true, true);
 
         // when
         final Future<InvocationResult<AuctionRequestPayload>> future = target
@@ -292,7 +292,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
 
         final BidRequest expectedBidRequest = expectedUpdatedBidRequest(
                 request -> request, device, false);
-        final AnalyticsResult expectedAnalyticsResult = expectedAnalyticsResult(false, false);
+        final AnalyticsResult expectedAnalyticsResult = expectedAnalyticsResult(false, true);
 
         // when
         final Future<InvocationResult<AuctionRequestPayload>> future = target
@@ -353,7 +353,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
 
         final BidRequest expectedBidRequest = expectedUpdatedBidRequest(
                 request -> request, device, false);
-        final AnalyticsResult expectedAnalyticsResult = expectedAnalyticsResult(false, false);
+        final AnalyticsResult expectedAnalyticsResult = expectedAnalyticsResult(false, true);
 
         // when
         final Future<InvocationResult<AuctionRequestPayload>> future = target
@@ -413,7 +413,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final ObjectNode greenbidsNode = TestBidRequestProvider.MAPPER.createObjectNode();
         greenbidsNode.put("enabled", true);
         greenbidsNode.put("pbuid", "test-pbuid");
-        greenbidsNode.put("target-tpr", 0.60);
+        greenbidsNode.put("target-tpr", 0.99);
         greenbidsNode.put("exploration-rate", explorationRate);
         return greenbidsNode;
     }
@@ -440,6 +440,22 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final Banner banner = givenBanner();
 
         final ObjectNode bidderNode = TestBidRequestProvider.MAPPER.createObjectNode();
+
+        final ObjectNode rubiconNode = TestBidRequestProvider.MAPPER.createObjectNode();
+        rubiconNode.put("accountId", 1001);
+        rubiconNode.put("siteId", 267318);
+        rubiconNode.put("zoneId", 1861698);
+        bidderNode.set("rubicon", rubiconNode);
+
+        final ObjectNode appnexusNode = TestBidRequestProvider.MAPPER.createObjectNode();
+        appnexusNode.put("placementId", 123456);
+        bidderNode.set("appnexus", appnexusNode);
+
+        final ObjectNode pubmaticNode = TestBidRequestProvider.MAPPER.createObjectNode();
+        pubmaticNode.put("publisherId", "156209");
+        pubmaticNode.put("adSlot", "slot1@300x250");
+        bidderNode.set("pubmatic", pubmaticNode);
+
         final ObjectNode prebidNode = TestBidRequestProvider.MAPPER.createObjectNode();
         prebidNode.set("bidder", bidderNode);
 
@@ -504,7 +520,6 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 toObjectNode(analyticsResult.getValues()),
                 AppliedToImpl.builder()
                         .impIds(Collections.singletonList("adunitcodevalue"))
-                        .bidders(List.of("appnexus", "pubmatic", "rubicon"))
                         .build());
     }
 
