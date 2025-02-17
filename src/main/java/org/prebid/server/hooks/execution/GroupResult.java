@@ -2,6 +2,8 @@ package org.prebid.server.hooks.execution;
 
 import lombok.Getter;
 import lombok.experimental.Accessors;
+import org.apache.commons.collections4.MapUtils;
+import org.prebid.server.auction.model.Rejected;
 import org.prebid.server.hooks.execution.model.ExecutionAction;
 import org.prebid.server.hooks.execution.model.ExecutionStatus;
 import org.prebid.server.hooks.execution.model.GroupExecutionOutcome;
@@ -15,7 +17,9 @@ import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
 @Accessors(fluent = true)
@@ -32,6 +36,8 @@ class GroupResult<T> {
     private T payload;
 
     private final boolean rejectAllowed;
+
+    private final Map<String, List<Rejected>> rejections = new HashMap<>();
 
     private final List<HookExecutionOutcome> hookExecutionOutcomes = new ArrayList<>();
 
@@ -52,6 +58,8 @@ class GroupResult<T> {
         if (invocationResult.status() == InvocationStatus.success && invocationResult.action() != null) {
             try {
                 applyAction(hookId, invocationResult.action(), invocationResult.payloadUpdate());
+                MapUtils.emptyIfNull(invocationResult.rejections()).forEach((bidder, rejectionList) ->
+                        rejections.computeIfAbsent(bidder, key -> new ArrayList<>()).addAll(rejectionList));
             } catch (Exception e) {
                 hookExecutionOutcomes.add(toExecutionOutcome(e, hookId, executionTime));
 

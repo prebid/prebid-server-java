@@ -36,7 +36,8 @@ public class HooksConfiguration {
                                         Clock clock,
                                         JacksonMapper mapper,
                                         @Value("${settings.modules.require-config-to-invoke:false}")
-                                        boolean isConfigToInvokeRequired) {
+                                        boolean isConfigToInvokeRequired,
+                                        @Value("${logging.sampling-rate:0.01}") double logSamplingRate) {
 
         return HookStageExecutor.create(
                 hooksConfiguration.getHostExecutionPlan(),
@@ -49,7 +50,8 @@ public class HooksConfiguration {
                 vertx,
                 clock,
                 mapper,
-                isConfigToInvokeRequired);
+                isConfigToInvokeRequired,
+                logSamplingRate);
     }
 
     @Bean
