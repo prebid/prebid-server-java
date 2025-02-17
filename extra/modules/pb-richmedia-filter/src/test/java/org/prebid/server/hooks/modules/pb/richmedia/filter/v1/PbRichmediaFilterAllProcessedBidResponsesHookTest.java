@@ -1,17 +1,16 @@
 package org.prebid.server.hooks.modules.pb.richmedia.filter.v1;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.iab.openrtb.response.Bid;
 import io.vertx.core.Future;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.auction.model.BidRejectionReason;
-import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.BidderResponse;
-import org.prebid.server.auction.model.RejectedImp;
+import org.prebid.server.auction.model.RejectedBid;
+import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.hooks.execution.v1.analytics.ActivityImpl;
 import org.prebid.server.hooks.execution.v1.analytics.AppliedToImpl;
@@ -34,6 +33,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -44,7 +44,7 @@ import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
-import static org.prebid.server.auction.model.BidRejectionReason.*;
+import static org.prebid.server.auction.model.BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE;
 
 @ExtendWith(MockitoExtension.class)
 public class PbRichmediaFilterAllProcessedBidResponsesHookTest {
@@ -223,10 +223,21 @@ public class PbRichmediaFilterAllProcessedBidResponsesHookTest {
 
         assertThat(result.rejections()).containsOnly(
                 entry("bidderA", List.of(
-                        RejectedImp.of("imp_id1", RESPONSE_REJECTED_INVALID_CREATIVE),
-                        RejectedImp.of("imp_id2", RESPONSE_REJECTED_INVALID_CREATIVE))),
+                        RejectedBid.of(
+                                BidderBid.builder()
+                                        .bid(Bid.builder().id("bid-imp_id1").impid("imp_id1").build())
+                                        .build(),
+                                RESPONSE_REJECTED_INVALID_CREATIVE),
+                        RejectedBid.of(
+                                BidderBid.builder()
+                                        .bid(Bid.builder().id("bid-imp_id2").impid("imp_id2").build())
+                                        .build(),
+                                RESPONSE_REJECTED_INVALID_CREATIVE))),
                 entry("bidderB", List.of(
-                        RejectedImp.of("imp_id3", RESPONSE_REJECTED_INVALID_CREATIVE))));
+                        RejectedBid.of(BidderBid.builder()
+                                        .bid(Bid.builder().id("bid-imp_id3").impid("imp_id3").build())
+                                        .build(),
+                                RESPONSE_REJECTED_INVALID_CREATIVE))));
     }
 
     @Test
@@ -265,6 +276,8 @@ public class PbRichmediaFilterAllProcessedBidResponsesHookTest {
                 Map.of("key", "value"),
                 bidder,
                 List.of(rejectedImpIds),
+                Stream.of(rejectedImpIds).map(impId -> BidderBid.builder().bid(
+                        Bid.builder().id("bid-" + impId).impid(impId).build()).build()).toList(),
                 RESPONSE_REJECTED_INVALID_CREATIVE);
     }
 

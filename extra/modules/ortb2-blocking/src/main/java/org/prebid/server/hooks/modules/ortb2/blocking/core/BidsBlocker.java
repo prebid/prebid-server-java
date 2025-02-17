@@ -6,7 +6,6 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.BidRejectionReason;
-import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.Rejected;
 import org.prebid.server.auction.model.RejectedBid;
 import org.prebid.server.auction.versionconverter.OrtbVersion;

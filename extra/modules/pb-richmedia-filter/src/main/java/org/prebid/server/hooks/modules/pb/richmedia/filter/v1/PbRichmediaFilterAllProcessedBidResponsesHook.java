@@ -7,7 +7,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.Rejected;
-import org.prebid.server.auction.model.RejectedImp;
+import org.prebid.server.auction.model.RejectedBid;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.execution.v1.analytics.ActivityImpl;
 import org.prebid.server.hooks.execution.v1.analytics.AppliedToImpl;
@@ -28,7 +28,6 @@ import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.bidder.AllProcessedBidResponsesHook;
 import org.prebid.server.hooks.v1.bidder.AllProcessedBidResponsesPayload;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -86,8 +85,8 @@ public class PbRichmediaFilterAllProcessedBidResponsesHook implements AllProcess
     private Map<String, List<Rejected>> toRejections(List<AnalyticsResult> analyticsResults) {
         return analyticsResults.stream().collect(Collectors.toMap(
                 AnalyticsResult::getBidder,
-                result -> result.getImpId().stream()
-                        .map(impId -> RejectedImp.of(impId, result.getRejectionReason()))
+                result -> result.getRejectedBids().stream()
+                        .map(bid -> RejectedBid.of(bid, result.getRejectionReason()))
                         .map(Rejected.class::cast)
                         .toList(),
                 (list1, list2) -> Stream.concat(list1.stream(), list2.stream()).collect(Collectors.toList())));

@@ -3,7 +3,6 @@ package org.prebid.server.hooks.modules.pb.richmedia.filter.core;
 import com.iab.openrtb.response.Bid;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.BidRejectionReason;
-import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -53,6 +52,7 @@ public class BidResponsesMraidFilter {
                         TAG_VALUES,
                         bidder,
                         rejectedImps,
+                        invalidBids,
                         BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE);
                 analyticsResults.add(analyticsResult);
 

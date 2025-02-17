@@ -3,7 +3,6 @@ package org.prebid.server.hooks.modules.pb.richmedia.filter.core;
 import com.iab.openrtb.response.Bid;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.auction.model.BidRejectionReason;
-import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -16,10 +15,6 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 public class BidResponsesMraidFilterTest {
 
@@ -75,12 +70,14 @@ public class BidResponsesMraidFilterTest {
                 Map.of("richmedia-format", "mraid"),
                 "bidderB",
                 List.of("imp_id2"),
+                List.of(givenInvalidBid2),
                 BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE);
         final AnalyticsResult expectedAnalyticsResultC = AnalyticsResult.of(
                 "success-block",
                 Map.of("richmedia-format", "mraid"),
                 "bidderC",
                 List.of("imp_id1", "imp_id2"),
+                List.of(givenInvalidBid1, givenInvalidBid2),
                 BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE);
 
         assertThat(filterResult.getFilterResult())

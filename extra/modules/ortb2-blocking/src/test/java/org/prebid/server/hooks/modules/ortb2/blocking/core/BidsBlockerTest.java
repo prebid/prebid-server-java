@@ -8,7 +8,6 @@ import com.iab.openrtb.response.Bid;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.auction.model.RejectedBid;
 import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.prebid.server.bidder.model.BidderBid;
@@ -34,8 +33,6 @@ import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.verify;
-import static org.prebid.server.auction.model.BidRejectionReason.*;
 import static org.prebid.server.auction.model.BidRejectionReason.RESPONSE_REJECTED_ADVERTISER_BLOCKED;
 import static org.prebid.server.auction.model.BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE;
 
