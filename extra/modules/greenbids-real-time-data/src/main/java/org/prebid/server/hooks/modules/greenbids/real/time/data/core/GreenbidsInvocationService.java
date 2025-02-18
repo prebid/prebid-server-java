@@ -32,18 +32,17 @@ public class GreenbidsInvocationService {
         final String greenbidsId = UUID.randomUUID().toString();
         final boolean isExploration = isExploration(greenbidsConfig, greenbidsId);
 
-        boolean allImpsRejected = impsBiddersFilterMap.values().stream()
-                .allMatch(biddersMapp -> biddersMapp.values().stream().noneMatch(isKept -> isKept));
+        final List<Imp> updatedImps = updateImps(bidRequest, impsBiddersFilterMap);
 
-        BidRequest updatedBidRequest = (isExploration || allImpsRejected)
+        BidRequest updatedBidRequest = (isExploration || updatedImps.isEmpty())
                 ? bidRequest
                 : bidRequest.toBuilder()
-                .imp(updateImps(bidRequest, impsBiddersFilterMap))
+                .imp(updatedImps)
                 .build();
         InvocationAction invocationAction = isExploration
                 ? InvocationAction.no_action
                 : InvocationAction.update;
-        invocationAction = allImpsRejected ? InvocationAction.reject : invocationAction;
+        invocationAction = updatedImps.isEmpty() ? InvocationAction.reject : invocationAction;
 
         final Map<String, Ortb2ImpExtResult> ort2ImpExtResultMap = createOrtb2ImpExtForImps(
                 bidRequest, impsBiddersFilterMap, greenbidsId, isExploration);
@@ -69,8 +68,8 @@ public class GreenbidsInvocationService {
     }
 
     private boolean isImpKept(Imp imp, Map<String, Map<String, Boolean>> impsBiddersFilterMap) {
-        Map<String, Boolean> biddersMap = impsBiddersFilterMap.get(imp.getId());
-        return biddersMap != null && biddersMap.values().stream().anyMatch(isKept -> isKept);
+        final Map<String, Boolean> biddersMap = impsBiddersFilterMap.get(imp.getId());
+        return biddersMap.values().stream().anyMatch(isKept -> isKept);
     }
 
     private Imp updateImp(Imp imp, Map<String, Boolean> bidderFilterMap) {
