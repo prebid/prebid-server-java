@@ -6,8 +6,8 @@ import org.prebid.server.functional.model.privacy.gpp.MspaMode
 import org.prebid.server.functional.model.privacy.gpp.Notice
 import org.prebid.server.functional.model.privacy.gpp.OptOut
 import org.prebid.server.functional.model.privacy.gpp.UsNationalV2ChildSensitiveData
+import org.prebid.server.functional.model.privacy.gpp.UsNationalV2SensitiveData
 import org.prebid.server.functional.util.privacy.gpp.GppConsent
-import org.prebid.server.functional.model.privacy.gpp.UsNationalV1SensitiveData
 
 class UsNatV2Consent extends GppConsent {
 
@@ -73,7 +73,7 @@ class UsNatV2Consent extends GppConsent {
             this
         }
 
-        Builder setSensitiveDataProcessing(UsNationalV1SensitiveData sensitiveDataProcessing) {
+        Builder setSensitiveDataProcessing(UsNationalV2SensitiveData sensitiveDataProcessing) {
             fieldValue(UsNatV1Field.SENSITIVE_DATA_PROCESSING, sensitiveDataProcessing.contentList)
             this
         }

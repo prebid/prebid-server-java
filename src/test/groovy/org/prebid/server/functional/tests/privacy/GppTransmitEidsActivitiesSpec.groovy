@@ -7,6 +7,16 @@ import org.prebid.server.functional.model.config.GppModuleConfig
 import org.prebid.server.functional.model.config.InequalityValueRule
 import org.prebid.server.functional.model.config.LogicalRestrictedRule
 import org.prebid.server.functional.model.db.StoredRequest
+import org.prebid.server.functional.model.privacy.gpp.DataActivity
+import org.prebid.server.functional.model.privacy.gpp.MspaMode
+import org.prebid.server.functional.model.privacy.gpp.Notice
+import org.prebid.server.functional.model.privacy.gpp.OptOut
+import org.prebid.server.functional.model.privacy.gpp.UsCaliforniaV1ChildSensitiveData
+import org.prebid.server.functional.model.privacy.gpp.UsColoradoV1ChildSensitiveData
+import org.prebid.server.functional.model.privacy.gpp.UsConnecticutV1ChildSensitiveData
+import org.prebid.server.functional.model.privacy.gpp.UsNationalV1ChildSensitiveData
+import org.prebid.server.functional.model.privacy.gpp.UsUtahV1ChildSensitiveData
+import org.prebid.server.functional.model.privacy.gpp.UsVirginiaV1ChildSensitiveData
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.Activity
 import org.prebid.server.functional.model.request.auction.ActivityRule
@@ -683,122 +693,122 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         disallowGppLogic << [
                 SIMPLE_GPC_DISALLOW_LOGIC,
                 new UsNatV1Consent.Builder()
-                        .setMspaServiceProviderMode(1)
-                        .setMspaOptOutOptionMode(2)
+                        .setMspaServiceProviderMode(MspaMode.YES)
+                        .setMspaOptOutOptionMode(MspaMode.NO)
                         .build(),
                 new UsNatV1Consent.Builder()
-                        .setSaleOptOut(1)
-                        .setSaleOptOutNotice(1)
-                        .setMspaServiceProviderMode(2)
-                        .setMspaOptOutOptionMode(1)
+                        .setSaleOptOut(OptOut.OPTED_OUT)
+                        .setSaleOptOutNotice(Notice.YES)
+                        .setMspaServiceProviderMode(MspaMode.NO)
+                        .setMspaOptOutOptionMode(MspaMode.YES)
                         .build(),
                 new UsNatV1Consent.Builder()
-                        .setSaleOptOutNotice(2)
-                        .setSaleOptOut(1)
-                        .setMspaServiceProviderMode(2)
-                        .setMspaOptOutOptionMode(1)
+                        .setSaleOptOutNotice(Notice.NO)
+                        .setSaleOptOut(OptOut.OPTED_OUT)
+                        .setMspaServiceProviderMode(MspaMode.NO)
+                        .setMspaOptOutOptionMode(MspaMode.YES)
                         .build(),
                 new UsNatV1Consent.Builder()
-                        .setSharingNotice(2)
-                        .setSharingOptOutNotice(1)
-                        .setSharingOptOut(1)
-                        .setMspaServiceProviderMode(1)
-                        .setMspaServiceProviderMode(2)
-                        .setMspaOptOutOptionMode(1)
+                        .setSharingNotice(Notice.NO)
+                        .setSharingOptOutNotice(Notice.YES)
+                        .setSharingOptOut(OptOut.OPTED_OUT)
+                        .setMspaServiceProviderMode(MspaMode.YES)
+                        .setMspaServiceProviderMode(MspaMode.NO)
+                        .setMspaOptOutOptionMode(MspaMode.YES)
                         .build(),
                 new UsNatV1Consent.Builder()
-                        .setSharingOptOutNotice(2)
-                        .setSharingOptOut(1)
-                        .setSharingNotice(1)
-                        .setMspaServiceProviderMode(2)
-                        .setMspaOptOutOptionMode(1)
+                        .setSharingOptOutNotice(Notice.NO)
+                        .setSharingOptOut(OptOut.OPTED_OUT)
+                        .setSharingNotice(Notice.YES)
+                        .setMspaServiceProviderMode(MspaMode.NO)
+                        .setMspaOptOutOptionMode(MspaMode.YES)
                         .build(),
                 new UsNatV1Consent.Builder()
-                        .setTargetedAdvertisingOptOutNotice(2)
-                        .setSaleOptOut(1)
-                        .setSaleOptOutNotice(1)
-                        .setMspaServiceProviderMode(2)
-                        .setMspaOptOutOptionMode(1)
+                        .setTargetedAdvertisingOptOutNotice(Notice.NO)
+                        .setSaleOptOut(OptOut.OPTED_OUT)
+                        .setSaleOptOutNotice(Notice.YES)
+                        .setMspaServiceProviderMode(MspaMode.NO)
+                        .setMspaOptOutOptionMode(MspaMode.YES)
                         .build(),
                 new UsNatV1Consent.Builder()
-                        .setTargetedAdvertisingOptOut(1)
-                        .setTargetedAdvertisingOptOutNotice(1)
-                        .setSaleOptOut(1)
-                        .setSaleOptOutNotice(1)
-                        .setMspaServiceProviderMode(2)
-                        .setMspaOptOutOptionMode(1)
+                        .setTargetedAdvertisingOptOut(OptOut.OPTED_OUT)
+                        .setTargetedAdvertisingOptOutNotice(Notice.YES)
+                        .setSaleOptOut(OptOut.OPTED_OUT)
+                        .setSaleOptOutNotice(Notice.YES)
+                        .setMspaServiceProviderMode(MspaMode.NO)
+                        .setMspaOptOutOptionMode(MspaMode.YES)
                         .build(),
                 new UsNatV1Consent.Builder()
-                        .setSensitiveDataProcessingOptOutNotice(2)
+                        .setSensitiveDataProcessingOptOutNotice(Notice.NO)
                         .build(),
                 new UsNatV1Consent.Builder()
-                        .setSensitiveDataLimitUseNotice(2)
-                        .setMspaServiceProviderMode(2)
-                        .setMspaOptOutOptionMode(1)
+                        .setSensitiveDataLimitUseNotice(Notice.NO)
+                        .setMspaServiceProviderMode(MspaMode.NO)
+                        .setMspaOptOutOptionMode(MspaMode.YES)
                         .build(),
                 new UsNatV1Consent.Builder()
-                        .setKnownChildSensitiveDataConsents(0, 1)
+                        .setKnownChildSensitiveDataConsents(UsNationalV1ChildSensitiveData.getDefault(DataActivity.NOT_APPLICABLE, DataActivity.NO_CONSENT))
                         .build(),
                 new UsNatV1Consent.Builder()
-                        .setKnownChildSensitiveDataConsents(0, 2)
+                        .setKnownChildSensitiveDataConsents(UsNationalV1ChildSensitiveData.getDefault(DataActivity.CONSENT, DataActivity.NOT_APPLICABLE))
                         .build(),
                 new UsNatV1Consent.Builder()
-                        .setKnownChildSensitiveDataConsents(1, 0)
+                        .setKnownChildSensitiveDataConsents(UsNationalV1ChildSensitiveData.getDefault(DataActivity.NO_CONSENT, DataActivity.NOT_APPLICABLE))
                         .build(),
                 new UsNatV1Consent.Builder()
-                        .setPersonalDataConsents(2)
+                        .setPersonalDataConsents(DataActivity.CONSENT)
                         .build(),
                 new UsNatV1Consent.Builder().setSensitiveDataProcessing(new UsNationalV1SensitiveData(
-                        racialEthnicOrigin: 1,
-                        religiousBeliefs: 1,
-                        healthInfo: 1,
-                        orientation: 1,
-                        citizenshipStatus: 1,
-                        unionMembership: 1,
+                        racialEthnicOrigin: DataActivity.NO_CONSENT,
+                        religiousBeliefs: DataActivity.NO_CONSENT,
+                        healthInfo: DataActivity.NO_CONSENT,
+                        orientation: DataActivity.NO_CONSENT,
+                        citizenshipStatus: DataActivity.NO_CONSENT,
+                        unionMembership: DataActivity.NO_CONSENT,
                 )).build(),
                 new UsNatV1Consent.Builder()
-                        .setSensitiveDataLimitUseNotice(0)
+                        .setSensitiveDataLimitUseNotice(Notice.NOT_APPLICABLE)
                         .setSensitiveDataProcessing(new UsNationalV1SensitiveData(
-                                racialEthnicOrigin: 2,
-                                religiousBeliefs: 2,
-                                healthInfo: 2,
-                                orientation: 2,
-                                citizenshipStatus: 2,
-                                geneticId: 2,
-                                biometricId: 2,
-                                idNumbers: 2,
-                                accountInfo: 2,
-                                unionMembership: 2,
-                                communicationContents: 2
+                                racialEthnicOrigin: DataActivity.CONSENT,
+                                religiousBeliefs: DataActivity.CONSENT,
+                                healthInfo: DataActivity.CONSENT,
+                                orientation: DataActivity.CONSENT,
+                                citizenshipStatus: DataActivity.CONSENT,
+                                geneticId: DataActivity.CONSENT,
+                                biometricId: DataActivity.CONSENT,
+                                idNumbers: DataActivity.CONSENT,
+                                accountInfo: DataActivity.CONSENT,
+                                unionMembership: DataActivity.CONSENT,
+                                communicationContents: DataActivity.CONSENT
                         )).build(),
                 new UsNatV1Consent.Builder()
-                        .setSensitiveDataProcessingOptOutNotice(0)
+                        .setSensitiveDataProcessingOptOutNotice(Notice.NOT_APPLICABLE)
                         .setSensitiveDataProcessing(new UsNationalV1SensitiveData(
-                                racialEthnicOrigin: 2,
-                                religiousBeliefs: 2,
-                                healthInfo: 2,
-                                orientation: 2,
-                                citizenshipStatus: 2,
-                                geneticId: 2,
-                                biometricId: 2,
-                                idNumbers: 2,
-                                accountInfo: 2,
-                                unionMembership: 2,
-                                communicationContents: 2
+                                racialEthnicOrigin: DataActivity.CONSENT,
+                                religiousBeliefs: DataActivity.CONSENT,
+                                healthInfo: DataActivity.CONSENT,
+                                orientation: DataActivity.CONSENT,
+                                citizenshipStatus: DataActivity.CONSENT,
+                                geneticId: DataActivity.CONSENT,
+                                biometricId: DataActivity.CONSENT,
+                                idNumbers: DataActivity.CONSENT,
+                                accountInfo: DataActivity.CONSENT,
+                                unionMembership: DataActivity.CONSENT,
+                                communicationContents: DataActivity.CONSENT
                         )).build(),
                 new UsNatV1Consent.Builder().setSensitiveDataProcessing(new UsNationalV1SensitiveData(
-                        geneticId: 1,
-                        biometricId: 1,
-                        idNumbers: 1,
-                        accountInfo: 1,
-                        communicationContents: 1
+                        geneticId: DataActivity.NO_CONSENT,
+                        biometricId: DataActivity.NO_CONSENT,
+                        idNumbers: DataActivity.NO_CONSENT,
+                        accountInfo: DataActivity.NO_CONSENT,
+                        communicationContents: DataActivity.NO_CONSENT
                 )).build(),
                 new UsNatV1Consent.Builder().setSensitiveDataProcessing(new UsNationalV1SensitiveData(
-                        geneticId: 2,
-                        biometricId: 2,
-                        idNumbers: 2,
-                        accountInfo: 2,
-                        communicationContents: 2
+                        geneticId: DataActivity.CONSENT,
+                        biometricId: DataActivity.CONSENT,
+                        idNumbers: DataActivity.CONSENT,
+                        accountInfo: DataActivity.CONSENT,
+                        communicationContents: DataActivity.CONSENT
                 )).build()
         ]
     }
@@ -878,12 +888,12 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         gppConsent                                                                                    | gppSid
-        new UsNatV1Consent.Builder().setMspaServiceProviderMode(1).setMspaOptOutOptionMode(2).build() | US_NAT_V1
-        new UsCaV1Consent.Builder().setMspaServiceProviderMode(1).setMspaOptOutOptionMode(2).build() | US_CA_V1
-        new UsVaV1Consent.Builder().setMspaServiceProviderMode(1).setMspaOptOutOptionMode(2).build() | US_VA_V1
-        new UsCoV1Consent.Builder().setMspaServiceProviderMode(1).setMspaOptOutOptionMode(2).build() | US_CO_V1
-        new UsUtV1Consent.Builder().setMspaServiceProviderMode(1).setMspaOptOutOptionMode(2).build() | US_UT_V1
-        new UsCtV1Consent.Builder().setMspaServiceProviderMode(1).setMspaOptOutOptionMode(2).build() | US_CT_V1
+        new UsNatV1Consent.Builder().setMspaServiceProviderMode(MspaMode.YES).setMspaOptOutOptionMode(MspaMode.NO).build() | US_NAT_V1
+        new UsCaV1Consent.Builder().setMspaServiceProviderMode(MspaMode.YES).setMspaOptOutOptionMode(MspaMode.NO).build() | US_CA_V1
+        new UsVaV1Consent.Builder().setMspaServiceProviderMode(MspaMode.YES).setMspaOptOutOptionMode(MspaMode.NO).build() | US_VA_V1
+        new UsCoV1Consent.Builder().setMspaServiceProviderMode(MspaMode.YES).setMspaOptOutOptionMode(MspaMode.NO).build() | US_CO_V1
+        new UsUtV1Consent.Builder().setMspaServiceProviderMode(MspaMode.YES).setMspaOptOutOptionMode(MspaMode.NO).build() | US_UT_V1
+        new UsCtV1Consent.Builder().setMspaServiceProviderMode(MspaMode.YES).setMspaOptOutOptionMode(MspaMode.NO).build() | US_CT_V1
     }
 
     def "PBS auction call when privacy modules contain allowing settings should leave EIDS fields in request"() {
@@ -1097,12 +1107,12 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         gppConsent                                                      | valueRules
-        new UsNatV1Consent.Builder().setPersonalDataConsents(2).build() | [new EqualityValueRule(PERSONAL_DATA_CONSENTS, NOTICE_NOT_PROVIDED)]
+        new UsNatV1Consent.Builder().setPersonalDataConsents(DataActivity.CONSENT).build() | [new EqualityValueRule(PERSONAL_DATA_CONSENTS, NOTICE_NOT_PROVIDED)]
         new UsNatV1Consent.Builder().setGpc(true).build()               | [new EqualityValueRule(GPC, NOTICE_PROVIDED)]
         new UsNatV1Consent.Builder().setGpc(false).build()              | [new InequalityValueRule(GPC, NOTICE_PROVIDED)]
         new UsNatV1Consent.Builder().setGpc(true).build()               | [new EqualityValueRule(GPC, NOTICE_PROVIDED),
                                                                            new EqualityValueRule(SHARING_NOTICE, NOTICE_NOT_PROVIDED)]
-        new UsNatV1Consent.Builder().setPersonalDataConsents(2).build() | [new EqualityValueRule(GPC, NOTICE_PROVIDED),
+        new UsNatV1Consent.Builder().setPersonalDataConsents(DataActivity.CONSENT).build() | [new EqualityValueRule(GPC, NOTICE_PROVIDED),
                                                                            new EqualityValueRule(PERSONAL_DATA_CONSENTS, NOTICE_NOT_PROVIDED)]
     }
 
@@ -1191,74 +1201,51 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         gppSid   | equalityValueRules                                                      | gppStateConsent
-        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_ID_NUMBERS, CONSENT)]             | new UsCaV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsCaliforniaV1SensitiveData(idNumbers: 2))
-        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_ACCOUNT_INFO, CONSENT)]           | new UsCaV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsCaliforniaV1SensitiveData(accountInfo: 2))
-        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_GEOLOCATION, CONSENT)]            | new UsCaV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsCaliforniaV1SensitiveData(geolocation: 2))
-        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_RACIAL_ETHNIC_ORIGIN, CONSENT)]   | new UsCaV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsCaliforniaV1SensitiveData(racialEthnicOrigin: 2))
-        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_COMMUNICATION_CONTENTS, CONSENT)] | new UsCaV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsCaliforniaV1SensitiveData(communicationContents: 2))
-        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_GENETIC_ID, CONSENT)]             | new UsCaV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsCaliforniaV1SensitiveData(geneticId: 2))
-        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_BIOMETRIC_ID, CONSENT)]           | new UsCaV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsCaliforniaV1SensitiveData(biometricId: 2))
-        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_HEALTH_INFO, CONSENT)]            | new UsCaV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsCaliforniaV1SensitiveData(healthInfo: 2))
-        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_ORIENTATION, CONSENT)]            | new UsCaV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsCaliforniaV1SensitiveData(orientation: 2))
+        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_ID_NUMBERS, CONSENT)]             | new UsCaV1Consent.Builder().setSensitiveDataProcessing(new UsCaliforniaV1SensitiveData(idNumbers: DataActivity.CONSENT))
+        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_ACCOUNT_INFO, CONSENT)]           | new UsCaV1Consent.Builder().setSensitiveDataProcessing(new UsCaliforniaV1SensitiveData(accountInfo: DataActivity.CONSENT))
+        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_GEOLOCATION, CONSENT)]            | new UsCaV1Consent.Builder().setSensitiveDataProcessing(new UsCaliforniaV1SensitiveData(geolocation: DataActivity.CONSENT))
+        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_RACIAL_ETHNIC_ORIGIN, CONSENT)]   | new UsCaV1Consent.Builder().setSensitiveDataProcessing(new UsCaliforniaV1SensitiveData(racialEthnicOrigin: DataActivity.CONSENT))
+        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_COMMUNICATION_CONTENTS, CONSENT)] | new UsCaV1Consent.Builder().setSensitiveDataProcessing(new UsCaliforniaV1SensitiveData(communicationContents: DataActivity.CONSENT))
+        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_GENETIC_ID, CONSENT)]             | new UsCaV1Consent.Builder().setSensitiveDataProcessing(new UsCaliforniaV1SensitiveData(geneticId: DataActivity.CONSENT))
+        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_BIOMETRIC_ID, CONSENT)]           | new UsCaV1Consent.Builder().setSensitiveDataProcessing(new UsCaliforniaV1SensitiveData(biometricId: DataActivity.CONSENT))
+        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_HEALTH_INFO, CONSENT)]            | new UsCaV1Consent.Builder().setSensitiveDataProcessing(new UsCaliforniaV1SensitiveData(healthInfo: DataActivity.CONSENT))
+        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_ORIENTATION, CONSENT)]            | new UsCaV1Consent.Builder().setSensitiveDataProcessing(new UsCaliforniaV1SensitiveData(orientation: DataActivity.CONSENT))
         US_CA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UsCaV1Consent.Builder()
-                                                                                              .setKnownChildSensitiveDataConsents(0, 0)
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UsCaV1Consent.Builder().setKnownChildSensitiveDataConsents(UsCaliforniaV1ChildSensitiveData.default)
         US_CA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UsCaV1Consent.Builder()
-                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(1, 2), PBSUtils.getRandomNumber(1, 2))
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UsCaV1Consent.Builder().setKnownChildSensitiveDataConsents(UsCaliforniaV1ChildSensitiveData.getRandom([DataActivity.NOT_APPLICABLE]))
 
         US_VA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UsVaV1Consent.Builder()
-                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(1, 2))
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UsVaV1Consent.Builder().setKnownChildSensitiveDataConsents(UsVirginiaV1ChildSensitiveData.getRandom([DataActivity.NOT_APPLICABLE]))
         US_VA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UsVaV1Consent.Builder().setKnownChildSensitiveDataConsents(0)
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UsVaV1Consent.Builder().setKnownChildSensitiveDataConsents(UsVirginiaV1ChildSensitiveData.default)
 
         US_CO_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UsCoV1Consent.Builder()
-                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(1, 2))
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UsCoV1Consent.Builder().setKnownChildSensitiveDataConsents(UsColoradoV1ChildSensitiveData.getRandom([DataActivity.NOT_APPLICABLE]))
         US_CO_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UsCoV1Consent.Builder().setKnownChildSensitiveDataConsents(0)
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UsCoV1Consent.Builder().setKnownChildSensitiveDataConsents(UsColoradoV1ChildSensitiveData.default)
 
-        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_RACIAL_ETHNIC_ORIGIN, CONSENT)] | new UsUtV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsUtahV1SensitiveData(racialEthnicOrigin: 2))
-        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_RELIGIOUS_BELIEFS, CONSENT)]    | new UsUtV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsUtahV1SensitiveData(religiousBeliefs: 2))
-        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_ORIENTATION, CONSENT)]          | new UsUtV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsUtahV1SensitiveData(orientation: 2))
-        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_CITIZENSHIP_STATUS, CONSENT)]   | new UsUtV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsUtahV1SensitiveData(citizenshipStatus: 2))
-        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_HEALTH_INFO, CONSENT)]          | new UsUtV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsUtahV1SensitiveData(healthInfo: 2))
-        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_GENETIC_ID, CONSENT)]           | new UsUtV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsUtahV1SensitiveData(geneticId: 2))
-        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_BIOMETRIC_ID, CONSENT)]         | new UsUtV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsUtahV1SensitiveData(biometricId: 2))
-        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_GEOLOCATION, CONSENT)]          | new UsUtV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsUtahV1SensitiveData(geolocation: 2))
+        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_RACIAL_ETHNIC_ORIGIN, CONSENT)]   | new UsUtV1Consent.Builder().setSensitiveDataProcessing(new UsUtahV1SensitiveData(racialEthnicOrigin: DataActivity.CONSENT))
+        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_RELIGIOUS_BELIEFS, CONSENT)]      | new UsUtV1Consent.Builder().setSensitiveDataProcessing(new UsUtahV1SensitiveData(religiousBeliefs: DataActivity.CONSENT))
+        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_ORIENTATION, CONSENT)]            | new UsUtV1Consent.Builder().setSensitiveDataProcessing(new UsUtahV1SensitiveData(orientation: DataActivity.CONSENT))
+        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_CITIZENSHIP_STATUS, CONSENT)]     | new UsUtV1Consent.Builder().setSensitiveDataProcessing(new UsUtahV1SensitiveData(citizenshipStatus: DataActivity.CONSENT))
+        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_HEALTH_INFO, CONSENT)]            | new UsUtV1Consent.Builder().setSensitiveDataProcessing(new UsUtahV1SensitiveData(healthInfo: DataActivity.CONSENT))
+        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_GENETIC_ID, CONSENT)]             | new UsUtV1Consent.Builder().setSensitiveDataProcessing(new UsUtahV1SensitiveData(geneticId: DataActivity.CONSENT))
+        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_BIOMETRIC_ID, CONSENT)]           | new UsUtV1Consent.Builder().setSensitiveDataProcessing(new UsUtahV1SensitiveData(biometricId: DataActivity.CONSENT))
+        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_GEOLOCATION, CONSENT)]            | new UsUtV1Consent.Builder().setSensitiveDataProcessing(new UsUtahV1SensitiveData(geolocation: DataActivity.CONSENT))
         US_UT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]     | new UsUtV1Consent.Builder().setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(1, 2))
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UsUtV1Consent.Builder().setKnownChildSensitiveDataConsents(UsUtahV1ChildSensitiveData.getRandom([DataActivity.NOT_APPLICABLE]))
         US_UT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)] | new UsUtV1Consent.Builder().setKnownChildSensitiveDataConsents(0)
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UsUtV1Consent.Builder().setKnownChildSensitiveDataConsents(UsUtahV1ChildSensitiveData.default)
 
         US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UsCtV1Consent.Builder().setKnownChildSensitiveDataConsents(0, 0, 0)
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UsCtV1Consent.Builder().setKnownChildSensitiveDataConsents(UsConnecticutV1ChildSensitiveData.default)
         US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, CONSENT)]          | new UsCtV1Consent.Builder().setKnownChildSensitiveDataConsents(0, 2, 2)
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, CONSENT)]          | new UsCtV1Consent.Builder().setKnownChildSensitiveDataConsents(UsConnecticutV1ChildSensitiveData.getDefault(DataActivity.CONSENT, DataActivity.NOT_APPLICABLE, DataActivity.CONSENT))
         US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UsCtV1Consent.Builder()
-                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(0, 2), PBSUtils.getRandomNumber(0, 2), 1)
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UsCtV1Consent.Builder().setKnownChildSensitiveDataConsents(UsConnecticutV1ChildSensitiveData.getRandom().tap { it.childFrom16to18 = DataActivity.NO_CONSENT })
         US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UsCtV1Consent.Builder()
-                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(0, 2), 1, PBSUtils.getRandomNumber(0, 2))
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UsCtV1Consent.Builder().setKnownChildSensitiveDataConsents(UsConnecticutV1ChildSensitiveData.getRandom().tap { it.childFrom13to16 = DataActivity.NO_CONSENT })
     }
 
     def "PBS amp call when transmit EIDS activities is allowing request should leave EIDS fields field in active request and update proper metrics"() {
@@ -1664,122 +1651,122 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         disallowGppLogic << [
                 SIMPLE_GPC_DISALLOW_LOGIC,
                 new UsNatV1Consent.Builder()
-                        .setMspaServiceProviderMode(1)
-                        .setMspaOptOutOptionMode(2)
+                        .setMspaServiceProviderMode(MspaMode.YES)
+                        .setMspaOptOutOptionMode(MspaMode.NO)
                         .build(),
                 new UsNatV1Consent.Builder()
-                        .setSaleOptOut(1)
-                        .setSaleOptOutNotice(1)
-                        .setMspaServiceProviderMode(2)
-                        .setMspaOptOutOptionMode(1)
+                        .setSaleOptOut(OptOut.OPTED_OUT)
+                        .setSaleOptOutNotice(Notice.YES)
+                        .setMspaServiceProviderMode(MspaMode.NO)
+                        .setMspaOptOutOptionMode(MspaMode.YES)
                         .build(),
                 new UsNatV1Consent.Builder()
-                        .setSaleOptOutNotice(2)
-                        .setSaleOptOut(1)
-                        .setMspaServiceProviderMode(2)
-                        .setMspaOptOutOptionMode(1)
+                        .setSaleOptOutNotice(Notice.NO)
+                        .setSaleOptOut(OptOut.OPTED_OUT)
+                        .setMspaServiceProviderMode(MspaMode.NO)
+                        .setMspaOptOutOptionMode(MspaMode.YES)
                         .build(),
                 new UsNatV1Consent.Builder()
-                        .setSharingNotice(2)
-                        .setSharingOptOutNotice(1)
-                        .setSharingOptOut(1)
-                        .setMspaServiceProviderMode(1)
-                        .setMspaServiceProviderMode(2)
-                        .setMspaOptOutOptionMode(1)
+                        .setSharingNotice(Notice.NO)
+                        .setSharingOptOutNotice(Notice.YES)
+                        .setSharingOptOut(OptOut.OPTED_OUT)
+                        .setMspaServiceProviderMode(MspaMode.YES)
+                        .setMspaServiceProviderMode(MspaMode.NO)
+                        .setMspaOptOutOptionMode(MspaMode.YES)
                         .build(),
                 new UsNatV1Consent.Builder()
-                        .setSharingOptOutNotice(2)
-                        .setSharingOptOut(1)
-                        .setSharingNotice(1)
-                        .setMspaServiceProviderMode(2)
-                        .setMspaOptOutOptionMode(1)
+                        .setSharingOptOutNotice(Notice.NO)
+                        .setSharingOptOut(OptOut.OPTED_OUT)
+                        .setSharingNotice(Notice.YES)
+                        .setMspaServiceProviderMode(MspaMode.NO)
+                        .setMspaOptOutOptionMode(MspaMode.YES)
                         .build(),
                 new UsNatV1Consent.Builder()
-                        .setTargetedAdvertisingOptOutNotice(2)
-                        .setSaleOptOut(1)
-                        .setSaleOptOutNotice(1)
-                        .setMspaServiceProviderMode(2)
-                        .setMspaOptOutOptionMode(1)
+                        .setTargetedAdvertisingOptOutNotice(Notice.NO)
+                        .setSaleOptOut(OptOut.OPTED_OUT)
+                        .setSaleOptOutNotice(Notice.YES)
+                        .setMspaServiceProviderMode(MspaMode.NO)
+                        .setMspaOptOutOptionMode(MspaMode.YES)
                         .build(),
                 new UsNatV1Consent.Builder()
-                        .setTargetedAdvertisingOptOut(1)
-                        .setTargetedAdvertisingOptOutNotice(1)
-                        .setSaleOptOut(1)
-                        .setSaleOptOutNotice(1)
-                        .setMspaServiceProviderMode(2)
-                        .setMspaOptOutOptionMode(1)
+                        .setTargetedAdvertisingOptOut(OptOut.OPTED_OUT)
+                        .setTargetedAdvertisingOptOutNotice(Notice.YES)
+                        .setSaleOptOut(OptOut.OPTED_OUT)
+                        .setSaleOptOutNotice(Notice.YES)
+                        .setMspaServiceProviderMode(MspaMode.NO)
+                        .setMspaOptOutOptionMode(MspaMode.YES)
                         .build(),
                 new UsNatV1Consent.Builder()
-                        .setSensitiveDataProcessingOptOutNotice(2)
+                        .setSensitiveDataProcessingOptOutNotice(Notice.NO)
                         .build(),
                 new UsNatV1Consent.Builder()
-                        .setSensitiveDataLimitUseNotice(2)
-                        .setMspaServiceProviderMode(2)
-                        .setMspaOptOutOptionMode(1)
+                        .setSensitiveDataLimitUseNotice(Notice.NO)
+                        .setMspaServiceProviderMode(MspaMode.NO)
+                        .setMspaOptOutOptionMode(MspaMode.YES)
                         .build(),
                 new UsNatV1Consent.Builder()
-                        .setKnownChildSensitiveDataConsents(0, 1)
+                        .setKnownChildSensitiveDataConsents(UsNationalV1ChildSensitiveData.getDefault(DataActivity.NOT_APPLICABLE, DataActivity.NO_CONSENT))
                         .build(),
                 new UsNatV1Consent.Builder()
-                        .setKnownChildSensitiveDataConsents(0, 2)
+                        .setKnownChildSensitiveDataConsents(UsNationalV1ChildSensitiveData.getDefault(DataActivity.CONSENT, DataActivity.NOT_APPLICABLE))
                         .build(),
                 new UsNatV1Consent.Builder()
-                        .setKnownChildSensitiveDataConsents(1, 0)
+                        .setKnownChildSensitiveDataConsents(UsNationalV1ChildSensitiveData.getDefault(DataActivity.NO_CONSENT, DataActivity.NOT_APPLICABLE))
                         .build(),
                 new UsNatV1Consent.Builder()
-                        .setPersonalDataConsents(2)
+                        .setPersonalDataConsents(DataActivity.CONSENT)
                         .build(),
                 new UsNatV1Consent.Builder().setSensitiveDataProcessing(new UsNationalV1SensitiveData(
-                        racialEthnicOrigin: 1,
-                        religiousBeliefs: 1,
-                        healthInfo: 1,
-                        orientation: 1,
-                        citizenshipStatus: 1,
-                        unionMembership: 1,
+                        racialEthnicOrigin: DataActivity.NO_CONSENT,
+                        religiousBeliefs: DataActivity.NO_CONSENT,
+                        healthInfo: DataActivity.NO_CONSENT,
+                        orientation: DataActivity.NO_CONSENT,
+                        citizenshipStatus: DataActivity.NO_CONSENT,
+                        unionMembership: DataActivity.NO_CONSENT,
                 )).build(),
                 new UsNatV1Consent.Builder()
-                        .setSensitiveDataLimitUseNotice(0)
+                        .setSensitiveDataLimitUseNotice(Notice.NOT_APPLICABLE)
                         .setSensitiveDataProcessing(new UsNationalV1SensitiveData(
-                                racialEthnicOrigin: 2,
-                                religiousBeliefs: 2,
-                                healthInfo: 2,
-                                orientation: 2,
-                                citizenshipStatus: 2,
-                                geneticId: 2,
-                                biometricId: 2,
-                                idNumbers: 2,
-                                accountInfo: 2,
-                                unionMembership: 2,
-                                communicationContents: 2
+                                racialEthnicOrigin: DataActivity.CONSENT,
+                                religiousBeliefs: DataActivity.CONSENT,
+                                healthInfo: DataActivity.CONSENT,
+                                orientation: DataActivity.CONSENT,
+                                citizenshipStatus: DataActivity.CONSENT,
+                                geneticId: DataActivity.CONSENT,
+                                biometricId: DataActivity.CONSENT,
+                                idNumbers: DataActivity.CONSENT,
+                                accountInfo: DataActivity.CONSENT,
+                                unionMembership: DataActivity.CONSENT,
+                                communicationContents: DataActivity.CONSENT
                         )).build(),
                 new UsNatV1Consent.Builder()
-                        .setSensitiveDataProcessingOptOutNotice(0)
+                        .setSensitiveDataProcessingOptOutNotice(Notice.NOT_APPLICABLE)
                         .setSensitiveDataProcessing(new UsNationalV1SensitiveData(
-                                racialEthnicOrigin: 2,
-                                religiousBeliefs: 2,
-                                healthInfo: 2,
-                                orientation: 2,
-                                citizenshipStatus: 2,
-                                geneticId: 2,
-                                biometricId: 2,
-                                idNumbers: 2,
-                                accountInfo: 2,
-                                unionMembership: 2,
-                                communicationContents: 2
+                                racialEthnicOrigin: DataActivity.CONSENT,
+                                religiousBeliefs: DataActivity.CONSENT,
+                                healthInfo: DataActivity.CONSENT,
+                                orientation: DataActivity.CONSENT,
+                                citizenshipStatus: DataActivity.CONSENT,
+                                geneticId: DataActivity.CONSENT,
+                                biometricId: DataActivity.CONSENT,
+                                idNumbers: DataActivity.CONSENT,
+                                accountInfo: DataActivity.CONSENT,
+                                unionMembership: DataActivity.CONSENT,
+                                communicationContents: DataActivity.CONSENT
                         )).build(),
                 new UsNatV1Consent.Builder().setSensitiveDataProcessing(new UsNationalV1SensitiveData(
-                        geneticId: 1,
-                        biometricId: 1,
-                        idNumbers: 1,
-                        accountInfo: 1,
-                        communicationContents: 1
+                        geneticId: DataActivity.NO_CONSENT,
+                        biometricId: DataActivity.NO_CONSENT,
+                        idNumbers: DataActivity.NO_CONSENT,
+                        accountInfo: DataActivity.NO_CONSENT,
+                        communicationContents: DataActivity.NO_CONSENT
                 )).build(),
                 new UsNatV1Consent.Builder().setSensitiveDataProcessing(new UsNationalV1SensitiveData(
-                        geneticId: 2,
-                        biometricId: 2,
-                        idNumbers: 2,
-                        accountInfo: 2,
-                        communicationContents: 2
+                        geneticId: DataActivity.CONSENT,
+                        biometricId: DataActivity.CONSENT,
+                        idNumbers: DataActivity.CONSENT,
+                        accountInfo: DataActivity.CONSENT,
+                        communicationContents: DataActivity.CONSENT
                 )).build()
         ]
     }
@@ -1877,12 +1864,12 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         gppConsent                                                                                    | gppSid
-        new UsNatV1Consent.Builder().setMspaServiceProviderMode(1).setMspaOptOutOptionMode(2).build() | US_NAT_V1
-        new UsCaV1Consent.Builder().setMspaServiceProviderMode(1).setMspaOptOutOptionMode(2).build() | US_CA_V1
-        new UsVaV1Consent.Builder().setMspaServiceProviderMode(1).setMspaOptOutOptionMode(2).build() | US_VA_V1
-        new UsCoV1Consent.Builder().setMspaServiceProviderMode(1).setMspaOptOutOptionMode(2).build() | US_CO_V1
-        new UsUtV1Consent.Builder().setMspaServiceProviderMode(1).setMspaOptOutOptionMode(2).build() | US_UT_V1
-        new UsCtV1Consent.Builder().setMspaServiceProviderMode(1).setMspaOptOutOptionMode(2).build() | US_CT_V1
+        new UsNatV1Consent.Builder().setMspaServiceProviderMode(MspaMode.YES).setMspaOptOutOptionMode(MspaMode.NO).build() | US_NAT_V1
+        new UsCaV1Consent.Builder().setMspaServiceProviderMode(MspaMode.YES).setMspaOptOutOptionMode(MspaMode.NO).build() | US_CA_V1
+        new UsVaV1Consent.Builder().setMspaServiceProviderMode(MspaMode.YES).setMspaOptOutOptionMode(MspaMode.NO).build() | US_VA_V1
+        new UsCoV1Consent.Builder().setMspaServiceProviderMode(MspaMode.YES).setMspaOptOutOptionMode(MspaMode.NO).build() | US_CO_V1
+        new UsUtV1Consent.Builder().setMspaServiceProviderMode(MspaMode.YES).setMspaOptOutOptionMode(MspaMode.NO).build() | US_UT_V1
+        new UsCtV1Consent.Builder().setMspaServiceProviderMode(MspaMode.YES).setMspaOptOutOptionMode(MspaMode.NO).build() | US_CT_V1
     }
 
     def "PBS amp call when privacy modules contain allowing settings should leave EIDS fields in request"() {
@@ -2151,12 +2138,12 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         gppConsent                                                      | valueRules
-        new UsNatV1Consent.Builder().setPersonalDataConsents(2).build() | [new EqualityValueRule(PERSONAL_DATA_CONSENTS, NOTICE_NOT_PROVIDED)]
+        new UsNatV1Consent.Builder().setPersonalDataConsents(DataActivity.CONSENT).build() | [new EqualityValueRule(PERSONAL_DATA_CONSENTS, NOTICE_NOT_PROVIDED)]
         new UsNatV1Consent.Builder().setGpc(true).build()               | [new EqualityValueRule(GPC, NOTICE_PROVIDED)]
         new UsNatV1Consent.Builder().setGpc(false).build()              | [new InequalityValueRule(GPC, NOTICE_PROVIDED)]
         new UsNatV1Consent.Builder().setGpc(true).build()               | [new EqualityValueRule(GPC, NOTICE_PROVIDED),
                                                                            new EqualityValueRule(SHARING_NOTICE, NOTICE_NOT_PROVIDED)]
-        new UsNatV1Consent.Builder().setPersonalDataConsents(2).build() | [new EqualityValueRule(GPC, NOTICE_PROVIDED),
+        new UsNatV1Consent.Builder().setPersonalDataConsents(DataActivity.CONSENT).build() | [new EqualityValueRule(GPC, NOTICE_PROVIDED),
                                                                            new EqualityValueRule(PERSONAL_DATA_CONSENTS, NOTICE_NOT_PROVIDED)]
     }
 
@@ -2265,73 +2252,50 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         gppSid   | equalityValueRules                                                      | gppStateConsent
-        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_ID_NUMBERS, CONSENT)]             | new UsCaV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsCaliforniaV1SensitiveData(idNumbers: 2))
-        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_ACCOUNT_INFO, CONSENT)]           | new UsCaV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsCaliforniaV1SensitiveData(accountInfo: 2))
-        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_GEOLOCATION, CONSENT)]            | new UsCaV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsCaliforniaV1SensitiveData(geolocation: 2))
-        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_RACIAL_ETHNIC_ORIGIN, CONSENT)]   | new UsCaV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsCaliforniaV1SensitiveData(racialEthnicOrigin: 2))
-        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_COMMUNICATION_CONTENTS, CONSENT)] | new UsCaV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsCaliforniaV1SensitiveData(communicationContents: 2))
-        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_GENETIC_ID, CONSENT)]             | new UsCaV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsCaliforniaV1SensitiveData(geneticId: 2))
-        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_BIOMETRIC_ID, CONSENT)]           | new UsCaV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsCaliforniaV1SensitiveData(biometricId: 2))
-        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_HEALTH_INFO, CONSENT)]            | new UsCaV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsCaliforniaV1SensitiveData(healthInfo: 2))
-        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_ORIENTATION, CONSENT)]            | new UsCaV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsCaliforniaV1SensitiveData(orientation: 2))
+        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_ID_NUMBERS, CONSENT)]             | new UsCaV1Consent.Builder().setSensitiveDataProcessing(new UsCaliforniaV1SensitiveData(idNumbers: DataActivity.CONSENT))
+        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_ACCOUNT_INFO, CONSENT)]           | new UsCaV1Consent.Builder().setSensitiveDataProcessing(new UsCaliforniaV1SensitiveData(accountInfo: DataActivity.CONSENT))
+        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_GEOLOCATION, CONSENT)]            | new UsCaV1Consent.Builder().setSensitiveDataProcessing(new UsCaliforniaV1SensitiveData(geolocation: DataActivity.CONSENT))
+        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_RACIAL_ETHNIC_ORIGIN, CONSENT)]   | new UsCaV1Consent.Builder().setSensitiveDataProcessing(new UsCaliforniaV1SensitiveData(racialEthnicOrigin: DataActivity.CONSENT))
+        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_COMMUNICATION_CONTENTS, CONSENT)] | new UsCaV1Consent.Builder().setSensitiveDataProcessing(new UsCaliforniaV1SensitiveData(communicationContents: DataActivity.CONSENT))
+        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_GENETIC_ID, CONSENT)]             | new UsCaV1Consent.Builder().setSensitiveDataProcessing(new UsCaliforniaV1SensitiveData(geneticId: DataActivity.CONSENT))
+        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_BIOMETRIC_ID, CONSENT)]           | new UsCaV1Consent.Builder().setSensitiveDataProcessing(new UsCaliforniaV1SensitiveData(biometricId: DataActivity.CONSENT))
+        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_HEALTH_INFO, CONSENT)]            | new UsCaV1Consent.Builder().setSensitiveDataProcessing(new UsCaliforniaV1SensitiveData(healthInfo: DataActivity.CONSENT))
+        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_ORIENTATION, CONSENT)]            | new UsCaV1Consent.Builder().setSensitiveDataProcessing(new UsCaliforniaV1SensitiveData(orientation: DataActivity.CONSENT))
         US_CA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UsCaV1Consent.Builder()
-                                                                                              .setKnownChildSensitiveDataConsents(0, 0)
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UsCaV1Consent.Builder().setKnownChildSensitiveDataConsents(UsCaliforniaV1ChildSensitiveData.default)
         US_CA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UsCaV1Consent.Builder()
-                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(1, 2), PBSUtils.getRandomNumber(1, 2))
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UsCaV1Consent.Builder().setKnownChildSensitiveDataConsents(UsCaliforniaV1ChildSensitiveData.getRandom([DataActivity.NOT_APPLICABLE]))
 
         US_VA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UsVaV1Consent.Builder()
-                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(1, 2))
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UsVaV1Consent.Builder().setKnownChildSensitiveDataConsents(UsVirginiaV1ChildSensitiveData.getRandom([DataActivity.NOT_APPLICABLE]))
         US_VA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UsVaV1Consent.Builder().setKnownChildSensitiveDataConsents(0)
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UsVaV1Consent.Builder().setKnownChildSensitiveDataConsents(UsVirginiaV1ChildSensitiveData.default)
 
         US_CO_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UsCoV1Consent.Builder()
-                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(1, 2))
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UsCoV1Consent.Builder().setKnownChildSensitiveDataConsents(UsColoradoV1ChildSensitiveData.getRandom([DataActivity.NOT_APPLICABLE]))
         US_CO_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UsCoV1Consent.Builder().setKnownChildSensitiveDataConsents(0)
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UsCoV1Consent.Builder().setKnownChildSensitiveDataConsents(UsColoradoV1ChildSensitiveData.default)
 
-        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_RACIAL_ETHNIC_ORIGIN, CONSENT)] | new UsUtV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsUtahV1SensitiveData(racialEthnicOrigin: 2))
-        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_RELIGIOUS_BELIEFS, CONSENT)]    | new UsUtV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsUtahV1SensitiveData(religiousBeliefs: 2))
-        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_ORIENTATION, CONSENT)]          | new UsUtV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsUtahV1SensitiveData(orientation: 2))
-        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_CITIZENSHIP_STATUS, CONSENT)]   | new UsUtV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsUtahV1SensitiveData(citizenshipStatus: 2))
-        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_HEALTH_INFO, CONSENT)]          | new UsUtV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsUtahV1SensitiveData(healthInfo: 2))
-        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_GENETIC_ID, CONSENT)]           | new UsUtV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsUtahV1SensitiveData(geneticId: 2))
-        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_BIOMETRIC_ID, CONSENT)]         | new UsUtV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsUtahV1SensitiveData(biometricId: 2))
-        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_GEOLOCATION, CONSENT)]          | new UsUtV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsUtahV1SensitiveData(geolocation: 2))
+        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_RACIAL_ETHNIC_ORIGIN, CONSENT)]   | new UsUtV1Consent.Builder().setSensitiveDataProcessing(new UsUtahV1SensitiveData(racialEthnicOrigin: DataActivity.CONSENT))
+        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_RELIGIOUS_BELIEFS, CONSENT)]      | new UsUtV1Consent.Builder().setSensitiveDataProcessing(new UsUtahV1SensitiveData(religiousBeliefs: DataActivity.CONSENT))
+        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_ORIENTATION, CONSENT)]            | new UsUtV1Consent.Builder().setSensitiveDataProcessing(new UsUtahV1SensitiveData(orientation: DataActivity.CONSENT))
+        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_CITIZENSHIP_STATUS, CONSENT)]     | new UsUtV1Consent.Builder().setSensitiveDataProcessing(new UsUtahV1SensitiveData(citizenshipStatus: DataActivity.CONSENT))
+        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_HEALTH_INFO, CONSENT)]            | new UsUtV1Consent.Builder().setSensitiveDataProcessing(new UsUtahV1SensitiveData(healthInfo: DataActivity.CONSENT))
+        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_GENETIC_ID, CONSENT)]             | new UsUtV1Consent.Builder().setSensitiveDataProcessing(new UsUtahV1SensitiveData(geneticId: DataActivity.CONSENT))
+        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_BIOMETRIC_ID, CONSENT)]           | new UsUtV1Consent.Builder().setSensitiveDataProcessing(new UsUtahV1SensitiveData(biometricId: DataActivity.CONSENT))
+        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_GEOLOCATION, CONSENT)]            | new UsUtV1Consent.Builder().setSensitiveDataProcessing(new UsUtahV1SensitiveData(geolocation: DataActivity.CONSENT))
         US_UT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]     | new UsUtV1Consent.Builder().setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(1, 2))
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UsUtV1Consent.Builder().setKnownChildSensitiveDataConsents(UsUtahV1ChildSensitiveData.getRandom([DataActivity.NOT_APPLICABLE]))
         US_UT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)] | new UsUtV1Consent.Builder().setKnownChildSensitiveDataConsents(0)
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UsUtV1Consent.Builder().setKnownChildSensitiveDataConsents(UsUtahV1ChildSensitiveData.default)
 
         US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UsCtV1Consent.Builder().setKnownChildSensitiveDataConsents(0, 0, 0)
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UsCtV1Consent.Builder().setKnownChildSensitiveDataConsents(UsConnecticutV1ChildSensitiveData.default)
         US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, CONSENT)]          | new UsCtV1Consent.Builder().setKnownChildSensitiveDataConsents(0, 2, 2)
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, CONSENT)]          | new UsCtV1Consent.Builder().setKnownChildSensitiveDataConsents(UsConnecticutV1ChildSensitiveData.getDefault(DataActivity.CONSENT, DataActivity.NOT_APPLICABLE, DataActivity.CONSENT))
         US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UsCtV1Consent.Builder()
-                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(0, 2), PBSUtils.getRandomNumber(0, 2), 1)
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UsCtV1Consent.Builder().setKnownChildSensitiveDataConsents(UsConnecticutV1ChildSensitiveData.getRandom().tap { it.childFrom16to18 = DataActivity.NO_CONSENT })
         US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UsCtV1Consent.Builder()
-                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(0, 2), 1, PBSUtils.getRandomNumber(0, 2))
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UsCtV1Consent.Builder().setKnownChildSensitiveDataConsents(UsConnecticutV1ChildSensitiveData.getRandom().tap { it.childFrom13to16 = DataActivity.NO_CONSENT })
     }
 }

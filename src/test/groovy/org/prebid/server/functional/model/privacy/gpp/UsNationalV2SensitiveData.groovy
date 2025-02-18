@@ -9,8 +9,8 @@ class UsNationalV2SensitiveData extends UsNationalV1SensitiveData {
     DataActivity nationalOrigin
     DataActivity transgenderStatus
 
-    static UsNationalV1SensitiveData generateRandomSensitiveData() {
-        new UsNationalV1SensitiveData().tap {
+    static UsNationalV2SensitiveData generateRandomSensitiveData() {
+        new UsNationalV2SensitiveData().tap {
             racialEthnicOrigin = PBSUtils.getRandomEnum(DataActivity)
             religiousBeliefs = PBSUtils.getRandomEnum(DataActivity)
             healthInfo = PBSUtils.getRandomEnum(DataActivity)
@@ -30,11 +30,11 @@ class UsNationalV2SensitiveData extends UsNationalV1SensitiveData {
         }
     }
 
-    static UsNationalV1SensitiveData fromList(List<DataActivity> data) {
+    static UsNationalV2SensitiveData fromList(List<DataActivity> data) {
         if (data.size() != 16) {
             throw new IllegalArgumentException("Invalid data size. Expected 16 values.")
         }
-        new UsNationalV1SensitiveData().tap {
+        new UsNationalV2SensitiveData().tap {
             racialEthnicOrigin = data[0]
             religiousBeliefs = data[1]
             healthInfo = data[2]
