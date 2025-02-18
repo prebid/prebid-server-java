@@ -53,7 +53,7 @@ abstract class GppConsent implements ConsentString {
             this
         }
 
-        Builder setVersion(int version) {
+        private Builder setVersion(int version) {
             fieldValue("Version", version)
         }
 
@@ -65,6 +65,7 @@ abstract class GppConsent implements ConsentString {
         TCF_EU_V2(TcfEuV2.NAME, TcfEuV2.VERSION),  //2
         USP_V1(UspV1.NAME, UspV1.VERSION),         //6
         US_NAT_V1(UsNatV1.NAME, UsNatV1.VERSION),  //7
+        US_NAT_V2(UsNatV1.NAME, 2),        //7
         US_CA_V1(UsCaV1.NAME, UsCaV1.VERSION),     //8
         US_VA_V1(UsVaV1.NAME, UsVaV1.VERSION),     //9
         US_CO_V1(UsCoV1.NAME, UsCoV1.VERSION),     //10

@@ -1,6 +1,7 @@
-package org.prebid.server.functional.util.privacy.gpp
+package org.prebid.server.functional.util.privacy.gpp.v2
 
 import com.iab.gpp.encoder.field.TcfEuV2Field
+import org.prebid.server.functional.util.privacy.gpp.GppConsent
 
 class TcfEuV2Consent extends GppConsent {
 
