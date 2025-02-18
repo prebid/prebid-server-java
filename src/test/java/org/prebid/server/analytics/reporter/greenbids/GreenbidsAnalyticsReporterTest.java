@@ -47,8 +47,10 @@ import org.prebid.server.hooks.execution.model.HookId;
 import org.prebid.server.hooks.execution.model.Stage;
 import org.prebid.server.hooks.execution.model.StageExecutionOutcome;
 import org.prebid.server.hooks.execution.v1.analytics.ActivityImpl;
+import org.prebid.server.hooks.execution.v1.analytics.AppliedToImpl;
 import org.prebid.server.hooks.execution.v1.analytics.ResultImpl;
 import org.prebid.server.hooks.execution.v1.analytics.TagsImpl;
+import org.prebid.server.hooks.v1.analytics.AppliedTo;
 import org.prebid.server.json.EncodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.model.HttpRequestContext;
@@ -733,11 +735,16 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                         "adunitcodevalue",
                         createAnalyticsResultNode()));
 
+        final AppliedTo appliedTo = AppliedToImpl.builder()
+                .impIds(Collections.singletonList("adunitcodevalue"))
+                .bidders(Collections.singletonList("seat1"))
+                .build();
+
         final ActivityImpl activity = ActivityImpl.of(
                 "greenbids-filter",
                 "success",
                 Collections.singletonList(
-                        ResultImpl.of("success", analyticsResultNode, null)));
+                        ResultImpl.of("success", analyticsResultNode, appliedTo)));
 
         final TagsImpl tags = TagsImpl.of(Collections.singletonList(activity));
 
