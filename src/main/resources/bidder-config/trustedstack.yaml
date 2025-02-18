@@ -17,6 +17,10 @@ adapters:
       vendor-id: 1288
     usersync:
       cookie-family-name: trustedstack
+      iframe:
+        url: https://hb.trustedstack.com/checksync.php?cid=TS2Q14L8J&cs=87&type=mpbc&cv=37&vsSync=1&uspstring={{us_privacy}}&gdpr={{gdpr}}&gdprstring={{gdpr_consent}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redirect={{redirect_url}}
+        support-cors: false
+        uid-macro: '<vsid>'
       redirect:
         url: https://hb.trustedstack.com/cksync?cs=1&type=pbs&ovsid=setstatuscode&bidder=trustedstack&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redirect={{redirect_url}}
         support-cors: false
