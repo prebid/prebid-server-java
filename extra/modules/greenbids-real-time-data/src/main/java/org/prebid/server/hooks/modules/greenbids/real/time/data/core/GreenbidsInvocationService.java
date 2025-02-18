@@ -34,15 +34,17 @@ public class GreenbidsInvocationService {
 
         final List<Imp> updatedImps = updateImps(bidRequest, impsBiddersFilterMap);
 
-        BidRequest updatedBidRequest = (isExploration || updatedImps.isEmpty())
+        final BidRequest updatedBidRequest = (isExploration || updatedImps.isEmpty())
                 ? bidRequest
                 : bidRequest.toBuilder()
                 .imp(updatedImps)
                 .build();
-        InvocationAction invocationAction = isExploration
-                ? InvocationAction.no_action
-                : InvocationAction.update;
-        invocationAction = updatedImps.isEmpty() ? InvocationAction.reject : invocationAction;
+
+        final InvocationAction invocationAction = updatedImps.isEmpty()
+                ? InvocationAction.reject
+                : isExploration
+                    ? InvocationAction.no_action
+                    : InvocationAction.update;
 
         final Map<String, Ortb2ImpExtResult> ort2ImpExtResultMap = createOrtb2ImpExtForImps(
                 bidRequest, impsBiddersFilterMap, greenbidsId, isExploration);
@@ -68,8 +70,7 @@ public class GreenbidsInvocationService {
     }
 
     private boolean isImpKept(Imp imp, Map<String, Map<String, Boolean>> impsBiddersFilterMap) {
-        final Map<String, Boolean> biddersMap = impsBiddersFilterMap.get(imp.getId());
-        return biddersMap.values().stream().anyMatch(isKept -> isKept);
+        return impsBiddersFilterMap.get(imp.getId()).values().stream().anyMatch(isKept -> isKept);
     }
 
     private Imp updateImp(Imp imp, Map<String, Boolean> bidderFilterMap) {
