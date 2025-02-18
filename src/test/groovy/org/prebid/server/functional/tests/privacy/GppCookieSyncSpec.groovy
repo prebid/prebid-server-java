@@ -10,8 +10,8 @@ import org.prebid.server.functional.util.HttpUtil
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.CcpaConsent
 import org.prebid.server.functional.util.privacy.TcfConsent
-import org.prebid.server.functional.util.privacy.gpp.TcfEuV2Consent
-import org.prebid.server.functional.util.privacy.gpp.UsV1Consent
+import org.prebid.server.functional.util.privacy.gpp.v2.TcfEuV2Consent
+import org.prebid.server.functional.util.privacy.gpp.v1.UspV1Consent
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.request.GppSectionId.TCF_EU_V2
@@ -190,7 +190,7 @@ class GppCookieSyncSpec extends BaseSpec {
         given: "Cookie sync request"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             it.gppSid = USP_V1.value
-            it.gpp = new UsV1Consent.Builder().build()
+            it.gpp = new UspV1Consent.Builder().build()
             it.gdpr = null
             it.usPrivacy = new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)
         }
