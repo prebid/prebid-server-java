@@ -13,6 +13,7 @@ import org.prebid.server.functional.model.request.vtrack.xml.Vast
 import org.prebid.server.functional.model.response.auction.Adm
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.IgnoreRest
 
 import static org.prebid.server.functional.model.response.auction.MediaType.BANNER
 import static org.prebid.server.functional.model.response.auction.MediaType.VIDEO
@@ -277,7 +278,8 @@ class CacheSpec extends BaseSpec {
         def bidRequest = BidRequest.defaultBidRequest
         bidRequest.enableCache()
         bidRequest.ext.prebid.targeting = new Targeting()
-        bidRequest.setAccountId(UUID.randomUUID().toString())
+        def accountOverflowLength = UUID.randomUUID().toString().length() - MAX_DATACENTER_REGION_LENGTH - 2
+        bidRequest.setAccountId(PBSUtils.getRandomString(accountOverflowLength))
 
         when: "PBS processes auction request"
         pbsService.sendAuctionRequest(bidRequest)
