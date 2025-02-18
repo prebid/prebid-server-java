@@ -186,6 +186,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private final String xapiUsername;
     private final Set<String> supportedVendors;
     private final boolean generateBidId;
+    private final String apexRendererUrl;
     private final CurrencyConversionService currencyConversionService;
     private final PriceFloorResolver floorResolver;
     private final PrebidVersionProvider versionProvider;
@@ -200,6 +201,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                          String xapiPassword,
                          List<String> supportedVendors,
                          boolean generateBidId,
+                         String apexRendererUrl,
                          CurrencyConversionService currencyConversionService,
                          PriceFloorResolver floorResolver,
                          PrebidVersionProvider versionProvider,
@@ -211,6 +213,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         this.xapiUsername = Objects.requireNonNull(xapiUsername);
         this.supportedVendors = Set.copyOf(Objects.requireNonNull(supportedVendors));
         this.generateBidId = generateBidId;
+        this.apexRendererUrl = apexRendererUrl;
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
         this.floorResolver = Objects.requireNonNull(floorResolver);
         this.versionProvider = Objects.requireNonNull(versionProvider);
@@ -1565,79 +1568,52 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .collect(Collectors.toMap(Imp::getId, Function.identity()));
         final Map<String, Imp> idToRubiconImp = bidRequest.getImp().stream()
                 .collect(Collectors.toMap(Imp::getId, Function.identity()));
-        final Float cpmOverrideFromRequest = cpmOverrideFromRequest(prebidRequest);
+        final RubiconExtPrebidBiddersBidder extPrebidBiddersBidder = extPrebidBiddersRubicon(prebidRequest.getExt());
+        final Float cpmOverrideFromRequest = cpmOverrideFromRequest(extPrebidBiddersBidder);
+        final boolean hasApexRenderer = hasApexRenderer(extPrebidBiddersBidder);
         final BidType bidType = bidType(bidRequest);
 
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
-                .map(seatBid -> updateSeatBids(seatBid, errors))
-                .map(RubiconSeatBid::getBid)
-                .filter(Objects::nonNull)
+                .map(seatBid -> seatBid.getBid().stream()
+                        .filter(Objects::nonNull)
+                        .map(bid -> updateBid(
+                                bid,
+                                seatBid,
+                                idToImp.get(bid.getImpid()),
+                                bidType,
+                                cpmOverrideFromRequest,
+                                hasApexRenderer,
+                                bidResponse,
+                                errors))
+                        .filter(Objects::nonNull)
+                        .map(bid -> createBidderBid(
+                                bid,
+                                idToRubiconImp.get(bid.getImpid()),
+                                bidType,
+                                bidResponse.getCur()))
+                        .toList())
                 .flatMap(Collection::stream)
-                .map(bid -> updateBid(bid, idToImp.get(bid.getImpid()), cpmOverrideFromRequest, bidResponse))
-                .map(bid -> createBidderBid(bid, idToRubiconImp.get(bid.getImpid()), bidType, bidResponse.getCur()))
                 .toList();
     }
 
-    private RubiconSeatBid updateSeatBids(RubiconSeatBid seatBid, List<BidderError> errors) {
-        final Integer networkId = resolveNetworkId(seatBid);
-        final String seat = seatBid.getSeat();
+    private Bid updateBid(RubiconBid bid,
+                          RubiconSeatBid seatBid,
+                          Imp imp,
+                          BidType bidType,
+                          Float cpmOverrideFromRequest,
+                          boolean hasApexRenderer,
+                          RubiconBidResponse bidResponse,
+                          List<BidderError> errors) {
 
-        if (networkId == null && seat == null) {
-            return seatBid;
-        }
-
-        final List<RubiconBid> updatedBids = seatBid.getBid().stream()
-                .map(bid -> prepareBidMeta(bid, seat, networkId, errors))
-                .filter(Objects::nonNull)
-                .toList();
-        return seatBid.toBuilder().bid(updatedBids).build();
-    }
-
-    private static Integer resolveNetworkId(RubiconSeatBid seatBid) {
-        final String buyer = seatBid.getBuyer();
-        final int networkId = NumberUtils.toInt(buyer, 0);
-        return networkId <= 0 ? null : networkId;
-    }
-
-    private RubiconBid prepareBidMeta(RubiconBid bid, String seat, Integer networkId, List<BidderError> errors) {
-        final ObjectNode bidExt = bid.getExt();
-        final ExtPrebid<ExtBidPrebid, ObjectNode> extPrebid;
+        final ObjectNode updateBidExt;
         try {
-            extPrebid = getExtPrebid(bidExt, bid.getId());
+            updateBidExt = prepareBidExt(bid, seatBid, imp, bidType, hasApexRenderer);
         } catch (PreBidException e) {
             errors.add(BidderError.badServerResponse(e.getMessage()));
             return null;
         }
-        final ExtBidPrebid extBidPrebid = extPrebid != null ? extPrebid.getPrebid() : null;
-        final ExtBidPrebidMeta meta = extBidPrebid != null ? extBidPrebid.getMeta() : null;
 
-        final ExtBidPrebidMeta updatedMeta = Optional.ofNullable(meta)
-                .map(ExtBidPrebidMeta::toBuilder)
-                .orElseGet(ExtBidPrebidMeta::builder)
-                .networkId(networkId)
-                .seat(seat)
-                .build();
-
-        final ExtBidPrebid modifiedExtBidPrebid = extBidPrebid != null
-                ? extBidPrebid.toBuilder().meta(updatedMeta).build()
-                : ExtBidPrebid.builder().meta(updatedMeta).build();
-
-        final ObjectNode updatedBidExt = bidExt != null ? bidExt : mapper.mapper().createObjectNode();
-        updatedBidExt.set(PREBID_EXT, mapper.mapper().valueToTree(modifiedExtBidPrebid));
-
-        return bid.toBuilder().ext(updatedBidExt).build();
-    }
-
-    private ExtPrebid<ExtBidPrebid, ObjectNode> getExtPrebid(ObjectNode bidExt, String bidId) {
-        try {
-            return bidExt != null ? mapper.mapper().convertValue(bidExt, EXT_PREBID_TYPE_REFERENCE) : null;
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException("Invalid ext passed in bid with id: " + bidId);
-        }
-    }
-
-    private Bid updateBid(RubiconBid bid, Imp imp, Float cpmOverrideFromRequest, RubiconBidResponse bidResponse) {
         String bidId = bid.getId();
         if (generateBidId) {
             // Since Rubicon XAPI returns openrtb_response.seatbid.bid.id not unique enough
@@ -1659,9 +1635,81 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .id(bidId)
                 .adm(resolveAdm(bid.getAdm(), bid.getAdmNative()))
                 .price(bidPrice)
+                .ext(updateBidExt)
                 .build();
 
         return bidFromRubiconBid(updatedRubiconBid);
+    }
+
+    private ObjectNode prepareBidExt(RubiconBid bid,
+                                     RubiconSeatBid seatBid,
+                                     Imp imp,
+                                     BidType bidType,
+                                     boolean hasApexRenderer) {
+
+        final ObjectNode bidExt = bid.getExt();
+        final ExtPrebid<ExtBidPrebid, ObjectNode> extPrebid = getExtPrebid(bidExt, bid.getId());
+        final ExtBidPrebid extBidPrebid = extPrebid != null ? extPrebid.getPrebid() : null;
+        final ExtBidPrebidMeta meta = extBidPrebid != null ? extBidPrebid.getMeta() : null;
+
+        final Integer networkId = resolveNetworkId(seatBid);
+        final String seat = seatBid.getSeat();
+        final String rendererUrl = resolveRendererUrl(imp, meta, bidType, hasApexRenderer);
+
+        if (ObjectUtils.allNull(networkId, rendererUrl, seat)) {
+            return bidExt;
+        }
+
+        final ExtBidPrebidMeta updatedMeta = Optional.ofNullable(meta)
+                .map(ExtBidPrebidMeta::toBuilder)
+                .orElseGet(ExtBidPrebidMeta::builder)
+                .networkId(networkId)
+                .seat(seat)
+                .rendererUrl(rendererUrl)
+                .build();
+
+        final ExtBidPrebid modifiedExtBidPrebid = extBidPrebid != null
+                ? extBidPrebid.toBuilder().meta(updatedMeta).build()
+                : ExtBidPrebid.builder().meta(updatedMeta).build();
+
+        final ObjectNode updatedBidExt = bidExt != null ? bidExt : mapper.mapper().createObjectNode();
+        updatedBidExt.set(PREBID_EXT, mapper.mapper().valueToTree(modifiedExtBidPrebid));
+
+        return updatedBidExt;
+    }
+
+    private ExtPrebid<ExtBidPrebid, ObjectNode> getExtPrebid(ObjectNode bidExt, String bidId) {
+        try {
+            return bidExt != null ? mapper.mapper().convertValue(bidExt, EXT_PREBID_TYPE_REFERENCE) : null;
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException("Invalid ext passed in bid with id: " + bidId);
+        }
+    }
+
+    private static Integer resolveNetworkId(RubiconSeatBid seatBid) {
+        final String buyer = seatBid.getBuyer();
+        final int networkId = NumberUtils.toInt(buyer, 0);
+        return networkId <= 0 ? null : networkId;
+    }
+
+    private String resolveRendererUrl(Imp imp, ExtBidPrebidMeta meta, BidType bidType, boolean hasApexRenderer) {
+        if (imp == null) {
+            return null;
+        }
+
+        final Video video = imp.getVideo();
+        return hasApexRenderer
+                && (bidType == BidType.video || isVideoMetaMediaType(meta))
+                && (video != null && !Objects.equals(video.getPlacement(), 1) && !Objects.equals(video.getPlcmt(), 1))
+                ? apexRendererUrl
+                : null;
+    }
+
+    private static Boolean isVideoMetaMediaType(ExtBidPrebidMeta meta) {
+        return Optional.ofNullable(meta)
+                .map(ExtBidPrebidMeta::getMediaType)
+                .map("video"::equalsIgnoreCase)
+                .orElse(false);
     }
 
     private String resolveAdm(String bidAdm, ObjectNode admobject) {
@@ -1681,7 +1729,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private static BidderBid createBidderBid(Bid bid, Imp imp, BidType bidType, String currency) {
-
         return BidderBid.builder()
                 .bid(bid)
                 .type(bidType)
@@ -1690,8 +1737,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private Float cpmOverrideFromRequest(BidRequest bidRequest) {
-        final RubiconExtPrebidBiddersBidder bidder = extPrebidBiddersRubicon(bidRequest.getExt());
+    private static Float cpmOverrideFromRequest(RubiconExtPrebidBiddersBidder bidder) {
         final RubiconExtPrebidBiddersBidderDebug debug = bidder != null ? bidder.getDebug() : null;
         return debug != null ? debug.getCpmoverride() : null;
     }
@@ -1702,6 +1748,10 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .map(ExtImpRubicon::getDebug)
                 .map(ExtImpRubiconDebug::getCpmoverride)
                 .orElse(null);
+    }
+
+    private static boolean hasApexRenderer(RubiconExtPrebidBiddersBidder bidder) {
+        return Optional.ofNullable(bidder).map(RubiconExtPrebidBiddersBidder::getApexRenderer).orElse(false);
     }
 
     private static BidType bidType(BidRequest bidRequest) {

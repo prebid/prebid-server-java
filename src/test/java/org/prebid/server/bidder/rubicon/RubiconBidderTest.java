@@ -3,6 +3,7 @@ package org.prebid.server.bidder.rubicon;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
@@ -147,6 +148,7 @@ public class RubiconBidderTest extends VertxTest {
     private static final String BIDDER_NAME = "bidderName";
     private static final String ENDPOINT_URL = "http://rubiconproject.com/exchange.json?tk_xint=prebid";
     private static final String EXTERNAL_URL = "http://localhost:8080";
+    private static final String APEX_RENDERER_URL = "https://video-outstream.rubiconproject.com/apex-2.2.1.js";
     private static final String USERNAME = "username";
     private static final String PASSWORD = "password";
     private static final String PBS_VERSION = "pbs_version";
@@ -174,6 +176,7 @@ public class RubiconBidderTest extends VertxTest {
                 PASSWORD,
                 SUPPORTED_VENDORS,
                 false,
+                APEX_RENDERER_URL,
                 currencyConversionService,
                 priceFloorResolver,
                 versionProvider,
@@ -192,6 +195,7 @@ public class RubiconBidderTest extends VertxTest {
                         PASSWORD,
                         SUPPORTED_VENDORS,
                         false,
+                        APEX_RENDERER_URL,
                         currencyConversionService,
                         priceFloorResolver,
                         versionProvider,
@@ -871,6 +875,7 @@ public class RubiconBidderTest extends VertxTest {
                 PASSWORD,
                 SUPPORTED_VENDORS,
                 true,
+                APEX_RENDERER_URL,
                 currencyConversionService,
                 priceFloorResolver,
                 versionProvider,
@@ -3115,6 +3120,312 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldSetApexRendererUrlToMetaRendererUrlForOutputStreamVideoBidResponse()
+            throws JsonProcessingException {
+
+        // given
+        final ExtRequest extBidRequest = ExtRequest.of(ExtRequestPrebid.builder()
+                .bidders(mapper.valueToTree(ExtPrebidBidders.of(
+                        mapper.createObjectNode().set("apexRenderer", BooleanNode.valueOf(true)))))
+                .build());
+
+        final BidRequest givenBidRequest = givenBidRequest(
+                builder -> builder.ext(extBidRequest),
+                imp -> imp.id("impId").video(Video.builder().placement(2).plcmt(3).build()),
+                identity());
+
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest,
+                mapper.writeValueAsString(RubiconBidResponse.builder()
+                        .cur("USD")
+                        .seatbid(singletonList(RubiconSeatBid.builder()
+                                .bid(singletonList(givenRubiconBid(bid -> bid.impid("impId").price(ONE))))
+                                .build()))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, givenBidRequest);
+
+        // then
+        final ObjectNode expectedBidExt = mapper.valueToTree(
+                ExtPrebid.of(ExtBidPrebid.builder()
+                        .meta(ExtBidPrebidMeta.builder()
+                                .rendererUrl(APEX_RENDERER_URL)
+                                .build())
+                        .build(), null));
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getExt)
+                .containsExactly(expectedBidExt);
+    }
+
+    @Test
+    public void makeBidsShouldSetApexRendererUrlToMetaRendererUrlWhenMetaMediaTypeIsVideoAndVideoIsPresent()
+            throws JsonProcessingException {
+
+        // given
+        final ExtRequest extBidRequest = ExtRequest.of(ExtRequestPrebid.builder()
+                .bidders(mapper.valueToTree(ExtPrebidBidders.of(
+                        mapper.createObjectNode().set("apexRenderer", BooleanNode.valueOf(true)))))
+                .build());
+
+        final BidRequest givenBidRequest = givenBidRequest(
+                builder -> builder.ext(extBidRequest),
+                imp -> imp.id("impId").video(Video.builder().build()),
+                identity());
+
+        final ObjectNode givenBidExt = mapper.valueToTree(
+                ExtPrebid.of(ExtBidPrebid.builder()
+                        .meta(ExtBidPrebidMeta.builder()
+                                .mediaType("video")
+                                .rendererUrl("https://renderer.url.from.bidder")
+                                .build())
+                        .build(), null));
+
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest,
+                mapper.writeValueAsString(RubiconBidResponse.builder()
+                        .cur("USD")
+                        .seatbid(singletonList(RubiconSeatBid.builder()
+                                .bid(singletonList(givenRubiconBid(bid ->
+                                        bid.impid("impId").price(ONE).ext(givenBidExt))))
+                                .build()))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, givenBidRequest);
+
+        // then
+        final ObjectNode expectedBidExt = mapper.valueToTree(
+                ExtPrebid.of(ExtBidPrebid.builder()
+                        .meta(ExtBidPrebidMeta.builder()
+                                .mediaType("video")
+                                .rendererUrl(APEX_RENDERER_URL)
+                                .build())
+                        .build(), null));
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getExt)
+                .containsExactly(expectedBidExt);
+    }
+
+    @Test
+    public void makeBidsShouldNotSetApexRendererUrlToMetaRendererUrlWhenMetaMediaTypeIsVideoAndVideoIsAbsent()
+            throws JsonProcessingException {
+
+        // given
+        final ExtRequest extBidRequest = ExtRequest.of(ExtRequestPrebid.builder()
+                .bidders(mapper.valueToTree(ExtPrebidBidders.of(
+                        mapper.createObjectNode().set("apexRenderer", BooleanNode.valueOf(true)))))
+                .build());
+
+        final BidRequest givenBidRequest = givenBidRequest(
+                builder -> builder.ext(extBidRequest),
+                imp -> imp.id("impId").video(null),
+                identity());
+
+        final ObjectNode givenBidExt = mapper.valueToTree(
+                ExtPrebid.of(ExtBidPrebid.builder()
+                        .meta(ExtBidPrebidMeta.builder()
+                                .mediaType("video")
+                                .rendererUrl("https://renderer.url.from.bidder")
+                                .build())
+                        .build(), null));
+
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest,
+                mapper.writeValueAsString(RubiconBidResponse.builder()
+                        .cur("USD")
+                        .seatbid(singletonList(RubiconSeatBid.builder()
+                                .bid(singletonList(givenRubiconBid(bid ->
+                                        bid.impid("impId").price(ONE).ext(givenBidExt))))
+                                .build()))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, givenBidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getExt)
+                .containsExactly(givenBidExt);
+    }
+
+    @Test
+    public void makeBidsShouldNotSetApexRendererUrlToMetaRendererUrlWhenApexRendererIsNotDefined()
+            throws JsonProcessingException {
+
+        // given
+        final BidRequest givenBidRequest = givenBidRequest(
+                imp -> imp.id("impId").video(Video.builder().placement(2).plcmt(3).build()));
+
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest,
+                mapper.writeValueAsString(RubiconBidResponse.builder()
+                        .cur("USD")
+                        .seatbid(singletonList(RubiconSeatBid.builder()
+                                .bid(singletonList(givenRubiconBid(bid -> bid.impid("impId").price(ONE))))
+                                .build()))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, givenBidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getExt)
+                .containsNull();
+    }
+
+    @Test
+    public void makeBidsShouldNotSetApexRendererUrlToMetaRendererUrlWhenApexRendererIsDefinedAsFalse()
+            throws JsonProcessingException {
+
+        // given
+        final ExtRequest extBidRequest = ExtRequest.of(ExtRequestPrebid.builder()
+                .bidders(mapper.valueToTree(ExtPrebidBidders.of(
+                        mapper.createObjectNode().set("apexRenderer", BooleanNode.valueOf(false)))))
+                .build());
+
+        final BidRequest givenBidRequest = givenBidRequest(
+                builder -> builder.ext(extBidRequest),
+                imp -> imp.id("impId").video(Video.builder().placement(2).plcmt(3).build()),
+                identity());
+
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest,
+                mapper.writeValueAsString(RubiconBidResponse.builder()
+                        .cur("USD")
+                        .seatbid(singletonList(RubiconSeatBid.builder()
+                                .bid(singletonList(givenRubiconBid(bid -> bid.impid("impId").price(ONE))))
+                                .build()))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, givenBidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getExt)
+                .containsNull();
+    }
+
+    @Test
+    public void makeBidsShouldNotSetApexRendererUrlToMetaRendererUrlWhenBidResponseIsNotVideo()
+            throws JsonProcessingException {
+
+        // given
+        final ExtRequest extBidRequest = ExtRequest.of(ExtRequestPrebid.builder()
+                .bidders(mapper.valueToTree(ExtPrebidBidders.of(
+                        mapper.createObjectNode().set("apexRenderer", BooleanNode.valueOf(true)))))
+                .build());
+
+        final BidRequest givenBidRequest = givenBidRequest(
+                builder -> builder.ext(extBidRequest),
+                imp -> imp.id("impId").banner(Banner.builder().build()),
+                identity());
+
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest,
+                mapper.writeValueAsString(RubiconBidResponse.builder()
+                        .cur("USD")
+                        .seatbid(singletonList(RubiconSeatBid.builder()
+                                .bid(singletonList(givenRubiconBid(bid -> bid.impid("impId").price(ONE))))
+                                .build()))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, givenBidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getExt)
+                .containsNull();
+    }
+
+    @Test
+    public void makeBidsShouldNotSetApexRendererUrlToMetaRendererUrlWhenVideoPlacementIsOne()
+            throws JsonProcessingException {
+
+        // given
+        final ExtRequest extBidRequest = ExtRequest.of(ExtRequestPrebid.builder()
+                .bidders(mapper.valueToTree(ExtPrebidBidders.of(
+                        mapper.createObjectNode().set("apexRenderer", BooleanNode.valueOf(true)))))
+                .build());
+
+        final BidRequest givenBidRequest = givenBidRequest(
+                builder -> builder.ext(extBidRequest),
+                imp -> imp.id("impId").video(Video.builder().placement(1).plcmt(3).build()),
+                identity());
+
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest,
+                mapper.writeValueAsString(RubiconBidResponse.builder()
+                        .cur("USD")
+                        .seatbid(singletonList(RubiconSeatBid.builder()
+                                .bid(singletonList(givenRubiconBid(bid -> bid.impid("impId").price(ONE))))
+                                .build()))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, givenBidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getExt)
+                .containsNull();
+    }
+
+    @Test
+    public void makeBidsShouldNotSetApexRendererUrlToMetaRendererUrlWhenVideoPlcmtIsOne()
+            throws JsonProcessingException {
+
+        // given
+        final ExtRequest extBidRequest = ExtRequest.of(ExtRequestPrebid.builder()
+                .bidders(mapper.valueToTree(ExtPrebidBidders.of(
+                        mapper.createObjectNode().set("apexRenderer", BooleanNode.valueOf(true)))))
+                .build());
+
+        final BidRequest givenBidRequest = givenBidRequest(
+                builder -> builder.ext(extBidRequest),
+                imp -> imp.id("impId").video(Video.builder().placement(2).plcmt(1).build()),
+                identity());
+
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest,
+                mapper.writeValueAsString(RubiconBidResponse.builder()
+                        .cur("USD")
+                        .seatbid(singletonList(RubiconSeatBid.builder()
+                                .bid(singletonList(givenRubiconBid(bid -> bid.impid("impId").price(ONE))))
+                                .build()))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, givenBidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getExt)
+                .containsNull();
+    }
+
+    @Test
     public void makeBidsShouldSetSeatToMetaSeat() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
@@ -3544,7 +3855,7 @@ public class RubiconBidderTest extends VertxTest {
         // given
         target = new RubiconBidder(
                 BIDDER_NAME, ENDPOINT_URL, ENDPOINT_URL, USERNAME, PASSWORD, SUPPORTED_VENDORS, true,
-                currencyConversionService, priceFloorResolver, versionProvider, jacksonMapper);
+                APEX_RENDERER_URL, currencyConversionService, priceFloorResolver, versionProvider, jacksonMapper);
 
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(RubiconBidResponse.builder()
@@ -3570,7 +3881,7 @@ public class RubiconBidderTest extends VertxTest {
         // given
         target = new RubiconBidder(
                 BIDDER_NAME, ENDPOINT_URL, EXTERNAL_URL, USERNAME, PASSWORD, SUPPORTED_VENDORS, true,
-                currencyConversionService, priceFloorResolver, versionProvider, jacksonMapper);
+                APEX_RENDERER_URL, currencyConversionService, priceFloorResolver, versionProvider, jacksonMapper);
 
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(RubiconBidResponse.builder()

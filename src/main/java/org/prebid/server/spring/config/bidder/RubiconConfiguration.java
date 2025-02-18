@@ -56,6 +56,7 @@ public class RubiconConfiguration {
                                 config.getXapi().getPassword(),
                                 config.getMetaInfo().getSupportedVendors(),
                                 config.getGenerateBidId(),
+                                config.getApexRendererUrl(),
                                 currencyConversionService,
                                 floorResolver,
                                 versionProvider,
@@ -75,6 +76,9 @@ public class RubiconConfiguration {
 
         @NotNull
         private Boolean generateBidId;
+
+        @NotNull
+        private String apexRendererUrl;
     }
 
     @Data
