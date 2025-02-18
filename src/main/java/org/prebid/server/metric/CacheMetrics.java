@@ -12,6 +12,7 @@ class CacheMetrics extends UpdatableMetrics {
 
     private final RequestMetrics requestsMetrics;
     private final CacheCreativeSizeMetrics cacheCreativeSizeMetrics;
+    private final CacheCreativeTtlMetrics cacheCreativeTtlMetrics;
 
     CacheMetrics(MetricRegistry metricRegistry, CounterType counterType) {
         super(
@@ -21,6 +22,7 @@ class CacheMetrics extends UpdatableMetrics {
 
         requestsMetrics = new RequestMetrics(metricRegistry, counterType, createPrefix());
         cacheCreativeSizeMetrics = new CacheCreativeSizeMetrics(metricRegistry, counterType, createPrefix());
+        cacheCreativeTtlMetrics = new CacheCreativeTtlMetrics(metricRegistry, counterType, createPrefix());
     }
 
     CacheMetrics(MetricRegistry metricRegistry, CounterType counterType, String prefix) {
@@ -31,6 +33,7 @@ class CacheMetrics extends UpdatableMetrics {
 
         requestsMetrics = new RequestMetrics(metricRegistry, counterType, createPrefix(prefix));
         cacheCreativeSizeMetrics = new CacheCreativeSizeMetrics(metricRegistry, counterType, createPrefix(prefix));
+        cacheCreativeTtlMetrics = new CacheCreativeTtlMetrics(metricRegistry, counterType, createPrefix(prefix));
     }
 
     private static String createPrefix(String prefix) {
@@ -51,5 +54,9 @@ class CacheMetrics extends UpdatableMetrics {
 
     CacheCreativeSizeMetrics creativeSize() {
         return cacheCreativeSizeMetrics;
+    }
+
+    CacheCreativeTtlMetrics creativeTtl() {
+        return cacheCreativeTtlMetrics;
     }
 }
