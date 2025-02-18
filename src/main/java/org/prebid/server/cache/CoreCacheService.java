@@ -603,7 +603,7 @@ public class CoreCacheService {
                 : accountIdLength + separatorCount;
 
         final String cacheKey = idGenerator.generateId();
-        if (cacheKey == null || traceInfoLength >= cacheKey.length()) {
+        if (cacheKey == null || traceInfoLength >= (cacheKey.length() / 2)) {
             return null;
         }
 

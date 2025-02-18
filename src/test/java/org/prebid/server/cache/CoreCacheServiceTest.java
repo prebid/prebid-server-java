@@ -946,9 +946,9 @@ public class CoreCacheServiceTest extends VertxTest {
                 jacksonMapper);
 
         given(idGenerator.generateId())
-                .willReturn("1-high-entropy-cache-id")
-                .willReturn("2-high-entropy-cache-id")
-                .willReturn("3-high-entropy-cache-id");
+                .willReturn("1-high-entropy-cache-id-foo-bar-")
+                .willReturn("2-high-entropy-cache-id-foo-bar-")
+                .willReturn("3-high-entropy-cache-id-foo-bar-");
 
         final BidInfo bidInfo1 = givenBidInfo(builder -> builder.id("bidId1"), BidType.banner, "bidder1")
                 .toBuilder()
@@ -978,20 +978,70 @@ public class CoreCacheServiceTest extends VertxTest {
                         BidPutObject.builder()
                                 .aid("auctionId")
                                 .type("json")
-                                .key("accountId-apac-1-high-e")
+                                .key("accountId-apac-1-high-entropy-ca")
                                 .value(mapper.valueToTree(bidInfo1.getBid()))
                                 .build(),
                         BidPutObject.builder()
                                 .aid("auctionId")
                                 .type("json")
-                                .key("accountId-apac-2-high-e")
+                                .key("accountId-apac-2-high-entropy-ca")
                                 .value(mapper.valueToTree(bidInfo2.getBid()))
                                 .build(),
                         BidPutObject.builder()
                                 .aid("auctionId")
                                 .type("xml")
-                                .key("accountId-apac-3-high-e")
+                                .key("accountId-apac-3-high-entropy-ca")
                                 .value(new TextNode("adm"))
+                                .build());
+    }
+
+    @Test
+    public void cacheBidsOpenrtbShouldNotPrependTraceInfoToLowEntoryCacheIds() throws IOException {
+        // given
+        target = new CoreCacheService(
+                httpClient,
+                new URL("http://cache-service/cache"),
+                "http://cache-service-host/cache?uuid=",
+                100L,
+                "ApiKey",
+                false,
+                true,
+                "apacific",
+                vastModifier,
+                eventsService,
+                metrics,
+                clock,
+                idGenerator,
+                jacksonMapper);
+
+        given(idGenerator.generateId()).willReturn("low-entropy");
+
+        final BidInfo bidInfo = givenBidInfo(builder -> builder.id("bidId1"), BidType.banner, "bidder1")
+                .toBuilder()
+                .build();
+
+        final EventsContext eventsContext = EventsContext.builder()
+                .auctionId("auctionId")
+                .auctionTimestamp(1000L)
+                .build();
+
+        // when
+        final Future<CacheServiceResult> future = target.cacheBidsOpenrtb(
+                singletonList(bidInfo),
+                givenAuctionContext(),
+                CacheContext.builder()
+                        .shouldCacheBids(true)
+                        .shouldCacheVideoBids(true)
+                        .build(),
+                eventsContext);
+
+        // then
+        assertThat(captureBidCacheRequest().getPuts())
+                .containsExactly(
+                        BidPutObject.builder()
+                                .aid("auctionId")
+                                .type("json")
+                                .value(mapper.valueToTree(bidInfo.getBid()))
                                 .build());
     }
 
@@ -1061,7 +1111,7 @@ public class CoreCacheServiceTest extends VertxTest {
                 idGenerator,
                 jacksonMapper);
 
-        given(idGenerator.generateId()).willReturn("high-entropy-cache-id");
+        given(idGenerator.generateId()).willReturn("high-entropy-cache-id-foo-bar");
 
         final BidPutObject bidPutObject = BidPutObject.builder()
                 .type("text")
@@ -1082,7 +1132,7 @@ public class CoreCacheServiceTest extends VertxTest {
 
         // then
         final BidPutObject modifiedBidPutObject = bidPutObject.toBuilder()
-                .key("account-apac-high-ent")
+                .key("account-apac-high-entropy-cac")
                 .value(new TextNode("modifiedVast"))
                 .build();
 
