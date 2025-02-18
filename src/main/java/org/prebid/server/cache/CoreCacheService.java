@@ -7,6 +7,7 @@ import com.iab.openrtb.response.Bid;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidInfo;
@@ -151,6 +152,7 @@ public class CoreCacheService {
     private CachedCreative makeDebugCacheCreative(CachedDebugLog videoCacheDebugLog,
                                                   String hbCacheId,
                                                   Integer videoCacheTtl) {
+
         final JsonNode value = mapper.mapper().valueToTree(videoCacheDebugLog.buildCacheBody());
         videoCacheDebugLog.setCacheKey(hbCacheId);
         return CachedCreative.of(BidPutObject.builder()
@@ -415,29 +417,26 @@ public class CoreCacheService {
                                                      String requestId,
                                                      String hbCacheId,
                                                      String accountId) {
+
         final BidInfo bidInfo = cacheBid.getBidInfo();
         final Bid bid = bidInfo.getBid();
         final String vastXml = bid.getAdm();
 
-        final String resolvedCacheKey = resolveCacheKey(accountId, hbCacheId);
-        final String customCacheKey = resolveCustomCacheKey(resolvedCacheKey, bidInfo.getCategory());
-
         final BidPutObject payload = BidPutObject.builder()
                 .aid(requestId)
                 .type("xml")
-                .key(customCacheKey != null ? customCacheKey : resolvedCacheKey)
+                .key(resolveCacheKey(accountId, hbCacheId, bidInfo.getCategory()))
                 .value(vastXml != null ? new TextNode(vastXml) : null)
                 .ttlseconds(cacheBid.getTtl())
-                .key(customCacheKey)
                 .build();
 
         return CachedCreative.of(payload, creativeSizeFromTextNode(payload.getValue()));
     }
 
-    private static String resolveCustomCacheKey(String hbCacheId, String category) {
+    private static String formatCategoryMappedCacheKey(String hbCacheId, String category) {
         return StringUtils.isNoneEmpty(category, hbCacheId)
                 ? "%s_%s".formatted(category, hbCacheId)
-                : null;
+                : hbCacheId;
     }
 
     private String generateWinUrl(String bidId,
@@ -537,20 +536,15 @@ public class CoreCacheService {
 
     private void updateCreativeMetrics(String accountId, List<CachedCreative> cachedCreatives) {
         for (CachedCreative cachedCreative : cachedCreatives) {
-            final MetricName creativeType = resolveCreativeTypeName(cachedCreative.getPayload());
-            final Integer creativeTtl = cachedCreative.getPayload().getTtlseconds() != null
-                    ? cachedCreative.getPayload().getTtlseconds()
-                    : cachedCreative.getPayload().getExpiry();
+            final BidPutObject payload = cachedCreative.getPayload();
+            final MetricName creativeType = resolveCreativeTypeName(payload);
+            final Integer creativeTtl = ObjectUtils.defaultIfNull(payload.getTtlseconds(), payload.getExpiry());
 
             if (creativeTtl != null) {
-                metrics.updateCacheCreativeTtl(accountId,
-                        creativeTtl,
-                        creativeType);
+                metrics.updateCacheCreativeTtl(accountId, creativeTtl, creativeType);
             }
 
-            metrics.updateCacheCreativeSize(accountId,
-                    cachedCreative.getSize(),
-                    creativeType);
+            metrics.updateCacheCreativeSize(accountId, cachedCreative.getSize(), creativeType);
         }
     }
 
@@ -586,17 +580,21 @@ public class CoreCacheService {
                 .toList());
     }
 
+    private String resolveCacheKey(String accountId, String existingKey, String category) {
+        final String resolvedCacheKey = resolveCacheKey(accountId, existingKey);
+        return formatCategoryMappedCacheKey(resolvedCacheKey, category);
+
+    }
+
     private String resolveCacheKey(String accountId) {
         return resolveCacheKey(accountId, null);
     }
 
-    // hbCacheId is accepted here to have a backwards-compatibility with video category mapping
-    private String resolveCacheKey(String accountId, String hbCacheId) {
-        if (!appendTraceInfoToCacheId) {
-            return hbCacheId;
+    private String resolveCacheKey(String accountId, String existingCacheKey) {
+        if (!appendTraceInfoToCacheId || existingCacheKey != null) {
+            return existingCacheKey;
         }
 
-        // no need to have additional separator if datacenter name won't be added
         final boolean isDatacenterNamePopulated = StringUtils.isNotBlank(datacenterRegion);
         final int separatorCount = isDatacenterNamePopulated ? 2 : 1;
         final int accountIdLength = accountId.length();
@@ -604,15 +602,15 @@ public class CoreCacheService {
                 ? accountIdLength + datacenterRegion.length() + separatorCount
                 : accountIdLength + separatorCount;
 
-        final String cacheKey = hbCacheId != null ? hbCacheId : idGenerator.generateId();
-        if (cacheKey != null && traceInfoLength < cacheKey.length()) {
-            final String substring = cacheKey.substring(0, cacheKey.length() - traceInfoLength);
-            return isDatacenterNamePopulated
-                    ? accountId + TRACE_INFO_SEPARATOR + datacenterRegion + TRACE_INFO_SEPARATOR + substring
-                    : accountId + TRACE_INFO_SEPARATOR + substring;
-        } else {
-            return hbCacheId;
+        final String cacheKey = idGenerator.generateId();
+        if (cacheKey == null || traceInfoLength >= cacheKey.length()) {
+            return null;
         }
+
+        final String substring = cacheKey.substring(0, cacheKey.length() - traceInfoLength);
+        return isDatacenterNamePopulated
+                ? accountId + TRACE_INFO_SEPARATOR + datacenterRegion + TRACE_INFO_SEPARATOR + substring
+                : accountId + TRACE_INFO_SEPARATOR + substring;
     }
 
     private String normalizeDatacenterRegion(String datacenterRegion) {
