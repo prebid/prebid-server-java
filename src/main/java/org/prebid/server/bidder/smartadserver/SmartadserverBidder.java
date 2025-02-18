@@ -112,13 +112,13 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return extractBids(httpCall.getRequest().getPayload(), bidResponse);
+            return extractBids(bidResponse);
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private Result<List<BidderBid>> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
+    private Result<List<BidderBid>> extractBids(BidResponse bidResponse) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Result.empty();
         }
@@ -128,19 +128,21 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, getBidTypeFromMarkupType(bid.getMtype()), bidResponse.getCur()))
                 .toList();
         return Result.of(bidderBids, errors);
     }
 
-    private static BidType getBidType(String impId, List<Imp> imps) {
-        for (Imp imp : imps) {
-            if (imp.getId().equals(impId)) {
-                return imp.getVideo() != null
-                        ? BidType.video
-                        : (imp.getXNative() != null ? BidType.xNative : BidType.banner);
-            }
+    private static BidType getBidTypeFromMarkupType(Integer markupType) {
+        if (markupType == null) {
+            return BidType.banner;
         }
-        return BidType.banner;
+        return switch (markupType) {
+            case 1 -> BidType.banner;
+            case 2 -> BidType.video;
+            case 3 -> BidType.audio;
+            case 4 -> BidType.xNative;
+            default -> BidType.banner;
+        };
     }
 }
