@@ -48,7 +48,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
     def "PBS should activate floors feature when price-floors.enabled = true in PBS config"() {
         given: "Pbs with PF configuration"
-        def pbsService = pbsServiceFactory.getService(FLOORS_CONFIG + ["price-floors.enabled": "true"])
+        def pbsService = pbsServiceFactory.getService(FLOORS_CONFIG)
 
         and: "Default BidRequest"
         def bidRequest = BidRequest.getDefaultBidRequest(APP)
@@ -73,7 +73,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
     def "PBS should not activate floors feature when price-floors.enabled = false in #description config"() {
         given: "Pbs with PF configuration"
-        def pbsService = pbsServiceFactory.getService(FLOORS_CONFIG + ["price-floors.enabled": pbdConfigEnabled])
+        def pbsService = pbsServiceFactory.getService(["price-floors.enabled": pbdConfigEnabled])
 
         and: "Default BidRequest"
         def bidRequest = BidRequest.getDefaultBidRequest(APP)
