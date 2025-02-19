@@ -613,7 +613,7 @@ public class CoreCacheService {
                 : accountId + TRACE_INFO_SEPARATOR + substring;
     }
 
-    private String normalizeDatacenterRegion(String datacenterRegion) {
+    private static String normalizeDatacenterRegion(String datacenterRegion) {
         if (datacenterRegion == null) {
             return null;
         }
