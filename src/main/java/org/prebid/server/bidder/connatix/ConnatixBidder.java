@@ -54,9 +54,6 @@ public class ConnatixBidder implements Bidder<BidRequest> {
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
-    //    private static final String PREBID_KEY = "prebid";
-    //    private static final String SOURCE_PROPERTY = "source";
-    //    private static final String VERSION_PROPERTY = "version";
     private static final String BIDDER_CURRENCY = "USD";
 
     private final CurrencyConversionService currencyConversionService;
@@ -222,9 +219,6 @@ public class ConnatixBidder implements Bidder<BidRequest> {
                                                             List<Imp> imps,
                                                             String url) {
         final MultiMap httpHeaders = resolveHeaders(bidRequest.getDevice());
-        // KATIE TO DO: this is how we've done it elsewhere but go version has logic that
-        // explicitly modifies headers here - need to figure out what that's about
-        // KIM: added the headers - seems like the same logic as AcuityadsBidder
         return ListUtils.partition(imps, MAX_IMPS_PER_REQUEST)
                 .stream()
                 .map(impsChunk -> createHttpRequest(bidRequest, impsChunk, url, httpHeaders))
@@ -243,7 +237,6 @@ public class ConnatixBidder implements Bidder<BidRequest> {
 
     // check display manager version
     private String buildDisplayManagerVersion(BidRequest request) {
-        // KIM: copied this from the AppnexusBidder - i think this is what ExtAppPrebid is for
         final Optional<ExtAppPrebid> prebid = Optional.ofNullable(request.getApp())
                 .map(App::getExt)
                 .map(ExtApp::getPrebid);
@@ -254,24 +247,6 @@ public class ConnatixBidder implements Bidder<BidRequest> {
         return ObjectUtils.allNotNull(source, version)
                 ? "%s-%s".formatted(source, version)
                 : "";
-//        if (request.getApp() == null || request.getApp().getExt() == null) {
-//            return "";
-//        }
-//
-//        try {
-//            final JsonNode extNode = mapper.mapper().readTree(String.valueOf(request.getApp().getExt()));
-//            final JsonNode prebidNode = extNode.path(PREBID_KEY);
-//
-//            final String source = prebidNode.path(SOURCE_PROPERTY).asText("");
-//            final String version = prebidNode.path(VERSION_PROPERTY).asText("");
-//
-//            return (StringUtils.isNotEmpty(source) && StringUtils.isNotEmpty(version))
-//                    ? source + "-" + version
-//                    : "";
-//
-//        } catch (Exception e) {
-//            return "";
-//        }
     }
 
     private static BidType getBidType(String impId, List<Imp> imps) {
