@@ -21,6 +21,7 @@ class CacheSpec extends BaseSpec {
 
     private static final String PBS_API_HEADER = 'x-pbc-api-key'
     private static final Integer MAX_DATACENTER_REGION_LENGTH = 4
+    private static final Integer DEFAULT_UUID_LENGTH = 36
 
     private static final String XML_CREATIVE_SIZE_ACCOUNT_METRIC = "account.%s.prebid_cache.creative_size.xml"
     private static final String JSON_CREATIVE_SIZE_ACCOUNT_METRIC = "account.%s.prebid_cache.creative_size.json"
@@ -60,8 +61,9 @@ class CacheSpec extends BaseSpec {
         def initialValue = getCurrentMetricValue(defaultPbsService, CACHE_REQUEST_OK_GLOBAL_METRIC)
 
         and: "Default BidRequest with cache, targeting"
-        def bidRequest = BidRequest.defaultBidRequest
-        bidRequest.enableCache()
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            it.enableCache()
+        }
 
         and: "Default basic bid with banner creative"
         def asset = new Asset(id: PBSUtils.randomNumber)
@@ -91,9 +93,11 @@ class CacheSpec extends BaseSpec {
 
     def "PBS should cache bids when targeting is specified"() {
         given: "Default BidRequest with cache, targeting"
-        def bidRequest = BidRequest.defaultBidRequest
-        bidRequest.enableCache()
-        bidRequest.ext.prebid.targeting = new Targeting()
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            it.ext.prebid.targeting = new Targeting()
+
+            it.enableCache()
+        }
 
         when: "PBS processes auction request"
         defaultPbsService.sendAuctionRequest(bidRequest)
@@ -111,9 +115,11 @@ class CacheSpec extends BaseSpec {
         def pbsService = pbsServiceFactory.getService(['pbc.api.key': apiKey, 'cache.api-key-secured': 'false'])
 
         and: "Default BidRequest with cache, targeting"
-        def bidRequest = BidRequest.defaultBidRequest
-        bidRequest.enableCache()
-        bidRequest.ext.prebid.targeting = new Targeting()
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            it.ext.prebid.targeting = new Targeting()
+
+            it.enableCache()
+        }
 
         when: "PBS processes auction request"
         pbsService.sendAuctionRequest(bidRequest)
@@ -131,9 +137,11 @@ class CacheSpec extends BaseSpec {
         def pbsService = pbsServiceFactory.getService(['pbc.api.key': apiKey, 'cache.api-key-secured': 'true'])
 
         and: "Default BidRequest with cache, targeting"
-        def bidRequest = BidRequest.defaultBidRequest
-        bidRequest.enableCache()
-        bidRequest.ext.prebid.targeting = new Targeting()
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            it.ext.prebid.targeting = new Targeting()
+
+            it.enableCache()
+        }
 
         when: "PBS processes auction request"
         pbsService.sendAuctionRequest(bidRequest)
@@ -156,9 +164,11 @@ class CacheSpec extends BaseSpec {
         def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default BidRequest with cache, targeting"
-        def bidRequest = BidRequest.defaultBidRequest
-        bidRequest.enableCache()
-        bidRequest.ext.prebid.targeting = new Targeting()
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            it.ext.prebid.targeting = new Targeting()
+
+            it.enableCache()
+        }
 
         when: "PBS processes auction request"
         pbsService.sendAuctionRequest(bidRequest)
@@ -171,7 +181,7 @@ class CacheSpec extends BaseSpec {
         assert cacheKey.startsWith("${bidRequest.accountId}-${serverDataCenter.take(MAX_DATACENTER_REGION_LENGTH)}")
 
         and: "PBS cache key should have length equal to default UUID"
-        assert cacheKey.length() == UUID.randomUUID().toString().length()
+        assert cacheKey.length() == DEFAULT_UUID_LENGTH
 
         and: "PBS should include metrics for request"
         def metrics = pbsService.sendCollectedMetricsRequest()
@@ -193,9 +203,11 @@ class CacheSpec extends BaseSpec {
         def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default BidRequest with cache, targeting"
-        def bidRequest = BidRequest.defaultVideoRequest
-        bidRequest.enableCache()
-        bidRequest.ext.prebid.targeting = new Targeting()
+        def bidRequest = BidRequest.defaultVideoRequest.tap {
+            it.ext.prebid.targeting = new Targeting()
+
+            it.enableCache()
+        }
 
         and: "Set bidder response"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
@@ -212,7 +224,7 @@ class CacheSpec extends BaseSpec {
         assert cacheKey.startsWith("${bidRequest.accountId}-${serverDataCenter.take(MAX_DATACENTER_REGION_LENGTH)}")
 
         and: "PBS cache key should have length equal to default UUID"
-        assert cacheKey.length() == UUID.randomUUID().toString().length()
+        assert cacheKey.length() == DEFAULT_UUID_LENGTH
 
         and: "PBS should include metrics for request"
         def metrics = pbsService.sendCollectedMetricsRequest()
@@ -234,9 +246,11 @@ class CacheSpec extends BaseSpec {
         def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default BidRequest with cache, targeting"
-        def bidRequest = BidRequest.defaultBidRequest
-        bidRequest.enableCache()
-        bidRequest.ext.prebid.targeting = new Targeting()
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            it.ext.prebid.targeting = new Targeting()
+
+            it.enableCache()
+        }
 
         when: "PBS processes auction request"
         pbsService.sendAuctionRequest(bidRequest)
@@ -249,7 +263,7 @@ class CacheSpec extends BaseSpec {
         assert cacheKey.startsWith("${bidRequest.accountId}-")
 
         and: "PBS cache key should have length equal to default UUID"
-        assert cacheKey.length() == UUID.randomUUID().toString().length()
+        assert cacheKey.length() == DEFAULT_UUID_LENGTH
 
         and: "PBS should include metrics for request"
         def metrics = pbsService.sendCollectedMetricsRequest()
@@ -271,11 +285,13 @@ class CacheSpec extends BaseSpec {
         def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default BidRequest with cache, targeting and large account ID"
-        def bidRequest = BidRequest.defaultBidRequest
-        bidRequest.enableCache()
-        bidRequest.ext.prebid.targeting = new Targeting()
-        def accountOverflowLength = UUID.randomUUID().toString().length() - MAX_DATACENTER_REGION_LENGTH - 2
-        bidRequest.setAccountId(PBSUtils.getRandomString(accountOverflowLength))
+        def accountOverflowLength = DEFAULT_UUID_LENGTH - MAX_DATACENTER_REGION_LENGTH - 2
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            it.ext.prebid.targeting = new Targeting()
+
+            it.setAccountId(PBSUtils.getRandomString(accountOverflowLength))
+            it.enableCache()
+        }
 
         when: "PBS processes auction request"
         pbsService.sendAuctionRequest(bidRequest)
@@ -306,9 +322,11 @@ class CacheSpec extends BaseSpec {
         def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default BidRequest with cache, targeting"
-        def bidRequest = BidRequest.defaultBidRequest
-        bidRequest.enableCache()
-        bidRequest.ext.prebid.targeting = new Targeting()
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            it.ext.prebid.targeting = new Targeting()
+
+            it.enableCache()
+        }
 
         when: "PBS processes auction request"
         pbsService.sendAuctionRequest(bidRequest)
@@ -330,9 +348,11 @@ class CacheSpec extends BaseSpec {
 
     def "PBS should not cache bids when targeting isn't specified"() {
         given: "Default BidRequest with cache"
-        def bidRequest = BidRequest.defaultBidRequest
-        bidRequest.enableCache()
-        bidRequest.ext.prebid.targeting = null
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            it.ext.prebid.targeting = null
+
+            it.enableCache()
+        }
 
         when: "PBS processes auction request"
         defaultPbsService.sendAuctionRequest(bidRequest)
@@ -344,8 +364,9 @@ class CacheSpec extends BaseSpec {
     def "PBS shouldn't response with seatbid.bid.adm in response when ext.prebid.cache.bids.returnCreative=false"() {
         given: "Default BidRequest with cache"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            enableCache()
-            ext.prebid.cache.bids.returnCreative = false
+            it.ext.prebid.cache.bids.returnCreative = false
+
+            it.enableCache()
         }
 
         and: "Default basic bid with banner creative"
@@ -366,8 +387,9 @@ class CacheSpec extends BaseSpec {
     def "PBS should response with seatbid.bid.adm in response when ext.prebid.cache.bids.returnCreative=true"() {
         given: "Default BidRequest with cache"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            enableCache()
-            ext.prebid.cache.bids.returnCreative = true
+            it.ext.prebid.cache.bids.returnCreative = true
+
+            it.enableCache()
         }
 
         and: "Default basic bid with banner creative"
@@ -388,9 +410,10 @@ class CacheSpec extends BaseSpec {
     def "PBS shouldn't response with seatbid.bid.adm in response when ext.prebid.cache.vastXml.returnCreative=false and video request"() {
         given: "Default BidRequest with cache"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp[0] = Imp.getDefaultImpression(VIDEO)
-            enableCache()
-            ext.prebid.cache.vastXml.returnCreative = false
+            it.imp[0] = Imp.getDefaultImpression(VIDEO)
+            it.ext.prebid.cache.vastXml.returnCreative = false
+
+            it.enableCache()
         }
 
         and: "Default basic bid with banner creative"
@@ -411,9 +434,10 @@ class CacheSpec extends BaseSpec {
     def "PBS should response with seatbid.bid.adm in response when ext.prebid.cache.vastXml.returnCreative=#returnCreative and imp.#mediaType"() {
         given: "Default BidRequest with cache"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            enableCache()
-            imp[0] = Imp.getDefaultImpression(mediaType)
-            ext.prebid.cache.vastXml.returnCreative = returnCreative
+            it.imp[0] = Imp.getDefaultImpression(mediaType)
+            it.ext.prebid.cache.vastXml.returnCreative = returnCreative
+
+            it.enableCache()
         }
 
         and: "Default basic bid with banner creative"
