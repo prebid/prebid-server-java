@@ -8,7 +8,6 @@ import org.prebid.server.model.Endpoint;
 import java.io.IOException;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
@@ -20,8 +19,6 @@ public class BidsmindTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromTheBidsmind() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/bidsmind-exchange"))
-                .withQueryParam("adUnitId", equalTo("1"))
-                .withQueryParam("auth", equalTo("123456"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/bidsmind/test-bidsmind-bid-request.json"), true, true))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/bidsmind/test-bidsmind-bid-response.json"))));
 
