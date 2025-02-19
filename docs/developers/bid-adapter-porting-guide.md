@@ -2,7 +2,7 @@
 
 ## Overview
 
-Don't think of it as simply porting the adapter from Go to Java. Instead, treat it as a re-implementation. It will take a few adapters before you fully get the hang of it, and that's okay—everyone goes through a learning curve.
+First, thank you for taking on the migration of an adapter from Go to Java. But really the best way to think of it is not as straight port. Instead, we recommend treat this task as a re-implementation. It will take a few adapters before you fully get the hang of it, and that's okay—everyone goes through a learning curve.
 
 Keep in mind that the PBS-Go team is more lenient about what they allow in adapters compared to the PBS-Java team.
 
@@ -54,6 +54,6 @@ To maintain consistency across adapters:
 4. The structure of Go and Java bidder configuration files differs—do not copy and paste directly. Pay attention to details such as macros in the endpoint and redirect/iframe URLs.
 5. **Prohibited in bidder adapters:**
     - Blocking code.
-    - Dynamic hostnames in URLs.
+    - Fully dynamic hostnames in URLs.
     - Non-thread-safe code (bidder adapters should not store state internally).
 6. If an adapter has no special logic, consider using an alias to `Generic` instead.
