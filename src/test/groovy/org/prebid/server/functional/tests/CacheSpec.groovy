@@ -94,9 +94,8 @@ class CacheSpec extends BaseSpec {
     def "PBS should cache bids when targeting is specified"() {
         given: "Default BidRequest with cache, targeting"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            it.ext.prebid.targeting = new Targeting()
-
             it.enableCache()
+            it.ext.prebid.targeting = new Targeting()
         }
 
         when: "PBS processes auction request"
@@ -116,9 +115,8 @@ class CacheSpec extends BaseSpec {
 
         and: "Default BidRequest with cache, targeting"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            it.ext.prebid.targeting = new Targeting()
-
             it.enableCache()
+            it.ext.prebid.targeting = new Targeting()
         }
 
         when: "PBS processes auction request"
@@ -138,9 +136,8 @@ class CacheSpec extends BaseSpec {
 
         and: "Default BidRequest with cache, targeting"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            it.ext.prebid.targeting = new Targeting()
-
             it.enableCache()
+            it.ext.prebid.targeting = new Targeting()
         }
 
         when: "PBS processes auction request"
@@ -165,9 +162,8 @@ class CacheSpec extends BaseSpec {
 
         and: "Default BidRequest with cache, targeting"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            it.ext.prebid.targeting = new Targeting()
-
             it.enableCache()
+            it.ext.prebid.targeting = new Targeting()
         }
 
         when: "PBS processes auction request"
@@ -204,9 +200,8 @@ class CacheSpec extends BaseSpec {
 
         and: "Default BidRequest with cache, targeting"
         def bidRequest = BidRequest.defaultVideoRequest.tap {
-            it.ext.prebid.targeting = new Targeting()
-
             it.enableCache()
+            it.ext.prebid.targeting = new Targeting()
         }
 
         and: "Set bidder response"
@@ -247,9 +242,8 @@ class CacheSpec extends BaseSpec {
 
         and: "Default BidRequest with cache, targeting"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            it.ext.prebid.targeting = new Targeting()
-
             it.enableCache()
+            it.ext.prebid.targeting = new Targeting()
         }
 
         when: "PBS processes auction request"
@@ -287,10 +281,9 @@ class CacheSpec extends BaseSpec {
         and: "Default BidRequest with cache, targeting and large account ID"
         def accountOverflowLength = DEFAULT_UUID_LENGTH - MAX_DATACENTER_REGION_LENGTH - 2
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            it.ext.prebid.targeting = new Targeting()
-
-            it.setAccountId(PBSUtils.getRandomString(accountOverflowLength))
             it.enableCache()
+            it.ext.prebid.targeting = new Targeting()
+            it.setAccountId(PBSUtils.getRandomString(accountOverflowLength))
         }
 
         when: "PBS processes auction request"
@@ -323,9 +316,8 @@ class CacheSpec extends BaseSpec {
 
         and: "Default BidRequest with cache, targeting"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            it.ext.prebid.targeting = new Targeting()
-
             it.enableCache()
+            it.ext.prebid.targeting = new Targeting()
         }
 
         when: "PBS processes auction request"
@@ -349,9 +341,8 @@ class CacheSpec extends BaseSpec {
     def "PBS should not cache bids when targeting isn't specified"() {
         given: "Default BidRequest with cache"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            it.ext.prebid.targeting = null
-
             it.enableCache()
+            it.ext.prebid.targeting = null
         }
 
         when: "PBS processes auction request"
@@ -364,9 +355,8 @@ class CacheSpec extends BaseSpec {
     def "PBS shouldn't response with seatbid.bid.adm in response when ext.prebid.cache.bids.returnCreative=false"() {
         given: "Default BidRequest with cache"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            it.ext.prebid.cache.bids.returnCreative = false
-
             it.enableCache()
+            it.ext.prebid.cache.bids.returnCreative = false
         }
 
         and: "Default basic bid with banner creative"
@@ -387,9 +377,8 @@ class CacheSpec extends BaseSpec {
     def "PBS should response with seatbid.bid.adm in response when ext.prebid.cache.bids.returnCreative=true"() {
         given: "Default BidRequest with cache"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            it.ext.prebid.cache.bids.returnCreative = true
-
             it.enableCache()
+            it.ext.prebid.cache.bids.returnCreative = true
         }
 
         and: "Default basic bid with banner creative"
@@ -410,10 +399,9 @@ class CacheSpec extends BaseSpec {
     def "PBS shouldn't response with seatbid.bid.adm in response when ext.prebid.cache.vastXml.returnCreative=false and video request"() {
         given: "Default BidRequest with cache"
         def bidRequest = BidRequest.defaultBidRequest.tap {
+            it.enableCache()
             it.imp[0] = Imp.getDefaultImpression(VIDEO)
             it.ext.prebid.cache.vastXml.returnCreative = false
-
-            it.enableCache()
         }
 
         and: "Default basic bid with banner creative"
@@ -434,10 +422,9 @@ class CacheSpec extends BaseSpec {
     def "PBS should response with seatbid.bid.adm in response when ext.prebid.cache.vastXml.returnCreative=#returnCreative and imp.#mediaType"() {
         given: "Default BidRequest with cache"
         def bidRequest = BidRequest.defaultBidRequest.tap {
+            it.enableCache()
             it.imp[0] = Imp.getDefaultImpression(mediaType)
             it.ext.prebid.cache.vastXml.returnCreative = returnCreative
-
-            it.enableCache()
         }
 
         and: "Default basic bid with banner creative"
