@@ -1,6 +1,12 @@
 adapters:
   xeworks:
     endpoint: http://prebid-srv.xe.works/?pid={{SourceId}}&host={{Host}}
+    aliases:
+      connektai:
+        enabled: false
+        endpoint: http://rtb.connektai.live/?pid={{SourceId}}&host={{Host}}&s=pbs
+        meta-info:
+          maintainer-email: adops@connekt.ai
     meta-info:
       maintainer-email: team@xe.works
       app-media-types:
