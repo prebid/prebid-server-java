@@ -6,44 +6,44 @@ adapters:
       adport:
         enabled: false
         endpoint: https://adport.pbsadverxo.com/auction?id={{adUnitId}}&auth={{auth}}
-        userSync:
+        usersync:
           enabled: true
-          cookie-family-name: adverxo
+          cookie-family-name: adport
           iframe:
             url: https://adport.pbsadverxo.com/usync?type=iframe&gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
-            userMacro: '$UID'
+            uid-macro: '$UID'
             support-cors: false
           redirect:
             url: https://adport.pbsadverxo.com/usync?type=image&gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
-            userMacro: '$UID'
+            uid-macro: '$UID'
             support-cors: false
       bidsmind:
         enabled: false
         endpoint: https://bidsmind.pbsadverxo.com/auction?id={{adUnitId}}&auth={{auth}}
-        userSync:
+        usersync:
           enabled: true
-          cookie-family-name: adverxo
+          cookie-family-name: bidsmind
           iframe:
             url: https://bidsmind.pbsadverxo.com/usync?type=iframe&gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
-            userMacro: '$UID'
+            uid-macro: '$UID'
             support-cors: false
           redirect:
             url: https://bidsmind.pbsadverxo.com/usync?type=image&gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
-            userMacro: '$UID'
+            uid-macro: '$UID'
             support-cors: false
       mobupps:
         enabled: false
         endpoint: https://mobupps.pbsadverxo.com/auction?id={{adUnitId}}&auth={{auth}}
-        userSync:
+        usersync:
           enabled: true
-          cookie-family-name: adverxo
+          cookie-family-name: mobupps
           iframe:
             url: https://mobupps.pbsadverxo.com/usync?type=iframe&gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
-            userMacro: '$UID'
+            uid-macro: '$UID'
             support-cors: false
           redirect:
             url: https://mobupps.pbsadverxo.com/usync?type=image&gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
-            userMacro: '$UID'
+            uid-macro: '$UID'
             support-cors: false
     meta-info:
       maintainer-email: developer@adverxo.com
@@ -57,14 +57,14 @@ adapters:
         - video
       supported-vendors:
       vendor-id: 0
-    userSync:
+    usersync:
       cookie-family-name: adverxo
       iframe:
         url: https://pbsadverxo.com/usync?type=iframe&gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
         support-cors: false
-        userMacro: '$UID'
+        uid-macro: '$UID'
       redirect:
         url: https://pbsadverxo.com/usync?type=image&gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
         support-cors: false
-        userMacro: '$UID'
+        uid-macro: '$UID'
 
