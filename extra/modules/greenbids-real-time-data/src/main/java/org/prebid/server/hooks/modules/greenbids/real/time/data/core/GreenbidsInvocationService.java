@@ -34,7 +34,7 @@ public class GreenbidsInvocationService {
 
         final List<Imp> updatedImps = updateImps(bidRequest, impsBiddersFilterMap);
 
-        final BidRequest updatedBidRequest = (isExploration || updatedImps.isEmpty())
+        final BidRequest updatedBidRequest = isExploration || updatedImps.isEmpty()
                 ? bidRequest
                 : bidRequest.toBuilder()
                 .imp(updatedImps)

@@ -175,15 +175,15 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
         };
     }
 
-    private Tags toAnalyticsTags(AnalyticsResult analyticsResults) {
-        if (analyticsResults == null) {
+    private Tags toAnalyticsTags(AnalyticsResult analyticsResult) {
+        if (analyticsResult == null) {
             return null;
         }
 
         return TagsImpl.of(Collections.singletonList(ActivityImpl.of(
                 ACTIVITY,
                 SUCCESS_STATUS,
-                toResults(analyticsResults))));
+                toResults(analyticsResult))));
     }
 
     private List<Result> toResults(AnalyticsResult analyticsResult) {
