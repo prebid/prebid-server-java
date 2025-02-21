@@ -13,7 +13,6 @@ public class ConnatixImpExtBidder {
     @JsonProperty(value = "placementId")
     String placementId;
 
-    // KATIE: viewability percentage, viewability container, and bidfloor are all optional. should they be included?
     @JsonProperty(value = "viewabilityPercentage")
     Float viewabilityPercentage;
 
