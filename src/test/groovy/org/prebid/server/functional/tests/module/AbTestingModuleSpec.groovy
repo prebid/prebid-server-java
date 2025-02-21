@@ -217,7 +217,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.status == [SUCCESS, SUCCESS]
             it.action == [NO_ACTION, NO_ACTION]
             it.analyticsTags.activities.name.flatten().sort() == [ORTB2_BLOCKING, AB_TESTING, AB_TESTING].value.sort()
-            it.analyticsTags.activities.status.flatten().sort() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS].value
+            it.analyticsTags.activities.status.flatten().sort() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS]
             it.analyticsTags.activities.results.status.flatten().sort() == [AnalyticTagStatus.SUCCESS_ALLOW, AnalyticTagStatus.RUN, AnalyticTagStatus.RUN].value.sort()
             it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.ORTB2_BLOCKING, ModuleName.ORTB2_BLOCKING]
         }
@@ -431,7 +431,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.status == [SUCCESS, SUCCESS]
             it.action == [NO_ACTION, NO_ACTION]
             it.analyticsTags.activities.name.flatten().sort() == [ORTB2_BLOCKING, AB_TESTING, AB_TESTING].value.sort()
-            it.analyticsTags.activities.status.flatten().sort() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS].value
+            it.analyticsTags.activities.status.flatten().sort() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS]
             it.analyticsTags.activities.results.status.flatten().sort() == [AnalyticTagStatus.SUCCESS_ALLOW, AnalyticTagStatus.RUN, AnalyticTagStatus.RUN].value.sort()
             it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.ORTB2_BLOCKING, ModuleName.ORTB2_BLOCKING]
         }
@@ -575,7 +575,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.action == [NO_ACTION, NO_ACTION]
 
             it.analyticsTags.activities.name.flatten().sort() == [ORTB2_BLOCKING, AB_TESTING, AB_TESTING].value.sort()
-            it.analyticsTags.activities.status.flatten().sort() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS].value
+            it.analyticsTags.activities.status.flatten().sort() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS]
             it.analyticsTags.activities.results.status.flatten().sort() == [AnalyticTagStatus.SUCCESS_ALLOW, AnalyticTagStatus.RUN, AnalyticTagStatus.RUN].value.sort()
             it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.ORTB2_BLOCKING, ModuleName.ORTB2_BLOCKING]
         }
