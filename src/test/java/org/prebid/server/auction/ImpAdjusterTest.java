@@ -1,6 +1,7 @@
 package org.prebid.server.auction;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Deal;
 import com.iab.openrtb.request.Imp;
@@ -74,6 +75,79 @@ public class ImpAdjusterTest extends VertxTest {
 
         // then
         assertThat(result).isSameAs(givenImp);
+        assertThat(debugMessages).isEmpty();
+    }
+
+    @Test
+    public void adjustShouldSetImpExtIgsAeWhenImpExtAeIsZero() {
+        // given
+        final ObjectNode ext = mapper.createObjectNode();
+        ext.set("ae", IntNode.valueOf(0));
+
+        final Imp givenImp = Imp.builder().ext(ext).build();
+
+        final List<String> debugMessages = new ArrayList<>();
+
+        // when
+        final Imp result = target.adjust(givenImp, "someBidder", bidderAliases, debugMessages);
+
+        // then
+        assertThat(result.getExt().get("igs").get("ae")).isEqualTo(IntNode.valueOf(0));
+        assertThat(debugMessages).isEmpty();
+    }
+
+    @Test
+    public void adjustShouldSetImpExtIgsAeWhenImpExtAeIsOne() {
+        // given
+        final ObjectNode ext = mapper.createObjectNode();
+        ext.set("ae", IntNode.valueOf(1));
+
+        final Imp givenImp = Imp.builder().ext(ext).build();
+
+        final List<String> debugMessages = new ArrayList<>();
+
+        // when
+        final Imp result = target.adjust(givenImp, "someBidder", bidderAliases, debugMessages);
+
+        // then
+        assertThat(result.getExt().get("igs").get("ae")).isEqualTo(IntNode.valueOf(1));
+        assertThat(debugMessages).isEmpty();
+    }
+
+    @Test
+    public void adjustShouldNotSetImpExtIgsAeWhenImpExtAeIsNotZeroOrOne() {
+        // given
+        final ObjectNode ext = mapper.createObjectNode();
+        ext.set("ae", IntNode.valueOf(3));
+
+        final Imp givenImp = Imp.builder().ext(ext).build();
+
+        final List<String> debugMessages = new ArrayList<>();
+
+        // when
+        final Imp result = target.adjust(givenImp, "someBidder", bidderAliases, debugMessages);
+
+        // then
+        assertThat(result.getExt().get("igs")).isNull();
+        assertThat(debugMessages).isEmpty();
+    }
+
+    @Test
+    public void adjustShouldNotModifyImpExtIgsAeWhenImpExtIgsAePresent() {
+        // given
+        final ObjectNode ext = mapper.createObjectNode();
+        ext.set("ae", IntNode.valueOf(0));
+        ext.set("igs", mapper.createObjectNode().set("ae", IntNode.valueOf(123)));
+
+        final Imp givenImp = Imp.builder().ext(ext).build();
+
+        final List<String> debugMessages = new ArrayList<>();
+
+        // when
+        final Imp result = target.adjust(givenImp, "someBidder", bidderAliases, debugMessages);
+
+        // then
+        assertThat(result.getExt().get("igs").get("ae")).isEqualTo(IntNode.valueOf(123));
         assertThat(debugMessages).isEmpty();
     }
 

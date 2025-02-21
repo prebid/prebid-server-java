@@ -73,6 +73,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
@@ -111,6 +112,8 @@ public class CoreCacheServiceTest extends VertxTest {
                 100L,
                 null,
                 false,
+                false,
+                null,
                 vastModifier,
                 eventsService,
                 metrics,
@@ -385,6 +388,8 @@ public class CoreCacheServiceTest extends VertxTest {
                 100L,
                 "ApiKey",
                 true,
+                false,
+                null,
                 vastModifier,
                 eventsService,
                 metrics,
@@ -436,9 +441,10 @@ public class CoreCacheServiceTest extends VertxTest {
                 ExtPrebid.of(ExtBidPrebid.builder().bidid("generatedId").build(),
                         emptyMap()));
         final String receivedBid2Adm = "adm2";
-        final BidInfo bidInfo1 = givenBidInfo(builder -> builder.id("bidId1"), BidType.banner, "bidder1");
+        final BidInfo bidInfo1 = givenBidInfo(builder -> builder.id("bidId1"), BidType.banner, "bidder1")
+                .toBuilder().ttl(1).build();
         final BidInfo bidInfo2 = givenBidInfo(builder -> builder.id("bidId2").adm(receivedBid2Adm).ext(bidExt2),
-                BidType.video, "bidder2");
+                BidType.video, "bidder2").toBuilder().ttl(2).build();
 
         final EventsContext eventsContext = EventsContext.builder()
                 .auctionId("auctionId")
@@ -461,6 +467,9 @@ public class CoreCacheServiceTest extends VertxTest {
         verify(metrics).updateCacheCreativeSize(eq("accountId"), eq(4), eq(MetricName.json));
         verify(metrics).updateCacheCreativeSize(eq("accountId"), eq(4), eq(MetricName.xml));
 
+        verify(metrics).updateCacheCreativeTtl(eq("accountId"), eq(1), eq(MetricName.json));
+        verify(metrics).updateCacheCreativeTtl(eq("accountId"), eq(2), eq(MetricName.json));
+
         final Bid bid1 = bidInfo1.getBid();
         final Bid bid2 = bidInfo2.getBid();
 
@@ -468,9 +477,9 @@ public class CoreCacheServiceTest extends VertxTest {
         assertThat(bidCacheRequest.getPuts())
                 .containsExactly(
                         BidPutObject.builder().aid("auctionId").type("json")
-                                .value(mapper.valueToTree(bid1)).build(),
+                                .value(mapper.valueToTree(bid1)).ttlseconds(1).build(),
                         BidPutObject.builder().aid("auctionId").type("json")
-                                .value(mapper.valueToTree(bid2)).build(),
+                                .value(mapper.valueToTree(bid2)).ttlseconds(2).build(),
                         BidPutObject.builder().aid("auctionId").type("xml")
                                 .value(new TextNode(receivedBid2Adm)).build());
     }
@@ -740,6 +749,7 @@ public class CoreCacheServiceTest extends VertxTest {
                 .bidder("bidder1")
                 .timestamp(1L)
                 .value(new TextNode("vast"))
+                .ttlseconds(1)
                 .build();
         final BidPutObject secondBidPutObject = BidPutObject.builder()
                 .type("xml")
@@ -747,6 +757,7 @@ public class CoreCacheServiceTest extends VertxTest {
                 .bidder("bidder2")
                 .timestamp(1L)
                 .value(new TextNode("VAST"))
+                .ttlseconds(2)
                 .build();
         final BidPutObject thirdBidPutObject = BidPutObject.builder()
                 .type("text")
@@ -754,6 +765,7 @@ public class CoreCacheServiceTest extends VertxTest {
                 .bidder("bidder3")
                 .timestamp(1L)
                 .value(new TextNode("VAST"))
+                .ttlseconds(3)
                 .build();
 
         given(vastModifier.modifyVastXml(any(), any(), any(), any(), anyString()))
@@ -774,6 +786,10 @@ public class CoreCacheServiceTest extends VertxTest {
         verify(metrics).updateCacheCreativeSize(eq("account"), eq(12), eq(MetricName.json));
         verify(metrics).updateCacheCreativeSize(eq("account"), eq(4), eq(MetricName.xml));
         verify(metrics).updateCacheCreativeSize(eq("account"), eq(11), eq(MetricName.unknown));
+
+        verify(metrics).updateCacheCreativeTtl(eq("account"), eq(1), eq(MetricName.json));
+        verify(metrics).updateCacheCreativeTtl(eq("account"), eq(2), eq(MetricName.xml));
+        verify(metrics).updateCacheCreativeTtl(eq("account"), eq(3), eq(MetricName.unknown));
 
         verify(vastModifier).modifyVastXml(true, singleton("bidder1"), firstBidPutObject, "account", "pbjs");
         verify(vastModifier).modifyVastXml(true, singleton("bidder1"), secondBidPutObject, "account", "pbjs");
@@ -810,6 +826,8 @@ public class CoreCacheServiceTest extends VertxTest {
                 100L,
                 "ApiKey",
                 true,
+                false,
+                null,
                 vastModifier,
                 eventsService,
                 metrics,
@@ -827,7 +845,7 @@ public class CoreCacheServiceTest extends VertxTest {
 
         // when
         target.cachePutObjects(
-                asList(firstBidPutObject),
+                singletonList(firstBidPutObject),
                 true,
                 singleton("bidder1"),
                 "account",
@@ -837,6 +855,388 @@ public class CoreCacheServiceTest extends VertxTest {
         // then
         assertThat(captureBidCacheRequestHeaders().get(HttpUtil.X_PBC_API_KEY_HEADER.toString()))
                 .isEqualTo("ApiKey");
+    }
+
+    @Test
+    public void cacheBidsOpenrtbShouldPrependTraceInfoWhenEnabled() throws IOException {
+        // given
+        target = new CoreCacheService(
+                httpClient,
+                new URL("http://cache-service/cache"),
+                "http://cache-service-host/cache?uuid=",
+                100L,
+                "ApiKey",
+                false,
+                true,
+                null,
+                vastModifier,
+                eventsService,
+                metrics,
+                clock,
+                idGenerator,
+                jacksonMapper);
+
+        given(idGenerator.generateId())
+                .willReturn("1-high-entropy-cache-id")
+                .willReturn("2-high-entropy-cache-id")
+                .willReturn("3-high-entropy-cache-id");
+
+        final BidInfo bidInfo1 = givenBidInfo(builder -> builder.id("bidId1"), BidType.banner, "bidder1")
+                .toBuilder()
+                .build();
+        final BidInfo bidInfo2 = givenBidInfo(builder -> builder.id("bidId2").adm("adm"), BidType.video, "bidder2")
+                .toBuilder()
+                .build();
+
+        final EventsContext eventsContext = EventsContext.builder()
+                .auctionId("auctionId")
+                .auctionTimestamp(1000L)
+                .build();
+
+        // when
+        final Future<CacheServiceResult> future = target.cacheBidsOpenrtb(
+                asList(bidInfo1, bidInfo2),
+                givenAuctionContext(),
+                CacheContext.builder()
+                        .shouldCacheBids(true)
+                        .shouldCacheVideoBids(true)
+                        .build(),
+                eventsContext);
+
+        // then
+        assertThat(captureBidCacheRequest().getPuts())
+                .containsExactly(
+                        BidPutObject.builder()
+                                .aid("auctionId")
+                                .type("json")
+                                .key("accountId-1-high-entrop")
+                                .value(mapper.valueToTree(bidInfo1.getBid()))
+                                .build(),
+                        BidPutObject.builder()
+                                .aid("auctionId")
+                                .type("json")
+                                .key("accountId-2-high-entrop")
+                                .value(mapper.valueToTree(bidInfo2.getBid()))
+                                .build(),
+                        BidPutObject.builder()
+                                .aid("auctionId")
+                                .type("xml")
+                                .key("accountId-3-high-entrop")
+                                .value(new TextNode("adm"))
+                                .build());
+    }
+
+    @Test
+    public void cacheBidsOpenrtbShouldPrependTraceInfoWithDatacenterWhenEnabled() throws IOException {
+        // given
+        target = new CoreCacheService(
+                httpClient,
+                new URL("http://cache-service/cache"),
+                "http://cache-service-host/cache?uuid=",
+                100L,
+                "ApiKey",
+                false,
+                true,
+                "apacific",
+                vastModifier,
+                eventsService,
+                metrics,
+                clock,
+                idGenerator,
+                jacksonMapper);
+
+        given(idGenerator.generateId())
+                .willReturn("1-high-entropy-cache-id-foo-bar-")
+                .willReturn("2-high-entropy-cache-id-foo-bar-")
+                .willReturn("3-high-entropy-cache-id-foo-bar-");
+
+        final BidInfo bidInfo1 = givenBidInfo(builder -> builder.id("bidId1"), BidType.banner, "bidder1")
+                .toBuilder()
+                .build();
+        final BidInfo bidInfo2 = givenBidInfo(builder -> builder.id("bidId2").adm("adm"), BidType.video, "bidder2")
+                .toBuilder()
+                .build();
+
+        final EventsContext eventsContext = EventsContext.builder()
+                .auctionId("auctionId")
+                .auctionTimestamp(1000L)
+                .build();
+
+        // when
+        final Future<CacheServiceResult> future = target.cacheBidsOpenrtb(
+                asList(bidInfo1, bidInfo2),
+                givenAuctionContext(),
+                CacheContext.builder()
+                        .shouldCacheBids(true)
+                        .shouldCacheVideoBids(true)
+                        .build(),
+                eventsContext);
+
+        // then
+        assertThat(captureBidCacheRequest().getPuts())
+                .containsExactly(
+                        BidPutObject.builder()
+                                .aid("auctionId")
+                                .type("json")
+                                .key("accountId-apac-1-high-entropy-ca")
+                                .value(mapper.valueToTree(bidInfo1.getBid()))
+                                .build(),
+                        BidPutObject.builder()
+                                .aid("auctionId")
+                                .type("json")
+                                .key("accountId-apac-2-high-entropy-ca")
+                                .value(mapper.valueToTree(bidInfo2.getBid()))
+                                .build(),
+                        BidPutObject.builder()
+                                .aid("auctionId")
+                                .type("xml")
+                                .key("accountId-apac-3-high-entropy-ca")
+                                .value(new TextNode("adm"))
+                                .build());
+    }
+
+    @Test
+    public void cacheBidsOpenrtbShouldNotPrependTraceInfoToLowEntoryCacheIds() throws IOException {
+        // given
+        target = new CoreCacheService(
+                httpClient,
+                new URL("http://cache-service/cache"),
+                "http://cache-service-host/cache?uuid=",
+                100L,
+                "ApiKey",
+                false,
+                true,
+                "apacific",
+                vastModifier,
+                eventsService,
+                metrics,
+                clock,
+                idGenerator,
+                jacksonMapper);
+
+        given(idGenerator.generateId()).willReturn("low-entropy");
+
+        final BidInfo bidInfo = givenBidInfo(builder -> builder.id("bidId1"), BidType.banner, "bidder1")
+                .toBuilder()
+                .build();
+
+        final EventsContext eventsContext = EventsContext.builder()
+                .auctionId("auctionId")
+                .auctionTimestamp(1000L)
+                .build();
+
+        // when
+        final Future<CacheServiceResult> future = target.cacheBidsOpenrtb(
+                singletonList(bidInfo),
+                givenAuctionContext(),
+                CacheContext.builder()
+                        .shouldCacheBids(true)
+                        .shouldCacheVideoBids(true)
+                        .build(),
+                eventsContext);
+
+        // then
+        assertThat(captureBidCacheRequest().getPuts())
+                .containsExactly(
+                        BidPutObject.builder()
+                                .aid("auctionId")
+                                .type("json")
+                                .value(mapper.valueToTree(bidInfo.getBid()))
+                                .build());
+    }
+
+    @Test
+    public void cachePutObjectsShouldPrependTraceInfoWhenEnabled() throws IOException {
+        // given
+        target = new CoreCacheService(
+                httpClient,
+                new URL("http://cache-service/cache"),
+                "http://cache-service-host/cache?uuid=",
+                100L,
+                "ApiKey",
+                false,
+                true,
+                null,
+                vastModifier,
+                eventsService,
+                metrics,
+                clock,
+                idGenerator,
+                jacksonMapper);
+
+        given(idGenerator.generateId()).willReturn("high-entropy-cache-id");
+
+        final BidPutObject bidPutObject = BidPutObject.builder()
+                .type("text")
+                .value(new TextNode("VAST"))
+                .build();
+
+        given(vastModifier.modifyVastXml(any(), any(), any(), any(), anyString()))
+                .willReturn(new TextNode("modifiedVast"));
+
+        // when
+        target.cachePutObjects(
+                singletonList(bidPutObject),
+                true,
+                singleton("bidder1"),
+                "account",
+                "pbjs",
+                timeout);
+
+        // then
+        final BidPutObject modifiedBidPutObject = bidPutObject.toBuilder()
+                .key("account-high-entropy-")
+                .value(new TextNode("modifiedVast"))
+                .build();
+
+        assertThat(captureBidCacheRequest().getPuts()).containsExactly(modifiedBidPutObject);
+    }
+
+    @Test
+    public void cachePutObjectsShouldPrependTraceInfoWithDatacenterWhenEnabled() throws IOException {
+        // given
+        target = new CoreCacheService(
+                httpClient,
+                new URL("http://cache-service/cache"),
+                "http://cache-service-host/cache?uuid=",
+                100L,
+                "ApiKey",
+                false,
+                true,
+                "apacific",
+                vastModifier,
+                eventsService,
+                metrics,
+                clock,
+                idGenerator,
+                jacksonMapper);
+
+        given(idGenerator.generateId()).willReturn("high-entropy-cache-id-foo-bar");
+
+        final BidPutObject bidPutObject = BidPutObject.builder()
+                .type("text")
+                .value(new TextNode("VAST"))
+                .build();
+
+        given(vastModifier.modifyVastXml(any(), any(), any(), any(), anyString()))
+                .willReturn(new TextNode("modifiedVast"));
+
+        // when
+        target.cachePutObjects(
+                singletonList(bidPutObject),
+                true,
+                singleton("bidder1"),
+                "account",
+                "pbjs",
+                timeout);
+
+        // then
+        final BidPutObject modifiedBidPutObject = bidPutObject.toBuilder()
+                .key("account-apac-high-entropy-cac")
+                .value(new TextNode("modifiedVast"))
+                .build();
+
+        assertThat(captureBidCacheRequest().getPuts()).containsExactly(modifiedBidPutObject);
+    }
+
+    @Test
+    public void cachePutObjectsShouldNotPrependTraceInfoToPassedInKey() throws IOException {
+        // given
+        target = new CoreCacheService(
+                httpClient,
+                new URL("http://cache-service/cache"),
+                "http://cache-service-host/cache?uuid=",
+                100L,
+                "ApiKey",
+                false,
+                true,
+                null,
+                vastModifier,
+                eventsService,
+                metrics,
+                clock,
+                idGenerator,
+                jacksonMapper);
+
+        final BidPutObject bidPutObject = BidPutObject.builder()
+                .type("text")
+                .key("passed-in-key")
+                .value(new TextNode("VAST"))
+                .build();
+
+        given(vastModifier.modifyVastXml(any(), any(), any(), any(), anyString()))
+                .willReturn(new TextNode("modifiedVast"));
+
+        // when
+        target.cachePutObjects(
+                singletonList(bidPutObject),
+                true,
+                singleton("bidder1"),
+                "account",
+                "pbjs",
+                timeout);
+
+        // then
+        final BidPutObject modifiedBidPutObject = bidPutObject.toBuilder()
+                .key("passed-in-key")
+                .value(new TextNode("modifiedVast"))
+                .build();
+
+        assertThat(captureBidCacheRequest().getPuts()).containsExactly(modifiedBidPutObject);
+        verify(idGenerator, never()).generateId();
+    }
+
+    @Test
+    public void cacheBidsOpenrtbShouldNotEmitEmptyTtlMetrics() {
+        // given
+        final BidInfo bidInfo1 = givenBidInfo(builder -> builder.id("bidId1"), BidType.banner, "bidder1")
+                .toBuilder()
+                .build();
+        final BidInfo bidInfo2 = givenBidInfo(builder -> builder.id("bidId2"), BidType.video, "bidder2")
+                .toBuilder()
+                .build();
+
+        final EventsContext eventsContext = EventsContext.builder()
+                .auctionId("auctionId")
+                .auctionTimestamp(1000L)
+                .build();
+
+        // when
+        target.cacheBidsOpenrtb(
+                asList(bidInfo1, bidInfo2),
+                givenAuctionContext(),
+                CacheContext.builder()
+                        .shouldCacheBids(true)
+                        .shouldCacheVideoBids(true)
+                        .build(),
+                eventsContext);
+
+        // then
+        verify(metrics, never()).updateCacheCreativeTtl(any(), any(), any());
+    }
+
+    @Test
+    public void cachePutObjectsShouldNotEmitEmptyTtlMetrics() {
+        // given
+        final BidPutObject firstBidPutObject = BidPutObject.builder()
+                .type("json")
+                .value(new TextNode("vast"))
+                .build();
+
+        given(vastModifier.modifyVastXml(any(), any(), any(), any(), anyString()))
+                .willReturn(new TextNode("modifiedVast"));
+
+        // when
+        target.cachePutObjects(
+                singletonList(firstBidPutObject),
+                true,
+                singleton("bidder1"),
+                "account",
+                "pbjs",
+                timeout);
+
+        // then
+        verify(metrics, never()).updateCacheCreativeTtl(any(), any(), any());
     }
 
     private AuctionContext givenAuctionContext(UnaryOperator<Account.AccountBuilder> accountCustomizer,

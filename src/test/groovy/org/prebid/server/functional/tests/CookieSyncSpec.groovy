@@ -2263,7 +2263,7 @@ class CookieSyncSpec extends BaseSpec {
 
         then: "Response should contain cookie header"
         assert removeExpiresValue(response.headers[SET_COOKIE_HEADER]) ==
-                "receive-cookie-deprecation=1; Max-Age=${privacySandbox.cookieDeprecation.ttlSeconds}; Expires=*; Path=/; Secure; HTTPOnly; SameSite=None; Partitioned"
+                ["receive-cookie-deprecation=1; Max-Age=${privacySandbox.cookieDeprecation.ttlSeconds}; Expires=*; Path=/; Secure; HTTPOnly; SameSite=None; Partitioned"]
 
         where:
         privacySandbox << [PrivacySandbox.defaultPrivacySandbox, PrivacySandbox.getDefaultPrivacySandbox(true, -PBSUtils.randomNumber)]
@@ -2290,7 +2290,7 @@ class CookieSyncSpec extends BaseSpec {
 
         then: "Response should contain cookie header"
         assert removeExpiresValue(response.headers[SET_COOKIE_HEADER]) ==
-                "receive-cookie-deprecation=1; Max-Age=${TimeUnit.DAYS.toSeconds(7)}; Expires=*; Path=/; Secure; HTTPOnly; SameSite=None; Partitioned"
+                ["receive-cookie-deprecation=1; Max-Age=${TimeUnit.DAYS.toSeconds(7)}; Expires=*; Path=/; Secure; HTTPOnly; SameSite=None; Partitioned"]
     }
 
     def "PBS should set cookie deprecation header from the default account when default account contain privacy sandbox and request account is empty"() {
@@ -2315,7 +2315,7 @@ class CookieSyncSpec extends BaseSpec {
 
         then: "Response should contain cookie header"
         assert removeExpiresValue(response.headers[SET_COOKIE_HEADER]) ==
-                "receive-cookie-deprecation=1; Max-Age=${privacySandbox.cookieDeprecation.ttlSeconds}; Expires=*; Path=/; Secure; HTTPOnly; SameSite=None; Partitioned"
+                ["receive-cookie-deprecation=1; Max-Age=${privacySandbox.cookieDeprecation.ttlSeconds}; Expires=*; Path=/; Secure; HTTPOnly; SameSite=None; Partitioned"]
     }
 
     def "PBS shouldn't set cookie deprecation header when cookie sync request doesn't contain account"() {
@@ -2346,7 +2346,7 @@ class CookieSyncSpec extends BaseSpec {
                 .collectEntries { [it.bidder, it.error] }
     }
 
-    private static String removeExpiresValue(String cookie) {
-        cookie.replaceFirst(/Expires=[^;]+;/, "Expires=*;")
+    private static List<String> removeExpiresValue(List<String> cookies) {
+        cookies.collect { it.replaceFirst(/Expires=[^;]+;/, "Expires=*;") }
     }
 }

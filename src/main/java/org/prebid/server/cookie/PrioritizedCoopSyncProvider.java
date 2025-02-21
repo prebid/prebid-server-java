@@ -74,8 +74,4 @@ public class PrioritizedCoopSyncProvider {
         final String bidder = prioritizedCookieFamilyNameToBidderName.get(cookieFamilyName);
         return prioritizedBidders.contains(bidder);
     }
-
-    public boolean hasPrioritizedBidders() {
-        return !prioritizedBidders.isEmpty();
-    }
 }

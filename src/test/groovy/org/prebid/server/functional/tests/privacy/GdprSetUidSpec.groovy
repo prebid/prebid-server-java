@@ -41,6 +41,10 @@ class GdprSetUidSpec extends PrivacyBaseSpec {
 
     private static final PrebidServerService prebidServerService = pbsServiceFactory.getService(VENDOR_GENERIC_PBS_CONFIG)
 
+    def cleanupSpec() {
+        pbsServiceFactory.removeContainer(VENDOR_GENERIC_PBS_CONFIG)
+    }
+
     def "PBS setuid shouldn't failed with tcf when purpose access device not enforced"() {
         given: "Default setuid request with account"
         def setuidRequest = SetuidRequest.defaultSetuidRequest.tap {

@@ -27,7 +27,11 @@ class PbRequestCorrectionSpec extends ModuleBaseSpec {
     private static final String ANDROID = "android"
     private static final String IOS = "IOS"
 
-    private PrebidServerService pbsServiceWithRequestCorrectionModule = pbsServiceFactory.getService(requestCorrectionSettings)
+    private static final PrebidServerService pbsServiceWithRequestCorrectionModule = pbsServiceFactory.getService(getRequestCorrectionSettings())
+
+    def cleanupSpec() {
+        pbsServiceFactory.removeContainer(getRequestCorrectionSettings())
+    }
 
     def "PBS should remove positive instl from imps for android app when request correction is enabled for account"() {
         given: "Android APP bid request with version lover then version threshold"

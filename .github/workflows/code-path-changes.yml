@@ -1,7 +1,7 @@
 name: Notify Code Path Changes
 
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, synchronize]
     paths:
       - '**'
@@ -13,6 +13,9 @@ env:
   GITHUB_REPOSITORY: ${{ github.repository }}
   GITHUB_PR_NUMBER: ${{ github.event.pull_request.number }}
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+permissions:
+  contents: read
 
 jobs:
   notify:

@@ -5,6 +5,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.activity.infrastructure.creator.ActivityControllerCreationContext;
 import org.prebid.server.activity.infrastructure.creator.PrivacyModuleCreationContext;
 import org.prebid.server.activity.infrastructure.creator.privacy.PrivacyModuleCreator;
+import org.prebid.server.activity.infrastructure.privacy.AbstainPrivacyModule;
 import org.prebid.server.activity.infrastructure.privacy.PrivacyModule;
 import org.prebid.server.activity.infrastructure.privacy.PrivacyModuleQualifier;
 import org.prebid.server.activity.infrastructure.rule.AndRule;
@@ -81,6 +82,10 @@ public class PrivacyModulesRuleCreator extends AbstractRuleCreator<AccountActivi
 
     private PrivacyModule createPrivacyModule(PrivacyModuleQualifier privacyModuleQualifier,
                                               ActivityControllerCreationContext creationContext) {
+
+        if (creationContext.getSkipPrivacyModules().contains(privacyModuleQualifier)) {
+            return new AbstainPrivacyModule(privacyModuleQualifier);
+        }
 
         return privacyModulesCreators.get(privacyModuleQualifier)
                 .from(creationContext(privacyModuleQualifier, creationContext));

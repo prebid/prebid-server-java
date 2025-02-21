@@ -164,6 +164,8 @@ public class ServiceConfiguration {
             @Value("${auction.cache.expected-request-time-ms}") long expectedCacheTimeMs,
             @Value("${pbc.api.key:#{null}}") String apiKey,
             @Value("${cache.api-key-secured:false}") boolean apiKeySecured,
+            @Value("${cache.append-trace-info-to-cache-id:false}") boolean appendTraceInfoToCacheId,
+            @Value("${datacenter-region:#{null}}") String datacenterRegion,
             VastModifier vastModifier,
             EventsService eventsService,
             HttpClient httpClient,
@@ -178,6 +180,8 @@ public class ServiceConfiguration {
                 expectedCacheTimeMs,
                 apiKey,
                 apiKeySecured,
+                appendTraceInfoToCacheId,
+                datacenterRegion,
                 vastModifier,
                 eventsService,
                 metrics,
@@ -658,6 +662,7 @@ public class ServiceConfiguration {
             @Value("${host-cookie.domain:#{null}}") String hostCookieDomain,
             @Value("${host-cookie.ttl-days}") Integer ttlDays,
             @Value("${host-cookie.max-cookie-size-bytes}") Integer maxCookieSizeBytes,
+            @Value("${setuid.number-of-uid-cookies:1}") int numberOfUidCookies,
             PrioritizedCoopSyncProvider prioritizedCoopSyncProvider,
             Metrics metrics,
             JacksonMapper mapper) {
@@ -670,6 +675,7 @@ public class ServiceConfiguration {
                 hostCookieDomain,
                 ttlDays,
                 maxCookieSizeBytes,
+                numberOfUidCookies,
                 prioritizedCoopSyncProvider,
                 metrics,
                 mapper);
@@ -807,6 +813,7 @@ public class ServiceConfiguration {
 
     @Bean
     BidResponseCreator bidResponseCreator(
+            @Value("${logging.sampling-rate:0.01}") double logSamplingRate,
             CoreCacheService coreCacheService,
             BidderCatalog bidderCatalog,
             VastModifier vastModifier,
@@ -819,11 +826,13 @@ public class ServiceConfiguration {
             @Value("${settings.targeting.truncate-attr-chars}") int truncateAttrChars,
             Clock clock,
             JacksonMapper mapper,
+            Metrics metrics,
             @Value("${cache.banner-ttl-seconds:#{null}}") Integer bannerCacheTtl,
             @Value("${cache.video-ttl-seconds:#{null}}") Integer videoCacheTtl,
             CacheDefaultTtlProperties cacheDefaultTtlProperties) {
 
         return new BidResponseCreator(
+                logSamplingRate,
                 coreCacheService,
                 bidderCatalog,
                 vastModifier,
@@ -836,6 +845,7 @@ public class ServiceConfiguration {
                 truncateAttrChars,
                 clock,
                 mapper,
+                metrics,
                 CacheTtl.of(bannerCacheTtl, videoCacheTtl),
                 cacheDefaultTtlProperties);
     }
@@ -1027,7 +1037,9 @@ public class ServiceConfiguration {
             Metrics metrics,
             JacksonMapper mapper,
             @Value("${logging.sampling-rate:0.01}") double logSamplingRate,
-            @Value("${auction.strict-app-site-dooh:false}") boolean enabledStrictAppSiteDoohValidation) {
+            @Value("${auction.strict-app-site-dooh:false}") boolean enabledStrictAppSiteDoohValidation,
+            @Value("${settings.fail-on-disabled-bidders:true}") boolean failOnDisabledBidders,
+            @Value("${settings.fail-on-unknown-bidders:true}") boolean failOnUnknownBidders) {
 
         return new RequestValidator(
                 bidderCatalog,
@@ -1035,7 +1047,9 @@ public class ServiceConfiguration {
                 metrics,
                 mapper,
                 logSamplingRate,
-                enabledStrictAppSiteDoohValidation);
+                enabledStrictAppSiteDoohValidation,
+                failOnDisabledBidders,
+                failOnUnknownBidders);
     }
 
     @Bean

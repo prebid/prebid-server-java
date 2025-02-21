@@ -17,6 +17,8 @@ public class AccountUSCustomLogicModuleConfig implements AccountPrivacyModuleCon
     @Accessors(fluent = true)
     Boolean enabled;
 
+    int skipRate;
+
     Config config;
 
     @Override

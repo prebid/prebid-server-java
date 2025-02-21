@@ -43,7 +43,7 @@ abstract class BaseSpec extends Specification implements ObjectMapperWrapper {
     protected static final Map<String, String> GENERIC_ALIAS_CONFIG = ["adapters.generic.aliases.alias.enabled" : "true",
                                                                        "adapters.generic.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
 
-    protected final PrebidServerService defaultPbsService = pbsServiceFactory.getService([:])
+    protected static final PrebidServerService defaultPbsService = pbsServiceFactory.getService([:])
 
     def setupSpec() {
         prebidCache.setResponse()

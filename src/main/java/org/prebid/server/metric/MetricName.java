@@ -63,6 +63,8 @@ public enum MetricName {
     nobid,
     gotbids,
     badinput,
+    disabled_bidder,
+    unknown_bidder,
     blocklisted_account,
     blocklisted_app,
     badserverresponse,
@@ -72,6 +74,7 @@ public enum MetricName {
     unknown_error,
     err,
     networkerr,
+    buyeruid_scrubbed,
 
     // bids validation
     warn,

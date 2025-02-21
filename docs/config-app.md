@@ -120,6 +120,7 @@ Removes and downloads file again if depending service cant process probably corr
 
 ## Setuid
 - `setuid.default-timeout-ms` - default operation timeout for requests to `/setuid` endpoint.
+- `setuid.number-of-uid-cookies` - specifies the maximum number of UID cookies that can be returned in the `/setuid` endpoint response. If it's not specified `1` will be taken as the default value.
 
 ## Cookie Sync
 - `cookie-sync.default-timeout-ms` - default operation timeout for requests to `/cookie_sync` endpoint.
@@ -301,6 +302,10 @@ Preconfigured application settings can be obtained from multiple data sources co
 3. Try to fetch from http data source (if configured).
 
 Warning! Application will not start in case of no one data source is defined and you'll get an exception in logs.
+
+For requests validation mode available next options:
+- `settings.fail-on-unknown-bidders` - fail with validation error or just make warning for unknown bidders.
+- `settings.fail-on-disabled-bidders` - fail with validation error or just make warning for disabled bidders.
 
 For filesystem data source available next options:
 - `settings.filesystem.settings-filename` - location of file settings.

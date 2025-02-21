@@ -751,9 +751,7 @@ public class AdnuntiusBidderTest extends VertxTest {
                         .lineItemId("lineItemId")
                         .dealId("dealId")
                         .advertiser(AdnuntiusAdvertiser.of(null, "name"))
-                        .destinationUrls(Map.of(
-                                "key1", "https://www.domain1.com/uri",
-                                "key2", "http://www.domain2.dt/uri")))),
+                        .advertiserDomains(List.of("domain1.com", "domain2.dt")))),
                 List.of(givenAd(ad -> ad
                         .bid(AdnuntiusBid.of(BigDecimal.ONE, "USD"))
                         .adId("adId")
@@ -762,9 +760,7 @@ public class AdnuntiusBidderTest extends VertxTest {
                         .dealId("dealId")
                         .html("dealHtml")
                         .advertiser(AdnuntiusAdvertiser.of("legalName", "name"))
-                        .destinationUrls(Map.of(
-                                "key1", "https://www.domain1.com/uri",
-                                "key2", "http://www.domain2.dt/uri"))))));
+                        .advertiserDomains(List.of("domain1.com", "domain2.dt"))))));
 
         final BidRequest bidRequest = givenBidRequest(givenImp(
                 ExtImpAdnuntius.builder().auId("auId").build(), identity()));
@@ -900,9 +896,7 @@ public class AdnuntiusBidderTest extends VertxTest {
                         .creativeId("creativeId")
                         .lineItemId("lineItemId")
                         .dealId("dealId")
-                        .destinationUrls(Map.of(
-                                "key1", "https://www.domain1.com/uri",
-                                "key2", "http://www.domain2.dt/uri")))));
+                        .advertiserDomains(List.of("domain1.com", "domain2.dt")))));
 
         final BidRequest bidRequest = givenBidRequest(
                 givenImp(ExtImpAdnuntius.builder().auId("auId").build(), identity()));
@@ -1004,7 +998,7 @@ public class AdnuntiusBidderTest extends VertxTest {
     }
 
     private static String buildExpectedUrl(Integer gdpr, String consent, Boolean noCookies) {
-        final StringBuilder expectedUri = new StringBuilder("https://test.domain.dm/uri?format=prebid&tzo=-300");
+        final StringBuilder expectedUri = new StringBuilder("https://test.domain.dm/uri?format=prebidServer&tzo=-300");
         if (gdpr != null) {
             expectedUri.append("&gdpr=").append(HttpUtil.encodeUrl(gdpr.toString()));
         }

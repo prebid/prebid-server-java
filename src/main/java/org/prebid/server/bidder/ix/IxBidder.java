@@ -42,7 +42,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
 import org.prebid.server.proto.openrtb.ext.request.ix.ExtImpIx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
-import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
+import org.prebid.server.proto.openrtb.ext.response.ExtIgi;
+import org.prebid.server.proto.openrtb.ext.response.ExtIgiIgs;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
@@ -233,11 +234,12 @@ public class IxBidder implements Bidder<BidRequest> {
     public CompositeBidderResponse makeBidderResponse(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final IxBidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), IxBidResponse.class);
-            final List<BidderError> bidderErrors = new ArrayList<>();
+            final List<BidderError> errors = new ArrayList<>();
+
             return CompositeBidderResponse.builder()
-                    .bids(extractBids(bidRequest, bidResponse, bidderErrors))
-                    .fledgeAuctionConfigs(extractFledge(bidResponse))
-                    .errors(bidderErrors)
+                    .bids(extractBids(bidRequest, bidResponse, errors))
+                    .igi(extractIgi(bidResponse))
+                    .errors(errors)
                     .build();
         } catch (DecodeException e) {
             return CompositeBidderResponse.withError(BidderError.badServerResponse(e.getMessage()));
@@ -384,12 +386,15 @@ public class IxBidder implements Bidder<BidRequest> {
     }
 
     private static Response mergeNativeImpTrackers(Response response, List<EventTracker> eventTrackers) {
+        final Stream<String> impTrackers = Optional.of(response)
+                .map(Response::getImptrackers).stream().flatMap(Collection::stream);
+
         return response.toBuilder()
                 .imptrackers(Stream.concat(
                                 eventTrackers.stream()
                                         .filter(IxBidder::isImpTracker)
                                         .map(EventTracker::getUrl),
-                                response.getImptrackers().stream())
+                                impTrackers)
                         .distinct()
                         .toList())
                 .build();
@@ -406,17 +411,16 @@ public class IxBidder implements Bidder<BidRequest> {
                 : null;
     }
 
-    private List<FledgeAuctionConfig> extractFledge(IxBidResponse bidResponse) {
-        return Optional.ofNullable(bidResponse)
+    private List<ExtIgi> extractIgi(IxBidResponse bidResponse) {
+        final List<ExtIgiIgs> igs = Optional.ofNullable(bidResponse)
                 .map(IxBidResponse::getExt)
                 .map(IxExtBidResponse::getProtectedAudienceAuctionConfigs)
                 .orElse(Collections.emptyList())
                 .stream()
                 .filter(Objects::nonNull)
-                .map(ixAuctionConfig -> FledgeAuctionConfig.builder()
-                        .impId(ixAuctionConfig.getBidId())
-                        .config(ixAuctionConfig.getConfig())
-                        .build())
+                .map(config -> ExtIgiIgs.builder().impId(config.getBidId()).config(config.getConfig()).build())
                 .toList();
+
+        return igs.isEmpty() ? null : Collections.singletonList(ExtIgi.builder().igs(igs).build());
     }
 }

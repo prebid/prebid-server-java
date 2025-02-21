@@ -35,7 +35,6 @@ import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.cookie.exception.UnauthorizedUidsException;
 import org.prebid.server.cookie.exception.UnavailableForLegalReasonsException;
-import org.prebid.server.cookie.model.UidsCookieUpdateResult;
 import org.prebid.server.exception.InvalidAccountConfigException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.timeout.Timeout;
@@ -44,6 +43,7 @@ import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.Endpoint;
+import org.prebid.server.model.UpdateResult;
 import org.prebid.server.privacy.HostVendorTcfDefinerService;
 import org.prebid.server.privacy.gdpr.model.HostVendorTcfResponse;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
@@ -138,6 +138,7 @@ public class SetuidHandler implements ApplicationResource {
                 .map(Usersyncer::getCookieFamilyName)
                 .filter(Predicate.not(StreamUtil.distinctBy(Function.identity())))
                 .distinct()
+                .sorted()
                 .toList();
 
         if (!duplicatedCookieFamilyNames.isEmpty()) {
@@ -328,12 +329,13 @@ public class SetuidHandler implements ApplicationResource {
         final String uid = routingContext.request().getParam(UID_PARAM);
         final String bidder = setuidContext.getCookieName();
 
-        final UidsCookieUpdateResult uidsCookieUpdateResult =
-                uidsCookieService.updateUidsCookie(setuidContext.getUidsCookie(), bidder, uid);
-        final Cookie updatedUidsCookie = uidsCookieService.toCookie(uidsCookieUpdateResult.getUidsCookie());
-        addCookie(routingContext, updatedUidsCookie);
+        final UpdateResult<UidsCookie> uidsCookieUpdateResult = uidsCookieService.updateUidsCookie(
+                setuidContext.getUidsCookie(), bidder, uid);
 
-        if (uidsCookieUpdateResult.isSuccessfullyUpdated()) {
+        uidsCookieService.splitUidsIntoCookies(uidsCookieUpdateResult.getValue())
+                .forEach(cookie -> addCookie(routingContext, cookie));
+
+        if (uidsCookieUpdateResult.isUpdated()) {
             metrics.updateUserSyncSetsMetric(bidder);
         }
         final int statusCode = HttpResponseStatus.OK.code();
@@ -344,7 +346,7 @@ public class SetuidHandler implements ApplicationResource {
                 .status(statusCode)
                 .bidder(bidder)
                 .uid(uid)
-                .success(uidsCookieUpdateResult.isSuccessfullyUpdated())
+                .success(uidsCookieUpdateResult.isUpdated())
                 .build();
         analyticsDelegator.processEvent(setuidEvent, tcfContext);
     }

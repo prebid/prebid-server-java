@@ -21,6 +21,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
+import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
@@ -41,6 +42,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
+import org.prebid.server.settings.model.Account;
 import org.prebid.server.validation.model.ValidationResult;
 
 import java.math.BigDecimal;
@@ -66,6 +68,7 @@ import static org.mockito.Mockito.verify;
 public class RequestValidatorTest extends VertxTest {
 
     private static final String RUBICON = "rubicon";
+    private static final String ACCOUNT_ID = "accountId";
 
     @Mock(strictness = LENIENT)
     private BidderCatalog bidderCatalog;
@@ -81,7 +84,7 @@ public class RequestValidatorTest extends VertxTest {
         given(bidderCatalog.isValidName(eq(RUBICON))).willReturn(true);
         given(bidderCatalog.isActive(eq(RUBICON))).willReturn(true);
 
-        target = new RequestValidator(bidderCatalog, impValidator, metrics, jacksonMapper, 0.01, false);
+        target = new RequestValidator(bidderCatalog, impValidator, metrics, jacksonMapper, 0.01, false, true, true);
     }
 
     @Test
@@ -90,7 +93,7 @@ public class RequestValidatorTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result).isNotNull();
@@ -103,7 +106,7 @@ public class RequestValidatorTest extends VertxTest {
         final BidRequest bidRequest = validBidRequestBuilder().id("").build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -116,7 +119,7 @@ public class RequestValidatorTest extends VertxTest {
         final BidRequest bidRequest = validBidRequestBuilder().id(null).build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -129,7 +132,7 @@ public class RequestValidatorTest extends VertxTest {
         final BidRequest bidRequest = validBidRequestBuilder().id("1").tmax(-100L).build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -142,7 +145,7 @@ public class RequestValidatorTest extends VertxTest {
         final BidRequest bidRequest = validBidRequestBuilder().tmax(null).build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -154,7 +157,7 @@ public class RequestValidatorTest extends VertxTest {
         final BidRequest bidRequest = validBidRequestBuilder().cur(null).build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -168,7 +171,7 @@ public class RequestValidatorTest extends VertxTest {
         final BidRequest bidRequest = validBidRequestBuilder().imp(null).build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -186,7 +189,7 @@ public class RequestValidatorTest extends VertxTest {
                 .build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors())
@@ -204,7 +207,7 @@ public class RequestValidatorTest extends VertxTest {
                 .build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors())
@@ -218,7 +221,7 @@ public class RequestValidatorTest extends VertxTest {
         final BidRequest bidRequest = validBidRequestBuilder().site(Site.builder().id(null).build()).build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -231,7 +234,7 @@ public class RequestValidatorTest extends VertxTest {
         final BidRequest bidRequest = validBidRequestBuilder().site(Site.builder().id("").build()).build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -244,7 +247,7 @@ public class RequestValidatorTest extends VertxTest {
         final BidRequest bidRequest = validBidRequestBuilder().site(Site.builder().id("1").page(null).build()).build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.hasErrors()).isFalse();
@@ -256,7 +259,7 @@ public class RequestValidatorTest extends VertxTest {
         final BidRequest bidRequest = validBidRequestBuilder().site(Site.builder().id("1").page("").build()).build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.hasErrors()).isFalse();
@@ -268,7 +271,7 @@ public class RequestValidatorTest extends VertxTest {
         final BidRequest bidRequest = validBidRequestBuilder().site(Site.builder().id("").page("").build()).build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -283,7 +286,7 @@ public class RequestValidatorTest extends VertxTest {
                 .build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -298,7 +301,7 @@ public class RequestValidatorTest extends VertxTest {
                 .build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -312,7 +315,7 @@ public class RequestValidatorTest extends VertxTest {
         final BidRequest bidRequest = validBidRequestBuilder().site(null).dooh(invalidDooh).build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -326,7 +329,7 @@ public class RequestValidatorTest extends VertxTest {
         final BidRequest bidRequest = validBidRequestBuilder().site(null).dooh(invalidDooh).build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -343,7 +346,7 @@ public class RequestValidatorTest extends VertxTest {
                 .build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -353,13 +356,13 @@ public class RequestValidatorTest extends VertxTest {
     @Test
     public void validateShouldFailWhenDoohSiteAndAppArePresentInRequestAndStrictValidationIsEnabled() {
         // when
-        target = new RequestValidator(bidderCatalog, impValidator, metrics, jacksonMapper, 0.01, true);
+        target = new RequestValidator(bidderCatalog, impValidator, metrics, jacksonMapper, 0.01, true, true, true);
         final BidRequest invalidRequest = validBidRequestBuilder()
                 .dooh(Dooh.builder().build())
                 .app(App.builder().build())
                 .site(Site.builder().build())
                 .build();
-        final ValidationResult result = target.validate(invalidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), invalidRequest, null, null);
 
         // then
         verify(metrics).updateAlertsMetrics(MetricName.general);
@@ -371,12 +374,12 @@ public class RequestValidatorTest extends VertxTest {
     @Test
     public void validateShouldFailWhenSiteAndAppArePresentInRequestAndStrictValidationIsEnabled() {
         // when
-        target = new RequestValidator(bidderCatalog, impValidator, metrics, jacksonMapper, 0.01, true);
+        target = new RequestValidator(bidderCatalog, impValidator, metrics, jacksonMapper, 0.01, true, true, true);
         final BidRequest invalidRequest = validBidRequestBuilder()
                 .app(App.builder().build())
                 .site(Site.builder().build())
                 .build();
-        final ValidationResult result = target.validate(invalidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), invalidRequest, null, null);
 
         // then
         verify(metrics).updateAlertsMetrics(MetricName.general);
@@ -388,12 +391,12 @@ public class RequestValidatorTest extends VertxTest {
     @Test
     public void validateShouldFailWhenDoohAndSiteArePresentInRequestAndStrictValidationIsEnabled() {
         // when
-        target = new RequestValidator(bidderCatalog, impValidator, metrics, jacksonMapper, 0.01, true);
+        target = new RequestValidator(bidderCatalog, impValidator, metrics, jacksonMapper, 0.01, true, true, true);
         final BidRequest invalidRequest = validBidRequestBuilder()
                 .dooh(Dooh.builder().build())
                 .site(Site.builder().build())
                 .build();
-        final ValidationResult result = target.validate(invalidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), invalidRequest, null, null);
 
         // then
         verify(metrics).updateAlertsMetrics(MetricName.general);
@@ -405,12 +408,12 @@ public class RequestValidatorTest extends VertxTest {
     @Test
     public void validateShouldFailWhenDoohAndAppArePresentInRequestAndStrictValidationIsEnabled() {
         // when
-        target = new RequestValidator(bidderCatalog, impValidator, metrics, jacksonMapper, 0.01, true);
+        target = new RequestValidator(bidderCatalog, impValidator, metrics, jacksonMapper, 0.01, true, true, true);
         final BidRequest invalidRequest = validBidRequestBuilder()
                 .dooh(Dooh.builder().build())
                 .app(App.builder().build())
                 .build();
-        final ValidationResult result = target.validate(invalidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), invalidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -428,7 +431,7 @@ public class RequestValidatorTest extends VertxTest {
                 .build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -445,7 +448,7 @@ public class RequestValidatorTest extends VertxTest {
                 .build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -462,7 +465,7 @@ public class RequestValidatorTest extends VertxTest {
                 .build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -479,7 +482,7 @@ public class RequestValidatorTest extends VertxTest {
                 .build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -497,7 +500,7 @@ public class RequestValidatorTest extends VertxTest {
                 .build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -515,7 +518,7 @@ public class RequestValidatorTest extends VertxTest {
                 .build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -529,7 +532,7 @@ public class RequestValidatorTest extends VertxTest {
         final BidRequest bidRequest = validBidRequestBuilder().build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -548,7 +551,7 @@ public class RequestValidatorTest extends VertxTest {
                 .build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -565,7 +568,7 @@ public class RequestValidatorTest extends VertxTest {
                 .build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -579,7 +582,7 @@ public class RequestValidatorTest extends VertxTest {
                 .build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -597,7 +600,7 @@ public class RequestValidatorTest extends VertxTest {
                 .build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -615,7 +618,7 @@ public class RequestValidatorTest extends VertxTest {
                 .build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -633,7 +636,7 @@ public class RequestValidatorTest extends VertxTest {
                 .build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -652,7 +655,7 @@ public class RequestValidatorTest extends VertxTest {
                 .build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -661,7 +664,7 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationMessageWhenEidsPermissionsBidderIsNotRecognizedBidder() {
+    public void validateShouldReturnWarningsMessageWhenEidsPermissionsBidderIsNotRecognizedBidderAndDebugEnabled() {
         // given
         given(bidderCatalog.isValidName(eq("bidder1"))).willReturn(false);
         final BidRequest bidRequest = validBidRequestBuilder()
@@ -673,16 +676,39 @@ public class RequestValidatorTest extends VertxTest {
                 .build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(
+                Account.empty(ACCOUNT_ID), bidRequest, null, DebugContext.of(true, false, null));
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getWarnings()).hasSize(1)
                 .containsOnly(
                         "request.ext.prebid.data.eidPermissions[].bidders[] unrecognized biddercode: 'bidder1'");
     }
 
     @Test
-    public void validateShouldReturnValidationMessageWhenEidsPermissionsBidderHasBlankValue() {
+    public void validateShouldNotReturnWarningsMessageWhenEidsPermissionsBidderIsNotRecognizedBidderAndDebugDisabled() {
+        // given
+        given(bidderCatalog.isValidName(eq("bidder1"))).willReturn(false);
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .data(ExtRequestPrebidData.of(null,
+                                singletonList(
+                                        ExtRequestPrebidDataEidPermissions.of("source", singletonList("bidder1")))))
+                        .build()))
+                .build();
+
+        // when
+        final ValidationResult result = target.validate(
+                Account.empty(ACCOUNT_ID), bidRequest, null, DebugContext.of(false, false, null));
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getWarnings()).isEmpty();
+    }
+
+    @Test
+    public void validateShouldReturnWarningMessageWhenEidsPermissionsBidderHasBlankValueAndDebugEnabled() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
@@ -693,10 +719,12 @@ public class RequestValidatorTest extends VertxTest {
                 .build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(
+                Account.empty(ACCOUNT_ID), bidRequest, null, DebugContext.of(true, false, null));
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getWarnings()).hasSize(1)
                 .containsOnly("request.ext.prebid.data.eidPermissions[].bidders[] unrecognized biddercode: ' '");
     }
 
@@ -717,7 +745,7 @@ public class RequestValidatorTest extends VertxTest {
                 .build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -735,7 +763,7 @@ public class RequestValidatorTest extends VertxTest {
                 .build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -753,7 +781,7 @@ public class RequestValidatorTest extends VertxTest {
                 .build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -772,7 +800,7 @@ public class RequestValidatorTest extends VertxTest {
                 .build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -791,7 +819,7 @@ public class RequestValidatorTest extends VertxTest {
                 .build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -812,7 +840,7 @@ public class RequestValidatorTest extends VertxTest {
                 .build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -832,7 +860,7 @@ public class RequestValidatorTest extends VertxTest {
                         .build()))
                 .build();
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -853,7 +881,7 @@ public class RequestValidatorTest extends VertxTest {
                         .build()))
                 .build();
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -872,7 +900,7 @@ public class RequestValidatorTest extends VertxTest {
                         .build()))
                 .build();
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -895,7 +923,7 @@ public class RequestValidatorTest extends VertxTest {
                 .build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -923,7 +951,7 @@ public class RequestValidatorTest extends VertxTest {
                 .build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -950,7 +978,7 @@ public class RequestValidatorTest extends VertxTest {
                 .build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -972,7 +1000,7 @@ public class RequestValidatorTest extends VertxTest {
                 .build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -993,7 +1021,7 @@ public class RequestValidatorTest extends VertxTest {
                 .build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -1016,7 +1044,7 @@ public class RequestValidatorTest extends VertxTest {
                 .build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -1038,7 +1066,7 @@ public class RequestValidatorTest extends VertxTest {
                 .build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -1057,7 +1085,7 @@ public class RequestValidatorTest extends VertxTest {
                 .build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -1080,7 +1108,7 @@ public class RequestValidatorTest extends VertxTest {
                 .build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -1098,7 +1126,7 @@ public class RequestValidatorTest extends VertxTest {
                 .build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -1114,7 +1142,7 @@ public class RequestValidatorTest extends VertxTest {
                 .build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -1130,7 +1158,7 @@ public class RequestValidatorTest extends VertxTest {
                 .build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -1146,7 +1174,7 @@ public class RequestValidatorTest extends VertxTest {
         final BidRequest bidRequest = validBidRequestBuilder().ext(ext).build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -1156,7 +1184,7 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationMessageWhenAliasPointOnNotValidBidderName() {
+    public void validateShouldReturnValidationErrorMessageWhenAliasPointOnNotValidBidderName() {
         // given
         final ExtRequest ext = ExtRequest.of(ExtRequestPrebid.builder()
                 .aliases(singletonMap("alias", "fake"))
@@ -1164,7 +1192,7 @@ public class RequestValidatorTest extends VertxTest {
         final BidRequest bidRequest = validBidRequestBuilder().ext(ext).build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -1172,7 +1200,24 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationMessageWhenAliasPointOnDisabledBidder() {
+    public void validateShouldReturnValidationWarningMessageWhenAliasPointOnNotValidBidderName() {
+        // given
+        final ExtRequest ext = ExtRequest.of(ExtRequestPrebid.builder()
+                .aliases(singletonMap("alias", "fake"))
+                .build());
+        final BidRequest bidRequest = validBidRequestBuilder().ext(ext).build();
+
+        // when
+        target = new RequestValidator(bidderCatalog, impValidator, metrics, jacksonMapper, 0.01, false, true, false);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
+
+        // then
+        assertThat(result.getWarnings()).hasSize(1)
+                .containsOnly("request.ext.prebid.aliases.alias refers to unknown bidder: fake");
+    }
+
+    @Test
+    public void validateShouldReturnValidationErrorMessageWhenAliasPointOnDisabledBidder() {
         // given
         final ExtRequest ext = ExtRequest.of(ExtRequestPrebid.builder()
                 .aliases(singletonMap("alias", "appnexus"))
@@ -1182,10 +1227,29 @@ public class RequestValidatorTest extends VertxTest {
         given(bidderCatalog.isActive("appnexus")).willReturn(false);
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.ext.prebid.aliases.alias refers to disabled bidder: appnexus");
+    }
+
+    @Test
+    public void validateShouldReturnValidationWarningMessageWhenAliasPointOnDisabledBidder() {
+        // given
+        final ExtRequest ext = ExtRequest.of(ExtRequestPrebid.builder()
+                .aliases(singletonMap("alias", "appnexus"))
+                .build());
+        final BidRequest bidRequest = validBidRequestBuilder().ext(ext).build();
+        given(bidderCatalog.isValidName("appnexus")).willReturn(true);
+        given(bidderCatalog.isActive("appnexus")).willReturn(false);
+
+        // when
+        target = new RequestValidator(bidderCatalog, impValidator, metrics, jacksonMapper, 0.01, false, false, true);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
+
+        // then
+        assertThat(result.getWarnings()).hasSize(1)
                 .containsOnly("request.ext.prebid.aliases.alias refers to disabled bidder: appnexus");
     }
 
@@ -1198,7 +1262,7 @@ public class RequestValidatorTest extends VertxTest {
         final BidRequest bidRequest = validBidRequestBuilder().ext(ext).build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -1212,7 +1276,7 @@ public class RequestValidatorTest extends VertxTest {
                 .build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -1231,7 +1295,7 @@ public class RequestValidatorTest extends VertxTest {
                                 .build()))
                 .build();
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -1253,7 +1317,7 @@ public class RequestValidatorTest extends VertxTest {
                                 .build()))
                 .build();
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -1275,7 +1339,7 @@ public class RequestValidatorTest extends VertxTest {
                 .build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -1296,7 +1360,7 @@ public class RequestValidatorTest extends VertxTest {
                                 .build()))
                 .build();
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -1320,7 +1384,7 @@ public class RequestValidatorTest extends VertxTest {
                 .build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -1344,7 +1408,7 @@ public class RequestValidatorTest extends VertxTest {
                 .build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -1365,7 +1429,7 @@ public class RequestValidatorTest extends VertxTest {
                 .build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         verify(bidderCatalog).isValidName(rubiconAlias);
@@ -1386,7 +1450,7 @@ public class RequestValidatorTest extends VertxTest {
                 .build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors())
@@ -1403,7 +1467,7 @@ public class RequestValidatorTest extends VertxTest {
         final BidRequest bidRequest = validBidRequestBuilder().build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getErrors()).containsOnly("imp[0] validation failed");
@@ -1418,7 +1482,7 @@ public class RequestValidatorTest extends VertxTest {
         final BidRequest bidRequest = validBidRequestBuilder().build();
 
         // when
-        final ValidationResult result = target.validate(bidRequest, null);
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
         assertThat(result.getWarnings()).containsOnly("imp[0] validation warning");
