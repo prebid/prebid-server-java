@@ -1,5 +1,8 @@
 package org.prebid.server.spring.config.bidder;
 
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.kobler.KoblerBidder;
 import org.prebid.server.currency.CurrencyConversionService;
@@ -13,6 +16,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
+import org.springframework.validation.annotation.Validated;
 
 import jakarta.validation.constraints.NotBlank;
 
@@ -24,20 +28,43 @@ public class KoblerConfiguration {
 
     @Bean("koblerConfigurationProperties")
     @ConfigurationProperties("adapters.kobler")
-    BidderConfigurationProperties configurationProperties() {
-        return new BidderConfigurationProperties();
+    KoblerConfigurationProperties configurationProperties() {
+        return new KoblerConfigurationProperties();
     }
 
     @Bean
-    BidderDeps koblerBidderDeps(BidderConfigurationProperties koblerConfigurationProperties,
+    BidderDeps koblerBidderDeps(KoblerConfigurationProperties config,
                                 CurrencyConversionService currencyConversionService,
                                 @NotBlank @Value("${external-url}") String externalUrl,
                                 JacksonMapper mapper) {
 
-        return BidderDepsAssembler.forBidder(BIDDER_NAME)
-                .withConfig(koblerConfigurationProperties)
+        return BidderDepsAssembler.<KoblerConfigurationProperties>forBidder(BIDDER_NAME)
+                .withConfig(config)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new KoblerBidder(config.getEndpoint(), currencyConversionService, mapper))
+                .bidderCreator(cfg -> new KoblerBidder(
+                        cfg.getEndpoint(),
+                        cfg.getDefaultBidCurrency(),
+                        cfg.getDevEndpoint(),
+                        cfg.getExtPrebid(),
+                        currencyConversionService,
+                        mapper))
                 .assemble();
+
+    }
+
+    @Validated
+    @Data
+    @EqualsAndHashCode(callSuper = true)
+    @NoArgsConstructor
+    private static class KoblerConfigurationProperties extends BidderConfigurationProperties {
+
+        @NotBlank
+        private String defaultBidCurrency;
+
+        @NotBlank
+        private String devEndpoint;
+
+        @NotBlank
+        private String extPrebid;
     }
 }

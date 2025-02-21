@@ -2,6 +2,7 @@ package org.prebid.server.bidder.kobler;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -40,19 +41,23 @@ public class KoblerBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpKobler>> KOBLER_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
-    private static final String EXT_PREBID = "prebid";
-    private static final String DEFAULT_BID_CURRENCY = "USD";
-    private static final String DEV_ENDPOINT = "https://bid-service.dev.essrtb.com/bid/prebid_server_rtb_call";
-
     private final String endpointUrl;
+    private final String defaultBidCurrency;
+    private final String devEndpoint;
+    private final String extPrebid;
     private final CurrencyConversionService currencyConversionService;
     private final JacksonMapper mapper;
 
     public KoblerBidder(String endpointUrl,
+                        String defaultBidCurrency,
+                        String devEndpoint,
+                        String extPrebid,
                         CurrencyConversionService currencyConversionService,
                         JacksonMapper mapper) {
-
         this.endpointUrl = HttpUtil.validateUrl(endpointUrl);
+        this.defaultBidCurrency = Objects.requireNonNull(defaultBidCurrency);
+        this.devEndpoint = Objects.requireNonNull(devEndpoint);
+        this.extPrebid = Objects.requireNonNull(extPrebid);
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -63,19 +68,13 @@ public class KoblerBidder implements Bidder<BidRequest> {
         boolean testMode = false;
         final List<Imp> modifiedImps = new ArrayList<>();
 
-        final List<String> currencies = new ArrayList<>(bidRequest.getCur());
-        if (!currencies.contains(DEFAULT_BID_CURRENCY)) {
-            currencies.add(DEFAULT_BID_CURRENCY);
-        }
+        final List<String> currencies = normalizeCurrencies(bidRequest);
 
         final List<Imp> imps = bidRequest.getImp();
-        if (!imps.isEmpty()) {
-            try {
-                testMode = parseImpExt(imps.getFirst()).getTest();
-            } catch (PreBidException e) {
-                errors.add(BidderError.badInput(e.getMessage()));
-                return Result.withErrors(errors);
-            }
+        try {
+            testMode = isTest(imps.getFirst());
+        } catch (PreBidException e) {
+            errors.add(BidderError.badInput(e.getMessage()));
         }
 
         for (Imp imp : imps) {
@@ -92,10 +91,26 @@ public class KoblerBidder implements Bidder<BidRequest> {
                 .imp(modifiedImps)
                 .build();
 
-        final String endpoint = testMode ? DEV_ENDPOINT : endpointUrl;
+        final String endpoint = testMode ? devEndpoint : endpointUrl;
 
         final HttpRequest<BidRequest> httpRequest = BidderUtil.defaultRequest(modifiedRequest, endpoint, mapper);
         return Result.of(Collections.singletonList(httpRequest), errors);
+    }
+
+    private boolean isTest(Imp imp) {
+        try {
+            return parseImpExt(imp).getTest();
+        } catch (PreBidException e) {
+            return false;
+        }
+    }
+
+    private List<String> normalizeCurrencies(BidRequest bidRequest) {
+        final List<String> currencies = new ArrayList<>(bidRequest.getCur());
+        if (!currencies.contains(defaultBidCurrency)) {
+            currencies.add(defaultBidCurrency);
+        }
+        return currencies;
     }
 
     private Imp modifyImp(BidRequest bidRequest, Imp imp) {
@@ -109,7 +124,7 @@ public class KoblerBidder implements Bidder<BidRequest> {
 
     private Price resolveBidFloor(Imp imp, BidRequest bidRequest) {
         final Price initialBidFloorPrice = Price.of(imp.getBidfloorcur(), imp.getBidfloor());
-        return BidderUtil.shouldConvertBidFloor(initialBidFloorPrice, DEFAULT_BID_CURRENCY)
+        return BidderUtil.shouldConvertBidFloor(initialBidFloorPrice, defaultBidCurrency)
                 ? convertBidFloor(initialBidFloorPrice, bidRequest)
                 : initialBidFloorPrice;
     }
@@ -119,9 +134,9 @@ public class KoblerBidder implements Bidder<BidRequest> {
                 bidFloorPrice.getValue(),
                 bidRequest,
                 bidFloorPrice.getCurrency(),
-                DEFAULT_BID_CURRENCY);
+                defaultBidCurrency);
 
-        return Price.of(DEFAULT_BID_CURRENCY, convertedPrice);
+        return Price.of(defaultBidCurrency, convertedPrice);
     }
 
     private ExtImpKobler parseImpExt(Imp imp) {
@@ -155,13 +170,15 @@ public class KoblerBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
                 .map(bid -> BidderBid.of(bid, getBidType(bid), bidResponse.getCur()))
                 .toList();
     }
 
     private BidType getBidType(Bid bid) {
         return Optional.ofNullable(bid.getExt())
-                .map(ext -> ext.get(EXT_PREBID))
+                .map(ext -> ext.get(extPrebid))
+                .filter(JsonNode::isObject)
                 .map(ObjectNode.class::cast)
                 .map(this::parseExtBidPrebid)
                 .map(ExtBidPrebid::getType)

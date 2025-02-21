@@ -43,6 +43,8 @@ public class KoblerBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.com";
     private static final String DEV_ENDPOINT = "https://bid-service.dev.essrtb.com/bid/prebid_server_rtb_call";
+    private static final String DEFAULT_BID_CURRENCY = "USD";
+    private static final String EXT_PREBID = "prebid";
 
     @Mock
     private CurrencyConversionService currencyConversionService;
@@ -51,13 +53,25 @@ public class KoblerBidderTest extends VertxTest {
 
     @BeforeEach
     public void setUp() {
-        target = new KoblerBidder(ENDPOINT_URL, currencyConversionService, jacksonMapper);
+        target = new KoblerBidder(
+                ENDPOINT_URL,
+                DEFAULT_BID_CURRENCY,
+                EXT_PREBID,
+                DEV_ENDPOINT,
+                currencyConversionService,
+                jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException().isThrownBy(() ->
-                new KoblerBidder("invalid_url", currencyConversionService, jacksonMapper));
+                new KoblerBidder(
+                        "invalid_url",
+                        DEFAULT_BID_CURRENCY,
+                        EXT_PREBID,
+                        DEV_ENDPOINT,
+                        currencyConversionService,
+                        jacksonMapper));
     }
 
     @Test
@@ -98,13 +112,15 @@ public class KoblerBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue().get(0).getPayload().getImp())
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getBidfloor, Imp::getBidfloorcur)
                 .containsExactly(tuple(BigDecimal.TEN, "USD"));
     }
 
     @Test
-    public void makeHttpRequestsShouldUseDevEndpointwhenTestModeEnabled() {
+    public void makeHttpRequestsShouldUseDevEndpointWhenTestModeEnabled() {
         // given
         final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
                         .cur(singletonList("EUR")),
@@ -130,6 +146,28 @@ public class KoblerBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue().get(0).getPayload().getCur()).containsExactlyInAnyOrder("EUR", "USD");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUseDevEndpointwhenImpExtTestIsTrue() {
+        // given
+        final ObjectNode extNode = jacksonMapper.mapper().createObjectNode();
+        extNode.putObject("bidder").put("test", true);
+
+        final Imp imp = Imp.builder().id("test-imp").ext(extNode).build();
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(Collections.singletonList(imp)).cur(Collections.singletonList("USD")).build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+
+        final HttpRequest<BidRequest> httpRequest = result.getValue().get(0);
+        assertThat(httpRequest.getUri()).isEqualTo(DEV_ENDPOINT);
     }
 
     @Test
@@ -194,28 +232,6 @@ public class KoblerBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).isEmpty();
-    }
-
-    @Test
-    public void makeHttpRequestsShouldUseDevEndpointwhenImpExtTestIsTrue() {
-        // given
-        final ObjectNode extNode = jacksonMapper.mapper().createObjectNode();
-        extNode.putObject("bidder").put("test", true);
-
-        final Imp imp = Imp.builder().id("test-imp").ext(extNode).build();
-
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(Collections.singletonList(imp)).cur(Collections.singletonList("USD")).build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1);
-
-        final HttpRequest<BidRequest> httpRequest = result.getValue().get(0);
-        assertThat(httpRequest.getUri()).isEqualTo(DEV_ENDPOINT);
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
