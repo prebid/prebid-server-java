@@ -24,7 +24,6 @@ class UUIDSpec extends BaseSpec {
     ]
 
     private static final PrebidServerService storedRequestIdGenEnabledService = pbsServiceFactory.getService(STORED_REQUEST_ID_GEN_ENABLED_CONFIG)
-
     private static final PrebidServerService storedRequestIdGenDisabledService = pbsServiceFactory.getService(STORED_REQUEST_ID_GEN_DISABLED_CONFIG)
 
     def cleanupSpec() {

@@ -97,7 +97,8 @@ class CacheSpec extends BaseSpec {
     def "PBS should cache bids without api-key header when targeting is specified and api-key-secured disabled"() {
         given: "Pbs config with disabled api-key-secured and pbc.api.key"
         def apiKey = PBSUtils.randomString
-        def pbsConfig = ['pbc.api.key': apiKey, 'cache.api-key-secured': 'false']
+        def pbsConfig = ['pbc.api.key'          : apiKey,
+                         'cache.api-key-secured': 'false']
         def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default BidRequest with cache, targeting"
@@ -122,7 +123,8 @@ class CacheSpec extends BaseSpec {
     def "PBS should cache bids with api-key header when targeting is specified and api-key-secured enabled"() {
         given: "Pbs config with api-key-secured and pbc.api.key"
         def apiKey = PBSUtils.randomString
-        def pbsConfig = ['pbc.api.key': apiKey, 'cache.api-key-secured': 'true']
+        def pbsConfig = ['pbc.api.key'          : apiKey,
+                         'cache.api-key-secured': 'true']
         def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default BidRequest with cache, targeting"

@@ -13,6 +13,7 @@ import org.prebid.server.functional.model.request.auction.FetchStatus
 import org.prebid.server.functional.model.request.auction.PrebidAnalytics
 import org.prebid.server.functional.model.request.auction.RichmediaFilter
 import org.prebid.server.functional.model.request.auction.StoredBidResponse
+import org.prebid.server.functional.model.response.auction.AnalyticTagStatus
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ModuleActivityName
 import org.prebid.server.functional.service.PrebidServerService
@@ -53,12 +54,12 @@ class AnalyticsTagsModuleSpec extends ModuleBaseSpec {
 
         and: "Analytics tag should contain results with name and success status"
         def analyticResult = analyticsTagPrebid.analyticsTags.activities.first
-        assert analyticResult.status == FetchStatus.SUCCESS
+        assert analyticResult.status == AnalyticTagStatus.SUCCESS
         assert analyticResult.name == ModuleActivityName.ORTB2_BLOCKING
 
         and: "Should include appliedTo information in analytics tags results"
         verifyAll(analyticResult.results.first) {
-            it.status == FetchStatus.SUCCESS_ALLOW
+            it.status == AnalyticTagStatus.SUCCESS_ALLOW
             it.appliedTo.bidders == [GENERIC.value]
             it.appliedTo.impIds == bidRequest.imp.id
         }
@@ -103,12 +104,12 @@ class AnalyticsTagsModuleSpec extends ModuleBaseSpec {
 
         and: "Analytics tag should contain results with name and success status"
         def analyticResult = analyticsTagPrebid.analyticsTags.activities.first
-        assert analyticResult.status == FetchStatus.SUCCESS
+        assert analyticResult.status == AnalyticTagStatus.SUCCESS
         assert analyticResult.name == ModuleActivityName.REJECT_RICHMEDIA
 
         and: "Should include appliedTo information in analytics tags results"
         verifyAll(analyticResult.results.first) {
-            it.status == FetchStatus.SUCCESS_BLOCK
+            it.status == AnalyticTagStatus.SUCCESS_BLOCK
             it.appliedTo.bidders == [GENERIC.value]
             it.appliedTo.impIds == bidRequest.imp.id
         }
@@ -142,12 +143,12 @@ class AnalyticsTagsModuleSpec extends ModuleBaseSpec {
 
         and: "Analytics tag should contain results with name and success status"
         def analyticResult = analyticsTagPrebid.analyticsTags.activities.first
-        assert analyticResult.status == FetchStatus.SUCCESS
+        assert analyticResult.status == AnalyticTagStatus.SUCCESS
         assert analyticResult.name == ModuleActivityName.ORTB2_BLOCKING
 
         and: "Should include appliedTo information in analytics tags results"
         verifyAll(analyticResult.results.first) {
-            it.status == FetchStatus.SUCCESS_ALLOW
+            it.status == AnalyticTagStatus.SUCCESS_ALLOW
             it.appliedTo.bidders == [GENERIC.value]
             it.appliedTo.impIds == bidRequest.imp.id
         }
@@ -188,12 +189,12 @@ class AnalyticsTagsModuleSpec extends ModuleBaseSpec {
 
         and: "Analytics tag should contain results with name and success status"
         def analyticResult = analyticsTagPrebid.analyticsTags.activities.first
-        assert analyticResult.status == FetchStatus.SUCCESS
+        assert analyticResult.status == AnalyticTagStatus.SUCCESS
         assert analyticResult.name == ModuleActivityName.ORTB2_BLOCKING
 
         and: "Should include appliedTo information in analytics tags results"
         verifyAll(analyticResult.results.first) {
-            it.status == FetchStatus.SUCCESS_ALLOW
+            it.status == AnalyticTagStatus.SUCCESS_ALLOW
             it.appliedTo.bidders == [GENERIC.value]
             it.appliedTo.impIds == bidRequest.imp.id
         }

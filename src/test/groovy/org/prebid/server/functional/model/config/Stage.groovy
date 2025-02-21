@@ -25,8 +25,7 @@ enum Stage {
     }
 
     static Stage forValue(ModuleHookImplementation moduleHook) {
-        values()
-                .collect { [stage: it, matchLength: moduleHook.code.indexOf(it.value) >= 0 ? it.value.length() : -1] }
+        values().collect { [stage: it, matchLength: moduleHook.code.indexOf(it.value) >= 0 ? it.value.length() : -1] }
                 .findAll { it.matchLength > 0 }
                 .max { it.matchLength }
                 ?.stage
