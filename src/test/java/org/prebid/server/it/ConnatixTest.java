@@ -30,4 +30,21 @@ public class ConnatixTest extends IntegrationTest {
         assertJsonEquals("openrtb2/connatix/test-banner-auction-connatix-response.json", response,
                 singletonList("connatix"));
     }
+
+    @Test
+    public void openrtb2AuctionShouldRespondWithVideoBidFromConnatix() throws IOException, JSONException {
+        // given
+        WIRE_MOCK_RULE.stubFor(WireMock.post(urlPathEqualTo("/connatix-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/connatix/test-video-connatix-bid-request.json")))
+                .willReturn(WireMock.aResponse().withBody(
+                        jsonFrom("openrtb2/connatix/test-video-connatix-bid-response.json"))));
+
+        // when
+        final Response response = responseFor("openrtb2/connatix/test-video-auction-connatix-request.json",
+                Endpoint.openrtb2_auction);
+
+        // then
+        assertJsonEquals("openrtb2/connatix/test-video-auction-connatix-response.json", response,
+                singletonList("connatix"));
+    }
 }

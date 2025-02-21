@@ -9,6 +9,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
@@ -178,7 +179,7 @@ public class ConnatixBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest), bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, getBidType(bid), bidResponse.getCur()))
                 .toList();
     }
 
@@ -245,24 +246,17 @@ public class ConnatixBidder implements Bidder<BidRequest> {
                 : "";
     }
 
-    private static BidType getBidType(String impId, BidRequest bidRequest) {
-        if (bidRequest == null || CollectionUtils.isEmpty(bidRequest.getImp())) {
-            return BidType.banner;
+    private static BidType getBidType(Bid bid) {
+        if (bid == null) {
+            return null;
         }
-
-        final List<Imp> imps = bidRequest.getImp();
-        for (Imp imp : imps) {
-            if (imp.getId().equals(impId)) {
-                final Optional<String> mediaType = Optional.ofNullable(imp.getExt())
-                        .map(ext -> ext.get("connatix"))
-                        .map(cnx -> cnx.get("mediaType"))
-                        .map(JsonNode::asText);
-                if (mediaType.isPresent() && mediaType.get().equals("video")) {
-                    return BidType.video;
-                }
-                return BidType.banner;
-            }
+        final Optional<String> bidType = Optional.ofNullable(bid.getExt())
+                .map(ext -> ext.get("connatix"))
+                .map(cnx -> cnx.get("mediaType"))
+                .map(JsonNode::asText);
+        if (bidType.isPresent() && bidType.get().equals("video")) {
+            return BidType.video;
         }
-        throw new PreBidException(String.format("Failed to find impression for ID: '%s'", impId));
+        return BidType.banner;
     }
 }

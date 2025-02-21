@@ -341,7 +341,7 @@ public class ConnatixBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBidSuccessfully() throws JsonProcessingException {
         // given
-        final Bid bid = Bid.builder().impid("impId").mtype(1).build();
+        final Bid bid = Bid.builder().impid("impId").build();
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(bid));
 
         // when
@@ -355,14 +355,10 @@ public class ConnatixBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnVideoBidSuccessfully() throws JsonProcessingException {
         // given
-        final Bid bid = Bid.builder().impid("impId").mtype(2).build();
         final ObjectNode mediaType = mapper.createObjectNode().put("mediaType", "video");
         final ObjectNode cnxWrapper = mapper.createObjectNode().set("connatix", mediaType);
-        final BidRequest bidRequest = givenBidRequest(
-                request -> request.device(Device.builder().ip("deviceIp").build()),
-                impBuilder -> impBuilder.ext(cnxWrapper).id("impId")
-        );
-        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, givenBidResponse(bid));
+        final Bid bid = Bid.builder().impid("impId").ext(cnxWrapper).build();
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(bid));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
