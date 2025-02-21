@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.connatix;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
@@ -74,34 +75,36 @@ public class ConnatixBidder implements Bidder<BidRequest> {
             return Result.withError(BidderError.badInput("Device IP is required"));
         }
 
-        // KATIE TO DO. UPDATE THIS LOGIC TO PAY ATTENTION TO display manager.
-        // display manager version can come from openrtb2 request OR imp.ext.prebid
-        // KIM: i updated the logic to do the same as Appnexus which seems to match? maybe
         final String displayManagerVer = buildDisplayManagerVersion(request);
+        final MultiMap headers = resolveHeaders(request.getDevice());
 
-        final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
+        final List<Imp> modifiedImps = new ArrayList<>();
+        final List<BidderError> errors = new ArrayList<>();
 
         for (Imp imp : request.getImp()) {
             final ExtImpConnatix extImpConnatix;
+            final Price bidFloorPrice;
             try {
                 extImpConnatix = parseExtImp(imp);
-            } catch (PreBidException e) {
-                return Result.withError(BidderError.badInput(e.getMessage()));
-            }
-            // KATIE to do - probably need to add logic for splitting requests somewhere in here
-            final Price bidFloorPrice = convertBidFloor(imp, request);
+                bidFloorPrice = convertBidFloor(imp, request);
+                final Imp modifiedImp = modifyImp(imp, extImpConnatix, displayManagerVer, bidFloorPrice);
 
-            final Imp modifiedImp = modifyImp(imp, extImpConnatix, displayManagerVer, bidFloorPrice);
-            httpRequests.add(makeHttpRequest(request, modifiedImp));
+                modifiedImps.add(modifiedImp);
+            } catch (PreBidException e) {
+                errors.add(BidderError.badInput(e.getMessage()));
+            }
         }
 
-        return Result.withValues(httpRequests);
+        if (modifiedImps.isEmpty()) {
+            return Result.withErrors(errors);
+        }
 
+        final List<HttpRequest<BidRequest>> httpRequests = splitHttpRequests(request, modifiedImps, headers);
+
+        return Result.withValues(httpRequests);
     }
 
     private Imp modifyImp(Imp imp, ExtImpConnatix extImpConnatix, String displayManagerVer, Price bidFloorPrice) {
-        //KATIE to do - fix this method, it isn't right :)
-        // KIM: added these thingies to the method - modified banner, display manager, modified bid floor and currency
         final ConnatixImpExtBidder impExtBidder = resolveImpExt(extImpConnatix);
 
         final ObjectNode impExtBidderNode = mapper.mapper().valueToTree(impExtBidder);
@@ -114,7 +117,8 @@ public class ConnatixBidder implements Bidder<BidRequest> {
         return imp.toBuilder()
                 .ext(modifiedImpExtBidder)
                 .banner(modifyImpBanner(imp.getBanner()))
-                .displaymanagerver(displayManagerVer)
+                .displaymanagerver(!StringUtils.isEmpty(imp.getDisplaymanagerver())
+                        ? imp.getDisplaymanagerver() : displayManagerVer)
                 .bidfloor(bidFloorPrice.getValue())
                 .bidfloorcur(bidFloorPrice.getCurrency())
                 .build();
@@ -139,9 +143,8 @@ public class ConnatixBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            // KATIE check validity of this logic for setting currency to usd. explicitly set to USD in go version
-            final BidResponse updatedResponse = bidResponse.toBuilder().cur("USD").build();
-            final List<BidderBid> bids = extractBids(httpCall.getRequest().getPayload(), updatedResponse);
+            final List<BidderBid> bids = extractBids(httpCall.getRequest().getPayload(), bidResponse);
+
             return Result.withValues(bids);
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
@@ -175,7 +178,7 @@ public class ConnatixBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest), bidResponse.getCur()))
                 .toList();
     }
 
@@ -189,9 +192,7 @@ public class ConnatixBidder implements Bidder<BidRequest> {
     }
 
     private ConnatixImpExtBidder resolveImpExt(ExtImpConnatix extImpConnatix) {
-
         final ConnatixImpExtBidder.ConnatixImpExtBidderBuilder builder = ConnatixImpExtBidder.builder();
-        // KATIE check this is correct - adding placement ID and viewability percentage if available
         if (StringUtils.isNotEmpty(extImpConnatix.getPlacementId())) {
             builder.placementId(extImpConnatix.getPlacementId());
         }
@@ -202,26 +203,21 @@ public class ConnatixBidder implements Bidder<BidRequest> {
         return builder.build();
     }
 
-    private HttpRequest<BidRequest> makeHttpRequest(BidRequest request, Imp imp) {
-        final BidRequest outgoingRequest = request.toBuilder().imp(List.of(imp)).build();
+    private HttpRequest<BidRequest> makeHttpRequest(BidRequest request, List<Imp> impsChunk, MultiMap headers) {
+        final BidRequest outgoingRequest = request.toBuilder()
+                .imp(impsChunk)
+                .cur(List.of(BIDDER_CURRENCY))
+                .build();
 
-        return BidderUtil.defaultRequest(outgoingRequest, endpointUrl, mapper);
-    }
-
-    private HttpRequest<BidRequest> createHttpRequest(BidRequest bidRequest,
-                                                      List<Imp> imps,
-                                                      String url,
-                                                      MultiMap headers) {
-        return BidderUtil.defaultRequest(bidRequest.toBuilder().imp(imps).build(), headers, url, mapper);
+        return BidderUtil.defaultRequest(outgoingRequest, headers, endpointUrl, mapper);
     }
 
     private List<HttpRequest<BidRequest>> splitHttpRequests(BidRequest bidRequest,
                                                             List<Imp> imps,
-                                                            String url) {
-        final MultiMap httpHeaders = resolveHeaders(bidRequest.getDevice());
+                                                            MultiMap headers) {
         return ListUtils.partition(imps, MAX_IMPS_PER_REQUEST)
                 .stream()
-                .map(impsChunk -> createHttpRequest(bidRequest, impsChunk, url, httpHeaders))
+                .map(impsChunk -> makeHttpRequest(bidRequest, impsChunk, headers))
                 .toList();
     }
 
@@ -249,17 +245,23 @@ public class ConnatixBidder implements Bidder<BidRequest> {
                 : "";
     }
 
-    private static BidType getBidType(String impId, List<Imp> imps) {
+    private static BidType getBidType(String impId, BidRequest bidRequest) {
+        if (bidRequest == null || CollectionUtils.isEmpty(bidRequest.getImp())) {
+            return BidType.banner;
+        }
+
+        final List<Imp> imps = bidRequest.getImp();
         for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
-                // KATIE TO DO - this is how go version gets mediaType - validate this
-                final String mediaType = imp.getExt().get("cnx").get("mediaType").asText();
-                if (mediaType.equals("video")) {
+                final Optional<String> mediaType = Optional.ofNullable(imp.getExt())
+                        .map(ext -> ext.get("connatix"))
+                        .map(cnx -> cnx.get("mediaType"))
+                        .map(JsonNode::asText);
+                if (mediaType.isPresent() && mediaType.get().equals("video")) {
                     return BidType.video;
                 }
                 return BidType.banner;
             }
-            break;
         }
         throw new PreBidException(String.format("Failed to find impression for ID: '%s'", impId));
     }

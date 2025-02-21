@@ -30,7 +30,7 @@ public class ConnatixConfiguration {
 
     @Bean
     BidderDeps connatixBidderDeps(BidderConfigurationProperties connatixConfigurationProperties,
-                                  @NotBlank @Value("http://localhost:8080") String externalUrl,
+                                  @NotBlank @Value("${external-url}") String externalUrl,
                                   JacksonMapper mapper,
                                   CurrencyConversionService currencyConversionService) {
 
