@@ -56,8 +56,8 @@ public class KoblerBidderTest extends VertxTest {
         target = new KoblerBidder(
                 ENDPOINT_URL,
                 DEFAULT_BID_CURRENCY,
-                EXT_PREBID,
                 DEV_ENDPOINT,
+                EXT_PREBID,
                 currencyConversionService,
                 jacksonMapper);
     }
@@ -68,8 +68,8 @@ public class KoblerBidderTest extends VertxTest {
                 new KoblerBidder(
                         "invalid_url",
                         DEFAULT_BID_CURRENCY,
-                        EXT_PREBID,
                         DEV_ENDPOINT,
+                        EXT_PREBID,
                         currencyConversionService,
                         jacksonMapper));
     }
