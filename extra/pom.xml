@@ -44,7 +44,6 @@
         <oshi.version>6.4.5</oshi.version>
         <json-schema-validator.version>1.4.0</json-schema-validator.version>
         <jsonpatch.version>1.13</jsonpatch.version>
-        <kafka-clients.version>2.1.1</kafka-clients.version>
         <psl.version>2.2.0</psl.version>
         <metrics-influxdb.version>1.2.2</metrics-influxdb.version>
         <vertx.prometheus.version>0.16.0</vertx.prometheus.version>
@@ -189,11 +188,6 @@
                         <artifactId>kafka-clients</artifactId>
                     </exclusion>
                 </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.kafka</groupId>
-                <artifactId>kafka-clients</artifactId>
-                <version>${kafka-clients.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.prometheus</groupId>
