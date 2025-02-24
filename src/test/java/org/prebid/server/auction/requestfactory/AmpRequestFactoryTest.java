@@ -1753,8 +1753,8 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         given(ortb2ImplicitParametersResolver.resolve(any(), any(), any(), anyBoolean())).willAnswer(
                 answerWithFirstArgument());
-        given(ortb2RequestFactory.validateRequest(any(), any(), any(), any()))
-                .willAnswer(invocation -> Future.succeededFuture((BidRequest) invocation.getArgument(0)));
+        given(ortb2RequestFactory.validateRequest(any(), any(), any(), any(), any()))
+                .willAnswer(invocation -> Future.succeededFuture((BidRequest) invocation.getArgument(1)));
 
         given(ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(any()))
                 .willAnswer(invocation -> Future.succeededFuture(((AuctionContext) invocation.getArgument(0))

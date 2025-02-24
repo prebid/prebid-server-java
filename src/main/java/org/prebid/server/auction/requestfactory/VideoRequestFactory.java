@@ -120,6 +120,7 @@ public class VideoRequestFactory {
                 .map(auctionContext -> auctionContext.with(debugResolver.debugContextFrom(auctionContext)))
 
                 .compose(auctionContext -> ortb2RequestFactory.validateRequest(
+                                auctionContext.getAccount(),
                                 auctionContext.getBidRequest(),
                                 auctionContext.getHttpRequest(),
                                 auctionContext.getDebugContext(),

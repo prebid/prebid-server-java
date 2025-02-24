@@ -45,6 +45,8 @@ where `[DATASOURCE]` is a data source name, `DEFAULT_DS` by defaul.
 - `imps_video` - number of video impressions
 - `imps_native` - number of native impressions
 - `imps_audio` - number of audio impressions
+- `disabled_bidder` - number of disabled bidders received within requests
+- `unknown_bidder` - number of unknown bidders received within requests
 - `requests.(ok|badinput|err|networkerr|blocklisted_account|blocklisted_app).(openrtb2-web|openrtb-app|amp|legacy)` - number of requests broken down by status and type
 - `bidder-cardinality.<cardinality>.requests` - number of requests targeting `<cardinality>` of bidders
 - `connection_accept_errors` - number of errors occurred while establishing HTTP connection
@@ -92,6 +94,8 @@ Following metrics are collected and submitted if account is configured with `det
 - `account.<account-id>.requests.type.(openrtb2-web,openrtb-app,amp,legacy)` - number of requests received from account with `<account-id>` broken down by type of incoming request
 - `account.<account-id>.debug_requests` - number of requests received from account with `<account-id>` broken down by type of incoming request (when debug mode is enabled)
 - `account.<account-id>.requests.rejected` - number of rejected requests caused by incorrect `accountId`
+- `account.<account-id>.requests.disabled_bidder` - number of disabled bidders received within requests from account with `<account-id>`
+- `account.<account-id>.requests.unknown_bidder` - number of unknown bidder names received within requests from account with `<account-id>`
 - `account.<account-id>.adapter.<bidder-name>.request_time` - timer tracking how long did it take to make a request to `<bidder-name>` when incoming request was from `<account-id>` 
 - `account.<account-id>.adapter.<bidder-name>.bids_received` - number of bids received from `<bidder-name>` when incoming request was from `<account-id>`
 - `account.<account-id>.adapter.<bidder-name>.requests.(gotbids|nobid)` - number of requests made to `<bidder-name>` broken down by result status  when incoming request was from `<account-id>`

@@ -386,12 +386,15 @@ public class IxBidder implements Bidder<BidRequest> {
     }
 
     private static Response mergeNativeImpTrackers(Response response, List<EventTracker> eventTrackers) {
+        final Stream<String> impTrackers = Optional.of(response)
+                .map(Response::getImptrackers).stream().flatMap(Collection::stream);
+
         return response.toBuilder()
                 .imptrackers(Stream.concat(
                                 eventTrackers.stream()
                                         .filter(IxBidder::isImpTracker)
                                         .map(EventTracker::getUrl),
-                                response.getImptrackers().stream())
+                                impTrackers)
                         .distinct()
                         .toList())
                 .build();
