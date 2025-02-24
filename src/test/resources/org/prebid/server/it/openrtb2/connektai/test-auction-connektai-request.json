@@ -8,14 +8,17 @@
         "h": 250
       },
       "ext": {
-        "rtbhouse": {
-          "publisherId": "publisherId"
+        "connektai": {
+          "env": "envValue",
+          "pid": "pidValue"
         }
       }
     }
   ],
   "tmax": 5000,
   "regs": {
-    "gdpr": 0
+    "ext": {
+      "gdpr": 0
+    }
   }
 }

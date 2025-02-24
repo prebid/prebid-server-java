@@ -11,7 +11,8 @@
       "ext": {
         "tid": "${json-unit.any-string}",
         "bidder": {
-          "publisherId": "publisherId"
+          "env": "envValue",
+          "pid": "pidValue"
         }
       }
     }
@@ -35,12 +36,14 @@
   },
   "at": 1,
   "tmax": "${json-unit.any-number}",
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  },
   "cur": [
     "USD"
   ],
-  "regs": {
-    "gdpr": 0
-  },
   "ext": {
     "prebid": {
       "server": {
