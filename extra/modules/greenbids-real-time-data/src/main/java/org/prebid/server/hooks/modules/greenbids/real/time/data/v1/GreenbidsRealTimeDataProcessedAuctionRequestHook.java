@@ -6,14 +6,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Future;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.prebid.server.analytics.reporter.greenbids.model.ExplorationResult;
-import org.apache.commons.lang3.BooleanUtils;
-import org.prebid.server.analytics.reporter.greenbids.model.ExplorationResult;
 import org.prebid.server.analytics.reporter.greenbids.model.Ortb2ImpExtResult;
-import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.auction.model.Rejected;
 import org.prebid.server.auction.model.RejectedImp;
@@ -26,7 +22,8 @@ import org.prebid.server.hooks.execution.v1.analytics.TagsImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.FilterService;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.GreenbidsInferenceDataService;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.core.GreenbidsInvocationService;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.core.GreenbidsInvocationResultCreator;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.core.GreenbidsPayloadUpdater;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.OnnxModelRunner;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.OnnxModelRunnerWithThresholds;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.data.GreenbidsConfig;
@@ -64,34 +61,29 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
     private final FilterService filterService;
     private final OnnxModelRunnerWithThresholds onnxModelRunnerWithThresholds;
     private final GreenbidsInferenceDataService greenbidsInferenceDataService;
-    private final GreenbidsInvocationService greenbidsInvocationService;
 
     public GreenbidsRealTimeDataProcessedAuctionRequestHook(
             ObjectMapper mapper,
             FilterService filterService,
             OnnxModelRunnerWithThresholds onnxModelRunnerWithThresholds,
-            GreenbidsInferenceDataService greenbidsInferenceDataService,
-            GreenbidsInvocationService greenbidsInvocationService) {
+            GreenbidsInferenceDataService greenbidsInferenceDataService) {
+
         this.mapper = Objects.requireNonNull(mapper);
         this.filterService = Objects.requireNonNull(filterService);
         this.onnxModelRunnerWithThresholds = Objects.requireNonNull(onnxModelRunnerWithThresholds);
         this.greenbidsInferenceDataService = Objects.requireNonNull(greenbidsInferenceDataService);
-        this.greenbidsInvocationService = Objects.requireNonNull(greenbidsInvocationService);
     }
 
     @Override
-    public Future<InvocationResult<AuctionRequestPayload>> call(
-            AuctionRequestPayload auctionRequestPayload,
-            AuctionInvocationContext invocationContext) {
+    public Future<InvocationResult<AuctionRequestPayload>> call(AuctionRequestPayload auctionRequestPayload,
+                                                                AuctionInvocationContext invocationContext) {
 
-        final AuctionContext auctionContext = invocationContext.auctionContext();
-        final BidRequest bidRequest = auctionContext.getBidRequest();
-        final GreenbidsConfig greenbidsConfig = Optional.ofNullable(parseBidRequestExt(auctionContext))
+        final BidRequest bidRequest = auctionRequestPayload.bidRequest();
+        final GreenbidsConfig greenbidsConfig = Optional.ofNullable(parseBidRequestExt(bidRequest.getExt()))
                 .orElseGet(() -> toGreenbidsConfig(invocationContext.accountConfig()));
 
         if (greenbidsConfig == null) {
-            return Future.failedFuture(
-                    new PreBidException("Greenbids config is null; cannot proceed."));
+            return Future.failedFuture(new PreBidException("Greenbids config is null; cannot proceed."));
         }
 
         return Future.all(
@@ -102,14 +94,11 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                         greenbidsConfig,
                         compositeFuture.resultAt(0),
                         compositeFuture.resultAt(1)))
-                .recover(throwable -> Future.succeededFuture(toInvocationResult(
-                        bidRequest, null, InvocationAction.no_action)));
+                .recover(throwable -> noActionInvocationResult());
     }
 
-    private GreenbidsConfig parseBidRequestExt(AuctionContext auctionContext) {
-        return Optional.ofNullable(auctionContext)
-                .map(AuctionContext::getBidRequest)
-                .map(BidRequest::getExt)
+    private GreenbidsConfig parseBidRequestExt(ExtRequest extRequest) {
+        return Optional.ofNullable(extRequest)
                 .map(ExtRequest::getPrebid)
                 .map(ExtRequestPrebid::getAnalytics)
                 .filter(this::isNotEmptyObjectNode)
@@ -146,40 +135,43 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                     throttlingMessages,
                     threshold);
         } catch (PreBidException e) {
-            return Future.succeededFuture(toInvocationResult(
-                    bidRequest, null, InvocationAction.no_action));
+            return noActionInvocationResult();
         }
 
-        final GreenbidsInvocationResult greenbidsInvocationResult = greenbidsInvocationService
-                .createGreenbidsInvocationResult(greenbidsConfig, bidRequest, impsBiddersFilterMap);
+        final GreenbidsInvocationResult invocationResult = GreenbidsInvocationResultCreator.create(
+                greenbidsConfig,
+                bidRequest,
+                impsBiddersFilterMap);
 
-        return Future.succeededFuture(toInvocationResult(
-                greenbidsInvocationResult.getUpdatedBidRequest(),
-                greenbidsInvocationResult.getAnalyticsResult(),
-                greenbidsInvocationResult.getInvocationAction()));
+        return invocationResult.getInvocationAction() == InvocationAction.no_action
+                ? noActionInvocationResult(invocationResult.getAnalyticsResult())
+                : toInvocationResult(bidRequest, impsBiddersFilterMap, invocationResult);
     }
 
-    private InvocationResult<AuctionRequestPayload> toInvocationResult(
+    private Future<InvocationResult<AuctionRequestPayload>> toInvocationResult(
             BidRequest bidRequest,
-            AnalyticsResult analyticsResult,
-            InvocationAction action) {
+            Map<String, Map<String, Boolean>> impsBiddersFilterMap,
+            GreenbidsInvocationResult invocationResult) {
 
-        return switch (action) {
-            case InvocationAction.update -> InvocationResultImpl
-                    .<AuctionRequestPayload>builder()
-                    .status(InvocationStatus.success)
-                    .action(action)
-                    .payloadUpdate(payload -> AuctionRequestPayloadImpl.of(bidRequest))
-                    .analyticsTags(toAnalyticsTags(analyticsResult))
-                    .rejections(toRejections(analyticsResult))
-                    .build();
-            default -> InvocationResultImpl
-                    .<AuctionRequestPayload>builder()
-                    .status(InvocationStatus.success)
-                    .action(action)
-                    .analyticsTags(toAnalyticsTags(analyticsResult))
-                    .build();
-        };
+        return Future.succeededFuture(InvocationResultImpl.<AuctionRequestPayload>builder()
+                .status(InvocationStatus.success)
+                .action(invocationResult.getInvocationAction())
+                .payloadUpdate(payload -> AuctionRequestPayloadImpl.of(GreenbidsPayloadUpdater.update(bidRequest, impsBiddersFilterMap)))
+                .analyticsTags(toAnalyticsTags(invocationResult.getAnalyticsResult()))
+                .rejections(toRejections(impsBiddersFilterMap))
+                .build());
+    }
+
+    private Future<InvocationResult<AuctionRequestPayload>> noActionInvocationResult(AnalyticsResult analyticsResult) {
+        return Future.succeededFuture(InvocationResultImpl.<AuctionRequestPayload>builder()
+                .status(InvocationStatus.success)
+                .action(InvocationAction.no_action)
+                .analyticsTags(toAnalyticsTags(analyticsResult))
+                .build());
+    }
+
+    private Future<InvocationResult<AuctionRequestPayload>> noActionInvocationResult() {
+        return noActionInvocationResult(null);
     }
 
     private Tags toAnalyticsTags(AnalyticsResult analyticsResult) {
@@ -225,23 +217,16 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
         return values != null ? mapper.valueToTree(values) : null;
     }
 
-    private Map<String, List<Rejected>> toRejections(AnalyticsResult analyticsResult) {
-        if (analyticsResult == null) {
-            return null;
-        }
-
-        return analyticsResult.getValues().entrySet().stream()
-                .flatMap(entry ->
-                        Stream.ofNullable(entry.getValue())
-                                .map(Ortb2ImpExtResult::getGreenbids)
-                                .map(ExplorationResult::getKeptInAuction)
-                                .map(Map::entrySet)
-                                .flatMap(Collection::stream)
-                                .filter(e -> BooleanUtils.isFalse(e.getValue()))
-                                .map(Map.Entry::getKey)
-                                .map(bidder -> Pair.of(
-                                        bidder,
-                                        RejectedImp.of(entry.getKey(), BidRejectionReason.REQUEST_BLOCKED_OPTIMIZED))))
+    private Map<String, List<Rejected>> toRejections(Map<String, Map<String, Boolean>> impsBiddersFilterMap) {
+        return impsBiddersFilterMap.entrySet().stream()
+                .flatMap(entry -> Stream.ofNullable(entry.getValue())
+                        .map(Map::entrySet)
+                        .flatMap(Collection::stream)
+                        .filter(e -> BooleanUtils.isFalse(e.getValue()))
+                        .map(Map.Entry::getKey)
+                        .map(bidder -> Pair.of(
+                                bidder,
+                                RejectedImp.of(entry.getKey(), BidRejectionReason.REQUEST_BLOCKED_OPTIMIZED))))
                 .collect(Collectors.groupingBy(Pair::getKey, Collectors.mapping(Pair::getValue, Collectors.toList())));
     }
 
