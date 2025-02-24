@@ -49,16 +49,11 @@ public class WURFLDeviceMock implements com.scientiamobile.wurfl.core.Device {
     }
 
     @Override
-    public Map<String, String> getVirtualCapabilities() {
-        return Map.of();
-    }
-
-    @Override
     public String getId() {
         return id;
     }
 
-    @Override
+
     public String getWURFLUserAgent() {
         return "";
     }
@@ -91,17 +86,21 @@ public class WURFLDeviceMock implements com.scientiamobile.wurfl.core.Device {
         };
     }
 
-    @Override
+
     public Map<String, String> getCapabilities() {
         return Map.of();
     }
 
-    @Override
+    public Map<String, String> getVirtualCapabilities() {
+        return Map.of();
+    }
+
+
     public boolean isActualDeviceRoot() {
         return true;
     }
 
-    @Override
+
     public String getDeviceRootId() {
         return "";
     }
