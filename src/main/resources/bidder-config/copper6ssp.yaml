@@ -1,6 +1,6 @@
 adapters:
   copper6ssp:
-    endpoint: https://endpoint.copper6.com/
+    endpoint: https://endpoint.copper6.com/pserver
     meta-info:
       maintainer-email: info@copper6.com
       app-media-types:
