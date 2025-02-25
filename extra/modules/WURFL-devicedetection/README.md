@@ -22,6 +22,7 @@ The WURFL module populates missing or empty fields in ortb2.device with the foll
  - **pixelratio**: Screen pixel density ratio.
  - **devicetype**: Device type (e.g., mobile, tablet, desktop).
  - **Note**: If these fields are already populated in the bid request, the module will not overwrite them.
+
 #### Publisher-Specific Enrichment:
 
 Device enrichment is selectively enabled for publishers based on their account ID. 
@@ -30,7 +31,6 @@ The module identifies publishers through the following fields:
 `site.publisher.id` (for web environments).
 `app.publisher.id` (for mobile app environments).
 `dooh.publisher.id` (for digital out-of-home environments).
-```
 
 
 ### Build prerequisites
@@ -54,14 +54,17 @@ mvn install:install-file \
 
 ### Activating the WURFL Module
 
-The WURFL module is disabled by default. Building the Prebid Server Java with the default bundle option 
-does not include the WURFL module in the server's JAR file.
+In order to use the WURFL module, you must add the WURFL Onsite Java API dependency in the WURFL-devicedetection module's `pom.xml`:
 
-To include the WURFL module in the Prebid Server Java bundle, follow these steps:
-
-1. Uncomment the WURFL Java API dependency in `extra/modules/WURFL-devicedetection/pom.xml`.
-2. Uncomment the WURFL module dependency in `extra/bundle/pom.xml`.
-3. Uncomment the WURFL module name in the module list in `extra/modules/pom.xml`.
+```xml
+<dependency>
+    <groupId>com.scientiamobile.wurfl</groupId>
+    <artifactId>wurfl</artifactId>
+    <version>${wurfl.version}</version>
+</dependency>
+```
+If the WURFL API dependency is not added, the module will compile a demo version that returns sample data, allowing basic testing without an WURFL Onsite Java API license.
+**Note: **Before compiling the Prebid Server Java bundle with the WURFL module, you must also remove the `com` directory under `src/main/java` to avoid classloader issues.
 
 After making these changes, you can build the Prebid Server Java bundle with the WURFL module using the following command:
 

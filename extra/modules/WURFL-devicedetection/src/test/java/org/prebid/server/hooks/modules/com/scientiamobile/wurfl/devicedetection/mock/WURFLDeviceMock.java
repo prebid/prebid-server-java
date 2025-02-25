@@ -53,7 +53,6 @@ public class WURFLDeviceMock implements com.scientiamobile.wurfl.core.Device {
         return id;
     }
 
-
     public String getWURFLUserAgent() {
         return "";
     }
@@ -86,7 +85,6 @@ public class WURFLDeviceMock implements com.scientiamobile.wurfl.core.Device {
         };
     }
 
-
     public Map<String, String> getCapabilities() {
         return Map.of();
     }
@@ -95,11 +93,9 @@ public class WURFLDeviceMock implements com.scientiamobile.wurfl.core.Device {
         return Map.of();
     }
 
-
     public boolean isActualDeviceRoot() {
         return true;
     }
-
 
     public String getDeviceRootId() {
         return "";
