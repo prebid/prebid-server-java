@@ -11,12 +11,12 @@ import java.util.Set;
 
 public class GeneralWURFLEngine implements WURFLEngine {
 
-    public GeneralWURFLEngine(String wurflPath){}
+    public GeneralWURFLEngine(String wurflPath) { }
 
     public static void wurflDownload(String wurflUrl, String dest) {
     }
 
-    static final Map<String, String> capabilities = Map.ofEntries(
+    static final Map<String, String> CAPABILITIES = Map.ofEntries(
             Map.entry("brand_name", "Google"),
             Map.entry("model_name", "Pixel 9 Pro XL"),
             Map.entry("device_os", "Android"),
@@ -41,7 +41,7 @@ public class GeneralWURFLEngine implements WURFLEngine {
             Map.entry("physical_form_factor", "phone_phablet"),
             Map.entry("xhtml_support_level", "4")
     );
-    static final Map<String, String> virtualCapabilities = Map.of(
+    static final Map<String, String> VIRTUAL_CAPABILITIES = Map.of(
             "advertised_device_os", "Android",
             "advertised_device_os_version", "15",
             "pixel_density", "481",
@@ -54,17 +54,17 @@ public class GeneralWURFLEngine implements WURFLEngine {
             "complete_device_name", "Google Pixel 9 Pro XL"
     );
 
-    final static Set<String> capabilitiesKeys = new HashSet<>(capabilities.keySet());
-    final static Set<String> virtualCapabilitiesKeys = new HashSet<>(virtualCapabilities.keySet());
+    static final Set<String> CAPABILITIES_KEYS = new HashSet<>(CAPABILITIES.keySet());
+    static final Set<String> VIRTUAL_CAPABILITIES_KEYS = new HashSet<>(VIRTUAL_CAPABILITIES.keySet());
 
     @Override
     public Set<String> getAllCapabilities() {
-        return capabilitiesKeys;
+        return CAPABILITIES_KEYS;
     }
 
     @Override
     public Set<String> getAllVirtualCapabilities() {
-        return virtualCapabilitiesKeys;
+        return VIRTUAL_CAPABILITIES_KEYS;
     }
 
     @Override
@@ -99,8 +99,8 @@ public class GeneralWURFLEngine implements WURFLEngine {
 
             @Override
             public String getCapability(String name) throws CapabilityNotDefinedException {
-                if(capabilities.containsKey(name)) {
-                    return capabilities.get(name);
+                if (CAPABILITIES.containsKey(name)) {
+                    return CAPABILITIES.get(name);
                 } else {
                     throw new CapabilityNotDefinedException(
                             "Capability: " + name + " is not defined in WURFL");
@@ -108,9 +108,10 @@ public class GeneralWURFLEngine implements WURFLEngine {
             }
 
             @Override
-            public String getVirtualCapability(String name) throws VirtualCapabilityNotDefinedException, CapabilityNotDefinedException {
-                if(virtualCapabilities.containsKey(name)) {
-                    return virtualCapabilities.get(name);
+            public String getVirtualCapability(String name) throws VirtualCapabilityNotDefinedException,
+                    CapabilityNotDefinedException {
+                if (VIRTUAL_CAPABILITIES.containsKey(name)) {
+                    return VIRTUAL_CAPABILITIES.get(name);
                 } else {
                     throw new VirtualCapabilityNotDefinedException(
                             "Virtual Capability: " + name + " is not defined in WURFL");
@@ -118,13 +119,15 @@ public class GeneralWURFLEngine implements WURFLEngine {
             }
 
             @Override
-            public int getVirtualCapabilityAsInt(String s) throws VirtualCapabilityNotDefinedException, CapabilityNotDefinedException, NumberFormatException {
+            public int getVirtualCapabilityAsInt(String s) throws VirtualCapabilityNotDefinedException,
+                    CapabilityNotDefinedException, NumberFormatException {
                 return 0;
             }
 
             @Override
-            public boolean getVirtualCapabilityAsBool(String vcapName) throws VirtualCapabilityNotDefinedException, CapabilityNotDefinedException, NumberFormatException {
-                return Boolean.parseBoolean( getVirtualCapability(vcapName));
+            public boolean getVirtualCapabilityAsBool(String vcapName) throws VirtualCapabilityNotDefinedException,
+                    CapabilityNotDefinedException, NumberFormatException {
+                return Boolean.parseBoolean(getVirtualCapability(vcapName));
             }
 
             @Override
@@ -138,8 +141,9 @@ public class GeneralWURFLEngine implements WURFLEngine {
             }
 
             @Override
-            public boolean getCapabilityAsBool(String capName) throws CapabilityNotDefinedException, NumberFormatException {
-                return Boolean.parseBoolean( getCapability(capName));
+            public boolean getCapabilityAsBool(String capName) throws CapabilityNotDefinedException,
+                    NumberFormatException {
+                return Boolean.parseBoolean(getCapability(capName));
             }
         };
     }

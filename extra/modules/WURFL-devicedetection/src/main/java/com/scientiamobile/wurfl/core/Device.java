@@ -23,7 +23,7 @@ public interface Device {
 
     String getWURFLUserAgent();
 
-    public int getCapabilityAsInt(String capName) throws CapabilityNotDefinedException, NumberFormatException;
+    int getCapabilityAsInt(String capName) throws CapabilityNotDefinedException, NumberFormatException;
 
     boolean getCapabilityAsBool(String capName) throws CapabilityNotDefinedException, NumberFormatException;
 }
