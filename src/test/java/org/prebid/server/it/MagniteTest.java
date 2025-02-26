@@ -5,6 +5,7 @@ import org.json.JSONException;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.version.PrebidVersionProvider;
+import org.skyscreamer.jsonassert.Customization;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.IOException;
@@ -33,6 +34,10 @@ public class MagniteTest extends IntegrationTest {
                 Endpoint.openrtb2_auction);
 
         // then
-        assertJsonEquals("openrtb2/magnite/test-auction-magnite-response.json", response, singletonList("magnite"));
+        assertJsonEquals(
+                "openrtb2/magnite/test-auction-magnite-response.json",
+                response,
+                singletonList("magnite"),
+                new Customization("seatbid[*].bid[*].id", (o1, o2) -> true));
     }
 }

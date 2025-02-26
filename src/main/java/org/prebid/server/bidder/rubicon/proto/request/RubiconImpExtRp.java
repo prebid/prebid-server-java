@@ -13,4 +13,6 @@ public class RubiconImpExtRp {
     RubiconImpExtRpTrack track;
 
     RubiconImpExtRpRtb rtb;
+
+    String pbBidId;
 }

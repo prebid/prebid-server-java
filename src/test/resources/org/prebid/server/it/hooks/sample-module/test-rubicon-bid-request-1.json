@@ -24,6 +24,7 @@
       "tagid": "tagid-from-bidder-request-hook",
       "ext": {
         "rp": {
+          "pb_bid_id" : "${json-unit.any-string}",
           "zone_id": 4001,
           "target": {
             "page": [
