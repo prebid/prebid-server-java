@@ -17,6 +17,9 @@ adapters:
       felixads:
         enabled: false
         endpoint: https://felixads-prebid.attekmi.com/pbserver/?seat={{AccountID}}&token={{SourceId}}
+      jambojar:
+        enabled: false
+        endpoint: https://jambojar-prebid.attekmi.com/pbserver/?seat={{AccountID}}&token={{SourceId}}
     meta-info:
       maintainer-email: prebid@attekmi.com
       app-media-types:
