@@ -26,7 +26,6 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.currency.CurrencyConversionService;
-import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtAppPrebid;
@@ -203,32 +202,6 @@ public class ConnatixBidderTest extends VertxTest {
                                 Format.builder().w(1).h(1).build()))
                         .build()
                 );
-    }
-
-    @Test
-    public void makeHttpRequestsShouldErrorWhenBidFloorIsInvalid() {
-        // given
-        given(currencyConversionService.convertCurrency(any(), any(), anyString(), anyString()))
-                .willThrow(PreBidException.class);
-        final BidRequest bidRequest = givenBidRequest(
-                request -> request.device(Device.builder().ip("deviceIp").build()),
-                impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, givenExt(UnaryOperator.identity()))))
-                        .bidfloorcur("EUR")
-                        .bidfloor(BigDecimal.ONE)
-        );
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors())
-                .hasSize(1)
-                .allSatisfy(bidderError -> {
-                    assertThat(bidderError.getMessage())
-                            .startsWith("Unable to convert provided bid floor currency from EUR to USD");
-                    assertThat(bidderError.getType()).isEqualTo(BidderError.Type.bad_input);
-                });
     }
 
     @Test

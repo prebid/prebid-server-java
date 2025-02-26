@@ -7,14 +7,11 @@
         "w": 320,
         "h": 50
       },
-      "displaymanagerver": "",
       "secure": 1,
       "ext": {
-        "tid": "${json-unit.any-string}",
-        "bidder": {
+        "connatix": {
           "placementId": "some-placement-id"
-        },
-        "placementId": "some-placement-id"
+        }
       }
     }
   ],

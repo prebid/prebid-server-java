@@ -14,7 +14,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -49,8 +48,6 @@ public class ConnatixBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private static final int MAX_IMPS_PER_REQUEST = 1;
-
     private static final String BIDDER_CURRENCY = "USD";
 
     private final String endpointUrl;
@@ -78,7 +75,7 @@ public class ConnatixBidder implements Bidder<BidRequest> {
         final String displayManagerVer = buildDisplayManagerVersion(request);
         final MultiMap headers = resolveHeaders(device);
 
-        final List<Imp> modifiedImps = new ArrayList<>();
+        final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
         final List<BidderError> errors = new ArrayList<>();
 
         for (Imp imp : request.getImp()) {
@@ -86,60 +83,61 @@ public class ConnatixBidder implements Bidder<BidRequest> {
                 final ExtImpConnatix extImpConnatix = parseExtImp(imp);
                 final Imp modifiedImp = modifyImp(imp, extImpConnatix, displayManagerVer, request);
 
-                modifiedImps.add(modifiedImp);
+                httpRequests.add(makeHttpRequest(request, modifiedImp, headers));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
         }
 
-        final List<HttpRequest<BidRequest>> httpRequests = splitHttpRequests(request, modifiedImps, headers);
-
         return Result.of(httpRequests, errors);
+    }
+
+    private static String buildDisplayManagerVersion(BidRequest request) {
+        final String formatting = "%s-%s";
+
+        return Optional.ofNullable(request.getApp())
+                .map(App::getExt)
+                .map(ExtApp::getPrebid)
+                .filter(prebid -> ObjectUtils.allNotNull(prebid.getSource(), prebid.getVersion()))
+                .map(prebid -> formatting.formatted(prebid.getSource(), prebid.getVersion()))
+                .orElse(StringUtils.EMPTY);
+    }
+
+    private MultiMap resolveHeaders(Device device) {
+        final MultiMap headers = HttpUtil.headers();
+        if (device != null) {
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIpv6());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
+        }
+        return headers;
+    }
+
+    private ExtImpConnatix parseExtImp(Imp imp) {
+        try {
+            return mapper.mapper().convertValue(imp.getExt(), CONNATIX_EXT_TYPE_REFERENCE).getBidder();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(e.getMessage());
+        }
     }
 
     private Imp modifyImp(Imp imp, ExtImpConnatix extImpConnatix, String displayManagerVer, BidRequest request) {
 
-
         final Price bidFloorPrice = resolveBidFloor(imp, request);
 
-        final ObjectNode impExt = mapper.mapper().createObjectNode().set("connatix", mapper.mapper().valueToTree(extImpConnatix));
+        final ObjectNode impExt = mapper.mapper()
+                .createObjectNode().set("connatix", mapper.mapper().valueToTree(extImpConnatix));
 
         return imp.toBuilder()
                 .ext(impExt)
                 .banner(modifyImpBanner(imp.getBanner()))
-                .displaymanagerver(StringUtils.isBlank(imp.getDisplaymanagerver()) && StringUtils.isNotBlank(displayManagerVer)
+                .displaymanagerver(StringUtils.isBlank(imp.getDisplaymanagerver())
+                        && StringUtils.isNotBlank(displayManagerVer)
                         ? displayManagerVer
                         : imp.getDisplaymanagerver())
                 .bidfloor(bidFloorPrice.getValue())
                 .bidfloorcur(bidFloorPrice.getCurrency())
                 .build();
-    }
-
-    private Banner modifyImpBanner(Banner banner) {
-        if (banner == null) {
-            return null;
-        }
-
-        if (banner.getW() == null && banner.getH() == null && CollectionUtils.isNotEmpty(banner.getFormat())) {
-            final Format firstFormat = banner.getFormat().getFirst();
-            return banner.toBuilder()
-                    .w(firstFormat.getW())
-                    .h(firstFormat.getH())
-                    .build();
-        }
-        return banner;
-    }
-
-    @Override
-    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
-        try {
-            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            final List<BidderBid> bids = extractBids(bidResponse);
-
-            return Result.withValues(bids);
-        } catch (DecodeException | PreBidException e) {
-            return Result.withError(BidderError.badServerResponse(e.getMessage()));
-        }
     }
 
     private Price resolveBidFloor(Imp imp, BidRequest bidRequest) {
@@ -159,6 +157,42 @@ public class ConnatixBidder implements Bidder<BidRequest> {
         return Price.of(BIDDER_CURRENCY, convertedPrice);
     }
 
+    private Banner modifyImpBanner(Banner banner) {
+        if (banner == null) {
+            return null;
+        }
+
+        if (banner.getW() == null && banner.getH() == null && CollectionUtils.isNotEmpty(banner.getFormat())) {
+            final Format firstFormat = banner.getFormat().getFirst();
+            return banner.toBuilder()
+                    .w(firstFormat.getW())
+                    .h(firstFormat.getH())
+                    .build();
+        }
+        return banner;
+    }
+
+    private HttpRequest<BidRequest> makeHttpRequest(BidRequest request, Imp imp, MultiMap headers) {
+        final BidRequest outgoingRequest = request.toBuilder()
+                .imp(List.of(imp))
+                .cur(List.of(BIDDER_CURRENCY))
+                .build();
+
+        return BidderUtil.defaultRequest(outgoingRequest, headers, endpointUrl, mapper);
+    }
+
+    @Override
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
+        try {
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            final List<BidderBid> bids = extractBids(bidResponse);
+
+            return Result.withValues(bids);
+        } catch (DecodeException | PreBidException e) {
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
+        }
+    }
+
     private static List<BidderBid> extractBids(BidResponse bidResponse) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
@@ -172,53 +206,6 @@ public class ConnatixBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .map(bid -> BidderBid.of(bid, getBidType(bid), BIDDER_CURRENCY))
                 .toList();
-    }
-
-    private ExtImpConnatix parseExtImp(Imp imp) {
-        try {
-            return mapper.mapper().convertValue(imp.getExt(), CONNATIX_EXT_TYPE_REFERENCE).getBidder();
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage());
-        }
-    }
-
-    private HttpRequest<BidRequest> makeHttpRequest(BidRequest request, List<Imp> impsChunk, MultiMap headers) {
-        final BidRequest outgoingRequest = request.toBuilder()
-                .imp(impsChunk)
-                .cur(List.of(BIDDER_CURRENCY))
-                .build();
-
-        return BidderUtil.defaultRequest(outgoingRequest, headers, endpointUrl, mapper);
-    }
-
-    private List<HttpRequest<BidRequest>> splitHttpRequests(BidRequest bidRequest,
-                                                            List<Imp> imps,
-                                                            MultiMap headers) {
-        return ListUtils.partition(imps, MAX_IMPS_PER_REQUEST)
-                .stream()
-                .map(impsChunk -> makeHttpRequest(bidRequest, impsChunk, headers))
-                .toList();
-    }
-
-    private MultiMap resolveHeaders(Device device) {
-        final MultiMap headers = HttpUtil.headers();
-        if (device != null) {
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIpv6());
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
-        }
-        return headers;
-    }
-
-    private static String buildDisplayManagerVersion(BidRequest request) {
-        final String formatting = "%s-%s";
-
-        return Optional.ofNullable(request.getApp())
-                .map(App::getExt)
-                .map(ExtApp::getPrebid)
-                .filter(prebid -> ObjectUtils.allNotNull(prebid.getSource(), prebid.getVersion()))
-                .map(prebid -> formatting.formatted(prebid.getSource(), prebid.getVersion()))
-                .orElse(StringUtils.EMPTY);
     }
 
     private static BidType getBidType(Bid bid) {
