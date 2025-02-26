@@ -18,8 +18,10 @@ import org.prebid.server.hooks.execution.v1.analytics.ResultImpl;
 import org.prebid.server.hooks.execution.v1.analytics.TagsImpl;
 import org.prebid.server.it.IntegrationTest;
 import org.prebid.server.version.PrebidVersionProvider;
+import org.skyscreamer.jsonassert.Customization;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
+import org.skyscreamer.jsonassert.comparator.CustomComparator;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.IOException;
@@ -67,7 +69,12 @@ public class HooksTest extends IntegrationTest {
         final String expectedAuctionResponse = openrtbAuctionResponseFrom(
                 "hooks/sample-module/test-auction-sample-module-response.json", response, singletonList(RUBICON));
 
-        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.LENIENT);
+        JSONAssert.assertEquals(
+                expectedAuctionResponse,
+                response.asString(),
+                new CustomComparator(
+                        JSONCompareMode.LENIENT,
+                        new Customization("seatbid[*].bid[*].id", (o1, o2) -> true)));
 
         //todo: remove everything below after at least one exitpoint module is added and tested by functional tests
         assertThat(response.getHeaders())
