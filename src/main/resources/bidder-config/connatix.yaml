@@ -1,8 +1,6 @@
 adapters:
   connatix:
     endpoint: "https://capi.connatix.com/rtb/ortb"
-    ortb:
-      multiformat-supported: false
     meta-info:
       maintainer-email: "pubsolutions@connatix.com"
       vendor-id: 143
@@ -16,10 +14,10 @@ adapters:
       cookie-family-name: connatix
       iframe:
         url: "https://capi.connatix.com/us/pixel?pId=53&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&callback={{redirect_url}}"
-        uid-macro: '$UID'
+        uid-macro: '[UID]'
         supportCors: false
       redirect:
         url: "https://capi.connatix.com/us/pixel?pId=52&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&callback={{redirect_url}}"
-        uid-macro: '$UID'
-        supportCors: false
+        uid-macro: '[UID]'
+        support-cors: false
 
