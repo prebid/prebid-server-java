@@ -5,8 +5,12 @@ import com.iab.openrtb.request.Imp;
 import io.vertx.core.Future;
 import lombok.Builder;
 import lombok.Value;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.ListUtils;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
+import org.prebid.server.hooks.modules.rule.engine.core.request.RequestRuleContext;
+import org.prebid.server.hooks.modules.rule.engine.core.request.RequestRuleResult;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.ArgumentExtractor;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.Rule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleFactory;
@@ -47,23 +51,19 @@ public class RuleEngineProcessedAuctionRequestHook implements ProcessedAuctionRe
     @Override
     public Future<InvocationResult<AuctionRequestPayload>> call(AuctionRequestPayload auctionRequestPayload, AuctionInvocationContext invocationContext) {
         final BidRequest originalBidRequest = auctionRequestPayload.bidRequest();
+        final List<Imp> imps = ListUtils.emptyIfNull(originalBidRequest.getImp());
 
+        final RuleFactory<Imp, Imp> ruleFactory = new RuleFactory<>();
+        final Rule<Imp, RequestRuleResult, RequestRuleContext> rule = null;
+
+        for (Imp imp : imps) {
+            RequestRuleResult result = rule.apply(RequestRuleContext.of(false, imp, originalBidRequest));
+        }
         final ArgumentExtractor<Test> isTestExtractor = test -> String.valueOf(test.test);
         final ArgumentExtractor<Test> versionExtractor = test -> String.valueOf(test.version);
         final ArgumentExtractor<Test> nameExtractor = test -> test.name;
 
-        final RuleFactory<Imp, Imp> ruleFactory = new RuleFactory<>();
 
-        final Rule<Imp, Imp, Test> rule = ruleFactory.buildRule(
-                List.of(isTestExtractor, versionExtractor, nameExtractor),
-                Map.of(
-                        "false|12|hello", test -> test,
-                        "true|5|test", test -> test,
-                        "false|12|*", test -> test.toBuilder().id("id").build(),
-                        "true|1|hello", test -> test,
-                        "true|-2|aloha", test -> test,
-                        "true|-2|hello", test -> test,
-                        "false|*|*", test -> test));
 
         final Imp mutated = rule
                 .apply(new Test("bruh", 12, false))
@@ -82,6 +82,7 @@ public class RuleEngineProcessedAuctionRequestHook implements ProcessedAuctionRe
                 .status(InvocationStatus.success)
                 .action(InvocationAction.update)
                 .payloadUpdate(payloadUpdate)
+                .analyticsTags()
                 .build();
     }
 
