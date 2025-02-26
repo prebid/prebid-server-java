@@ -14,6 +14,7 @@
       "bidfloor": 0.5,
       "ext": {
         "tid": "${json-unit.any-string}",
+        "gpid": "640x480",
         "bidder": {
           "token": "XXX",
           "bidFloor": 0.5,
