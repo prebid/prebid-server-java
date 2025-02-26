@@ -6,6 +6,18 @@ First, thank you for taking on the migration of an adapter from Go to Java. But 
 
 Keep in mind that the PBS-Go team is more lenient about what they allow in adapters compared to the PBS-Java team.
 
+## Pull Request Requirements
+
+We would appreciate it if your porting PR title follows these patterns:
+
+- `Port <adapter_name>: New Adapter` – For porting a completely new adapter to the project (e.g., `Port Kobler: New Adapter`).
+- `Port <adapter_name>: <update_description>` – For porting a specific update to an existing adapter (e.g., `Port OpenX: Native Support`).
+
+Additionally, we kindly ask that you:
+
+- Link any existing GitHub issues that your PR resolves. This ensures the issue will be automatically closed when your PR is merged.
+- Add the label `do not port` to your PR.
+
 ## Porting Requirements
 
 1. **Feature Parity**: A Java adapter should have the same functionality as the Go adapter.
