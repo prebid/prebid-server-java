@@ -619,9 +619,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         }
 
         and: "Activities set for transmitEIDS with rejecting privacy regulation"
-        def rule = new ActivityRule().tap {
-            it.privacyRegulation = [privacyAllowRegulations]
-        }
+        def rule = new ActivityRule(privacyRegulation: [privacyAllowRegulations])
 
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_EIDS, Activity.getDefaultActivity([rule]))
 
@@ -1588,9 +1586,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         }
 
         and: "Activities set for transmitEIDS with allowing privacy regulation"
-        def rule = new ActivityRule().tap {
-            it.privacyRegulation = [privacyAllowRegulations]
-        }
+        def rule = new ActivityRule(privacyRegulation: [privacyAllowRegulations])
 
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_EIDS, Activity.getDefaultActivity([rule]))
 
@@ -2344,9 +2340,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         }
 
         and: "Activities set for transmitEIDS with rejecting privacy regulation"
-        def rule = new ActivityRule().tap {
-            it.privacyRegulation = [privacyAllowRegulations]
-        }
+        def rule = new ActivityRule(privacyRegulation: [privacyAllowRegulations])
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_EIDS, Activity.getDefaultActivity([rule]))
 
         and: "Account gpp configuration"
@@ -2377,9 +2371,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         }
 
         and: "Activities set for transmitEIDS with rejecting privacy regulation"
-        def rule = new ActivityRule().tap {
-            it.privacyRegulation = [privacyAllowRegulations]
-        }
+        def rule = new ActivityRule(privacyRegulation: [privacyAllowRegulations])
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_EIDS, Activity.getDefaultActivity([rule]))
 
         and: "Account gpp configuration"
@@ -2428,9 +2420,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         }
 
         and: "Activities set for transmitEIDS with rejecting privacy regulation"
-        def rule = new ActivityRule().tap {
-            it.privacyRegulation = [privacyAllowRegulations]
-        }
+        def rule = new ActivityRule(privacyRegulation: [privacyAllowRegulations])
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_EIDS, Activity.getDefaultActivity([rule]))
 
         and: "Account gpp configuration"

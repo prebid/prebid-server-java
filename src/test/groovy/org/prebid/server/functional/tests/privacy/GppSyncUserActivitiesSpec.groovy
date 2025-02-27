@@ -352,9 +352,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         }
 
         and: "Activities set for cookie sync with allowing privacy regulation"
-        def rule = new ActivityRule().tap {
-            it.privacyRegulation = [privacyAllowRegulations]
-        }
+        def rule = new ActivityRule(privacyRegulation: [privacyAllowRegulations])
 
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([rule]))
 
@@ -1185,9 +1183,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def uidsCookie = UidsCookie.defaultUidsCookie
 
         and: "Activities set for cookie sync with allowing privacy regulation"
-        def rule = new ActivityRule().tap {
-            it.privacyRegulation = [privacyAllowRegulations]
-        }
+        def rule = new ActivityRule(privacyRegulation: [privacyAllowRegulations])
 
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([rule]))
 
@@ -2066,9 +2062,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         }
 
         and: "Activities set for cookie sync with allowing privacy regulation"
-        def rule = new ActivityRule().tap {
-            it.privacyRegulation = [privacyAllowRegulations]
-        }
+        def rule = new ActivityRule(privacyRegulation: [privacyAllowRegulations])
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([rule]))
 
         and: "Account gpp configuration"
@@ -2101,9 +2095,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         }
 
         and: "Activities set for cookie sync with allowing privacy regulation"
-        def rule = new ActivityRule().tap {
-            it.privacyRegulation = [privacyAllowRegulation]
-        }
+        def rule = new ActivityRule(privacyRegulation: [privacyAllowRegulation])
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([rule]))
 
         and: "Account gpp configuration"
@@ -2155,9 +2147,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         }
 
         and: "Activities set for cookie sync with allowing privacy regulation"
-        def rule = new ActivityRule().tap {
-            it.privacyRegulation = [privacyAllowRegulation]
-        }
+        def rule = new ActivityRule(privacyRegulation: [privacyAllowRegulation])
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([rule]))
 
         and: "Account gpp configuration"
