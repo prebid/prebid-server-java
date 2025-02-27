@@ -888,7 +888,6 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
             seatbid[0].bid[0].ext = new BidExt(prebid: new Prebid(meta: new Meta(mediaType: VIDEO.value)))
             seatbid[0].bid[1].ext = new BidExt(prebid: new Prebid(meta: new Meta(mediaType: BANNER.value)))
-
         }
         bidder.setResponse(bidRequest.id, bidResponse)
 
