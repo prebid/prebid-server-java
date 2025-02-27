@@ -133,7 +133,7 @@ public class BidderParamValidatorTest extends VertxTest {
         final Set<String> messages = bidderParamValidator.validate(APPNEXUS, node);
 
         // then
-        assertThat(messages.size()).isEqualTo(4);
+        assertThat(messages.size()).isEqualTo(5);
     }
 
     @Test
@@ -161,7 +161,7 @@ public class BidderParamValidatorTest extends VertxTest {
         final Set<String> messages = bidderParamValidator.validate(APPNEXUS_ALIAS, node);
 
         // then
-        assertThat(messages.size()).isEqualTo(4);
+        assertThat(messages.size()).isEqualTo(5);
     }
 
     @Test
@@ -201,7 +201,7 @@ public class BidderParamValidatorTest extends VertxTest {
         final Set<String> messages = bidderParamValidator.validate(SOVRN, node);
 
         // then
-        assertThat(messages.size()).isEqualTo(2);
+        assertThat(messages.size()).isEqualTo(3);
     }
 
     @Test
@@ -339,7 +339,7 @@ public class BidderParamValidatorTest extends VertxTest {
         final Set<String> messages = bidderParamValidator.validate(BEACHFRONT, node);
 
         // then
-        assertThat(messages.size()).isEqualTo(2);
+        assertThat(messages.size()).isEqualTo(3);
     }
 
     @Test
