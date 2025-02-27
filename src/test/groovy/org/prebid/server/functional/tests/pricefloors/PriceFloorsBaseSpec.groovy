@@ -34,8 +34,7 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
 
     public static final BigDecimal FLOOR_MIN = 0.5
     public static final BigDecimal FLOOR_MAX = 2
-    public static final Map<String, String> FLOORS_CONFIG = ["price-floors.enabled"           : "true",
-                                                             "settings.default-account-config": encode(defaultAccountConfigSettings)]
+    public static final Map<String, String> FLOORS_CONFIG = ["price-floors.enabled": "true"]
 
     protected static final String BASIC_FETCH_URL = networkServiceContainer.rootUri + FloorsProvider.FLOORS_ENDPOINT
     protected static final int MAX_MODEL_WEIGHT = 100
