@@ -608,7 +608,7 @@ public class OpenxBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnResultWithExpectedFields() throws JsonProcessingException {
+    public void makeBidsShouldReturnResultForBannerBidsWithExpectedFields() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(OpenxBidResponse.builder()
                 .seatbid(singletonList(SeatBid.builder()
@@ -619,6 +619,7 @@ public class OpenxBidderTest extends VertxTest {
                                 .impid("impId1")
                                 .dealid("dealid")
                                 .adm("<div>This is an Ad</div>")
+                                .mtype(1)
                                 .build()))
                         .build()))
                 .cur("UAH")
@@ -654,6 +655,7 @@ public class OpenxBidderTest extends VertxTest {
                                 .w(200)
                                 .h(150)
                                 .adm("<div>This is an Ad</div>")
+                                .mtype(1)
                                 .build(),
                         BidType.banner, "UAH"));
         assertThat(result.getIgi()).containsExactly(igi);
@@ -670,6 +672,7 @@ public class OpenxBidderTest extends VertxTest {
                                 .price(BigDecimal.ONE)
                                 .impid("impId1")
                                 .adm("{\"ver\":\"1.2\"}")
+                                .mtype(4)
                                 .build()))
                         .build()))
                 .cur("UAH")
@@ -697,6 +700,7 @@ public class OpenxBidderTest extends VertxTest {
                                 .w(200)
                                 .h(150)
                                 .adm("{\"ver\":\"1.2\"}")
+                                .mtype(4)
                                 .build(),
                         BidType.xNative, "UAH"));
     }
@@ -715,6 +719,7 @@ public class OpenxBidderTest extends VertxTest {
                                 .adm("<div>This is an Ad</div>")
                                 .dur(30)
                                 .cat(singletonList("category1"))
+                                .mtype(2)
                                 .build()))
                         .build()))
                 .build()));
@@ -735,6 +740,98 @@ public class OpenxBidderTest extends VertxTest {
         assertThat(result.getBids()).hasSize(1)
                 .extracting(BidderBid::getVideoInfo)
                 .containsExactly(ExtBidPrebidVideo.of(30, "category1"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnBidsWithTypeFromImpWhenNoMtype() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(OpenxBidResponse.builder()
+                .seatbid(List.of(
+                        SeatBid.builder()
+                                .bid(singletonList(Bid.builder()
+                                        .w(200)
+                                        .h(150)
+                                        .price(BigDecimal.ONE)
+                                        .impid("impId1-banner")
+                                        .adm("<div>This is an Ad</div>")
+                                        .build()))
+                                .build(),
+                        SeatBid.builder()
+                                .bid(singletonList(Bid.builder()
+                                        .w(300)
+                                        .h(150)
+                                        .price(BigDecimal.TWO)
+                                        .impid("impId2-video")
+                                        .adm("<div>This is an Ad</div>")
+                                        .dur(15)
+                                        .build()))
+                                .build(),
+                        SeatBid.builder()
+                                .bid(singletonList(Bid.builder()
+                                        .w(150)
+                                        .h(150)
+                                        .price(BigDecimal.TEN)
+                                        .impid("impId3-native")
+                                        .adm("{\"ver\":\"1.2\"}")
+                                        .build()))
+                                .build()))
+                .cur("UAH")
+                .build()));
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .id("bidRequestId")
+                .imp(List.of(
+                        Imp.builder()
+                                .id("impId1-banner")
+                                .banner(Banner.builder().build())
+                                .build(),
+                        Imp.builder()
+                                .id("impId2-video")
+                                .video(Video.builder().build())
+                                .build(),
+                        Imp.builder()
+                                .id("impId3-native")
+                                .xNative(Native.builder().build())
+                                .build()))
+                .build();
+
+        // when
+        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getBids()).hasSize(3)
+                .contains(BidderBid.of(
+                        Bid.builder()
+                                .impid("impId1-banner")
+                                .price(BigDecimal.ONE)
+                                .w(200)
+                                .h(150)
+                                .adm("<div>This is an Ad</div>")
+                                .build(),
+                        BidType.banner, "UAH"))
+                .contains(BidderBid.builder()
+                        .bid(Bid.builder()
+                                .impid("impId2-video")
+                                .price(BigDecimal.TWO)
+                                .w(300)
+                                .h(150)
+                                .adm("<div>This is an Ad</div>")
+                                .dur(15)
+                                .build())
+                        .videoInfo(ExtBidPrebidVideo.of(15, null))
+                        .type(BidType.video)
+                        .bidCurrency("UAH")
+                        .build())
+                .contains(BidderBid.of(
+                        Bid.builder()
+                                .impid("impId3-native")
+                                .price(BigDecimal.TEN)
+                                .w(150)
+                                .h(150)
+                                .adm("{\"ver\":\"1.2\"}")
+                                .build(),
+                        BidType.xNative, "UAH"));
     }
 
     @Test
@@ -770,7 +867,59 @@ public class OpenxBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnRespectBannerImpWhenBothBannerAndVideoImpWithSameIdExist()
+    public void makeBidsShouldRespectMtypeWhenBothBannerAndVideoImpWithSameIdExist() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder()
+                .seatbid(singletonList(SeatBid.builder()
+                        .bid(singletonList(Bid.builder()
+                                .w(200)
+                                .h(150)
+                                .price(BigDecimal.ONE)
+                                .impid("impId1")
+                                .dealid("dealid")
+                                .adm("<div>This is an Ad</div>")
+                                .dur(30)
+                                .cat(singletonList("category1"))
+                                .mtype(2)
+                                .build()))
+                        .build()))
+                .build()));
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .id("bidRequestId")
+                .imp(singletonList(Imp.builder()
+                        .id("impId1")
+                        .video(Video.builder().build())
+                        .banner(Banner.builder().build())
+                        .build()))
+                .build();
+
+        // when
+        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getBids()).hasSize(1)
+                .containsOnly(
+                        BidderBid.builder()
+                                .bid(Bid.builder()
+                                        .impid("impId1")
+                                        .price(BigDecimal.ONE)
+                                        .dealid("dealid")
+                                        .w(200)
+                                        .h(150)
+                                        .adm("<div>This is an Ad</div>")
+                                        .dur(30)
+                                        .cat(singletonList("category1"))
+                                        .mtype(2)
+                                        .build())
+                                .videoInfo(ExtBidPrebidVideo.of(30, "category1"))
+                                .type(BidType.video)
+                                .bidCurrency("USD").build());
+    }
+
+    @Test
+    public void makeBidsShouldRespectBannerImpWhenBothBannerAndVideoImpWithSameIdExistAndNoMtype()
             throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder()
