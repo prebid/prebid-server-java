@@ -15,7 +15,7 @@ adapters:
       iframe:
         url: "https://capi.connatix.com/us/pixel?pId=53&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&callback={{redirect_url}}"
         uid-macro: '[UID]'
-        supportCors: false
+        support-cors: false
       redirect:
         url: "https://capi.connatix.com/us/pixel?pId=52&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&callback={{redirect_url}}"
         uid-macro: '[UID]'
