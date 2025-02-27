@@ -1,7 +1,7 @@
 package org.prebid.server.functional.tests.module
 
-import org.prebid.server.functional.model.ModuleName
-import org.prebid.server.functional.model.config.AbTest
+import org.prebid.server.functional.model.config.ModuleName
+import org.prebid.server.functional.model.config.ModularityAbTest
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountHooksConfiguration
 import org.prebid.server.functional.model.config.ExecutionPlan
@@ -11,11 +11,12 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.FetchStatus
 import org.prebid.server.functional.model.request.auction.TraceLevel
 import org.prebid.server.functional.model.response.auction.AnalyticResult
+import org.prebid.server.functional.model.response.auction.AnalyticTagStatus
 import org.prebid.server.functional.model.response.auction.InvocationResult
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
 
-import static org.prebid.server.functional.model.ModuleName.PB_RESPONSE_CORRECTION
+import static org.prebid.server.functional.model.config.ModuleName.PB_RESPONSE_CORRECTION
 import static org.prebid.server.functional.model.config.Endpoint.OPENRTB2_AUCTION
 import static org.prebid.server.functional.model.config.ModuleHookImplementation.ORTB2_BLOCKING_BIDDER_REQUEST
 import static org.prebid.server.functional.model.config.ModuleHookImplementation.ORTB2_BLOCKING_RAW_BIDDER_RESPONSE
@@ -45,15 +46,13 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
     private final static Map<Stage, List<ModuleName>> RESPONSE_STAGES = [(ALL_PROCESSED_BID_RESPONSES): [PB_RESPONSE_CORRECTION]]
     private final static Map<Stage, List<ModuleName>> MODULES_STAGES = ORTB_STAGES + RESPONSE_STAGES
 
-    private final static Map<String, String> MULTI_MODULE_CONFIG = getResponseCorrectionConfig() + getOrtb2BlockingSettings() +
+    private final static Map<String, String> MULTI_MODULE_CONFIG = getModuleBaseSettings(PB_RESPONSE_CORRECTION) + getModuleBaseSettings(ModuleName.ORTB2_BLOCKING) +
             ['hooks.host-execution-plan': null]
 
-    private static final PrebidServerService ortbModulePbsService = pbsServiceFactory.getService(getOrtb2BlockingSettings())
-    private static final PrebidServerService pbsServiceWithMultipleModules = pbsServiceFactory.getService(MULTI_MODULE_CONFIG)
+    private static final PrebidServerService ortbModulePbsService = pbsServiceFactory.getService(getModuleBaseSettings(ModuleName.ORTB2_BLOCKING))
 
     def cleanupSpec() {
-        pbsServiceFactory.removeContainer(getOrtb2BlockingSettings())
-        pbsServiceFactory.removeContainer(MULTI_MODULE_CONFIG)
+        pbsServiceFactory.removeContainer(getModuleBaseSettings(ModuleName.ORTB2_BLOCKING))
     }
 
     def "PBS shouldn't apply a/b test config when config of ab test is disabled"() {
@@ -64,7 +63,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         flushMetrics(ortbModulePbsService)
 
         and: "Save account with ab test config"
-        def abTest = AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
+        def abTest = ModularityAbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
             enabled = false
         }
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB_STAGES).tap {
@@ -100,7 +99,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
     def "PBS shouldn't apply valid a/b test config when module is disabled"() {
         given: "PBS service with disabled module config"
-        def pbsConfig = getOrtb2BlockingSettings(false)
+        def pbsConfig = getModuleBaseSettings(ModuleName.ORTB2_BLOCKING, false)
         def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request with verbose trace"
@@ -111,7 +110,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         and: "Save account with ab test config"
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB_STAGES).tap {
-            abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code)]
+            abTests = [ModularityAbTest.getDefault(ModuleName.ORTB2_BLOCKING.code)]
         }
         def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(executionPlan: executionPlan))
         def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
@@ -154,7 +153,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         and: "Save account with ab test config"
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB_STAGES).tap {
-            abTests = [AbTest.getDefault(moduleName)]
+            abTests = [ModularityAbTest.getDefault(moduleName)]
         }
         def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(executionPlan: executionPlan))
         def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
@@ -195,10 +194,10 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         flushMetrics(pbsServiceWithMultipleModules)
 
         and: "Save account with ab test config"
-        def ortb2AbTestConfig = AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
+        def ortb2AbTestConfig = ModularityAbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
             it.percentActive = MAX_PERCENT_AB
         }
-        def richMediaAbTestConfig = AbTest.getDefault(PB_RESPONSE_CORRECTION.code).tap {
+        def richMediaAbTestConfig = ModularityAbTest.getDefault(PB_RESPONSE_CORRECTION.code).tap {
             it.percentActive = MAX_PERCENT_AB
         }
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, MODULES_STAGES).tap {
@@ -218,8 +217,8 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.status == [SUCCESS, SUCCESS]
             it.action == [NO_ACTION, NO_ACTION]
             it.analyticsTags.activities.name.flatten().sort() == [ORTB2_BLOCKING, AB_TESTING, AB_TESTING].value.sort()
-            it.analyticsTags.activities.status.flatten().sort() == [FetchStatus.SUCCESS, FetchStatus.SUCCESS, FetchStatus.SUCCESS].sort()
-            it.analyticsTags.activities.results.status.flatten().sort() == [FetchStatus.SUCCESS_ALLOW, FetchStatus.RUN, FetchStatus.RUN].value.sort()
+            it.analyticsTags.activities.status.flatten().sort() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS]
+            it.analyticsTags.activities.results.status.flatten().sort() == [AnalyticTagStatus.SUCCESS_ALLOW, AnalyticTagStatus.RUN, AnalyticTagStatus.RUN].value.sort()
             it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.ORTB2_BLOCKING, ModuleName.ORTB2_BLOCKING]
         }
 
@@ -229,8 +228,8 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.status == [SUCCESS]
             it.action == [NO_ACTION]
             it.analyticsTags.activities.name.flatten() == [AB_TESTING].value
-            it.analyticsTags.activities.status.flatten() == [FetchStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [FetchStatus.RUN].value
+            it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS]
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.RUN].value
             it.analyticsTags.activities.results.values.module.flatten() == [PB_RESPONSE_CORRECTION]
         }
 
@@ -256,10 +255,10 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         flushMetrics(pbsServiceWithMultipleModules)
 
         and: "Save account with ab test config"
-        def ortb2AbTestConfig = AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
+        def ortb2AbTestConfig = ModularityAbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
             it.percentActive = MIN_PERCENT_AB
         }
-        def richMediaAbTestConfig = AbTest.getDefault(PB_RESPONSE_CORRECTION.code).tap {
+        def richMediaAbTestConfig = ModularityAbTest.getDefault(PB_RESPONSE_CORRECTION.code).tap {
             it.percentActive = MIN_PERCENT_AB
         }
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, MODULES_STAGES).tap {
@@ -279,8 +278,8 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.status == [SUCCESS, SUCCESS]
             it.action == [NO_INVOCATION, NO_INVOCATION]
             it.analyticsTags.activities.name.flatten() == [AB_TESTING, AB_TESTING].value
-            it.analyticsTags.activities.status.flatten() == [FetchStatus.SUCCESS, FetchStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [FetchStatus.SKIPPED, FetchStatus.SKIPPED].value
+            it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS]
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED].value
             it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.ORTB2_BLOCKING, ModuleName.ORTB2_BLOCKING]
         }
 
@@ -290,8 +289,8 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.status == [SUCCESS]
             it.action == [NO_INVOCATION]
             it.analyticsTags.activities.name.flatten() == [AB_TESTING].value
-            it.analyticsTags.activities.status.flatten() == [FetchStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [FetchStatus.SKIPPED].value
+            it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS]
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED].value
             it.analyticsTags.activities.results.values.module.flatten() == [PB_RESPONSE_CORRECTION]
         }
 
@@ -317,10 +316,10 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         flushMetrics(pbsServiceWithMultipleModules)
 
         and: "Save account with ab test config"
-        def ortb2AbTestConfig = AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
+        def ortb2AbTestConfig = ModularityAbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
             it.percentActive = MIN_PERCENT_AB
         }
-        def richMediaAbTestConfig = AbTest.getDefault(PB_RESPONSE_CORRECTION.code).tap {
+        def richMediaAbTestConfig = ModularityAbTest.getDefault(PB_RESPONSE_CORRECTION.code).tap {
             it.percentActive = MAX_PERCENT_AB
         }
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, MODULES_STAGES).tap {
@@ -340,8 +339,8 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.status == [SUCCESS, SUCCESS]
             it.action == [NO_INVOCATION, NO_INVOCATION]
             it.analyticsTags.activities.name.flatten() == [AB_TESTING, AB_TESTING].value
-            it.analyticsTags.activities.status.flatten() == [FetchStatus.SUCCESS, FetchStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [FetchStatus.SKIPPED, FetchStatus.SKIPPED].value
+            it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS]
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED].value
             it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.ORTB2_BLOCKING, ModuleName.ORTB2_BLOCKING]
         }
 
@@ -351,8 +350,8 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.status == [SUCCESS]
             it.action == [NO_ACTION]
             it.analyticsTags.activities.name.flatten() == [AB_TESTING].value
-            it.analyticsTags.activities.status.flatten() == [FetchStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [FetchStatus.RUN].value
+            it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS]
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.RUN].value
             it.analyticsTags.activities.results.values.module.flatten() == [PB_RESPONSE_CORRECTION]
         }
 
@@ -377,7 +376,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         and: "Save account with ab test config"
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB_STAGES).tap {
-            abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code, [PBSUtils.randomNumber]).tap {
+            abTests = [ModularityAbTest.getDefault(ModuleName.ORTB2_BLOCKING.code, [PBSUtils.randomNumber]).tap {
                 percentActive = MIN_PERCENT_AB
             }]
         }
@@ -394,8 +393,8 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.status == [SUCCESS, SUCCESS]
             it.action == [NO_INVOCATION, NO_INVOCATION]
             it.analyticsTags.activities.name.flatten() == [AB_TESTING, AB_TESTING].value
-            it.analyticsTags.activities.status.flatten() == [FetchStatus.SUCCESS, FetchStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [FetchStatus.SKIPPED, FetchStatus.SKIPPED].value
+            it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS]
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED].value
             it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.ORTB2_BLOCKING, ModuleName.ORTB2_BLOCKING]
         }
 
@@ -414,7 +413,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         and: "Save account with ab test config"
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB_STAGES).tap {
-            abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
+            abTests = [ModularityAbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
                 it.percentActive = percentActive
                 it.percentActiveSnakeCase = percentActiveSnakeCase
             }]
@@ -432,8 +431,8 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.status == [SUCCESS, SUCCESS]
             it.action == [NO_ACTION, NO_ACTION]
             it.analyticsTags.activities.name.flatten().sort() == [ORTB2_BLOCKING, AB_TESTING, AB_TESTING].value.sort()
-            it.analyticsTags.activities.status.flatten().sort() == [FetchStatus.SUCCESS, FetchStatus.SUCCESS, FetchStatus.SUCCESS].sort()
-            it.analyticsTags.activities.results.status.flatten().sort() == [FetchStatus.SUCCESS_ALLOW, FetchStatus.RUN, FetchStatus.RUN].value.sort()
+            it.analyticsTags.activities.status.flatten().sort() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS]
+            it.analyticsTags.activities.results.status.flatten().sort() == [AnalyticTagStatus.SUCCESS_ALLOW, AnalyticTagStatus.RUN, AnalyticTagStatus.RUN].value.sort()
             it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.ORTB2_BLOCKING, ModuleName.ORTB2_BLOCKING]
         }
 
@@ -463,7 +462,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         and: "Save account with ab test config"
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB_STAGES).tap {
-            abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
+            abTests = [ModularityAbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
                 it.percentActive = percentActive
                 it.percentActiveSnakeCase = percentActiveSnakeCase
             }]
@@ -481,8 +480,8 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.status == [SUCCESS, SUCCESS]
             it.action == [NO_INVOCATION, NO_INVOCATION]
             it.analyticsTags.activities.name.flatten() == [AB_TESTING, AB_TESTING].value
-            it.analyticsTags.activities.status.flatten() == [FetchStatus.SUCCESS, FetchStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [FetchStatus.SKIPPED, FetchStatus.SKIPPED].value
+            it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS]
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED].value
             it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.ORTB2_BLOCKING, ModuleName.ORTB2_BLOCKING]
         }
 
@@ -506,7 +505,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         and: "Save account with ab test config"
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB_STAGES).tap {
-            abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
+            abTests = [ModularityAbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
                 it.percentActive = percentActive
                 it.percentActiveSnakeCase = percentActiveSnakeCase
             }]
@@ -528,8 +527,8 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.status == [SUCCESS, SUCCESS]
             it.action == [NO_INVOCATION, NO_INVOCATION]
             it.analyticsTags.activities.name.flatten() == [AB_TESTING, AB_TESTING].value
-            it.analyticsTags.activities.status.flatten() == [FetchStatus.SUCCESS, FetchStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [FetchStatus.SKIPPED, FetchStatus.SKIPPED].value
+            it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS]
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED].value
             it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.ORTB2_BLOCKING, ModuleName.ORTB2_BLOCKING]
         }
 
@@ -553,7 +552,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         and: "Save account with ab test config"
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB_STAGES).tap {
-            abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
+            abTests = [ModularityAbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
                 it.percentActive = percentActive
                 it.percentActiveSnakeCase = percentActiveSnakeCase
             }]
@@ -576,8 +575,8 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.action == [NO_ACTION, NO_ACTION]
 
             it.analyticsTags.activities.name.flatten().sort() == [ORTB2_BLOCKING, AB_TESTING, AB_TESTING].value.sort()
-            it.analyticsTags.activities.status.flatten().sort() == [FetchStatus.SUCCESS, FetchStatus.SUCCESS, FetchStatus.SUCCESS].sort()
-            it.analyticsTags.activities.results.status.flatten().sort() == [FetchStatus.SUCCESS_ALLOW, FetchStatus.RUN, FetchStatus.RUN].value.sort()
+            it.analyticsTags.activities.status.flatten().sort() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS]
+            it.analyticsTags.activities.results.status.flatten().sort() == [AnalyticTagStatus.SUCCESS_ALLOW, AnalyticTagStatus.RUN, AnalyticTagStatus.RUN].value.sort()
             it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.ORTB2_BLOCKING, ModuleName.ORTB2_BLOCKING]
         }
 
@@ -606,7 +605,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         and: "Save account with ab test config"
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB_STAGES).tap {
-            abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
+            abTests = [ModularityAbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
                 percentActive = MIN_PERCENT_AB
                 it.logAnalyticsTag = logAnalyticsTag
                 it.logAnalyticsTagSnakeCase = logAnalyticsTagSnakeCase
@@ -625,8 +624,8 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.status == [SUCCESS, SUCCESS]
             it.action == [NO_INVOCATION, NO_INVOCATION]
             it.analyticsTags.activities.name.flatten() == [AB_TESTING, AB_TESTING].value
-            it.analyticsTags.activities.status.flatten() == [FetchStatus.SUCCESS, FetchStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [FetchStatus.SKIPPED, FetchStatus.SKIPPED].value
+            it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS]
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED].value
             it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.ORTB2_BLOCKING, ModuleName.ORTB2_BLOCKING]
         }
 
@@ -651,7 +650,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         and: "Save account with ab test config"
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB_STAGES).tap {
-            abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
+            abTests = [ModularityAbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
                 percentActive = MIN_PERCENT_AB
                 it.logAnalyticsTag = logAnalyticsTag
                 it.logAnalyticsTagSnakeCase = logAnalyticsTagSnakeCase
@@ -694,7 +693,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         and: "Save account with ab test config"
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB_STAGES).tap {
-            abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
+            abTests = [ModularityAbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
                 percentActive = MAX_PERCENT_AB
                 it.logAnalyticsTag = logAnalyticsTag
                 it.logAnalyticsTagSnakeCase = logAnalyticsTagSnakeCase
@@ -742,7 +741,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         and: "Save account with ab test config"
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB_STAGES).tap {
-            abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
+            abTests = [ModularityAbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
                 percentActive = PBSUtils.getRandomNumber(MIN_PERCENT_AB, MAX_PERCENT_AB)
             }]
         }
@@ -769,10 +768,10 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         }
     }
 
-    def "PBS should apply a/b test config from host config when accounts is not specified when account config and default account doesn't include a/b test config"() {
+    def "PBS should apply a/b test config from host config when accounts is not specified"() {
         given: "PBS service with specific ab test config"
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, MODULES_STAGES).tap {
-            abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code, accouns).tap {
+            abTests = [ModularityAbTest.getDefault(ModuleName.ORTB2_BLOCKING.code, accouns).tap {
                 percentActive = MIN_PERCENT_AB
             }]
         }
@@ -795,8 +794,8 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.status == [SUCCESS, SUCCESS]
             it.action == [NO_INVOCATION, NO_INVOCATION]
             it.analyticsTags.activities.name.flatten() == [AB_TESTING, AB_TESTING].value
-            it.analyticsTags.activities.status.flatten() == [FetchStatus.SUCCESS, FetchStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [FetchStatus.SKIPPED, FetchStatus.SKIPPED].value
+            it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS]
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED].value
             it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.ORTB2_BLOCKING, ModuleName.ORTB2_BLOCKING]
         }
 
@@ -832,7 +831,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         given: "PBS service with specific ab test config"
         def accountId = PBSUtils.randomNumber
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, MODULES_STAGES).tap {
-            abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code, [PBSUtils.randomNumber, accountId]).tap {
+            abTests = [ModularityAbTest.getDefault(ModuleName.ORTB2_BLOCKING.code, [PBSUtils.randomNumber, accountId]).tap {
                 percentActive = MIN_PERCENT_AB
             }]
         }
@@ -858,8 +857,8 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.status == [SUCCESS, SUCCESS]
             it.action == [NO_INVOCATION, NO_INVOCATION]
             it.analyticsTags.activities.name.flatten() == [AB_TESTING, AB_TESTING].value
-            it.analyticsTags.activities.status.flatten() == [FetchStatus.SUCCESS, FetchStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [FetchStatus.SKIPPED, FetchStatus.SKIPPED].value
+            it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS]
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED].value
             it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.ORTB2_BLOCKING, ModuleName.ORTB2_BLOCKING]
         }
 
@@ -891,10 +890,10 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
     def "PBS should apply a/b test config from host config for specific account and general config when account config and default account doesn't include a/b test config"() {
         given: "PBS service with specific ab test config"
         def accountId = PBSUtils.randomNumber
-        def ortb2AbTestConfig = AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code, []).tap {
+        def ortb2AbTestConfig = ModularityAbTest.getDefault(ModuleName.ORTB2_BLOCKING.code, []).tap {
             it.percentActive = MIN_PERCENT_AB
         }
-        def richMediaAbTestConfig = AbTest.getDefault(PB_RESPONSE_CORRECTION.code, [accountId]).tap {
+        def richMediaAbTestConfig = ModularityAbTest.getDefault(PB_RESPONSE_CORRECTION.code, [accountId]).tap {
             it.percentActive = MIN_PERCENT_AB
         }
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, MODULES_STAGES).tap {
@@ -922,8 +921,8 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.status == [SUCCESS, SUCCESS]
             it.action == [NO_INVOCATION, NO_INVOCATION]
             it.analyticsTags.activities.name.flatten() == [AB_TESTING, AB_TESTING].value
-            it.analyticsTags.activities.status.flatten() == [FetchStatus.SUCCESS, FetchStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [FetchStatus.SKIPPED, FetchStatus.SKIPPED].value
+            it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS]
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED].value
             it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.ORTB2_BLOCKING, ModuleName.ORTB2_BLOCKING]
         }
 
@@ -933,8 +932,8 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.status == [SUCCESS]
             it.action == [NO_INVOCATION]
             it.analyticsTags.activities.name.flatten() == [AB_TESTING].value
-            it.analyticsTags.activities.status.flatten() == [FetchStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [FetchStatus.SKIPPED].value
+            it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS]
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED].value
             it.analyticsTags.activities.results.values.module.flatten() == [PB_RESPONSE_CORRECTION]
         }
 
@@ -958,7 +957,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
     def "PBS shouldn't apply a/b test config from host config for non specified accounts when account config and default account doesn't include a/b test config"() {
         given: "PBS service with specific ab test config"
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, MODULES_STAGES).tap {
-            abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code, [PBSUtils.randomNumber]).tap {
+            abTests = [ModularityAbTest.getDefault(ModuleName.ORTB2_BLOCKING.code, [PBSUtils.randomNumber]).tap {
                 percentActive = MIN_PERCENT_AB
             }]
         }
@@ -982,8 +981,8 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.action == [NO_ACTION, NO_ACTION]
 
             it.analyticsTags.activities.name.flatten() == [ORTB2_BLOCKING].value
-            it.analyticsTags.activities.status.flatten() == [FetchStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [FetchStatus.SUCCESS_ALLOW].value
+            it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS]
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SUCCESS_ALLOW].value
             it.analyticsTags.activities.results.values.module.flatten().every { it == null }
         }
 
@@ -1020,7 +1019,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
     def "PBS should prioritise a/b test config from default account and only specified module when host and default account contains a/b test configs"() {
         given: "PBS service with specific ab test config"
         def accountExecutionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, MODULES_STAGES).tap {
-            abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
+            abTests = [ModularityAbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
                 percentActive = MIN_PERCENT_AB
             }]
         }
@@ -1029,7 +1028,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         }
 
         def hostExecutionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, MODULES_STAGES).tap {
-            abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code)]
+            abTests = [ModularityAbTest.getDefault(ModuleName.ORTB2_BLOCKING.code)]
         }
         def pbsConfig = MULTI_MODULE_CONFIG + ['hooks.host-execution-plan': encode(hostExecutionPlan)] + ["settings.default-account-config": encode(defaultAccountConfigSettings)]
 
@@ -1051,8 +1050,8 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.status == [SUCCESS, SUCCESS, SUCCESS, SUCCESS]
             it.action == [NO_INVOCATION, NO_INVOCATION, NO_INVOCATION, NO_INVOCATION]
             it.analyticsTags.activities.name.flatten() == [AB_TESTING, AB_TESTING, AB_TESTING, AB_TESTING].value
-            it.analyticsTags.activities.status.flatten() == [FetchStatus.SUCCESS, FetchStatus.SUCCESS, FetchStatus.SUCCESS, FetchStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [FetchStatus.SKIPPED, FetchStatus.SKIPPED, FetchStatus.SKIPPED, FetchStatus.SKIPPED].value
+            it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS]
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED].value
             it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.ORTB2_BLOCKING, ModuleName.ORTB2_BLOCKING, ModuleName.ORTB2_BLOCKING, ModuleName.ORTB2_BLOCKING]
         }
 
@@ -1083,7 +1082,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
     def "PBS should prioritise a/b test config from account over default account and only specified module when specific account and default account contains a/b test configs"() {
         given: "PBS service with specific ab test config"
-        def accountExecutionPlan = new ExecutionPlan(abTests: [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code)])
+        def accountExecutionPlan = new ExecutionPlan(abTests: [ModularityAbTest.getDefault(ModuleName.ORTB2_BLOCKING.code)])
         def defaultAccountConfigSettings = AccountConfig.defaultAccountConfig.tap {
             hooks = new AccountHooksConfiguration(executionPlan: accountExecutionPlan)
         }
@@ -1100,7 +1099,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         and: "Save account with ab test config"
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, MODULES_STAGES).tap {
-            abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
+            abTests = [ModularityAbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
                 percentActive = MIN_PERCENT_AB
             }]
         }
@@ -1120,8 +1119,8 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.status == [SUCCESS, SUCCESS]
             it.action == [NO_INVOCATION, NO_INVOCATION]
             it.analyticsTags.activities.name.flatten() == [AB_TESTING, AB_TESTING].value
-            it.analyticsTags.activities.status.flatten() == [FetchStatus.SUCCESS, FetchStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [FetchStatus.SKIPPED, FetchStatus.SKIPPED].value
+            it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS]
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED].value
             it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.ORTB2_BLOCKING, ModuleName.ORTB2_BLOCKING]
         }
 

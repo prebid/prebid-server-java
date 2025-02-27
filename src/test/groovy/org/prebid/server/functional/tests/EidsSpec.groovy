@@ -159,9 +159,9 @@ class EidsSpec extends BaseSpec {
 
     def "PBs eid permissions should affect only specified on source"() {
         given: "PBs with openx bidder"
-        def pbsService = pbsServiceFactory.getService(
-                ["adapters.openx.enabled" : "true",
-                 "adapters.openx.endpoint": "$networkServiceContainer.rootUri/auction".toString()])
+        def pbsConfig = ["adapters.openx.enabled" : "true",
+                         "adapters.openx.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request with eidpremissions and openx bidder"
         def eidSource = PBSUtils.randomString
@@ -186,13 +186,16 @@ class EidsSpec extends BaseSpec {
 
         and: "Openx bidder should contain two eids"
         assert bidderRequests[OPENX.value].user.eids.sort().last.sort() == eids.sort()
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBs eid permissions for non existing source should not stop auction"() {
         given: "PBs with openx bidder"
-        def pbsService = pbsServiceFactory.getService(
-                ["adapters.openx.enabled" : "true",
-                 "adapters.openx.endpoint": "$networkServiceContainer.rootUri/auction".toString()])
+        def pbsConfig = ["adapters.openx.enabled" : "true",
+                         "adapters.openx.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request with eidpremissions and openx bidder"
         def firstEid = new Eid(source: PBSUtils.randomString, uids: [new Uid(id: PBSUtils.randomString)])
@@ -215,6 +218,9 @@ class EidsSpec extends BaseSpec {
         bidderRequests.user.eids.each {
             assert it.sort() == [secondEid, firstEid].sort()
         }
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBs missing bidders in eid permissions should throw an error"() {

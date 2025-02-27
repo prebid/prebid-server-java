@@ -23,6 +23,7 @@ import static org.prebid.server.functional.util.privacy.model.State.QUEBEC
 
 class GeoSpec extends BaseSpec {
 
+    // TODO refactor containers for this spec
     private static final String GEO_LOCATION_REQUESTS = "geolocation_requests"
     private static final String GEO_LOCATION_FAIL = "geolocation_fail"
     private static final String GEO_LOCATION_SUCCESSFUL = "geolocation_successful"

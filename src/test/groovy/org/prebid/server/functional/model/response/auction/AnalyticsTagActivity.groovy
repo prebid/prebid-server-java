@@ -10,6 +10,6 @@ import org.prebid.server.functional.model.request.auction.FetchStatus
 class AnalyticsTagActivity {
 
     ModuleActivityName name
-    FetchStatus status
+    AnalyticTagStatus status
     List<AnalyticsTagActivityResult> results
 }

@@ -15,8 +15,13 @@ class TopicsHeaderSpec extends BaseSpec {
     private static final DEFAULT_SEGTAX_VALUE = 599
     private static final PRIVACY_SENDBOX_DOMAIN = "privacy-sandbox-domain"
 
-    private final PrebidServerService prebidServerServiceWithTopicsDomain
-            = pbsServiceFactory.getService(["auction.privacysandbox.topicsdomain": PRIVACY_SENDBOX_DOMAIN])
+    private static final Map<String, String> TOPICS_DOMAIN_CONFIG = ["auction.privacysandbox.topicsdomain": PRIVACY_SENDBOX_DOMAIN]
+
+    private static final PrebidServerService prebidServerServiceWithTopicsDomain = pbsServiceFactory.getService(TOPICS_DOMAIN_CONFIG)
+
+    def cleanupSpec() {
+        pbsServiceFactory.removeContainer(TOPICS_DOMAIN_CONFIG)
+    }
 
     def "PBS should populate user.data when Sec-Browsing-Topics header present in request"() {
         given: "Default basic BidRequest with generic bidder"

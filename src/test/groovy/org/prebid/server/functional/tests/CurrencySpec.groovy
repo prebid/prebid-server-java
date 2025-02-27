@@ -1,6 +1,7 @@
 package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.model.Currency
+import org.prebid.server.functional.model.config.ModuleName
 import org.prebid.server.functional.model.mock.services.currencyconversion.CurrencyConversionRatesResponse
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.response.auction.BidResponse
@@ -31,6 +32,10 @@ class CurrencySpec extends BaseSpec {
         setCurrencyConversionRatesResponse(CurrencyConversionRatesResponse.getDefaultCurrencyConversionRatesResponse(DEFAULT_CURRENCY_RATES))
     }
     private static final PrebidServerService pbsService = pbsServiceFactory.getService(externalCurrencyConverterConfig)
+
+    def cleanupSpec() {
+        pbsServiceFactory.removeContainer(externalCurrencyConverterConfig)
+    }
 
     def "PBS should return currency rates"() {
         when: "PBS processes bidders params request"
