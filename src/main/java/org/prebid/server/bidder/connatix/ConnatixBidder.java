@@ -49,6 +49,7 @@ public class ConnatixBidder implements Bidder<BidRequest> {
             };
 
     private static final String BIDDER_CURRENCY = "USD";
+    private static final String FORMATTING = "%s-%s";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -93,17 +94,16 @@ public class ConnatixBidder implements Bidder<BidRequest> {
     }
 
     private static String buildDisplayManagerVersion(BidRequest request) {
-        final String formatting = "%s-%s";
 
         return Optional.ofNullable(request.getApp())
                 .map(App::getExt)
                 .map(ExtApp::getPrebid)
                 .filter(prebid -> ObjectUtils.allNotNull(prebid.getSource(), prebid.getVersion()))
-                .map(prebid -> formatting.formatted(prebid.getSource(), prebid.getVersion()))
+                .map(prebid -> FORMATTING.formatted(prebid.getSource(), prebid.getVersion()))
                 .orElse(StringUtils.EMPTY);
     }
 
-    private MultiMap resolveHeaders(Device device) {
+    private static MultiMap resolveHeaders(Device device) {
         final MultiMap headers = HttpUtil.headers();
         if (device != null) {
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());

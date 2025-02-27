@@ -134,8 +134,7 @@ public class ConnatixBidderTest extends VertxTest {
                                 ExtAppPrebid.of("source", "version"), null))
                         .build()),
                 impBuilder -> impBuilder.displaymanagerver("displayManagerVer")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, givenExt(UnaryOperator.identity()))))
-        );
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, givenExt(UnaryOperator.identity())))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -159,8 +158,7 @@ public class ConnatixBidderTest extends VertxTest {
                                 .h(200)
                                 .format(Collections.emptyList())
                                 .build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, givenExt(UnaryOperator.identity()))))
-        );
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, givenExt(UnaryOperator.identity())))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -182,8 +180,7 @@ public class ConnatixBidderTest extends VertxTest {
                 impBuilder -> impBuilder.banner(Banner.builder().format(List.of(
                         Format.builder().w(300).h(250).build(),
                                 Format.builder().w(1).h(1).build())).build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, givenExt(UnaryOperator.identity()))))
-        );
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, givenExt(UnaryOperator.identity())))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -200,8 +197,7 @@ public class ConnatixBidderTest extends VertxTest {
                         .format(List.of(
                                 Format.builder().w(300).h(250).build(),
                                 Format.builder().w(1).h(1).build()))
-                        .build()
-                );
+                        .build());
     }
 
     @Test
@@ -214,8 +210,7 @@ public class ConnatixBidderTest extends VertxTest {
                 impBuilder -> impBuilder
                         .ext(mapper.valueToTree(ExtPrebid.of(null, givenExt(UnaryOperator.identity()))))
                         .bidfloor(BigDecimal.ONE)
-                        .bidfloorcur("EUR")
-        );
+                        .bidfloorcur("EUR"));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -243,8 +238,7 @@ public class ConnatixBidderTest extends VertxTest {
                                 .placementId("placement1").build()))),
                 impBuilder -> impBuilder
                         .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpConnatix.builder()
-                                .placementId("placement2").build())))
-        );
+                                .placementId("placement2").build()))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -260,8 +254,7 @@ public class ConnatixBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 request -> request.device(Device.builder().ip("deviceIp").ipv6("deviceIpv6").ua("userAgent").build()),
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, givenExt(UnaryOperator.identity()))))
-        );
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, givenExt(UnaryOperator.identity())))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -277,8 +270,7 @@ public class ConnatixBidderTest extends VertxTest {
                         tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), "deviceIp"),
                         tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), "deviceIpv6"),
                         tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
-                        tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString())
-                );
+                        tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()));
     }
 
     @Test
