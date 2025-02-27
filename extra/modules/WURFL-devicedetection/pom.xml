@@ -17,13 +17,5 @@
         <wurfl.version>1.13.3.0</wurfl.version>
       </properties>
 
-    <dependencies>
-        <!--
-        <dependency>
-            <groupId>com.scientiamobile.wurfl</groupId>
-            <artifactId>wurfl</artifactId>
-            <version>${wurfl.version}</version>
-        </dependency>
-        -->
-    </dependencies>
+    <dependencies/>
 </project>
