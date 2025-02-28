@@ -43,7 +43,11 @@ public class USNatModuleCreator implements PrivacyModuleCreator {
 
         final List<PrivacyModule> innerPrivacyModules = SetUtils.emptyIfNull(scope.getSectionsIds()).stream()
                 .filter(sectionId -> !shouldSkip(sectionId, moduleConfig))
-                .map(sectionId -> forSection(creationContext.getActivity(), sectionId, scope.getGppModel()))
+                .map(sectionId -> forSection(
+                        creationContext.getActivity(),
+                        sectionId,
+                        scope.getGppModel(),
+                        moduleConfig.getConfig()))
                 .toList();
 
         return new AndPrivacyModules(innerPrivacyModules);
@@ -61,7 +65,11 @@ public class USNatModuleCreator implements PrivacyModuleCreator {
                 || (skipSectionIds != null && skipSectionIds.contains(sectionId));
     }
 
-    private PrivacyModule forSection(Activity activity, Integer sectionId, GppModel gppModel) {
-        return new USNatModule(activity, gppReaderFactory.forSection(sectionId, gppModel));
+    private PrivacyModule forSection(Activity activity,
+                                     Integer sectionId,
+                                     GppModel gppModel,
+                                     AccountUSNatModuleConfig.Config config) {
+
+        return new USNatModule(activity, gppReaderFactory.forSection(sectionId, gppModel), config);
     }
 }

@@ -352,9 +352,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         }
 
         and: "Activities set for cookie sync with allowing privacy regulation"
-        def rule = new ActivityRule().tap {
-            it.privacyRegulation = [privacyAllowRegulations]
-        }
+        def rule = new ActivityRule(privacyRegulation: [privacyAllowRegulations])
 
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([rule]))
 
@@ -1185,9 +1183,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def uidsCookie = UidsCookie.defaultUidsCookie
 
         and: "Activities set for cookie sync with allowing privacy regulation"
-        def rule = new ActivityRule().tap {
-            it.privacyRegulation = [privacyAllowRegulations]
-        }
+        def rule = new ActivityRule(privacyRegulation: [privacyAllowRegulations])
 
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([rule]))
 
@@ -2054,5 +2050,133 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsConfig)
+    }
+
+    def "PBS cookie sync should exclude bidders URLs when privacy regulation match and personal data consent is 2"() {
+        given: "Cookie sync request with link to account"
+        def accountId = PBSUtils.randomString
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            it.gppSid = US_NAT_V1.value
+            it.account = accountId
+            it.gpp = new UsNatV1Consent.Builder().setPersonalDataConsents(2).build()
+        }
+
+        and: "Activities set for cookie sync with allowing privacy regulation"
+        def rule = new ActivityRule(privacyRegulation: [privacyAllowRegulations])
+        def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([rule]))
+
+        and: "Account gpp configuration"
+        def accountGppConfig = new AccountGppConfig().tap {
+            it.enabled = true
+            it.code = IAB_US_GENERAL
+        }
+
+        and: "Existed account with cookie sync and privacy regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        when: "PBS processes cookie sync request"
+        def response = activityPbsService.sendCookieSyncRequest(cookieSyncRequest)
+
+        then: "Response should not contain any URLs for bidders"
+        assert !response.bidderStatus.userSync.url
+
+        where:
+        privacyAllowRegulations << [IAB_US_GENERAL, IAB_ALL, ALL]
+    }
+
+    def "PBS cookie sync should exclude bidders URLs when privacy regulation match and personal data consent is 2 and allowPersonalDataConsent2 is false"() {
+        given: "Cookie sync request with gpp privacy"
+        def accountId = PBSUtils.randomString
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            it.gppSid = US_NAT_V1.value
+            it.account = accountId
+            it.gpp = new UsNatV1Consent.Builder().setPersonalDataConsents(2).build()
+        }
+
+        and: "Activities set for cookie sync with allowing privacy regulation"
+        def rule = new ActivityRule(privacyRegulation: [privacyAllowRegulation])
+        def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([rule]))
+
+        and: "Account gpp configuration"
+        def accountGppConfig = new AccountGppConfig().tap {
+            enabled = true
+            code = IAB_US_GENERAL
+            config = gppModuleConfig
+        }
+
+        and: "Save account with cookie sync and privacy regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        when: "PBS processes cookie sync request"
+        def response = activityPbsService.sendCookieSyncRequest(cookieSyncRequest)
+
+        then: "Response should not contain any URLs for bidders"
+        assert !response.bidderStatus.userSync.url
+
+        where:
+        privacyAllowRegulation | gppModuleConfig
+        IAB_US_GENERAL         | new GppModuleConfig(allowPersonalDataConsent2: false)
+        IAB_ALL                | new GppModuleConfig(allowPersonalDataConsent2: false)
+        ALL                    | new GppModuleConfig(allowPersonalDataConsent2: false)
+        IAB_US_GENERAL         | new GppModuleConfig(allowPersonalDataConsent2KebabCase: false)
+        IAB_ALL                | new GppModuleConfig(allowPersonalDataConsent2KebabCase: false)
+        ALL                    | new GppModuleConfig(allowPersonalDataConsent2KebabCase: false)
+        IAB_US_GENERAL         | new GppModuleConfig(allowPersonalDataConsent2SnakeCase: false)
+        IAB_ALL                | new GppModuleConfig(allowPersonalDataConsent2SnakeCase: false)
+        ALL                    | new GppModuleConfig(allowPersonalDataConsent2SnakeCase: false)
+        IAB_US_GENERAL         | new GppModuleConfig(allowPersonalDataConsent2: null)
+        IAB_ALL                | new GppModuleConfig(allowPersonalDataConsent2: null)
+        ALL                    | new GppModuleConfig(allowPersonalDataConsent2: null)
+        IAB_US_GENERAL         | new GppModuleConfig(allowPersonalDataConsent2KebabCase: null)
+        IAB_ALL                | new GppModuleConfig(allowPersonalDataConsent2KebabCase: null)
+        ALL                    | new GppModuleConfig(allowPersonalDataConsent2KebabCase: null)
+        IAB_US_GENERAL         | new GppModuleConfig(allowPersonalDataConsent2SnakeCase: null)
+        IAB_ALL                | new GppModuleConfig(allowPersonalDataConsent2SnakeCase: null)
+        ALL                    | new GppModuleConfig(allowPersonalDataConsent2SnakeCase: null)
+    }
+
+    def "PBS cookie sync shouldn't exclude bidders URLs when privacy regulation match and personal data consent is 2 and allowPersonalDataConsent2 is true"() {
+        given: "Cookie sync request with gpp privacy"
+        def accountId = PBSUtils.randomString
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            it.gppSid = US_NAT_V1.value
+            it.account = accountId
+            it.gpp = new UsNatV1Consent.Builder().setPersonalDataConsents(2).build()
+        }
+
+        and: "Activities set for cookie sync with allowing privacy regulation"
+        def rule = new ActivityRule(privacyRegulation: [privacyAllowRegulation])
+        def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([rule]))
+
+        and: "Account gpp configuration"
+        def accountGppConfig = new AccountGppConfig().tap {
+            enabled = true
+            code = IAB_US_GENERAL
+            config = gppModuleConfig
+        }
+
+        and: "Save account with cookie sync and privacy regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        when: "PBS processes cookie sync request"
+        def response = activityPbsService.sendCookieSyncRequest(cookieSyncRequest)
+
+        then: "Response should contain any URLs for bidders"
+        assert response.bidderStatus.userSync.url
+
+        where:
+        privacyAllowRegulation | gppModuleConfig
+        IAB_US_GENERAL         | new GppModuleConfig(allowPersonalDataConsent2: true)
+        IAB_ALL                | new GppModuleConfig(allowPersonalDataConsent2: true)
+        ALL                    | new GppModuleConfig(allowPersonalDataConsent2: true)
+        IAB_US_GENERAL         | new GppModuleConfig(allowPersonalDataConsent2KebabCase: true)
+        IAB_ALL                | new GppModuleConfig(allowPersonalDataConsent2KebabCase: true)
+        ALL                    | new GppModuleConfig(allowPersonalDataConsent2KebabCase: true)
+        IAB_US_GENERAL         | new GppModuleConfig(allowPersonalDataConsent2SnakeCase: true)
+        IAB_ALL                | new GppModuleConfig(allowPersonalDataConsent2SnakeCase: true)
+        ALL                    | new GppModuleConfig(allowPersonalDataConsent2SnakeCase: true)
     }
 }
