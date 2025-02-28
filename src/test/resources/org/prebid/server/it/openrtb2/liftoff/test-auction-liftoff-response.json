@@ -16,7 +16,10 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "video"
+              "type": "video",
+              "meta": {
+                "adaptercode": "liftoff"
+              }
             },
             "origbidcpm": 3.33
           }

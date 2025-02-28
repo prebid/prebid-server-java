@@ -14,7 +14,10 @@
           "ext": {
             "format": "BANNER",
             "prebid": {
-              "type": "banner"
+              "type": "banner",
+              "meta": {
+                "adaptercode": "connectad"
+              }
             },
             "origbidcpm": 0.01
           }

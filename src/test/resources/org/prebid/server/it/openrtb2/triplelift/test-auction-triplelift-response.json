@@ -20,7 +20,10 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner"
+              "type": "banner",
+              "meta": {
+                "adaptercode": "triplelift"
+              }
             },
             "origbidcpm": 0.5,
             "origbidcur": "USD",

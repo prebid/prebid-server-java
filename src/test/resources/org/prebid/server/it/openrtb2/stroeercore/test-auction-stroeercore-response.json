@@ -16,7 +16,10 @@
             "origbidcpm": 6.77,
             "origbidcur": "EUR",
             "prebid": {
-              "type": "banner"
+              "type": "banner",
+              "meta": {
+                "adaptercode": "stroeerCore"
+              }
             }
           }
         },
@@ -31,7 +34,10 @@
             "origbidcpm": 5.7,
             "origbidcur": "EUR",
             "prebid": {
-              "type": "video"
+              "type": "video",
+              "meta": {
+                "adaptercode": "stroeerCore"
+              }
             }
           }
         }

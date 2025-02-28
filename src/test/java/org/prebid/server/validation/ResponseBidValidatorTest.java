@@ -21,12 +21,15 @@ import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAlternateBidderCodes;
+import org.prebid.server.settings.model.AccountAlternateBidderCodesBidder;
 import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountBidValidationConfig;
 import org.prebid.server.validation.model.ValidationResult;
 
 import java.math.BigDecimal;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.UnaryOperator;
 
 import static java.util.Arrays.asList;
@@ -36,6 +39,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mock.Strictness.LENIENT;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.prebid.server.settings.model.BidValidationEnforcement.enforce;
@@ -519,6 +523,199 @@ public class ResponseBidValidatorTest extends VertxTest {
 
         // then
         verify(metrics).updateSecureValidationMetrics(BIDDER_NAME, ACCOUNT_ID, MetricName.warn);
+        verifyNoInteractions(bidRejectionTracker);
+    }
+
+    @Test
+    public void validateShouldNotFailOnSeatValidationWhenSeatEqualsToBidder() {
+        // when
+        final ValidationResult result = target.validate(
+                givenBid(identity()).toBuilder().seat(BIDDER_NAME).build(),
+                BIDDER_NAME,
+                givenAuctionContext(),
+                bidderAliases);
+
+        // then
+        assertThat(result.getWarnings()).isEmpty();
+        assertThat(result.getErrors()).isEmpty();
+        verify(metrics, never()).updateSeatValidationMetrics(BIDDER_NAME);
+        verifyNoInteractions(bidRejectionTracker);
+    }
+
+    @Test
+    public void validateShouldFailOnSeatValidationWhenAlternateBidderCodesAreDisabledForBidder() {
+        // given
+        final BidderBid givenBid = givenBid(identity()).toBuilder().seat("seat").build();
+
+        // when
+        final ValidationResult result = target.validate(
+                givenBid,
+                BIDDER_NAME,
+                givenAuctionContext(givenAccount(account -> account.alternateBidderCodes(
+                        AccountAlternateBidderCodes.builder()
+                                .enabled(true)
+                                .bidders(Map.of(BIDDER_NAME, AccountAlternateBidderCodesBidder.builder()
+                                        .enabled(false)
+                                        .allowedBidderCodes(Set.of("seat"))
+                                        .build())).build()))),
+                bidderAliases);
+
+        // then
+        assertThat(result.getWarnings())
+                .containsOnly("invalid bidder code seat was set by the adapter bidder for the account account");
+        assertThat(result.getErrors()).isEmpty();
+        verify(metrics).updateSeatValidationMetrics(BIDDER_NAME);
+        verify(bidRejectionTracker).rejectBid(givenBid, BidRejectionReason.RESPONSE_REJECTED_GENERAL);
+    }
+
+    @Test
+    public void validateShouldFailOnSeatValidationWhenAlternateBidderCodesAreLackingSeatAlternateCode() {
+        // given
+        final BidderBid givenBid = givenBid(identity()).toBuilder().seat("seat").build();
+
+        // when
+        final ValidationResult result = target.validate(
+                givenBid,
+                BIDDER_NAME,
+                givenAuctionContext(givenAccount(account -> account.alternateBidderCodes(
+                        AccountAlternateBidderCodes.builder()
+                                .enabled(true)
+                                .bidders(Map.of(BIDDER_NAME, AccountAlternateBidderCodesBidder.builder()
+                                        .enabled(true)
+                                        .allowedBidderCodes(Set.of("anotherSeat"))
+                                        .build())).build()))),
+                bidderAliases);
+
+        // then
+        assertThat(result.getWarnings())
+                .containsOnly("invalid bidder code seat was set by the adapter bidder for the account account");
+        assertThat(result.getErrors()).isEmpty();
+        verify(metrics).updateSeatValidationMetrics(BIDDER_NAME);
+        verify(bidRejectionTracker).rejectBid(givenBid, BidRejectionReason.RESPONSE_REJECTED_GENERAL);
+    }
+
+    @Test
+    public void validateShouldFailOnSeatValidationWhenAlternateBidderCodesAreLackingBidder() {
+        // given
+        final BidderBid givenBid = givenBid(identity()).toBuilder().seat("seat").build();
+
+        // when
+        final ValidationResult result = target.validate(
+                givenBid,
+                BIDDER_NAME,
+                givenAuctionContext(givenAccount(account -> account.alternateBidderCodes(
+                        AccountAlternateBidderCodes.builder()
+                                .enabled(true)
+                                .bidders(null)
+                                .build()))),
+                bidderAliases);
+
+        // then
+        assertThat(result.getWarnings())
+                .containsOnly("invalid bidder code seat was set by the adapter bidder for the account account");
+        assertThat(result.getErrors()).isEmpty();
+        verify(metrics).updateSeatValidationMetrics(BIDDER_NAME);
+        verify(bidRejectionTracker).rejectBid(givenBid, BidRejectionReason.RESPONSE_REJECTED_GENERAL);
+    }
+
+    @Test
+    public void validateShouldFailOnSeatValidationWhenAlternateBidderCodesAreDisabled() {
+        // given
+        final BidderBid givenBid = givenBid(identity()).toBuilder().seat("seat").build();
+
+        // when
+        final ValidationResult result = target.validate(
+                givenBid,
+                BIDDER_NAME,
+                givenAuctionContext(givenAccount(account -> account.alternateBidderCodes(
+                        AccountAlternateBidderCodes.builder()
+                                .enabled(false)
+                                .bidders(Map.of(BIDDER_NAME, AccountAlternateBidderCodesBidder.builder()
+                                        .enabled(true)
+                                        .allowedBidderCodes(Set.of("seat"))
+                                        .build())).build()))),
+                bidderAliases);
+
+        // then
+        assertThat(result.getWarnings())
+                .containsOnly("invalid bidder code seat was set by the adapter bidder for the account account");
+        assertThat(result.getErrors()).isEmpty();
+        verify(metrics).updateSeatValidationMetrics(BIDDER_NAME);
+        verify(bidRejectionTracker).rejectBid(givenBid, BidRejectionReason.RESPONSE_REJECTED_GENERAL);
+    }
+
+    @Test
+    public void validateShouldNotFailOnSeatValidationWhenAllowedAlternateCodesAreNull() {
+        // given
+        final BidderBid givenBid = givenBid(identity()).toBuilder().seat("seat").build();
+
+        // when
+        final ValidationResult result = target.validate(
+                givenBid,
+                BIDDER_NAME,
+                givenAuctionContext(givenAccount(account -> account.alternateBidderCodes(
+                        AccountAlternateBidderCodes.builder()
+                                .enabled(true)
+                                .bidders(Map.of(BIDDER_NAME, AccountAlternateBidderCodesBidder.builder()
+                                        .enabled(true)
+                                        .allowedBidderCodes(null)
+                                        .build())).build()))),
+                bidderAliases);
+
+        // then
+        assertThat(result.getWarnings()).isEmpty();
+        assertThat(result.getErrors()).isEmpty();
+        verify(metrics, never()).updateSeatValidationMetrics(BIDDER_NAME);
+        verifyNoInteractions(bidRejectionTracker);
+    }
+
+    @Test
+    public void validateShouldNotFailOnSeatValidationWhenAllowedAlternateCodesContainsWildcard() {
+        // given
+        final BidderBid givenBid = givenBid(identity()).toBuilder().seat("seat").build();
+
+        // when
+        final ValidationResult result = target.validate(
+                givenBid,
+                BIDDER_NAME,
+                givenAuctionContext(givenAccount(account -> account.alternateBidderCodes(
+                        AccountAlternateBidderCodes.builder()
+                                .enabled(true)
+                                .bidders(Map.of(BIDDER_NAME, AccountAlternateBidderCodesBidder.builder()
+                                        .enabled(true)
+                                        .allowedBidderCodes(Set.of("*"))
+                                        .build())).build()))),
+                bidderAliases);
+
+        // then
+        assertThat(result.getWarnings()).isEmpty();
+        assertThat(result.getErrors()).isEmpty();
+        verify(metrics, never()).updateSeatValidationMetrics(BIDDER_NAME);
+        verifyNoInteractions(bidRejectionTracker);
+    }
+
+    @Test
+    public void validateShouldNotFailOnSeatValidationWhenAllowedAlternateCodesContainsSeat() {
+        // given
+        final BidderBid givenBid = givenBid(identity()).toBuilder().seat("seat").build();
+
+        // when
+        final ValidationResult result = target.validate(
+                givenBid,
+                BIDDER_NAME,
+                givenAuctionContext(givenAccount(account -> account.alternateBidderCodes(
+                        AccountAlternateBidderCodes.builder()
+                                .enabled(true)
+                                .bidders(Map.of(BIDDER_NAME, AccountAlternateBidderCodesBidder.builder()
+                                        .enabled(true)
+                                        .allowedBidderCodes(Set.of("seat"))
+                                        .build())).build()))),
+                bidderAliases);
+
+        // then
+        assertThat(result.getWarnings()).isEmpty();
+        assertThat(result.getErrors()).isEmpty();
+        verify(metrics, never()).updateSeatValidationMetrics(BIDDER_NAME);
         verifyNoInteractions(bidRejectionTracker);
     }
 

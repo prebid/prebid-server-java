@@ -39,6 +39,7 @@ public class SampleItRawBidderResponseHook implements RawBidderResponseHook {
                                         + "</Impression>")
                                 .build(),
                         bidderBid.getType(),
+                        bidderBid.getSeat(),
                         bidderBid.getBidCurrency()))
                 .toList();
     }

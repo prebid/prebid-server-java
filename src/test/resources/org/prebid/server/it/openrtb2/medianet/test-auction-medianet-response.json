@@ -16,7 +16,10 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner"
+              "type": "banner",
+              "meta": {
+                "adaptercode": "medianet"
+              }
             },
             "origbidcpm": 0.5
           }

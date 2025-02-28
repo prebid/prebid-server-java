@@ -128,6 +128,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtAnalytics;
 import org.prebid.server.proto.openrtb.ext.response.ExtAnalyticsTags;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidMeta;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponsePrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
@@ -1549,6 +1550,11 @@ public class ExchangeServiceTest extends VertxTest {
                 .id("bidId3")
                 .impid("impId3")
                 .price(BigDecimal.valueOf(7.89))
+                .ext(mapper.createObjectNode().set("prebid", mapper.valueToTree(ExtBidPrebid.builder()
+                                .meta(ExtBidPrebidMeta.builder()
+                                        .adapterCode("bidder2")
+                                        .build())
+                        .build())))
                 .build();
         final List<AuctionParticipation> auctionParticipations =
                 contextArgumentCaptor.getValue().getAuctionParticipations();
@@ -1557,7 +1563,8 @@ public class ExchangeServiceTest extends VertxTest {
                 .containsOnly(
                         BidderResponse.of(
                                 "bidder2",
-                                BidderSeatBid.of(singletonList(BidderBid.of(expectedThirdBid, banner, null))),
+                                BidderSeatBid.of(singletonList(
+                                        BidderBid.of(expectedThirdBid, banner, "bidder2", null))),
                                 0),
                         BidderResponse.of("bidder1", BidderSeatBid.empty(), 0));
 
