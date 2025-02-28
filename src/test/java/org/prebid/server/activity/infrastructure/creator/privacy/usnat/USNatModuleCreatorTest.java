@@ -126,7 +126,7 @@ public class USNatModuleCreatorTest {
 
         return PrivacyModuleCreationContext.of(
                 Activity.CALL_BIDDER,
-                AccountUSNatModuleConfig.of(true, 0, AccountUSNatModuleConfig.Config.of(skipSectionsIds)),
+                AccountUSNatModuleConfig.of(true, 0, AccountUSNatModuleConfig.Config.of(skipSectionsIds, false)),
                 GppContextCreator.from(null, sectionsIds).build().getGppContext());
     }
 }
