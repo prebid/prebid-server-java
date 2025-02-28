@@ -466,7 +466,7 @@ public class OpenxBidderTest extends VertxTest {
                                                 .banner(Banner.builder().w(300).h(150).build())
                                                 .xNative(Native.builder().request("{\"version\":1}").build())
                                                 .ext(mapper.valueToTree(ExtImpOpenx.builder().build()))
-                                        .build()))
+                                                .build()))
                                 .ext(jacksonMapper.fillExtension(
                                         ExtRequest.empty(),
                                         OpenxRequestExt.of(null, null, "hb_pbs_1.0.0")))
@@ -801,15 +801,17 @@ public class OpenxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getBids()).hasSize(3)
-                .contains(BidderBid.of(
-                        Bid.builder()
+                .contains(BidderBid.builder()
+                        .bid(Bid.builder()
                                 .impid("impId1-banner")
                                 .price(BigDecimal.ONE)
                                 .w(200)
                                 .h(150)
                                 .adm("<div>This is an Ad</div>")
-                                .build(),
-                        BidType.banner, "UAH"))
+                                .build())
+                        .type(BidType.banner)
+                        .bidCurrency("UAH")
+                        .build())
                 .contains(BidderBid.builder()
                         .bid(Bid.builder()
                                 .impid("impId2-video")
@@ -823,15 +825,17 @@ public class OpenxBidderTest extends VertxTest {
                         .type(BidType.video)
                         .bidCurrency("UAH")
                         .build())
-                .contains(BidderBid.of(
-                        Bid.builder()
+                .contains(BidderBid.builder()
+                        .bid(Bid.builder()
                                 .impid("impId3-native")
                                 .price(BigDecimal.TEN)
                                 .w(150)
                                 .h(150)
                                 .adm("{\"ver\":\"1.2\"}")
-                                .build(),
-                        BidType.xNative, "UAH"));
+                                .build())
+                        .type(BidType.xNative)
+                        .bidCurrency("UAH")
+                        .build());
     }
 
     @Test
