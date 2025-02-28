@@ -7,6 +7,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.BidderAliases;
@@ -21,6 +22,8 @@ import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAlternateBidderCodes;
+import org.prebid.server.settings.model.AccountAlternateBidderCodesBidder;
 import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountBidValidationConfig;
 import org.prebid.server.settings.model.BidValidationEnforcement;
@@ -31,6 +34,8 @@ import java.util.Collections;
 import java.util.Currency;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.function.Consumer;
 
 /**
@@ -39,14 +44,22 @@ import java.util.function.Consumer;
 public class ResponseBidValidator {
 
     private static final Logger logger = LoggerFactory.getLogger(ResponseBidValidator.class);
-    private static final ConditionalLogger UNRELATED_BID_LOGGER = new ConditionalLogger("not_matched_bid", logger);
-    private static final ConditionalLogger SECURE_CREATIVE_LOGGER = new ConditionalLogger("secure_creatives_validation",
+    private static final ConditionalLogger UNRELATED_BID_LOGGER = new ConditionalLogger(
+            "not_matched_bid",
             logger);
-    private static final ConditionalLogger CREATIVE_SIZE_LOGGER = new ConditionalLogger("creative_size_validation",
+    private static final ConditionalLogger SECURE_CREATIVE_LOGGER = new ConditionalLogger(
+            "secure_creatives_validation",
+            logger);
+    private static final ConditionalLogger CREATIVE_SIZE_LOGGER = new ConditionalLogger(
+            "creative_size_validation",
+            logger);
+    private static final ConditionalLogger ALTERNATE_BIDDER_CODE_LOGGER = new ConditionalLogger(
+            "alternate_bidder_code_validation",
             logger);
 
     private static final String[] INSECURE_MARKUP_MARKERS = {"http:", "http%3A"};
     private static final String[] SECURE_MARKUP_MARKERS = {"https:", "https%3A"};
+    private static final String ALTERNATE_BIDDER_CODE_WILDCARD = "*";
 
     private final BidValidationEnforcement bannerMaxSizeEnforcement;
     private final BidValidationEnforcement secureMarkupEnforcement;
@@ -81,6 +94,7 @@ public class ResponseBidValidator {
             validateCommonFields(bid);
             validateTypeSpecific(bidderBid, bidder);
             validateCurrency(bidderBid.getBidCurrency());
+            validateSeat(bidderBid, bidder, account, bidRejectionTracker, warnings);
 
             final Imp correspondingImp = findCorrespondingImp(bid, bidRequest);
             if (bidderBid.getType() == BidType.banner) {
@@ -146,6 +160,59 @@ public class ResponseBidValidator {
         } catch (IllegalArgumentException e) {
             throw new ValidationException("BidResponse currency \"%s\" is not valid", currency);
         }
+    }
+
+    private void validateSeat(BidderBid bid,
+                              String bidder,
+                              Account account,
+                              BidRejectionTracker bidRejectionTracker,
+                              List<String> warnings) {
+
+        if (bid.getSeat() == null || StringUtils.equals(bid.getSeat(), bidder)) {
+            return;
+        }
+
+        final AccountAlternateBidderCodesBidder alternateBidder = resolveAlternateBidder(bidder, account);
+        if (!isAlternateBidderCodesEnabled(account) || alternateBidder == null) {
+            warnings.add(rejectBidOnInvalidSeat(bid, bidder, account, bidRejectionTracker));
+            return;
+        }
+
+        final Set<String> allowedBidderCodes = ObjectUtils.defaultIfNull(
+                alternateBidder.getAllowedBidderCodes(),
+                Collections.singleton(ALTERNATE_BIDDER_CODE_WILDCARD));
+
+        if (!allowedBidderCodes.contains(ALTERNATE_BIDDER_CODE_WILDCARD)
+                && !allowedBidderCodes.contains(bid.getSeat())) {
+            warnings.add(rejectBidOnInvalidSeat(bid, bidder, account, bidRejectionTracker));
+        }
+    }
+
+    private static Boolean isAlternateBidderCodesEnabled(Account account) {
+        return Optional.ofNullable(account.getAlternateBidderCodes())
+                .map(AccountAlternateBidderCodes::getEnabled)
+                .orElse(false);
+    }
+
+    private static AccountAlternateBidderCodesBidder resolveAlternateBidder(String bidder, Account account) {
+        return Optional.ofNullable(account.getAlternateBidderCodes())
+                .map(AccountAlternateBidderCodes::getBidders)
+                .map(bidders -> bidders.get(bidder))
+                .filter(alternate -> BooleanUtils.isTrue(alternate.getEnabled()))
+                .orElse(null);
+    }
+
+    private String rejectBidOnInvalidSeat(BidderBid bid,
+                                          String bidder,
+                                          Account account,
+                                          BidRejectionTracker bidRejectionTracker) {
+
+        final String message = "invalid bidder code %s was set by the adapter %s for the account %s"
+                .formatted(bid.getSeat(), bidder, account.getId());
+        bidRejectionTracker.rejectBid(bid, BidRejectionReason.RESPONSE_REJECTED_GENERAL);
+        metrics.updateSeatValidationMetrics(bidder);
+        ALTERNATE_BIDDER_CODE_LOGGER.warn(message, logSamplingRate);
+        return message;
     }
 
     private Imp findCorrespondingImp(Bid bid, BidRequest bidRequest) throws ValidationException {
