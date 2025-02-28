@@ -24,9 +24,9 @@ class GppModuleConfig {
     @JsonProperty("skip-sids")
     List<GppSectionId> skipSidsKebabCase
     Boolean allowPersonalDataConsent2
-    @JsonProperty("allow_personal_data_consent2")
+    @JsonProperty("allow_personal_data_consent_2")
     Boolean allowPersonalDataConsent2SnakeCase
-    @JsonProperty("allow-personal-data-consent2")
+    @JsonProperty("allow-personal-data-consent-2")
     Boolean allowPersonalDataConsent2KebabCase
 
     static GppModuleConfig getDefaultModuleConfig(ActivityConfig activityConfig = ActivityConfig.configWithDefaultRestrictRules,

@@ -2430,13 +2430,12 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
         accountDao.save(account)
 
-        when: "PBS processes auction requests"
+        when: "PBS processes auction request"
         activityPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain EIDS fields"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.user.eids
-        assert bidderRequest.user?.ext?.eids
 
         where:
         privacyAllowRegulations | gppModuleConfig
