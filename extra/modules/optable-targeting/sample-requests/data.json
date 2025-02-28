@@ -1,0 +1,137 @@
+{
+  "test": 1,
+  "id": "1",
+  "imp":
+  [
+    {
+      "id": "1",
+      "banner":
+      {
+        "w": 300,
+        "h": 250
+      },
+      "ext":
+      {
+        "prebid":
+        {
+          "storedauctionresponse": { "id": "optable-stored-response" },
+          "bidder":
+          {
+            "appnexus":
+            {
+              "placementId": 0
+            }
+          }
+        }
+      }
+    }
+  ],
+  "site":
+  {
+    "domain": "test.com",
+    "publisher":
+    {
+      "domain": "test.com",
+      "id": "1"
+    },
+    "page": "https://www.test.com/"
+  },
+  "device":
+  {
+    "ip": "8.8.8.8"
+  },
+  "user":
+  {
+    "ext":
+    {
+      "optable":
+      {
+        "email": "fd911bd8cac2e603a80efafca2210b7a917c97410f0c29d9f2bfb99867e5a589"
+      },
+      "eids":
+      [
+        {
+          "source": "growthcode.io",
+          "uids":
+          [
+            {
+              "id": "fb58593e-7ac6-48bd-b2de-89a758726362",
+              "atype": 1
+            }
+          ]
+        },
+        {
+          "source": "pubcid.org",
+          "uids": [
+            {
+              "id": "f9528392fd38786082c7fd01cd2aa5a60d2c3a2788789b1f9de4574a7c9dabae",
+              "atype": 1
+            }
+          ]
+        },
+        {
+          "source": "crwdcntrl.net",
+          "uids":
+          [
+            {
+              "id": "dd1b31e65f5e45548c11a0275ba3a8072c00e3a2a0493e8f5a8f54f8067e8b00",
+              "atype": 1
+            }
+          ]
+        },
+        {
+          "source": "id5-sync.com",
+          "uids":
+          [
+            {
+              "id": "ID5*dd1b31e65f5e45548c11a0275ba3a8072c00e3a2a0493e8f5a8f54f8067e8b00",
+              "atype": 1
+            }
+          ]
+        },
+        {
+          "source": "amxdt.net",
+          "uids":
+          [
+            {
+              "id": "amx*3*a583802a-e6fe-48d7-87c6-7db1b6a4a73a*70f06cdcf8ab0b4ac07a56860ed0e0b6ef0388dc0b0ab5a1dd725999d3b339cf",
+              "atype": 1
+            }
+          ]
+        },
+        {
+          "source": "audigent.com",
+          "uids":
+          [
+            {
+              "id": "f84456cd3c72296d7898f62e1c46dd964206ff4d47e64b690c3c5a1d6b1bd286",
+              "atype": 1
+            }
+          ]
+        },
+        {
+          "source": "adnxs.com",
+          "uids":
+          [
+            {
+              "id": "d4fd63f0f4f7ce0d128348cb145c7e0f"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "ext": {
+    "prebid": {
+      "targeting": {
+        "includebidderkeys": true
+      },
+      "analytics":
+      {
+        "options": {
+          "enableclientdetails": true
+        }
+      }
+    }
+  }
+}
