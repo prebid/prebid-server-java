@@ -12,6 +12,7 @@ We would appreciate it if your porting PR title follows these patterns:
 
 - `Port <adapter_name>: New Adapter` – For porting a completely new adapter to the project (e.g., `Port Kobler: New Adapter`).
 - `Port <adapter_name>: <update_description>` – For porting a specific update to an existing adapter (e.g., `Port OpenX: Native Support`).
+- `Port <alias_name>: New alias for <adapter_name>` – For porting an alias of an existing adapter to the project (e.g., `Port Artechnology: New alias of StartHub`).
 
 Additionally, we kindly ask that you:
 
