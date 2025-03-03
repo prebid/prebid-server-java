@@ -19,9 +19,11 @@ The WURFL module populates missing or empty fields in ortb2.device with the foll
  - **h**: Screen height in pixels.
  - **w**: Screen width in pixels.
  - **ppi**: Screen pixels per inch (PPI).
- - **pixelratio**: Screen pixel density ratio.
+ - **pxratio**: Screen pixel density ratio.
  - **devicetype**: Device type (e.g., mobile, tablet, desktop).
+ - **js**: Support for JavaScript, where 0 = no, 1 = yes
  - **Note**: If these fields are already populated in the bid request, the module will not overwrite them.
+
 #### Publisher-Specific Enrichment:
 
 Device enrichment is selectively enabled for publishers based on their account ID. 
@@ -30,17 +32,14 @@ The module identifies publishers through the following fields:
 `site.publisher.id` (for web environments).
 `app.publisher.id` (for mobile app environments).
 `dooh.publisher.id` (for digital out-of-home environments).
-```
 
 
-### Build prerequisites
+### Building WURFL Module with a licensed WURFL Onsite Java API
 
-To build the WURFL module, you need to download the WURFL Onsite Java API (both JAR and POM files) 
-from the ScientiaMobile private repository and install it in your local Maven repository. 
-Access to the WURFL Onsite Java API repository requires a valid ScientiaMobile WURFL license. 
-For more details, visit: [ScientiaMobile WURFL Onsite API for Java](https://www.scientiamobile.com/secondary-products/wurfl-onsite-api-for-java/).
+In order to compile the WURFL module in the PBS Java server bundle, you must follow these steps:
 
-Run the following command to install the WURFL API:
+1 - Download the WURFL Onsite Java API (both JAR and POM files)
+from the ScientiaMobile private repository and install it in your local Maven repository
 
 ```bash
 mvn install:install-file \
@@ -52,22 +51,26 @@ mvn install:install-file \
     -DpomFile=<path-to-your-wurfl-api-pom-file>
 ```
 
-### Activating the WURFL Module
+2 - add the WURFL Onsite Java API dependency in the WURFL-devicedetection module's `pom.xml`:
 
-The WURFL module is disabled by default. Building the Prebid Server Java with the default bundle option 
-does not include the WURFL module in the server's JAR file.
+```xml
+<dependency>
+    <groupId>com.scientiamobile.wurfl</groupId>
+    <artifactId>wurfl</artifactId>
+    <version>${wurfl.version}</version>
+</dependency>
+```
+If the WURFL API dependency is not added, the module will compile a demo version that returns sample data, allowing basic testing without an WURFL Onsite Java API license.
 
-To include the WURFL module in the Prebid Server Java bundle, follow these steps:
+3 - Remove the `com` directory under `src/main/java` to avoid classloader issues.
 
-1. Uncomment the WURFL Java API dependency in `extra/modules/WURFL-devicedetection/pom.xml`.
-2. Uncomment the WURFL module dependency in `extra/bundle/pom.xml`.
-3. Uncomment the WURFL module name in the module list in `extra/modules/pom.xml`.
-
-After making these changes, you can build the Prebid Server Java bundle with the WURFL module using the following command:
+4 - Build the Prebid Server Java bundle with the WURFL module using the following command:
 
 ```bash
 mvn clean package --file extra/pom.xml
 ```
+**NOTE** - For further automation of WURFL API dependency usage, please check the paragraph
+"Configuring your Builds to work with ScientiaMobile's Private Maven Repository" [on this page](https://docs.scientiamobile.com/documentation/onsite/onsite-java-api).
 
 ### Configuring the WURFL Module
 

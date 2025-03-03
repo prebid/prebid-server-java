@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.prebid.server.hooks.modules</groupId>
         <artifactId>all-modules</artifactId>
-        <version>3.19.0-SNAPSHOT</version>
+        <version>3.22.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>wurfl-devicedetection</artifactId>
@@ -14,16 +14,8 @@
     <description>WURFL device detection and data enrichment module</description>
 
       <properties>
-        <wurfl.version>1.13.2.1</wurfl.version>
+        <wurfl.version>1.13.3.0</wurfl.version>
       </properties>
 
-    <dependencies>
-        <!--
-        <dependency>
-            <groupId>com.scientiamobile.wurfl</groupId>
-            <artifactId>wurfl</artifactId>
-            <version>${wurfl.version}</version>
-        </dependency>
-        -->
-    </dependencies>
+    <dependencies/>
 </project>
