@@ -5,19 +5,14 @@
       "id": "imp_id",
       "secure": 1,
       "banner": {
-        "w": 300,
+        "w": 320,
         "h": 250
       },
       "ext": {
-        "prebid": {
-          "storedrequest": {
-            "id": "placement_id"
-          }
-        },
-        "nextMillennium": {
-          "nmmFlags": ["1"],
-          "nm_version" : "v1.0.0",
-          "server_version" : "${json-unit.any-string}"
+        "tid": "${json-unit.any-string}",
+        "bidder": {
+          "host": "host",
+          "networkId": 4
         }
       }
     }
@@ -51,9 +46,6 @@
   },
   "ext": {
     "prebid": {
-      "storedrequest": {
-        "id": "placement_id"
-      },
       "server": {
         "externalurl": "http://localhost:8080",
         "gvlid": 1,

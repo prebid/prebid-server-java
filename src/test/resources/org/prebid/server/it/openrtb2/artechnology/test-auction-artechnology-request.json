@@ -3,23 +3,19 @@
   "imp": [
     {
       "id": "imp_id",
-      "secure": 1,
       "banner": {
         "w": 300,
         "h": 250
       },
       "ext": {
-        "undertone": {
-          "placementId": 12345,
-          "publisherId": 1234
-        },
-        "gpid": "gpid-value"
+        "artechnology": {
+          "partnerName": "someUniquePartnerName",
+          "seat": "someSeat",
+          "token": "someToken"
+        }
       }
     }
   ],
-  "app": {
-    "bundle": "bundle"
-  },
   "tmax": 5000,
   "regs": {
     "ext": {
