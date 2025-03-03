@@ -22,8 +22,8 @@ import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.settings.model.Account;
-import org.prebid.server.settings.model.AccountAlternateBidderCodes;
-import org.prebid.server.settings.model.AccountAlternateBidderCodesBidder;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAlternateBidderCodes;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAlternateBidderCodesBidder;
 import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountBidValidationConfig;
 import org.prebid.server.settings.model.BidValidationEnforcement;
@@ -82,7 +82,8 @@ public class ResponseBidValidator {
     public ValidationResult validate(BidderBid bidderBid,
                                      String bidder,
                                      AuctionContext auctionContext,
-                                     BidderAliases aliases) {
+                                     BidderAliases aliases,
+                                     ExtRequestPrebidAlternateBidderCodes alternateBidderCodes) {
 
         final Bid bid = bidderBid.getBid();
         final BidRequest bidRequest = auctionContext.getBidRequest();
@@ -94,7 +95,7 @@ public class ResponseBidValidator {
             validateCommonFields(bid);
             validateTypeSpecific(bidderBid, bidder);
             validateCurrency(bidderBid.getBidCurrency());
-            validateSeat(bidderBid, bidder, account, bidRejectionTracker, warnings);
+            validateSeat(bidderBid, bidder, account, bidRejectionTracker, alternateBidderCodes, warnings);
 
             final Imp correspondingImp = findCorrespondingImp(bid, bidRequest);
             if (bidderBid.getType() == BidType.banner) {
@@ -166,14 +167,18 @@ public class ResponseBidValidator {
                               String bidder,
                               Account account,
                               BidRejectionTracker bidRejectionTracker,
+                              ExtRequestPrebidAlternateBidderCodes alternateBidderCodes,
                               List<String> warnings) {
 
         if (bid.getSeat() == null || StringUtils.equals(bid.getSeat(), bidder)) {
             return;
         }
 
-        final AccountAlternateBidderCodesBidder alternateBidder = resolveAlternateBidder(bidder, account);
-        if (!isAlternateBidderCodesEnabled(account) || alternateBidder == null) {
+        final ExtRequestPrebidAlternateBidderCodesBidder alternateBidder = resolveAlternateBidder(
+                bidder,
+                alternateBidderCodes);
+
+        if (!isAlternateBidderCodesEnabled(alternateBidderCodes) || alternateBidder == null) {
             warnings.add(rejectBidOnInvalidSeat(bid, bidder, account, bidRejectionTracker));
             return;
         }
@@ -188,15 +193,18 @@ public class ResponseBidValidator {
         }
     }
 
-    private static Boolean isAlternateBidderCodesEnabled(Account account) {
-        return Optional.ofNullable(account.getAlternateBidderCodes())
-                .map(AccountAlternateBidderCodes::getEnabled)
+    private static Boolean isAlternateBidderCodesEnabled(ExtRequestPrebidAlternateBidderCodes alternateBidderCodes) {
+        return Optional.ofNullable(alternateBidderCodes)
+                .map(ExtRequestPrebidAlternateBidderCodes::getEnabled)
                 .orElse(false);
     }
 
-    private static AccountAlternateBidderCodesBidder resolveAlternateBidder(String bidder, Account account) {
-        return Optional.ofNullable(account.getAlternateBidderCodes())
-                .map(AccountAlternateBidderCodes::getBidders)
+    private static ExtRequestPrebidAlternateBidderCodesBidder resolveAlternateBidder(
+            String bidder,
+            ExtRequestPrebidAlternateBidderCodes alternateBidderCodes) {
+
+        return Optional.ofNullable(alternateBidderCodes)
+                .map(ExtRequestPrebidAlternateBidderCodes::getBidders)
                 .map(bidders -> bidders.get(bidder))
                 .filter(alternate -> BooleanUtils.isTrue(alternate.getEnabled()))
                 .orElse(null);

@@ -111,6 +111,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestCurrency;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAlternateBidderCodes;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidBidderConfig;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheBids;
@@ -351,7 +352,7 @@ public class ExchangeServiceTest extends VertxTest {
                         false,
                         AuctionResponsePayloadImpl.of(invocation.getArgument(0)))));
 
-        given(bidsAdjuster.validateAndAdjustBids(any(), any(), any()))
+        given(bidsAdjuster.validateAndAdjustBids(any(), any(), any(), any()))
                 .willAnswer(invocation -> invocation.getArgument(0));
 
         given(mediaTypeProcessor.process(any(), anyString(), any(), any()))
@@ -3060,6 +3061,68 @@ public class ExchangeServiceTest extends VertxTest {
         verify(metrics).updateAdapterRequestGotbidsMetrics(eq("someBidder"), any());
         verify(metrics).updateAdapterBidMetrics(
                 eq("someBidder"), any(), eq(10000L), eq(false), eq("banner"));
+    }
+
+    @Test
+    public void shouldValidateBidsWithExtRequestPrebidAlternateBidderCodes() {
+        // given
+        given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), any(), anyBoolean()))
+                .willReturn(Future.succeededFuture(givenSeatBid(singletonList(
+                        givenBidderBid(Bid.builder().impid("impId").price(TEN).build())))));
+
+        final ExtRequestPrebidAlternateBidderCodes requestAlternateBidderCodes =
+                ExtRequestPrebidAlternateBidderCodes.builder().enabled(false).build();
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
+                builder -> builder
+                        .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                                .alternateBidderCodes(requestAlternateBidderCodes)
+                                .build())));
+
+        final ExtRequestPrebidAlternateBidderCodes accountAlternateBidderCodes =
+                ExtRequestPrebidAlternateBidderCodes.builder().enabled(true).build();
+
+        final Account givenAccount = Account.builder()
+                .id("accountId")
+                .auction(AccountAuctionConfig.builder()
+                        .events(AccountEventsConfig.of(true))
+                        .build())
+                .alternateBidderCodes(accountAlternateBidderCodes)
+                .build();
+
+        // when
+        target.holdAuction(givenRequestContext(bidRequest, givenAccount));
+
+        // then
+        verify(bidsAdjuster).validateAndAdjustBids(any(), any(), any(), eq(requestAlternateBidderCodes));
+    }
+
+    @Test
+    public void shouldValidateBidsWithAccountAlternateBidderCodesWhenRequestOnesAreAbsent() {
+        // given
+        given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), any(), anyBoolean()))
+                .willReturn(Future.succeededFuture(givenSeatBid(singletonList(
+                        givenBidderBid(Bid.builder().impid("impId").price(TEN).build())))));
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
+                builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder().build())));
+
+        final ExtRequestPrebidAlternateBidderCodes accountAlternateBidderCodes =
+                ExtRequestPrebidAlternateBidderCodes.builder().enabled(true).build();
+
+        final Account givenAccount = Account.builder()
+                .id("accountId")
+                .auction(AccountAuctionConfig.builder()
+                        .events(AccountEventsConfig.of(true))
+                        .build())
+                .alternateBidderCodes(accountAlternateBidderCodes)
+                .build();
+
+        // when
+        target.holdAuction(givenRequestContext(bidRequest, givenAccount));
+
+        // then
+        verify(bidsAdjuster).validateAndAdjustBids(any(), any(), any(), eq(accountAlternateBidderCodes));
     }
 
     @Test

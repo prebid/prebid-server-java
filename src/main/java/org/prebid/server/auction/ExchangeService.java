@@ -81,6 +81,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigOrtb;
 import org.prebid.server.proto.openrtb.ext.request.ExtDooh;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAlternateBidderCodes;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidBidderConfig;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
@@ -245,6 +246,8 @@ public class ExchangeService {
         final Map<String, MultiBidConfig> bidderToMultiBid = bidderToMultiBids(bidRequest, debugWarnings);
         receivedContext.getBidRejectionTrackers().putAll(makeBidRejectionTrackers(bidRequest, aliases));
 
+        final ExtRequestPrebidAlternateBidderCodes alternateBidderCodes = getAlternateBidderCodes(bidRequest, account);
+
         final boolean debugEnabled = receivedContext.getDebugContext().isDebugEnabled();
         metrics.updateDebugRequestMetrics(debugEnabled);
         metrics.updateAccountDebugRequestMetrics(account, debugEnabled);
@@ -275,8 +278,11 @@ public class ExchangeService {
                                 context.getBidRejectionTrackers()))
                         .map(auctionParticipations -> dropZeroNonDealBids(
                                 auctionParticipations, debugWarnings, debugEnabled))
-                        .map(auctionParticipations ->
-                                bidsAdjuster.validateAndAdjustBids(auctionParticipations, context, aliases))
+                        .map(auctionParticipations -> bidsAdjuster.validateAndAdjustBids(
+                                auctionParticipations,
+                                context,
+                                aliases,
+                                alternateBidderCodes))
                         .map(auctionParticipations -> updateResponsesMetrics(auctionParticipations, account, aliases))
                         .map(context::with))
                 // produce response from bidder results
@@ -296,6 +302,15 @@ public class ExchangeService {
         final Map<String, String> aliases = prebid != null ? prebid.getAliases() : null;
         final Map<String, Integer> aliasgvlids = prebid != null ? prebid.getAliasgvlids() : null;
         return BidderAliases.of(aliases, aliasgvlids, bidderCatalog);
+    }
+
+    private static ExtRequestPrebidAlternateBidderCodes getAlternateBidderCodes(BidRequest bidRequest,
+                                                                                Account account) {
+
+        return Optional.ofNullable(bidRequest.getExt())
+                .map(ExtRequest::getPrebid)
+                .map(ExtRequestPrebid::getAlternateBidderCodes)
+                .orElse(account.getAlternateBidderCodes());
     }
 
     private static ExtRequestTargeting targeting(BidRequest bidRequest) {
