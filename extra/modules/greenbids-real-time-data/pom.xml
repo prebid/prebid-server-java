@@ -31,8 +31,8 @@
             <version>2.41.0</version>
             <exclusions>
                 <exclusion>
-                    <groupId>com.google.guava</groupId>
                     <artifactId>failureaccess</artifactId>
+                    <groupId>com.google.guava</groupId>
                 </exclusion>
             </exclusions>
         </dependency>
