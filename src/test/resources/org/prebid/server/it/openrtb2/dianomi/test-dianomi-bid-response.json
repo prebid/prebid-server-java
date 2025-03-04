@@ -12,7 +12,10 @@
           "crid": "test-creative-id-2",
           "ext": {
             "prebid": {
-              "type": "banner"
+              "type": "banner",
+              "meta": {
+                "adaptercode": "gross"
+              }
             },
             "pt": "gross"
           }

@@ -17,7 +17,10 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner"
+              "type": "banner",
+              "meta": {
+                "adaptercode": "bigoad"
+              }
             },
             "origbidcpm": 3.33
           }

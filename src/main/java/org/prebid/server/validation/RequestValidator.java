@@ -248,11 +248,6 @@ public class RequestValidator {
         for (Map.Entry<String, BigDecimal> bidderAdjustment : bidderAdjustments.entrySet()) {
             final String bidder = bidderAdjustment.getKey();
 
-            if (isUnknownBidderOrAlias(bidder, aliases)) {
-                throw new ValidationException(
-                        "request.ext.prebid.bidadjustmentfactors.%s is not a known bidder or alias", bidder);
-            }
-
             final BigDecimal adjustmentFactor = bidderAdjustment.getValue();
             if (adjustmentFactor.compareTo(BigDecimal.ZERO) <= 0) {
                 throw new ValidationException(
@@ -271,22 +266,16 @@ public class RequestValidator {
 
         for (Map.Entry<ImpMediaType, Map<String, BigDecimal>> entry
                 : adjustmentsMediaTypeFactors.entrySet()) {
-            validateBidAdjustmentFactorsByMediatype(entry.getKey(), entry.getValue(), aliases);
+            validateBidAdjustmentFactorsByMediatype(entry.getKey(), entry.getValue());
         }
     }
 
     private void validateBidAdjustmentFactorsByMediatype(ImpMediaType mediaType,
-                                                         Map<String, BigDecimal> bidderAdjustments,
-                                                         Map<String, String> aliases) throws ValidationException {
+                                                         Map<String, BigDecimal> bidderAdjustments)
+            throws ValidationException {
 
         for (Map.Entry<String, BigDecimal> bidderAdjustment : bidderAdjustments.entrySet()) {
             final String bidder = bidderAdjustment.getKey();
-
-            if (isUnknownBidderOrAlias(bidder, aliases)) {
-                throw new ValidationException(
-                        "request.ext.prebid.bidadjustmentfactors.%s.%s is not a known bidder or alias",
-                        mediaType, bidder);
-            }
 
             final BigDecimal adjustmentFactor = bidderAdjustment.getValue();
             if (adjustmentFactor.compareTo(BigDecimal.ZERO) <= 0) {

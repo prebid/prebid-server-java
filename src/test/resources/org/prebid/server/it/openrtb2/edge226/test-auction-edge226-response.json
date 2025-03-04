@@ -14,7 +14,10 @@
           "mtype": 1,
           "ext": {
             "prebid": {
-              "type": "banner"
+              "type": "banner",
+              "meta": {
+                "adaptercode": "edge226"
+              }
             },
             "origbidcpm": 0.01
           }

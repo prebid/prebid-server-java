@@ -17,7 +17,10 @@
             "origbidcpm": 2.01,
             "origbidcur": "EUR",
             "prebid": {
-              "type": "banner"
+              "type": "banner",
+              "meta": {
+                "adaptercode": "yieldlab"
+              }
             }
           }
         }

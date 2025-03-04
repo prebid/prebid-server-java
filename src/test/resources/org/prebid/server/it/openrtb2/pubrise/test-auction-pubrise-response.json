@@ -14,7 +14,10 @@
           "h": 600,
           "ext": {
             "prebid": {
-              "type": "video"
+              "type": "video",
+              "meta": {
+                "adaptercode": "pubrise"
+              }
             },
             "origbidcpm": 1.25
           },

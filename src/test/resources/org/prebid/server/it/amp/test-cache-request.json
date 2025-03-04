@@ -12,7 +12,10 @@
         "h": 600,
         "ext": {
           "prebid": {
-            "type": "banner"
+            "type": "banner",
+            "meta": {
+              "adaptercode": "generic"
+            }
           },
           "rp": {
             "targeting": [
@@ -48,7 +51,10 @@
         "h": 250,
         "ext": {
           "prebid": {
-            "type": "banner"
+            "type": "banner",
+            "meta": {
+              "adaptercode": "genericAlias"
+            }
           },
           "genericAlias": {
             "brand_id": 1,

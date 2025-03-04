@@ -61,7 +61,7 @@ public class BidsAdjusterTest extends VertxTest {
 
     @BeforeEach
     public void setUp() {
-        given(responseBidValidator.validate(any(), any(), any(), any())).willReturn(ValidationResult.success());
+        given(responseBidValidator.validate(any(), any(), any(), any(), any())).willReturn(ValidationResult.success());
 
         given(priceFloorEnforcer.enforce(any(), any(), any(), any())).willAnswer(inv -> inv.getArgument(1));
         given(dsaEnforcer.enforce(any(), any(), any())).willAnswer(inv -> inv.getArgument(1));
@@ -100,7 +100,7 @@ public class BidsAdjusterTest extends VertxTest {
 
         // when
         final List<AuctionParticipation> result = target.validateAndAdjustBids(
-                auctionParticipations, auctionContext, null);
+                auctionParticipations, auctionContext, null, null);
 
         // then
         assertThat(result)
@@ -142,7 +142,7 @@ public class BidsAdjusterTest extends VertxTest {
 
         // when
         final List<AuctionParticipation> result = target.validateAndAdjustBids(
-                auctionParticipations, auctionContext, null);
+                auctionParticipations, auctionContext, null, null);
 
         // then
         assertThat(result)
@@ -185,7 +185,7 @@ public class BidsAdjusterTest extends VertxTest {
 
         // when
         final List<AuctionParticipation> result = target
-                .validateAndAdjustBids(auctionParticipations, auctionContext, null);
+                .validateAndAdjustBids(auctionParticipations, auctionContext, null, null);
 
         // then
         assertThat(result)
@@ -213,7 +213,7 @@ public class BidsAdjusterTest extends VertxTest {
                         .auctiontimestamp(1000L)
                         .build())));
 
-        when(responseBidValidator.validate(any(), any(), any(), any()))
+        when(responseBidValidator.validate(any(), any(), any(), any(), any()))
                 .thenReturn(ValidationResult.error("Error: bid validation error."));
 
         final List<AuctionParticipation> auctionParticipations = givenAuctionParticipation(bidderResponse, bidRequest);
@@ -221,7 +221,7 @@ public class BidsAdjusterTest extends VertxTest {
 
         // when
         final List<AuctionParticipation> result = target
-                .validateAndAdjustBids(auctionParticipations, auctionContext, null);
+                .validateAndAdjustBids(auctionParticipations, auctionContext, null, null);
 
         // then
         assertThat(result)
@@ -256,7 +256,7 @@ public class BidsAdjusterTest extends VertxTest {
                         .auctiontimestamp(1000L)
                         .build())));
 
-        when(responseBidValidator.validate(any(), any(), any(), any()))
+        when(responseBidValidator.validate(any(), any(), any(), any(), any()))
                 .thenReturn(ValidationResult.warning(singletonList("Error: bid validation warning.")));
 
         final List<AuctionParticipation> auctionParticipations = givenAuctionParticipation(bidderResponse, bidRequest);
@@ -264,7 +264,7 @@ public class BidsAdjusterTest extends VertxTest {
 
         // when
         final List<AuctionParticipation> result = target
-                .validateAndAdjustBids(auctionParticipations, auctionContext, null);
+                .validateAndAdjustBids(auctionParticipations, auctionContext, null, null);
 
         // then
         assertThat(result)
@@ -301,7 +301,7 @@ public class BidsAdjusterTest extends VertxTest {
 
         // when
         final List<AuctionParticipation> result = target
-                .validateAndAdjustBids(auctionParticipations, auctionContext, null);
+                .validateAndAdjustBids(auctionParticipations, auctionContext, null, null);
 
         // then
         assertThat(result).hasSize(1);

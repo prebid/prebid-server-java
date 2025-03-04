@@ -25,7 +25,8 @@
               "type": "banner",
               "meta": {
                 "rendererName": "teads",
-                "rendererVersion": "5.0.25"
+                "rendererVersion": "5.0.25",
+                "adaptercode": "teads"
               }
             },
             "origbidcpm": 33
