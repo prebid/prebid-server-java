@@ -914,10 +914,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
     }
 
     def "PBS should populate seatNonBid when bid rejected due to floor"() {
-        given: "PBS config with floors config"
-        def pbsService = pbsServiceFactory.getService(FLOORS_CONFIG)
-
-        and: "Default BidRequest"
+        given: "Default BidRequest"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.floors = new ExtPrebidFloors(enforcement: new ExtPrebidPriceFloorEnforcement(enforcePbs: enforcePbs))
             ext.prebid.returnAllBidStatus = true
@@ -935,7 +932,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
         and: "PBS cache rules"
-        cacheFloorsProviderRules(bidRequest, floorValue, pbsService)
+        cacheFloorsProviderRules(bidRequest, floorValue, floorsPbsService)
 
         and: "Set bidder response"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
@@ -944,7 +941,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
-        def response = pbsService.sendAuctionRequest(bidRequest)
+        def response = floorsPbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS response should contain seatNonBid and contain errors"
         def seatNonBids = response.ext.seatnonbid
@@ -961,10 +958,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
     }
 
     def "PBS shouldn't populate seatNonBid when rejected due to floor and returnAllBidStatus is false"() {
-        given: "PBS config with floors config"
-        def pbsService = pbsServiceFactory.getService(FLOORS_CONFIG)
-
-        and: "Default BidRequest"
+        given: "Default BidRequest"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.floors = new ExtPrebidFloors(enforcement: new ExtPrebidPriceFloorEnforcement(enforcePbs: enforcePbs))
             ext.prebid.returnAllBidStatus = false
@@ -982,7 +976,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
         and: "PBS cache rules"
-        cacheFloorsProviderRules(bidRequest, floorValue, pbsService)
+        cacheFloorsProviderRules(bidRequest, floorValue, floorsPbsService)
 
         and: "Set bidder response"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
@@ -991,7 +985,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
-        def response = pbsService.sendAuctionRequest(bidRequest)
+        def response = floorsPbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS response shouldn't contain seatNonBid and contain errors"
         assert !response.ext.seatnonbid

@@ -647,7 +647,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
             bidderRequest.user.data == ampStoredRequest.user.data
             bidderRequest.user.geo.lat == ampStoredRequest.user.geo.lat
             bidderRequest.user.geo.lon == ampStoredRequest.user.geo.lon
-            bidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == ampStoredRequest.user.ext.data.buyerUid
         }
 
         and: "Metrics processed across activities shouldn't be updated"

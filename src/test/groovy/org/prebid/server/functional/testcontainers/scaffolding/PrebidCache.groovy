@@ -76,7 +76,7 @@ class PrebidCache extends NetworkScaffolding {
                  .withBody(jsonPath("\$.puts[?(@.value =~/^.*$payload.*\$/)]"))
     }
 
-    private String getBodyByRequest(HttpRequest request) {
+    private static String getBodyByRequest(HttpRequest request) {
         def requestString = request.bodyAsString
         def jsonNode = toJsonNode(requestString)
         def putsSize = jsonNode.get("puts").size()
