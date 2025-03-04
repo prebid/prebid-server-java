@@ -89,9 +89,9 @@ public class MaxMindGeoLocationServiceTest {
         given(databaseReader.city(any())).willReturn(cityResponse);
 
         new ReflectionMemberAccessor().set(
-                        maxMindGeoLocationService.getClass().getDeclaredField("databaseReader"),
-                        maxMindGeoLocationService,
-                        databaseReader);
+                maxMindGeoLocationService.getClass().getDeclaredField("databaseReader"),
+                maxMindGeoLocationService,
+                databaseReader);
 
         // when
         final Future<GeoInfo> future = maxMindGeoLocationService.lookup(TEST_IP, null);
@@ -99,15 +99,15 @@ public class MaxMindGeoLocationServiceTest {
         // then
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result())
-                        .isEqualTo(GeoInfo.builder()
-                                        .vendor("maxmind")
-                                        .continent("eu")
-                                        .country("fr")
-                                        .region("paris")
-                                        .city("Paris")
-                                        .lat(48.8566f)
-                                        .lon(2.3522f)
-                                        .build());
+                .isEqualTo(GeoInfo.builder()
+                        .vendor("maxmind")
+                        .continent("eu")
+                        .country("fr")
+                        .region("paris")
+                        .city("Paris")
+                        .lat(48.8566f)
+                        .lon(2.3522f)
+                        .build());
     }
 
     @Test
