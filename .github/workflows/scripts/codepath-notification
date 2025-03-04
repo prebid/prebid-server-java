@@ -19,4 +19,5 @@
 /ix|Ix|ix.json|ix.yaml: pdu-supply-prebid@indexexchange.com
 appnexus|Appnexus: prebid@microsoft.com
 pubmatic|Pubmatic: header-bidding@pubmatic.com
-openx|OpenX: : prebid@openx.com
+openx|OpenX: prebid@openx.com
+medianet|Medianet: prebid@media.net
