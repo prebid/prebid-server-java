@@ -22,6 +22,7 @@ import org.prebid.server.activity.infrastructure.privacy.usnat.inner.model.Shari
 import org.prebid.server.activity.infrastructure.privacy.usnat.inner.model.TargetedAdvertisingOptOut;
 import org.prebid.server.activity.infrastructure.privacy.usnat.inner.model.TargetedAdvertisingOptOutNotice;
 import org.prebid.server.activity.infrastructure.privacy.usnat.inner.model.USNatField;
+import org.prebid.server.settings.model.activity.privacy.AccountUSNatModuleConfig;
 
 import java.util.List;
 import java.util.Objects;
@@ -36,10 +37,10 @@ public class USNatTransmitUfpd implements PrivacyModule, Loggable {
     private final USNatGppReader gppReader;
     private final Result result;
 
-    public USNatTransmitUfpd(USNatGppReader gppReader) {
+    public USNatTransmitUfpd(USNatGppReader gppReader, AccountUSNatModuleConfig.Config config) {
         this.gppReader = gppReader;
 
-        result = disallow(gppReader) ? Result.DISALLOW : Result.ALLOW;
+        result = disallow(gppReader, config) ? Result.DISALLOW : Result.ALLOW;
     }
 
     @Override
@@ -47,7 +48,7 @@ public class USNatTransmitUfpd implements PrivacyModule, Loggable {
         return result;
     }
 
-    public static boolean disallow(USNatGppReader gppReader) {
+    public static boolean disallow(USNatGppReader gppReader, AccountUSNatModuleConfig.Config config) {
         return equals(gppReader.getMspaServiceProviderMode(), MspaServiceProviderMode.YES)
                 || equals(gppReader.getGpc(), Gpc.TRUE)
                 || checkSale(gppReader)
@@ -55,7 +56,7 @@ public class USNatTransmitUfpd implements PrivacyModule, Loggable {
                 || checkTargetedAdvertising(gppReader)
                 || checkSensitiveData(gppReader)
                 || checkKnownChildSensitiveDataConsents(gppReader)
-                || equals(gppReader.getPersonalDataConsents(), PersonalDataConsents.CONSENT);
+                || checkPersonalDataConsents(gppReader, config);
     }
 
     private static boolean checkSale(USNatGppReader gppReader) {
@@ -125,6 +126,11 @@ public class USNatTransmitUfpd implements PrivacyModule, Loggable {
         return equalsAtIndex(KnownChildSensitiveDataConsent.NO_CONSENT, knownChildSensitiveDataConsents, 0)
                 || equalsAtIndex(KnownChildSensitiveDataConsent.NO_CONSENT, knownChildSensitiveDataConsents, 1)
                 || equalsAtIndex(KnownChildSensitiveDataConsent.CONSENT, knownChildSensitiveDataConsents, 1);
+    }
+
+    private static boolean checkPersonalDataConsents(USNatGppReader gppReader, AccountUSNatModuleConfig.Config config) {
+        return (config == null || !config.isAllowPersonalDataConsent2())
+                && equals(gppReader.getPersonalDataConsents(), PersonalDataConsents.CONSENT);
     }
 
     private static <T> boolean anyEqualsAtIndices(USNatField<T> expectedValue, List<T> list, Set<Integer> indices) {

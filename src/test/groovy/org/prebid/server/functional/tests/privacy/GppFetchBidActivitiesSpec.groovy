@@ -604,10 +604,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         }
 
         and: "Activities set for fetchBid with rejecting privacy regulation"
-        def rule = new ActivityRule().tap {
-            it.privacyRegulation = [privacyAllowRegulations]
-        }
-
+        def rule = new ActivityRule(privacyRegulation: [privacyAllowRegulations])
         def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, Activity.getDefaultActivity([rule]))
 
         and: "Account gpp configuration"
@@ -1312,9 +1309,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         }
 
         and: "Activities set for fetchBid with allowing privacy regulation"
-        def rule = new ActivityRule().tap {
-            it.privacyRegulation = [privacyAllowRegulations]
-        }
+        def rule = new ActivityRule(privacyRegulation: [privacyAllowRegulations])
 
         def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, Activity.getDefaultActivity([rule]))
 

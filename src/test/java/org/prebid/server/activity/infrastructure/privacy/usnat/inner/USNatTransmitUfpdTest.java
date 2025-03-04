@@ -7,6 +7,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.activity.infrastructure.privacy.PrivacyModule;
 import org.prebid.server.activity.infrastructure.privacy.usnat.USNatGppReader;
 import org.prebid.server.activity.infrastructure.rule.Rule;
+import org.prebid.server.settings.model.activity.privacy.AccountUSNatModuleConfig;
 
 import java.util.ArrayList;
 import java.util.Set;
@@ -19,14 +20,14 @@ import static org.mockito.BDDMockito.given;
 @ExtendWith(MockitoExtension.class)
 public class USNatTransmitUfpdTest {
 
-    @Mock
+    @Mock(strictness = Mock.Strictness.LENIENT)
     private USNatGppReader gppReader;
 
     @Test
     public void proceedShouldDisallowIfMspaServiceProviderModeEquals1() {
         // given
         given(gppReader.getMspaServiceProviderMode()).willReturn(1);
-        final PrivacyModule target = new USNatTransmitUfpd(gppReader);
+        final PrivacyModule target = new USNatTransmitUfpd(gppReader, null);
 
         // when
         final Rule.Result result = target.proceed(null);
@@ -39,7 +40,7 @@ public class USNatTransmitUfpdTest {
     public void proceedShouldDisallowIfGpcEqualsTrue() {
         // given
         given(gppReader.getGpc()).willReturn(true);
-        final PrivacyModule target = new USNatTransmitUfpd(gppReader);
+        final PrivacyModule target = new USNatTransmitUfpd(gppReader, null);
 
         // when
         final Rule.Result result = target.proceed(null);
@@ -52,7 +53,7 @@ public class USNatTransmitUfpdTest {
     public void proceedShouldDisallowIfSaleOptOutEquals1() {
         // given
         given(gppReader.getSaleOptOut()).willReturn(1);
-        final PrivacyModule target = new USNatTransmitUfpd(gppReader);
+        final PrivacyModule target = new USNatTransmitUfpd(gppReader, null);
 
         // when
         final Rule.Result result = target.proceed(null);
@@ -65,7 +66,7 @@ public class USNatTransmitUfpdTest {
     public void proceedShouldDisallowIfSaleOptOutNoticeEquals2() {
         // given
         given(gppReader.getSaleOptOutNotice()).willReturn(2);
-        final PrivacyModule target = new USNatTransmitUfpd(gppReader);
+        final PrivacyModule target = new USNatTransmitUfpd(gppReader, null);
 
         // when
         final Rule.Result result = target.proceed(null);
@@ -79,7 +80,7 @@ public class USNatTransmitUfpdTest {
         // given
         given(gppReader.getSaleOptOut()).willReturn(2);
         given(gppReader.getSaleOptOutNotice()).willReturn(0);
-        final PrivacyModule target = new USNatTransmitUfpd(gppReader);
+        final PrivacyModule target = new USNatTransmitUfpd(gppReader, null);
 
         // when
         final Rule.Result result = target.proceed(null);
@@ -92,7 +93,7 @@ public class USNatTransmitUfpdTest {
     public void proceedShouldDisallowIfSharingNoticeEquals2() {
         // given
         given(gppReader.getSharingNotice()).willReturn(2);
-        final PrivacyModule target = new USNatTransmitUfpd(gppReader);
+        final PrivacyModule target = new USNatTransmitUfpd(gppReader, null);
 
         // when
         final Rule.Result result = target.proceed(null);
@@ -105,7 +106,7 @@ public class USNatTransmitUfpdTest {
     public void proceedShouldDisallowIfSharingOptOutEquals1() {
         // given
         given(gppReader.getSharingOptOut()).willReturn(1);
-        final PrivacyModule target = new USNatTransmitUfpd(gppReader);
+        final PrivacyModule target = new USNatTransmitUfpd(gppReader, null);
 
         // when
         final Rule.Result result = target.proceed(null);
@@ -118,7 +119,7 @@ public class USNatTransmitUfpdTest {
     public void proceedShouldDisallowIfSharingOptOutNoticeEquals2() {
         // given
         given(gppReader.getSharingOptOutNotice()).willReturn(2);
-        final PrivacyModule target = new USNatTransmitUfpd(gppReader);
+        final PrivacyModule target = new USNatTransmitUfpd(gppReader, null);
 
         // when
         final Rule.Result result = target.proceed(null);
@@ -132,7 +133,7 @@ public class USNatTransmitUfpdTest {
         // given
         given(gppReader.getSharingOptOut()).willReturn(2);
         given(gppReader.getSharingOptOutNotice()).willReturn(0);
-        final PrivacyModule target = new USNatTransmitUfpd(gppReader);
+        final PrivacyModule target = new USNatTransmitUfpd(gppReader, null);
 
         // when
         final Rule.Result result = target.proceed(null);
@@ -145,7 +146,7 @@ public class USNatTransmitUfpdTest {
     public void proceedShouldDisallowIfTargetedAdvertisingOptOutEquals1() {
         // given
         given(gppReader.getTargetedAdvertisingOptOut()).willReturn(1);
-        final PrivacyModule target = new USNatTransmitUfpd(gppReader);
+        final PrivacyModule target = new USNatTransmitUfpd(gppReader, null);
 
         // when
         final Rule.Result result = target.proceed(null);
@@ -158,7 +159,7 @@ public class USNatTransmitUfpdTest {
     public void proceedShouldDisallowIfTargetedAdvertisingOptOutNoticeEquals2() {
         // given
         given(gppReader.getTargetedAdvertisingOptOutNotice()).willReturn(2);
-        final PrivacyModule target = new USNatTransmitUfpd(gppReader);
+        final PrivacyModule target = new USNatTransmitUfpd(gppReader, null);
 
         // when
         final Rule.Result result = target.proceed(null);
@@ -172,7 +173,7 @@ public class USNatTransmitUfpdTest {
         // given
         given(gppReader.getTargetedAdvertisingOptOut()).willReturn(2);
         given(gppReader.getTargetedAdvertisingOptOutNotice()).willReturn(0);
-        final PrivacyModule target = new USNatTransmitUfpd(gppReader);
+        final PrivacyModule target = new USNatTransmitUfpd(gppReader, null);
 
         // when
         final Rule.Result result = target.proceed(null);
@@ -185,7 +186,7 @@ public class USNatTransmitUfpdTest {
     public void proceedShouldDisallowIfSensitiveDataLimitUseNoticeEquals2() {
         // given
         given(gppReader.getSensitiveDataLimitUseNotice()).willReturn(2);
-        final PrivacyModule target = new USNatTransmitUfpd(gppReader);
+        final PrivacyModule target = new USNatTransmitUfpd(gppReader, null);
 
         // when
         final Rule.Result result = target.proceed(null);
@@ -198,7 +199,7 @@ public class USNatTransmitUfpdTest {
     public void proceedShouldDisallowIfSensitiveDataProcessingOptOutNoticeEquals2() {
         // given
         given(gppReader.getSensitiveDataProcessingOptOutNotice()).willReturn(2);
-        final PrivacyModule target = new USNatTransmitUfpd(gppReader);
+        final PrivacyModule target = new USNatTransmitUfpd(gppReader, null);
 
         // when
         final Rule.Result result = target.proceed(null);
@@ -218,7 +219,7 @@ public class USNatTransmitUfpdTest {
             data.add(i, 2);
             given(gppReader.getSensitiveDataProcessing()).willReturn(data);
 
-            final PrivacyModule target = new USNatTransmitUfpd(gppReader);
+            final PrivacyModule target = new USNatTransmitUfpd(gppReader, null);
 
             // when
             final Rule.Result result = target.proceed(null);
@@ -239,7 +240,7 @@ public class USNatTransmitUfpdTest {
             data.add(i, 2);
             given(gppReader.getSensitiveDataProcessing()).willReturn(data);
 
-            final PrivacyModule target = new USNatTransmitUfpd(gppReader);
+            final PrivacyModule target = new USNatTransmitUfpd(gppReader, null);
 
             // when
             final Rule.Result result = target.proceed(null);
@@ -258,7 +259,7 @@ public class USNatTransmitUfpdTest {
             data.add(i, 1);
             given(gppReader.getSensitiveDataProcessing()).willReturn(data);
 
-            final PrivacyModule target = new USNatTransmitUfpd(gppReader);
+            final PrivacyModule target = new USNatTransmitUfpd(gppReader, null);
 
             // when
             final Rule.Result result = target.proceed(null);
@@ -277,7 +278,7 @@ public class USNatTransmitUfpdTest {
             data.add(i, 2);
             given(gppReader.getSensitiveDataProcessing()).willReturn(data);
 
-            final PrivacyModule target = new USNatTransmitUfpd(gppReader);
+            final PrivacyModule target = new USNatTransmitUfpd(gppReader, null);
 
             // when
             final Rule.Result result = target.proceed(null);
@@ -291,7 +292,7 @@ public class USNatTransmitUfpdTest {
     public void proceedShouldDisallowIfKnownChildSensitiveDataConsents1Equals1() {
         // given
         given(gppReader.getKnownChildSensitiveDataConsents()).willReturn(singletonList(1));
-        final PrivacyModule target = new USNatTransmitUfpd(gppReader);
+        final PrivacyModule target = new USNatTransmitUfpd(gppReader, null);
 
         // when
         final Rule.Result result = target.proceed(null);
@@ -304,7 +305,7 @@ public class USNatTransmitUfpdTest {
     public void proceedShouldDisallowIfKnownChildSensitiveDataConsents2NotEquals0() {
         // given
         given(gppReader.getKnownChildSensitiveDataConsents()).willReturn(asList(1, 1));
-        final PrivacyModule target = new USNatTransmitUfpd(gppReader);
+        final PrivacyModule target = new USNatTransmitUfpd(gppReader, null);
 
         // when
         final Rule.Result result = target.proceed(null);
@@ -317,7 +318,7 @@ public class USNatTransmitUfpdTest {
     public void proceedShouldDisallowIfPersonalDataConsentsEquals2() {
         // given
         given(gppReader.getPersonalDataConsents()).willReturn(2);
-        final PrivacyModule target = new USNatTransmitUfpd(gppReader);
+        final PrivacyModule target = new USNatTransmitUfpd(gppReader, null);
 
         // when
         final Rule.Result result = target.proceed(null);
@@ -327,9 +328,22 @@ public class USNatTransmitUfpdTest {
     }
 
     @Test
+    public void proceedShouldAllowIfPersonalDataConsentsEquals2ButDisabled() {
+        // given
+        given(gppReader.getPersonalDataConsents()).willReturn(2);
+        final PrivacyModule target = new USNatTransmitUfpd(gppReader, AccountUSNatModuleConfig.Config.of(null, true));
+
+        // when
+        final Rule.Result result = target.proceed(null);
+
+        // then
+        assertThat(result).isEqualTo(Rule.Result.ALLOW);
+    }
+
+    @Test
     public void proceedShouldAllow() {
         // given
-        final PrivacyModule target = new USNatTransmitUfpd(gppReader);
+        final PrivacyModule target = new USNatTransmitUfpd(gppReader, null);
 
         // when
         final Rule.Result result = target.proceed(null);
