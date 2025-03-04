@@ -82,6 +82,7 @@ import org.prebid.server.floors.model.PriceFloorModelGroup;
 import org.prebid.server.floors.model.PriceFloorResult;
 import org.prebid.server.floors.model.PriceFloorRules;
 import org.prebid.server.floors.model.PriceFloorSchema;
+import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.ExtPrebidBidders;
 import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
@@ -164,6 +165,9 @@ public class RubiconBidderTest extends VertxTest {
     @Mock(strictness = LENIENT)
     private PrebidVersionProvider versionProvider;
 
+    @Mock(strictness = LENIENT)
+    private IdGenerator idGenerator;
+
     private RubiconBidder target;
 
     @BeforeEach
@@ -175,14 +179,16 @@ public class RubiconBidderTest extends VertxTest {
                 USERNAME,
                 PASSWORD,
                 SUPPORTED_VENDORS,
-                false,
+                true,
                 APEX_RENDERER_URL,
                 currencyConversionService,
                 priceFloorResolver,
                 versionProvider,
+                idGenerator,
                 jacksonMapper);
 
         given(versionProvider.getNameVersionRecord()).willReturn("pbs_version");
+        given(idGenerator.generateId()).willReturn("uuid_bid_id");
     }
 
     @Test
@@ -199,6 +205,7 @@ public class RubiconBidderTest extends VertxTest {
                         currencyConversionService,
                         priceFloorResolver,
                         versionProvider,
+                        idGenerator,
                         jacksonMapper));
     }
 
@@ -646,7 +653,12 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(Imp::getExt).doesNotContainNull()
                 .extracting(ext -> mapper.treeToValue(ext, RubiconImpExt.class))
                 .containsExactly(RubiconImpExt.builder()
-                        .rp(RubiconImpExtRp.of(4001, expectedTarget, RubiconImpExtRpTrack.of("", ""), null))
+                        .rp(RubiconImpExtRp.of(
+                                4001,
+                                expectedTarget,
+                                RubiconImpExtRpTrack.of("", ""),
+                                null,
+                                "uuid_bid_id"))
                         .skadn(givenSkadn)
                         .maxbids(1)
                         .build());
@@ -879,6 +891,7 @@ public class RubiconBidderTest extends VertxTest {
                 currencyConversionService,
                 priceFloorResolver,
                 versionProvider,
+                idGenerator,
                 jacksonMapper);
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder.instl(1).video(Video.builder().placement(1).build()),
@@ -2460,7 +2473,7 @@ public class RubiconBidderTest extends VertxTest {
 
         // then
         final RubiconImpExtRp expectedImpExtRp = RubiconImpExtRp.of(
-                null, givenImpExtRpTarget(), RubiconImpExtRpTrack.of("", ""), null);
+                null, givenImpExtRpTarget(), RubiconImpExtRpTrack.of("", ""), null, "uuid_bid_id");
 
         final BidRequest expectedBidRequest1 = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
@@ -3712,7 +3725,12 @@ public class RubiconBidderTest extends VertxTest {
                 .build());
 
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                givenBidRequest(builder -> builder.video(Video.builder().build())),
+                givenBidRequest(builder -> builder
+                        .id("impId")
+                        .video(Video.builder().build())
+                        .ext(mapper.valueToTree(RubiconImpExt.builder()
+                                .rp(RubiconImpExtRp.of(null, null, null, null, "pbBidId"))
+                                .build()))),
                 bidResponse);
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder.id("impId").video(Video.builder().build()));
@@ -3725,7 +3743,7 @@ public class RubiconBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(BidderBid::getBid)
                 .extracting(Bid::getId)
-                .containsExactlyInAnyOrder("firstBidId", "secondBidId");
+                .containsExactlyInAnyOrder("pbBidId", "pbBidId");
     }
 
     @Test
@@ -3787,13 +3805,17 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBidWithBidIdFieldFromBidResponseIfZero() throws JsonProcessingException {
+    public void makeBidsShouldReturnBidWithBidIdFieldFromImpExtRpPbBidId() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(imp -> imp
+                        .id("impId")
+                        .ext(mapper.valueToTree(RubiconImpExt.builder()
+                                .rp(RubiconImpExtRp.of(null, null, null, null, "pbBidId"))
+                                .build()))),
                 mapper.writeValueAsString(RubiconBidResponse.builder()
                         .bidid("bidid1") // returned bidid from XAPI
                         .seatbid(singletonList(RubiconSeatBid.builder()
-                                .bid(singletonList(RubiconBid.builder().id("0").price(ONE).build()))
+                                .bid(singletonList(RubiconBid.builder().id("0").impid("impId").price(ONE).build()))
                                 .build()))
                         .build()));
 
@@ -3804,17 +3826,23 @@ public class RubiconBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(BidderBid::getBid, BidderBid::getType)
-                .containsOnly(Tuple.tuple(Bid.builder().id("bidid1").price(ONE).build(), banner));
+                .containsOnly(Tuple.tuple(Bid.builder().id("pbBidId").impid("impId").price(ONE).build(), banner));
     }
 
     @Test
-    public void makeBidsShouldReturnBidWithOriginalBidIdFieldFromBidResponseIfNotZero() throws JsonProcessingException {
+    public void makeBidsShouldReturnBidWithBidIdReturnedFromXAPIWhenImpCanNotBeMatched()
+            throws JsonProcessingException {
+
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(imp -> imp
+                        .id("impId")
+                        .ext(mapper.valueToTree(RubiconImpExt.builder()
+                                .rp(RubiconImpExtRp.of(null, null, null, null, "pbBidId"))
+                                .build()))),
                 mapper.writeValueAsString(RubiconBidResponse.builder()
-                        .bidid("bidid1") // returned bidid from XAPI
+                        .bidid("bid_response_bidId") // returned bidid from XAPI
                         .seatbid(singletonList(RubiconSeatBid.builder()
-                                .bid(singletonList(RubiconBid.builder().id("non-zero").price(ONE).build()))
+                                .bid(singletonList(RubiconBid.builder().id("bidId").impid("impId2").price(ONE).build()))
                                 .build()))
                         .build()));
 
@@ -3824,8 +3852,9 @@ public class RubiconBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .extracting(BidderBid::getBid, BidderBid::getType)
-                .containsOnly(Tuple.tuple(Bid.builder().id("non-zero").price(ONE).build(), banner));
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getId)
+                .containsOnly("bidId");
     }
 
     @Test
@@ -3851,37 +3880,11 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBidWithRandomlyGeneratedId() throws JsonProcessingException {
-        // given
-        target = new RubiconBidder(
-                BIDDER_NAME, ENDPOINT_URL, ENDPOINT_URL, USERNAME, PASSWORD, SUPPORTED_VENDORS, true,
-                APEX_RENDERER_URL, currencyConversionService, priceFloorResolver, versionProvider, jacksonMapper);
-
-        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
-                mapper.writeValueAsString(RubiconBidResponse.builder()
-                        .seatbid(singletonList(RubiconSeatBid.builder()
-                                .bid(singletonList(RubiconBid.builder().id("bidid1").price(ONE).build()))
-                                .build()))
-                        .build()));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, givenBidRequest(identity()));
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(BidderBid::getBid)
-                .extracting(Bid::getId)
-                .doesNotContainNull()
-                .doesNotContain("bidid1");
-    }
-
-    @Test
     public void makeBidsShouldReturnBidWithCurrencyFromBidResponse() throws JsonProcessingException {
         // given
         target = new RubiconBidder(
-                BIDDER_NAME, ENDPOINT_URL, EXTERNAL_URL, USERNAME, PASSWORD, SUPPORTED_VENDORS, true,
-                APEX_RENDERER_URL, currencyConversionService, priceFloorResolver, versionProvider, jacksonMapper);
+                BIDDER_NAME, ENDPOINT_URL, EXTERNAL_URL, USERNAME, PASSWORD, SUPPORTED_VENDORS, true, APEX_RENDERER_URL,
+                currencyConversionService, priceFloorResolver, versionProvider, idGenerator, jacksonMapper);
 
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(RubiconBidResponse.builder()
