@@ -228,11 +228,12 @@ class AliasSpec extends BaseSpec {
         assert bidResponse.ext?.warnings[PREBID]*.message ==
                 ["WARNING: request.imp[0].ext.prebid.bidder.${APPNEXUS.value} was dropped with a reason: " +
                          "request.imp[0].ext.prebid.bidder.${APPNEXUS.value} failed validation.\n" +
-                         "\$.placement_id: is missing but it is required\n" +
-                         "\$.member: is missing but it is required\n" +
-                         "\$.placementId: is missing but it is required\n" +
-                         "\$.inv_code: is missing but it is required\n" +
-                         "\$.invCode: is missing but it is required",
+                         "\$: must be valid to one and only one schema, but 0 are valid\n" +
+                         "\$: required property 'placement_id' not found\n" +
+                         "\$: required property 'inv_code' not found\n" +
+                         "\$: required property 'placementId' not found\n" +
+                         "\$: required property 'member' not found\n" +
+                         "\$: required property 'invCode' not found",
                  "WARNING: request.imp[0].ext must contain at least one valid bidder"]
     }
 
