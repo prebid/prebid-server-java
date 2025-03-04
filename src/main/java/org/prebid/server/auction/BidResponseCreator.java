@@ -1924,8 +1924,8 @@ public class BidResponseCreator {
     }
 
     private static SeatNonBid toSeatNonBid(String bidder, BidRejectionTracker bidRejectionTracker) {
-        final List<NonBid> nonBid = bidRejectionTracker.getRejectedImps().entrySet().stream()
-                .map(entry -> NonBid.of(entry.getKey(), entry.getValue()))
+        final List<NonBid> nonBid = bidRejectionTracker.getRejectedImps().stream()
+                .map(rejectedImp -> NonBid.of(rejectedImp.impId(), rejectedImp.reason()))
                 .toList();
 
         return SeatNonBid.of(bidder, nonBid);

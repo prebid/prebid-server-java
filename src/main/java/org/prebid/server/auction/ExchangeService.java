@@ -236,7 +236,8 @@ public class ExchangeService {
         final BidderAliases aliases = aliases(bidRequest);
         final BidRequestCacheInfo cacheInfo = bidRequestCacheInfo(bidRequest);
         final Map<String, MultiBidConfig> bidderToMultiBid = bidderToMultiBids(bidRequest, debugWarnings);
-        receivedContext.getBidRejectionTrackers().putAll(makeBidRejectionTrackers(bidRequest, aliases));
+
+        populateBidRejectionTrackers(receivedContext, aliases);
 
         final boolean debugEnabled = receivedContext.getDebugContext().isDebugEnabled();
         metrics.updateDebugRequestMetrics(debugEnabled);
@@ -398,7 +399,29 @@ public class ExchangeService {
         return MultiBidConfig.of(bidder, bidLimit, codePrefix);
     }
 
-    private Map<String, BidRejectionTracker> makeBidRejectionTrackers(BidRequest bidRequest, BidderAliases aliases) {
+    private void populateBidRejectionTrackers(AuctionContext auctionContext, BidderAliases aliases) {
+        final Map<String, BidRejectionTracker> bidRejectionTrackers = auctionContext.getBidRejectionTrackers();
+        removeInvalidBidRejectionTrackers(bidRejectionTrackers, aliases);
+        makeBidRejectionTrackers(bidRejectionTrackers, auctionContext.getBidRequest(), aliases);
+    }
+
+    private void removeInvalidBidRejectionTrackers(Map<String, BidRejectionTracker> bidRejectionTrackers,
+                                                   BidderAliases aliases) {
+
+        final Set<String> bidderNames = new HashSet<>(bidRejectionTrackers.keySet());
+        for (String bidder: bidderNames) {
+            if (!isValidBidder(bidder, aliases)) {
+                bidRejectionTrackers.remove(bidder);
+                logger.warn("Pre-rejected impressions of the bidder {} have been removed. "
+                        + "Reason: the bidder is invalid");
+            }
+        }
+    }
+
+    private void makeBidRejectionTrackers(Map<String, BidRejectionTracker> bidRejectionTrackers,
+                                          BidRequest bidRequest,
+                                          BidderAliases aliases) {
+
         final Map<String, Set<String>> impIdToBidders = bidRequest.getImp().stream()
                 .filter(Objects::nonNull)
                 .filter(imp -> StringUtils.isNotEmpty(imp.getId()))
@@ -412,9 +435,13 @@ public class ExchangeService {
                     bidderToImpIds.computeIfAbsent(bidder, bidderName -> new HashSet<>()).add(impId));
         }
 
-        return bidderToImpIds.entrySet().stream().collect(Collectors.toMap(
-                Map.Entry::getKey,
-                entry -> new BidRejectionTracker(entry.getKey(), entry.getValue(), logSamplingRate)));
+        bidderToImpIds.forEach((bidder, impIds) -> {
+            if (bidRejectionTrackers.containsKey(bidder)) {
+                bidRejectionTrackers.put(bidder, new BidRejectionTracker(bidRejectionTrackers.get(bidder), impIds));
+            } else {
+                bidRejectionTrackers.put(bidder, new BidRejectionTracker(bidder, impIds, logSamplingRate));
+            }
+        });
     }
 
     private static StoredResponseResult populateStoredResponse(StoredResponseResult storedResponseResult,
@@ -699,7 +726,7 @@ public class ExchangeService {
         if (blockedRequestByTcf) {
             context.getBidRejectionTrackers()
                     .get(bidder)
-                    .rejectAllImps(BidRejectionReason.REQUEST_BLOCKED_PRIVACY);
+                    .rejectAll(BidRejectionReason.REQUEST_BLOCKED_PRIVACY);
 
             return AuctionParticipation.builder()
                     .bidder(bidder)
@@ -1140,7 +1167,7 @@ public class ExchangeService {
 
         auctionContext.getBidRejectionTrackers()
                 .get(bidderName)
-                .rejectAllImps(bidRejectionReason);
+                .rejectAll(bidRejectionReason);
         final BidderSeatBid bidderSeatBid = BidderSeatBid.builder()
                 .warnings(warnings)
                 .build();
@@ -1179,7 +1206,7 @@ public class ExchangeService {
         if (hookStageResult.isShouldReject()) {
             auctionContext.getBidRejectionTrackers()
                     .get(bidderRequest.getBidder())
-                    .rejectAllImps(BidRejectionReason.REQUEST_BLOCKED_GENERAL);
+                    .rejectAll(BidRejectionReason.REQUEST_BLOCKED_GENERAL);
 
             return Future.succeededFuture(BidderResponse.of(bidderRequest.getBidder(), BidderSeatBid.empty(), 0));
         }

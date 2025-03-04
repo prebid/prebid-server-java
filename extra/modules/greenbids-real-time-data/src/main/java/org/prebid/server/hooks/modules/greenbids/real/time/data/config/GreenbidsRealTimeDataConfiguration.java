@@ -6,16 +6,15 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import io.vertx.core.Vertx;
 import org.prebid.server.geolocation.CountryCodeMapper;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.model.filter.ThrottlingThresholds;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingThresholdsFactory;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.core.GreenbidsInferenceDataService;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.FilterService;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.core.GreenbidsInferenceDataService;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ModelCache;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.OnnxModelRunner;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.OnnxModelRunnerFactory;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.OnnxModelRunnerWithThresholds;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThresholdCache;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.core.GreenbidsInvocationService;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ThrottlingThresholdsFactory;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.model.filter.ThrottlingThresholds;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.GreenbidsRealTimeDataProcessedAuctionRequestHook;
 import org.prebid.server.json.ObjectMapperProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -48,16 +47,14 @@ public class GreenbidsRealTimeDataConfiguration {
     GreenbidsRealTimeDataModule greenbidsRealTimeDataModule(
             FilterService filterService,
             OnnxModelRunnerWithThresholds onnxModelRunnerWithThresholds,
-            GreenbidsInferenceDataService greenbidsInferenceDataService,
-            GreenbidsInvocationService greenbidsInvocationService) {
+            GreenbidsInferenceDataService greenbidsInferenceDataService) {
 
         return new GreenbidsRealTimeDataModule(List.of(
                 new GreenbidsRealTimeDataProcessedAuctionRequestHook(
                         ObjectMapperProvider.mapper(),
                         filterService,
                         onnxModelRunnerWithThresholds,
-                        greenbidsInferenceDataService,
-                        greenbidsInvocationService)));
+                        greenbidsInferenceDataService)));
     }
 
     @Bean
@@ -123,15 +120,7 @@ public class GreenbidsRealTimeDataConfiguration {
     }
 
     @Bean
-    OnnxModelRunnerWithThresholds onnxModelRunnerWithThresholds(
-            ModelCache modelCache,
-            ThresholdCache thresholdCache) {
-
+    OnnxModelRunnerWithThresholds onnxModelRunnerWithThresholds(ModelCache modelCache, ThresholdCache thresholdCache) {
         return new OnnxModelRunnerWithThresholds(modelCache, thresholdCache);
-    }
-
-    @Bean
-    GreenbidsInvocationService greenbidsInvocationService() {
-        return new GreenbidsInvocationService();
     }
 }

@@ -13,6 +13,7 @@ import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.auction.model.BidRejectionTracker;
+import org.prebid.server.auction.model.RejectedBid;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.Logger;
@@ -293,7 +294,7 @@ public class ResponseBidValidator {
 
         return switch (enforcement) {
             case enforce -> {
-                bidRejectionTracker.rejectBid(bidderBid, bidRejectionReason);
+                bidRejectionTracker.reject(RejectedBid.of(bidderBid, bidRejectionReason));
                 metricsRecorder.accept(MetricName.err);
                 conditionalLogger.warn(message, logSamplingRate);
                 throw new ValidationException(message);

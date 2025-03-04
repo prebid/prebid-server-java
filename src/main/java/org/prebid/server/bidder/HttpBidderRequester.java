@@ -419,11 +419,11 @@ public class HttpBidderRequester {
                 return;
             }
 
-            if (callErrorType == BidderError.Type.timeout) {
-                bidRejectionTracker.rejectImps(requestedImpIds, BidRejectionReason.ERROR_TIMED_OUT);
-            } else {
-                bidRejectionTracker.rejectImps(requestedImpIds, BidRejectionReason.ERROR_GENERAL);
-            }
+            final BidRejectionReason reason = callErrorType == BidderError.Type.timeout
+                    ? BidRejectionReason.ERROR_TIMED_OUT
+                    : BidRejectionReason.ERROR_GENERAL;
+
+            bidRejectionTracker.rejectImps(requestedImpIds, reason);
         }
 
         private void handleFledgeAuctionConfigs(CompositeBidderResponse bidderResponse) {
