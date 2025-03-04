@@ -38,7 +38,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.UnaryOperator;
-import java.util.stream.Stream;
 
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -73,8 +72,7 @@ public class ConnatixBidderTest extends VertxTest {
     public void makeHttpRequestsShouldErrorOnMissingDeviceIp() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .device(Device.builder()
-                        .build())
+                .device(Device.builder().build())
                 .build();
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -88,9 +86,9 @@ public class ConnatixBidderTest extends VertxTest {
     public void makeHttpRequestsShouldErrorOnInvalidImp() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                request -> request.device(Device.builder().ip("deviceIp").build()),
-                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
-        );
+                UnaryOperator.identity(),
+                givenImp(impBuilder -> impBuilder.ext(mapper.valueToTree(
+                        ExtPrebid.of(null, mapper.createArrayNode())))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -106,12 +104,10 @@ public class ConnatixBidderTest extends VertxTest {
     public void makeHttpRequestsShouldUpdateDisplayManagerVer() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                request -> request.device(Device.builder().ip("deviceIp").build())
-                        .app(App.builder().ext(ExtApp.of(
-                                        ExtAppPrebid.of("source", "version"), null))
-                                .build()),
-                givenImp(givenExt(UnaryOperator.identity()))
-        );
+                request -> request.app(App.builder().ext(ExtApp.of(
+                        ExtAppPrebid.of("source", "version"), null))
+                        .build()),
+                givenImp(ExtImpConnatix.of("placementId", null)));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -129,12 +125,12 @@ public class ConnatixBidderTest extends VertxTest {
     public void makeHttpRequestsShouldNotUpdateDisplayManagerVerIfPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                request -> request.device(Device.builder().ip("deviceIp").build())
-                        .app(App.builder().ext(ExtApp.of(
-                                ExtAppPrebid.of("source", "version"), null))
+                request -> request.app(App.builder()
+                        .ext(ExtApp.of(ExtAppPrebid.of("source", "version"), null))
                         .build()),
-                impBuilder -> impBuilder.displaymanagerver("displayManagerVer")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, givenExt(UnaryOperator.identity())))));
+                givenImp(impBuilder -> impBuilder.displaymanagerver("displayManagerVer")
+                        .ext(mapper.valueToTree(
+                                ExtPrebid.of(null, ExtImpConnatix.of("placementId", null))))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -152,13 +148,14 @@ public class ConnatixBidderTest extends VertxTest {
     public void makeHttpRequestsShouldNotUpdateBannerIfFormatsIsEmpty() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                request -> request.device(Device.builder().ip("deviceIp").build()),
-                impBuilder -> impBuilder.banner(Banner.builder()
+                UnaryOperator.identity(),
+                givenImp(impBuilder -> impBuilder.banner(Banner.builder()
                                 .w(100)
                                 .h(200)
                                 .format(Collections.emptyList())
                                 .build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, givenExt(UnaryOperator.identity())))));
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpConnatix.of("placementId", null))))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -176,11 +173,12 @@ public class ConnatixBidderTest extends VertxTest {
     public void makeHttpRequestsShouldUpdateBanner() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                request -> request.device(Device.builder().ip("deviceIp").build()),
-                impBuilder -> impBuilder.banner(Banner.builder().format(List.of(
+                UnaryOperator.identity(),
+                givenImp(impBuilder -> impBuilder.banner(Banner.builder().format(List.of(
                         Format.builder().w(300).h(250).build(),
                                 Format.builder().w(1).h(1).build())).build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, givenExt(UnaryOperator.identity())))));
+                        .ext(mapper.valueToTree(
+                                ExtPrebid.of(null, ExtImpConnatix.of("placementId", null))))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -206,11 +204,12 @@ public class ConnatixBidderTest extends VertxTest {
         given(currencyConversionService.convertCurrency(any(), any(), anyString(), anyString()))
                 .willReturn(BigDecimal.TEN);
         final BidRequest bidRequest = givenBidRequest(
-                request -> request.device(Device.builder().ip("deviceIp").build()),
-                impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, givenExt(UnaryOperator.identity()))))
+                UnaryOperator.identity(),
+                givenImp(impBuilder -> impBuilder
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpConnatix.of("placementId", null))))
                         .bidfloor(BigDecimal.ONE)
-                        .bidfloorcur("EUR"));
+                        .bidfloorcur("EUR")));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -222,23 +221,19 @@ public class ConnatixBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getBidfloor, Imp::getBidfloorcur)
                 .containsOnly(tuple(BigDecimal.TEN, "USD"));
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .flatExtracting(BidRequest::getCur)
-                .containsExactly("USD");
     }
 
     @Test
     public void makeHttpRequestsShouldSplitRequestIntoMultipleRequests() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                request -> request.device(Device.builder().ip("deviceIp").build()),
-                impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpConnatix.builder()
-                                .placementId("placement1").build()))),
-                impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpConnatix.builder()
-                                .placementId("placement2").build()))));
+                UnaryOperator.identity(),
+                givenImp(impBuilder -> impBuilder
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpConnatix.of("placement1", null))))),
+                givenImp(impBuilder -> impBuilder
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpConnatix.of("placement2", null))))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -253,8 +248,8 @@ public class ConnatixBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 request -> request.device(Device.builder().ip("deviceIp").ipv6("deviceIpv6").ua("userAgent").build()),
-                impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, givenExt(UnaryOperator.identity())))));
+                givenImp(impBuilder -> impBuilder
+                        .ext(mapper.valueToTree(ExtImpConnatix.of("placementId", null)))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -335,16 +330,9 @@ public class ConnatixBidderTest extends VertxTest {
 
     private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
                                               Imp... imps) {
-        return bidRequestCustomizer.apply(BidRequest.builder().imp(asList(imps))).build();
-    }
-
-    @SafeVarargs
-    private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
-                                              UnaryOperator<Imp.ImpBuilder>... impCustomizers) {
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(Stream.of(impCustomizers)
-                        .map(ConnatixBidderTest::givenImp)
-                        .toList()))
+                .device(Device.builder().ip("deviceIp").build())
+                .imp(asList(imps)))
                 .build();
     }
 
@@ -354,10 +342,6 @@ public class ConnatixBidderTest extends VertxTest {
 
     private static Imp givenImp(ExtImpConnatix extImpConnatix) {
         return givenImp(imp -> imp.ext(mapper.valueToTree(ExtPrebid.of(null, extImpConnatix))));
-    }
-
-    private static ExtImpConnatix givenExt(UnaryOperator<ExtImpConnatix.ExtImpConnatixBuilder> extCustomizer) {
-        return extCustomizer.apply(ExtImpConnatix.builder().placementId("placementId")).build();
     }
 
     private static BidderCall<BidRequest> givenHttpCall(BidResponse response) throws JsonProcessingException {

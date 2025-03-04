@@ -59,6 +59,7 @@ public class ConnatixBidder implements Bidder<BidRequest> {
     public ConnatixBidder(String endpointUrl,
                           CurrencyConversionService currencyConversionService,
                           JacksonMapper mapper) {
+
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
         this.mapper = Objects.requireNonNull(mapper);
@@ -94,7 +95,6 @@ public class ConnatixBidder implements Bidder<BidRequest> {
     }
 
     private static String buildDisplayManagerVersion(BidRequest request) {
-
         return Optional.ofNullable(request.getApp())
                 .map(App::getExt)
                 .map(ExtApp::getPrebid)
@@ -122,7 +122,6 @@ public class ConnatixBidder implements Bidder<BidRequest> {
     }
 
     private Imp modifyImp(Imp imp, ExtImpConnatix extImpConnatix, String displayManagerVer, BidRequest request) {
-
         final Price bidFloorPrice = resolveBidFloor(imp, request);
 
         final ObjectNode impExt = mapper.mapper()
@@ -175,7 +174,6 @@ public class ConnatixBidder implements Bidder<BidRequest> {
     private HttpRequest<BidRequest> makeHttpRequest(BidRequest request, Imp imp, MultiMap headers) {
         final BidRequest outgoingRequest = request.toBuilder()
                 .imp(List.of(imp))
-                .cur(List.of(BIDDER_CURRENCY))
                 .build();
 
         return BidderUtil.defaultRequest(outgoingRequest, headers, endpointUrl, mapper);
