@@ -17,6 +17,9 @@ adapters:
       felixads:
         enabled: false
         endpoint: https://felixads-prebid.attekmi.com/pbserver/?seat={{AccountID}}&token={{SourceId}}
+      adinify:
+        enabled: false
+        endpoint: https://adinify-prebid.attekmi.com/pbserver/?seat={{AccountID}}&token={{SourceId}}
       artechnology:
         enabled: false
         endpoint: https://artechnology-prebid.attekmi.com/pbserver/?seat={{AccountID}}&token={{SourceId}}
