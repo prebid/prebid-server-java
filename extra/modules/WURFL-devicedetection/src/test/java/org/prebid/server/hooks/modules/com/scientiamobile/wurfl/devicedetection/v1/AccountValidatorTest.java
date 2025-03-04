@@ -19,6 +19,9 @@ class AccountValidatorTest {
     private AuctionContext auctionContext;
 
     @Mock
+    private AuctionContext mockedAuctionContext;
+
+    @Mock
     private Account account;
 
     private AccountValidator validator;
@@ -95,10 +98,10 @@ class AccountValidatorTest {
     @Test
     void isAccountValidShouldReturnFalseWhenAccountIsNull() {
         // given
-        when(auctionContext.getAccount()).thenReturn(null);
+        when(mockedAuctionContext.getAccount()).thenReturn(null);
         validator = AccountValidator.builder()
                 .allowedPublisherIds(Collections.singletonMap("allowed-publisher", "allowed-publisher"))
-                .auctionContext(auctionContext)
+                .auctionContext(mockedAuctionContext)
                 .build();
 
         // when
