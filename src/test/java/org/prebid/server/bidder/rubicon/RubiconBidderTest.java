@@ -653,8 +653,12 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(Imp::getExt).doesNotContainNull()
                 .extracting(ext -> mapper.treeToValue(ext, RubiconImpExt.class))
                 .containsExactly(RubiconImpExt.builder()
-                        .rp(RubiconImpExtRp.of(4001, expectedTarget,
-                                RubiconImpExtRpTrack.of("", ""), null, "uuid_bid_id"))
+                        .rp(RubiconImpExtRp.of(
+                                4001,
+                                expectedTarget,
+                                RubiconImpExtRpTrack.of("", ""),
+                                null,
+                                "uuid_bid_id"))
                         .skadn(givenSkadn)
                         .maxbids(1)
                         .build());

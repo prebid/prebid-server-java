@@ -4,21 +4,23 @@
     {
       "bid": [
         {
-          "id": "id",
+          "id": "880290288",
           "impid": "impId1",
           "price": 8.43,
           "adm": "<Impression><![CDATA[]]></Impression><Impression><![CDATA[Raw bidder response hook have been here]]></Impression><Impression><![CDATA[Processed bidder response hook have been here]]></Impression><Impression><![CDATA[Auction response hook have been here too]]></Impression><Impression><![CDATA[Exitpoint hook have been here]]></Impression>",
           "crid": "crid1",
           "w": 300,
           "h": 250,
+          "exp": 300,
           "ext": {
+            "origbidcpm": 8.43,
             "prebid": {
               "type": "banner"
             }
           }
         }
       ],
-      "seat": "rubicon",
+      "seat": "generic",
       "group": 0
     }
   ],
@@ -42,14 +44,11 @@
                 }
               ]
             },
+            "secure": 1,
             "ext": {
               "prebid": {
                 "bidder": {
-                  "rubicon": {
-                    "accountId": 2001,
-                    "siteId": 3001,
-                    "zoneId": 4001
-                  }
+                  "generic": {}
                 }
               }
             }
@@ -59,7 +58,8 @@
           "domain": "www.example.com",
           "page": "http://www.example.com",
           "publisher": {
-            "id": "6001"
+            "id": "6001",
+            "domain": "example.com"
           },
           "ext": {
             "amp": 0
@@ -67,17 +67,17 @@
         },
         "device": {
           "ua": "userAgent",
-          "ip": "222.111.222.0",
+          "ip": "222.111.222.111",
           "language": "fr"
-        },
-        "user": {
-          "consent": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA"
         },
         "at": 1,
         "tmax": 5000,
         "cur": [
           "USD"
         ],
+        "regs": {
+          "gdpr": 0
+        },
         "ext": {
           "prebid": {
             "debug": 1,
@@ -85,6 +85,12 @@
             "auctiontimestamp": 0,
             "channel": {
               "name": "web"
+            },
+            "server": {
+              "externalurl": "http://localhost:8080",
+              "gvlid": 1,
+              "datacenter": "local",
+              "endpoint": "/openrtb2/auction"
             }
           },
           "sample-it-module": {
@@ -95,7 +101,7 @@
       }
     },
     "responsetimemillis": {
-      "rubicon": "{{ rubicon.response_time_ms }}"
+      "generic": "{{ generic.response_time_ms }}"
     },
     "tmaxrequest": 5000,
     "prebid": {
@@ -199,7 +205,7 @@
               "stage": "bidder-request",
               "outcomes": [
                 {
-                  "entity": "rubicon",
+                  "entity": "generic",
                   "groups": [
                     {
                       "invocationresults": [
@@ -221,7 +227,7 @@
               "stage": "raw-bidder-response",
               "outcomes": [
                 {
-                  "entity": "rubicon",
+                  "entity": "generic",
                   "groups": [
                     {
                       "invocationresults": [
@@ -243,7 +249,7 @@
               "stage": "processed-bidder-response",
               "outcomes": [
                 {
-                  "entity": "rubicon",
+                  "entity": "generic",
                   "groups": [
                     {
                       "invocationresults": [

@@ -17,11 +17,8 @@ import org.prebid.server.hooks.execution.v1.analytics.AppliedToImpl;
 import org.prebid.server.hooks.execution.v1.analytics.ResultImpl;
 import org.prebid.server.hooks.execution.v1.analytics.TagsImpl;
 import org.prebid.server.it.IntegrationTest;
-import org.prebid.server.version.PrebidVersionProvider;
-import org.skyscreamer.jsonassert.Customization;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
-import org.skyscreamer.jsonassert.comparator.CustomComparator;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.IOException;
@@ -40,10 +37,7 @@ import static org.hamcrest.Matchers.empty;
 
 public class HooksTest extends IntegrationTest {
 
-    private static final String RUBICON = "rubicon";
-
-    @Autowired
-    private PrebidVersionProvider versionProvider;
+    private static final String GENERIC = "generic";
 
     @Autowired
     private AnalyticsReporterDelegator analyticsReporterDelegator;
@@ -53,28 +47,22 @@ public class HooksTest extends IntegrationTest {
         Mockito.reset(analyticsReporterDelegator);
 
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
-                .withRequestBody(equalToJson(
-                        jsonFrom("hooks/sample-module/test-rubicon-bid-request-1.json", versionProvider)))
-                .willReturn(aResponse().withBody(jsonFrom("hooks/sample-module/test-rubicon-bid-response-1.json"))));
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/generic-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("hooks/sample-module/test-generic-bid-request.json")))
+                .willReturn(aResponse().withBody(jsonFrom("hooks/sample-module/test-generic-bid-response.json"))));
 
         // when
         final Response response = given(SPEC)
                 .queryParam("sample-it-module-update", "headers,body")
                 .header("User-Agent", "userAgent")
-                .body(jsonFrom("hooks/sample-module/test-auction-sample-module-request.json"))
+                .body(jsonFrom("hooks/sample-module/test-auction-generic-request.json"))
                 .post("/openrtb2/auction");
 
         // then
         final String expectedAuctionResponse = openrtbAuctionResponseFrom(
-                "hooks/sample-module/test-auction-sample-module-response.json", response, singletonList(RUBICON));
+                "hooks/sample-module/test-auction-generic-response.json", response, singletonList(GENERIC));
 
-        JSONAssert.assertEquals(
-                expectedAuctionResponse,
-                response.asString(),
-                new CustomComparator(
-                        JSONCompareMode.LENIENT,
-                        new Customization("seatbid[*].bid[*].id", (o1, o2) -> true)));
+        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.LENIENT);
 
         //todo: remove everything below after at least one exitpoint module is added and tested by functional tests
         assertThat(response.getHeaders())
@@ -115,7 +103,7 @@ public class HooksTest extends IntegrationTest {
         given(SPEC)
                 .queryParam("sample-it-module-reject", "true")
                 .header("User-Agent", "userAgent")
-                .body(jsonFrom("hooks/sample-module/test-auction-sample-module-request.json"))
+                .body(jsonFrom("hooks/sample-module/test-auction-generic-request.json"))
                 .post("/openrtb2/auction")
                 .then()
                 .statusCode(200)
@@ -145,7 +133,7 @@ public class HooksTest extends IntegrationTest {
     }
 
     @Test
-    public void openrtb2AuctionShouldRejectRubiconBidderByBidderRequestHook() throws IOException, JSONException {
+    public void openrtb2AuctionShouldRejectGenericBidderByBidderRequestHook() throws IOException, JSONException {
         // when
         final Response response = given(SPEC)
                 .header("User-Agent", "userAgent")
@@ -154,18 +142,18 @@ public class HooksTest extends IntegrationTest {
 
         // then
         final String expectedAuctionResponse = openrtbAuctionResponseFrom(
-                "hooks/reject/test-auction-bidder-request-reject-response.json", response, singletonList(RUBICON));
+                "hooks/reject/test-auction-bidder-request-reject-response.json", response, singletonList(GENERIC));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.LENIENT);
 
-        WIRE_MOCK_RULE.verify(0, postRequestedFor(urlPathEqualTo("/rubicon-exchange")));
+        WIRE_MOCK_RULE.verify(0, postRequestedFor(urlPathEqualTo("/generic-exchange")));
     }
 
     @Test
-    public void openrtb2AuctionShouldRejectRubiconBidderByRawBidderResponseHook() throws IOException, JSONException {
+    public void openrtb2AuctionShouldRejectGenericBidderByRawBidderResponseHook() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
-                .willReturn(aResponse().withBody(jsonFrom("hooks/reject/test-rubicon-bid-response-1.json"))));
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/generic-exchange"))
+                .willReturn(aResponse().withBody(jsonFrom("hooks/reject/test-generic-bid-response.json"))));
 
         // when
         final Response response = given(SPEC)
@@ -175,22 +163,21 @@ public class HooksTest extends IntegrationTest {
 
         // then
         final String expectedAuctionResponse = openrtbAuctionResponseFrom(
-                "hooks/reject/test-auction-raw-bidder-response-reject-response.json", response, singletonList(RUBICON));
+                "hooks/reject/test-auction-raw-bidder-response-reject-response.json", response, singletonList(GENERIC));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.LENIENT);
 
-        WIRE_MOCK_RULE.verify(1, postRequestedFor(urlPathEqualTo("/rubicon-exchange"))
-                .withRequestBody(equalToJson(
-                        jsonFrom("hooks/reject/test-rubicon-bid-request-1.json", versionProvider))));
+        WIRE_MOCK_RULE.verify(1, postRequestedFor(urlPathEqualTo("/generic-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("hooks/reject/test-generic-bid-request.json"))));
     }
 
     @Test
-    public void openrtb2AuctionShouldRejectRubiconBidderByProcessedBidderResponseHook()
+    public void openrtb2AuctionShouldRejectGenericBidderByProcessedBidderResponseHook()
             throws IOException, JSONException {
 
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
-                .willReturn(aResponse().withBody(jsonFrom("hooks/reject/test-rubicon-bid-response-1.json"))));
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/generic-exchange"))
+                .willReturn(aResponse().withBody(jsonFrom("hooks/reject/test-generic-bid-response.json"))));
 
         // when
         final Response response = given(SPEC)
@@ -202,12 +189,11 @@ public class HooksTest extends IntegrationTest {
         final String expectedAuctionResponse = openrtbAuctionResponseFrom(
                 "hooks/reject/test-auction-processed-bidder-response-reject-response.json",
                 response,
-                singletonList(RUBICON));
+                singletonList(GENERIC));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.LENIENT);
 
-        WIRE_MOCK_RULE.verify(1, postRequestedFor(urlPathEqualTo("/rubicon-exchange"))
-                .withRequestBody(equalToJson(
-                        jsonFrom("hooks/reject/test-rubicon-bid-request-1.json", versionProvider))));
+        WIRE_MOCK_RULE.verify(1, postRequestedFor(urlPathEqualTo("/generic-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("hooks/reject/test-generic-bid-request.json"))));
     }
 }
