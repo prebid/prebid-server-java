@@ -33,7 +33,6 @@ import org.prebid.server.proto.openrtb.ext.request.nextmillennium.ExtImpNextMill
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
-import org.prebid.server.version.PrebidVersionProvider;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -46,21 +45,16 @@ public class NextMillenniumBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpNextMillennium>> NEXTMILLENNIUM_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
-    private static final String NM_ADAPTER_VERSION = "v1.0.0";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
     private final List<String> nmmFlags;
-    private final PrebidVersionProvider versionProvider;
 
-    public NextMillenniumBidder(String endpointUrl,
-                                JacksonMapper mapper,
-                                List<String> nmmFlags,
-                                PrebidVersionProvider versionProvider) {
+    public NextMillenniumBidder(String endpointUrl, JacksonMapper mapper, List<String> nmmFlags) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
         this.nmmFlags = nmmFlags;
-        this.versionProvider = Objects.requireNonNull(versionProvider);
+
     }
 
     @Override
@@ -155,15 +149,10 @@ public class NextMillenniumBidder implements Bidder<BidRequest> {
     private ObjectNode createImpExt(ExtRequestPrebid prebid) {
         final ObjectNode impExt = mapper.mapper().createObjectNode();
         impExt.set("prebid", mapper.mapper().valueToTree(prebid));
-
-        final ObjectNode nextMillenniumNode = impExt.putObject("nextMillennium");
         if (CollectionUtils.isNotEmpty(nmmFlags)) {
-            nextMillenniumNode.set("nmmFlags", mapper.mapper().valueToTree(nmmFlags));
+            impExt.putObject("nextMillennium")
+                    .set("nmmFlags", mapper.mapper().valueToTree(nmmFlags));
         }
-
-        nextMillenniumNode.put("nm_version", NM_ADAPTER_VERSION);
-        nextMillenniumNode.put("server_version", versionProvider.getNameVersionRecord());
-
         return impExt;
     }
 
