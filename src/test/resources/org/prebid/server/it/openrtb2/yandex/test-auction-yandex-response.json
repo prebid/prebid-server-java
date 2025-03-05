@@ -14,7 +14,10 @@
           "h": 600,
           "ext": {
             "prebid": {
-              "type": "banner"
+              "type": "banner",
+              "meta": {
+                "adaptercode": "yandex"
+              }
             },
             "origbidcpm": 1.25
           }

@@ -15,7 +15,10 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner"
+              "type": "banner",
+              "meta": {
+                "adaptercode": "adgeneration"
+              }
             },
             "origbidcpm": 46.6,
             "origbidcur": "USD"

@@ -431,9 +431,15 @@ public class BidResponseCreator {
             final BidderSeatBid seatBid = bidderResponse.getSeatBid();
 
             for (final BidderBid bidderBid : seatBid.getBids()) {
-                final Bid bid = bidderBid.getBid();
-                final BidType type = bidderBid.getType();
-                final BidInfo bidInfo = toBidInfo(bid, type, imps, bidder, categoryMappingResult, cacheInfo, account);
+                final BidInfo bidInfo = toBidInfo(
+                        bidderBid.getBid(),
+                        bidderBid.getType(),
+                        bidderBid.getSeat(),
+                        imps,
+                        bidder,
+                        categoryMappingResult,
+                        cacheInfo,
+                        account);
                 bidInfos.add(bidInfo);
             }
 
@@ -453,6 +459,7 @@ public class BidResponseCreator {
 
     private BidInfo toBidInfo(Bid bid,
                               BidType type,
+                              String seat,
                               List<Imp> imps,
                               String bidder,
                               CategoryMappingResult categoryMappingResult,
@@ -464,6 +471,7 @@ public class BidResponseCreator {
                 .bid(bid)
                 .bidType(type)
                 .bidder(bidder)
+                .seat(seat)
                 .correspondingImp(correspondingImp)
                 .ttl(resolveTtl(bid, type, correspondingImp, cacheInfo, account))
                 .vastTtl(type == BidType.video ? resolveVastTtl(bid, correspondingImp, cacheInfo, account) : null)
@@ -1429,12 +1437,6 @@ public class BidResponseCreator {
                               Map<String, List<ExtBidderError>> bidErrors,
                               Map<String, List<ExtBidderError>> bidWarnings) {
 
-        final String bidder = bidInfos.stream()
-                .map(BidInfo::getBidder)
-                .findFirst()
-                // Should never occur
-                .orElseThrow(() -> new IllegalArgumentException("Bidder was not defined for bidInfo"));
-
         final List<Bid> bids = bidInfos.stream()
                 .map(bidInfo -> injectAdmWithCacheInfo(
                         bidInfo,
@@ -1451,8 +1453,14 @@ public class BidResponseCreator {
                 .filter(Objects::nonNull)
                 .toList();
 
+        final String seat = bidInfos.stream()
+                .map(BidInfo::getSeat)
+                .findFirst()
+                // Should never occur
+                .orElseThrow(() -> new IllegalArgumentException("BidderCode was not defined for bidInfo"));
+
         return SeatBid.builder()
-                .seat(bidder)
+                .seat(seat)
                 .bid(bids)
                 .group(0) // prebid cannot support roadblocking
                 .build();

@@ -14,7 +14,10 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner"
+              "type": "banner",
+              "meta": {
+                "adaptercode": "adocean"
+              }
             },
             "origbidcpm": 10,
             "origbidcur": "USD"

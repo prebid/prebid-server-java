@@ -39,6 +39,7 @@ public class SampleItProcessedBidderResponseHook implements ProcessedBidderRespo
                                         + "</Impression>")
                                 .build(),
                         bidderBid.getType(),
+                        bidderBid.getSeat(),
                         bidderBid.getBidCurrency()))
                 .toList();
     }

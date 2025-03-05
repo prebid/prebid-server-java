@@ -15,7 +15,10 @@
           "nurl": "nurl001",
           "ext": {
             "prebid": {
-              "type": "video"
+              "type": "video",
+              "meta": {
+                "adaptercode": "amx"
+              }
             },
             "origbidcpm": 0.01,
             "ct": 0,

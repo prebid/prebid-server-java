@@ -10,6 +10,7 @@ import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.floors.PriceFloorEnforcer;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAlternateBidderCodes;
 import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.validation.ResponseBidValidator;
 import org.prebid.server.validation.model.ValidationResult;
@@ -40,10 +41,15 @@ public class BidsAdjuster {
 
     public List<AuctionParticipation> validateAndAdjustBids(List<AuctionParticipation> auctionParticipations,
                                                             AuctionContext auctionContext,
-                                                            BidderAliases aliases) {
+                                                            BidderAliases aliases,
+                                                            ExtRequestPrebidAlternateBidderCodes alternateBidderCodes) {
 
         return auctionParticipations.stream()
-                .map(auctionParticipation -> validBidderResponse(auctionParticipation, auctionContext, aliases))
+                .map(auctionParticipation -> validBidderResponse(
+                        auctionParticipation,
+                        auctionContext,
+                        aliases,
+                        alternateBidderCodes))
 
                 .map(auctionParticipation -> bidAdjustmentsProcessor.enrichWithAdjustedBids(
                         auctionParticipation,
@@ -65,7 +71,8 @@ public class BidsAdjuster {
 
     private AuctionParticipation validBidderResponse(AuctionParticipation auctionParticipation,
                                                      AuctionContext auctionContext,
-                                                     BidderAliases aliases) {
+                                                     BidderAliases aliases,
+                                                     ExtRequestPrebidAlternateBidderCodes alternateBidderCodes) {
 
         if (auctionParticipation.isRequestBlocked()) {
             return auctionParticipation;
@@ -92,7 +99,8 @@ public class BidsAdjuster {
                     bid,
                     bidderResponse.getBidder(),
                     auctionContext,
-                    aliases);
+                    aliases,
+                    alternateBidderCodes);
 
             if (validationResult.hasWarnings() || validationResult.hasErrors()) {
                 errors.add(makeValidationBidderError(bid.getBid(), validationResult));

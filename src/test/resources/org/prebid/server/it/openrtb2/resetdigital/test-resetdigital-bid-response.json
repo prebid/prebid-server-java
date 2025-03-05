@@ -1,21 +1,16 @@
 {
-  "id": "request_id",
-  "seatbid": [
+  "bids": [
     {
-      "bid": [
-        {
-          "id": "bid_id",
-          "impid": "imp_id",
-          "price": 3.33,
-          "adid": "adid001",
-          "crid": "crid001",
-          "cid": "cid001",
-          "adm": "adm001",
-          "h": 250,
-          "w": 300
-        }
-      ]
+      "bid_id": "01",
+      "imp_id": "001",
+      "cpm": 1.00,
+      "cid": "1002088",
+      "crid": "1000763-1002088",
+      "adid": "1002088",
+      "w": "300",
+      "h": "250",
+      "seat": "resetdigital",
+      "html": "test markup"
     }
-  ],
-  "cur": "USD"
+  ]
 }

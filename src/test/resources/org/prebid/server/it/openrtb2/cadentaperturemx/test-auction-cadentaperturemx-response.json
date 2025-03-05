@@ -15,7 +15,10 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner"
+              "type": "banner",
+              "meta": {
+                "adaptercode": "cadent_aperture_mx"
+              }
             },
             "origbidcpm": 2.942808,
             "origbidcur": "USD"

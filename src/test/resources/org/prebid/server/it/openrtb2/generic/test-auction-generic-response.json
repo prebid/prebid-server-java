@@ -15,7 +15,7 @@
               "type": "banner",
               "meta": {
                 "mediaType": "banner",
-                "adaptercode": "adaptercode"
+                "adaptercode": "generic"
               }
             }
           }

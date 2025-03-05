@@ -18,7 +18,10 @@
             "mediaType": "video",
             "origbidcpm": 3.33,
             "prebid": {
-              "type": "video"
+              "type": "video",
+              "meta": {
+                "adaptercode": "tredio"
+              }
             }
           }
         }

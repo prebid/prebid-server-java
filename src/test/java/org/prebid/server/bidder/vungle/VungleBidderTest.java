@@ -359,7 +359,7 @@ public class VungleBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), video, null));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), video, "seat", null));
     }
 
     @Test
@@ -377,7 +377,7 @@ public class VungleBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), video, null));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), video, "seat", null));
     }
 
     private static BidRequest givenBidRequest(
@@ -403,7 +403,9 @@ public class VungleBidderTest extends VertxTest {
 
     private static BidResponse givenBidResponse(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
-                .seatbid(singletonList(SeatBid.builder().bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
+                .seatbid(singletonList(SeatBid.builder()
+                        .seat("seat")
+                        .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
                         .build()))
                 .build();
     }
