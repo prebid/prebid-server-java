@@ -52,8 +52,6 @@ import org.prebid.server.hooks.v1.analytics.Tags;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.model.HttpRequestContext;
-import org.prebid.server.settings.model.Account;
-import org.prebid.server.settings.model.AccountHooksConfiguration;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -178,7 +176,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
 
         final BidRequest expectedBidRequest = expectedUpdatedBidRequest(
                 request -> request, device, true);
-        final AnalyticsResult expectedAnalyticsResult = expectedAnalyticsResult(false, false);
+        final AnalyticsResult expectedAnalyticsResult = expectedAnalyticsResult(false, true);
 
         // when
         final Future<InvocationResult<AuctionRequestPayload>> future = target
@@ -216,7 +214,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
     }
 
     @Test
-    public void callShouldNotFilterBiddersAndReturnAnalyticsTagWhenExploration() throws OrtException, IOException {
+    public void callShouldFilterBiddersAndReturnAnalyticsTagWhenExploration() throws OrtException, IOException {
         // given
         final Banner banner = givenBanner();
 
@@ -294,7 +292,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
 
         final BidRequest expectedBidRequest = expectedUpdatedBidRequest(
                 request -> request, device, false);
-        final AnalyticsResult expectedAnalyticsResult = expectedAnalyticsResult(false, false);
+        final AnalyticsResult expectedAnalyticsResult = expectedAnalyticsResult(false, true);
 
         // when
         final Future<InvocationResult<AuctionRequestPayload>> future = target
@@ -355,7 +353,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
 
         final BidRequest expectedBidRequest = expectedUpdatedBidRequest(
                 request -> request, device, false);
-        final AnalyticsResult expectedAnalyticsResult = expectedAnalyticsResult(false, false);
+        final AnalyticsResult expectedAnalyticsResult = expectedAnalyticsResult(false, true);
 
         // when
         final Future<InvocationResult<AuctionRequestPayload>> future = target
@@ -415,7 +413,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final ObjectNode greenbidsNode = TestBidRequestProvider.MAPPER.createObjectNode();
         greenbidsNode.put("enabled", true);
         greenbidsNode.put("pbuid", "test-pbuid");
-        greenbidsNode.put("target-tpr", 0.60);
+        greenbidsNode.put("target-tpr", 0.99);
         greenbidsNode.put("exploration-rate", explorationRate);
         return greenbidsNode;
     }
@@ -442,6 +440,22 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final Banner banner = givenBanner();
 
         final ObjectNode bidderNode = TestBidRequestProvider.MAPPER.createObjectNode();
+
+        final ObjectNode rubiconNode = TestBidRequestProvider.MAPPER.createObjectNode();
+        rubiconNode.put("accountId", 1001);
+        rubiconNode.put("siteId", 267318);
+        rubiconNode.put("zoneId", 1861698);
+        bidderNode.set("rubicon", rubiconNode);
+
+        final ObjectNode appnexusNode = TestBidRequestProvider.MAPPER.createObjectNode();
+        appnexusNode.put("placementId", 123456);
+        bidderNode.set("appnexus", appnexusNode);
+
+        final ObjectNode pubmaticNode = TestBidRequestProvider.MAPPER.createObjectNode();
+        pubmaticNode.put("publisherId", "156209");
+        pubmaticNode.put("adSlot", "slot1@300x250");
+        bidderNode.set("pubmatic", pubmaticNode);
+
         final ObjectNode prebidNode = TestBidRequestProvider.MAPPER.createObjectNode();
         prebidNode.set("bidder", bidderNode);
 
@@ -471,9 +485,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
     private AnalyticsResult expectedAnalyticsResult(Boolean isExploration, Boolean isKeptInAuction) {
         return AnalyticsResult.of(
                 "success",
-                Map.of("adunitcodevalue", expectedOrtb2ImpExtResult(isExploration, isKeptInAuction)),
-                null,
-                null);
+                Map.of("adunitcodevalue", expectedOrtb2ImpExtResult(isExploration, isKeptInAuction)));
     }
 
     private Ortb2ImpExtResult expectedOrtb2ImpExtResult(Boolean isExploration, Boolean isKeptInAuction) {
@@ -507,8 +519,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
                 analyticsResult.getStatus(),
                 toObjectNode(analyticsResult.getValues()),
                 AppliedToImpl.builder()
-                        .bidders(Collections.singletonList(analyticsResult.getBidder()))
-                        .impIds(Collections.singletonList(analyticsResult.getImpId()))
+                        .impIds(Collections.singletonList("adunitcodevalue"))
                         .build());
     }
 

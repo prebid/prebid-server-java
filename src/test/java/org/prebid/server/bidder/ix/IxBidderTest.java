@@ -55,6 +55,7 @@ import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -529,6 +530,86 @@ public class IxBidderTest extends VertxTest {
                 .imptrackers(asList("eventUrl", "impTracker"))
                 .eventtrackers(singletonList(EventTracker.builder()
                         .event(EventType.IMPRESSION.getValue())
+                        .url("eventUrl")
+                        .build()))
+                .build();
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getBids())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getAdm)
+                .containsExactly(mapper.writeValueAsString(expectedNativeResponse));
+    }
+
+    @Test
+    public void makeBidderResponseShouldReturnAdmContainingEventImpTrackersUrlsWhenImpTrackersAreNull()
+            throws JsonProcessingException {
+        // given
+        final String adm = mapper.writeValueAsString(
+                Response.builder()
+                        .eventtrackers(singletonList(
+                                EventTracker.builder()
+                                        .event(EventType.IMPRESSION.getValue())
+                                        .url("eventUrl")
+                                        .build()))
+                        .build());
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder().id("123").xNative(Native.builder().build()).build()))
+                .build();
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                bidRequest,
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder
+                        .impid("123")
+                        .adm(adm))));
+
+        // when
+        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
+
+        // then
+        final Response expectedNativeResponse = Response.builder()
+                .imptrackers(asList("eventUrl"))
+                .eventtrackers(singletonList(EventTracker.builder()
+                        .event(EventType.IMPRESSION.getValue())
+                        .url("eventUrl")
+                        .build()))
+                .build();
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getBids())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getAdm)
+                .containsExactly(mapper.writeValueAsString(expectedNativeResponse));
+    }
+
+    @Test
+    public void makeBidderResponseShouldReturnAdmWithoutImpTrackers()
+            throws JsonProcessingException {
+        // given
+        final String adm = mapper.writeValueAsString(
+                Response.builder()
+                        .eventtrackers(singletonList(
+                                EventTracker.builder()
+                                        .event(EventType.VIEWABLE_VIDEO50.getValue())
+                                        .url("eventUrl")
+                                        .build()))
+                        .build());
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder().id("123").xNative(Native.builder().build()).build()))
+                .build();
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                bidRequest,
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder
+                        .impid("123")
+                        .adm(adm))));
+
+        // when
+        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
+
+        // then
+        final Response expectedNativeResponse = Response.builder()
+                .imptrackers(emptyList())
+                .eventtrackers(singletonList(EventTracker.builder()
+                        .event(EventType.VIEWABLE_VIDEO50.getValue())
                         .url("eventUrl")
                         .build()))
                 .build();

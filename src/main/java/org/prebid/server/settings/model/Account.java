@@ -3,6 +3,7 @@ package org.prebid.server.settings.model;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import lombok.Builder;
 import lombok.Value;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAlternateBidderCodes;
 
 @Builder(toBuilder = true)
 @Value
@@ -26,6 +27,9 @@ public class Account {
     AccountHooksConfiguration hooks;
 
     AccountSettings settings;
+
+    @JsonAlias("alternatebiddercodes")
+    ExtRequestPrebidAlternateBidderCodes alternateBidderCodes;
 
     public static Account empty(String id) {
         return Account.builder().id(id).build();
