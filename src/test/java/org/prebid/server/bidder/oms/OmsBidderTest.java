@@ -19,6 +19,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.omx.ExtImpOms;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -91,7 +92,8 @@ public class OmsBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldIncludePidInRequestWhenPresent() {
         // given
-        final ObjectNode impExt = mapper.createObjectNode().put("pid", "examplePid");
+        final ObjectNode bidderExt = mapper.createObjectNode().put("pid", "examplePid");
+        final ObjectNode impExt = mapper.createObjectNode().set("bidder", bidderExt);
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(impExt));
 
         // when
@@ -109,7 +111,8 @@ public class OmsBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldIncludePublisherIdInRequestWhenPresent() {
         // given
-        final ObjectNode impExt = mapper.createObjectNode().put("publisherId", 12345);
+        final ObjectNode bidderExt = mapper.createObjectNode().put("publisherId", 12345);
+        final ObjectNode impExt = mapper.createObjectNode().set("bidder", bidderExt);
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(impExt));
 
         // when
@@ -199,7 +202,7 @@ public class OmsBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorWhenMTypeIsUnsupported() throws JsonProcessingException {
+    public void makeBidsShouldReturnBannerWhenMTypeIsUnsupported() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(impBuilder -> impBuilder.banner(Banner.builder().build())),
@@ -209,9 +212,8 @@ public class OmsBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).contains("Unsupported mType 99");
-        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).extracting(BidderBid::getType).containsExactly(BidType.banner);
     }
 
     @Test
@@ -242,6 +244,29 @@ public class OmsBidderTest extends VertxTest {
                 .extracting(BidderBid::getType)
                 .containsExactly(BidType.banner, BidType.banner, BidType.video);
         assertThat(result.getValue()).extracting(BidderBid::getBidCurrency).containsOnly("USD");
+    }
+
+    @Test
+    public void makeBidsShouldReturnVideoBidWithVideoInfo() throws JsonProcessingException {
+        // given
+        final Bid videoBid = Bid.builder()
+                .mtype(2)
+                .dur(30)
+                .cat(List.of("IAB1"))
+                .build();
+        final BidResponse bidResponse = BidResponse.builder()
+                .seatbid(List.of(SeatBid.builder().bid(List.of(videoBid)).build()))
+                .cur("USD")
+                .build();
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(bidResponse));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(BidderBid::getVideoInfo)
+                .containsExactly(ExtBidPrebidVideo.of(30, "IAB1"));
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {

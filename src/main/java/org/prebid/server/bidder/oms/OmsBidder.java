@@ -3,6 +3,7 @@ package org.prebid.server.bidder.oms;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
@@ -18,6 +19,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.omx.ExtImpOms;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
@@ -40,24 +42,22 @@ public class OmsBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        String uri = endpointUrl;
-
         if (!request.getImp().isEmpty()) {
             try {
-                final ExtImpOms impExt = parseImpExt(request.getImp().get(0));
-                if (impExt != null) {
-                    if (impExt.getPid() != null && !impExt.getPid().isEmpty()) {
-                        uri = String.format("%s?publisherId=%s", endpointUrl, impExt.getPid());
-                    } else if (impExt.getPublisherId() != null && impExt.getPublisherId() > 0) {
-                        uri = String.format("%s?publisherId=%d", endpointUrl, impExt.getPublisherId());
-                    }
-                }
+                final ExtImpOms impExt = parseImpExt(request.getImp().getFirst());
+                final String publisherId = impExt.getPid() == null
+                        && impExt.getPublisherId() != null
+                        && impExt.getPublisherId() > 0
+                        ? String.valueOf(impExt.getPublisherId())
+                        : impExt.getPid();
+                final String url = "%s?publisherId=%s".formatted(endpointUrl, publisherId);
+                return Result.withValue(BidderUtil.defaultRequest(request, url, mapper));
             } catch (PreBidException e) {
                 return Result.withError(BidderError.badInput(e.getMessage()));
             }
         }
 
-        return Result.withValue(BidderUtil.defaultRequest(request, uri, mapper));
+        return Result.withValue(BidderUtil.defaultRequest(request, endpointUrl, mapper));
     }
 
     private ExtImpOms parseImpExt(Imp imp) throws PreBidException {
@@ -91,15 +91,37 @@ public class OmsBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getBidType(bid.getMtype()), bidResponse.getCur()))
+                .map(bid -> BidderBid.builder()
+                        .bid(bid)
+                        .type(getBidType(bid))
+                        .bidCurrency(bidResponse.getCur())
+                        .videoInfo(videoInfo(bid))
+                        .build())
                 .toList();
     }
 
-    private static BidType getBidType(Integer mType) {
-        return switch (mType) {
+    private static BidType getBidType(Bid bid) {
+        final Integer markupType = bid.getMtype();
+        return switch (markupType) {
             case 1 -> BidType.banner;
             case 2 -> BidType.video;
-            case null, default -> throw new PreBidException("Unsupported mType " + mType);
+            case null, default -> BidType.banner;
         };
+    }
+
+    private static ExtBidPrebidVideo videoInfo(Bid bid) {
+        if (!Integer.valueOf(2).equals(bid.getMtype())) {
+            return null;
+        }
+        final List<String> cat = bid.getCat();
+        final Integer duration = bid.getDur();
+
+        final boolean catNotEmpty = CollectionUtils.isNotEmpty(cat);
+        final boolean durationValid = duration != null && duration > 0;
+        return catNotEmpty || durationValid
+                ? ExtBidPrebidVideo.of(
+                durationValid ? duration : null,
+                catNotEmpty ? cat.getFirst() : null)
+                : null;
     }
 }
