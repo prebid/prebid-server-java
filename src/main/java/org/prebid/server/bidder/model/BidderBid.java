@@ -45,11 +45,22 @@ public class BidderBid {
      */
     PriceFloorInfo priceFloorInfo;
 
-    public static BidderBid of(Bid bid, BidType bidType, String bidCurrency) {
+    /**
+     * The seat, which will override the default seat (e.g. the bidder name)
+     * if alternate-bidder-codes (ext.prebid.alternatebiddercodes) are allowed
+     */
+    String seat;
+
+    public static BidderBid of(Bid bid, BidType bidType, String bidCurrency, String seat) {
         return BidderBid.builder()
                 .bid(bid)
                 .type(bidType)
                 .bidCurrency(bidCurrency)
+                .seat(seat)
                 .build();
+    }
+
+    public static BidderBid of(Bid bid, BidType bidType, String bidCurrency) {
+        return of(bid, bidType, bidCurrency, null);
     }
 }

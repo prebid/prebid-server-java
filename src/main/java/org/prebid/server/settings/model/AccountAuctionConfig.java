@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.auction.model.PaaFormat;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestAlternateBidderCodes;
 import org.prebid.server.spring.config.bidder.model.MediaType;
 
 import java.util.Map;
@@ -31,6 +32,9 @@ public class AccountAuctionConfig {
 
     @JsonAlias("debug-allow")
     Boolean debugAllow;
+
+    @JsonAlias("alternate-bidder-codes")
+    ExtRequestAlternateBidderCodes alternateBidderCodes;
 
     @JsonAlias("bid-validations")
     AccountBidValidationConfig bidValidations;

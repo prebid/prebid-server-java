@@ -49,6 +49,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestAlternateBidderCodes;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
@@ -726,6 +727,8 @@ public class Ortb2ImplicitParametersResolver {
                                           Account account) {
 
         final ExtRequestPrebid prebid = ObjectUtil.getIfNotNull(ext, ExtRequest::getPrebid);
+        final ExtRequestAlternateBidderCodes accountAlternateBidderCodes = ObjectUtil.getIfNotNull(
+                ObjectUtil.getIfNotNull(account, Account::getAuction), AccountAuctionConfig::getAlternateBidderCodes);
 
         final ExtRequestTargeting updatedTargeting = targetingOrNull(prebid, imps, account);
         final ExtRequestPrebidCache updatedCache = cacheOrNull(prebid);
@@ -742,6 +745,10 @@ public class Ortb2ImplicitParametersResolver {
                         ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getCache)))
                 .channel(ObjectUtils.defaultIfNull(updatedChannel,
                         ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getChannel)))
+                .alternatebiddercodes(ObjectUtils.defaultIfNull(
+                    ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getAlternatebiddercodes),
+                    accountAlternateBidderCodes
+                ))
                 .server(serverInfo.with(endpoint))
                 .build());
 

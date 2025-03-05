@@ -42,6 +42,11 @@ public class ExtRequestPrebid {
     Map<String, String> aliases;
 
     /**
+     * Defines the contract for bidrequest.ext.prebid.alternatebiddercodes
+     */
+    ExtRequestAlternateBidderCodes alternatebiddercodes;
+
+    /**
      * Defines the contract for bidrequest.ext.prebid.aliasgvlids
      */
     Map<String, Integer> aliasgvlids;

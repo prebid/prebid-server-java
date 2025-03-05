@@ -102,6 +102,7 @@ adapter-defaults:
     allow: true
 auction:
   ad-server-currency: USD
+  alternate-bidder-codes:
   blocklisted-accounts:
   blocklisted-apps:
   biddertmax:

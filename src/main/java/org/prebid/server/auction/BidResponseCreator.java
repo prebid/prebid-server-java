@@ -29,6 +29,7 @@ import org.prebid.server.auction.model.AuctionParticipation;
 import org.prebid.server.auction.model.BidInfo;
 import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.BidRequestCacheInfo;
+import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.BidderResponseInfo;
 import org.prebid.server.auction.model.CachedDebugLog;
@@ -74,6 +75,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtOptions;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestAlternateBidderCodes;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestAlternateBidderCodesBidder;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
@@ -106,6 +109,7 @@ import org.prebid.server.settings.model.AccountEventsConfig;
 import org.prebid.server.settings.model.AccountTargetingConfig;
 import org.prebid.server.settings.model.VideoStoredDataResult;
 import org.prebid.server.spring.config.model.CacheDefaultTtlProperties;
+import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.util.StreamUtil;
 import org.prebid.server.vast.VastModifier;
 
@@ -265,6 +269,18 @@ public class BidResponseCreator {
                         eventsContext));
     }
 
+    private String seatForBid(Set<String> allowedAlternateBidderCodes, String bidder, String wantedSeat) {
+        if (allowedAlternateBidderCodes == null || wantedSeat == null) {
+            return bidder;
+        }
+
+        if (allowedAlternateBidderCodes.contains(wantedSeat) || allowedAlternateBidderCodes.contains("*")) {
+            return wantedSeat;
+        }
+
+        return bidder;
+    }
+
     private Future<List<BidderResponse>> updateBids(List<BidderResponse> bidderResponses,
                                                     VideoStoredDataResult videoStoredDataResult,
                                                     AuctionContext auctionContext,
@@ -274,6 +290,7 @@ public class BidResponseCreator {
 
         for (final BidderResponse bidderResponse : bidderResponses) {
             final String bidder = bidderResponse.getBidder();
+            final Set<String> allowedAlternateBidderCodes = alternateBidderCodesForBidder(bidder, auctionContext.getBidRequest()):
 
             final List<BidderBid> modifiedBidderBids = new ArrayList<>();
             final BidderSeatBid seatBid = bidderResponse.getSeatBid();
@@ -283,10 +300,14 @@ public class BidResponseCreator {
 
                 final Bid updatedBid = updateBid(
                         receivedBid, bidType, bidder, videoStoredDataResult, auctionContext, eventsContext);
-                modifiedBidderBids.add(bidderBid.toBuilder().bid(updatedBid).build());
+
+                modifiedBidderBids.add(bidderBid.toBuilder().bid(updatedBid)
+                        .seat(seatForBid(allowedAlternateBidderCodes, bidder, bidderBid.getSeat()))
+                        .build());
             }
 
             final BidderSeatBid modifiedSeatBid = seatBid.with(modifiedBidderBids);
+
             result.add(bidderResponse.with(modifiedSeatBid));
         }
 
@@ -406,6 +427,31 @@ public class BidResponseCreator {
                 .build();
     }
 
+    private Set<String> alternateBidderCodesForBidder(String bidder, BidRequest bidRequest) {
+        final ExtRequestAlternateBidderCodes alternateBidderCodes = ObjectUtil.getIfNotNull(bidRequest.getExt().getPrebid(), ExtRequestPrebid::getAlternatebiddercodes);
+
+        if (alternateBidderCodes == null) {
+            return null;
+        }
+
+        if (!alternateBidderCodes.getEnabled()) {
+            return null;
+        }
+
+        final Map<String, ExtRequestAlternateBidderCodesBidder> alternateBidderCodesBidderMap = alternateBidderCodes.getBidders();
+        if (alternateBidderCodesBidderMap == null) {
+            return null;
+        }
+
+        final ExtRequestAlternateBidderCodesBidder alternateBidderCodesBidder = alternateBidderCodesBidderMap.get(bidder);
+        if (alternateBidderCodesBidder == null || !alternateBidderCodesBidder.getEnabled()) {
+            return null;
+        }
+
+        final List<String> allowedAlternates = alternateBidderCodesBidder.getAllowedBidderCodes();
+        return allowedAlternates != null ? new HashSet<>(allowedAlternates) : null;
+    }
+
     /**
      * Checks whether bidder responses are empty or contain no bids.
      */
@@ -425,15 +471,13 @@ public class BidResponseCreator {
 
         final List<BidderResponse> bidderResponses = categoryMappingResult.getBidderResponses();
         for (final BidderResponse bidderResponse : bidderResponses) {
-            final String bidder = bidderResponse.getBidder();
-
             final List<BidInfo> bidInfos = new ArrayList<>();
             final BidderSeatBid seatBid = bidderResponse.getSeatBid();
 
             for (final BidderBid bidderBid : seatBid.getBids()) {
                 final Bid bid = bidderBid.getBid();
                 final BidType type = bidderBid.getType();
-                final BidInfo bidInfo = toBidInfo(bid, type, imps, bidder, categoryMappingResult, cacheInfo, account);
+                final BidInfo bidInfo = toBidInfo(bid, type, imps, bidderBid.getSeat(), categoryMappingResult, cacheInfo, account);
                 bidInfos.add(bidInfo);
             }
 
@@ -445,6 +489,7 @@ public class BidResponseCreator {
                     seatBid.getFledgeAuctionConfigs(),
                     seatBid.getIgi());
 
+            final String bidder = bidderResponse.getBidder();
             result.add(BidderResponseInfo.of(bidder, bidderSeatBidInfo, bidderResponse.getResponseTime()));
         }
 
@@ -1339,7 +1384,7 @@ public class BidResponseCreator {
                 .map(BidderResponseInfo::getSeatBid)
                 .map(BidderSeatBidInfo::getBidsInfos)
                 .filter(CollectionUtils::isNotEmpty)
-                .map(bidInfos -> toSeatBid(
+                .flatMap(bidInfos -> toSeatBids(
                         bidInfos,
                         targeting,
                         bidRequest,
@@ -1417,45 +1462,58 @@ public class BidResponseCreator {
     }
 
     /**
-     * Creates an OpenRTB {@link SeatBid} for a bidder. It will contain all the bids supplied by a bidder and a "bidder"
-     * extension field populated.
+     * Creates a OpenRTB {@link SeatBid}s for a bidder. It will contain all the bids supplied by a bidder and a "bidder"
+     * extension field populated. Will return a list of a single SeatBid unless the bids have overriden the "bidder".
      */
-    private SeatBid toSeatBid(List<BidInfo> bidInfos,
-                              ExtRequestTargeting targeting,
-                              BidRequest bidRequest,
-                              BidRequestCacheInfo requestCacheInfo,
-                              Map<Bid, CacheInfo> bidToCacheInfo,
-                              Account account,
-                              Map<String, List<ExtBidderError>> bidErrors,
-                              Map<String, List<ExtBidderError>> bidWarnings) {
+    private Stream<SeatBid> toSeatBids(List<BidInfo> bidInfos,
+                               ExtRequestTargeting targeting,
+                               BidRequest bidRequest,
+                               BidRequestCacheInfo requestCacheInfo,
+                               Map<Bid, CacheInfo> bidToCacheInfo,
+                               Account account,
+                               Map<String, List<ExtBidderError>> bidErrors,
+                               Map<String, List<ExtBidderError>> bidWarnings) {
 
-        final String bidder = bidInfos.stream()
-                .map(BidInfo::getBidder)
-                .findFirst()
-                // Should never occur
-                .orElseThrow(() -> new IllegalArgumentException("Bidder was not defined for bidInfo"));
+        final Map<String, List<Bid>> bidsByBidder = new HashMap<>(1);
 
-        final List<Bid> bids = bidInfos.stream()
-                .map(bidInfo -> injectAdmWithCacheInfo(
-                        bidInfo,
-                        requestCacheInfo,
-                        bidToCacheInfo,
-                        bidErrors))
-                .filter(Objects::nonNull)
-                .map(bidInfo -> toBid(
-                        bidInfo,
-                        targeting,
-                        bidRequest,
-                        account,
-                        bidWarnings))
-                .filter(Objects::nonNull)
-                .toList();
+        for (BidInfo bidInfo : bidInfos) {
+            bidInfo = injectAdmWithCacheInfo(
+                    bidInfo,
+                    requestCacheInfo,
+                    bidToCacheInfo,
+                    bidErrors);
 
-        return SeatBid.builder()
-                .seat(bidder)
-                .bid(bids)
-                .group(0) // prebid cannot support roadblocking
-                .build();
+            if (bidInfo == null) {
+                continue;
+            }
+
+            final String bidder = bidInfo.getBidder();
+            if (bidder == null) {
+                logger.warn("BidInfo missing bidder, skipping bid", bidInfo);
+                continue;
+            }
+
+            final Bid bid = toBid(
+                    bidInfo,
+                    targeting,
+                    bidRequest,
+                    account,
+                    bidWarnings);
+
+            if (bid == null) {
+                continue;
+            }
+
+            bidsByBidder.putIfAbsent(bidder, new ArrayList<>(1)).add(bid);
+        }
+
+        return bidsByBidder.entrySet().stream()
+                .map((kvp) ->
+                        SeatBid.builder()
+                                .seat(kvp.getKey())
+                                .bid(kvp.getValue())
+                                .group(0) // prebid cannot support roadblocking
+                                .build());
     }
 
     private BidInfo injectAdmWithCacheInfo(BidInfo bidInfo,
