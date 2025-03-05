@@ -55,8 +55,8 @@
         "site_id": 3001,
         "target": {
           "iab": [
-            "segmentId2",
             "segmentId1",
+            "segmentId2",
             "segmentId3"
           ]
         }

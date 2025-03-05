@@ -29,7 +29,6 @@ import com.iab.openrtb.response.Bid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
@@ -106,19 +105,16 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidMeta;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
-import org.prebid.server.util.ListUtil;
 import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.version.PrebidVersionProvider;
 
 import java.math.BigDecimal;
 import java.net.URISyntaxException;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -130,6 +126,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 public class RubiconBidder implements Bidder<BidRequest> {
@@ -814,10 +811,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return nodeByPath != null && nodeByPath.isTextual() ? nodeByPath.textValue() : null;
     }
 
-    private static String getTextValueFromNode(JsonNode node) {
-        return node != null && node.isTextual() ? node.textValue() : null;
-    }
-
     private void populateFirstPartyDataAttributes(ObjectNode sourceNode, ObjectNode targetNode) {
         if (sourceNode == null || sourceNode.isNull()) {
             return;
@@ -1259,97 +1252,40 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static void enrichWithIabAndSegtaxAttribute(ObjectNode target, List<Data> data, Set<Integer> segtaxValues) {
-        final Map<Integer, Deque<Segment>> segments = CollectionUtils.emptyIfNull(data).stream()
+    private static void enrichWithIabAndSegtaxAttribute(ObjectNode target, List<Data> data, Set<Integer> iabTaxes) {
+        CollectionUtils.emptyIfNull(data).stream()
                 .filter(Objects::nonNull)
-                .map(RubiconBidder::getValidSegments)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        Map.Entry::getValue,
-                        (first, second) -> {
-                            first.addAll(second);
-                            return first;
-                        }));
-
-        if (MapUtils.isEmpty(segments)) {
-            return;
-        }
-
-        final Map<Integer, List<String>> relevantSegments = pickRelevantSegments(segments);
-        final Map<String, List<String>> resultSegments = groupBySegtaxValues(relevantSegments, segtaxValues);
-
-        resultSegments.forEach((segtaxValue, segmentIds) -> {
-            final ArrayNode array = target.putArray(segtaxValue);
-            segmentIds.forEach(array::add);
-        });
+                .flatMap(dataEntry -> extractTaxToSegmentId(dataEntry, iabTaxes))
+                .limit(MAX_NUMBER_OF_SEGMENTS)
+                .forEach(entry -> getArrayNodeOrCreate(target, entry.getKey()).add(entry.getValue()));
     }
 
-    private static Map<String, List<String>> groupBySegtaxValues(Map<Integer, List<String>> segments,
-                                                                 Set<Integer> segtaxValues) {
-
-        return segments.entrySet().stream()
-                .collect(Collectors.toMap(
-                        entry -> resolveSegmentName(entry.getKey(), segtaxValues),
-                        Map.Entry::getValue,
-                        ListUtil::union));
-    }
-
-    private static String resolveSegmentName(Integer taxonomyId, Set<Integer> segtaxValues) {
-        return segtaxValues.contains(taxonomyId) ? SEGTAX_IAB : SEGTAX_TAX + taxonomyId;
-    }
-
-    private static Map.Entry<Integer, Deque<Segment>> getValidSegments(Data data) {
+    private static Stream<Map.Entry<String, String>> extractTaxToSegmentId(Data data, Set<Integer> iabTaxes) {
         final ObjectNode ext = data.getExt();
         final JsonNode taxonomyId = ext != null ? ext.get(SEGTAX) : null;
         if (taxonomyId == null || !taxonomyId.isInt()) {
-            return null;
+            return Stream.empty();
         }
 
-        final Deque<Segment> segments = getValidOnlySegments(data.getSegment());
-        return CollectionUtils.isNotEmpty(segments) ? Map.entry(taxonomyId.intValue(), segments) : null;
+        final String taxKey = resolveTaxName(taxonomyId.intValue(), iabTaxes);
+        return CollectionUtils.emptyIfNull(data.getSegment()).stream()
+                .filter(Objects::nonNull)
+                .map(Segment::getId)
+                .filter(StringUtils::isNotBlank)
+                .map(id -> Map.entry(taxKey, id));
     }
 
-    private static Deque<Segment> getValidOnlySegments(List<Segment> segments) {
-        return CollectionUtils.isNotEmpty(segments)
-                ? segments.stream()
-                .filter(segment -> StringUtils.isNotBlank(segment.getId()))
-                .collect(Collectors.toCollection(ArrayDeque::new))
-                : null;
+    private static String resolveTaxName(Integer taxonomyId, Set<Integer> iabTaxes) {
+        return iabTaxes.contains(taxonomyId) ? SEGTAX_IAB : SEGTAX_TAX + taxonomyId;
     }
 
-    private static Map<Integer, List<String>> pickRelevantSegments(final Map<Integer, Deque<Segment>> segments) {
-        final Map<Integer, List<String>> result = new HashMap<>();
-        final List<Integer> segmentsKeys = new ArrayList<>(segments.keySet());
-
-        int i = 0;
-        int consumedSegmentsCount = 0;
-
-        while (consumedSegmentsCount < MAX_NUMBER_OF_SEGMENTS && !segmentsKeys.isEmpty()) {
-            final int segmentsIndex = i % segmentsKeys.size();
-            final Integer segmentKey = segmentsKeys.get(segmentsIndex);
-            final Deque<Segment> currentSegments = segments.get(segmentKey);
-
-            final Segment lastSegment = currentSegments.pollLast();
-            result.computeIfAbsent(segmentKey, key -> new ArrayList<>()).add(lastSegment.getId());
-            consumedSegmentsCount++;
-
-            if (currentSegments.isEmpty()) {
-                segmentsKeys.remove(segmentKey);
-                i--;
-            }
-            i++;
+    private static ArrayNode getArrayNodeOrCreate(ObjectNode parent, String field) {
+        final JsonNode node = parent.get(field);
+        if (node == null || !node.isArray()) {
+            return parent.putArray(field);
         }
 
-        return result;
-    }
-
-    private static Segment getAndRemoveLastSegment(List<Segment> list) {
-        final int lastElementIndex = list.size() - 1;
-        final Segment lastSegment = list.get(lastElementIndex);
-        list.remove(lastElementIndex);
-
-        return lastSegment;
+        return (ArrayNode) node;
     }
 
     private void processWarnings(List<BidderError> errors, List<String> priceFloorsWarnings) {
