@@ -29,7 +29,6 @@ import org.prebid.server.auction.model.AuctionParticipation;
 import org.prebid.server.auction.model.BidInfo;
 import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.BidRequestCacheInfo;
-import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.BidderResponseInfo;
 import org.prebid.server.auction.model.CachedDebugLog;
@@ -75,8 +74,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtOptions;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestAlternateBidderCodes;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestAlternateBidderCodesBidder;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
@@ -109,7 +106,6 @@ import org.prebid.server.settings.model.AccountEventsConfig;
 import org.prebid.server.settings.model.AccountTargetingConfig;
 import org.prebid.server.settings.model.VideoStoredDataResult;
 import org.prebid.server.spring.config.model.CacheDefaultTtlProperties;
-import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.util.StreamUtil;
 import org.prebid.server.vast.VastModifier;
 
@@ -269,18 +265,6 @@ public class BidResponseCreator {
                         eventsContext));
     }
 
-    private String seatForBid(Set<String> allowedAlternateBidderCodes, String bidder, String wantedSeat) {
-        if (allowedAlternateBidderCodes == null || wantedSeat == null) {
-            return bidder;
-        }
-
-        if (allowedAlternateBidderCodes.contains(wantedSeat) || allowedAlternateBidderCodes.contains("*")) {
-            return wantedSeat;
-        }
-
-        return bidder;
-    }
-
     private Future<List<BidderResponse>> updateBids(List<BidderResponse> bidderResponses,
                                                     VideoStoredDataResult videoStoredDataResult,
                                                     AuctionContext auctionContext,
@@ -290,7 +274,8 @@ public class BidResponseCreator {
 
         for (final BidderResponse bidderResponse : bidderResponses) {
             final String bidder = bidderResponse.getBidder();
-            final Set<String> allowedAlternateBidderCodes = alternateBidderCodesForBidder(bidder, auctionContext.getBidRequest()):
+            final Set<String> allowedAlternateBidderCodes = AllowedAlternateBidderCodes.allowedCodesForBidder(
+                    bidder, auctionContext.getBidRequest());
 
             final List<BidderBid> modifiedBidderBids = new ArrayList<>();
             final BidderSeatBid seatBid = bidderResponse.getSeatBid();
@@ -302,7 +287,8 @@ public class BidResponseCreator {
                         receivedBid, bidType, bidder, videoStoredDataResult, auctionContext, eventsContext);
 
                 modifiedBidderBids.add(bidderBid.toBuilder().bid(updatedBid)
-                        .seat(seatForBid(allowedAlternateBidderCodes, bidder, bidderBid.getSeat()))
+                        .seat(AllowedAlternateBidderCodes.applySeatForBid(
+                                allowedAlternateBidderCodes, bidder, bidderBid.getSeat()))
                         .build());
             }
 
@@ -427,31 +413,6 @@ public class BidResponseCreator {
                 .build();
     }
 
-    private Set<String> alternateBidderCodesForBidder(String bidder, BidRequest bidRequest) {
-        final ExtRequestAlternateBidderCodes alternateBidderCodes = ObjectUtil.getIfNotNull(bidRequest.getExt().getPrebid(), ExtRequestPrebid::getAlternatebiddercodes);
-
-        if (alternateBidderCodes == null) {
-            return null;
-        }
-
-        if (!alternateBidderCodes.getEnabled()) {
-            return null;
-        }
-
-        final Map<String, ExtRequestAlternateBidderCodesBidder> alternateBidderCodesBidderMap = alternateBidderCodes.getBidders();
-        if (alternateBidderCodesBidderMap == null) {
-            return null;
-        }
-
-        final ExtRequestAlternateBidderCodesBidder alternateBidderCodesBidder = alternateBidderCodesBidderMap.get(bidder);
-        if (alternateBidderCodesBidder == null || !alternateBidderCodesBidder.getEnabled()) {
-            return null;
-        }
-
-        final List<String> allowedAlternates = alternateBidderCodesBidder.getAllowedBidderCodes();
-        return allowedAlternates != null ? new HashSet<>(allowedAlternates) : null;
-    }
-
     /**
      * Checks whether bidder responses are empty or contain no bids.
      */
@@ -477,7 +438,8 @@ public class BidResponseCreator {
             for (final BidderBid bidderBid : seatBid.getBids()) {
                 final Bid bid = bidderBid.getBid();
                 final BidType type = bidderBid.getType();
-                final BidInfo bidInfo = toBidInfo(bid, type, imps, bidderBid.getSeat(), categoryMappingResult, cacheInfo, account);
+                final BidInfo bidInfo = toBidInfo(
+                        bid, type, imps, bidderBid.getSeat(), categoryMappingResult, cacheInfo, account);
                 bidInfos.add(bidInfo);
             }
 
@@ -1508,7 +1470,7 @@ public class BidResponseCreator {
         }
 
         return bidsByBidder.entrySet().stream()
-                .map((kvp) ->
+                .map(kvp ->
                         SeatBid.builder()
                                 .seat(kvp.getKey())
                                 .bid(kvp.getValue())

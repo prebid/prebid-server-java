@@ -78,8 +78,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigOrtb;
 import org.prebid.server.proto.openrtb.ext.request.ExtDooh;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestAlternateBidderCodes;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestAlternateBidderCodesBidder;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidBidderConfig;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
@@ -93,7 +91,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ListUtil;
-import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.util.PbsUtil;
 import org.prebid.server.util.StreamUtil;
 

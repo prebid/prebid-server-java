@@ -12,6 +12,7 @@ import java.util.Map;
 @Builder(toBuilder = true)
 @Value
 public class ExtRequestAlternateBidderCodes {
+
     /**
      * Is this feature enabled
      */

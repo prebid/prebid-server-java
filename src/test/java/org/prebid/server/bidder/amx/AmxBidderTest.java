@@ -316,6 +316,8 @@ public class AmxBidderTest extends VertxTest {
         // given
         final ObjectNode givenBidExt = mapper.createObjectNode();
         givenBidExt.set("ds", new TextNode("someDs"));
+        givenBidExt.set("bc", new TextNode("someBc"));
+
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().video(Video.builder().build()).id("123").build()))
@@ -328,6 +330,10 @@ public class AmxBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getSeat)
+                .containsExactly("someBc");
+
         assertThat(result.getValue())
                 .extracting(BidderBid::getBid)
                 .extracting(Bid::getExt)

@@ -174,7 +174,9 @@ public class AmxBidder implements Bidder<BidRequest> {
             return null;
         }
 
-        return BidderBid.of(resolveBid(bid, amxBidExt.getDemandSource()), getBidType(amxBidExt), cur, amxBidExt.getBidderCode());
+        return BidderBid.of(
+                resolveBid(bid, amxBidExt.getDemandSource()),
+                getBidType(amxBidExt), cur, amxBidExt.getBidderCode());
     }
 
     private AmxBidExt parseBidderExt(ObjectNode ext) {
