@@ -37,7 +37,6 @@ import org.prebid.server.auction.categorymapping.CategoryMappingService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionParticipation;
 import org.prebid.server.auction.model.BidInfo;
-import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.BidRequestCacheInfo;
 import org.prebid.server.auction.model.BidderResponse;
@@ -45,6 +44,7 @@ import org.prebid.server.auction.model.CachedDebugLog;
 import org.prebid.server.auction.model.CategoryMappingResult;
 import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.PaaFormat;
+import org.prebid.server.auction.model.RejectedImp;
 import org.prebid.server.auction.model.TargetingInfo;
 import org.prebid.server.auction.model.TimeoutContext;
 import org.prebid.server.auction.model.debug.DebugContext;
@@ -140,6 +140,7 @@ import java.util.stream.IntStream;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
+import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static java.util.function.UnaryOperator.identity;
@@ -162,6 +163,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.prebid.server.auction.model.BidRejectionReason.NO_BID;
 import static org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAdservertargetingRule.Source.xStatic;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.audio;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
@@ -245,11 +247,12 @@ public class BidResponseCreatorTest extends VertxTest {
                         false,
                         BidderResponsePayloadImpl.of(((BidderResponse) invocation.getArgument(0))
                                 .getSeatBid()
-                                .getBids()))));
+                                .getBids()),
+                        null)));
         given(hookStageExecutor.executeAllProcessedBidResponsesStage(any(), any()))
                 .willAnswer(invocation -> Future.succeededFuture(
                         HookStageExecutionResult.of(
-                                false, AllProcessedBidResponsesPayloadImpl.of(invocation.getArgument(0)))));
+                                false, AllProcessedBidResponsesPayloadImpl.of(invocation.getArgument(0)), null)));
 
         clock = Clock.fixed(Instant.ofEpochMilli(1000L), ZoneOffset.UTC);
 
@@ -313,7 +316,7 @@ public class BidResponseCreatorTest extends VertxTest {
     @Test
     public void shouldSkipBidderWhenRejectedByProcessedBidderResponseHooks() {
         // given
-        doAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(true, null)))
+        doAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(true, null, null)))
                 .when(hookStageExecutor).executeProcessedBidderResponseStage(any(), any());
 
         final Bid bid = Bid.builder()
@@ -339,8 +342,7 @@ public class BidResponseCreatorTest extends VertxTest {
 
     @Test
     public void shouldPassRequestModifiedByBidderRequestHooks() {
-        doAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
-                false,
+        doAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.success(
                 BidderResponsePayloadImpl.of(singletonList(BidderBid.of(
                         Bid.builder()
                                 .id("bidIdModifiedByHook")
@@ -4018,7 +4020,7 @@ public class BidResponseCreatorTest extends VertxTest {
     public void shouldPopulateExtPrebidSeatNonBidWhenReturnAllBidStatusFlagIsTrue() {
         // given
         final BidRejectionTracker bidRejectionTracker = mock(BidRejectionTracker.class);
-        given(bidRejectionTracker.getRejectedImps()).willReturn(singletonMap("impId2", BidRejectionReason.NO_BID));
+        given(bidRejectionTracker.getRejectedImps()).willReturn(singleton(RejectedImp.of("impId2", NO_BID)));
 
         final Bid bid = Bid.builder().id("bidId").price(BigDecimal.valueOf(3.67)).impid("impId").build();
         final List<BidderResponse> bidderResponses = singletonList(
@@ -4043,7 +4045,7 @@ public class BidResponseCreatorTest extends VertxTest {
 
         // then
         final SeatNonBid expectedSeatNonBid = SeatNonBid.of(
-                "someBidder", singletonList(NonBid.of("impId2", BidRejectionReason.NO_BID)));
+                "someBidder", singletonList(NonBid.of("impId2", NO_BID)));
 
         assertThat(bidResponse.getExt())
                 .extracting(ExtBidResponse::getSeatnonbid)
