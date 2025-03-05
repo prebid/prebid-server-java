@@ -1466,7 +1466,8 @@ public class BidResponseCreator {
                 continue;
             }
 
-            bidsByBidder.putIfAbsent(bidder, new ArrayList<>(1)).add(bid);
+            bidsByBidder.putIfAbsent(bidder, new ArrayList<>(1));
+            bidsByBidder.get(bidder).add(bid);
         }
 
         return bidsByBidder.entrySet().stream()
