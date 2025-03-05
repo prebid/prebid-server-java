@@ -9,7 +9,7 @@
       },
       "ext": {
         "oms": {
-          "pid": "exampleProperty"
+          "publisherId": 12345
         }
       }
     }
