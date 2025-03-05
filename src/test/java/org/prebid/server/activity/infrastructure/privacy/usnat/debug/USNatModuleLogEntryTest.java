@@ -25,7 +25,7 @@ public class USNatModuleLogEntryTest {
     public void fromShouldReturnExpectedTextNode() {
         // given
         final USNatGppReader gppReader = new USNationalGppReader(gppModel);
-        final PrivacyModule privacyModule = new USNatSyncUser(gppReader);
+        final PrivacyModule privacyModule = new USNatSyncUser(gppReader, null);
 
         // when
         final TextNode result = USNatModuleLogEntry.from(privacyModule, gppReader, Rule.Result.ALLOW);
