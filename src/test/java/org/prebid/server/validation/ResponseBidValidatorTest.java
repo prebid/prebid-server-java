@@ -586,9 +586,8 @@ public class ResponseBidValidatorTest extends VertxTest {
                                 .build())).build());
 
         // then
-        assertThat(result.getWarnings())
+        assertThat(result.getErrors())
                 .containsOnly("invalid bidder code seat was set by the adapter bidder for the account account");
-        assertThat(result.getErrors()).isEmpty();
         verify(metrics).updateSeatValidationMetrics(BIDDER_NAME);
         verify(bidRejectionTracker).rejectBid(givenBid, BidRejectionReason.RESPONSE_REJECTED_GENERAL);
     }
@@ -612,9 +611,8 @@ public class ResponseBidValidatorTest extends VertxTest {
                                 .build())).build());
 
         // then
-        assertThat(result.getWarnings())
+        assertThat(result.getErrors())
                 .containsOnly("invalid bidder code seat was set by the adapter bidder for the account account");
-        assertThat(result.getErrors()).isEmpty();
         verify(metrics).updateSeatValidationMetrics(BIDDER_NAME);
         verify(bidRejectionTracker).rejectBid(givenBid, BidRejectionReason.RESPONSE_REJECTED_GENERAL);
     }
@@ -636,9 +634,8 @@ public class ResponseBidValidatorTest extends VertxTest {
                         .build());
 
         // then
-        assertThat(result.getWarnings())
+        assertThat(result.getErrors())
                 .containsOnly("invalid bidder code seat was set by the adapter bidder for the account account");
-        assertThat(result.getErrors()).isEmpty();
         verify(metrics).updateSeatValidationMetrics(BIDDER_NAME);
         verify(bidRejectionTracker).rejectBid(givenBid, BidRejectionReason.RESPONSE_REJECTED_GENERAL);
     }
@@ -662,9 +659,8 @@ public class ResponseBidValidatorTest extends VertxTest {
                                 .build())).build());
 
         // then
-        assertThat(result.getWarnings())
+        assertThat(result.getErrors())
                 .containsOnly("invalid bidder code seat was set by the adapter bidder for the account account");
-        assertThat(result.getErrors()).isEmpty();
         verify(metrics).updateSeatValidationMetrics(BIDDER_NAME);
         verify(bidRejectionTracker).rejectBid(givenBid, BidRejectionReason.RESPONSE_REJECTED_GENERAL);
     }

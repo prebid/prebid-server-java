@@ -59,7 +59,7 @@ public class ResponseBidValidator {
 
     private static final String[] INSECURE_MARKUP_MARKERS = {"http:", "http%3A"};
     private static final String[] SECURE_MARKUP_MARKERS = {"https:", "https%3A"};
-    private static final String ALTERNATE_BIDDER_CODE_WILDCARD = "*";
+    private static final String WILDCARD = "*";
 
     private final BidValidationEnforcement bannerMaxSizeEnforcement;
     private final BidValidationEnforcement secureMarkupEnforcement;
@@ -95,7 +95,7 @@ public class ResponseBidValidator {
             validateCommonFields(bid);
             validateTypeSpecific(bidderBid, bidder);
             validateCurrency(bidderBid.getBidCurrency());
-            validateSeat(bidderBid, bidder, account, bidRejectionTracker, alternateBidderCodes, warnings);
+            validateSeat(bidderBid, bidder, account, bidRejectionTracker, alternateBidderCodes);
 
             final Imp correspondingImp = findCorrespondingImp(bid, bidRequest);
             if (bidderBid.getType() == BidType.banner) {
@@ -167,8 +167,7 @@ public class ResponseBidValidator {
                               String bidder,
                               Account account,
                               BidRejectionTracker bidRejectionTracker,
-                              ExtRequestPrebidAlternateBidderCodes alternateBidderCodes,
-                              List<String> warnings) {
+                              ExtRequestPrebidAlternateBidderCodes alternateBidderCodes) throws ValidationException {
 
         if (bid.getSeat() == null || StringUtils.equals(bid.getSeat(), bidder)) {
             return;
@@ -178,19 +177,22 @@ public class ResponseBidValidator {
                 bidder,
                 alternateBidderCodes);
 
-        if (!isAlternateBidderCodesEnabled(alternateBidderCodes) || alternateBidder == null) {
-            warnings.add(rejectBidOnInvalidSeat(bid, bidder, account, bidRejectionTracker));
-            return;
+        if (isAlternateBidderCodesEnabled(alternateBidderCodes) && alternateBidder != null) {
+            final Set<String> allowedBidderCodes = ObjectUtils.defaultIfNull(
+                    alternateBidder.getAllowedBidderCodes(),
+                    Collections.singleton(WILDCARD));
+
+            if (allowedBidderCodes.contains(WILDCARD) || allowedBidderCodes.contains(bid.getSeat())) {
+                return;
+            }
         }
 
-        final Set<String> allowedBidderCodes = ObjectUtils.defaultIfNull(
-                alternateBidder.getAllowedBidderCodes(),
-                Collections.singleton(ALTERNATE_BIDDER_CODE_WILDCARD));
-
-        if (!allowedBidderCodes.contains(ALTERNATE_BIDDER_CODE_WILDCARD)
-                && !allowedBidderCodes.contains(bid.getSeat())) {
-            warnings.add(rejectBidOnInvalidSeat(bid, bidder, account, bidRejectionTracker));
-        }
+        final String message = "invalid bidder code %s was set by the adapter %s for the account %s"
+                .formatted(bid.getSeat(), bidder, account.getId());
+        bidRejectionTracker.rejectBid(bid, BidRejectionReason.RESPONSE_REJECTED_GENERAL);
+        metrics.updateSeatValidationMetrics(bidder);
+        ALTERNATE_BIDDER_CODE_LOGGER.warn(message, logSamplingRate);
+        throw new ValidationException(message);
     }
 
     private static Boolean isAlternateBidderCodesEnabled(ExtRequestPrebidAlternateBidderCodes alternateBidderCodes) {
@@ -208,19 +210,6 @@ public class ResponseBidValidator {
                 .map(bidders -> bidders.get(bidder))
                 .filter(alternate -> BooleanUtils.isTrue(alternate.getEnabled()))
                 .orElse(null);
-    }
-
-    private String rejectBidOnInvalidSeat(BidderBid bid,
-                                          String bidder,
-                                          Account account,
-                                          BidRejectionTracker bidRejectionTracker) {
-
-        final String message = "invalid bidder code %s was set by the adapter %s for the account %s"
-                .formatted(bid.getSeat(), bidder, account.getId());
-        bidRejectionTracker.rejectBid(bid, BidRejectionReason.RESPONSE_REJECTED_GENERAL);
-        metrics.updateSeatValidationMetrics(bidder);
-        ALTERNATE_BIDDER_CODE_LOGGER.warn(message, logSamplingRate);
-        return message;
     }
 
     private Imp findCorrespondingImp(Bid bid, BidRequest bidRequest) throws ValidationException {
