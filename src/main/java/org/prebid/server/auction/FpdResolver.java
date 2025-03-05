@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Dooh;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
@@ -149,5 +150,10 @@ public class FpdResolver {
         } else {
             impExt.set(field, jsonNode);
         }
+    }
+
+    public Object resolveDevice(Device originDevice, ObjectNode fpdDevice) {
+        return mergeFpd(originDevice, fpdDevice, Device.class);
+
     }
 }
