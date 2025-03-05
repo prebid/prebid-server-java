@@ -10,6 +10,5 @@ public class ExtImpAdverxo {
 
     @JsonProperty("adUnitId")
     Integer adUnitId;
-    @JsonProperty("auth")
     String auth;
 }

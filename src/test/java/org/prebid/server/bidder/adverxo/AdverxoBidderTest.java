@@ -63,8 +63,7 @@ public class AdverxoBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfImpExtInvalid() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder ->
-                impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
-        );
+                impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -103,8 +102,7 @@ public class AdverxoBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(impBuilder ->
                 impBuilder
                         .bidfloor(bidFloor)
-                        .bidfloorcur(bidFloorCur)
-        );
+                        .bidfloorcur(bidFloorCur));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -291,34 +289,7 @@ public class AdverxoBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getValue().get(0).getBid().getAdm()).isEqualTo("{\"key\":\"value\"}");
-    }
-
-    @Test
-    public void makeBidsShouldReturnErrorWhenNativeAdmIsInvalid() throws JsonProcessingException {
-        // given
-        final String invalidAdm = "{invalid_json";
-        final Bid bid = Bid.builder()
-                .impid("123")
-                .mtype(4)
-                .adm(invalidAdm)
-                .build();
-
-        final BidResponse bidResponse = BidResponse.builder()
-                .seatbid(List.of(SeatBid.builder().bid(List.of(bid)).build()))
-                .build();
-
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder().build(),
-                mapper.writeValueAsString(bidResponse));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).contains("Error parsing native ADM");
-        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getValue().get(0).getBid().getAdm()).isEqualTo(adm);
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {

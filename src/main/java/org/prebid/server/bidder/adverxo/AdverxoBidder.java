@@ -1,8 +1,6 @@
 package org.prebid.server.bidder.adverxo;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
@@ -86,9 +84,9 @@ public class AdverxoBidder implements Bidder<BidRequest> {
     }
 
     private String resolveEndpoint(ExtImpAdverxo extImp) {
+        final String adUnitId = String.valueOf(extImp.getAdUnitId());
         return endpointUrl
-                .replace(ADUNIT_MACROS_ENDPOINT,
-                        extImp.getAdUnitId() == null ? StringUtils.EMPTY : String.valueOf(extImp.getAdUnitId()))
+                .replace(ADUNIT_MACROS_ENDPOINT, adUnitId == null ? "0" : adUnitId)
                 .replace(AUTH_MACROS_ENDPOINT, HttpUtil.encodeUrl(StringUtils.defaultString(extImp.getAuth())));
     }
 
@@ -135,7 +133,6 @@ public class AdverxoBidder implements Bidder<BidRequest> {
     }
 
     private List<BidderBid> extractBids(BidResponse bidResponse) {
-
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
@@ -152,7 +149,7 @@ public class AdverxoBidder implements Bidder<BidRequest> {
 
     private BidderBid makeBid(Bid bid, String currency) {
         final BidType bidType = getBidType(bid.getMtype());
-        final String resolvedAdm = resolveAdmForBidType(bid, bidType);
+        final String resolvedAdm = bidType == BidType.xNative ? resolveAdm(bid.getAdm(), bid.getPrice()) : bid.getAdm();
         final Bid processedBid = processBidMacros(bid, resolvedAdm);
 
         return BidderBid.of(processedBid, bidType, currency);
@@ -167,20 +164,6 @@ public class AdverxoBidder implements Bidder<BidRequest> {
         };
     }
 
-    private String resolveAdmForBidType(Bid bid, BidType bidType) {
-        if (bidType != BidType.xNative) {
-            return bid.getAdm();
-        }
-
-        try {
-            final JsonNode admNode = mapper.mapper().readTree(bid.getAdm());
-            final JsonNode nativeNode = admNode.get("native");
-            return nativeNode != null ? nativeNode.toString() : bid.getAdm();
-        } catch (JsonProcessingException e) {
-            throw new PreBidException("Error parsing native ADM: " + e.getMessage());
-        }
-    }
-
     private static Bid processBidMacros(Bid bid, String adm) {
         final String price = bid.getPrice() != null ? bid.getPrice().toPlainString() : "0";
 
@@ -191,5 +174,9 @@ public class AdverxoBidder implements Bidder<BidRequest> {
 
     private static String replaceMacro(String input, String value) {
         return input != null ? input.replace(PRICE_MACRO, value) : null;
+    }
+
+    private static String resolveAdm(String bidAdm, BigDecimal price) {
+        return StringUtils.isNotBlank(bidAdm) ? bidAdm.replace("${AUCTION_PRICE}", String.valueOf(price)) : bidAdm;
     }
 }

@@ -31,7 +31,8 @@ public class AdverxoBidderConfiguration {
     @Bean
     BidderDeps adverxoBidderDeps(BidderConfigurationProperties adverxoConfigurationProperties,
                                  @NotBlank @Value("${external-url}") String externalUrl,
-                                 JacksonMapper mapper, CurrencyConversionService currencyConversionService) {
+                                 JacksonMapper mapper,
+                                 CurrencyConversionService currencyConversionService) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(adverxoConfigurationProperties)
