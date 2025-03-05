@@ -847,9 +847,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         }
 
         and: "Activities set for transmitUfpd with rejecting privacy regulation"
-        def rule = new ActivityRule().tap {
-            it.privacyRegulation = [privacyAllowRegulations]
-        }
+        def rule = new ActivityRule(privacyRegulation: [privacyAllowRegulations])
 
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([rule]))
 
@@ -2100,9 +2098,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         }
 
         and: "Activities set for transmitUfpd with allowing privacy regulation"
-        def rule = new ActivityRule().tap {
-            it.privacyRegulation = [privacyAllowRegulations]
-        }
+        def rule = new ActivityRule(privacyRegulation: [privacyAllowRegulations])
 
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([rule]))
 
@@ -3067,29 +3063,174 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
                 new PurposeEid(activityTransitionKebabCase: false)]
     }
 
-    private static BidRequest givenBidRequestWithAccountAndUfpdData(String accountId) {
-        BidRequest.getDefaultBidRequest().tap {
-            it.setAccountId(accountId)
-            it.ext.prebid.trace = VERBOSE
-            it.device = new Device().tap {
-                didsha1 = PBSUtils.randomString
-                didmd5 = PBSUtils.randomString
-                dpidsha1 = PBSUtils.randomString
-                ifa = PBSUtils.randomString
-                macsha1 = PBSUtils.randomString
-                macmd5 = PBSUtils.randomString
-                dpidmd5 = PBSUtils.randomString
-            }
-            it.user = User.defaultUser
-            it.user.customdata = PBSUtils.randomString
-            it.user.eids = [Eid.defaultEid]
-            it.user.data = [new Data(name: PBSUtils.randomString)]
-            it.user.buyeruid = PBSUtils.randomString
-            it.user.yob = PBSUtils.randomNumber
-            it.user.gender = PBSUtils.randomString
-            it.user.geo = Geo.FPDGeo
-            it.user.ext = new UserExt(data: new UserExtData(buyeruid: PBSUtils.randomString))
-            it.regs.ext ?= new RegsExt()
+    def "PBS should remove UFPD fields when privacy regulation match and rejecting and personalDataConsents is 2"() {
+        given: "Default Generic BidRequests with UFPD fields and account id"
+        def accountId = PBSUtils.randomNumber as String
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
+            regs.gppSid = [US_NAT_V1.intValue]
+            regs.gpp = new UsNatV1Consent.Builder().setPersonalDataConsents(2).build()
         }
+
+        and: "Activities set for transmitUfpd with rejecting privacy regulation"
+        def rule = new ActivityRule(privacyRegulation: [privacyAllowRegulations])
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([rule]))
+
+        and: "Account gpp configuration"
+        def accountGppConfig = new AccountGppConfig(code: IAB_US_GENERAL, enabled: true)
+
+        and: "Existed account with privacy regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        activityPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should have empty UFPD fields"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        verifyAll {
+            !bidderRequest.device.didsha1
+            !bidderRequest.device.didmd5
+            !bidderRequest.device.dpidsha1
+            !bidderRequest.device.ifa
+            !bidderRequest.device.macsha1
+            !bidderRequest.device.macmd5
+            !bidderRequest.device.dpidmd5
+            !bidderRequest.user.id
+            !bidderRequest.user.buyeruid
+            !bidderRequest.user.yob
+            !bidderRequest.user.gender
+            !bidderRequest.user.data
+            !bidderRequest.user.geo
+            !bidderRequest.user.ext
+        }
+
+        and: "Bidder request should have data in EIDS fields"
+        assert bidderRequest.user.eids == bidRequest.user.eids
+
+        where:
+        privacyAllowRegulations << [IAB_US_GENERAL, IAB_ALL, ALL]
+    }
+
+    def "PBS should remove UFPD fields when privacy regulation match and rejecting and personalDataConsents is 2 and allowPersonalDataConsent2 is false"() {
+        given: "Default Generic BidRequests with UFPD fields and account id"
+        def accountId = PBSUtils.randomNumber as String
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
+            regs.gppSid = [US_NAT_V1.intValue]
+            regs.gpp = new UsNatV1Consent.Builder().setPersonalDataConsents(2).build()
+        }
+
+        and: "Activities set for transmitUfpd with rejecting privacy regulation"
+        def rule = new ActivityRule(privacyRegulation: [privacyAllowRegulations])
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([rule]))
+
+        and: "Account gpp configuration"
+        def accountGppConfig = new AccountGppConfig(code: IAB_US_GENERAL, enabled: true, config: gppModuleConfig)
+
+        and: "Existed account with privacy regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        activityPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should have empty UFPD fields"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        verifyAll {
+            !bidderRequest.device.didsha1
+            !bidderRequest.device.didmd5
+            !bidderRequest.device.dpidsha1
+            !bidderRequest.device.ifa
+            !bidderRequest.device.macsha1
+            !bidderRequest.device.macmd5
+            !bidderRequest.device.dpidmd5
+            !bidderRequest.user.id
+            !bidderRequest.user.buyeruid
+            !bidderRequest.user.yob
+            !bidderRequest.user.gender
+            !bidderRequest.user.data
+            !bidderRequest.user.geo
+            !bidderRequest.user.ext
+        }
+
+        and: "Bidder request should have data in EIDS fields"
+        assert bidderRequest.user.eids == bidRequest.user.eids
+
+        where:
+        privacyAllowRegulations | gppModuleConfig
+        IAB_US_GENERAL          | new GppModuleConfig(allowPersonalDataConsent2: false)
+        IAB_ALL                 | new GppModuleConfig(allowPersonalDataConsent2: false)
+        ALL                     | new GppModuleConfig(allowPersonalDataConsent2: false)
+        IAB_US_GENERAL          | new GppModuleConfig(allowPersonalDataConsent2KebabCase: false)
+        IAB_ALL                 | new GppModuleConfig(allowPersonalDataConsent2KebabCase: false)
+        ALL                     | new GppModuleConfig(allowPersonalDataConsent2KebabCase: false)
+        IAB_US_GENERAL          | new GppModuleConfig(allowPersonalDataConsent2SnakeCase: false)
+        IAB_ALL                 | new GppModuleConfig(allowPersonalDataConsent2SnakeCase: false)
+        ALL                     | new GppModuleConfig(allowPersonalDataConsent2SnakeCase: false)
+        IAB_US_GENERAL          | new GppModuleConfig(allowPersonalDataConsent2: null)
+        IAB_ALL                 | new GppModuleConfig(allowPersonalDataConsent2: null)
+        ALL                     | new GppModuleConfig(allowPersonalDataConsent2: null)
+        IAB_US_GENERAL          | new GppModuleConfig(allowPersonalDataConsent2KebabCase: null)
+        IAB_ALL                 | new GppModuleConfig(allowPersonalDataConsent2KebabCase: null)
+        ALL                     | new GppModuleConfig(allowPersonalDataConsent2KebabCase: null)
+        IAB_US_GENERAL          | new GppModuleConfig(allowPersonalDataConsent2SnakeCase: null)
+        IAB_ALL                 | new GppModuleConfig(allowPersonalDataConsent2SnakeCase: null)
+        ALL                     | new GppModuleConfig(allowPersonalDataConsent2SnakeCase: null)
+    }
+
+    def "PBS shouldn't remove UFPD fields when privacy regulation match and rejecting and personalDataConsents is 2 and allowPersonalDataConsent2 is false"() {
+        given: "Default Generic BidRequests with UFPD fields and account id"
+        def accountId = PBSUtils.randomNumber as String
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
+            regs.gppSid = [US_NAT_V1.intValue]
+            regs.gpp = new UsNatV1Consent.Builder().setPersonalDataConsents(2).build()
+        }
+
+        and: "Activities set for transmitUfpd with rejecting privacy regulation"
+        def rule = new ActivityRule(privacyRegulation: [privacyAllowRegulations])
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([rule]))
+
+        and: "Account gpp configuration"
+        def accountGppConfig = new AccountGppConfig(code: IAB_US_GENERAL, enabled: true, config: gppModuleConfig)
+
+        and: "Existed account with privacy regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        activityPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should have data in UFPD fields"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        verifyAll {
+            bidderRequest.device.didsha1 == bidRequest.device.didsha1
+            bidderRequest.device.didmd5 == bidRequest.device.didmd5
+            bidderRequest.device.dpidsha1 == bidRequest.device.dpidsha1
+            bidderRequest.device.ifa == bidRequest.device.ifa
+            bidderRequest.device.macsha1 == bidRequest.device.macsha1
+            bidderRequest.device.macmd5 == bidRequest.device.macmd5
+            bidderRequest.device.dpidmd5 == bidRequest.device.dpidmd5
+            bidderRequest.user.id == bidRequest.user.id
+            bidderRequest.user.buyeruid == bidRequest.user.buyeruid
+            bidderRequest.user.yob == bidRequest.user.yob
+            bidderRequest.user.gender == bidRequest.user.gender
+            bidderRequest.user.data == bidRequest.user.data
+            bidderRequest.user.geo == bidRequest.user.geo
+            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+        }
+
+        and: "Bidder request should have data in EIDS fields"
+        assert bidderRequest.user.eids == bidRequest.user.eids
+
+        where:
+        privacyAllowRegulations | gppModuleConfig
+        IAB_US_GENERAL          | new GppModuleConfig(allowPersonalDataConsent2: true)
+        IAB_ALL                 | new GppModuleConfig(allowPersonalDataConsent2: true)
+        ALL                     | new GppModuleConfig(allowPersonalDataConsent2: true)
+        IAB_US_GENERAL          | new GppModuleConfig(allowPersonalDataConsent2KebabCase: true)
+        IAB_ALL                 | new GppModuleConfig(allowPersonalDataConsent2KebabCase: true)
+        ALL                     | new GppModuleConfig(allowPersonalDataConsent2KebabCase: true)
+        IAB_US_GENERAL          | new GppModuleConfig(allowPersonalDataConsent2SnakeCase: true)
+        IAB_ALL                 | new GppModuleConfig(allowPersonalDataConsent2SnakeCase: true)
+        ALL                     | new GppModuleConfig(allowPersonalDataConsent2SnakeCase: true)
     }
 }
