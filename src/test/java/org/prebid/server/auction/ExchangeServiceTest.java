@@ -2829,7 +2829,6 @@ public class ExchangeServiceTest extends VertxTest {
         final ExtRequestPrebidBidderConfig concreteFpdConfig = ExtRequestPrebidBidderConfig.of(
                 singletonList("SoMeBiDdEr"), extBidderConfig);
 
-
         final ObjectNode deviceWithUpdatedMakeAndModel = mapper.valueToTree(
                 Device.builder().make("TestMake_002").model("TestModel_002").build());
         final ExtBidderConfig allExtBidderConfig = ExtBidderConfig.of(

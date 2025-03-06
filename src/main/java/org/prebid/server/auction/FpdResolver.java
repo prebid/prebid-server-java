@@ -24,7 +24,8 @@ public class FpdResolver {
     private static final String BIDDERS = "bidders";
     private static final String APP = "app";
     private static final String DOOH = "dooh";
-    private static final Set<String> KNOWN_FPD_ATTRIBUTES = Set.of(USER, SITE, APP, DOOH, BIDDERS);
+    private static final String DEVICE = "device";
+    private static final Set<String> KNOWN_FPD_ATTRIBUTES = Set.of(USER, SITE, APP, DOOH, DEVICE, BIDDERS);
     private static final String CONTEXT = "context";
     private static final String DATA = "data";
 
@@ -42,6 +43,10 @@ public class FpdResolver {
 
     public App resolveApp(App originApp, ObjectNode fpdApp) {
         return mergeFpd(originApp, fpdApp, App.class);
+    }
+
+    public Device resolveDevice(Device originDevice, ObjectNode fpdDevice) {
+        return mergeFpd(originDevice, fpdDevice, Device.class);
     }
 
     public Site resolveSite(Site originSite, ObjectNode fpdSite) {
@@ -150,10 +155,5 @@ public class FpdResolver {
         } else {
             impExt.set(field, jsonNode);
         }
-    }
-
-    public Object resolveDevice(Device originDevice, ObjectNode fpdDevice) {
-        return mergeFpd(originDevice, fpdDevice, Device.class);
-
     }
 }

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Content;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Dooh;
 import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Imp;
@@ -768,12 +769,15 @@ public class ExchangeService {
         final App app = bidRequest.getApp();
         final Site site = bidRequest.getSite();
         final Dooh dooh = bidRequest.getDooh();
+        final Device device = bidRequest.getDevice();
         final ObjectNode fpdSite = fpdConfig != null ? fpdConfig.getSite() : null;
         final ObjectNode fpdApp = fpdConfig != null ? fpdConfig.getApp() : null;
         final ObjectNode fpdDooh = fpdConfig != null ? fpdConfig.getDooh() : null;
+        final ObjectNode fpdDevice = fpdConfig != null ? fpdConfig.getDevice() : null;
         final App preparedApp = prepareApp(app, fpdApp, useFirstPartyData);
         final Site preparedSite = prepareSite(site, fpdSite, useFirstPartyData);
         final Dooh preparedDooh = prepareDooh(dooh, fpdDooh, useFirstPartyData);
+        final Device preparedDevice = prepareDevice(device, fpdDevice, useFirstPartyData);
 
         final List<String> distributionChannels = new ArrayList<>();
         Optional.ofNullable(preparedApp).ifPresent(ignored -> distributionChannels.add("app"));
@@ -800,6 +804,7 @@ public class ExchangeService {
         final boolean isApp = preparedApp != null;
         final boolean isDooh = !isApp && preparedDooh != null;
         final boolean isSite = !isApp && !isDooh && preparedSite != null;
+        final boolean isDevice = preparedDevice != null;
 
         final List<Imp> preparedImps = prepareImps(
                 bidder,
@@ -818,6 +823,7 @@ public class ExchangeService {
                 .app(isApp ? preparedApp : null)
                 .dooh(isDooh ? preparedDooh : null)
                 .site(isSite ? preparedSite : null)
+                .device(isDevice ? preparedDevice : null)
                 .source(prepareSource(bidder, bidRequest, transmitTid))
                 .ext(prepareExt(bidder, bidderToPrebidBidders, bidderToMultiBid, bidRequest.getExt()))
                 .build();
@@ -930,6 +936,10 @@ public class ExchangeService {
                 : app;
 
         return useFirstPartyData ? fpdResolver.resolveApp(maskedApp, fpdApp) : maskedApp;
+    }
+
+    private Device prepareDevice(Device device, ObjectNode fpdDevice, boolean useFirstPartyData) {
+        return useFirstPartyData ? fpdResolver.resolveDevice(device, fpdDevice) : device;
     }
 
     private static ExtApp maskExtApp(ExtApp appExt) {
