@@ -1,6 +1,12 @@
 adapters:
   admatic:
     endpoint: http://pbs.admatic.com.tr?host={{Host}}
+    aliases:
+      adt:
+        enabled: false
+        meta-info:
+          maintainer-email: publisher@adtarget.com.tr
+        vendor-id: 779
     meta-info:
       maintainer-email: prebid@admatic.com.tr
       app-media-types:
