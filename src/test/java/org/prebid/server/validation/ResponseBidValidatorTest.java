@@ -551,10 +551,10 @@ public class ResponseBidValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldNotFailOnSeatValidationWhenSeatEqualsToBidder() {
+    public void validateShouldNotFailOnSeatValidationWhenSeatEqualsIgnoringCaseToBidder() {
         // when
         final ValidationResult result = target.validate(
-                givenBid(identity()).toBuilder().seat(BIDDER_NAME).build(),
+                givenBid(identity()).toBuilder().seat("biDDEr").build(),
                 BIDDER_NAME,
                 givenAuctionContext(),
                 bidderAliases,
@@ -593,7 +593,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldFailOnSeatValidationWhennullAreLackingSeatAlternateCode() {
+    public void validateShouldFailOnSeatValidationWhenAlternateBidderCodesAreLackingSeat() {
         // given
         final BidderBid givenBid = givenBid(identity()).toBuilder().seat("seat").build();
 
@@ -618,7 +618,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldFailOnSeatValidationWhennullAreLackingBidder() {
+    public void validateShouldFailOnSeatValidationWhenAlternateBidderCodesAreLackingBidders() {
         // given
         final BidderBid givenBid = givenBid(identity()).toBuilder().seat("seat").build();
 
@@ -641,7 +641,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldFailOnSeatValidationWhennullAreDisabled() {
+    public void validateShouldFailOnSeatValidationWhenAlternateBidderCodesAreDisabled() {
         // given
         final BidderBid givenBid = givenBid(identity()).toBuilder().seat("seat").build();
 
@@ -716,7 +716,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldNotFailOnSeatValidationWhenAllowedAlternateCodesContainsSeat() {
+    public void validateShouldNotFailOnSeatValidationWhenAllowedAlternateCodesContainsSeatCaseInsensitive() {
         // given
         final BidderBid givenBid = givenBid(identity()).toBuilder().seat("seat").build();
 
@@ -728,9 +728,9 @@ public class ResponseBidValidatorTest extends VertxTest {
                 bidderAliases,
                 ExtRequestPrebidAlternateBidderCodes.builder()
                         .enabled(true)
-                        .bidders(Map.of(BIDDER_NAME, ExtRequestPrebidAlternateBidderCodesBidder.builder()
+                        .bidders(Map.of("BiDDEr", ExtRequestPrebidAlternateBidderCodesBidder.builder()
                                 .enabled(true)
-                                .allowedBidderCodes(Set.of("seat"))
+                                .allowedBidderCodes(Set.of("SeaT"))
                                 .build())).build());
 
         // then
