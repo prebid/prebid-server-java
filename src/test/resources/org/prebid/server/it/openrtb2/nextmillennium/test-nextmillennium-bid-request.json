@@ -57,7 +57,7 @@
       "next_millennium": {
         "nmm_flags": [ "1" ],
         "nm_version": "v1.0.0",
-        "server_version": "pbs-java/3.19.0"
+        "server_version": "${json-unit.any-string}"
       }
     }
   }
