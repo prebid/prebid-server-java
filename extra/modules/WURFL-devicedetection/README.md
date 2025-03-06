@@ -66,7 +66,8 @@ mvn install:install-file \
 ```
 If the WURFL API dependency is not added, the module will compile a demo version that returns sample data, allowing basic testing without an WURFL Onsite Java API license.
 
-4 - Remove the `com` directory under `src/main/java` to avoid classloader issues.
+4 - Delete the `com` directory inside `extra/modules/WURFL-devicedetection/src/main/java`, which contains the WURFL Java API 
+demo implementation to prevent classloader issues.
 
 5 - Build the Prebid Server Java bundle with the WURFL module using the following command:
 
