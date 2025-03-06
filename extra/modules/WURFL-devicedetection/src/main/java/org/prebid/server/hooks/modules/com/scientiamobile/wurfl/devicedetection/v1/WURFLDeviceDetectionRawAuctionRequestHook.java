@@ -42,24 +42,11 @@ public class WURFLDeviceDetectionRawAuctionRequestHook implements RawAuctionRequ
                                                      WURFLDeviceDetectionConfigProperties configProperties) {
         this.wurflEngine = wurflEngine;
         this.staticCaps = wurflEngine.getAllCapabilities().stream().toList();
-        this.virtualCaps = safeGetVirtualCaps(wurflEngine);
+        this.virtualCaps = wurflEngine.getAllVirtualCapabilities().stream().toList();
         this.ortbDeviceUpdater = new OrtbDeviceUpdater();
         this.addExtCaps = configProperties.isExtCaps();
         this.allowedPublisherIDs = configProperties.getAllowedPublisherIds().stream()
                 .collect(Collectors.toMap(item -> item, item -> item));
-    }
-
-    private List<String> safeGetVirtualCaps(WURFLEngine wurflEngine) {
-        final List<String> allVcaps = wurflEngine.getAllVirtualCapabilities().stream().toList();
-        final List<String> safeVcaps = new ArrayList<>();
-        final var device = wurflEngine.getDeviceById("generic");
-        allVcaps.forEach(vc -> {
-            try {
-                device.getVirtualCapability(vc);
-                safeVcaps.add(vc);
-            } catch (VirtualCapabilityNotDefinedException | CapabilityNotDefinedException ignored) { }
-        });
-        return safeVcaps;
     }
 
     @Override
