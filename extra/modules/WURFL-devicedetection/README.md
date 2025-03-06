@@ -38,8 +38,12 @@ The module identifies publishers through the following fields:
 
 In order to compile the WURFL module in the PBS Java server bundle, you must follow these steps:
 
-1 - Download the WURFL Onsite Java API (both JAR and POM files)
-from the ScientiaMobile private repository and install it in your local Maven repository
+1 - Download the WURFL Onsite Java API (both JAR and POM files) from the ScientiaMobile private repository using this URL
+https://maven.scientiamobile.com/repository/wurfl-onsite/com/scientiamobile/wurfl/wurfl/<api_version>/wurfl-<api_version>.jar
+https://maven.scientiamobile.com/repository/wurfl-onsite/com/scientiamobile/wurfl/wurfl/<api_version>/wurfl-<api_version>.pom
+You will be asked for your ScientiaMobile credentials.
+  
+2 - install it in your local Maven repository
 
 ```bash
 mvn install:install-file \
@@ -51,7 +55,7 @@ mvn install:install-file \
     -DpomFile=<path-to-your-wurfl-api-pom-file>
 ```
 
-2 - add the WURFL Onsite Java API dependency in the WURFL-devicedetection module's `pom.xml`:
+3 - add the WURFL Onsite Java API dependency in the WURFL-devicedetection module's `pom.xml`:
 
 ```xml
 <dependency>
@@ -62,9 +66,9 @@ mvn install:install-file \
 ```
 If the WURFL API dependency is not added, the module will compile a demo version that returns sample data, allowing basic testing without an WURFL Onsite Java API license.
 
-3 - Remove the `com` directory under `src/main/java` to avoid classloader issues.
+4 - Remove the `com` directory under `src/main/java` to avoid classloader issues.
 
-4 - Build the Prebid Server Java bundle with the WURFL module using the following command:
+5 - Build the Prebid Server Java bundle with the WURFL module using the following command:
 
 ```bash
 mvn clean package --file extra/pom.xml
