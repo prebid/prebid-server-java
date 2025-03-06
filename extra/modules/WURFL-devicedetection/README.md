@@ -41,7 +41,7 @@ In order to compile the WURFL module in the PBS Java server bundle, you must fol
 1 - Download the WURFL Onsite Java API (both JAR and POM files) from the ScientiaMobile private repository using this URL
 https://maven.scientiamobile.com/repository/wurfl-onsite/com/scientiamobile/wurfl/wurfl/<api_version>/wurfl-<api_version>.jar
 https://maven.scientiamobile.com/repository/wurfl-onsite/com/scientiamobile/wurfl/wurfl/<api_version>/wurfl-<api_version>.pom
-You will be asked for your ScientiaMobile credentials.
+You have to provide your ScientiaMobile credentials.
   
 2 - install it in your local Maven repository
 
