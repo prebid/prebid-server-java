@@ -3,28 +3,19 @@
   "imp": [
     {
       "id": "imp_id",
-      "secure": 1,
       "banner": {
         "w": 300,
         "h": 250
       },
+      "secure": 1,
       "ext": {
-        "prebid": {
-          "storedrequest": {
-            "id": "placement_id"
-          }
-        },
-        "nextMillennium": {
-          "nmmFlags": [
-            "1"
-          ]
+        "tid": "${json-unit.any-string}",
+        "bidder": {
+          "placement_id": "placement_id"
         }
       }
     }
   ],
-  "source": {
-    "tid": "${json-unit.any-string}"
-  },
   "site": {
     "domain": "www.example.com",
     "page": "http://www.example.com",
@@ -44,6 +35,9 @@
   "cur": [
     "USD"
   ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
   "regs": {
     "ext": {
       "gdpr": 0
@@ -59,6 +53,11 @@
         "gvlid": 1,
         "datacenter": "local",
         "endpoint": "/openrtb2/auction"
+      },
+      "next_millennium": {
+        "nmm_flags": [ "1" ],
+        "nm_version": "v1.0.0",
+        "server_version": "pbs-java/3.19.0"
       }
     }
   }

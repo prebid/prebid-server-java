@@ -9,6 +9,7 @@ import lombok.Value;
 import org.prebid.server.auction.model.PaaFormat;
 import org.prebid.server.floors.model.PriceFloorRules;
 import org.prebid.server.json.deserializer.IntegerFlagDeserializer;
+import org.prebid.server.proto.openrtb.ext.request.nextmillennium.ExtRequestNextMillennium;
 
 import java.util.List;
 import java.util.Map;
@@ -190,4 +191,9 @@ public class ExtRequestPrebid {
      */
     @JsonProperty("paaformat")
     PaaFormat paaFormat;
+
+    /**
+     * Defines the contract for bidrequest.ext.prebid.nextMillennium
+     */
+    ExtRequestNextMillennium nextMillennium;
 }
