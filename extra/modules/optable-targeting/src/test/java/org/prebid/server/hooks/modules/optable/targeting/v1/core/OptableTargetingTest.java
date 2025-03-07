@@ -107,7 +107,7 @@ public class OptableTargetingTest extends BaseOptableTest {
     }
 
     private OptableAttributes givenOptableAttributes() {
-        return OptableAttributes.of("gdpr").toBuilder()
+        return OptableAttributes.builder()
                 .gpp("gpp")
                 .gppSid(Set.of(2))
                 .build();

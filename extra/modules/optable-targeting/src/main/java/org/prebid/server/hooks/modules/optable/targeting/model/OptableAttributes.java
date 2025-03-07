@@ -10,19 +10,19 @@ import java.util.Set;
 @Builder(toBuilder = true)
 public class OptableAttributes {
 
-    String reg;
-
     String gpp;
 
     Set<Integer> gppSid;
 
-    String tcf;
+    String gdprConsent;
+
+    boolean gdprApplies;
 
     List<String> ips;
 
     Long timeout;
 
-    public static OptableAttributes of(String reg) {
-        return OptableAttributes.builder().reg(reg).build();
+    public static OptableAttributes of() {
+        return OptableAttributes.builder().build();
     }
 }

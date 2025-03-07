@@ -54,17 +54,19 @@ public class QueryBuilder {
     }
 
     private void addAttributes(StringBuilder sb, OptableAttributes optableAttributes) {
-        Optional.ofNullable(optableAttributes.getReg()).ifPresent(reg -> sb.append("&reg=").append(reg));
-        Optional.ofNullable(optableAttributes.getTcf()).ifPresent(tcf -> sb.append("&tcf=").append(tcf));
-        Optional.ofNullable(optableAttributes.getGpp()).ifPresent(tcf -> sb.append("&gpp=").append(tcf));
+        Optional.ofNullable(optableAttributes.getGdprConsent()).ifPresent(consent ->
+                sb.append("&gdpr_consent=").append(consent));
+        Optional.of(optableAttributes.isGdprApplies()).ifPresent(applies ->
+                sb.append("&gdprApplies=").append(applies ? 1 : 0));
+        Optional.ofNullable(optableAttributes.getGpp()).ifPresent(tcf ->
+                sb.append("&gpp=").append(tcf));
         Optional.ofNullable(optableAttributes.getGppSid()).ifPresent(gppSids -> {
             if (CollectionUtils.isNotEmpty(gppSids)) {
                 sb.append("&gpp_sid=").append(gppSids.stream().findFirst());
             }
         });
-        Optional.ofNullable(optableAttributes.getTimeout()).ifPresent(timeout -> {
-            sb.append("&timeout=").append(timeout).append("ms");
-        });
+        Optional.ofNullable(optableAttributes.getTimeout()).ifPresent(timeout ->
+                sb.append("&timeout=").append(timeout).append("ms"));
     }
 
     private void buildQueryString(StringBuilder sb, List<Id> ids) {
