@@ -1247,15 +1247,17 @@ public class ExchangeService {
                         requestHeaders,
                         aliases,
                         debugResolver.resolveDebugForBidder(auctionContext, resolvedBidderName)))
-                .map(seatBid -> populateBidderCode(seatBid, bidderName))
+                .map(seatBid -> populateBidderCode(seatBid, bidderName, resolvedBidderName))
                 .map(seatBid -> BidderResponse.of(bidderName, seatBid, responseTime(bidderRequestStartTime)));
     }
 
-    private BidderSeatBid populateBidderCode(BidderSeatBid seatBid, String bidderName) {
+    private BidderSeatBid populateBidderCode(BidderSeatBid seatBid, String bidderName, String resolvedBidderName) {
         return seatBid.with(seatBid.getBids().stream()
                 .map(bidderBid -> bidderBid.toBuilder()
                         .seat(bidderBid.getSeat() == null ? bidderName : bidderBid.getSeat())
-                        .bid(bidderBid.getBid().toBuilder().ext(prepareBidExt(bidderBid.getBid(), bidderName)).build())
+                        .bid(bidderBid.getBid().toBuilder()
+                                .ext(prepareBidExt(bidderBid.getBid(), resolvedBidderName))
+                                .build())
                         .build())
                 .toList());
     }
