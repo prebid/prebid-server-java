@@ -11,6 +11,7 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -28,6 +29,7 @@ import org.prebid.server.util.HttpUtil;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 public class SmarthubBidder implements Bidder<BidRequest> {
 
@@ -67,7 +69,8 @@ public class SmarthubBidder implements Bidder<BidRequest> {
     }
 
     private String buildEndpointUrl(ExtImpSmarthub extImpSmarthub) {
-        return endpointTemplate.replace("{{Host}}", extImpSmarthub.getPartnerName())
+        final String host = Optional.ofNullable(extImpSmarthub.getPartnerName()).orElse(StringUtils.EMPTY);
+        return endpointTemplate.replace("{{Host}}", host)
                 .replace("{{AccountID}}", extImpSmarthub.getSeat())
                 .replace("{{SourceId}}", extImpSmarthub.getToken());
     }
