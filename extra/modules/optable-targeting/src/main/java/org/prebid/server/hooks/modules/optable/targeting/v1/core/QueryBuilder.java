@@ -57,7 +57,7 @@ public class QueryBuilder {
         Optional.ofNullable(optableAttributes.getGdprConsent()).ifPresent(consent ->
                 sb.append("&gdpr_consent=").append(consent));
         Optional.of(optableAttributes.isGdprApplies()).ifPresent(applies ->
-                sb.append("&gdprApplies=").append(applies ? 1 : 0));
+                sb.append("&gdpr=").append(applies ? 1 : 0));
         Optional.ofNullable(optableAttributes.getGpp()).ifPresent(tcf ->
                 sb.append("&gpp=").append(tcf));
         Optional.ofNullable(optableAttributes.getGppSid()).ifPresent(gppSids -> {
