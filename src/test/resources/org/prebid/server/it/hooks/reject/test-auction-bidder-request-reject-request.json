@@ -16,14 +16,7 @@
         ]
       },
       "ext": {
-        "prebid": {
-          "bidder": {
-            "rubicon": {
-              "accountId": 2001,
-              "siteId": 3001,
-              "zoneId": 4001
-            }
-          }
+        "generic": {
         }
       }
     }
@@ -42,14 +35,9 @@
   "cur": [
     "USD"
   ],
-  "user": {
+  "regs": {
     "ext": {
-      "consent": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA"
-    },
-    "regs": {
-      "ext": {
-        "us_privacy": "1YNN"
-      }
+      "gdpr": 0
     }
   },
   "ext": {

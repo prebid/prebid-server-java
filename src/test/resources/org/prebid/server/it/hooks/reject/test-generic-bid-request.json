@@ -1,34 +1,33 @@
 {
-  "id": "request_id",
+  "id": "tid",
   "imp": [
     {
-      "id": "imp_id",
+      "id": "impId1",
       "secure": 1,
       "banner": {
-        "w": 300,
-        "h": 250
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          },
+          {
+            "w": 300,
+            "h": 600
+          }
+        ]
       },
       "ext": {
-        "prebid": {
-          "storedrequest": {
-            "id": "placement_id"
-          }
-        },
-        "nextMillennium": {
-          "nmmFlags": [
-            "1"
-          ]
+        "tid": "${json-unit.any-string}",
+        "bidder": {
         }
       }
     }
   ],
-  "source": {
-    "tid": "${json-unit.any-string}"
-  },
   "site": {
-    "domain": "www.example.com",
     "page": "http://www.example.com",
+    "domain": "www.example.com",
     "publisher": {
+      "id": "${json-unit.any-string}",
       "domain": "example.com"
     },
     "ext": {
@@ -37,22 +36,24 @@
   },
   "device": {
     "ua": "userAgent",
-    "ip": "193.168.244.1"
+    "language": "en"
   },
-  "at": 1,
-  "tmax": "${json-unit.any-number}",
-  "cur": [
-    "USD"
-  ],
   "regs": {
     "ext": {
       "gdpr": 0
     }
   },
+  "at" : 1,
+  "tmax" : "${json-unit.any-number}",
+  "cur" : [ "USD" ],
+  "source" : {
+    "tid" : "${json-unit.any-string}"
+  },
   "ext": {
     "prebid": {
-      "storedrequest": {
-        "id": "placement_id"
+      "auctiontimestamp": 0,
+      "channel": {
+        "name": "web"
       },
       "server": {
         "externalurl": "http://localhost:8080",
