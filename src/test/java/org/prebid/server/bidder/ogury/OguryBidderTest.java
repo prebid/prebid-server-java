@@ -91,19 +91,6 @@ public class OguryBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorWhenRequestDoesNotHaveImpression() {
-        // given
-        final BidRequest bidrequest = givenBidRequest(bidRequest -> bidRequest.imp(null));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidrequest);
-
-        // then
-        assertThat(result.getErrors()).isNotEmpty()
-                .contains(BidderError.badInput("There are no valid impressions to create bid request to ogury bidder"));
-    }
-
-    @Test
     public void makeHttpRequestsShouldReturnErrorWhenRequestDoesNotHaveOguryKeys() {
         // given
         final BidRequest bidrequest = givenBidRequest(bidRequest -> bidRequest.imp(List.of(Imp.builder().build())));

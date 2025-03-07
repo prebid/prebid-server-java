@@ -34,7 +34,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
-import java.util.stream.Stream;
 
 public class OguryBidder implements Bidder<BidRequest> {
 
@@ -54,29 +53,42 @@ public class OguryBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
+    public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
         final List<BidderError> errors = new ArrayList<>();
 
-        if (request == null || CollectionUtils.isEmpty(request.getImp())) {
-            errors.add(BidderError.badInput("There are no valid impressions to create bid request to ogury bidder"));
-            return Result.withErrors(errors);
+        List<Imp> modifiedImps = new ArrayList<>();
+        final List<Imp> impsWithOguryParams = new ArrayList<>();
+
+        for (Imp imp : bidRequest.getImp()) {
+            try {
+                final ObjectNode impExt = resolveImpExt(imp);
+                final ObjectNode impExtBidderHoist = resolveImpExtBidderHoist(impExt);
+
+                final ObjectNode modifiedImpExt = modifyImpExt(impExt, impExtBidderHoist);
+                final BigDecimal bidFloor = resolveBidFloor(bidRequest, imp);
+                final Imp modifiedImp = modifyImp(imp, bidFloor, modifiedImpExt);
+                modifiedImps.add(modifiedImp);
+
+                if (hasOguryParams(impExtBidderHoist)) {
+                    impsWithOguryParams.add(modifiedImp);
+                }
+            } catch (PreBidException e) {
+                errors.add(BidderError.badInput(e.getMessage()));
+            }
         }
 
-        final List<Imp> impsWithOguryParams = new ArrayList<>();
-        List<Imp> imps = modifyImps(request, impsWithOguryParams::add);
-
-        final BidderError error = validateRequestKeys(request, impsWithOguryParams);
+        final BidderError error = validateRequestKeys(bidRequest, impsWithOguryParams);
         if (error != null) {
             errors.add(error);
             return Result.withErrors(errors);
         }
 
         if (CollectionUtils.isNotEmpty(impsWithOguryParams)) {
-            imps = impsWithOguryParams;
+            modifiedImps = impsWithOguryParams;
         }
 
-        final BidRequest modifiedBidRequest = request.toBuilder().imp(imps).build();
+        final BidRequest modifiedBidRequest = bidRequest.toBuilder().imp(modifiedImps).build();
         final MultiMap headers = buildHeaders(modifiedBidRequest);
         httpRequests.add(BidderUtil.defaultRequest(modifiedBidRequest, headers, endpointUrl, mapper));
 
@@ -110,26 +122,6 @@ public class OguryBidder implements Bidder<BidRequest> {
         } catch (Exception e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
-    }
-
-    private List<Imp> modifyImps(BidRequest request, Consumer<Imp> impWithOguryParamsHandler) {
-        return Optional.of(request)
-                .map(BidRequest::getImp)
-                .map(sourceImps -> sourceImps.stream().map(imp -> {
-                    final ObjectNode impExt = resolveImpExt(imp);
-                    final ObjectNode impExtBidderHoist = resolveImpExtBidderHoist(impExt);
-
-                    final ObjectNode modifiedImpExt = modifyImpExt(impExt, impExtBidderHoist);
-                    final BigDecimal bidFloor = resolveBidFloor(request, imp);
-                    final Imp modifiedImp = modifyImp(imp, bidFloor, modifiedImpExt);
-
-                    if (hasOguryParams(impExtBidderHoist)) {
-                        impWithOguryParamsHandler.accept(modifiedImp);
-                    }
-
-                    return modifiedImp;
-                }))
-                .map(Stream::toList).orElse(null);
     }
 
     private Imp modifyImp(Imp imp, BigDecimal bidFloor, ObjectNode modifiedImpExt) {
