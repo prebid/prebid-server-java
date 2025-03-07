@@ -31,6 +31,10 @@
             <version>2.48.0</version>
             <exclusions>
                 <exclusion>
+                    <groupId>commons-logging</groupId>
+                    <artifactId>commons-logging</artifactId>
+                </exclusion>
+                <exclusion>
                     <groupId>com.google.guava</groupId>
                     <artifactId>failureaccess</artifactId>
                 </exclusion>
