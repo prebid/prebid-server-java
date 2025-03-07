@@ -96,6 +96,23 @@ public class TestBidRequestProvider {
         return extNode;
     }
 
+    public static ObjectNode givenImpExtToFilterAllBidders() {
+        final ObjectNode bidderNode = MAPPER.createObjectNode();
+
+        final ObjectNode appnexusNode = MAPPER.createObjectNode();
+        appnexusNode.put("placementId", 789);
+        bidderNode.set("appnexus", appnexusNode);
+
+        final ObjectNode prebidNode = MAPPER.createObjectNode();
+        prebidNode.set("bidder", bidderNode);
+
+        final ObjectNode extNode = MAPPER.createObjectNode();
+        extNode.set("prebid", prebidNode);
+        extNode.set("tid", TextNode.valueOf("af65045c-2774-44c2-a949-4f42d5c9e179"));
+
+        return extNode;
+    }
+
     public static Device givenDevice(UnaryOperator<Device.DeviceBuilder> deviceCustomizer, String countryAlpha3) {
         final String userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36"
                 + " (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36";

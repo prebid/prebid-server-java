@@ -6,6 +6,7 @@ import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredImp
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
+import org.prebid.server.functional.model.request.auction.Adrino
 import org.prebid.server.functional.model.request.auction.AuctionEnvironment
 import org.prebid.server.functional.model.request.auction.Banner
 import org.prebid.server.functional.model.request.auction.BidRequest
@@ -1297,5 +1298,67 @@ class BidderParamsSpec extends BaseSpec {
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp[0].ext.auctionEnvironment == extAuctionEnv
         assert bidderRequest.imp[0].ext.interestGroupAuctionSupports.auctionEnvironment == extIgsAuctionEnv
+    }
+
+    def "PBS should reject alias bidders when bidder params from request doesn't satisfy own json-schema"() {
+        given: "Default bid request"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.prebid.bidder.tap {
+                it.generic.exampleProperty = PBSUtils.randomNumber
+                //Adrino hard coded bidder alias in generic.yaml
+                it.adrino = new Adrino(hash: PBSUtils.randomNumber)
+            }
+        }
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder should be dropped"
+        assert response.ext?.warnings[PREBID]*.code == [999, 999, 999]
+        assert response.ext?.warnings[PREBID]*.message ==
+                ["WARNING: request.imp[0].ext.prebid.bidder.generic was dropped with a reason: " +
+                         "request.imp[0].ext.prebid.bidder.generic failed validation.\n" +
+                         "\$.exampleProperty: integer found, string expected",
+                 "WARNING: request.imp[0].ext.prebid.bidder.adrino was dropped with a reason: " +
+                         "request.imp[0].ext.prebid.bidder.adrino failed validation.\n" +
+                         "\$.hash: integer found, string expected",
+                 "WARNING: request.imp[0].ext must contain at least one valid bidder"]
+
+        and: "PBS should not call bidder"
+        assert bidder.getRequestCount(bidRequest.id) == 0
+
+        and: "targeting should be empty"
+        assert response.seatbid.isEmpty()
+    }
+
+    def "PBS should reject alias bidders when bidder params from request doesn't satisfy aliased json-schema"() {
+        given: "Default basic generic BidRequest"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.prebid.bidder.tap {
+                it.generic.exampleProperty = PBSUtils.randomNumber
+                //Nativo hard coded bidder alias in generic.yaml
+                it.nativo = new Generic(exampleProperty: PBSUtils.randomNumber)
+            }
+        }
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder should be dropped"
+        assert response.ext?.warnings[PREBID]*.code == [999, 999, 999]
+        assert response.ext?.warnings[PREBID]*.message ==
+                ["WARNING: request.imp[0].ext.prebid.bidder.generic was dropped with a reason: " +
+                         "request.imp[0].ext.prebid.bidder.generic failed validation.\n" +
+                         "\$.exampleProperty: integer found, string expected",
+                 "WARNING: request.imp[0].ext.prebid.bidder.nativo was dropped with a reason: " +
+                         "request.imp[0].ext.prebid.bidder.nativo failed validation.\n" +
+                         "\$.exampleProperty: integer found, string expected",
+                 "WARNING: request.imp[0].ext must contain at least one valid bidder"]
+
+        and: "PBS should not call bidder"
+        assert bidder.getRequestCount(bidRequest.id) == 0
+
+        and: "targeting should be empty"
+        assert response.seatbid.isEmpty()
     }
 }

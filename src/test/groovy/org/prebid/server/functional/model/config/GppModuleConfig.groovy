@@ -23,6 +23,11 @@ class GppModuleConfig {
     List<GppSectionId> skipSidsSnakeCase
     @JsonProperty("skip-sids")
     List<GppSectionId> skipSidsKebabCase
+    Boolean allowPersonalDataConsent2
+    @JsonProperty("allow_personal_data_consent_2")
+    Boolean allowPersonalDataConsent2SnakeCase
+    @JsonProperty("allow-personal-data-consent-2")
+    Boolean allowPersonalDataConsent2KebabCase
 
     static GppModuleConfig getDefaultModuleConfig(ActivityConfig activityConfig = ActivityConfig.configWithDefaultRestrictRules,
                                                   List<GppSectionId> sids = [GppSectionId.US_NAT_V1],
@@ -35,8 +40,8 @@ class GppModuleConfig {
     }
 
     static GppModuleConfig getDefaultModuleConfigSnakeCase(ActivityConfig activityConfig = ActivityConfig.configWithDefaultRestrictRules,
-                                                  List<GppSectionId> sids = [GppSectionId.US_NAT_V1],
-                                                  Boolean normalizeFlags = true) {
+                                                           List<GppSectionId> sids = [GppSectionId.US_NAT_V1],
+                                                           Boolean normalizeFlags = true) {
         new GppModuleConfig().tap {
             it.activityConfigSnakeCase = [activityConfig]
             it.sids = sids

@@ -336,6 +336,22 @@ public class Metrics extends UpdatableMetrics {
         forAdapter(bidder).request().incCounter(errorMetric);
     }
 
+    public void updateDisabledBidderMetric(Account account) {
+        incCounter(MetricName.disabled_bidder);
+        if (accountMetricsVerbosityResolver.forAccount(account)
+                .isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
+            forAccount(account.getId()).requests().incCounter(MetricName.disabled_bidder);
+        }
+    }
+
+    public void updateUnknownBidderMetric(Account account) {
+        incCounter(MetricName.unknown_bidder);
+        if (accountMetricsVerbosityResolver.forAccount(account)
+                .isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
+            forAccount(account.getId()).requests().incCounter(MetricName.unknown_bidder);
+        }
+    }
+
     public void updateAnalyticEventMetric(String analyticCode, MetricName eventType, MetricName result) {
         forAnalyticReporter(analyticCode).forEventType(eventType).incCounter(result);
     }
@@ -676,6 +692,11 @@ public class Metrics extends UpdatableMetrics {
         if (accountMetricsVerbosityResolver.forAccount(account).isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
             forAccount(account.getId()).hooks().module(moduleCode).updateTimer(MetricName.duration, executionTime);
         }
+    }
+
+    public void updateCacheCreativeTtl(String accountId, Integer creativeTtl, MetricName creativeType) {
+        cache().creativeTtl().updateHistogram(creativeType, creativeTtl);
+        forAccount(accountId).cache().creativeTtl().updateHistogram(creativeType, creativeTtl);
     }
 
     private static class HookMetricMapper {
