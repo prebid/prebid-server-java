@@ -42,7 +42,7 @@ public class QueryBuilderTest {
         final String query = target.build(ids, optableAttributes);
 
         // then
-        assertThat(query).contains("&reg=gdpr", "&tcf=tcf", "&timeout=100ms");
+        assertThat(query).contains("&gdprApplies=1", "&gdpr_consent=tcf", "&timeout=100ms");
     }
 
     @Test
@@ -72,9 +72,10 @@ public class QueryBuilderTest {
     }
 
     private OptableAttributes givenOptableAttributes() {
-        return OptableAttributes.of("gdpr").toBuilder()
+        return OptableAttributes.builder()
                 .timeout(100L)
-                .tcf("tcf")
+                .gdprApplies(true)
+                .gdprConsent("tcf")
                 .build();
     }
 }

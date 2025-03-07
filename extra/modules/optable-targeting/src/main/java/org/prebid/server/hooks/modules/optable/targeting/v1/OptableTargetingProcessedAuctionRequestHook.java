@@ -57,7 +57,7 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
         }
 
         final long timeout = getHookRemainTime(invocationContext);
-        final OptableAttributes attributes = optableAttributesResolver.reloveAttributes(
+        final OptableAttributes attributes = optableAttributesResolver.resolveAttributes(
                 invocationContext.auctionContext(),
                 properties.getTimeout());
 

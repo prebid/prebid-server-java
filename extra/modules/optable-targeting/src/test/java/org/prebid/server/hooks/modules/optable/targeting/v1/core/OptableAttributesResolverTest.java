@@ -51,16 +51,17 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
     public void shouldResolveTcfAttributesWhenConsentIsValid() {
         // given
         when(tcfContext.isConsentValid()).thenReturn(true);
+        when(tcfContext.isInGdprScope()).thenReturn(true);
         when(tcfContext.getConsentString()).thenReturn("consent");
         final AuctionContext auctionContext = givenAuctionContext(tcfContext);
 
         // when
-        final OptableAttributes result = target.reloveAttributes(auctionContext, properties.getTimeout());
+        final OptableAttributes result = target.resolveAttributes(auctionContext, properties.getTimeout());
 
         // then
         assertThat(result).isNotNull()
-                .returns("gdpr", OptableAttributes::getReg)
-                .returns("consent", OptableAttributes::getTcf);
+                .returns(true, OptableAttributes::isGdprApplies)
+                .returns("consent", OptableAttributes::getGdprConsent);
     }
 
     @Test
@@ -71,17 +72,17 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
         final AuctionContext auctionContext = givenAuctionContext(tcfContext);
 
         // when
-        final OptableAttributes result = target.reloveAttributes(auctionContext, properties.getTimeout());
+        final OptableAttributes result = target.resolveAttributes(auctionContext, properties.getTimeout());
 
         // then
         assertThat(result).isNotNull()
-                .returns(null, OptableAttributes::getReg)
-                .returns(null, OptableAttributes::getTcf)
+                .returns(false, OptableAttributes::isGdprApplies)
+                .returns(null, OptableAttributes::getGdprConsent)
                 .returns(List.of("8.8.8.8"), OptableAttributes::getIps);
     }
 
     @Test
-    public void shouldResolveGppGdprAttributes() {
+    public void shouldResolveGppAttributes() {
         // given
         final GppModel gppModel = mock();
         when(gppModel.encode()).thenReturn("consent");
@@ -90,115 +91,13 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
 
         // when
 
-        final OptableAttributes result = target.reloveAttributes(auctionContext, properties.getTimeout());
+        final OptableAttributes result = target.resolveAttributes(auctionContext, properties.getTimeout());
 
         // then
         assertThat(result).isNotNull()
-                .returns("gdpr", OptableAttributes::getReg)
+                .returns(false, OptableAttributes::isGdprApplies)
                 .returns("consent", OptableAttributes::getGpp)
                 .returns(Set.of(1), OptableAttributes::getGppSid);
-    }
-
-    @Test
-    public void shouldResolveGppCanadaAttributes() {
-        // given
-        final GppModel gppModel = mock();
-        when(gppModel.encode()).thenReturn("consent");
-        when(gppContext.scope()).thenReturn(GppContext.Scope.of(gppModel, Set.of(5)));
-        final AuctionContext auctionContext = givenAuctionContext(gppContext);
-
-        // when
-
-        final OptableAttributes result = target.reloveAttributes(auctionContext, properties.getTimeout());
-
-        // then
-        assertThat(result).isNotNull()
-                .returns("can", OptableAttributes::getReg)
-                .returns("consent", OptableAttributes::getGpp)
-                .returns(Set.of(5), OptableAttributes::getGppSid);
-    }
-
-    @Test
-    public void shouldResolveGppUSAttributes() {
-        // given
-        final GppModel gppModel = mock();
-        when(gppModel.encode()).thenReturn("consent");
-        when(gppContext.scope()).thenReturn(GppContext.Scope.of(gppModel, Set.of(8)));
-        final AuctionContext auctionContext = givenAuctionContext(gppContext);
-
-        // when
-
-        final OptableAttributes result = target.reloveAttributes(auctionContext, properties.getTimeout());
-
-        // then
-        assertThat(result).isNotNull()
-                .returns("us", OptableAttributes::getReg)
-                .returns("consent", OptableAttributes::getGpp)
-                .returns(Set.of(8), OptableAttributes::getGppSid);
-    }
-
-    @Test
-    public void shouldResolveGeoInfoUSAttributes() {
-        // given
-        when(geoInfo.getCountry()).thenReturn("United States");
-        final AuctionContext auctionContext = givenAuctionContext(geoInfo);
-
-        // when
-        final OptableAttributes result = target.reloveAttributes(auctionContext, properties.getTimeout());
-
-        // then
-        assertThat(result).isNotNull()
-                .returns("us", OptableAttributes::getReg)
-                .returns(null, OptableAttributes::getGpp)
-                .returns(null, OptableAttributes::getTcf);
-    }
-
-    @Test
-    public void shouldResolveGeoInfoGDPRAttributes() {
-        // given
-        when(geoInfo.getCountry()).thenReturn("Malta");
-        final AuctionContext auctionContext = givenAuctionContext(geoInfo);
-
-        // when
-        final OptableAttributes result = target.reloveAttributes(auctionContext, properties.getTimeout());
-
-        // then
-        assertThat(result).isNotNull()
-                .returns("gdpr", OptableAttributes::getReg)
-                .returns(null, OptableAttributes::getGpp)
-                .returns(null, OptableAttributes::getTcf);
-    }
-
-    @Test
-    public void shouldResolveGeoInfoCanadaAttributes() {
-        // given
-        when(geoInfo.getCountry()).thenReturn("Quebec");
-        final AuctionContext auctionContext = givenAuctionContext(geoInfo);
-
-        // when
-        final OptableAttributes result = target.reloveAttributes(auctionContext, properties.getTimeout());
-
-        // then
-        assertThat(result).isNotNull()
-                .returns("can", OptableAttributes::getReg)
-                .returns(null, OptableAttributes::getGpp)
-                .returns(null, OptableAttributes::getTcf);
-    }
-
-    @Test
-    public void shouldResolveGeoInfoGDPRForRegionAttributes() {
-        // given
-        when(geoInfo.getRegion()).thenReturn("Mayotte");
-        final AuctionContext auctionContext = givenAuctionContext(geoInfo);
-
-        // when
-        final OptableAttributes result = target.reloveAttributes(auctionContext, properties.getTimeout());
-
-        // then
-        assertThat(result).isNotNull()
-                .returns("gdpr", OptableAttributes::getReg)
-                .returns(null, OptableAttributes::getGpp)
-                .returns(null, OptableAttributes::getTcf);
     }
 
     public AuctionContext givenAuctionContext(TcfContext tcfContext) {
