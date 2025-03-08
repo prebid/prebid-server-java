@@ -1,5 +1,6 @@
 package org.prebid.server.functional.model.request.auction
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.databind.annotation.JsonNaming
 import groovy.transform.ToString
@@ -30,7 +31,7 @@ class Prebid {
     List<MultiBid> multibid
     Pbs pbs
     Server server
-    Map<BidderName, Map<String, Integer>> bidderParams
+    Map bidderParams
     ExtPrebidFloors floors
     Map passThrough
     Events events
@@ -41,6 +42,7 @@ class Prebid {
     PrebidModulesConfig modules
     PrebidAnalytics analytics
     StoredAuctionResponse storedAuctionResponse
+    @JsonProperty("alternatebidderscodes")
     AlternateBidderCodes alternateBidderCodes
     PaaFormat paaFormat
 

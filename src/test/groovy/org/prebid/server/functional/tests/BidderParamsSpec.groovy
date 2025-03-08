@@ -34,6 +34,7 @@ import static org.prebid.server.functional.model.Currency.CHF
 import static org.prebid.server.functional.model.Currency.EUR
 import static org.prebid.server.functional.model.Currency.JPY
 import static org.prebid.server.functional.model.Currency.USD
+import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.bidder.CompressionType.GZIP
 import static org.prebid.server.functional.model.bidder.CompressionType.NONE
@@ -1379,7 +1380,7 @@ class BidderParamsSpec extends BaseSpec {
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should contain adapter code"
-        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [BidderName.GENERIC]
+        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [BidderName.GENERIC.value]
 
         and: "Bidder request should be valid"
         assert bidder.getBidderRequest(bidRequest.id)
@@ -1399,7 +1400,7 @@ class BidderParamsSpec extends BaseSpec {
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should contain adapter code"
-        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [BidderName.ALIAS]
+        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [BidderName.ALIAS.value]
 
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)

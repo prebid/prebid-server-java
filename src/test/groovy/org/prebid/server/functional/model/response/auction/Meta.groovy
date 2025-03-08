@@ -2,13 +2,14 @@ package org.prebid.server.functional.model.response.auction
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import groovy.transform.ToString
+import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.request.auction.RendererData
 
 @ToString(includeNames = true, ignoreNulls = true)
 class Meta {
 
     @JsonProperty("adaptercode")
-    String adapterCode
+    BidderName adapterCode
     List<String> advertiserDomains
     Integer advertiserId
     String advertiserName

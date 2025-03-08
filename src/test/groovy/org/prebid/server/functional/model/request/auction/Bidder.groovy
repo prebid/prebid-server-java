@@ -26,6 +26,7 @@ class Bidder {
     Openx openxAlias
     Adrino adrino
     Generic nativo
+    Amx amx
 
     static Bidder getDefaultBidder() {
         new Bidder().tap {
