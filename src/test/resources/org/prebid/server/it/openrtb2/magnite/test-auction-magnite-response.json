@@ -4,7 +4,7 @@
     {
       "bid": [
         {
-          "id": "bid_id",
+          "id": "id",
           "impid": "imp_id",
           "exp": 1500,
           "price": 3.33,

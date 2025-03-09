@@ -17,6 +17,15 @@ adapters:
       felixads:
         enabled: false
         endpoint: https://felixads-prebid.attekmi.com/pbserver/?seat={{AccountID}}&token={{SourceId}}
+      jambojar:
+        enabled: false
+        endpoint: https://jambojar-prebid.attekmi.com/pbserver/?seat={{AccountID}}&token={{SourceId}}
+      adinify:
+        enabled: false
+        endpoint: https://adinify-prebid.attekmi.com/pbserver/?seat={{AccountID}}&token={{SourceId}}
+      artechnology:
+        enabled: false
+        endpoint: https://artechnology-prebid.attekmi.com/pbserver/?seat={{AccountID}}&token={{SourceId}}
     meta-info:
       maintainer-email: prebid@attekmi.com
       app-media-types:

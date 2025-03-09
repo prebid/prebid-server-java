@@ -619,9 +619,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         }
 
         and: "Activities set for transmitEIDS with rejecting privacy regulation"
-        def rule = new ActivityRule().tap {
-            it.privacyRegulation = [privacyAllowRegulations]
-        }
+        def rule = new ActivityRule(privacyRegulation: [privacyAllowRegulations])
 
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_EIDS, Activity.getDefaultActivity([rule]))
 
@@ -1588,9 +1586,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         }
 
         and: "Activities set for transmitEIDS with allowing privacy regulation"
-        def rule = new ActivityRule().tap {
-            it.privacyRegulation = [privacyAllowRegulations]
-        }
+        def rule = new ActivityRule(privacyRegulation: [privacyAllowRegulations])
 
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_EIDS, Activity.getDefaultActivity([rule]))
 
@@ -2333,5 +2329,124 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UsCtV1Consent.Builder()
                                                                                               .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(0, 2), 1, PBSUtils.getRandomNumber(0, 2))
+    }
+
+    def "PBS should remove EIDS fields in request when privacy regulation match and personalDataConsents is 2"() {
+        given: "Default bid requests with EIDS fields and account id"
+        def accountId = PBSUtils.randomNumber as String
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
+            regs.gppSid = [US_NAT_V1.intValue]
+            regs.gpp = new UsNatV1Consent.Builder().setPersonalDataConsents(2).build()
+        }
+
+        and: "Activities set for transmitEIDS with rejecting privacy regulation"
+        def rule = new ActivityRule(privacyRegulation: [privacyAllowRegulations])
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_EIDS, Activity.getDefaultActivity([rule]))
+
+        and: "Account gpp configuration"
+        def accountGppConfig = new AccountGppConfig(code: IAB_US_GENERAL, enabled: true)
+
+        and: "Existed account with privacy regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        activityPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request shouldn't contain EIDS fields"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert !bidderRequest.user.eids
+        assert !bidderRequest.user?.ext?.eids
+
+        where:
+        privacyAllowRegulations << [IAB_US_GENERAL, IAB_ALL, ALL]
+    }
+
+    def "PBS should remove EIDS fields in request when privacy regulation match and personalDataConsents is 2 and allowPersonalDataConsent2 is false"() {
+        given: "Default bid requests with EIDS fields and account id"
+        def accountId = PBSUtils.randomNumber as String
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
+            regs.gppSid = [US_NAT_V1.intValue]
+            regs.gpp = new UsNatV1Consent.Builder().setPersonalDataConsents(2).build()
+        }
+
+        and: "Activities set for transmitEIDS with rejecting privacy regulation"
+        def rule = new ActivityRule(privacyRegulation: [privacyAllowRegulations])
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_EIDS, Activity.getDefaultActivity([rule]))
+
+        and: "Account gpp configuration"
+        def accountGppConfig = new AccountGppConfig(enabled: true, code: IAB_US_GENERAL, config: gppModuleConfig)
+
+        and: "Existed account with privacy regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        activityPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request shouldn't contain EIDS fields"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert !bidderRequest.user.eids
+        assert !bidderRequest.user?.ext?.eids
+
+        where:
+        privacyAllowRegulations | gppModuleConfig
+        IAB_US_GENERAL          | new GppModuleConfig(allowPersonalDataConsent2: false)
+        IAB_ALL                 | new GppModuleConfig(allowPersonalDataConsent2: false)
+        ALL                     | new GppModuleConfig(allowPersonalDataConsent2: false)
+        IAB_US_GENERAL          | new GppModuleConfig(allowPersonalDataConsent2KebabCase: false)
+        IAB_ALL                 | new GppModuleConfig(allowPersonalDataConsent2KebabCase: false)
+        ALL                     | new GppModuleConfig(allowPersonalDataConsent2KebabCase: false)
+        IAB_US_GENERAL          | new GppModuleConfig(allowPersonalDataConsent2SnakeCase: false)
+        IAB_ALL                 | new GppModuleConfig(allowPersonalDataConsent2SnakeCase: false)
+        ALL                     | new GppModuleConfig(allowPersonalDataConsent2SnakeCase: false)
+        IAB_US_GENERAL          | new GppModuleConfig(allowPersonalDataConsent2: null)
+        IAB_ALL                 | new GppModuleConfig(allowPersonalDataConsent2: null)
+        ALL                     | new GppModuleConfig(allowPersonalDataConsent2: null)
+        IAB_US_GENERAL          | new GppModuleConfig(allowPersonalDataConsent2KebabCase: null)
+        IAB_ALL                 | new GppModuleConfig(allowPersonalDataConsent2KebabCase: null)
+        ALL                     | new GppModuleConfig(allowPersonalDataConsent2KebabCase: null)
+        IAB_US_GENERAL          | new GppModuleConfig(allowPersonalDataConsent2SnakeCase: null)
+        IAB_ALL                 | new GppModuleConfig(allowPersonalDataConsent2SnakeCase: null)
+        ALL                     | new GppModuleConfig(allowPersonalDataConsent2SnakeCase: null)
+    }
+
+    def "PBS shouldn't remove EIDS fields in request when privacy regulation match and personalDataConsents is 2 and allowPersonalDataConsent2 is true"() {
+        given: "Default bid requests with EIDS fields and account id"
+        def accountId = PBSUtils.randomNumber as String
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
+            regs.gppSid = [US_NAT_V1.intValue]
+            regs.gpp = new UsNatV1Consent.Builder().setPersonalDataConsents(2).build()
+        }
+
+        and: "Activities set for transmitEIDS with rejecting privacy regulation"
+        def rule = new ActivityRule(privacyRegulation: [privacyAllowRegulations])
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_EIDS, Activity.getDefaultActivity([rule]))
+
+        and: "Account gpp configuration"
+        def accountGppConfig = new AccountGppConfig(enabled: true, code: IAB_US_GENERAL, config: gppModuleConfig)
+
+        and: "Existed account with privacy regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        activityPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain EIDS fields"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.user.eids
+
+        where:
+        privacyAllowRegulations | gppModuleConfig
+        IAB_US_GENERAL          | new GppModuleConfig(allowPersonalDataConsent2: true)
+        IAB_ALL                 | new GppModuleConfig(allowPersonalDataConsent2: true)
+        ALL                     | new GppModuleConfig(allowPersonalDataConsent2: true)
+        IAB_US_GENERAL          | new GppModuleConfig(allowPersonalDataConsent2KebabCase: true)
+        IAB_ALL                 | new GppModuleConfig(allowPersonalDataConsent2KebabCase: true)
+        ALL                     | new GppModuleConfig(allowPersonalDataConsent2KebabCase: true)
+        IAB_US_GENERAL          | new GppModuleConfig(allowPersonalDataConsent2SnakeCase: true)
+        IAB_ALL                 | new GppModuleConfig(allowPersonalDataConsent2SnakeCase: true)
+        ALL                     | new GppModuleConfig(allowPersonalDataConsent2SnakeCase: true)
     }
 }

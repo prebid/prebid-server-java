@@ -3067,8 +3067,8 @@ public class ExchangeServiceTest extends VertxTest {
     public void shouldValidateBidsWithExtRequestPrebidAlternateBidderCodes() {
         // given
         given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), any(), anyBoolean()))
-                .willReturn(Future.succeededFuture(givenSeatBid(singletonList(
-                        givenBidderBid(Bid.builder().impid("impId").price(TEN).build())))));
+                .willReturn(Future.succeededFuture(givenSingleSeatBid(
+                        givenBidderBid(Bid.builder().impid("impId").price(TEN).build()))));
 
         final ExtRequestPrebidAlternateBidderCodes requestAlternateBidderCodes =
                 ExtRequestPrebidAlternateBidderCodes.builder().enabled(false).build();
@@ -3123,6 +3123,57 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         verify(bidsAdjuster).validateAndAdjustBids(any(), any(), any(), eq(accountAlternateBidderCodes));
+    }
+
+    @Test
+    public void shouldPopulateSoftAliasToSeatAndHardAliasToAdapterCodeWhenBidDoesNotHaveSeat() {
+        // given
+        given(bidderCatalog.isValidName("softAlias")).willReturn(false);
+        given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), any(), anyBoolean()))
+                .willReturn(Future.succeededFuture(givenSingleSeatBid(
+                        givenBidderBid(Bid.builder().impid("impId").price(TEN).build()))));
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("softAlias", 1)),
+                builder -> builder
+                        .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                                .aliases(Map.of("softAlias", "hardAlias"))
+                                .build())));
+
+        // when
+        final AuctionContext result = target.holdAuction(givenRequestContext(bidRequest)).result();
+
+        // then
+        assertThat(result.getAuctionParticipations())
+                .extracting(AuctionParticipation::getBidderResponse)
+                .extracting(BidderResponse::getSeatBid)
+                .flatExtracting(BidderSeatBid::getBids)
+                .extracting(
+                        BidderBid::getSeat,
+                        bid -> bid.getBid().getExt().get("prebid").get("meta").get("adaptercode").asText())
+                .containsOnly(tuple("softAlias", "hardAlias"));
+    }
+
+    @Test
+    public void shouldPopulateSeatToSeatAndActualBidderToAdapterCodeWhenBidHasSeat() {
+        // given
+        given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), any(), anyBoolean()))
+                .willReturn(Future.succeededFuture(givenSingleSeatBid(BidderBid.of(
+                        Bid.builder().impid("impId").price(TEN).build(), banner, "seat", null))));
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)));
+
+        // when
+        final AuctionContext result = target.holdAuction(givenRequestContext(bidRequest)).result();
+
+        // then
+        assertThat(result.getAuctionParticipations())
+                .extracting(AuctionParticipation::getBidderResponse)
+                .extracting(BidderResponse::getSeatBid)
+                .flatExtracting(BidderSeatBid::getBids)
+                .extracting(
+                        BidderBid::getSeat,
+                        bid -> bid.getBid().getExt().get("prebid").get("meta").get("adaptercode").asText())
+                .containsOnly(tuple("seat", "someBidder"));
     }
 
     @Test

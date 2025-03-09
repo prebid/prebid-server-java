@@ -7,6 +7,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -36,6 +37,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.function.Consumer;
 
 /**
@@ -169,7 +171,7 @@ public class ResponseBidValidator {
                               BidRejectionTracker bidRejectionTracker,
                               ExtRequestPrebidAlternateBidderCodes alternateBidderCodes) throws ValidationException {
 
-        if (bid.getSeat() == null || StringUtils.equals(bid.getSeat(), bidder)) {
+        if (bid.getSeat() == null || StringUtils.equalsIgnoreCase(bid.getSeat(), bidder)) {
             return;
         }
 
@@ -178,9 +180,9 @@ public class ResponseBidValidator {
                 alternateBidderCodes);
 
         if (isAlternateBidderCodesEnabled(alternateBidderCodes) && alternateBidder != null) {
-            final Set<String> allowedBidderCodes = ObjectUtils.defaultIfNull(
-                    alternateBidder.getAllowedBidderCodes(),
-                    Collections.singleton(WILDCARD));
+            final Set<String> allowedBidderCodes = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+            Optional.ofNullable(alternateBidder.getAllowedBidderCodes())
+                    .ifPresentOrElse(allowedBidderCodes::addAll, () -> allowedBidderCodes.add(WILDCARD));
 
             if (allowedBidderCodes.contains(WILDCARD) || allowedBidderCodes.contains(bid.getSeat())) {
                 return;
@@ -207,6 +209,7 @@ public class ResponseBidValidator {
 
         return Optional.ofNullable(alternateBidderCodes)
                 .map(ExtRequestPrebidAlternateBidderCodes::getBidders)
+                .map(CaseInsensitiveMap::new)
                 .map(bidders -> bidders.get(bidder))
                 .filter(alternate -> BooleanUtils.isTrue(alternate.getEnabled()))
                 .orElse(null);

@@ -191,6 +191,6 @@ public class ExtRequestPrebid {
     @JsonProperty("paaformat")
     PaaFormat paaFormat;
 
-    @JsonProperty("alternatebidderscodes")
+    @JsonProperty("alternatebiddercodes")
     ExtRequestPrebidAlternateBidderCodes alternateBidderCodes;
 }
