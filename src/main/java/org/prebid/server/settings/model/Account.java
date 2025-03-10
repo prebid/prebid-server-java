@@ -28,7 +28,7 @@ public class Account {
 
     AccountSettings settings;
 
-    @JsonAlias("alternatebiddercodes")
+    @JsonAlias("alternate-bidder-codes")
     ExtRequestPrebidAlternateBidderCodes alternateBidderCodes;
 
     public static Account empty(String id) {
