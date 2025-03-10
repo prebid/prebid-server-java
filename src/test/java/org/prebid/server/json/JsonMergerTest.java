@@ -34,6 +34,7 @@ public class JsonMergerTest extends VertxTest {
                 siteWithPage,
                 appWithPublisherId,
                 doohWithVenueType,
+                null,
                 null);
 
         final ObjectNode siteWithDomain = mapper.valueToTree(Site.builder().domain("testDomain").build());
@@ -42,7 +43,7 @@ public class JsonMergerTest extends VertxTest {
                 .publisher(publisherWithIdAndDomain).build());
         final ObjectNode doohWithVenueTypeTax = mapper.valueToTree(Dooh.builder().venuetypetax(3).build());
         final ExtBidderConfigOrtb secondBidderConfigFpd =
-                ExtBidderConfigOrtb.of(siteWithDomain, appWithUpdatedPublisher, doohWithVenueTypeTax, null);
+                ExtBidderConfigOrtb.of(siteWithDomain, appWithUpdatedPublisher, doohWithVenueTypeTax, null, null);
 
         // when
         final ExtBidderConfigOrtb result = target.merge(
@@ -56,7 +57,8 @@ public class JsonMergerTest extends VertxTest {
         final ObjectNode mergedApp = mapper.valueToTree(App.builder().publisher(mergedPublisher).build());
         final ObjectNode mergedDooh = mapper.valueToTree(
                 Dooh.builder().venuetype(List.of("venuetype")).venuetypetax(3).build());
-        final ExtBidderConfigOrtb mergedConfigFpd = ExtBidderConfigOrtb.of(mergedSite, mergedApp, mergedDooh, null);
+        final ExtBidderConfigOrtb mergedConfigFpd = ExtBidderConfigOrtb.of(mergedSite, mergedApp, mergedDooh,
+                null, null);
 
         assertThat(result).isEqualTo(mergedConfigFpd);
     }
