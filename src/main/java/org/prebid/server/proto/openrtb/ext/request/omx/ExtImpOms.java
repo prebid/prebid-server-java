@@ -6,7 +6,6 @@ import lombok.Value;
 @Value(staticConstructor = "of")
 public class ExtImpOms {
 
-    String pid;
     @JsonProperty("publisherId")
     Integer publisherId;
 }

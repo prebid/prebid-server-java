@@ -45,11 +45,8 @@ public class OmsBidder implements Bidder<BidRequest> {
         if (!request.getImp().isEmpty()) {
             try {
                 final ExtImpOms impExt = parseImpExt(request.getImp().getFirst());
-                final String publisherId = impExt.getPid() == null
-                        && impExt.getPublisherId() != null
-                        && impExt.getPublisherId() > 0
-                        ? String.valueOf(impExt.getPublisherId())
-                        : impExt.getPid();
+                final String publisherId = impExt.getPublisherId() != null && impExt.getPublisherId() > 0
+                        ? String.valueOf(impExt.getPublisherId()) : null;
                 final String url = "%s?publisherId=%s".formatted(endpointUrl, publisherId);
                 return Result.withValue(BidderUtil.defaultRequest(request, url, mapper));
             } catch (PreBidException e) {
@@ -91,37 +88,32 @@ public class OmsBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.builder()
-                        .bid(bid)
-                        .type(getBidType(bid))
-                        .bidCurrency(bidResponse.getCur())
-                        .videoInfo(videoInfo(bid))
-                        .build())
+                .map(bid -> {
+                    final BidType bidType = getBidType(bid);
+                    return BidderBid.builder()
+                            .bid(bid)
+                            .type(bidType)
+                            .bidCurrency(bidResponse.getCur())
+                            .videoInfo(videoInfo(bidType, bid))
+                            .build();
+                })
                 .toList();
     }
 
     private static BidType getBidType(Bid bid) {
-        final Integer markupType = bid.getMtype();
-        return switch (markupType) {
-            case 1 -> BidType.banner;
-            case 2 -> BidType.video;
-            case null, default -> BidType.banner;
-        };
+        return Objects.equals(bid.getMtype(), 2) ? BidType.video : BidType.banner;
     }
 
-    private static ExtBidPrebidVideo videoInfo(Bid bid) {
-        if (!Integer.valueOf(2).equals(bid.getMtype())) {
+    private static ExtBidPrebidVideo videoInfo(BidType bidType, Bid bid) {
+        if (bidType != BidType.video) {
             return null;
         }
         final List<String> cat = bid.getCat();
         final Integer duration = bid.getDur();
 
-        final boolean catNotEmpty = CollectionUtils.isNotEmpty(cat);
-        final boolean durationValid = duration != null && duration > 0;
-        return catNotEmpty || durationValid
-                ? ExtBidPrebidVideo.of(
-                durationValid ? duration : null,
-                catNotEmpty ? cat.getFirst() : null)
-                : null;
+        return ExtBidPrebidVideo.of(
+                duration != null ? duration : 0,
+                CollectionUtils.isNotEmpty(cat) ? cat.getFirst() : ""
+        );
     }
 }
