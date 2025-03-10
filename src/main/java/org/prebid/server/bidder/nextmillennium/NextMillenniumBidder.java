@@ -28,6 +28,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidServer;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredRequest;
 import org.prebid.server.proto.openrtb.ext.request.nextmillennium.ExtImpNextMillennium;
 import org.prebid.server.proto.openrtb.ext.request.nextmillennium.ExtRequestNextMillennium;
@@ -40,7 +41,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 public class NextMillenniumBidder implements Bidder<BidRequest> {
 
@@ -95,26 +95,33 @@ public class NextMillenniumBidder implements Bidder<BidRequest> {
     private BidRequest updateBidRequest(BidRequest bidRequest, ExtImpNextMillennium ext) {
         final ExtStoredRequest storedRequest = ExtStoredRequest.of(resolveStoredRequestId(bidRequest, ext));
 
+        final ExtRequest requestExt = bidRequest.getExt();
+        final ExtRequestPrebid existingPrebid = requestExt != null ? requestExt.getPrebid() : null;
+        final ExtRequestPrebidServer existingServer = existingPrebid != null ? existingPrebid.getServer() : null;
+
         final ExtRequestPrebid createdExtRequestPrebid = ExtRequestPrebid.builder()
                 .storedrequest(storedRequest)
+                .server(existingServer)
                 .build();
 
-        final ExtRequestPrebid extRequestPrebid = Optional.ofNullable(bidRequest)
-                .map(BidRequest::getExt)
-                .map(ExtRequest::getPrebid)
-                .map(prebid -> prebid.toBuilder().storedrequest(storedRequest).build())
-                .orElse(createdExtRequestPrebid);
+        final ExtRequest extRequest = ExtRequest.of(createdExtRequestPrebid);
 
-        final ExtRequestPrebid updatedExt = extRequestPrebid.toBuilder()
-                .nextMillennium(ExtRequestNextMillennium.of(
-                        nmmFlags,
-                        NM_ADAPTER_VERSION,
-                        versionProvider.getNameVersionRecord()))
+        final ObjectNode nextMillenniumNode = mapper.mapper().valueToTree(
+                ExtRequestNextMillennium.of(nmmFlags, NM_ADAPTER_VERSION, versionProvider.getNameVersionRecord()));
+
+        extRequest.addProperty("next_millennium", nextMillenniumNode);
+
+        final Imp firstImp = bidRequest.getImp().getFirst();
+        final ObjectNode updatedImpExt = mapper.mapper().createObjectNode();
+        updatedImpExt.set("bidder", mapper.mapper().valueToTree(ext));
+
+        final Imp updatedImp = firstImp.toBuilder()
+                .ext(updatedImpExt)
                 .build();
 
         return bidRequest.toBuilder()
-                .imp(bidRequest.getImp())
-                .ext(ExtRequest.of(updatedExt))
+                .imp(List.of(updatedImp))
+                .ext(extRequest)
                 .build();
     }
 
