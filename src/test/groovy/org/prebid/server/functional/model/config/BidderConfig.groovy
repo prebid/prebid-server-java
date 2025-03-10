@@ -8,7 +8,7 @@ import org.prebid.server.functional.model.bidder.BidderName
 
 @EqualsAndHashCode
 @ToString(includeNames = true, ignoreNulls = true)
-@JsonNaming(PropertyNamingStrategies.KebabCaseStrategy)
+@JsonNaming(PropertyNamingStrategies.LowerCaseStrategy)
 class BidderConfig {
 
     Boolean enabled

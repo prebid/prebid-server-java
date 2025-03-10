@@ -23,6 +23,7 @@ class AccountConfig {
     AccountSetting settings
     @JsonProperty("cookie_sync")
     AccountCookieSyncConfig cookieSyncSnakeCase
+    @JsonProperty("alternatebiddercodes")
     AlternateBidderCodes alternateBidderCodes
 
     static getDefaultAccountConfig() {
