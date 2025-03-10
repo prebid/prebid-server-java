@@ -29,7 +29,6 @@ import org.prebid.server.util.HttpUtil;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 public class SmarthubBidder implements Bidder<BidRequest> {
 
@@ -69,8 +68,7 @@ public class SmarthubBidder implements Bidder<BidRequest> {
     }
 
     private String buildEndpointUrl(ExtImpSmarthub extImpSmarthub) {
-        final String host = Optional.ofNullable(extImpSmarthub.getPartnerName()).orElse(StringUtils.EMPTY);
-        return endpointTemplate.replace("{{Host}}", host)
+        return endpointTemplate.replace("{{Host}}", StringUtils.defaultString(extImpSmarthub.getPartnerName()))
                 .replace("{{AccountID}}", extImpSmarthub.getSeat())
                 .replace("{{SourceId}}", extImpSmarthub.getToken());
     }
