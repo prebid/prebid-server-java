@@ -94,7 +94,6 @@ public class NextMillenniumBidder implements Bidder<BidRequest> {
 
     private BidRequest updateBidRequest(BidRequest bidRequest, ExtImpNextMillennium ext) {
         final ExtStoredRequest storedRequest = ExtStoredRequest.of(resolveStoredRequestId(bidRequest, ext));
-
         final ExtRequest requestExt = bidRequest.getExt();
         final ExtRequestPrebid existingPrebid = requestExt != null ? requestExt.getPrebid() : null;
         final ExtRequestPrebidServer existingServer = existingPrebid != null ? existingPrebid.getServer() : null;
@@ -109,7 +108,7 @@ public class NextMillenniumBidder implements Bidder<BidRequest> {
         final ObjectNode nextMillenniumNode = mapper.mapper().valueToTree(
                 ExtRequestNextMillennium.of(nmmFlags, NM_ADAPTER_VERSION, versionProvider.getNameVersionRecord()));
 
-        extRequest.addProperty("next_millennium", nextMillenniumNode);
+        extRequest.addProperty("nextMillennium", nextMillenniumNode);
 
         final Imp firstImp = bidRequest.getImp().getFirst();
         final ObjectNode updatedImpExt = mapper.mapper().createObjectNode();
@@ -119,8 +118,11 @@ public class NextMillenniumBidder implements Bidder<BidRequest> {
                 .ext(updatedImpExt)
                 .build();
 
+        final List<Imp> updatedImps = new ArrayList<>(bidRequest.getImp());
+        updatedImps.set(0, updatedImp);
+
         return bidRequest.toBuilder()
-                .imp(List.of(updatedImp))
+                .imp(updatedImps)
                 .ext(extRequest)
                 .build();
     }

@@ -8,12 +8,12 @@ import java.util.List;
 @Value(staticConstructor = "of")
 public class ExtRequestNextMillennium {
 
-    @JsonProperty("nmm_flags")
+    @JsonProperty("nmmFlags")
     List<String> nmmFlags;
 
-    @JsonProperty("nm_version")
+    @JsonProperty("nmVersion")
     String nmVersion;
 
-    @JsonProperty("server_version")
+    @JsonProperty("serverVersion")
     String serverVersion;
 }
