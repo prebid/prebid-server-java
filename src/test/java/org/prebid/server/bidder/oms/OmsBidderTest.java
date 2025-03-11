@@ -58,9 +58,25 @@ public class OmsBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldCreateExpectedUrl() {
+        // given
+        final ExtImpOms impExt = ExtImpOms.of("otherTagId", 12345);
+        final BidRequest bidRequest = givenBidRequest(impCustomizer -> impCustomizer.ext(givenImpExt(impExt)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://randomurl.com?publisherId=otherTagId");
+    }
+
+    @Test
     public void makeHttpRequestsShouldCreateExpectedUrlWithPublisherId() {
         // given
-        final ExtImpOms impExt = ExtImpOms.of(12345);
+        final ExtImpOms impExt = ExtImpOms.of(null, 12345);
         final BidRequest bidRequest = givenBidRequest(impCustomizer -> impCustomizer.ext(givenImpExt(impExt)));
 
         // when

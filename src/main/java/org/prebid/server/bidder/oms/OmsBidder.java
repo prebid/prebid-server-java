@@ -7,6 +7,7 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -45,8 +46,11 @@ public class OmsBidder implements Bidder<BidRequest> {
         if (!request.getImp().isEmpty()) {
             try {
                 final ExtImpOms impExt = parseImpExt(request.getImp().getFirst());
-                final String publisherId = impExt.getPublisherId() != null && impExt.getPublisherId() > 0
-                        ? String.valueOf(impExt.getPublisherId()) : null;
+                final String publisherId = impExt.getPid() == null
+                        && impExt.getPublisherId() != null
+                        && impExt.getPublisherId() > 0
+                        ? String.valueOf(impExt.getPublisherId())
+                        : impExt.getPid();
                 final String url = "%s?publisherId=%s".formatted(endpointUrl, publisherId);
                 return Result.withValue(BidderUtil.defaultRequest(request, url, mapper));
             } catch (PreBidException e) {
@@ -113,7 +117,7 @@ public class OmsBidder implements Bidder<BidRequest> {
 
         return ExtBidPrebidVideo.of(
                 duration != null ? duration : 0,
-                CollectionUtils.isNotEmpty(cat) ? cat.getFirst() : ""
+                CollectionUtils.isNotEmpty(cat) ? cat.getFirst() : StringUtils.EMPTY
         );
     }
 }
