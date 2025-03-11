@@ -69,4 +69,4 @@ To maintain consistency across adapters:
     - Blocking code.
     - Fully dynamic hostnames in URLs.
     - Non-thread-safe code (bidder adapters should not store state internally).
-6. If an adapter has no special logic, consider using an alias to `Generic` instead. In this case, there will still need to be an integration test for this bidder. e.g. src/test/java/org/prebid/server/it/BidderNameTest.java
+6. If an adapter has no special logic, consider using an alias to `Generic` instead. In this case, there will still need to be an integration test for this bidder. e.g. `src/test/java/org/prebid/server/it/BidderNameTest.java`
