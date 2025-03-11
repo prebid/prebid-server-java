@@ -11,9 +11,7 @@ public class ExtRequestNextMillennium {
     @JsonProperty("nmmFlags")
     List<String> nmmFlags;
 
-    @JsonProperty("nmVersion")
     String nmVersion;
 
-    @JsonProperty("serverVersion")
     String serverVersion;
 }

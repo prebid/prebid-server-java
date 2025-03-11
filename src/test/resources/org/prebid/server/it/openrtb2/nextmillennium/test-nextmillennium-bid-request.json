@@ -9,8 +9,11 @@
       },
       "secure": 1,
       "ext": {
-        "bidder": {
-          "placement_id": "placement_id"
+        "nextMillennium": {},
+        "prebid": {
+          "storedrequest": {
+            "id": "placement_id"
+          }
         }
       }
     }
@@ -56,8 +59,8 @@
     },
     "nextMillennium": {
       "nmmFlags": [ "1" ],
-      "nmVersion": "v1.0.0",
-      "serverVersion": "${json-unit.any-string}"
+      "nm_version": "v1.0.0",
+      "server_version": "${json-unit.any-string}"
     }
   }
 }

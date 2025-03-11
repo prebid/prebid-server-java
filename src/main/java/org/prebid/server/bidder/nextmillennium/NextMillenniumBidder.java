@@ -112,7 +112,11 @@ public class NextMillenniumBidder implements Bidder<BidRequest> {
 
         final Imp firstImp = bidRequest.getImp().getFirst();
         final ObjectNode updatedImpExt = mapper.mapper().createObjectNode();
-        updatedImpExt.set("bidder", mapper.mapper().valueToTree(ext));
+        updatedImpExt.set("nextMillennium", nextMillenniumNode);
+
+        final ObjectNode prebidNode = mapper.mapper().createObjectNode();
+        prebidNode.set("storedrequest", mapper.mapper().valueToTree(storedRequest));
+        updatedImpExt.set("prebid", prebidNode);
 
         final Imp updatedImp = firstImp.toBuilder()
                 .ext(updatedImpExt)
