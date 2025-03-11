@@ -33,21 +33,6 @@ public class BidderUtil {
         return defaultRequest(bidRequest, HttpUtil.headers(), endpointUrl, mapper);
     }
 
-    public static <T> HttpRequest<T> defaultRequest(T bidRequest,
-                                                    String endpointUrl,
-                                                    Set<String> impIds,
-                                                    JacksonMapper mapper) {
-
-        return HttpRequest.<T>builder()
-                .method(HttpMethod.POST)
-                .uri(endpointUrl)
-                .headers(HttpUtil.headers())
-                .impIds(impIds)
-                .body(mapper.encodeToBytes(bidRequest))
-                .payload(bidRequest)
-                .build();
-    }
-
     public static HttpRequest<BidRequest> defaultRequest(BidRequest bidRequest,
                                                          MultiMap headers,
                                                          String endpointUrl,
@@ -57,22 +42,6 @@ public class BidderUtil {
                 .uri(endpointUrl)
                 .headers(headers)
                 .impIds(impIds(bidRequest))
-                .body(mapper.encodeToBytes(bidRequest))
-                .payload(bidRequest)
-                .build();
-    }
-
-    public static <T> HttpRequest<T> defaultRequest(T bidRequest,
-                                                    MultiMap headers,
-                                                    String endpointUrl,
-                                                    Set<String> impIds,
-                                                    JacksonMapper mapper) {
-
-        return HttpRequest.<T>builder()
-                .method(HttpMethod.POST)
-                .uri(endpointUrl)
-                .headers(headers)
-                .impIds(impIds)
                 .body(mapper.encodeToBytes(bidRequest))
                 .payload(bidRequest)
                 .build();

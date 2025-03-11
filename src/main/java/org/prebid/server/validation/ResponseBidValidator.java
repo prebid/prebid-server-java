@@ -46,18 +46,14 @@ import java.util.function.Consumer;
 public class ResponseBidValidator {
 
     private static final Logger logger = LoggerFactory.getLogger(ResponseBidValidator.class);
-    private static final ConditionalLogger UNRELATED_BID_LOGGER = new ConditionalLogger(
-            "not_matched_bid",
-            logger);
-    private static final ConditionalLogger SECURE_CREATIVE_LOGGER = new ConditionalLogger(
-            "secure_creatives_validation",
-            logger);
-    private static final ConditionalLogger CREATIVE_SIZE_LOGGER = new ConditionalLogger(
-            "creative_size_validation",
-            logger);
-    private static final ConditionalLogger ALTERNATE_BIDDER_CODE_LOGGER = new ConditionalLogger(
-            "alternate_bidder_code_validation",
-            logger);
+    private static final ConditionalLogger UNRELATED_BID_LOGGER =
+            new ConditionalLogger("not_matched_bid", logger);
+    private static final ConditionalLogger SECURE_CREATIVE_LOGGER =
+            new ConditionalLogger("secure_creatives_validation", logger);
+    private static final ConditionalLogger CREATIVE_SIZE_LOGGER =
+            new ConditionalLogger("creative_size_validation", logger);
+    private static final ConditionalLogger ALTERNATE_BIDDER_CODE_LOGGER =
+            new ConditionalLogger("alternate_bidder_code_validation", logger);
 
     private static final String[] INSECURE_MARKUP_MARKERS = {"http:", "http%3A"};
     private static final String[] SECURE_MARKUP_MARKERS = {"https:", "https%3A"};
