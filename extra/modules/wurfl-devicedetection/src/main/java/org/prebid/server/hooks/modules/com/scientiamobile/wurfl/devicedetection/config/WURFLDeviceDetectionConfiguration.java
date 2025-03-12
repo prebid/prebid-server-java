@@ -17,7 +17,7 @@ import java.util.List;
 @ConditionalOnProperty(prefix = "hooks." + WURFLDeviceDetectionModule.CODE, name = "enabled", havingValue = "true")
 @Configuration
 @PropertySource(
-        value = "classpath:/module-config/WURFL-devicedetection.yaml",
+        value = "classpath:/module-config/wurfl-devicedetection.yaml",
         factory = YamlPropertySourceFactory.class)
 @EnableConfigurationProperties(WURFLDeviceDetectionConfigProperties.class)
 public class WURFLDeviceDetectionConfiguration {
