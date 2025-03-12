@@ -7,8 +7,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import org.apache.commons.collections4.ListUtils;
-import org.apache.commons.collections4.map.CaseInsensitiveMap;
-import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.BidderAliases;
@@ -23,8 +21,6 @@ import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.settings.model.Account;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAlternateBidderCodes;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAlternateBidderCodesBidder;
 import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountBidValidationConfig;
 import org.prebid.server.settings.model.BidValidationEnforcement;
@@ -35,9 +31,6 @@ import java.util.Collections;
 import java.util.Currency;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.TreeSet;
 import java.util.function.Consumer;
 
 /**
@@ -57,7 +50,6 @@ public class ResponseBidValidator {
 
     private static final String[] INSECURE_MARKUP_MARKERS = {"http:", "http%3A"};
     private static final String[] SECURE_MARKUP_MARKERS = {"https:", "https%3A"};
-    private static final String WILDCARD = "*";
 
     private final BidValidationEnforcement bannerMaxSizeEnforcement;
     private final BidValidationEnforcement secureMarkupEnforcement;
@@ -80,8 +72,7 @@ public class ResponseBidValidator {
     public ValidationResult validate(BidderBid bidderBid,
                                      String bidder,
                                      AuctionContext auctionContext,
-                                     BidderAliases aliases,
-                                     ExtRequestPrebidAlternateBidderCodes alternateBidderCodes) {
+                                     BidderAliases aliases) {
 
         final Bid bid = bidderBid.getBid();
         final BidRequest bidRequest = auctionContext.getBidRequest();
@@ -93,7 +84,7 @@ public class ResponseBidValidator {
             validateCommonFields(bid);
             validateTypeSpecific(bidderBid, bidder);
             validateCurrency(bidderBid.getBidCurrency());
-            validateSeat(bidderBid, bidder, account, bidRejectionTracker, alternateBidderCodes);
+            validateSeat(bidderBid, bidder, account, bidRejectionTracker, aliases);
 
             final Imp correspondingImp = findCorrespondingImp(bid, bidRequest);
             if (bidderBid.getType() == BidType.banner) {
@@ -165,50 +156,20 @@ public class ResponseBidValidator {
                               String bidder,
                               Account account,
                               BidRejectionTracker bidRejectionTracker,
-                              ExtRequestPrebidAlternateBidderCodes alternateBidderCodes) throws ValidationException {
+                              BidderAliases bidderAliases) throws ValidationException {
 
-        if (bid.getSeat() == null || StringUtils.equalsIgnoreCase(bid.getSeat(), bidder)) {
-            return;
+        final String seat = bid.getSeat();
+        if (seat != null
+                && !StringUtils.equalsIgnoreCase(bidder, seat)
+                && !bidderAliases.isAllowedAlternateBidderCode(bidder, seat)) {
+
+            final String message = "invalid bidder code %s was set by the adapter %s for the account %s"
+                    .formatted(bid.getSeat(), bidder, account.getId());
+            bidRejectionTracker.rejectBid(bid, BidRejectionReason.RESPONSE_REJECTED_GENERAL);
+            metrics.updateSeatValidationMetrics(bidder);
+            ALTERNATE_BIDDER_CODE_LOGGER.warn(message, logSamplingRate);
+            throw new ValidationException(message);
         }
-
-        final ExtRequestPrebidAlternateBidderCodesBidder alternateBidder = resolveAlternateBidder(
-                bidder,
-                alternateBidderCodes);
-
-        if (isAlternateBidderCodesEnabled(alternateBidderCodes) && alternateBidder != null) {
-            final Set<String> allowedBidderCodes = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
-            Optional.ofNullable(alternateBidder.getAllowedBidderCodes())
-                    .ifPresentOrElse(allowedBidderCodes::addAll, () -> allowedBidderCodes.add(WILDCARD));
-
-            if (allowedBidderCodes.contains(WILDCARD) || allowedBidderCodes.contains(bid.getSeat())) {
-                return;
-            }
-        }
-
-        final String message = "invalid bidder code %s was set by the adapter %s for the account %s"
-                .formatted(bid.getSeat(), bidder, account.getId());
-        bidRejectionTracker.rejectBid(bid, BidRejectionReason.RESPONSE_REJECTED_GENERAL);
-        metrics.updateSeatValidationMetrics(bidder);
-        ALTERNATE_BIDDER_CODE_LOGGER.warn(message, logSamplingRate);
-        throw new ValidationException(message);
-    }
-
-    private static Boolean isAlternateBidderCodesEnabled(ExtRequestPrebidAlternateBidderCodes alternateBidderCodes) {
-        return Optional.ofNullable(alternateBidderCodes)
-                .map(ExtRequestPrebidAlternateBidderCodes::getEnabled)
-                .orElse(false);
-    }
-
-    private static ExtRequestPrebidAlternateBidderCodesBidder resolveAlternateBidder(
-            String bidder,
-            ExtRequestPrebidAlternateBidderCodes alternateBidderCodes) {
-
-        return Optional.ofNullable(alternateBidderCodes)
-                .map(ExtRequestPrebidAlternateBidderCodes::getBidders)
-                .map(CaseInsensitiveMap::new)
-                .map(bidders -> bidders.get(bidder))
-                .filter(alternate -> BooleanUtils.isTrue(alternate.getEnabled()))
-                .orElse(null);
     }
 
     private Imp findCorrespondingImp(Bid bid, BidRequest bidRequest) throws ValidationException {

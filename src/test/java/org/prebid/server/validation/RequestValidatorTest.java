@@ -1184,6 +1184,26 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
+    public void validateShouldReturnValidationMessageWhenAliasNameEqualsToBidderItPointsOnCaseInsensitive() {
+        // given
+        final ExtRequest ext = ExtRequest.of(ExtRequestPrebid.builder()
+                .aliases(singletonMap("RUBICOn", "ruBIcon"))
+                .build());
+        final BidRequest bidRequest = validBidRequestBuilder().ext(ext).build();
+        given(bidderCatalog.isValidName("ruBIcon")).willReturn(true);
+        given(bidderCatalog.isActive("ruBIcon")).willReturn(true);
+
+        // when
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("""
+                        request.ext.prebid.aliases.rubicon defines a no-op alias. \
+                        Choose a different alias, or remove this entry""");
+    }
+
+    @Test
     public void validateShouldReturnValidationErrorMessageWhenAliasPointOnNotValidBidderName() {
         // given
         final ExtRequest ext = ExtRequest.of(ExtRequestPrebid.builder()
