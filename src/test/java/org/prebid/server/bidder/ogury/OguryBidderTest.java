@@ -132,9 +132,9 @@ public class OguryBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
                     assertThat(error.getMessage())
-                            .startsWith("Unexpected status code: 400. Run with request.debug = 1 for more info");
+                            .startsWith("Failed to decode: Unrecognized token 'invalid'");
                 });
         assertThat(result.getBids()).isEmpty();
     }
@@ -151,9 +151,9 @@ public class OguryBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.generic);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
                     assertThat(error.getMessage())
-                            .startsWith("Unexpected status code: 500. Run with request.debug = 1 for more info");
+                            .startsWith("Failed to decode: Unrecognized token 'invalid'");
                 });
         assertThat(result.getBids()).isEmpty();
     }
@@ -172,7 +172,7 @@ public class OguryBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidderResponseShouldReturnErrorWhenResponseBodyIsWrong() throws JsonProcessingException {
+    public void makeBidderResponseShouldNotReturnErrorWhenResponseBodyIsEmpty() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(null));
 
@@ -180,7 +180,7 @@ public class OguryBidderTest extends VertxTest {
         final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).isNotEmpty();
+        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getBids()).isEmpty();
     }
 

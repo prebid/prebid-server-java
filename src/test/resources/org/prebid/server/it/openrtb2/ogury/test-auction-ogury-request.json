@@ -3,6 +3,7 @@
   "imp": [
     {
       "id": "imp_id",
+      "bidfloorcur" : "USD",
       "banner": {
         "w": 300,
         "h": 250

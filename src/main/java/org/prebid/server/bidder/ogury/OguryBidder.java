@@ -9,7 +9,6 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.MultiMap;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -18,7 +17,7 @@ import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
-import org.prebid.server.bidder.model.HttpResponse;
+import org.prebid.server.bidder.model.Price;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
@@ -33,7 +32,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Consumer;
 
 public class OguryBidder implements Bidder<BidRequest> {
 
@@ -57,7 +55,7 @@ public class OguryBidder implements Bidder<BidRequest> {
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
         final List<BidderError> errors = new ArrayList<>();
 
-        List<Imp> modifiedImps = new ArrayList<>();
+        final List<Imp> modifiedImps = new ArrayList<>();
         final List<Imp> impsWithOguryParams = new ArrayList<>();
 
         for (Imp imp : bidRequest.getImp()) {
@@ -65,9 +63,7 @@ public class OguryBidder implements Bidder<BidRequest> {
                 final ObjectNode impExt = resolveImpExt(imp);
                 final ObjectNode impExtBidderHoist = resolveImpExtBidderHoist(impExt);
 
-                final ObjectNode modifiedImpExt = modifyImpExt(impExt, impExtBidderHoist);
-                final BigDecimal bidFloor = resolveBidFloor(bidRequest, imp);
-                final Imp modifiedImp = modifyImp(imp, bidFloor, modifiedImpExt);
+                final Imp modifiedImp = modifyImp(imp, bidRequest, impExtBidderHoist);
                 modifiedImps.add(modifiedImp);
 
                 if (hasOguryParams(impExtBidderHoist)) {
@@ -78,106 +74,25 @@ public class OguryBidder implements Bidder<BidRequest> {
             }
         }
 
-        final BidderError error = validateRequestKeys(bidRequest, impsWithOguryParams);
-        if (error != null) {
-            errors.add(error);
+        final boolean isKeysValid = validateRequestKeys(bidRequest, impsWithOguryParams);
+        if (!isKeysValid) {
+            errors.add(BidderError.badInput(
+                    "Invalid request. assetKey/adUnitId or request.site.publisher.id required"));
             return Result.withErrors(errors);
         }
 
-        if (CollectionUtils.isNotEmpty(impsWithOguryParams)) {
-            modifiedImps = impsWithOguryParams;
-        }
+        final BidRequest modifiedBidRequest = bidRequest.toBuilder()
+                .imp(CollectionUtils.isNotEmpty(impsWithOguryParams) ? impsWithOguryParams : modifiedImps)
+                .build();
 
-        final BidRequest modifiedBidRequest = bidRequest.toBuilder().imp(modifiedImps).build();
-        final MultiMap headers = buildHeaders(modifiedBidRequest);
+        final MultiMap headers = resolveHeaders(modifiedBidRequest.getDevice());
         httpRequests.add(BidderUtil.defaultRequest(modifiedBidRequest, headers, endpointUrl, mapper));
 
         return Result.of(httpRequests, errors);
     }
 
-    @Override
-    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
-        final HttpResponse response = getResponse(httpCall);
-        if (response == null || isNotHasContent(response)) {
-            return Result.empty();
-        }
-
-        final BidderError error = checkResponseStatusCodeForErrors(response);
-        if (error != null) {
-            return Result.withError(error);
-        }
-
-        try {
-            final String body = response.getBody();
-            if (StringUtils.isEmpty(body)) {
-                return Result.empty();
-            }
-
-            final BidResponse bidResponse = mapper.decodeValue(body, BidResponse.class);
-
-            final List<BidderError> errors = new ArrayList<>();
-            final List<BidderBid> bidderBids = extractBids(bidResponse, errors::add);
-
-            return Result.of(bidderBids, errors);
-        } catch (Exception e) {
-            return Result.withError(BidderError.badServerResponse(e.getMessage()));
-        }
-    }
-
-    private Imp modifyImp(Imp imp, BigDecimal bidFloor, ObjectNode modifiedImpExt) {
-        return imp.toBuilder()
-                .tagid(imp.getId())
-                .bidfloor(bidFloor)
-                .bidfloorcur(BIDDER_CURRENCY)
-                .ext(modifiedImpExt)
-                .build();
-    }
-
-    private ObjectNode modifyImpExt(ObjectNode impExt, ObjectNode impExtBidderHoist) {
-        if (impExt == null || impExtBidderHoist == null) {
-            return impExt;
-        }
-
-        final ObjectNode modifiedImpExt = impExt.deepCopy();
-        Optional.ofNullable(impExtBidderHoist.fieldNames())
-                .ifPresent(fields -> {
-                    fields.forEachRemaining(field -> modifiedImpExt.set(field, impExtBidderHoist.get(field)));
-                    modifiedImpExt.remove(EXT_FIELD_BIDDER);
-                });
-
-        return modifiedImpExt;
-    }
-
-    private List<BidderBid> extractBids(BidResponse bidResponse, Consumer<BidderError> bidErrorHandler) {
-        return Optional.ofNullable(bidResponse.getSeatbid()).stream()
-                .flatMap(Collection::stream)
-                .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .filter(Objects::nonNull)
-                .map(bid -> {
-                    try {
-                        return BidderBid.of(bid, getBidType(bid), bidResponse.getCur());
-                    } catch (PreBidException e) {
-                        bidErrorHandler.accept(BidderError.badServerResponse(e.getMessage()));
-                        return null;
-                    }
-                })
-                .filter(Objects::nonNull)
-                .toList();
-    }
-
-    private HttpResponse getResponse(BidderCall<BidRequest> httpCall) {
-        return Optional.ofNullable(httpCall)
-                .map(BidderCall::getResponse)
-                .orElse(null);
-    }
-
-    private boolean hasOguryParams(ObjectNode impExtBidderHoist) {
-        return Optional.ofNullable(impExtBidderHoist).map(it -> it.get(PREBID_FIELD_ASSET_KEY) != null
-                        && it.get(PREBID_FIELD_ADUNIT_ID) != null)
-                .orElse(false);
+    private ObjectNode resolveImpExt(Imp imp) {
+        return Optional.of(imp).map(Imp::getExt).orElse(null);
     }
 
     private ObjectNode resolveImpExtBidderHoist(ObjectNode impExt) {
@@ -186,21 +101,115 @@ public class OguryBidder implements Bidder<BidRequest> {
                 .orElse(null);
     }
 
-    private ObjectNode resolveImpExt(Imp imp) {
-        return Optional.of(imp).map(Imp::getExt).orElse(null);
+    private Imp modifyImp(Imp imp, BidRequest bidRequest, ObjectNode impExtBidderHoist) {
+        final Price price = resolvePrice(imp, bidRequest);
+        return imp.toBuilder()
+                .tagid(imp.getId())
+                .bidfloor(price.getValue())
+                .bidfloorcur(price.getCurrency())
+                .ext(modifyExt(imp.getExt(), impExtBidderHoist))
+                .build();
     }
 
-    private BigDecimal resolveBidFloor(BidRequest bidRequest, Imp imp) {
-        final BigDecimal bidFloor = imp.getBidfloor();
-        final String bidFloorCurrency = imp.getBidfloorcur();
+    private Price resolvePrice(Imp imp, BidRequest bidRequest) {
+        final Price initialBidFloorPrice = Price.of(imp.getBidfloorcur(), imp.getBidfloor());
+        return BidderUtil.shouldConvertBidFloor(initialBidFloorPrice, BIDDER_CURRENCY)
+                ? convertBidFloor(initialBidFloorPrice, bidRequest)
+                : initialBidFloorPrice;
+    }
 
-        if (BidderUtil.isValidPrice(bidFloor)
-                && StringUtils.isNotBlank(bidFloorCurrency)
-                && !StringUtils.equalsIgnoreCase(bidFloorCurrency, BIDDER_CURRENCY)) {
-            return currencyConversionService.convertCurrency(bidFloor, bidRequest, bidFloorCurrency, BIDDER_CURRENCY);
+    private Price convertBidFloor(Price bidFloorPrice, BidRequest bidRequest) {
+        final BigDecimal convertedPrice = currencyConversionService.convertCurrency(
+                bidFloorPrice.getValue(),
+                bidRequest,
+                bidFloorPrice.getCurrency(),
+                BIDDER_CURRENCY);
+
+        return Price.of(BIDDER_CURRENCY, convertedPrice);
+    }
+
+    private ObjectNode modifyExt(ObjectNode impExt, ObjectNode impExtBidderHoist) {
+        if (impExt == null || impExtBidderHoist == null) {
+            return impExt;
         }
 
-        return bidFloor;
+        final ObjectNode modifiedImpExt = impExt.deepCopy();
+        impExtBidderHoist.fieldNames().forEachRemaining(field ->
+                modifiedImpExt.set(field, impExtBidderHoist.get(field)));
+        modifiedImpExt.remove(EXT_FIELD_BIDDER);
+
+        return modifiedImpExt;
+    }
+
+    private boolean hasOguryParams(ObjectNode impExtBidderHoist) {
+        return impExtBidderHoist != null
+                && impExtBidderHoist.has(PREBID_FIELD_ASSET_KEY)
+                && impExtBidderHoist.has(PREBID_FIELD_ADUNIT_ID);
+    }
+
+    private boolean validateRequestKeys(BidRequest request, List<Imp> impsWithOguryParams) {
+        return !CollectionUtils.isEmpty(impsWithOguryParams) && Optional.ofNullable(request.getSite())
+                .map(Site::getPublisher)
+                .map(Publisher::getId)
+                .isEmpty();
+    }
+
+    private MultiMap resolveHeaders(Device device) {
+        final MultiMap headers = HttpUtil.headers().add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
+
+        if (device != null) {
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ACCEPT_LANGUAGE_HEADER, device.getLanguage());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIpv6());
+        } else {
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ACCEPT_LANGUAGE_HEADER, "en-US");
+        }
+
+        return headers;
+    }
+
+    @Override
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
+        try {
+            final String body = httpCall.getResponse().getBody();
+            if (StringUtils.isEmpty(body)) {
+                return Result.empty();
+            }
+
+            final BidResponse bidResponse = mapper.decodeValue(body, BidResponse.class);
+
+            final List<BidderError> errors = new ArrayList<>();
+            final List<BidderBid> bidderBids = extractBids(bidResponse, errors);
+
+            return Result.of(bidderBids, errors);
+        } catch (Exception e) {
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
+        }
+    }
+
+    private List<BidderBid> extractBids(BidResponse bidResponse, List<BidderError> errors) {
+        return Optional.ofNullable(bidResponse)
+                .map(BidResponse::getSeatbid)
+                .stream()
+                .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
+                .map(SeatBid::getBid)
+                .filter(Objects::nonNull)
+                .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
+                .map(bid -> createBidderBid(bid, bidResponse, errors))
+                .filter(Objects::nonNull)
+                .toList();
+    }
+
+    private BidderBid createBidderBid(Bid bid, BidResponse bidResponse, List<BidderError> errors) {
+        try {
+            return BidderBid.of(bid, getBidType(bid), bidResponse.getCur());
+        } catch (PreBidException e) {
+            errors.add(BidderError.badServerResponse(e.getMessage()));
+            return null;
+        }
     }
 
     private static BidType getBidType(Bid bid) {
@@ -217,61 +226,5 @@ public class OguryBidder implements Bidder<BidRequest> {
             default -> throw new PreBidException(
                     "Unsupported MType '%d', for impression '%s'".formatted(bid.getMtype(), bid.getImpid()));
         };
-    }
-
-    private BidderError validateRequestKeys(BidRequest request, List<Imp> impsWithOguryParams) {
-        final Optional<Site> siteOpt = Optional.of(request).map(BidRequest::getSite);
-        final Optional<String> publisherId = siteOpt.map(Site::getPublisher).map(Publisher::getId);
-
-        if (CollectionUtils.isEmpty(impsWithOguryParams) && (siteOpt.isEmpty() || publisherId.isEmpty())) {
-            return BidderError.badInput("Invalid request. assetKey/adUnitId or request.site.publisher.id required");
-        }
-
-        return null;
-    }
-
-    private BidderError checkResponseStatusCodeForErrors(HttpResponse response) {
-        final int statusCode = response.getStatusCode();
-
-        if (statusCode == HttpResponseStatus.BAD_REQUEST.code()) {
-            return BidderError.badInput("Unexpected status code: %d. Run with request.debug = 1 for more info"
-                    .formatted(statusCode));
-        }
-
-        if (statusCode != HttpResponseStatus.OK.code()) {
-            return BidderError.generic("Unexpected status code: %d. Run with request.debug = 1 for more info"
-                    .formatted(statusCode));
-        }
-
-        return null;
-    }
-
-    private boolean isNotHasContent(HttpResponse response) {
-        return Optional.of(response)
-                .map(HttpResponse::getStatusCode)
-                .map(code -> code == HttpResponseStatus.NO_CONTENT.code() || StringUtils.isEmpty(response.getBody()))
-                .orElse(false);
-    }
-
-    private MultiMap buildHeaders(BidRequest request) {
-        final MultiMap headers = HttpUtil.headers();
-
-        Optional.ofNullable(request)
-                .map(BidRequest::getDevice)
-                .ifPresentOrElse(device -> {
-                    final String lang = device.getLanguage();
-                    headers.add(HttpUtil.USER_AGENT_HEADER, device.getUa())
-                            .add(HttpUtil.ACCEPT_LANGUAGE_HEADER, lang != null ? lang : "en-US");
-
-                    Optional.of(device)
-                            .map(Device::getIp)
-                            .ifPresent(ip -> headers.add(HttpUtil.X_FORWARDED_FOR_HEADER, ip));
-
-                    Optional.of(device)
-                            .map(Device::getIpv6)
-                            .ifPresent(ip -> headers.add(HttpUtil.X_FORWARDED_FOR_HEADER, ip));
-                }, () -> headers.add(HttpUtil.ACCEPT_LANGUAGE_HEADER, "en-US"));
-
-        return headers;
     }
 }
