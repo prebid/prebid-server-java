@@ -84,9 +84,8 @@ public class AdverxoBidder implements Bidder<BidRequest> {
     }
 
     private String resolveEndpoint(ExtImpAdverxo extImp) {
-        final String adUnitId = String.valueOf(extImp.getAdUnitId());
         return endpointUrl
-                .replace(ADUNIT_MACROS_ENDPOINT, adUnitId == null ? "0" : adUnitId)
+                .replace(ADUNIT_MACROS_ENDPOINT, Objects.toString(extImp.getAdUnitId(), "0"))
                 .replace(AUTH_MACROS_ENDPOINT, HttpUtil.encodeUrl(StringUtils.defaultString(extImp.getAuth())));
     }
 
