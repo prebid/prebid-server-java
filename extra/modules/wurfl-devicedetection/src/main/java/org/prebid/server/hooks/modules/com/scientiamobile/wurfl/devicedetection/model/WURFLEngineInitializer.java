@@ -25,7 +25,6 @@ import java.util.stream.Collectors;
 @Builder
 public class WURFLEngineInitializer {
 
-    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(WURFLEngineInitializer.class);
     private WURFLDeviceDetectionConfigProperties configProperties;
 
     public WURFLEngine initWURFLEngine() {
