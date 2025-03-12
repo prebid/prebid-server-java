@@ -83,7 +83,12 @@ public class GumgumBidder implements Bidder<BidRequest> {
         for (Imp imp : bidRequest.getImp()) {
             try {
                 final ExtImpGumgum extImp = parseImpExt(imp);
-                modifiedImps.add(modifyImp(imp, extImp));
+
+                //extract AdUnitID also confirm for imp.tagId
+                String adUnitId = extractAdUnitId(imp);
+
+                //modify Imp to include AdUnitID in ext
+                modifiedImps.add(modifyImp(imp, extImp, adUnitId));
 
                 final String extZone = extImp.getZone();
                 if (StringUtils.isNotEmpty(extZone)) {
@@ -108,6 +113,13 @@ public class GumgumBidder implements Bidder<BidRequest> {
                 .build();
     }
 
+    private String extractAdUnitId(Imp imp) {
+        if (imp.getExt() != null && imp.getExt().has("adunitid")) {
+            return imp.getExt().get("adunitid").asText();
+        }
+        return null;
+    }
+
     private ExtImpGumgum parseImpExt(Imp imp) {
         try {
             return mapper.mapper().convertValue(imp.getExt(), GUMGUM_EXT_TYPE_REFERENCE).getBidder();
@@ -116,14 +128,22 @@ public class GumgumBidder implements Bidder<BidRequest> {
         }
     }
 
-    private Imp modifyImp(Imp imp, ExtImpGumgum extImp) {
+    private Imp modifyImp(Imp imp, ExtImpGumgum extImp, String adUnitId) {
         final Imp.ImpBuilder impBuilder = imp.toBuilder();
 
         final String product = extImp.getProduct();
+        ObjectNode updatedExt = imp.getExt();
+
         if (StringUtils.isNotEmpty(product)) {
-            final ObjectNode productExt = mapper.mapper().createObjectNode().put(REQUEST_EXT_PRODUCT, product);
-            impBuilder.ext(productExt);
+            updatedExt = mapper.mapper().createObjectNode().put(REQUEST_EXT_PRODUCT, product);
         }
+
+        //add Ad Unit ID to ext if available
+        if (StringUtils.isNotEmpty(adUnitId)) {
+            updatedExt.put("ad_unit_id", adUnitId);
+        }
+
+        impBuilder.ext(updatedExt);
 
         final Banner banner = imp.getBanner();
         if (banner != null) {
