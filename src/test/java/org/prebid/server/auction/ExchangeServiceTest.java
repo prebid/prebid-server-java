@@ -147,6 +147,8 @@ import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceStageOutcome;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAlternateBidderCodes;
+import org.prebid.server.settings.model.AccountAlternateBidderCodesBidder;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountEventsConfig;
@@ -166,6 +168,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
@@ -352,7 +355,7 @@ public class ExchangeServiceTest extends VertxTest {
                         false,
                         AuctionResponsePayloadImpl.of(invocation.getArgument(0)))));
 
-        given(bidsAdjuster.validateAndAdjustBids(any(), any(), any(), any()))
+        given(bidsAdjuster.validateAndAdjustBids(any(), any(), any()))
                 .willAnswer(invocation -> invocation.getArgument(0));
 
         given(mediaTypeProcessor.process(any(), anyString(), any(), any()))
@@ -3079,8 +3082,14 @@ public class ExchangeServiceTest extends VertxTest {
                                 .alternateBidderCodes(requestAlternateBidderCodes)
                                 .build())));
 
-        final ExtRequestPrebidAlternateBidderCodes accountAlternateBidderCodes =
-                ExtRequestPrebidAlternateBidderCodes.builder().enabled(true).build();
+        final AccountAlternateBidderCodes accountAlternateBidderCodes =
+                AccountAlternateBidderCodes.builder()
+                        .enabled(true)
+                        .bidders(Map.of("someBidder", AccountAlternateBidderCodesBidder.builder()
+                                .enabled(true)
+                                .allowedBidderCodes(Set.of("seat"))
+                                .build()))
+                        .build();
 
         final Account givenAccount = Account.builder()
                 .id("accountId")
@@ -3094,7 +3103,8 @@ public class ExchangeServiceTest extends VertxTest {
         target.holdAuction(givenRequestContext(bidRequest, givenAccount));
 
         // then
-        verify(bidsAdjuster).validateAndAdjustBids(any(), any(), any(), eq(requestAlternateBidderCodes));
+        verify(bidsAdjuster).validateAndAdjustBids(
+                any(), any(), argThat(aliases -> !aliases.isAllowedAlternateBidderCode("someBidder", "seat")));
     }
 
     @Test
@@ -3107,8 +3117,14 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder().build())));
 
-        final ExtRequestPrebidAlternateBidderCodes accountAlternateBidderCodes =
-                ExtRequestPrebidAlternateBidderCodes.builder().enabled(true).build();
+        final AccountAlternateBidderCodes accountAlternateBidderCodes =
+                AccountAlternateBidderCodes.builder()
+                        .enabled(true)
+                        .bidders(Map.of("someBidder", AccountAlternateBidderCodesBidder.builder()
+                                .enabled(true)
+                                .allowedBidderCodes(Set.of("seat"))
+                                .build()))
+                        .build();
 
         final Account givenAccount = Account.builder()
                 .id("accountId")
@@ -3122,7 +3138,9 @@ public class ExchangeServiceTest extends VertxTest {
         target.holdAuction(givenRequestContext(bidRequest, givenAccount));
 
         // then
-        verify(bidsAdjuster).validateAndAdjustBids(any(), any(), any(), eq(accountAlternateBidderCodes));
+        verify(bidsAdjuster).validateAndAdjustBids(
+                any(), any(), argThat(aliases -> aliases.isAllowedAlternateBidderCode("someBidder", "seat")));
+
     }
 
     @Test

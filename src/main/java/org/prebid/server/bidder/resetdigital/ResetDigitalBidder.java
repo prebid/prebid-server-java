@@ -10,6 +10,7 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.bidder.Bidder;
@@ -32,7 +33,6 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.resetdigital.ExtImpResetDigital;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
-import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
@@ -65,13 +65,7 @@ public class ResetDigitalBidder implements Bidder<ResetDigitalRequest> {
             try {
                 final ExtImpResetDigital extImp = parseImpExt(imp);
                 final ResetDigitalImp resetDigitalImp = makeImp(request, imp, extImp);
-                final HttpRequest<ResetDigitalRequest> httpRequest = BidderUtil.defaultRequest(
-                        makeRequest(request, resetDigitalImp),
-                        makeHeaders(request),
-                        endpointUrl,
-                        Set.of(resetDigitalImp.getImpId()),
-                        mapper);
-                requests.add(httpRequest);
+                requests.add(makeHttpRequest(request, resetDigitalImp));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -144,6 +138,19 @@ public class ResetDigitalBidder implements Bidder<ResetDigitalRequest> {
 
     private static boolean isValidSizeValue(Integer value) {
         return value != null && value > 0;
+    }
+
+    private HttpRequest<ResetDigitalRequest> makeHttpRequest(BidRequest request, ResetDigitalImp resetDigitalImp) {
+        final ResetDigitalRequest modifiedRequest = makeRequest(request, resetDigitalImp);
+
+        return HttpRequest.<ResetDigitalRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(endpointUrl)
+                .headers(makeHeaders(request))
+                .impIds(Set.of(resetDigitalImp.getImpId()))
+                .body(mapper.encodeToBytes(modifiedRequest))
+                .payload(modifiedRequest)
+                .build();
     }
 
     private static ResetDigitalRequest makeRequest(BidRequest request, ResetDigitalImp resetDigitalImp) {
