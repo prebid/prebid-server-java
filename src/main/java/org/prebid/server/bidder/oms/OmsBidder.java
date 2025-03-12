@@ -7,6 +7,7 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -74,7 +75,7 @@ public class OmsBidder implements Bidder<BidRequest> {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.withValues(extractBids(bidResponse));
-        } catch (DecodeException | PreBidException e) {
+        } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
@@ -116,7 +117,7 @@ public class OmsBidder implements Bidder<BidRequest> {
         final Integer duration = bid.getDur();
 
         return ExtBidPrebidVideo.of(
-                duration != null ? duration : 0,
+                ObjectUtils.defaultIfNull(duration, 0),
                 CollectionUtils.isNotEmpty(cat) ? cat.getFirst() : StringUtils.EMPTY
         );
     }
