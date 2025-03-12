@@ -11,7 +11,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -29,6 +28,7 @@ import org.prebid.server.util.HttpUtil;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -52,7 +52,6 @@ public class OguryBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
-        final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
         final List<BidderError> errors = new ArrayList<>();
 
         final List<Imp> modifiedImps = new ArrayList<>();
@@ -60,13 +59,10 @@ public class OguryBidder implements Bidder<BidRequest> {
 
         for (Imp imp : bidRequest.getImp()) {
             try {
-                final ObjectNode impExt = resolveImpExt(imp);
-                final ObjectNode impExtBidderHoist = resolveImpExtBidderHoist(impExt);
+                final Imp modifiedImp = modifyImp(imp, bidRequest);
 
-                final Imp modifiedImp = modifyImp(imp, bidRequest, impExtBidderHoist);
                 modifiedImps.add(modifiedImp);
-
-                if (hasOguryParams(impExtBidderHoist)) {
+                if (hasOguryParams(imp)) {
                     impsWithOguryParams.add(modifiedImp);
                 }
             } catch (PreBidException e) {
@@ -74,8 +70,7 @@ public class OguryBidder implements Bidder<BidRequest> {
             }
         }
 
-        final boolean isKeysValid = validateRequestKeys(bidRequest, impsWithOguryParams);
-        if (!isKeysValid) {
+        if (!isValidRequestKeys(bidRequest, impsWithOguryParams)) {
             errors.add(BidderError.badInput(
                     "Invalid request. assetKey/adUnitId or request.site.publisher.id required"));
             return Result.withErrors(errors);
@@ -86,28 +81,23 @@ public class OguryBidder implements Bidder<BidRequest> {
                 .build();
 
         final MultiMap headers = resolveHeaders(modifiedBidRequest.getDevice());
-        httpRequests.add(BidderUtil.defaultRequest(modifiedBidRequest, headers, endpointUrl, mapper));
+        final List<HttpRequest<BidRequest>> httpRequests = Collections.singletonList(
+                BidderUtil.defaultRequest(modifiedBidRequest, headers, endpointUrl, mapper));
 
         return Result.of(httpRequests, errors);
     }
 
-    private ObjectNode resolveImpExt(Imp imp) {
-        return Optional.of(imp).map(Imp::getExt).orElse(null);
+    private ObjectNode resolveImpExtBidderHoist(Imp imp) {
+        return (ObjectNode) imp.getExt().get(EXT_FIELD_BIDDER);
     }
 
-    private ObjectNode resolveImpExtBidderHoist(ObjectNode impExt) {
-        return (ObjectNode) Optional.ofNullable(impExt)
-                .map(ext -> ext.get(EXT_FIELD_BIDDER))
-                .orElse(null);
-    }
-
-    private Imp modifyImp(Imp imp, BidRequest bidRequest, ObjectNode impExtBidderHoist) {
+    private Imp modifyImp(Imp imp, BidRequest bidRequest) {
         final Price price = resolvePrice(imp, bidRequest);
         return imp.toBuilder()
                 .tagid(imp.getId())
                 .bidfloor(price.getValue())
                 .bidfloorcur(price.getCurrency())
-                .ext(modifyExt(imp.getExt(), impExtBidderHoist))
+                .ext(modifyExt(imp))
                 .build();
     }
 
@@ -128,42 +118,40 @@ public class OguryBidder implements Bidder<BidRequest> {
         return Price.of(BIDDER_CURRENCY, convertedPrice);
     }
 
-    private ObjectNode modifyExt(ObjectNode impExt, ObjectNode impExtBidderHoist) {
-        if (impExt == null || impExtBidderHoist == null) {
-            return impExt;
-        }
+    private ObjectNode modifyExt(Imp imp) {
+        final ObjectNode impExt = imp.getExt();
+        final ObjectNode impExtBidderHoist = resolveImpExtBidderHoist(imp);
 
         final ObjectNode modifiedImpExt = impExt.deepCopy();
-        impExtBidderHoist.fieldNames().forEachRemaining(field ->
-                modifiedImpExt.set(field, impExtBidderHoist.get(field)));
+        modifiedImpExt.setAll(impExtBidderHoist);
         modifiedImpExt.remove(EXT_FIELD_BIDDER);
 
         return modifiedImpExt;
     }
 
-    private boolean hasOguryParams(ObjectNode impExtBidderHoist) {
+    private boolean hasOguryParams(Imp imp) {
+        final ObjectNode impExtBidderHoist = resolveImpExtBidderHoist(imp);
+
         return impExtBidderHoist != null
                 && impExtBidderHoist.has(PREBID_FIELD_ASSET_KEY)
                 && impExtBidderHoist.has(PREBID_FIELD_ADUNIT_ID);
     }
 
-    private boolean validateRequestKeys(BidRequest request, List<Imp> impsWithOguryParams) {
-        return !CollectionUtils.isEmpty(impsWithOguryParams) && Optional.ofNullable(request.getSite())
+    private boolean isValidRequestKeys(BidRequest request, List<Imp> impsWithOguryParams) {
+        return !CollectionUtils.isEmpty(impsWithOguryParams) || Optional.ofNullable(request.getSite())
                 .map(Site::getPublisher)
                 .map(Publisher::getId)
-                .isEmpty();
+                .isPresent();
     }
 
     private MultiMap resolveHeaders(Device device) {
-        final MultiMap headers = HttpUtil.headers().add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
+        final MultiMap headers = HttpUtil.headers();
 
         if (device != null) {
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ACCEPT_LANGUAGE_HEADER, device.getLanguage());
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIpv6());
-        } else {
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ACCEPT_LANGUAGE_HEADER, "en-US");
         }
 
         return headers;
@@ -173,9 +161,6 @@ public class OguryBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final String body = httpCall.getResponse().getBody();
-            if (StringUtils.isEmpty(body)) {
-                return Result.empty();
-            }
 
             final BidResponse bidResponse = mapper.decodeValue(body, BidResponse.class);
 
@@ -224,7 +209,7 @@ public class OguryBidder implements Bidder<BidRequest> {
             case 3 -> BidType.audio;
             case 4 -> BidType.xNative;
             default -> throw new PreBidException(
-                    "Unsupported MType '%d', for impression '%s'".formatted(bid.getMtype(), bid.getImpid()));
+                    "Unsupported MType '%d', for impression '%s'".formatted(markupType, bid.getImpid()));
         };
     }
 }

@@ -93,7 +93,10 @@ public class OguryBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorWhenRequestDoesNotHaveOguryKeys() {
         // given
-        final BidRequest bidrequest = givenBidRequest(bidRequest -> bidRequest.imp(List.of(Imp.builder().build())));
+        final ObjectNode bidder = mapper.createObjectNode();
+        bidder.putIfAbsent("bidder", mapper.createObjectNode());
+        final BidRequest bidrequest = givenBidRequest(bidRequest ->
+                bidRequest.imp(List.of(Imp.builder().ext(bidder).build())));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidrequest);
@@ -155,19 +158,6 @@ public class OguryBidderTest extends VertxTest {
                     assertThat(error.getMessage())
                             .startsWith("Failed to decode: Unrecognized token 'invalid'");
                 });
-        assertThat(result.getBids()).isEmpty();
-    }
-
-    @Test
-    public void makeBidderResponseShouldReturnEmptyListIfBidResponseIsNull() {
-        // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null);
-
-        // when
-        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getBids()).isEmpty();
     }
 
@@ -301,6 +291,7 @@ public class OguryBidderTest extends VertxTest {
                         .ua("ua")
                         .ip("0.0.0.0")
                         .ipv6("ip6")
+                        .language("en-US")
                         .build())
                 .imp(List.of(Imp.builder()
                         .id("imp_id")
@@ -319,6 +310,7 @@ public class OguryBidderTest extends VertxTest {
                         .ua("ua")
                         .ip("0.0.0.0")
                         .ipv6("ip6")
+                        .language("en-US")
                         .build())
                 .imp(List.of(Imp.builder()
                         .id("imp_id")
