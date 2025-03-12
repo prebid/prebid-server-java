@@ -42,7 +42,6 @@ class Prebid {
     PrebidModulesConfig modules
     PrebidAnalytics analytics
     StoredAuctionResponse storedAuctionResponse
-    @JsonProperty("alternatebiddercodes")
     AlternateBidderCodes alternateBidderCodes
     PaaFormat paaFormat
 

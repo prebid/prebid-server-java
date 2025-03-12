@@ -1,5 +1,6 @@
 package org.prebid.server.functional.model.config
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.databind.annotation.JsonNaming
 import groovy.transform.EqualsAndHashCode
@@ -13,4 +14,6 @@ class BidderConfig {
 
     Boolean enabled
     List<BidderName> allowedBidderCodes
+    @JsonProperty("allowed-bidder-codes")
+    List<BidderName> allowedBidderCodesKebabCase
 }
