@@ -38,44 +38,27 @@ The module identifies publishers through the following fields:
 
 In order to compile the WURFL module in the PBS Java server bundle, you must follow these steps:
 
-1 - Download the WURFL Onsite Java API (both JAR and POM files) from the ScientiaMobile private repository using this URL
-https://maven.scientiamobile.com/repository/wurfl-onsite/com/scientiamobile/wurfl/wurfl/<api_version>/wurfl-<api_version>.jar
-https://maven.scientiamobile.com/repository/wurfl-onsite/com/scientiamobile/wurfl/wurfl/<api_version>/wurfl-<api_version>.pom
-You have to provide your ScientiaMobile credentials.
-  
-2 - install it in your local Maven repository
+1 - Change the URL in the `<repository>` tag in the module's `pom.xml` file to the ScientiaMobile Maven repository URL:
 
-```bash
-mvn install:install-file \
-    -Dfile=<path-to-your-wurfl-api-jar-file> \
-    -DgroupId=com.scientiamobile.wurfl \
-    -DartifactId=wurfl \
-    -Dversion=<wurfl.version> \
-    -Dpackaging=jar \
-    -DpomFile=<path-to-your-wurfl-api-pom-file>
-```
+`https://maven.scientiamobile.com/repository/wurfl-onsite/`
 
-3 - add the WURFL Onsite Java API dependency in the WURFL-devicedetection module's `pom.xml`:
+The repository is private and requires authentication: to set it up please check the paragraph
+"Configuring your Builds to work with ScientiaMobile's Private Maven Repository"
+[on this page](https://docs.scientiamobile.com/documentation/onsite/onsite-java-api).
 
-```xml
-<dependency>
-    <groupId>com.scientiamobile.wurfl</groupId>
-    <artifactId>wurfl</artifactId>
-    <version>${wurfl.version}</version>
-</dependency>
-```
-If the WURFL API dependency is not added, the module will compile a demo version that returns sample data, allowing basic testing without an WURFL Onsite Java API license.
+2 - Change the `artfactId` value in the module's  `pom.xml` from `wurfl-mock` to `wurfl`
 
-4 - Delete the `com` directory inside `extra/modules/WURFL-devicedetection/src/main/java`, which contains the WURFL Java API 
-demo implementation to prevent classloader issues.
+3 - Update the `wurfl.version` property value to the latest WURFL Onsite Java API version available. 
 
-5 - Build the Prebid Server Java bundle with the WURFL module using the following command:
+
+When the `pom.xml` references the mock API artifact, the module will compile a demo version that returns sample data, 
+allowing basic testing without an WURFL Onsite Java API license.
+
+4 - Build the Prebid Server Java bundle with the WURFL module using the following command:
 
 ```bash
 mvn clean package --file extra/pom.xml
 ```
-**NOTE** - For further automation of WURFL API dependency usage, please check the paragraph
-"Configuring your Builds to work with ScientiaMobile's Private Maven Repository" [on this page](https://docs.scientiamobile.com/documentation/onsite/onsite-java-api).
 
 ### Configuring the WURFL Module
 
