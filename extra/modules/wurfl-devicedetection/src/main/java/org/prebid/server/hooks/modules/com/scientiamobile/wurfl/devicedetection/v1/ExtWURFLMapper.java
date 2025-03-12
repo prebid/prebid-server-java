@@ -46,11 +46,20 @@ public class ExtWURFLMapper {
                         .forEach(entry -> wurflNode.put(entry.getKey(), entry.getValue()));
 
                 virtualCaps.stream()
-                        .map(vc -> Map.entry(vc, wurflDevice.getVirtualCapability(vc)))
-                        .filter(entry -> Objects.nonNull(entry.getValue()))
+                        .map(vc -> {
+                            try {
+                                return Map.entry(vc, wurflDevice.getVirtualCapability(vc));
+                            } catch (Exception e) {
+
+                                log.warn("Could not fetch virtual capability " + vc);
+                                return null;
+                            }
+                        })
+                        .filter(Objects::nonNull)
                         .forEach(entry -> wurflNode.put(entry.getKey(), entry.getValue()));
             }
         } catch (Exception e) {
+            e.printStackTrace();
             log.error("Exception while updating EXT");
         }
 
