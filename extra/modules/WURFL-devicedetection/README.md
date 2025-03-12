@@ -36,7 +36,7 @@ The module identifies publishers through the following fields:
 
 ### Building WURFL Module with a licensed WURFL Onsite Java API
 
-In order to compile the WURFL module in the PBS Java server bundle, you must follow these steps:
+In order to compile the WURFL module in the PBS Java server bundle using a licensed WURFL API, you must follow these steps:
 
 1 - Change the URL in the `<repository>` tag in the module's `pom.xml` file to the ScientiaMobile Maven repository URL:
 
