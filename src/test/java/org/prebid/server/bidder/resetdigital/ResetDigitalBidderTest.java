@@ -4,14 +4,17 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
-import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
+import com.iab.openrtb.response.BidResponse;
+import com.iab.openrtb.response.SeatBid;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -19,484 +22,484 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.bidder.resetdigital.request.ResetDigitalImp;
-import org.prebid.server.bidder.resetdigital.request.ResetDigitalImpMediaType;
-import org.prebid.server.bidder.resetdigital.request.ResetDigitalImpMediaTypes;
-import org.prebid.server.bidder.resetdigital.request.ResetDigitalImpZone;
-import org.prebid.server.bidder.resetdigital.request.ResetDigitalRequest;
-import org.prebid.server.bidder.resetdigital.request.ResetDigitalSite;
-import org.prebid.server.bidder.resetdigital.response.ResetDigitalBid;
-import org.prebid.server.bidder.resetdigital.response.ResetDigitalResponse;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.resetdigital.ExtImpResetDigital;
+import org.prebid.server.currency.CurrencyConversionService;
+import org.prebid.server.exception.PreBidException;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Set;
 import java.util.function.UnaryOperator;
-import java.util.stream.Stream;
 
+import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.AssertionsForClassTypes.tuple;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.BDDMockito.given;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.audio;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
-import static org.prebid.server.util.HttpUtil.ACCEPT_HEADER;
-import static org.prebid.server.util.HttpUtil.ACCEPT_LANGUAGE_HEADER;
-import static org.prebid.server.util.HttpUtil.APPLICATION_JSON_CONTENT_TYPE;
-import static org.prebid.server.util.HttpUtil.CONTENT_TYPE_HEADER;
-import static org.prebid.server.util.HttpUtil.REFERER_HEADER;
-import static org.prebid.server.util.HttpUtil.USER_AGENT_HEADER;
-import static org.prebid.server.util.HttpUtil.X_FORWARDED_FOR_HEADER;
-import static org.prebid.server.util.HttpUtil.X_REAL_IP_HEADER;
-import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
 
+@ExtendWith(MockitoExtension.class)
 public class ResetDigitalBidderTest extends VertxTest {
 
     public static final String ENDPOINT_URL = "https://test.endpoint.com";
+
+    @Mock
+    private CurrencyConversionService currencyConversionService;
 
     private ResetDigitalBidder target;
 
     @BeforeEach
     public void setUp() {
-        target = new ResetDigitalBidder(ENDPOINT_URL, jacksonMapper);
+        target = new ResetDigitalBidder(ENDPOINT_URL, currencyConversionService, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException().isThrownBy(() ->
-                new ResetDigitalBidder("invalid_url", jacksonMapper));
+                new ResetDigitalBidder("invalid_url", currencyConversionService, jacksonMapper));
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
+    public void makeHttpRequestShouldReturnEmptyResponseIfAbsentAnyTypeInImp() {
         // given
-        final BidRequest bidRequest = givenBidRequest(
-                imp -> imp.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
-
-        // when
-        final Result<List<HttpRequest<ResetDigitalRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1).allSatisfy(bidderError -> {
-            assertThat(bidderError.getType()).isEqualTo(BidderError.Type.bad_input);
-            assertThat(bidderError.getMessage()).startsWith("Cannot deserialize value");
-        });
-    }
-
-    @Test
-    public void makeHttpRequestsShouldMakeOneRequestPerImp() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                imp -> imp.id("givenImp1"),
-                imp -> imp.id("givenImp2"),
-                imp -> imp.id("givenImp3"));
-
-        //when
-        final Result<List<HttpRequest<ResetDigitalRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        //then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(3)
-                .extracting(HttpRequest::getPayload)
-                .flatExtracting(ResetDigitalRequest::getImps)
-                .extracting(ResetDigitalImp::getImpId)
-                .containsExactlyInAnyOrder("givenImp1", "givenImp2", "givenImp3");
-
-        assertThat(result.getValue()).hasSize(3)
-                .extracting(HttpRequest::getImpIds)
-                .containsExactlyInAnyOrder(Set.of("givenImp1"), Set.of("givenImp2"), Set.of("givenImp3"));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldHaveCorrectUri() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(imp -> imp.id("givenImp"));
-
-        //when
-        final Result<List<HttpRequest<ResetDigitalRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        //then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(HttpRequest::getUri)
-                .containsExactlyInAnyOrder(ENDPOINT_URL);
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnExpectedHeaders() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(identity()).toBuilder()
-                .device(Device.builder().ip("ip").ua("ua").language("lang").build())
-                .site(Site.builder().page("page").build())
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(impBuilder -> impBuilder.banner(null))))
                 .build();
 
         // when
-        final Result<List<HttpRequest<ResetDigitalRequest>>> result = target.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(1).first()
-                .extracting(HttpRequest::getHeaders)
-                .satisfies(headers -> {
-                    assertThat(headers.get(CONTENT_TYPE_HEADER)).isEqualTo(APPLICATION_JSON_CONTENT_TYPE);
-                    assertThat(headers.get(ACCEPT_HEADER)).isEqualTo(APPLICATION_JSON_VALUE);
-                    assertThat(headers.get(USER_AGENT_HEADER)).isEqualTo("ua");
-                    assertThat(headers.get(ACCEPT_LANGUAGE_HEADER)).isEqualTo("lang");
-                    assertThat(headers.get(X_FORWARDED_FOR_HEADER)).isEqualTo("ip");
-                    assertThat(headers.get(X_REAL_IP_HEADER)).isEqualTo("ip");
-                    assertThat(headers.get(REFERER_HEADER)).isEqualTo("page");
+        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getValue()).hasSize(0);
+    }
+
+    @Test
+    public void makeHttpRequestShouldReturnEmptyResponseIfxNativeImpTypePresent() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(impBuilder -> impBuilder.banner(null)
+                        .xNative(Native.builder().build()))))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getValue()).hasSize(0);
+    }
+
+    @Test
+    public void makeHttpRequestShouldReturnSeparateResponseWithBannerAndVideoAndAudioImp() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(impBuilder -> impBuilder
+                        .audio(Audio.builder().build())
+                        .video(Video.builder().build()))))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getValue()).hasSize(3);
+        assertThat(result.getValue().get(0))
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getImp)
+                .extracting(a -> a.getFirst())
+                .extracting(Imp::getBanner)
+                .isNotNull();
+
+        assertThat(result.getValue().get(1))
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getImp)
+                .extracting(a -> a.getFirst())
+                .extracting(Imp::getVideo)
+                .isNotNull();
+
+        assertThat(result.getValue().get(2))
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getImp)
+                .extracting(a -> a.getFirst())
+                .extracting(Imp::getAudio)
+                .isNotNull();
+    }
+
+    @Test
+    public void makeHttpRequestShouldReturnSeparateResponseWithBannerAndVideoImp() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(impBuilder -> impBuilder
+                        .video(Video.builder().build()))))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getValue()).hasSize(2);
+        assertThat(result.getValue().get(0))
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getImp)
+                .extracting(a -> a.getFirst())
+                .extracting(Imp::getBanner)
+                .isNotNull();
+
+        assertThat(result.getValue().get(1))
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getImp)
+                .extracting(a -> a.getFirst())
+                .extracting(Imp::getVideo)
+                .isNotNull();
+    }
+
+    @Test
+    public void makeHttpRequestShouldReturnSeparateResponseWithBannerAndAudioImp() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(impBuilder -> impBuilder
+                        .audio(Audio.builder().build()))))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getValue()).hasSize(2);
+        assertThat(result.getValue().get(0))
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getImp)
+                .extracting(a -> a.getFirst())
+                .extracting(Imp::getBanner)
+                .isNotNull();
+
+        assertThat(result.getValue().get(1))
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getImp)
+                .extracting(a -> a.getFirst())
+                .extracting(Imp::getAudio)
+                .isNotNull();
+    }
+
+    @Test
+    public void makeHttpRequestShouldReturnSeparateResponseWithVideoAndAudioImp() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(impBuilder -> impBuilder
+                        .banner(null)
+                        .video(Video.builder().build())
+                        .audio(Audio.builder().build()))))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getValue()).hasSize(2);
+        assertThat(result.getValue().get(0))
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getImp)
+                .extracting(a -> a.getFirst())
+                .extracting(Imp::getVideo)
+                .isNotNull();
+
+        assertThat(result.getValue().get(1))
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getImp)
+                .extracting(a -> a.getFirst())
+                .extracting(Imp::getAudio)
+                .isNotNull();
+    }
+
+    @Test
+    public void makeHttpRequestShouldReturnResponseOnlyWithBannerImp() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(identity())))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .allSatisfy(imp -> {
+                    assertThat(imp.getBanner()).isNotNull();
+                    assertThat(imp.getVideo()).isNull();
+                    assertThat(imp.getAudio()).isNull();
                 });
-        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnExpectedHeadersWhenDeviceAndSiteAreNotPresent() {
+    public void makeHttpRequestShouldReturnResponseOnlyWithVideoImp() {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity());
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(impBuilder -> impBuilder.banner(null)
+                        .video(Video.builder().build()))))
+                .build();
 
         // when
-        final Result<List<HttpRequest<ResetDigitalRequest>>> result = target.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(1).first()
-                .extracting(HttpRequest::getHeaders)
-                .satisfies(headers -> {
-                    assertThat(headers.get(CONTENT_TYPE_HEADER)).isEqualTo(APPLICATION_JSON_CONTENT_TYPE);
-                    assertThat(headers.get(ACCEPT_HEADER)).isEqualTo(APPLICATION_JSON_VALUE);
-                    assertThat(headers.get(USER_AGENT_HEADER)).isNull();
-                    assertThat(headers.get(ACCEPT_LANGUAGE_HEADER)).isNull();
-                    assertThat(headers.get(X_FORWARDED_FOR_HEADER)).isNull();
-                    assertThat(headers.get(X_REAL_IP_HEADER)).isNull();
-                    assertThat(headers.get(REFERER_HEADER)).isNull();
+        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .allSatisfy(imp -> {
+                    assertThat(imp.getBanner()).isNull();
+                    assertThat(imp.getVideo()).isNotNull();
+                    assertThat(imp.getAudio()).isNull();
                 });
-        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnBannerRequestFromBannerImp() {
+    public void makeHttpRequestShouldReturnResponseOnlyWithAudioImp() {
         // given
-        final BidRequest bidRequest = givenBidRequest(imp -> imp
-                .id("impId")
-                .banner(Banner.builder().w(1).h(2).build()))
-                .toBuilder()
-                .id("requestId")
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(impBuilder -> impBuilder.banner(null)
+                        .audio(Audio.builder().build()))))
                 .build();
-
-        //when
-        final Result<List<HttpRequest<ResetDigitalRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        //then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(HttpRequest::getPayload)
-                .flatExtracting(ResetDigitalRequest::getImps)
-                .containsExactlyInAnyOrder(ResetDigitalImp.builder()
-                        .impId("impId")
-                        .bidId("requestId")
-                        .zoneId(ResetDigitalImpZone.of("placementId"))
-                        .mediaTypes(ResetDigitalImpMediaTypes.banner(ResetDigitalImpMediaType.builder()
-                                .sizes(List.of(List.of(1, 2)))
-                                .build()))
-                        .build());
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnVideoRequestFromVideoImp() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(imp -> imp
-                .id("impId")
-                .banner(null)
-                .video(Video.builder().w(1).h(2).mimes(List.of("mime1", "mime2")).build()))
-                .toBuilder()
-                .id("requestId")
-                .build();
-
-        //when
-        final Result<List<HttpRequest<ResetDigitalRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        //then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(HttpRequest::getPayload)
-                .flatExtracting(ResetDigitalRequest::getImps)
-                .containsExactlyInAnyOrder(ResetDigitalImp.builder()
-                        .impId("impId")
-                        .bidId("requestId")
-                        .zoneId(ResetDigitalImpZone.of("placementId"))
-                        .mediaTypes(ResetDigitalImpMediaTypes.video(ResetDigitalImpMediaType.builder()
-                                .sizes(List.of(List.of(1, 2)))
-                                .mimes(List.of("mime1", "mime2"))
-                                .build()))
-                        .build());
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnAudioRequestFromAudioImp() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(imp -> imp
-                .id("impId")
-                .banner(null)
-                .audio(Audio.builder().mimes(List.of("mime1", "mime2")).build()))
-                .toBuilder()
-                .id("requestId")
-                .build();
-
-        //when
-        final Result<List<HttpRequest<ResetDigitalRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        //then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(HttpRequest::getPayload)
-                .flatExtracting(ResetDigitalRequest::getImps)
-                .containsExactlyInAnyOrder(ResetDigitalImp.builder()
-                        .impId("impId")
-                        .bidId("requestId")
-                        .zoneId(ResetDigitalImpZone.of("placementId"))
-                        .mediaTypes(ResetDigitalImpMediaTypes.audio(ResetDigitalImpMediaType.builder()
-                                .mimes(List.of("mime1", "mime2"))
-                                .build()))
-                        .build());
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnFailWhenImpIsNative() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(imp -> imp
-                .id("impId")
-                .banner(null)
-                .xNative(Native.builder().build()))
-                .toBuilder()
-                .id("requestId")
-                .build();
-
-        //when
-        final Result<List<HttpRequest<ResetDigitalRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        //then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1).allSatisfy(bidderError -> {
-            assertThat(bidderError.getType()).isEqualTo(BidderError.Type.bad_input);
-            assertThat(bidderError.getMessage()).isEqualTo("Banner, video or audio must be present in the imp impId");
-        });
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnCorrectSite() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(identity())
-                .toBuilder()
-                .site(Site.builder().domain("domain").page("page").build())
-                .build();
-
-        //when
-        final Result<List<HttpRequest<ResetDigitalRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        //then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(HttpRequest::getPayload)
-                .flatExtracting(ResetDigitalRequest::getSite)
-                .containsExactlyInAnyOrder(ResetDigitalSite.builder()
-                        .referrer("page")
-                        .domain("domain")
-                        .build());
-    }
-
-    @Test
-    public void makeBidsShouldReturnErrorWhenResponseCanNotBeParsed() {
-        // given
-        final BidderCall<ResetDigitalRequest> httpCall = givenHttpCall("invalid");
 
         // when
-        final Result<List<BidderBid>> actual = target.makeBids(httpCall, null);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(actual.getValue()).isEmpty();
-        assertThat(actual.getErrors()).hasSize(1)
+        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .allSatisfy(imp -> {
+                    assertThat(imp.getBanner()).isNull();
+                    assertThat(imp.getVideo()).isNull();
+                    assertThat(imp.getAudio()).isNotNull();
+                });
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
-                    assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token 'invalid':");
                     assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token");
                 });
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
-    public void makeBidsShouldReturnEmptyBidsWhenResponseDoesNotHaveBids() throws JsonProcessingException {
+    public void makeHttpRequestsShouldConvertCurrencyIfRequestCurrencyDoesNotMatchBidderCurrency() {
         // given
-        final BidderCall<ResetDigitalRequest> httpCall = givenHttpCall(givenBidResponse());
+        given(currencyConversionService.convertCurrency(any(), any(), anyString(), anyString()))
+                .willReturn(BigDecimal.TEN);
+
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.bidfloor(BigDecimal.ONE).bidfloorcur("EUR"));
 
         // when
-        final Result<List<BidderBid>> actual = target.makeBids(httpCall, null);
-
-        // then
-        assertThat(actual.getValue()).isEmpty();
-        assertThat(actual.getErrors())
-                .containsOnly(BidderError.badServerResponse("expected exactly one bid in the response, but got 0"));
-    }
-
-    @Test
-    public void makeBidsShouldReturnEmptyBidsWhenResponseHasMoreThanOneBid() throws JsonProcessingException {
-        // given
-        final BidderCall<ResetDigitalRequest> httpCall = givenHttpCall(givenBidResponse(identity(), identity()));
-
-        // when
-        final Result<List<BidderBid>> actual = target.makeBids(httpCall, null);
-
-        // then
-        assertThat(actual.getValue()).isEmpty();
-        assertThat(actual.getErrors())
-                .containsOnly(BidderError.badServerResponse("expected exactly one bid in the response, but got 2"));
-    }
-
-    @Test
-    public void makeBidsShouldReturnEmptyBidsWhenResponseDoesNotHaveBidThatMatchesAnyImp()
-            throws JsonProcessingException {
-
-        // given
-        final BidderCall<ResetDigitalRequest> httpCall = givenHttpCall(givenBidResponse(bid -> bid.impId("impId1")));
-
-        // when
-        final Result<List<BidderBid>> actual = target.makeBids(httpCall, givenBidRequest(imp -> imp.id("impId2")));
-
-        // then
-        assertThat(actual.getValue()).isEmpty();
-        assertThat(actual.getErrors())
-                .containsOnly(BidderError.badServerResponse("no matching impression found for ImpID impId1"));
-    }
-
-    @Test
-    public void makeBidsShouldReturnBannerBidSuccessfully() throws JsonProcessingException {
-        // given
-        final BidderCall<ResetDigitalRequest> httpCall = givenHttpCall(givenBidResponse(bid -> bid
-                .cpm(BigDecimal.TEN)
-                .cid("cid")
-                .html("html")
-                .crid("crid")
-                .seat("seat")
-                .impId("impId")
-                .bidId("bidId")
-                .w("1")
-                .h("2")));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(
-                httpCall,
-                givenBidRequest(imp -> imp.id("impId").banner(Banner.builder().build())));
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        final Bid expectedBid = Bid.builder()
-                .adm("html")
-                .price(BigDecimal.TEN)
-                .cid("cid")
-                .w(1)
-                .h(2)
-                .impid("impId")
-                .id("bidId")
-                .crid("crid")
-                .build();
-        assertThat(result.getValue()).containsExactly(BidderBid.of(expectedBid, banner, "seat", "USD"));
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBidfloor, Imp::getBidfloorcur)
+                .containsOnly(tuple(BigDecimal.TEN, "USD"));
     }
 
     @Test
-    public void makeBidsShouldReturnVideoBidSuccessfully() throws JsonProcessingException {
+    public void makeHttpRequestsShouldReturnErrorMessageOnFailedCurrencyConversion() {
         // given
-        final BidderCall<ResetDigitalRequest> httpCall = givenHttpCall(givenBidResponse(bid -> bid
-                .cpm(BigDecimal.TEN)
-                .cid("cid")
-                .html("html")
-                .crid("crid")
-                .seat("seat")
-                .impId("impId")
-                .bidId("bidId")
-                .w("1")
-                .h("2")));
+        given(currencyConversionService.convertCurrency(any(), any(), anyString(), anyString()))
+                .willThrow(PreBidException.class);
+
+        final BidRequest bidRequest = givenBidRequest(
+                impCustomizer -> impCustomizer.bidfloor(BigDecimal.ONE).bidfloorcur("EUR"));
 
         // when
-        final Result<List<BidderBid>> result = target.makeBids(
-                httpCall,
-                givenBidRequest(imp -> imp.id("impId").video(Video.builder().build())));
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
-        final Bid expectedBid = Bid.builder()
-                .adm("html")
-                .price(BigDecimal.TEN)
-                .cid("cid")
-                .w(1)
-                .h(2)
-                .impid("impId")
-                .id("bidId")
-                .crid("crid")
-                .build();
-        assertThat(result.getValue()).containsExactly(BidderBid.of(expectedBid, video, "seat", "USD"));
+        assertThat(result.getErrors()).allSatisfy(bidderError -> {
+            assertThat(bidderError.getType())
+                    .isEqualTo(BidderError.Type.bad_input);
+            assertThat(bidderError.getMessage())
+                    .isEqualTo("Unable to convert provided bid floor currency from EUR to USD for imp `123`");
+        });
     }
 
     @Test
-    public void makeBidsShouldReturnAudioBidSuccessfully() throws JsonProcessingException {
+    public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
-        final BidderCall<ResetDigitalRequest> httpCall = givenHttpCall(givenBidResponse(bid -> bid
-                .cpm(BigDecimal.TEN)
-                .cid("cid")
-                .html("html")
-                .crid("crid")
-                .seat("seat")
-                .impId("impId")
-                .bidId("bidId")
-                .w("1")
-                .h("2")));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = target.makeBids(
-                httpCall,
-                givenBidRequest(imp -> imp.id("impId").audio(Audio.builder().build())));
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        final Bid expectedBid = Bid.builder()
-                .adm("html")
-                .price(BigDecimal.TEN)
-                .cid("cid")
-                .w(1)
-                .h(2)
-                .impid("impId")
-                .id("bidId")
-                .crid("crid")
-                .build();
-        assertThat(result.getValue()).containsExactly(BidderBid.of(expectedBid, audio, "seat", "USD"));
+        assertThat(result.getValue()).isEmpty();
     }
 
-    private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder>... impCustomizers) {
-        return BidRequest.builder()
-                .imp(Stream.of(impCustomizers).map(ResetDigitalBidderTest::givenImp).toList())
+    @Test
+    public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
+                mapper.writeValueAsString(BidResponse.builder().build()));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnBannerBidIfBannerIsPresentInRequestImp() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnVideoBidIfVideoIsPresentInRequestImp() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").video(Video.builder().build()).build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnAudioBidIfAudioIsPresentInRequestImp() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").audio(Audio.builder().build()).build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), audio, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorBidIfBidTypeIsAbsentInRequestImp() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .extracting(BidderError::getMessage)
+                .containsExactly("Failed to find banner/video/audio impression 123");
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorIfBidCurIsNotUsd() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(givenBidResponse(identity()).toBuilder().cur("EUR").build()));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .extracting(BidderError::getMessage)
+                .containsExactly("Bidder support only USD currency");
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
+                                              UnaryOperator<Imp.ImpBuilder> impCustomizer) {
+
+        return bidRequestCustomizer.apply(BidRequest.builder()
+                        .imp(singletonList(givenImp(impCustomizer))))
                 .build();
+    }
+
+    private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
+        return givenBidRequest(identity(), impCustomizer);
     }
 
     private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                        .id("impId")
-                        .banner(Banner.builder().w(23).h(25).build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(
-                                null,
-                                ExtImpResetDigital.of("placementId")))))
+                        .id("123")
+                        .banner(Banner.builder().w(23).h(25).build()))
                 .build();
     }
 
-    private static BidderCall<ResetDigitalRequest> givenHttpCall(String body) {
-        return BidderCall.succeededHttp(
-                HttpRequest.<ResetDigitalRequest>builder().payload(null).build(),
-                HttpResponse.of(200, null, body),
-                null);
+    private static BidResponse givenBidResponse(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
+        return BidResponse.builder()
+                .seatbid(singletonList(SeatBid.builder().bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
+                        .build()))
+                .cur("USD")
+                .build();
     }
 
-    private String givenBidResponse(UnaryOperator<ResetDigitalBid.ResetDigitalBidBuilder>... bidCustomizers)
-            throws JsonProcessingException {
-
-        return mapper.writeValueAsString(ResetDigitalResponse.of(
-                Stream.of(bidCustomizers)
-                        .map(bidCustomizer -> bidCustomizer.apply(ResetDigitalBid.builder()).build())
-                        .toList()));
+    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return BidderCall.succeededHttp(
+                HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
+                HttpResponse.of(200, null, body),
+                null);
     }
 }
