@@ -7,7 +7,8 @@
           "id": "bid_id",
           "impid": "imp_id",
           "price": 3.33,
-          "crid": "creativeId"
+          "crid": "creativeId",
+          "mtype": 1
         }
       ]
     }
