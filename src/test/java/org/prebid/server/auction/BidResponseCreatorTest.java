@@ -1591,11 +1591,11 @@ public class BidResponseCreatorTest extends VertxTest {
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(
                         tuple("hb_pb", "5.00"),
-                        tuple("hb_pb_bidder1", "5.00"),
-                        tuple("hb_bidder", "bidder1"),
-                        tuple("hb_bidder_bidder1", "bidder1"),
+                        tuple("hb_pb_seat", "5.00"),
+                        tuple("hb_bidder", "seat"),
+                        tuple("hb_bidder_seat", "seat"),
                         tuple("hb_env", "mobile-app"),
-                        tuple("hb_env_bidder1", "mobile-app"));
+                        tuple("hb_env_seat", "mobile-app"));
 
         verify(coreCacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }
@@ -1627,11 +1627,11 @@ public class BidResponseCreatorTest extends VertxTest {
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(
                         tuple("hb_pb", "5.00"),
-                        tuple("hb_pb_bidder1", "5.00"),
-                        tuple("hb_bidder", "bidder1"),
-                        tuple("hb_bidder_bidder1", "bidder1"),
+                        tuple("hb_pb_seat", "5.00"),
+                        tuple("hb_bidder", "seat"),
+                        tuple("hb_bidder_seat", "seat"),
                         tuple("hb_env", "amp"),
-                        tuple("hb_env_bidder1", "amp"));
+                        tuple("hb_env_seat", "amp"));
 
         verify(coreCacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }
@@ -1641,7 +1641,7 @@ public class BidResponseCreatorTest extends VertxTest {
         // given
         final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(5.67)).impid(IMP_ID).build();
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("someVeryLongBidderName",
-                givenSeatBid(BidderBid.of(bid, banner, "seat", "USD")), 100));
+                givenSeatBid(BidderBid.of(bid, banner, "someVeryLongSeatName", "USD")), 100));
 
         final AuctionContext auctionContext = givenAuctionContext(
                 givenBidRequest(
@@ -1679,10 +1679,10 @@ public class BidResponseCreatorTest extends VertxTest {
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(
                         tuple("hb_pb", "5.00"),
-                        tuple("hb_pb_someVeryLongBi", "5.00"),
-                        tuple("hb_bidder", "someVeryLongBidderName"),
-                        tuple("hb_bidder_someVeryLo", "someVeryLongBidderName"),
-                        tuple("hb_bidder_someVeryLo", "someVeryLongBidderName"));
+                        tuple("hb_pb_someVeryLongSe", "5.00"),
+                        tuple("hb_bidder", "someVeryLongSeatName"),
+                        tuple("hb_bidder_someVeryLo", "someVeryLongSeatName"),
+                        tuple("hb_bidder_someVeryLo", "someVeryLongSeatName"));
     }
 
     @Test
@@ -1701,7 +1701,7 @@ public class BidResponseCreatorTest extends VertxTest {
 
         final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(5.67)).impid(IMP_ID).build();
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("someVeryLongBidderName",
-                givenSeatBid(BidderBid.of(bid, banner, "seat", "USD")), 100));
+                givenSeatBid(BidderBid.of(bid, banner, "someVeryLongSeatName", "USD")), 100));
 
         final AuctionContext auctionContext = givenAuctionContext(
                 bidRequest,
@@ -1720,9 +1720,9 @@ public class BidResponseCreatorTest extends VertxTest {
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(
                         tuple("hb_pb", "5.00"),
-                        tuple("hb_pb_someVeryLongBi", "5.00"),
-                        tuple("hb_bidder", "someVeryLongBidderName"),
-                        tuple("hb_bidder_someVeryLo", "someVeryLongBidderName"));
+                        tuple("hb_pb_someVeryLongSe", "5.00"),
+                        tuple("hb_bidder", "someVeryLongSeatName"),
+                        tuple("hb_bidder_someVeryLo", "someVeryLongSeatName"));
     }
 
     @Test
@@ -1750,7 +1750,7 @@ public class BidResponseCreatorTest extends VertxTest {
 
         final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(5.67)).impid(IMP_ID).build();
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("someVeryLongBidderName",
-                givenSeatBid(BidderBid.of(bid, banner, "seat", "USD")), 100));
+                givenSeatBid(BidderBid.of(bid, banner, "someVeryLongSeatName", "USD")), 100));
 
         final AuctionContext auctionContext = givenAuctionContext(
                 bidRequest,
@@ -1769,15 +1769,16 @@ public class BidResponseCreatorTest extends VertxTest {
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(
                         tuple("hb_pb", "5.00"),
-                        tuple("hb_pb_someVeryLongBi", "5.00"),
-                        tuple("hb_bidder", "someVeryLongBidderName"),
-                        tuple("hb_bidder_someVeryLo", "someVeryLongBidderName"));
+                        tuple("hb_pb_someVeryLongSe", "5.00"),
+                        tuple("hb_bidder", "someVeryLongSeatName"),
+                        tuple("hb_bidder_someVeryLo", "someVeryLongSeatName"));
     }
 
     @Test
     public void shouldReduceAndNotPopulateTargetingKeywordsForExtraBidsWhenCodePrefixIsNotDefined() {
         // given
         final String bidder1 = "bidder1";
+        final String seat = "seat";
         final Map<String, MultiBidConfig> multiBidMap = singletonMap(bidder1, MultiBidConfig.of(bidder1, 3, null));
 
         final Bid bidder1Bid1 = Bid.builder().id("bidder1Bid1").price(BigDecimal.valueOf(3.67)).impid("i1").build();
@@ -1789,11 +1790,11 @@ public class BidResponseCreatorTest extends VertxTest {
         final List<BidderResponse> bidderResponses = singletonList(
                 BidderResponse.of(bidder1,
                         givenSeatBid(
-                                BidderBid.of(bidder1Bid1, banner, "seat", null),  // extra bid
-                                BidderBid.of(bidder1Bid2, banner, "seat", null),  // extra bid
-                                BidderBid.of(bidder1Bid3, banner, "seat", null),  // Will be removed by price
-                                BidderBid.of(bidder1Bid4, banner, "seat", null),
-                                BidderBid.of(bidder1Bid5, banner, "seat", null)),
+                                BidderBid.of(bidder1Bid1, banner, seat, null),  // extra bid
+                                BidderBid.of(bidder1Bid2, banner, seat, null),  // extra bid
+                                BidderBid.of(bidder1Bid3, banner, seat, null),  // Will be removed by price
+                                BidderBid.of(bidder1Bid4, banner, seat, null),
+                                BidderBid.of(bidder1Bid5, banner, seat, null)),
                         100));
 
         final AuctionContext auctionContext = givenAuctionContext(
@@ -1812,13 +1813,13 @@ public class BidResponseCreatorTest extends VertxTest {
                 .extracting(
                         Bid::getId,
                         bid -> toTargetingByKey(bid, "hb_bidder"),
-                        bid -> toTargetingByKey(bid, "hb_bidder_bidder1"),
+                        bid -> toTargetingByKey(bid, "hb_bidder_seat"),
                         BidResponseCreatorTest::getTargetingBidderCode)
                 .containsOnly(
-                        tuple("bidder1Bid4", bidder1, bidder1, bidder1),
+                        tuple("bidder1Bid4", seat, seat, bidder1),
                         tuple("bidder1Bid2", null, null, null),
                         tuple("bidder1Bid1", null, null, null),
-                        tuple("bidder1Bid5", bidder1, bidder1, null));
+                        tuple("bidder1Bid5", seat, seat, null));
 
         verify(coreCacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }
@@ -1862,7 +1863,7 @@ public class BidResponseCreatorTest extends VertxTest {
 
         final Map<String, String> expectedWinningBidTargetingMap = new HashMap<>();
         expectedWinningBidTargetingMap.put("hb_pb", "4.50");
-        expectedWinningBidTargetingMap.put("hb_bidder", bidder1);
+        expectedWinningBidTargetingMap.put("hb_bidder", "seat");
 
         // then
         assertThat(result.getSeatbid())
@@ -1880,6 +1881,7 @@ public class BidResponseCreatorTest extends VertxTest {
     public void shouldReduceAndPopulateTargetingKeywordsForExtraBidsWhenCodePrefixIsDefined() {
         // given
         final String bidder1 = "bidder1";
+        final String seat = "seat";
         final String codePrefix = "bN";
         final Map<String, MultiBidConfig> multiBidMap = singletonMap(bidder1,
                 MultiBidConfig.of(bidder1, 3, codePrefix));
@@ -1893,11 +1895,11 @@ public class BidResponseCreatorTest extends VertxTest {
         final List<BidderResponse> bidderResponses = singletonList(
                 BidderResponse.of(bidder1,
                         givenSeatBid(
-                                BidderBid.of(bidder1Bid1, banner, "seat", null),  // extra bid
-                                BidderBid.of(bidder1Bid2, banner, "seat", null),  // extra bid
-                                BidderBid.of(bidder1Bid3, banner, "seat", null),  // Will be removed by price
-                                BidderBid.of(bidder1Bid4, banner, "seat", null),
-                                BidderBid.of(bidder1Bid5, banner, "seat", null)),
+                                BidderBid.of(bidder1Bid1, banner, seat, null),  // extra bid
+                                BidderBid.of(bidder1Bid2, banner, seat, null),  // extra bid
+                                BidderBid.of(bidder1Bid3, banner, seat, null),  // Will be removed by price
+                                BidderBid.of(bidder1Bid4, banner, seat, null),
+                                BidderBid.of(bidder1Bid5, banner, seat, null)),
                         100));
 
         final AuctionContext auctionContext = givenAuctionContext(
@@ -1913,9 +1915,9 @@ public class BidResponseCreatorTest extends VertxTest {
         // then
         final Map<String, String> bidder1Bid4Targeting = new HashMap<>();
         bidder1Bid4Targeting.put("hb_pb", "5.00");
-        bidder1Bid4Targeting.put("hb_pb_" + bidder1, "5.00");
-        bidder1Bid4Targeting.put("hb_bidder_" + bidder1, bidder1);
-        bidder1Bid4Targeting.put("hb_bidder", bidder1);
+        bidder1Bid4Targeting.put("hb_pb_" + seat, "5.00");
+        bidder1Bid4Targeting.put("hb_bidder_" + seat, seat);
+        bidder1Bid4Targeting.put("hb_bidder", seat);
         final ObjectNode bidder1Bid4Ext = extWithTargeting(bidder1, bidder1Bid4Targeting);
         final Bid expectedBidder1Bid4 = bidder1Bid4.toBuilder().ext(bidder1Bid4Ext).build();
 
@@ -1935,9 +1937,9 @@ public class BidResponseCreatorTest extends VertxTest {
 
         final Map<String, String> bidder1Bid5Targeting = new HashMap<>();
         bidder1Bid5Targeting.put("hb_pb", "1.00");
-        bidder1Bid5Targeting.put("hb_pb_" + bidder1, "1.00");
-        bidder1Bid5Targeting.put("hb_bidder_" + bidder1, bidder1);
-        bidder1Bid5Targeting.put("hb_bidder", bidder1);
+        bidder1Bid5Targeting.put("hb_pb_" + seat, "1.00");
+        bidder1Bid5Targeting.put("hb_bidder_" + seat, seat);
+        bidder1Bid5Targeting.put("hb_bidder", seat);
         final ObjectNode bidder1Bid5Ext = extWithTargeting(null, bidder1Bid5Targeting);
         final Bid expectedBidder1Bid5 = bidder1Bid5.toBuilder().ext(bidder1Bid5Ext).build();
 
@@ -1956,10 +1958,10 @@ public class BidResponseCreatorTest extends VertxTest {
         final List<BidderResponse> bidderResponses = asList(
                 BidderResponse.of("bidder1",
                         givenSeatBid(
-                                BidderBid.of(firstBid, banner, "seat", null),
-                                BidderBid.of(secondBid, banner, "seat", null)), 100),
+                                BidderBid.of(firstBid, banner, "seat1", null),
+                                BidderBid.of(secondBid, banner, "seat1", null)), 100),
                 BidderResponse.of("bidder2",
-                        givenSeatBid(BidderBid.of(thirdBid, banner, "seat", null)), 111));
+                        givenSeatBid(BidderBid.of(thirdBid, banner, "seat2", null)), 111));
 
         final AuctionContext auctionContext = givenAuctionContext(
                 givenBidRequest(
@@ -1977,12 +1979,12 @@ public class BidResponseCreatorTest extends VertxTest {
                 .extracting(
                         Bid::getId,
                         bid -> toTargetingByKey(bid, "hb_bidder"),
-                        bid -> toTargetingByKey(bid, "hb_bidder_bidder1"),
-                        bid -> toTargetingByKey(bid, "hb_bidder_bidder2"))
+                        bid -> toTargetingByKey(bid, "hb_bidder_seat1"),
+                        bid -> toTargetingByKey(bid, "hb_bidder_seat2"))
                 .containsOnly(
-                        tuple("bidId1", "bidder1", "bidder1", null),
-                        tuple("bidId2", null, "bidder1", null),
-                        tuple("bidId3", "bidder2", null, "bidder2"));
+                        tuple("bidId1", "seat1", "seat1", null),
+                        tuple("bidId2", null, "seat1", null),
+                        tuple("bidId3", "seat2", null, "seat2"));
 
         verify(coreCacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }
@@ -2030,9 +2032,9 @@ public class BidResponseCreatorTest extends VertxTest {
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(
                         tuple("hb_pb", "5.000"),
-                        tuple("hb_bidder", "bidder1"),
-                        tuple("hb_pb_bidder1", "5.000"),
-                        tuple("hb_bidder_bidder1", "bidder1"));
+                        tuple("hb_bidder", "seat"),
+                        tuple("hb_pb_seat", "5.000"),
+                        tuple("hb_bidder_seat", "seat"));
 
         verify(coreCacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }
@@ -2066,17 +2068,17 @@ public class BidResponseCreatorTest extends VertxTest {
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(
                         tuple("hb_pb", "5.00"),
-                        tuple("hb_bidder", "bidder1"),
+                        tuple("hb_bidder", "seat"),
                         tuple("hb_cache_id", "cacheId"),
                         tuple("hb_uuid", "videoId"),
                         tuple("hb_cache_host", "testHost"),
                         tuple("hb_cache_path", "testPath"),
-                        tuple("hb_pb_bidder1", "5.00"),
-                        tuple("hb_bidder_bidder1", "bidder1"),
-                        tuple("hb_cache_id_bidder1", "cacheId"),
-                        tuple("hb_uuid_bidder1", "videoId"),
-                        tuple("hb_cache_host_bidder1", "testHost"),
-                        tuple("hb_cache_path_bidder1", "testPath"));
+                        tuple("hb_pb_seat", "5.00"),
+                        tuple("hb_bidder_seat", "seat"),
+                        tuple("hb_cache_id_seat", "cacheId"),
+                        tuple("hb_uuid_seat", "videoId"),
+                        tuple("hb_cache_host_seat", "testHost"),
+                        tuple("hb_cache_path_seat", "testPath"));
 
         verify(coreCacheService).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }
@@ -2550,9 +2552,9 @@ public class BidResponseCreatorTest extends VertxTest {
                 .extracting(
                         Bid::getId,
                         extractedBid -> toTargetingByKey(extractedBid, "hb_bidder"),
-                        extractedBid -> toTargetingByKey(extractedBid, "hb_bidder_bidder1"))
+                        extractedBid -> toTargetingByKey(extractedBid, "hb_bidder_seat"))
                 .containsOnly(
-                        tuple("bidId", null, "bidder1"));
+                        tuple("bidId", null, "seat"));
 
         verify(coreCacheService).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }
@@ -2596,9 +2598,9 @@ public class BidResponseCreatorTest extends VertxTest {
                 .extracting(
                         Bid::getId,
                         extractedBid -> toTargetingByKey(extractedBid, "hb_bidder"),
-                        extractedBid -> toTargetingByKey(extractedBid, "hb_bidder_bidder1"))
+                        extractedBid -> toTargetingByKey(extractedBid, "hb_bidder_seat"))
                 .containsOnly(
-                        tuple("bidId", "bidder1", null));
+                        tuple("bidId", "seat", null));
 
         verify(coreCacheService).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }
@@ -2615,8 +2617,8 @@ public class BidResponseCreatorTest extends VertxTest {
         final Bid secondBid = Bid.builder().id("bidId2").impid("impId2").price(BigDecimal.valueOf(5.67)).build();
 
         final List<BidderResponse> bidderResponses = asList(
-                BidderResponse.of("bidder1", givenSeatBid(BidderBid.of(firstBid, banner, "seat", null)), 99),
-                BidderResponse.of("bidder2", givenSeatBid(BidderBid.of(secondBid, banner, "seat", null)), 123));
+                BidderResponse.of("bidder1", givenSeatBid(BidderBid.of(firstBid, banner, "seat1", null)), 99),
+                BidderResponse.of("bidder2", givenSeatBid(BidderBid.of(secondBid, banner, "seat2", null)), 123));
 
         final AuctionContext auctionContext = givenAuctionContext(
                 bidRequest,
@@ -2634,10 +2636,10 @@ public class BidResponseCreatorTest extends VertxTest {
                 .extracting(
                         bid -> toTargetingByKey(bid, "hb_bidder"),
                         bid -> toTargetingByKey(bid, "hb_cache_id"),
-                        bid -> toTargetingByKey(bid, "hb_cache_id_bidder2"))
+                        bid -> toTargetingByKey(bid, "hb_cache_id_seat2"))
                 .containsOnly(
-                        tuple("bidder1", null, null),
-                        tuple("bidder2", "cacheId2", "cacheId2"));
+                        tuple("seat1", null, null),
+                        tuple("seat2", "cacheId2", "cacheId2"));
 
         verify(coreCacheService).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }
@@ -4129,9 +4131,9 @@ public class BidResponseCreatorTest extends VertxTest {
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(
                         tuple("hb_pb", "5.00"),
-                        tuple("hb_bidder", "bidder1"),
-                        tuple("hb_pb_bidder1", "5.00"),
-                        tuple("hb_bidder_bidder1", "bidder1"));
+                        tuple("hb_bidder", "seat"),
+                        tuple("hb_pb_seat", "5.00"),
+                        tuple("hb_bidder_seat", "seat"));
     }
 
     @Test
@@ -4172,9 +4174,9 @@ public class BidResponseCreatorTest extends VertxTest {
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(
                         tuple("hb_pb", "5.00"),
-                        tuple("hb_bidder", "bidder1"),
-                        tuple("hb_pb_bidder1", "5.00"),
-                        tuple("hb_bidder_bidder1", "bidder1"));
+                        tuple("hb_bidder", "seat"),
+                        tuple("hb_pb_seat", "5.00"),
+                        tuple("hb_bidder_seat", "seat"));
     }
 
     @Test
@@ -4243,9 +4245,9 @@ public class BidResponseCreatorTest extends VertxTest {
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(
                         tuple("hb_pb", "5.00"),
-                        tuple("hb_pb_bidder1", "5.00"),
-                        tuple("hb_bidder", "bidder1"),
-                        tuple("hb_bidder_bidder1", "bidder1"));
+                        tuple("hb_pb_seat", "5.00"),
+                        tuple("hb_bidder", "seat"),
+                        tuple("hb_bidder_seat", "seat"));
 
         final String expectedErrorMsg = "Key prefix value is dropped to default. "
                 + "Decrease custom prefix length or increase truncateattrchars by 30";
@@ -5367,6 +5369,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .bidType(bidType)
                 .targetingInfo(TargetingInfo.builder()
                         .bidderCode(bidder)
+                        .seat(seat)
                         .isTargetingEnabled(true)
                         .isWinningBid(isWinningBid)
                         .isBidderWinningBid(true)

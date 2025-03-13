@@ -775,12 +775,18 @@ public class BidResponseCreator {
                     : bidderCodePrefix == null ? null : bidderCodePrefix + (i + 1);
 
             final BidInfo bidInfo = bidderImpIdBidInfos.get(i);
+
+            final String targetingSeat = isFirstBid
+                    ? bidInfo.getSeat()
+                    : bidderCodePrefix == null ? null : bidderCodePrefix + (i + 1);
+
             final TargetingInfo targetingInfo = TargetingInfo.builder()
                     .isTargetingEnabled(targetingBidderCode != null)
                     .isBidderWinningBid(winningBidsByBidder.contains(bidInfo))
                     .isWinningBid(winningBids.contains(bidInfo))
                     .isAddTargetBidderCode(targetingBidderCode != null && multiBidSize > 1)
                     .bidderCode(targetingBidderCode)
+                    .seat(targetingSeat)
                     .build();
 
             final BidInfo modifiedBidInfo = bidInfo.toBuilder().targetingInfo(targetingInfo).build();
@@ -1520,16 +1526,16 @@ public class BidResponseCreator {
         final String videoCacheId = cacheInfo != null ? cacheInfo.getVideoCacheId() : null;
 
         final Map<String, String> targetingKeywords;
-        final String bidderCode = targetingInfo.getBidderCode();
         if (shouldIncludeTargetingInResponse(targeting, bidInfo.getTargetingInfo())) {
             final TargetingKeywordsCreator keywordsCreator = resolveKeywordsCreator(
                     bidType, targeting, bidRequest, account, bidWarnings);
 
             final boolean isWinningBid = targetingInfo.isWinningBid();
+            final String seat = targetingInfo.getSeat();
             final String categoryDuration = bidInfo.getCategory();
             targetingKeywords = keywordsCreator != null
                     ? keywordsCreator.makeFor(
-                    bid, bidderCode, isWinningBid, cacheId, bidType.getName(), videoCacheId, categoryDuration)
+                    bid, seat, isWinningBid, cacheId, bidType.getName(), videoCacheId, categoryDuration)
                     : null;
         } else {
             targetingKeywords = null;
@@ -1547,7 +1553,7 @@ public class BidResponseCreator {
                         .map(ExtBidPrebid::toBuilder)
                         .orElseGet(ExtBidPrebid::builder)
                         .targeting(MapUtils.isNotEmpty(targetingKeywords) ? targetingKeywords : null)
-                        .targetBidderCode(targetingInfo.isAddTargetBidderCode() ? bidderCode : null)
+                        .targetBidderCode(targetingInfo.isAddTargetBidderCode() ? targetingInfo.getBidderCode() : null)
                         .dealTierSatisfied(dealsTierSatisfied)
                         .cache(cache)
                         .passThrough(extractPassThrough(bidInfo.getCorrespondingImp()))
