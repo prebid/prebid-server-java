@@ -14,7 +14,7 @@
             "prebid": {
               "type": "banner",
               "meta": {
-                "adaptercode": "lemmaDigital"
+                "adaptercode": "lemmadigital"
               }
             }
           }

@@ -1245,7 +1245,9 @@ public class ExchangeService {
                 .map(bidderBid -> bidderBid.toBuilder()
                         .seat(ObjectUtils.defaultIfNull(bidderBid.getSeat(), bidderName))
                         .bid(bidderBid.getBid().toBuilder()
-                                .ext(prepareBidExt(bidderBid.getBid(), resolvedBidderName))
+                                .ext(prepareBidExt(
+                                        bidderBid.getBid(),
+                                        bidderCatalog.configuredName(resolvedBidderName)))
                                 .build())
                         .build())
                 .toList());
