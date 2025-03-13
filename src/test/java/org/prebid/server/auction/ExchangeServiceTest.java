@@ -317,6 +317,7 @@ public class ExchangeServiceTest extends VertxTest {
                 CompressionType.NONE,
                 Ortb.of(false),
                 0L));
+        given(bidderCatalog.configuredName(anyString())).willAnswer(invocation -> invocation.getArgument(0));
 
         given(privacyEnforcementService.mask(any(), argThat(MapUtils::isNotEmpty), any()))
                 .willAnswer(inv ->
