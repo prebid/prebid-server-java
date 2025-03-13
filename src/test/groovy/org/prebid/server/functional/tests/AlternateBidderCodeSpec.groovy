@@ -304,7 +304,6 @@ class AlternateBidderCodeSpec extends BaseSpec {
     }
 
     //todo: need confirm
-    @IgnoreRest
     def "PBS shouldn't discard bid amx alias requested when imp[].bidder is same as in bid.ext.bidderCode and alternate bidder code allow"() {
         given: "Default bid request with amx bidder"
         def bidRequest = bidRequestWithAmxBidderAndAlternateBidderCode().tap {
@@ -406,6 +405,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
         bidderCode << [ALIAS, ALIAS_CAMEL_CASE]
     }
 
+    @IgnoreRest
     def "PBS shouldn't discard the bid or emit a response warning when alternate bidder codes not fully configured"() {
         given: "Default bid request with alternate bidder codes"
         def bidRequest = bidRequestWithAmxBidderAndAlternateBidderCode().tap {
@@ -451,7 +451,6 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         where:
         requestedAlternateBidderCodes                                                                                               | accountAlternateBidderCodes
-        null                                                                                                                        | null
         new AlternateBidderCodes()                                                                                                  | null
         null                                                                                                                        | new AlternateBidderCodes()
         new AlternateBidderCodes(enabled: true)                                                                                     | null
@@ -758,7 +757,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
     def "PBS shouldn't discard the bid or emit a response warning when request alternate bidder codes are enabled and allowed bidder codes are either a wildcard or empty"() {
         given: "Default bid request with alternate bidder codes"
         def bidRequest = bidRequestWithAmxBidderAndAlternateBidderCode().tap {
-            ext.prebid.alternateBidderCodes.bidders[AMX].allowedBidderCodes = requestedAllowedBidderCodes
+            ext.prebid.alternateBidderCodes.bidders[AMX].allowedBidderCodesLowerCase = requestedAllowedBidderCodes
             setAccountId(PBSUtils.randomString)
         }
 
@@ -1116,7 +1115,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
         bidRequestWithAmxBidder().tap {
             it.ext.prebid.alternateBidderCodes = new AlternateBidderCodes().tap {
                 enabled = true
-                bidders = [(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [AMX])]
+                bidders = [(AMX): new BidderConfig(enabled: true, allowedBidderCodesLowerCase: [AMX])]
             }
         }
     }

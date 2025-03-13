@@ -42,8 +42,9 @@ class Prebid {
     PrebidModulesConfig modules
     PrebidAnalytics analytics
     StoredAuctionResponse storedAuctionResponse
-    AlternateBidderCodes alternateBidderCodes
     PaaFormat paaFormat
+    @JsonProperty("alternatebiddercodes")
+    AlternateBidderCodes alternateBidderCodes
 
     static class Channel {
 

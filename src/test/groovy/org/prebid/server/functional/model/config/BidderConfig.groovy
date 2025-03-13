@@ -9,11 +9,11 @@ import org.prebid.server.functional.model.bidder.BidderName
 
 @EqualsAndHashCode
 @ToString(includeNames = true, ignoreNulls = true)
-@JsonNaming(PropertyNamingStrategies.LowerCaseStrategy)
+@JsonNaming(PropertyNamingStrategies.KebabCaseStrategy)
 class BidderConfig {
 
     Boolean enabled
     List<BidderName> allowedBidderCodes
-    @JsonProperty("allowed-bidder-codes")
-    List<BidderName> allowedBidderCodesKebabCase
+    @JsonProperty("allowedbiddercodes")
+    List<BidderName> allowedBidderCodesLowerCase
 }
