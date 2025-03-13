@@ -136,6 +136,6 @@ class StageExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
 
         return stageResult.shouldReject()
                 ? HookStageExecutionResult.reject()
-                : HookStageExecutionResult.success(stageResult.payload());
+                : HookStageExecutionResult.success(stageResult.payload(), stageResult.rejections());
     }
 }
