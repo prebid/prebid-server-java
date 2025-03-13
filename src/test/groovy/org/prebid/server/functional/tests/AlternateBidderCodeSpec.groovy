@@ -65,7 +65,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
         assert response.seatbid.seat == [ALIAS]
 
         and: "Response should contain adapter code"
-        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [ALIAS]
+        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [AMX]
 
         and: "Response should contain bidder targeting"
         def targeting = response.seatbid[0].bid[0].ext.prebid.targeting
@@ -334,7 +334,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
         assert response.seatbid.seat == [GENERIC]
 
         and: "Response should contain adapter code"
-        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [ALIAS]
+        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [AMX]
 
         and: "Response should contain bidder targeting"
         def targeting = response.seatbid[0].bid[0].ext.prebid.targeting
