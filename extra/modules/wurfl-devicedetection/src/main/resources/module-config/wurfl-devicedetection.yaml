@@ -43,4 +43,4 @@ hooks:
       cache-size: 200000
       wurfl-run-updater: true
       allowed-publisher-ids: 1
-      ext-caps: false
+      ext-caps: true
