@@ -59,7 +59,6 @@ public class ExtWURFLMapper {
                         .forEach(entry -> wurflNode.put(entry.getKey(), entry.getValue()));
             }
         } catch (Exception e) {
-            e.printStackTrace();
             log.error("Exception while updating EXT");
         }
 
