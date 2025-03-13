@@ -113,22 +113,24 @@ public class BidderAliases {
             Function<T, Map<String, ? extends AlternateBidder>> getBidders) {
 
         return Optional.ofNullable(alternateBidderCodes)
-                .filter(isEnabled::apply)
+                .filter(codes -> BooleanUtils.isTrue(isEnabled.apply(codes)))
                 .map(getBidders::apply)
                 .map(Map::entrySet)
                 .stream()
                 .flatMap(Collection::stream)
                 .filter(entry -> BooleanUtils.isTrue(entry.getValue().getEnabled()))
-                .map(entry -> {
-                    final Set<String> allowedBidderCodes = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
-                    Optional.ofNullable(entry.getValue().getAllowedBidderCodes())
-                            .ifPresentOrElse(allowedBidderCodes::addAll, () -> allowedBidderCodes.add(WILDCARD));
-                    return Map.entry(entry.getKey(), allowedBidderCodes);
-                })
+                .map(entry -> Map.entry(entry.getKey(), allowedBidderCodes(entry.getValue())))
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
                         Map.Entry::getValue,
                         (first, second) -> second,
                         CaseInsensitiveMap::new));
+    }
+
+    private static Set<String> allowedBidderCodes(AlternateBidder alternateBidder) {
+        final Set<String> allowedBidderCodes = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        Optional.ofNullable(alternateBidder.getAllowedBidderCodes())
+                .ifPresentOrElse(allowedBidderCodes::addAll, () -> allowedBidderCodes.add(WILDCARD));
+        return allowedBidderCodes;
     }
 }
