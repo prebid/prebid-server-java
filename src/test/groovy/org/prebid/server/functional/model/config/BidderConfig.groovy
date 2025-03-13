@@ -16,4 +16,6 @@ class BidderConfig {
     List<BidderName> allowedBidderCodes
     @JsonProperty("allowedbiddercodes")
     List<BidderName> allowedBidderCodesLowerCase
+    @JsonProperty("allowed_bidder_codes")
+    List<BidderName> allowedBidderCodesSnakeCase
 }

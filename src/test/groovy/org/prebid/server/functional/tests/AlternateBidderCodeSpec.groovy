@@ -13,7 +13,6 @@ import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.IgnoreRest
 import spock.lang.Shared
 
 import static org.prebid.server.functional.model.AccountStatus.ACTIVE
@@ -319,7 +318,6 @@ class AlternateBidderCodeSpec extends BaseSpec {
         }
         accountDao.save(account)
 
-
         and: "Bid response with bidder code"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest, ALIAS).tap {
             it.seatbid[0].bid[0].ext = new BidExt(bidderCode: GENERIC)
@@ -405,7 +403,6 @@ class AlternateBidderCodeSpec extends BaseSpec {
         bidderCode << [ALIAS, ALIAS_CAMEL_CASE]
     }
 
-    @IgnoreRest
     def "PBS shouldn't discard the bid or emit a response warning when alternate bidder codes not fully configured"() {
         given: "Default bid request with alternate bidder codes"
         def bidRequest = bidRequestWithAmxBidderAndAlternateBidderCode().tap {
@@ -486,11 +483,11 @@ class AlternateBidderCodeSpec extends BaseSpec {
     def "PBS shouldn't discard bid when alternate bidder code allows bidder codes fully configured and bidder requested in uppercase"() {
         given: "Default bid request with AMX bidder"
         def bidRequest = bidRequestWithAmxBidderAndAlternateBidderCode().tap {
-            imp[0].ext.prebid.bidder.amx = null
             imp[0].ext.prebid.bidder.tap {
                 amxUpperCase = new Amx()
                 amx = null
             }
+            ext.prebid.alternateBidderCodes.bidders[AMX].allowedBidderCodesLowerCase = [GENERIC]
             setAccountId(PBSUtils.randomString)
         }
 
@@ -530,12 +527,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
         and: "Metric shouldn't be updated"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
         assert !metrics["adapter.${AMX}.response.validation.seat"]
-
-        where:
-        accountAlternateBidderCodes << [
-                new AccountConfig(alternateBidderCodesSnakeCase: new AlternateBidderCodes(enabled: true, bidders: [(AMX): new BidderConfig(enabled: true, allowedBidderCodesKebabCase: [GENERIC])])),
-                new AccountConfig(alternateBidderCodes: new AlternateBidderCodes(enabled: true, bidders: [(AMX): new BidderConfig(enabled: true, allowedBidderCodesKebabCase: [GENERIC])])),
-                new AccountConfig(alternateBidderCodesSnakeCase: new AlternateBidderCodes(enabled: true, bidders: [(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])]))]
+        assert !metrics["adapter.${GENERIC}.response.validation.seat"]
     }
 
     def "PBS shouldn't discard bid when alternate bidder code allows bidder codes fully configured with different case"() {
@@ -546,7 +538,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "Save account config into DB with alternate bidder codes"
         def account = accountWithAlternateBidderCode(bidRequest).tap {
-            config = accountAlternateBidderCodes
+            config = configAccountAlternateBidderCodes
         }
         accountDao.save(account)
 
@@ -570,10 +562,10 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "Response should contain bidder targeting"
         def targeting = response.seatbid[0].bid[0].ext.prebid.targeting
-        assert targeting["hb_pb_${AMX}"]
-        assert targeting["hb_size_${AMX}"]
-        assert targeting["hb_bidder"] == AMX.value
-        assert targeting["hb_bidder_${AMX}"] == AMX.value
+        assert targeting["hb_pb_${GENERIC}"]
+        assert targeting["hb_size_${GENERIC}"]
+        assert targeting["hb_bidder"] == GENERIC.value
+        assert targeting["hb_bidder_${GENERIC}"] == GENERIC.value
 
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -588,9 +580,9 @@ class AlternateBidderCodeSpec extends BaseSpec {
         assert !metrics["adapter.${AMX}.response.validation.seat"]
 
         where:
-        accountAlternateBidderCodes << [
-                new AccountConfig(alternateBidderCodesSnakeCase: new AlternateBidderCodes(enabled: true, bidders: [(AMX): new BidderConfig(enabled: true, allowedBidderCodesKebabCase: [GENERIC])])),
-                new AccountConfig(alternateBidderCodes: new AlternateBidderCodes(enabled: true, bidders: [(AMX): new BidderConfig(enabled: true, allowedBidderCodesKebabCase: [GENERIC])])),
+        configAccountAlternateBidderCodes << [
+                new AccountConfig(alternateBidderCodesSnakeCase: new AlternateBidderCodes(enabled: true, bidders: [(AMX): new BidderConfig(enabled: true, allowedBidderCodesSnakeCase: [GENERIC])])),
+                new AccountConfig(alternateBidderCodes: new AlternateBidderCodes(enabled: true, bidders: [(AMX): new BidderConfig(enabled: true, allowedBidderCodesSnakeCase: [GENERIC])])),
                 new AccountConfig(alternateBidderCodesSnakeCase: new AlternateBidderCodes(enabled: true, bidders: [(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])]))]
     }
 
@@ -1103,8 +1095,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
     private static Account accountWithAlternateBidderCode(BidRequest bidRequest) {
         new Account().tap {
             it.uuid = bidRequest.accountId
-            it.config = new AccountConfig(status: ACTIVE)
-            it.config = new AccountConfig(alternateBidderCodes: new AlternateBidderCodes().tap {
+            it.config = new AccountConfig(status: ACTIVE, alternateBidderCodes: new AlternateBidderCodes().tap {
                 it.enabled = true
                 it.bidders = [(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [AMX])]
             })
