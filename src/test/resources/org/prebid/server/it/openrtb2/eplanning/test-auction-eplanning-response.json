@@ -16,7 +16,10 @@
           "ext": {
             "origbidcpm": 0.5,
             "prebid": {
-              "type": "banner"
+              "type": "banner",
+              "meta": {
+                "adaptercode": "eplanning"
+              }
             }
           }
         }

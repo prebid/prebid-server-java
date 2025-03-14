@@ -431,9 +431,15 @@ public class BidResponseCreator {
             final BidderSeatBid seatBid = bidderResponse.getSeatBid();
 
             for (final BidderBid bidderBid : seatBid.getBids()) {
-                final Bid bid = bidderBid.getBid();
-                final BidType type = bidderBid.getType();
-                final BidInfo bidInfo = toBidInfo(bid, type, imps, bidder, categoryMappingResult, cacheInfo, account);
+                final BidInfo bidInfo = toBidInfo(
+                        bidderBid.getBid(),
+                        bidderBid.getType(),
+                        bidderBid.getSeat(),
+                        imps,
+                        bidder,
+                        categoryMappingResult,
+                        cacheInfo,
+                        account);
                 bidInfos.add(bidInfo);
             }
 
@@ -453,6 +459,7 @@ public class BidResponseCreator {
 
     private BidInfo toBidInfo(Bid bid,
                               BidType type,
+                              String seat,
                               List<Imp> imps,
                               String bidder,
                               CategoryMappingResult categoryMappingResult,
@@ -464,6 +471,7 @@ public class BidResponseCreator {
                 .bid(bid)
                 .bidType(type)
                 .bidder(bidder)
+                .seat(seat)
                 .correspondingImp(correspondingImp)
                 .ttl(resolveTtl(bid, type, correspondingImp, cacheInfo, account))
                 .vastTtl(type == BidType.video ? resolveVastTtl(bid, correspondingImp, cacheInfo, account) : null)
@@ -767,12 +775,18 @@ public class BidResponseCreator {
                     : bidderCodePrefix == null ? null : bidderCodePrefix + (i + 1);
 
             final BidInfo bidInfo = bidderImpIdBidInfos.get(i);
+
+            final String targetingSeat = isFirstBid
+                    ? bidInfo.getSeat()
+                    : bidderCodePrefix == null ? null : bidderCodePrefix + (i + 1);
+
             final TargetingInfo targetingInfo = TargetingInfo.builder()
                     .isTargetingEnabled(targetingBidderCode != null)
                     .isBidderWinningBid(winningBidsByBidder.contains(bidInfo))
                     .isWinningBid(winningBids.contains(bidInfo))
                     .isAddTargetBidderCode(targetingBidderCode != null && multiBidSize > 1)
                     .bidderCode(targetingBidderCode)
+                    .seat(targetingSeat)
                     .build();
 
             final BidInfo modifiedBidInfo = bidInfo.toBuilder().targetingInfo(targetingInfo).build();
@@ -1429,12 +1443,6 @@ public class BidResponseCreator {
                               Map<String, List<ExtBidderError>> bidErrors,
                               Map<String, List<ExtBidderError>> bidWarnings) {
 
-        final String bidder = bidInfos.stream()
-                .map(BidInfo::getBidder)
-                .findFirst()
-                // Should never occur
-                .orElseThrow(() -> new IllegalArgumentException("Bidder was not defined for bidInfo"));
-
         final List<Bid> bids = bidInfos.stream()
                 .map(bidInfo -> injectAdmWithCacheInfo(
                         bidInfo,
@@ -1451,8 +1459,14 @@ public class BidResponseCreator {
                 .filter(Objects::nonNull)
                 .toList();
 
+        final String seat = bidInfos.stream()
+                .map(BidInfo::getSeat)
+                .findFirst()
+                // Should never occur
+                .orElseThrow(() -> new IllegalArgumentException("BidderCode was not defined for bidInfo"));
+
         return SeatBid.builder()
-                .seat(bidder)
+                .seat(seat)
                 .bid(bids)
                 .group(0) // prebid cannot support roadblocking
                 .build();
@@ -1512,16 +1526,16 @@ public class BidResponseCreator {
         final String videoCacheId = cacheInfo != null ? cacheInfo.getVideoCacheId() : null;
 
         final Map<String, String> targetingKeywords;
-        final String bidderCode = targetingInfo.getBidderCode();
         if (shouldIncludeTargetingInResponse(targeting, bidInfo.getTargetingInfo())) {
             final TargetingKeywordsCreator keywordsCreator = resolveKeywordsCreator(
                     bidType, targeting, bidRequest, account, bidWarnings);
 
             final boolean isWinningBid = targetingInfo.isWinningBid();
+            final String seat = targetingInfo.getSeat();
             final String categoryDuration = bidInfo.getCategory();
             targetingKeywords = keywordsCreator != null
                     ? keywordsCreator.makeFor(
-                    bid, bidderCode, isWinningBid, cacheId, bidType.getName(), videoCacheId, categoryDuration)
+                    bid, seat, isWinningBid, cacheId, bidType.getName(), videoCacheId, categoryDuration)
                     : null;
         } else {
             targetingKeywords = null;
@@ -1539,7 +1553,7 @@ public class BidResponseCreator {
                         .map(ExtBidPrebid::toBuilder)
                         .orElseGet(ExtBidPrebid::builder)
                         .targeting(MapUtils.isNotEmpty(targetingKeywords) ? targetingKeywords : null)
-                        .targetBidderCode(targetingInfo.isAddTargetBidderCode() ? bidderCode : null)
+                        .targetBidderCode(targetingInfo.isAddTargetBidderCode() ? targetingInfo.getBidderCode() : null)
                         .dealTierSatisfied(dealsTierSatisfied)
                         .cache(cache)
                         .passThrough(extractPassThrough(bidInfo.getCorrespondingImp()))

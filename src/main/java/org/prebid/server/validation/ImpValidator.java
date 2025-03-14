@@ -361,8 +361,11 @@ public class ImpValidator {
         }
     }
 
-    private void validateImpExt(ObjectNode ext, Map<String, String> aliases, int impIndex,
+    private void validateImpExt(ObjectNode ext,
+                                Map<String, String> aliases,
+                                int impIndex,
                                 List<String> warnings) throws ValidationException {
+
         validateImpExtPrebid(ext != null ? ext.get(PREBID_EXT) : null, aliases, impIndex, warnings);
     }
 

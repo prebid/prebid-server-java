@@ -683,6 +683,17 @@ public class MetricsTest {
     }
 
     @Test
+    public void updateSeatValidationMetricsShouldIncrementMetrics() {
+        // when
+        metrics.updateSeatValidationMetrics(RUBICON);
+        metrics.updateSeatValidationMetrics(CONVERSANT);
+
+        // then
+        assertThat(metricRegistry.counter("adapter.rubicon.response.validation.seat").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("adapter.conversant.response.validation.seat").getCount()).isEqualTo(1);
+    }
+
+    @Test
     public void updateCookieSyncRequestMetricShouldIncrementMetric() {
         // when
         metrics.updateCookieSyncRequestMetric();

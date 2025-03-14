@@ -59,6 +59,7 @@ public class BidAdjustmentsResolverTest extends VertxTest {
                 givenBidAdjustments,
                 ImpMediaType.banner,
                 "bidderName",
+                "seat",
                 "dealId");
 
         // then
@@ -82,6 +83,7 @@ public class BidAdjustmentsResolverTest extends VertxTest {
                 givenBidAdjustments,
                 ImpMediaType.video_outstream,
                 "bidderName",
+                "seat",
                 "dealId");
 
         // then
@@ -90,7 +92,51 @@ public class BidAdjustmentsResolverTest extends VertxTest {
     }
 
     @Test
-    public void resolveShouldPickAndApplyRulesBySpecificBidder() {
+    public void resolveShouldPickAndApplyRulesBySpecificSeat() {
+        // given
+        final BidAdjustments givenBidAdjustments = BidAdjustments.of(Map.of(
+                "*|seat|*", List.of(givenMultiplier("15")),
+                "*|*|*", List.of(givenMultiplier("25"))));
+
+        // when
+        final Price actual = target.resolve(
+                Price.of("USD", BigDecimal.ONE),
+                BidRequest.builder().build(),
+                givenBidAdjustments,
+                ImpMediaType.banner,
+                "bidderName",
+                "seat",
+                "dealId");
+
+        // then
+        assertThat(actual).isEqualTo(Price.of("USD", new BigDecimal("15")));
+        verifyNoInteractions(currencyService);
+    }
+
+    @Test
+    public void resolveShouldPickAndApplyRulesByWildcardSeat() {
+        // given
+        final BidAdjustments givenBidAdjustments = BidAdjustments.of(Map.of(
+                "*|seat|*", List.of(givenStatic("15", "EUR"), givenMultiplier("15")),
+                "*|*|*", List.of(givenStatic("25", "UAH"), givenMultiplier("25"))));
+
+        // when
+        final Price actual = target.resolve(
+                Price.of("USD", BigDecimal.ONE),
+                BidRequest.builder().build(),
+                givenBidAdjustments,
+                ImpMediaType.banner,
+                "anotherBidderName",
+                "anotherSeat",
+                "dealId");
+
+        // then
+        assertThat(actual).isEqualTo(Price.of("UAH", new BigDecimal("625")));
+        verifyNoInteractions(currencyService);
+    }
+
+    @Test
+    public void resolveShouldPickAndApplyRulesByWildcardSeatOverSpecificBidder() {
         // given
         final BidAdjustments givenBidAdjustments = BidAdjustments.of(Map.of(
                 "*|bidderName|*", List.of(givenMultiplier("15")),
@@ -103,19 +149,20 @@ public class BidAdjustmentsResolverTest extends VertxTest {
                 givenBidAdjustments,
                 ImpMediaType.banner,
                 "bidderName",
+                "seat",
                 "dealId");
 
         // then
-        assertThat(actual).isEqualTo(Price.of("USD", new BigDecimal("15")));
+        assertThat(actual).isEqualTo(Price.of("USD", new BigDecimal("25")));
         verifyNoInteractions(currencyService);
     }
 
     @Test
-    public void resolveShouldPickAndApplyRulesByWildcardBidder() {
+    public void resolveShouldPickAndApplyRulesBySpecificSeatOverSpecificBidder() {
         // given
         final BidAdjustments givenBidAdjustments = BidAdjustments.of(Map.of(
                 "*|bidderName|*", List.of(givenStatic("15", "EUR"), givenMultiplier("15")),
-                "*|*|*", List.of(givenStatic("25", "UAH"), givenMultiplier("25"))));
+                "*|seat|*", List.of(givenStatic("25", "UAH"), givenMultiplier("25"))));
 
         // when
         final Price actual = target.resolve(
@@ -123,11 +170,34 @@ public class BidAdjustmentsResolverTest extends VertxTest {
                 BidRequest.builder().build(),
                 givenBidAdjustments,
                 ImpMediaType.banner,
-                "anotherBidderName",
+                "bidderName",
+                "seat",
                 "dealId");
 
         // then
         assertThat(actual).isEqualTo(Price.of("UAH", new BigDecimal("625")));
+        verifyNoInteractions(currencyService);
+    }
+
+    @Test
+    public void resolveShouldPickAndApplyRulesBySpecificBidderWhenSeatRuleIsNotMatched() {
+        // given
+        final BidAdjustments givenBidAdjustments = BidAdjustments.of(Map.of(
+                "*|bidderName|*", List.of(givenStatic("15", "EUR"), givenMultiplier("15")),
+                "*|anotherBidder|*", List.of(givenStatic("25", "UAH"), givenMultiplier("25"))));
+
+        // when
+        final Price actual = target.resolve(
+                Price.of("USD", BigDecimal.ONE),
+                BidRequest.builder().build(),
+                givenBidAdjustments,
+                ImpMediaType.banner,
+                "bidderName",
+                "seat",
+                "dealId");
+
+        // then
+        assertThat(actual).isEqualTo(Price.of("EUR", new BigDecimal("225")));
         verifyNoInteractions(currencyService);
     }
 
@@ -146,6 +216,7 @@ public class BidAdjustmentsResolverTest extends VertxTest {
                 givenBidAdjustments,
                 ImpMediaType.banner,
                 "bidderName",
+                "seat",
                 "dealId");
 
         // then
@@ -168,6 +239,7 @@ public class BidAdjustmentsResolverTest extends VertxTest {
                 givenBidAdjustments,
                 ImpMediaType.banner,
                 "bidderName",
+                "seat",
                 "anotherDealId");
 
         // then
@@ -190,6 +262,7 @@ public class BidAdjustmentsResolverTest extends VertxTest {
                 givenBidAdjustments,
                 ImpMediaType.banner,
                 "bidderName",
+                "seat",
                 null);
 
         // then
@@ -211,6 +284,7 @@ public class BidAdjustmentsResolverTest extends VertxTest {
                 givenBidAdjustments,
                 ImpMediaType.banner,
                 "bidderName",
+                "seat",
                 null);
 
         // then

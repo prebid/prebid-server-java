@@ -43,7 +43,10 @@ public class BidsAdjuster {
                                                             BidderAliases aliases) {
 
         return auctionParticipations.stream()
-                .map(auctionParticipation -> validBidderResponse(auctionParticipation, auctionContext, aliases))
+                .map(auctionParticipation -> validBidderResponse(
+                        auctionParticipation,
+                        auctionContext,
+                        aliases))
 
                 .map(auctionParticipation -> bidAdjustmentsProcessor.enrichWithAdjustedBids(
                         auctionParticipation,
