@@ -47,8 +47,10 @@ public class AdverxoBidder implements Bidder<BidRequest> {
     private final JacksonMapper mapper;
     private final CurrencyConversionService currencyConversionService;
 
-    public AdverxoBidder(String endpointUrl, JacksonMapper mapper,
+    public AdverxoBidder(String endpointUrl,
+                         JacksonMapper mapper,
                          CurrencyConversionService currencyConversionService) {
+
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = mapper;
         this.currencyConversionService = currencyConversionService;
