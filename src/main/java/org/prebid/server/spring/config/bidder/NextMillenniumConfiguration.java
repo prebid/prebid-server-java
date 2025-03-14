@@ -10,7 +10,6 @@ import org.prebid.server.spring.config.bidder.model.BidderConfigurationPropertie
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
-import org.prebid.server.version.PrebidVersionProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -35,7 +34,6 @@ public class NextMillenniumConfiguration {
     @Bean
     BidderDeps nextMillenniumBidderDeps(NextMillenniumConfigurationProperties nextMillenniumConfigurationProperties,
                                         @NotBlank @Value("${external-url}") String externalUrl,
-                                        PrebidVersionProvider prebidVersionProvider,
                                         JacksonMapper mapper) {
 
         return BidderDepsAssembler.<NextMillenniumConfigurationProperties>forBidder(BIDDER_NAME)
@@ -44,8 +42,7 @@ public class NextMillenniumConfiguration {
                 .bidderCreator(config -> new NextMillenniumBidder(
                         config.getEndpoint(),
                         mapper,
-                        config.getExtraInfo().getNmmFlags(),
-                        prebidVersionProvider)
+                        config.getExtraInfo().getNmmFlags())
                 ).assemble();
     }
 
