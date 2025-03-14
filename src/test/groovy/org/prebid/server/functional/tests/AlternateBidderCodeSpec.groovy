@@ -113,6 +113,13 @@ class AlternateBidderCodeSpec extends BaseSpec {
         and: "Response should contain demand source"
         assert response.seatbid.bid.ext.prebid.meta.demandSource.flatten() == [demandSource]
 
+        and: "Response should contain bidder targeting"
+        def targeting = response.seatbid[0].bid[0].ext.prebid.targeting
+        assert targeting["hb_pb_${AMX}"]
+        assert targeting["hb_size_${AMX}"]
+        assert targeting["hb_bidder"] == AMX.value
+        assert targeting["hb_bidder_${AMX}"] == AMX.value
+
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
 
@@ -151,6 +158,13 @@ class AlternateBidderCodeSpec extends BaseSpec {
         and: "Response shouldn't contain demand source"
         assert !response.seatbid.first.bid.first.ext.prebid.meta.demandSource
 
+        and: "Response should contain bidder targeting"
+        def targeting = response.seatbid[0].bid[0].ext.prebid.targeting
+        assert targeting["hb_pb_${AMX}"]
+        assert targeting["hb_size_${AMX}"]
+        assert targeting["hb_bidder"] == AMX.value
+        assert targeting["hb_bidder_${AMX}"] == AMX.value
+
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
 
@@ -185,6 +199,13 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "Response should contain adapter code"
         assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [AMX]
+
+        and: "Response should contain bidder targeting"
+        def targeting = response.seatbid[0].bid[0].ext.prebid.targeting
+        assert targeting["hb_pb_${bidderCode}"]
+        assert targeting["hb_size_${bidderCode}"]
+        assert targeting["hb_bidder"] == bidderCode.value
+        assert targeting["hb_bidder_${bidderCode}"] == bidderCode.value
 
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -302,7 +323,6 @@ class AlternateBidderCodeSpec extends BaseSpec {
         bidderName << [BOGUS, UNKNOWN, WILDCARD]
     }
 
-    //todo: need confirm
     def "PBS shouldn't discard bid amx alias requested when imp[].bidder is same as in bid.ext.bidderCode and alternate bidder code allow"() {
         given: "Default bid request with amx bidder"
         def bidRequest = bidRequestWithAmxBidderAndAlternateBidderCode().tap {
@@ -387,6 +407,13 @@ class AlternateBidderCodeSpec extends BaseSpec {
         and: "Response should contain adapter code"
         assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [AMX]
 
+        and: "Response should contain bidder targeting"
+        def targeting = response.seatbid[0].bid[0].ext.prebid.targeting
+        assert targeting["hb_pb_${bidderCode}"]
+        assert targeting["hb_size_${bidderCode}"]
+        assert targeting["hb_bidder"] == bidderCode.value
+        assert targeting["hb_bidder_${bidderCode}"] == bidderCode.value
+
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
 
@@ -397,7 +424,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "PBS shouldn't emit validation metrics"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
-        assert !metrics["adapter.${ALIAS}.response.validation.seat"]
+        assert !metrics["adapter.${bidderCode}.response.validation.seat"]
 
         where:
         bidderCode << [ALIAS, ALIAS_CAMEL_CASE]
@@ -433,6 +460,13 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "Response should contain seatbid.seat"
         assert response.seatbid[0].seat == AMX
+
+        and: "Response should contain bidder targeting"
+        def targeting = response.seatbid[0].bid[0].ext.prebid.targeting
+        assert targeting["hb_pb_${AMX}"]
+        assert targeting["hb_size_${AMX}"]
+        assert targeting["hb_bidder"] == AMX.value
+        assert targeting["hb_bidder_${AMX}"] == AMX.value
 
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -730,6 +764,13 @@ class AlternateBidderCodeSpec extends BaseSpec {
         and: "Response should contain seatbid.seat"
         assert response.seatbid.seat.flatten() == [GENERIC]
 
+        and: "Response should contain bidder targeting"
+        def targeting = response.seatbid[0].bid[0].ext.prebid.targeting
+        assert targeting["hb_pb_${GENERIC}"]
+        assert targeting["hb_size_${GENERIC}"]
+        assert targeting["hb_bidder"] == GENERIC.value
+        assert targeting["hb_bidder_${GENERIC}"] == GENERIC.value
+
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
 
@@ -771,6 +812,13 @@ class AlternateBidderCodeSpec extends BaseSpec {
         and: "Response should contain seatbid.seat"
         assert response.seatbid.seat.flatten() == [GENERIC]
 
+        and: "Response should contain bidder targeting"
+        def targeting = response.seatbid[0].bid[0].ext.prebid.targeting
+        assert targeting["hb_pb_${GENERIC}"]
+        assert targeting["hb_size_${GENERIC}"]
+        assert targeting["hb_bidder"] == GENERIC.value
+        assert targeting["hb_bidder_${GENERIC}"] == GENERIC.value
+
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
 
@@ -811,6 +859,13 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "Response should contain seatbid.seat"
         assert response.seatbid.seat.flatten() == [GENERIC]
+
+        and: "Response should contain bidder targeting"
+        def targeting = response.seatbid[0].bid[0].ext.prebid.targeting
+        assert targeting["hb_pb_${GENERIC}"]
+        assert targeting["hb_size_${GENERIC}"]
+        assert targeting["hb_bidder"] == GENERIC.value
+        assert targeting["hb_bidder_${GENERIC}"] == GENERIC.value
 
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -864,6 +919,13 @@ class AlternateBidderCodeSpec extends BaseSpec {
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
 
+        and: "Response should contain bidder targeting"
+        def targeting = response.seatbid[0].bid[0].ext.prebid.targeting
+        assert targeting["hb_pb_${GENERIC}"]
+        assert targeting["hb_size_${GENERIC}"]
+        assert targeting["hb_bidder"] == GENERIC.value
+        assert targeting["hb_bidder_${GENERIC}"] == GENERIC.value
+
         and: "Response shouldn't contain warnings and errors and seatNonBid"
         assert !response.ext?.warnings
         assert !response.ext?.errors
@@ -913,6 +975,13 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "Response should contain seatbid.seat"
         assert response.seatbid.seat.flatten() == [AMX]
+
+        and: "Response should contain bidder targeting"
+        def targeting = response.seatbid[0].bid[0].ext.prebid.targeting
+        assert targeting["hb_pb_${AMX}"]
+        assert targeting["hb_size_${AMX}"]
+        assert targeting["hb_bidder"] == AMX.value
+        assert targeting["hb_bidder_${AMX}"] == AMX.value
 
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -1090,6 +1159,156 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         where:
         allowedBidderCodes << [BOGUS, UNKNOWN]
+    }
+
+    def "PBS shouldn't discard bid when hard alias and alternate bidder allow bidder code"() {
+        given: "PBS config with bidder"
+        def pbsConfig = AMX_CONFIG + ["adapters.amx.aliases.alias.enabled" : "true",
+                                      "adapters.amx.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
+        def defaultPbsService = pbsServiceFactory.getService(pbsConfig)
+
+        and: "Default bid request with alias"
+        def bidRequest = bidRequestWithAmxBidderAndAlternateBidderCode().tap {
+            imp[0].ext.prebid.bidder.tap {
+                amx = null
+                alias = new Generic()
+            }
+            ext.prebid.targeting = new Targeting()
+            ext.prebid.alternateBidderCodes.bidders = [(ALIAS): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])]
+        }
+
+        and: "Bid response with bidder code"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest, ALIAS).tap {
+            it.seatbid[0].bid[0].ext = new BidExt(bidderCode: GENERIC)
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain adapter code"
+        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [ALIAS]
+
+        and: "Response should contain seat bid"
+        assert response.seatbid.seat == [GENERIC]
+
+        and: "Response should contain bidder targeting"
+        def targeting = response.seatbid[0].bid[0].ext.prebid.targeting
+        assert targeting["hb_pb_${GENERIC}"]
+        assert targeting["hb_size_${GENERIC}"]
+        assert targeting["hb_bidder"] == GENERIC.value
+        assert targeting["hb_bidder_${GENERIC}"] == GENERIC.value
+
+        and: "Bidder request should be valid"
+        assert bidder.getBidderRequests(bidRequest.id)
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
+    }
+
+    def "PBS shouldn't discard bid when alternate bidder code allow and soft alias with case"() {
+        given: "Default bid request with amx bidder"
+        def bidRequest = bidRequestWithAmxBidderAndAlternateBidderCode().tap {
+            imp[0].ext.prebid.bidder.aliasUpperCase = new Generic()
+            imp[0].ext.prebid.bidder.amx = null
+            ext.prebid.aliases = [(ALIAS.value): AMX]
+            ext.prebid.alternateBidderCodes = requestAlternateBidderCode
+        }
+
+        and: "Save account config into DB with alternate bidder codes"
+        def account = accountWithAlternateBidderCode(bidRequest).tap {
+            config.alternateBidderCodes = accountAlternateBidderCodes
+        }
+        accountDao.save(account)
+
+        and: "Bid response with bidder code"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest, ALIAS).tap {
+            it.seatbid[0].bid[0].ext = new BidExt(bidderCode: GENERIC)
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        and: "Flash metrics"
+        flushMetrics(pbsServiceWithAmxBidder)
+
+        when: "PBS processes auction request"
+        def response = pbsServiceWithAmxBidder.sendAuctionRequest(bidRequest)
+
+        then: "Bid response should contain exp data"
+        assert response.seatbid.seat == [GENERIC]
+
+        and: "Response should contain adapter code"
+        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [AMX]
+
+        and: "Response should contain bidder targeting"
+        def targeting = response.seatbid[0].bid[0].ext.prebid.targeting
+        assert targeting["hb_pb_${GENERIC}"]
+        assert targeting["hb_size_${GENERIC}"]
+        assert targeting["hb_bidder"] == GENERIC.value
+        assert targeting["hb_bidder_${GENERIC}"] == GENERIC.value
+
+        and: "Bidder request should be valid"
+        assert bidder.getBidderRequests(bidRequest.id)
+
+        and: "Response shouldn't contain warnings and error and seatNonBid"
+        assert !response.ext?.warnings
+        assert !response.ext?.errors
+        assert !response.ext?.seatnonbid
+
+        and: "PBS shouldn't emit validation metrics"
+        def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
+        assert !metrics["adapter.${ALIAS}.response.validation.seat"]
+        assert !metrics["adapter.${GENERIC}.response.validation.seat"]
+        assert !metrics["adapter.${AMX}.response.validation.seat"]
+
+        where:
+        requestAlternateBidderCode                                                                                                  | accountAlternateBidderCodes
+        new AlternateBidderCodes(enabled: true, bidders: [(ALIAS): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])]) | null
+        null                                                                                                                        | new AlternateBidderCodes(enabled: true, bidders: [(ALIAS): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])])
+    }
+
+    def "PBS should populate adapter code with requested bidder when conflict soft and hard alias and alternate bidder code"() {
+        given: "PBS config with bidder"
+        def pbsConfig = AMX_CONFIG + ["adapters.amx.aliases.alias.enabled" : "true",
+                                      "adapters.amx.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
+        def defaultPbsService = pbsServiceFactory.getService(pbsConfig)
+
+        and: "Bid request with amx bidder and targeting"
+        def bidRequest = bidRequestWithAmxBidderAndAlternateBidderCode().tap {
+            imp[0].ext.prebid.bidder.alias = new Generic()
+            imp[0].ext.prebid.bidder.amx = null
+            imp[0].ext.prebid.bidder.generic = null
+            it.ext.prebid.aliases = [(ALIAS.value): GENERIC]
+            it.ext.prebid.alternateBidderCodes.bidders = [(ALIAS): new BidderConfig(enabled: true, allowedBidderCodesLowerCase: [GENERIC])]
+            it.ext.prebid.targeting = new Targeting()
+        }
+
+        and: "Bid response with bidder code"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest, ALIAS).tap {
+            it.seatbid[0].bid[0].ext = new BidExt(bidderCode: GENERIC)
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain adapter code"
+        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [ALIAS]
+
+        and: "Response should contain seat bid"
+        assert response.seatbid.seat == [GENERIC]
+
+        and: "Response should contain bidder targeting"
+        def targeting = response.seatbid[0].bid[0].ext.prebid.targeting
+        assert targeting["hb_pb_${GENERIC}"]
+        assert targeting["hb_size_${GENERIC}"]
+        assert targeting["hb_bidder"] == GENERIC.value
+        assert targeting["hb_bidder_${GENERIC}"] == GENERIC.value
+
+        and: "Bidder request should be valid"
+        assert bidder.getBidderRequests(bidRequest.id)
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     private static Account accountWithAlternateBidderCode(BidRequest bidRequest) {
