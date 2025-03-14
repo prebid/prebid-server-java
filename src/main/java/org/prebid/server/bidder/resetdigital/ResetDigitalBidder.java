@@ -217,7 +217,7 @@ public class ResetDigitalBidder implements Bidder<ResetDigitalRequest> {
                         "no matching impression found for ImpID %s".formatted(bid.getImpId())));
 
         return Collections.singletonList(
-                BidderBid.of(makeBid(bid), resolveBidType(correspondingImp), BID_CURRENCY));
+                BidderBid.of(makeBid(bid), resolveBidType(correspondingImp), bid.getSeat(), BID_CURRENCY));
     }
 
     private static Bid makeBid(ResetDigitalBid bid) {

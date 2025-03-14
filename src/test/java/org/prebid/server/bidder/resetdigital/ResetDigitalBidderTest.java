@@ -397,7 +397,7 @@ public class ResetDigitalBidderTest extends VertxTest {
                 .id("bidId")
                 .crid("crid")
                 .build();
-        assertThat(result.getValue()).containsExactly(BidderBid.of(expectedBid, banner, "USD"));
+        assertThat(result.getValue()).containsExactly(BidderBid.of(expectedBid, banner, "seat", "USD"));
     }
 
     @Test
@@ -431,7 +431,7 @@ public class ResetDigitalBidderTest extends VertxTest {
                 .id("bidId")
                 .crid("crid")
                 .build();
-        assertThat(result.getValue()).containsExactly(BidderBid.of(expectedBid, video, "USD"));
+        assertThat(result.getValue()).containsExactly(BidderBid.of(expectedBid, video, "seat", "USD"));
     }
 
     @Test
@@ -465,7 +465,7 @@ public class ResetDigitalBidderTest extends VertxTest {
                 .id("bidId")
                 .crid("crid")
                 .build();
-        assertThat(result.getValue()).containsExactly(BidderBid.of(expectedBid, audio, "USD"));
+        assertThat(result.getValue()).containsExactly(BidderBid.of(expectedBid, audio, "seat", "USD"));
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder>... impCustomizers) {
