@@ -1,8 +1,12 @@
 package org.prebid.server.activity.infrastructure.debug;
 
+import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
+import org.prebid.server.activity.infrastructure.privacy.AbstainPrivacyModule;
+import org.prebid.server.activity.infrastructure.privacy.PrivacyModuleQualifier;
+import org.prebid.server.activity.infrastructure.rule.AndRule;
 import org.prebid.server.activity.infrastructure.rule.Rule;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
@@ -15,14 +19,17 @@ import org.prebid.server.proto.openrtb.ext.response.ExtTraceActivityRule;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 public class ActivityInfrastructureDebug {
 
     private final String accountId;
     private final TraceLevel traceLevel;
     private final List<ExtTraceActivityInfrastructure> traceLog;
+    private final Set<PrivacyModuleQualifier> skippedModules;
     private final Metrics metrics;
     private final JacksonMapper jacksonMapper;
 
@@ -34,6 +41,7 @@ public class ActivityInfrastructureDebug {
         this.accountId = accountId;
         this.traceLevel = traceLevel;
         this.traceLog = new ArrayList<>();
+        this.skippedModules = new HashSet<>();
         this.metrics = Objects.requireNonNull(metrics);
         this.jacksonMapper = Objects.requireNonNull(jacksonMapper);
     }
@@ -56,6 +64,16 @@ public class ActivityInfrastructureDebug {
     }
 
     public void emitProcessedRule(Rule rule, Rule.Result result) {
+        if (rule instanceof AbstainPrivacyModule module) {
+            skippedModules.add(module.skippedModule());
+        } else if (rule instanceof AndRule andRule) {
+            CollectionUtils.emptyIfNull(andRule.rules()).stream()
+                    .filter(AbstainPrivacyModule.class::isInstance)
+                    .findFirst()
+                    .map(AbstainPrivacyModule.class::cast)
+                    .ifPresent(module -> skippedModules.add(module.skippedModule()));
+        }
+
         if (atLeast(TraceLevel.basic)) {
             traceLog.add(ExtTraceActivityRule.of(
                     "Processing rule.",
@@ -100,6 +118,10 @@ public class ActivityInfrastructureDebug {
 
     public List<ExtTraceActivityInfrastructure> trace() {
         return Collections.unmodifiableList(traceLog);
+    }
+
+    public Set<PrivacyModuleQualifier> skippedModules() {
+        return Collections.unmodifiableSet(skippedModules);
     }
 
     private boolean atLeast(TraceLevel minTraceLevel) {

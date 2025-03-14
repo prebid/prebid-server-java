@@ -5,11 +5,13 @@ import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.debug.ActivityInfrastructureDebug;
 import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
+import org.prebid.server.activity.infrastructure.privacy.PrivacyModuleQualifier;
 import org.prebid.server.proto.openrtb.ext.response.ExtTraceActivityInfrastructure;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 public class ActivityInfrastructure {
 
@@ -47,5 +49,9 @@ public class ActivityInfrastructure {
 
     public List<ExtTraceActivityInfrastructure> debugTrace() {
         return debug.trace();
+    }
+
+    public Set<PrivacyModuleQualifier> skippedModules() {
+        return debug.skippedModules();
     }
 }
