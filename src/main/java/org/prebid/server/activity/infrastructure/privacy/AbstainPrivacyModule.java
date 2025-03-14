@@ -27,4 +27,8 @@ public class AbstainPrivacyModule implements PrivacyModule, Loggable {
                 .put("skipped", true)
                 .put("result", Result.ABSTAIN.name());
     }
+
+    public PrivacyModuleQualifier skippedModule() {
+        return privacyModuleQualifier;
+    }
 }
