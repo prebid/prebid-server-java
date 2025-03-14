@@ -1,0 +1,60 @@
+{
+  "id": "some-request-id",
+  "imp": [
+    {
+      "id": "some-impression-id",
+      "banner": {
+        "w": 320,
+        "h": 50
+      },
+      "secure": 1,
+      "ext": {
+        "connatix": {
+          "placementId": "some-placement-id"
+        }
+      }
+    }
+  ],
+  "site": {
+    "domain": "www.example.com",
+    "page": "http://www.example.com",
+    "publisher": {
+      "domain": "example.com"
+    },
+    "ext": {
+      "amp": 0
+    }
+  },
+  "device": {
+    "dnt": 0,
+    "ua": "test-user-agent",
+    "ip": "${json-unit.any-string}",
+    "language": "en"
+  },
+  "user": {
+    "buyeruid": "some-user"
+  },
+  "at": 1,
+  "tmax": "${json-unit.any-number}",
+  "cur": [
+    "USD"
+  ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  },
+  "ext": {
+    "prebid": {
+      "server": {
+        "externalurl": "http://localhost:8080",
+        "gvlid": 1,
+        "datacenter": "local",
+        "endpoint": "/openrtb2/auction"
+      }
+    }
+  }
+}

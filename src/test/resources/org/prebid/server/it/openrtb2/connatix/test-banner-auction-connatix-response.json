@@ -1,0 +1,44 @@
+{
+  "id": "some-request-id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "a3ae1b4e2fc24a4fb45540082e98e161",
+          "impid": "some-impression-id",
+          "price": 0.3,
+          "adm": "some-test-ad",
+          "adomain": [
+            "awesome.com"
+          ],
+          "crid": "112233",
+          "w": 320,
+          "h": 50,
+          "exp": 300,
+          "ext": {
+            "connatix": {
+              "mediaType": "banner"
+            },
+            "origbidcpm": 0.3,
+            "origbidcur": "USD",
+            "prebid": {
+              "type": "banner"
+            }
+          }
+        }
+      ],
+      "seat": "connatix",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "connatix": "{{ connatix.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": "${json-unit.any-string}"
+    },
+    "tmaxrequest": 1000
+  }
+}
