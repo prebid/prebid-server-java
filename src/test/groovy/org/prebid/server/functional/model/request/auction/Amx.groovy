@@ -1,17 +1,11 @@
-package org.prebid.server.functional.model.response.auction
+package org.prebid.server.functional.model.request.auction
 
 import com.fasterxml.jackson.annotation.JsonProperty
-import groovy.transform.ToString
-import org.prebid.server.functional.model.Currency
+import org.prebid.server.functional.model.bidder.BidderAdapter
 import org.prebid.server.functional.model.bidder.BidderName
 
-@ToString(includeNames = true, ignoreNulls = true)
-class BidExt {
+class Amx implements BidderAdapter {
 
-    Prebid prebid
-    BigDecimal origbidcpm
-    Currency origbidcur
-    DsaResponse dsa
     @JsonProperty("ct")
     Integer creativeType
     @JsonProperty("startdelay")
