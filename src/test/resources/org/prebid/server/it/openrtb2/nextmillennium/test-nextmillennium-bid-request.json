@@ -9,7 +9,7 @@
       },
       "secure": 1,
       "ext": {
-        "nextMillennium": {},
+        "nextMillennium": [ "1" ],
         "prebid": {
           "storedrequest": {
             "id": "placement_id"
