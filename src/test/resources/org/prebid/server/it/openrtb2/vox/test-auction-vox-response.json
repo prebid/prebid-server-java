@@ -15,7 +15,10 @@
           "mtype": 1,
           "ext": {
             "prebid": {
-              "type": "banner"
+              "type": "banner",
+              "meta": {
+                "adaptercode": "vox"
+              }
             },
             "origbidcpm": 3.1415,
             "origbidcur": "USD"
