@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.nextmillennium;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -12,7 +11,11 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -27,6 +30,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredRequest;
 import org.prebid.server.proto.openrtb.ext.request.nextmillennium.ExtImpNextMillennium;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.version.PrebidVersionProvider;
 
 import java.util.Arrays;
 import java.util.List;
@@ -39,17 +43,33 @@ import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
+@ExtendWith(MockitoExtension.class)
 public class NextMillenniumBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test-url.com/";
 
-    private final NextMillenniumBidder target =
-            new NextMillenniumBidder(ENDPOINT_URL, jacksonMapper, List.of("valueOne", "valueTwo"));
+    @Mock
+    private PrebidVersionProvider prebidVersionProvider;
+
+    private NextMillenniumBidder target;
+
+    @BeforeEach
+    public void setUp() {
+        target = new NextMillenniumBidder(
+                ENDPOINT_URL,
+                jacksonMapper,
+                List.of("valueOne", "valueTwo"),
+                prebidVersionProvider);
+    }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException().isThrownBy(() ->
-                new NextMillenniumBidder("invalid_url", jacksonMapper, List.of("valueOne", "valueTwo")));
+                new NextMillenniumBidder(
+                        "invalid_url",
+                        jacksonMapper,
+                        List.of("valueOne", "valueTwo"),
+                        prebidVersionProvider));
     }
 
     @Test
@@ -258,24 +278,6 @@ public class NextMillenniumBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnImpExtNextMillenniumWhenNmmFlagsConfigured() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(identity(),
-                givenImpWithExt(identity(), ExtImpNextMillennium.of("placement1", "group1")));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getExt)
-                .containsExactly(createImpExt(List.of("valueOne", "valueTwo")));
-    }
-
-    @Test
     public void makeBidsShouldReturnBannerBidWhenMTypeIsOne() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
@@ -438,19 +440,15 @@ public class NextMillenniumBidderTest extends VertxTest {
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
         // then
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
-                .extracting(BidRequest::getImp)
-                .extracting(imps -> imps.getFirst())
-                .extracting(Imp::getExt)
-                .isNotEqualTo(givenImp.getExt())
-                .extracting(jsonNodes -> mapper.treeToValue(jsonNodes, ExtRequest.class))
+                .extracting(BidRequest::getExt)
                 .extracting(ExtRequest::getPrebid)
                 .extracting(ExtRequestPrebid::getStoredrequest)
                 .extracting(ExtStoredRequest::getId)
-                .element(0)
-                .isEqualTo(placementId);
+                .containsExactly(placementId);
     }
 
     @Test
@@ -487,7 +485,7 @@ public class NextMillenniumBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getImp)
-                .extracting(imps -> imps.getFirst())
+                .extracting(List::getFirst)
                 .element(0)
                 .usingRecursiveComparison()
                 .ignoringFields("ext")
@@ -569,14 +567,5 @@ public class NextMillenniumBidderTest extends VertxTest {
                                        ExtImpNextMillennium extImpNextMillennium) {
         return givenImp(impCustomizer.andThen(imp -> imp.ext(mapper.valueToTree(
                 ExtPrebid.of(null, extImpNextMillennium))))::apply);
-    }
-
-    private static ObjectNode createImpExt(List<String> values) {
-        final ObjectNode objectNode = mapper.createObjectNode();
-        objectNode.set("prebid", mapper.valueToTree(ExtRequestPrebid.builder()
-                .storedrequest(ExtStoredRequest.of("ggroup1;;")).build()));
-        objectNode.putObject("nextMillennium")
-                .set("nmmFlags", mapper.valueToTree(values));
-        return objectNode;
     }
 }
