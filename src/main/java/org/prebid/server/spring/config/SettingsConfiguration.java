@@ -6,11 +6,14 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.activity.ActivitiesConfigResolver;
 import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.floors.PriceFloorsConfigResolver;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.ApplicationSettings;
@@ -40,9 +43,12 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.services.s3.S3AsyncClientBuilder;
 
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
@@ -57,6 +63,7 @@ import java.util.stream.Stream;
 
 @UtilityClass
 public class SettingsConfiguration {
+    private static final Logger logger = LoggerFactory.getLogger(SettingsConfiguration.class);
 
     @Configuration
     @ConditionalOnProperty(prefix = "settings.filesystem",
@@ -239,11 +246,23 @@ public class SettingsConfiguration {
         @NoArgsConstructor
         protected static class S3ConfigurationProperties {
 
-            @NotBlank
+            /**
+             * If accessKeyId and secretAccessKey are provided in the
+             * configuration file then they will be used. Otherwise, the
+             * DefaultCredentialsProvider will look for credentials in this order:
+             *
+             * - Java System Properties
+             * - Environment Variables
+             * - Web Identity Token
+             * - AWS credentials file (~/.aws/credentials)
+             * - ECS container credentials
+             * - EC2 instance profile
+             */
             private String accessKeyId;
-
-            @NotBlank
             private String secretAccessKey;
+            private boolean useStaticCredentials() {
+                return StringUtils.isNotBlank(accessKeyId) && StringUtils.isNotBlank(secretAccessKey);
+            }
 
             /**
              * If not provided AWS_GLOBAL will be used as a region
@@ -274,20 +293,34 @@ public class SettingsConfiguration {
 
         @Bean
         S3AsyncClient s3AsyncClient(S3ConfigurationProperties s3ConfigurationProperties) throws URISyntaxException {
-            final AwsBasicCredentials credentials = AwsBasicCredentials.create(
-                    s3ConfigurationProperties.getAccessKeyId(),
-                    s3ConfigurationProperties.getSecretAccessKey());
             final Region awsRegion = Optional.ofNullable(s3ConfigurationProperties.getRegion())
                     .map(Region::of)
                     .orElse(Region.AWS_GLOBAL);
 
-            return S3AsyncClient
-                    .builder()
-                    .credentialsProvider(StaticCredentialsProvider.create(credentials))
+            S3AsyncClientBuilder clientBuilder = S3AsyncClient.builder()
                     .endpointOverride(new URI(s3ConfigurationProperties.getEndpoint()))
                     .forcePathStyle(s3ConfigurationProperties.getForcePathStyle())
-                    .region(awsRegion)
-                    .build();
+                    .region(awsRegion);
+            AwsCredentialsProvider credentialsProvider;
+            
+            if (s3ConfigurationProperties.useStaticCredentials()) {
+                final AwsBasicCredentials basicCredentials = AwsBasicCredentials.create(
+                        s3ConfigurationProperties.getAccessKeyId(),
+                        s3ConfigurationProperties.getSecretAccessKey());
+                credentialsProvider = StaticCredentialsProvider.create(basicCredentials);
+            } else {
+                credentialsProvider = DefaultCredentialsProvider.create();
+            }
+            
+            try {
+                credentialsProvider.resolveCredentials();
+            } catch (Exception e) {
+                logger.error("Failed to resolve AWS credentials", e);
+            }
+            logger.info("Resolved AWS credentials from {}", credentialsProvider.resolveCredentials().providerName());
+            clientBuilder.credentialsProvider(credentialsProvider);
+
+            return clientBuilder.build();
         }
 
         @Bean
