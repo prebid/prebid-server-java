@@ -240,12 +240,10 @@ public class SettingsConfiguration {
 
         @Component
         @ConfigurationProperties(prefix = "settings.s3")
-        @ConditionalOnProperty(prefix = "settings.s3", name = {"accessKeyId", "secretAccessKey"})
         @Validated
         @Data
         @NoArgsConstructor
         protected static class S3ConfigurationProperties {
-
             /**
              * If accessKeyId and secretAccessKey are provided in the
              * configuration file then they will be used. Otherwise, the
