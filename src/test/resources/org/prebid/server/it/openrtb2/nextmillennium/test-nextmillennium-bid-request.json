@@ -9,7 +9,9 @@
       },
       "secure": 1,
       "ext": {
-        "nextMillennium": [ "1" ],
+        "nextMillennium" : {
+          "nmmFlags" : [ "1" ]
+        },
         "prebid": {
           "storedrequest": {
             "id": "placement_id"
