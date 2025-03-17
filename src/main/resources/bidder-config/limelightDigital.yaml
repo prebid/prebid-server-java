@@ -41,6 +41,9 @@ adapters:
       streamlyn:
         enabled: false
         endpoint: http://rtba.bidsxchange.com/openrtb/{{PublisherID}}?host={{Host}}
+      orangeclickmedia:
+        enabled: false
+        endpoint: http://ads-pbs.scotty.orangeclickmedia.com/openrtb/{{PublisherID}}?host={{Host}}
     meta-info:
       maintainer-email: engineering@project-limelight.com
       app-media-types:
