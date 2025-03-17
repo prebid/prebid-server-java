@@ -1,19 +1,19 @@
 package org.prebid.server.spring.config;
 
+import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.ObjectUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.activity.ActivitiesConfigResolver;
 import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.floors.PriceFloorsConfigResolver;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
-import org.prebid.server.log.Logger;
-import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.ApplicationSettings;
@@ -43,12 +43,13 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
-import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.S3AsyncClientBuilder;
+import software.amazon.awssdk.core.exception.SdkClientException;
 
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
@@ -63,6 +64,7 @@ import java.util.stream.Stream;
 
 @UtilityClass
 public class SettingsConfiguration {
+
     private static final Logger logger = LoggerFactory.getLogger(SettingsConfiguration.class);
 
     @Configuration
@@ -244,6 +246,7 @@ public class SettingsConfiguration {
         @Data
         @NoArgsConstructor
         protected static class S3ConfigurationProperties {
+
             /**
              * If accessKeyId and secretAccessKey are provided in the
              * configuration file then they will be used. Otherwise, the
@@ -258,6 +261,7 @@ public class SettingsConfiguration {
              */
             private String accessKeyId;
             private String secretAccessKey;
+
             private boolean useStaticCredentials() {
                 return StringUtils.isNotBlank(accessKeyId) && StringUtils.isNotBlank(secretAccessKey);
             }
@@ -291,16 +295,16 @@ public class SettingsConfiguration {
 
         @Bean
         S3AsyncClient s3AsyncClient(S3ConfigurationProperties s3ConfigurationProperties) throws URISyntaxException {
+
             final Region awsRegion = Optional.ofNullable(s3ConfigurationProperties.getRegion())
                     .map(Region::of)
                     .orElse(Region.AWS_GLOBAL);
 
-            S3AsyncClientBuilder clientBuilder = S3AsyncClient.builder()
+            final S3AsyncClientBuilder clientBuilder = S3AsyncClient.builder()
                     .endpointOverride(new URI(s3ConfigurationProperties.getEndpoint()))
                     .forcePathStyle(s3ConfigurationProperties.getForcePathStyle())
                     .region(awsRegion);
-            AwsCredentialsProvider credentialsProvider;
-            
+            final AwsCredentialsProvider credentialsProvider;
             if (s3ConfigurationProperties.useStaticCredentials()) {
                 final AwsBasicCredentials basicCredentials = AwsBasicCredentials.create(
                         s3ConfigurationProperties.getAccessKeyId(),
@@ -309,13 +313,11 @@ public class SettingsConfiguration {
             } else {
                 credentialsProvider = DefaultCredentialsProvider.create();
             }
-            
             try {
                 credentialsProvider.resolveCredentials();
-            } catch (Exception e) {
+            } catch (SdkClientException e) {
                 logger.error("Failed to resolve AWS credentials", e);
             }
-            logger.info("Resolved AWS credentials from {}", credentialsProvider.resolveCredentials().providerName());
             clientBuilder.credentialsProvider(credentialsProvider);
 
             return clientBuilder.build();
