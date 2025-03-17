@@ -180,6 +180,7 @@ public class KoblerBidder implements Bidder<BidRequest> {
                 .map(ext -> ext.get(extPrebid))
                 .filter(JsonNode::isObject)
                 .map(ObjectNode.class::cast)
+                .filter(JsonNode::isObject)
                 .map(this::parseExtBidPrebid)
                 .map(ExtBidPrebid::getType)
                 .orElse(BidType.banner);
