@@ -138,9 +138,9 @@ public class GumgumBidder implements Bidder<BidRequest> {
             updatedExt = mapper.mapper().createObjectNode().put(REQUEST_EXT_PRODUCT, product);
         }
 
-        //add Ad Unit ID to ext if available
+        //set AdUnitID to imp.tagId
         if (StringUtils.isNotEmpty(adUnitId)) {
-            updatedExt.put("ad_unit_id", adUnitId);
+            impBuilder.tagid(adUnitId);
         }
 
         impBuilder.ext(updatedExt);
