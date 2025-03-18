@@ -558,7 +558,7 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
         def transmitEidsLogs = findProcessingRule(infrastructure, TRANSMIT_EIDS).ruleConfiguration.and
         def transmitPreciseGeoLogs = findProcessingRule(infrastructure, TRANSMIT_PRECISE_GEO).ruleConfiguration.and
         def transmitTidLogs = findProcessingRule(infrastructure, TRANSMIT_TID).ruleConfiguration.and
-        verifyAll([fetchBidsLogs, transmitUfpdLogs, transmitEidsLogs, transmitPreciseGeoLogs, transmitTidLogs]) {
+        verifyAll ([fetchBidsLogs, transmitUfpdLogs, transmitEidsLogs, transmitPreciseGeoLogs, transmitTidLogs]) {
             it.privacyModule.toSet().size() == 1
             it.skipped.toSet().size() == 1
             it.result.toSet().size() == 1
