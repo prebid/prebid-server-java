@@ -31,6 +31,10 @@ import static org.prebid.server.functional.testcontainers.Dependencies.getNetwor
 
 class AlternateBidderCodeSpec extends BaseSpec {
 
+    private static final String ADAPTER_RESPONSE_VALIDATION_METRICS = "adapter.%s.response.validation.seat"
+    private static final String ERROR_BID_CODE_VALIDATION = "BidId `%s` validation messages: " +
+            "Error: invalid bidder code %s was set by the adapter %s for the account %s"
+    private static final String INVALID_BIDDER_CODE_LOGS = "invalid bidder code %s was set by the adapter %s for the account %s"
     private static final Map AMX_CONFIG = ["adapters.amx.enabled" : "true",
                                            "adapters.amx.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
     @Shared
@@ -82,9 +86,12 @@ class AlternateBidderCodeSpec extends BaseSpec {
         assert !response.ext?.errors
         assert !response.ext?.seatnonbid
 
+        and: "Response shouldn't contain demand source"
+        assert !response.seatbid.first.bid.first.ext.prebid.meta.demandSource
+
         and: "PBS shouldn't emit validation metrics"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
-        assert !metrics["adapter.${ALIAS}.response.validation.seat"]
+        assert !metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(ALIAS)]
     }
 
     def "PBS should populate meta demand source when bid response with demand source"() {
@@ -130,7 +137,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "PBS shouldn't emit validation metrics"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
-        assert !metrics["adapter.${AMX}.response.validation.seat"]
+        assert !metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(AMX)]
     }
 
     def "PBS shouldn't populate meta demand source when bid response without demand source"() {
@@ -175,7 +182,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "PBS shouldn't emit validation metrics"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
-        assert !metrics["adapter.${AMX}.response.validation.seat"]
+        assert !metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(AMX)]
     }
 
     def "PBS shouldn't discard bid for amx bidder same seat in response as seat in bid.ext.bidderCode"() {
@@ -215,9 +222,12 @@ class AlternateBidderCodeSpec extends BaseSpec {
         assert !response.ext?.errors
         assert !response.ext?.seatnonbid
 
+        and: "Response shouldn't contain demand source"
+        assert !response.seatbid.first.bid.first.ext.prebid.meta.demandSource
+
         and: "PBS shouldn't emit validation metrics"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
-        assert !metrics["adapter.${AMX}.response.validation.seat"]
+        assert !metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(AMX)]
 
         where:
         bidderCode << [AMX, AMX_CAMEL_CASE]
@@ -253,19 +263,19 @@ class AlternateBidderCodeSpec extends BaseSpec {
         and: "Response should contain error"
         def error = response.ext?.errors[ErrorType.AMX][0]
         assert error.code == 5
-        assert error.message == "BidId `${bidResponse.seatbid[0].bid[0].id}` validation messages: " +
-                "Error: invalid bidder code ${bidderName} was set by the adapter ${AMX} for the account ${bidRequest.accountId}"
+        assert error.message == ERROR_BID_CODE_VALIDATION
+                .formatted(bidResponse.seatbid[0].bid[0].id, bidderName, AMX, bidRequest.accountId)
 
         and: "PBS should emit logs"
         def logs = pbsServiceWithAmxBidder.getLogsByValue(bidRequest.accountId)
-        assert logs.contains("invalid bidder code ${bidderName} was set by the adapter ${AMX} for the account ${bidRequest.accountId}")
+        assert logs.contains(INVALID_BIDDER_CODE_LOGS.formatted(bidderName, AMX, bidRequest.accountId))
 
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
 
         and: "PBS should emit metrics"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
-        assert metrics["adapter.${AMX}.response.validation.seat"]
+        assert metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(AMX)]
 
         where:
         bidderName << [BOGUS, UNKNOWN, WILDCARD]
@@ -305,19 +315,19 @@ class AlternateBidderCodeSpec extends BaseSpec {
         and: "Response should contain error"
         def error = response.ext?.errors[ErrorType.ALIAS][0]
         assert error.code == 5
-        assert error.message == "BidId `${bidResponse.seatbid[0].bid[0].id}` validation messages: " +
-                "Error: invalid bidder code ${bidderName} was set by the adapter ${ALIAS} for the account ${bidRequest.accountId}"
+        assert error.message == ERROR_BID_CODE_VALIDATION
+                .formatted(bidResponse.seatbid[0].bid[0].id, bidderName, ALIAS, bidRequest.accountId)
 
         and: "PBS should emit logs"
         def logs = pbsServiceWithAmxBidder.getLogsByValue(bidRequest.accountId)
-        assert logs.contains("invalid bidder code ${bidderName} was set by the adapter ${ALIAS} for the account ${bidRequest.accountId}")
+        assert logs.contains(INVALID_BIDDER_CODE_LOGS.formatted(bidderName, ALIAS, bidRequest.accountId))
 
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
 
         and: "PBS should emit validation metrics"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
-        assert metrics["adapter.${ALIAS}.response.validation.seat"]
+        assert metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(ALIAS)]
 
         where:
         bidderName << [BOGUS, UNKNOWN, WILDCARD]
@@ -353,6 +363,9 @@ class AlternateBidderCodeSpec extends BaseSpec {
         then: "Bid response should contain exp data"
         assert response.seatbid.seat == [GENERIC]
 
+        and: "Response shouldn't contain demand source"
+        assert !response.seatbid.first.bid.first.ext.prebid.meta.demandSource
+
         and: "Response should contain adapter code"
         assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [AMX]
 
@@ -373,7 +386,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "PBS shouldn't emit validation metrics"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
-        assert !metrics["adapter.${ALIAS}.response.validation.seat"]
+        assert !metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(ALIAS)]
 
         where:
         requestAlternateBidderCode                                                                                                  | accountAlternateBidderCodes
@@ -407,6 +420,9 @@ class AlternateBidderCodeSpec extends BaseSpec {
         and: "Response should contain adapter code"
         assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [AMX]
 
+        and: "Response shouldn't contain demand source"
+        assert !response.seatbid.first.bid.first.ext.prebid.meta.demandSource
+
         and: "Response should contain bidder targeting"
         def targeting = response.seatbid[0].bid[0].ext.prebid.targeting
         assert targeting["hb_pb_${bidderCode}"]
@@ -424,16 +440,15 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "PBS shouldn't emit validation metrics"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
-        assert !metrics["adapter.${bidderCode}.response.validation.seat"]
+        assert !metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(bidderCode)]
 
         where:
         bidderCode << [ALIAS, ALIAS_CAMEL_CASE]
     }
 
-    def "PBS shouldn't discard the bid or emit a response warning when alternate bidder codes not fully configured"() {
+    def "PBS shouldn't discard the bid or emit a response warning when account alternate bidder codes not fully configured"() {
         given: "Default bid request with alternate bidder codes"
-        def bidRequest = bidRequestWithAmxBidderAndAlternateBidderCode().tap {
-            ext.prebid.alternateBidderCodes = requestedAlternateBidderCodes
+        def bidRequest = bidRequestWithAmxBidder().tap {
             setAccountId(PBSUtils.randomString)
         }
 
@@ -471,47 +486,100 @@ class AlternateBidderCodeSpec extends BaseSpec {
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
 
-        then: "Response shouldn't contain warnings,errors and seatnonbid"
+        and: "Response shouldn't contain warnings,errors and seatnonbid"
         assert !response.ext?.warnings
         assert !response.ext?.errors
         assert !response.ext?.seatnonbid
 
+        and: "Response shouldn't contain demand source"
+        assert !response.seatbid.first.bid.first.ext.prebid.meta.demandSource
+
         and: "Metric shouldn't be updated"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
-        assert !metrics["adapter.${AMX}.response.validation.seat"]
+        assert !metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(AMX)]
 
         where:
-        requestedAlternateBidderCodes                                                                                               | accountAlternateBidderCodes
-        new AlternateBidderCodes()                                                                                                  | null
-        null                                                                                                                        | new AlternateBidderCodes()
-        new AlternateBidderCodes(enabled: true)                                                                                     | null
-        new AlternateBidderCodes(enabled: false)                                                                                    | null
-        null                                                                                                                        | new AlternateBidderCodes(enabled: true)
-        null                                                                                                                        | new AlternateBidderCodes(enabled: false)
-        new AlternateBidderCodes(bidders: [(AMX): new BidderConfig()])                                                              | null
-        new AlternateBidderCodes(bidders: [(UNKNOWN): new BidderConfig()])                                                          | null
-        new AlternateBidderCodes(enabled: false, bidders: [(AMX): new BidderConfig()])                                              | null
-        new AlternateBidderCodes(enabled: false, bidders: [(UNKNOWN): new BidderConfig()])                                          | null
-        new AlternateBidderCodes(enabled: true, bidders: [(UNKNOWN): new BidderConfig()])                                           | null
-        new AlternateBidderCodes(enabled: true, bidders: [(AMX): new BidderConfig()])                                               | null
-        null                                                                                                                        | new AlternateBidderCodes(bidders: [(AMX): new BidderConfig()])
-        null                                                                                                                        | new AlternateBidderCodes(bidders: [(UNKNOWN): new BidderConfig()])
-        null                                                                                                                        | new AlternateBidderCodes(enabled: true, bidders: [(AMX): new BidderConfig()])
-        null                                                                                                                        | new AlternateBidderCodes(enabled: true, bidders: [(UNKNOWN): new BidderConfig()])
-        null                                                                                                                        | new AlternateBidderCodes(enabled: false, bidders: [(UNKNOWN): new BidderConfig()])
-        null                                                                                                                        | new AlternateBidderCodes(enabled: false, bidders: [(AMX): new BidderConfig()])
-        new AlternateBidderCodes(bidders: [(AMX): new BidderConfig(enabled: false, allowedBidderCodes: [UNKNOWN])])                 | null
-        new AlternateBidderCodes(bidders: [(UNKNOWN): new BidderConfig(enabled: false, allowedBidderCodes: [AMX])])                 | null
-        new AlternateBidderCodes(enabled: false, bidders: [(AMX): new BidderConfig(enabled: false, allowedBidderCodes: [UNKNOWN])]) | null
-        new AlternateBidderCodes(enabled: false, bidders: [(UNKNOWN): new BidderConfig(enabled: false, allowedBidderCodes: [AMX])]) | null
-        new AlternateBidderCodes(enabled: true, bidders: [(AMX): new BidderConfig(enabled: false, allowedBidderCodes: [UNKNOWN])])  | null
-        new AlternateBidderCodes(enabled: true, bidders: [(UNKNOWN): new BidderConfig(enabled: false, allowedBidderCodes: [AMX])])  | null
-        null                                                                                                                        | new AlternateBidderCodes(bidders: [(AMX): new BidderConfig(enabled: false, allowedBidderCodes: [UNKNOWN])])
-        null                                                                                                                        | new AlternateBidderCodes(bidders: [(UNKNOWN): new BidderConfig(enabled: false, allowedBidderCodes: [AMX])])
-        null                                                                                                                        | new AlternateBidderCodes(enabled: false, bidders: [(AMX): new BidderConfig(enabled: false, allowedBidderCodes: [UNKNOWN])])
-        null                                                                                                                        | new AlternateBidderCodes(enabled: false, bidders: [(UNKNOWN): new BidderConfig(enabled: false, allowedBidderCodes: [AMX])])
-        null                                                                                                                        | new AlternateBidderCodes(enabled: true, bidders: [(AMX): new BidderConfig(enabled: false, allowedBidderCodes: [UNKNOWN])])
-        null                                                                                                                        | new AlternateBidderCodes(enabled: true, bidders: [(UNKNOWN): new BidderConfig(enabled: false, allowedBidderCodes: [AMX])])
+        accountAlternateBidderCodes << [null,
+                                        new AlternateBidderCodes(),
+                                        new AlternateBidderCodes(enabled: true),
+                                        new AlternateBidderCodes(enabled: false),
+                                        new AlternateBidderCodes(bidders: [(AMX): new BidderConfig()]),
+                                        new AlternateBidderCodes(bidders: [(UNKNOWN): new BidderConfig()]),
+                                        new AlternateBidderCodes(enabled: true, bidders: [(AMX): new BidderConfig()]),
+                                        new AlternateBidderCodes(enabled: true, bidders: [(UNKNOWN): new BidderConfig()]),
+                                        new AlternateBidderCodes(enabled: false, bidders: [(UNKNOWN): new BidderConfig()]),
+                                        new AlternateBidderCodes(enabled: false, bidders: [(AMX): new BidderConfig()]),
+                                        new AlternateBidderCodes(bidders: [(AMX): new BidderConfig(enabled: false, allowedBidderCodes: [UNKNOWN])]),
+                                        new AlternateBidderCodes(bidders: [(UNKNOWN): new BidderConfig(enabled: false, allowedBidderCodes: [AMX])]),
+                                        new AlternateBidderCodes(enabled: false, bidders: [(AMX): new BidderConfig(enabled: false, allowedBidderCodes: [UNKNOWN])]),
+                                        new AlternateBidderCodes(enabled: false, bidders: [(UNKNOWN): new BidderConfig(enabled: false, allowedBidderCodes: [AMX])]),
+                                        new AlternateBidderCodes(enabled: true, bidders: [(AMX): new BidderConfig(enabled: false, allowedBidderCodes: [UNKNOWN])]),
+                                        new AlternateBidderCodes(enabled: true, bidders: [(UNKNOWN): new BidderConfig(enabled: false, allowedBidderCodes: [AMX])])]
+    }
+
+    def "PBS shouldn't discard the bid or emit a response warning when request alternate bidder codes not fully configured"() {
+        given: "Default bid request with alternate bidder codes"
+        def bidRequest = bidRequestWithAmxBidderAndAlternateBidderCode().tap {
+            ext.prebid.alternateBidderCodes = requestedAlternateBidderCodes
+        }
+
+        and: "Bid response with bidder code"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest, AMX).tap {
+            it.seatbid[0].bid[0].ext = new BidExt(bidderCode: AMX)
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        and: "Flash metrics"
+        flushMetrics(pbsServiceWithAmxBidder)
+
+        when: "PBS processes auction request"
+        def response = pbsServiceWithAmxBidder.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain adapter code"
+        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [AMX]
+
+        and: "Response should contain seatbid.seat"
+        assert response.seatbid[0].seat == AMX
+
+        and: "Response should contain bidder targeting"
+        def targeting = response.seatbid[0].bid[0].ext.prebid.targeting
+        assert targeting["hb_pb_${AMX}"]
+        assert targeting["hb_size_${AMX}"]
+        assert targeting["hb_bidder"] == AMX.value
+        assert targeting["hb_bidder_${AMX}"] == AMX.value
+
+        and: "Bidder request should be valid"
+        assert bidder.getBidderRequests(bidRequest.id)
+
+        and: "Response shouldn't contain warnings,errors and seatnonbid"
+        assert !response.ext?.warnings
+        assert !response.ext?.errors
+        assert !response.ext?.seatnonbid
+
+        and: "Response shouldn't contain demand source"
+        assert !response.seatbid.first.bid.first.ext.prebid.meta.demandSource
+
+        and: "Metric shouldn't be updated"
+        def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
+        assert !metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(AMX)]
+
+        where:
+        requestedAlternateBidderCodes << [null,
+                                          new AlternateBidderCodes(),
+                                          new AlternateBidderCodes(enabled: true),
+                                          new AlternateBidderCodes(enabled: false),
+                                          new AlternateBidderCodes(bidders: [(AMX): new BidderConfig()]),
+                                          new AlternateBidderCodes(bidders: [(UNKNOWN): new BidderConfig()]),
+                                          new AlternateBidderCodes(enabled: true, bidders: [(AMX): new BidderConfig()]),
+                                          new AlternateBidderCodes(enabled: true, bidders: [(UNKNOWN): new BidderConfig()]),
+                                          new AlternateBidderCodes(enabled: false, bidders: [(UNKNOWN): new BidderConfig()]),
+                                          new AlternateBidderCodes(enabled: false, bidders: [(AMX): new BidderConfig()]),
+                                          new AlternateBidderCodes(bidders: [(AMX): new BidderConfig(enabled: false, allowedBidderCodes: [UNKNOWN])]),
+                                          new AlternateBidderCodes(bidders: [(UNKNOWN): new BidderConfig(enabled: false, allowedBidderCodes: [AMX])]),
+                                          new AlternateBidderCodes(enabled: false, bidders: [(AMX): new BidderConfig(enabled: false, allowedBidderCodes: [UNKNOWN])]),
+                                          new AlternateBidderCodes(enabled: false, bidders: [(UNKNOWN): new BidderConfig(enabled: false, allowedBidderCodes: [AMX])]),
+                                          new AlternateBidderCodes(enabled: true, bidders: [(AMX): new BidderConfig(enabled: false, allowedBidderCodes: [UNKNOWN])]),
+                                          new AlternateBidderCodes(enabled: true, bidders: [(UNKNOWN): new BidderConfig(enabled: false, allowedBidderCodes: [AMX])])]
     }
 
     def "PBS shouldn't discard bid when alternate bidder code allows bidder codes fully configured and bidder requested in uppercase"() {
@@ -522,7 +590,6 @@ class AlternateBidderCodeSpec extends BaseSpec {
                 amx = null
             }
             ext.prebid.alternateBidderCodes.bidders[AMX].allowedBidderCodesLowerCase = [GENERIC]
-            setAccountId(PBSUtils.randomString)
         }
 
         and: "Bid response with bidder code"
@@ -553,15 +620,17 @@ class AlternateBidderCodeSpec extends BaseSpec {
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
 
-        then: "Response shouldn't contain warnings,errors and seatnonbid"
+        and: "Response shouldn't contain demand source"
+        assert !response.seatbid.first.bid.first.ext.prebid.meta.demandSource
+
+        and: "Response shouldn't contain warnings,errors and seatnonbid"
         assert !response.ext?.warnings
         assert !response.ext?.errors
         assert !response.ext?.seatnonbid
 
         and: "Metric shouldn't be updated"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
-        assert !metrics["adapter.${AMX}.response.validation.seat"]
-        assert !metrics["adapter.${GENERIC}.response.validation.seat"]
+        assert !metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(GENERIC)]
     }
 
     def "PBS shouldn't discard bid when alternate bidder code allows bidder codes fully configured with different case"() {
@@ -604,14 +673,17 @@ class AlternateBidderCodeSpec extends BaseSpec {
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
 
-        then: "Response shouldn't contain warnings,errors and seatnonbid"
+        and: "Response shouldn't contain warnings,errors and seatnonbid"
         assert !response.ext?.warnings
         assert !response.ext?.errors
         assert !response.ext?.seatnonbid
 
+        and: "Response shouldn't contain demand source"
+        assert !response.seatbid.first.bid.first.ext.prebid.meta.demandSource
+
         and: "Metric shouldn't be updated"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
-        assert !metrics["adapter.${AMX}.response.validation.seat"]
+        assert !metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(AMX)]
 
         where:
         configAccountAlternateBidderCodes << [
@@ -658,16 +730,16 @@ class AlternateBidderCodeSpec extends BaseSpec {
         and: "Response should contain error"
         def error = response.ext?.errors[ErrorType.AMX][0]
         assert error.code == 5
-        assert error.message == "BidId `${bidResponse.seatbid[0].bid[0].id}` validation messages: " +
-                "Error: invalid bidder code ${UNKNOWN} was set by the adapter ${AMX} for the account ${bidRequest.accountId}"
+        assert error.message == ERROR_BID_CODE_VALIDATION
+                .formatted(bidResponse.seatbid[0].bid[0].id, UNKNOWN, AMX, bidRequest.accountId)
 
         and: "PBS should emit logs"
         def logs = pbsServiceWithAmxBidder.getLogsByValue(bidRequest.accountId)
-        assert logs.contains("invalid bidder code ${UNKNOWN} was set by the adapter ${AMX} for the account ${bidRequest.accountId}")
+        assert logs.contains(INVALID_BIDDER_CODE_LOGS.formatted(UNKNOWN, AMX, bidRequest.accountId))
 
         and: "PBS should emit metrics"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
-        assert metrics["adapter.${AMX}.response.validation.seat"]
+        assert metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(AMX)]
 
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -712,16 +784,16 @@ class AlternateBidderCodeSpec extends BaseSpec {
         and: "Response should contain error"
         def error = response.ext?.errors[ErrorType.AMX][0]
         assert error.code == 5
-        assert error.message == "BidId `${bidResponse.seatbid[0].bid[0].id}` validation messages: " +
-                "Error: invalid bidder code ${UNKNOWN} was set by the adapter ${AMX} for the account ${bidRequest.accountId}"
+        assert error.message == ERROR_BID_CODE_VALIDATION
+                .formatted(bidResponse.seatbid[0].bid[0].id, UNKNOWN, AMX, bidRequest.accountId)
 
         and: "PBS should emit logs"
         def logs = pbsServiceWithAmxBidder.getLogsByValue(bidRequest.accountId)
-        assert logs.contains("invalid bidder code ${UNKNOWN} was set by the adapter ${AMX} for the account ${bidRequest.accountId}")
+        assert logs.contains(INVALID_BIDDER_CODE_LOGS.formatted(UNKNOWN, AMX, bidRequest.accountId))
 
         and: "PBS should emit metrics"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
-        assert metrics["adapter.${AMX}.response.validation.seat"]
+        assert metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(AMX)]
 
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -774,6 +846,9 @@ class AlternateBidderCodeSpec extends BaseSpec {
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
 
+        and: "Response shouldn't contain demand source"
+        assert !response.seatbid.first.bid.first.ext.prebid.meta.demandSource
+
         and: "Response shouldn't contain warnings and errors and seatNonBid"
         assert !response.ext?.warnings
         assert !response.ext?.errors
@@ -781,7 +856,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "PBs metric shouldn't be updated"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
-        assert !metrics["adapter.${AMX}.response.validation.seat"]
+        assert !metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(AMX)]
 
         where:
         accountAllowedBidderCodes << [[WILDCARD], [WILDCARD, EMPTY], [EMPTY, WILDCARD], null]
@@ -791,7 +866,6 @@ class AlternateBidderCodeSpec extends BaseSpec {
         given: "Default bid request with alternate bidder codes"
         def bidRequest = bidRequestWithAmxBidderAndAlternateBidderCode().tap {
             ext.prebid.alternateBidderCodes.bidders[AMX].allowedBidderCodesLowerCase = requestedAllowedBidderCodes
-            setAccountId(PBSUtils.randomString)
         }
 
         and: "Bid response with bidder code"
@@ -827,9 +901,12 @@ class AlternateBidderCodeSpec extends BaseSpec {
         assert !response.ext?.errors
         assert !response.ext?.seatnonbid
 
+        and: "Response shouldn't contain demand source"
+        assert !response.seatbid.first.bid.first.ext.prebid.meta.demandSource
+
         and: "PBs metric shouldn't be updated"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
-        assert !metrics["adapter.${AMX}.response.validation.seat"]
+        assert !metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(AMX)]
 
         where:
         requestedAllowedBidderCodes << [[WILDCARD], [WILDCARD, EMPTY], [EMPTY, WILDCARD], null]
@@ -839,7 +916,6 @@ class AlternateBidderCodeSpec extends BaseSpec {
         given: "Default bid request with alternate bidder codes"
         def bidRequest = bidRequestWithAmxBidderAndAlternateBidderCode().tap {
             ext.prebid.alternateBidderCodes.bidders = requestAlternateBidders
-            setAccountId(PBSUtils.randomString)
         }
 
         and: "Bid response with bidder code"
@@ -860,6 +936,9 @@ class AlternateBidderCodeSpec extends BaseSpec {
         and: "Response should contain seatbid.seat"
         assert response.seatbid.seat.flatten() == [GENERIC]
 
+        and: "Response shouldn't contain demand source"
+        assert !response.seatbid.first.bid.first.ext.prebid.meta.demandSource
+
         and: "Response should contain bidder targeting"
         def targeting = response.seatbid[0].bid[0].ext.prebid.targeting
         assert targeting["hb_pb_${GENERIC}"]
@@ -877,7 +956,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "PBs metric shouldn't be updated"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
-        assert !metrics["adapter.${AMX}.response.validation.seat"]
+        assert !metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(AMX)]
 
         where:
         requestAlternateBidders << [[(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])],
@@ -919,6 +998,9 @@ class AlternateBidderCodeSpec extends BaseSpec {
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
 
+        and: "Response shouldn't contain demand source"
+        assert !response.seatbid.first.bid.first.ext.prebid.meta.demandSource
+
         and: "Response should contain bidder targeting"
         def targeting = response.seatbid[0].bid[0].ext.prebid.targeting
         assert targeting["hb_pb_${GENERIC}"]
@@ -933,7 +1015,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "PBs metric shouldn't be updated"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
-        assert !metrics["adapter.${AMX}.response.validation.seat"]
+        assert !metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(AMX)]
 
         where:
         accountAlternateBidders << [[(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])],
@@ -973,6 +1055,9 @@ class AlternateBidderCodeSpec extends BaseSpec {
         then: "Response should contain adapter code"
         assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [AMX]
 
+        and: "Response shouldn't contain demand source"
+        assert !response.seatbid.first.bid.first.ext.prebid.meta.demandSource
+
         and: "Response should contain seatbid.seat"
         assert response.seatbid.seat.flatten() == [AMX]
 
@@ -993,7 +1078,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "Alert.general metric shouldn't be updated"
         def metrics = pbsService.sendCollectedMetricsRequest()
-        assert !metrics["adapter.${AMX}.response.validation.seat"]
+        assert !metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(AMX)]
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(config)
@@ -1001,9 +1086,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
     def "PBS should discard the bid and emit a response warning when request alternate bidder codes are enabled and the allowed bidder codes doesn't match the bidder's request"() {
         given: "Default bid request with alternate bidder codes"
-        def bidRequest = bidRequestWithAmxBidderAndAlternateBidderCode().tap {
-            setAccountId(PBSUtils.randomString)
-        }
+        def bidRequest = bidRequestWithAmxBidderAndAlternateBidderCode()
 
         and: "Bid response with bidder code"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest, AMX).tap {
@@ -1031,16 +1114,16 @@ class AlternateBidderCodeSpec extends BaseSpec {
         and: "Response should contain error"
         def error = response.ext?.errors[ErrorType.AMX][0]
         assert error.code == 5
-        assert error.message == "BidId `${bidResponse.seatbid[0].bid[0].id}` validation messages: " +
-                "Error: invalid bidder code ${requestedAllowedBidderCode} was set by the adapter ${AMX} for the account ${bidRequest.accountId}"
+        assert error.message == ERROR_BID_CODE_VALIDATION
+                .formatted(bidResponse.seatbid[0].bid[0].id, requestedAllowedBidderCode, AMX, bidRequest.accountId)
 
         and: "PBS should emit logs"
         def logs = pbsServiceWithAmxBidder.getLogsByValue(bidRequest.accountId)
-        assert logs.contains("invalid bidder code ${requestedAllowedBidderCode} was set by the adapter ${AMX} for the account ${bidRequest.accountId}")
+        assert logs.contains(INVALID_BIDDER_CODE_LOGS.formatted(requestedAllowedBidderCode, AMX, bidRequest.accountId))
 
         and: "PBS should emit metrics"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
-        assert metrics["adapter.${AMX}.response.validation.seat"]
+        assert metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(AMX)]
 
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -1085,16 +1168,16 @@ class AlternateBidderCodeSpec extends BaseSpec {
         and: "Response should contain error"
         def error = response.ext?.errors[ErrorType.AMX][0]
         assert error.code == 5
-        assert error.message == "BidId `${bidResponse.seatbid[0].bid[0].id}` validation messages: " +
-                "Error: invalid bidder code ${requestedAllowedBidderCode} was set by the adapter ${AMX} for the account ${bidRequest.accountId}"
+        assert error.message == ERROR_BID_CODE_VALIDATION
+                .formatted(bidResponse.seatbid[0].bid[0].id, requestedAllowedBidderCode, AMX, bidRequest.accountId)
 
         and: "PBS should emit logs"
         def logs = pbsServiceWithAmxBidder.getLogsByValue(bidRequest.accountId)
-        assert logs.contains("invalid bidder code ${requestedAllowedBidderCode} was set by the adapter ${AMX} for the account ${bidRequest.accountId}")
+        assert logs.contains(INVALID_BIDDER_CODE_LOGS.formatted(requestedAllowedBidderCode, AMX, bidRequest.accountId))
 
         and: "PBS should emit metrics"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
-        assert metrics["adapter.${AMX}.response.validation.seat"]
+        assert metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(AMX)]
 
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -1111,8 +1194,8 @@ class AlternateBidderCodeSpec extends BaseSpec {
                 it.bidders = [(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [AMX])]
             }
         }
-        def pbsService = pbsServiceFactory.getService(AMX_CONFIG +
-                ["settings.default-account-config": encode(defaultAccountConfig)])
+        def pbsConfig = AMX_CONFIG + ["settings.default-account-config": encode(defaultAccountConfig)]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request"
         def bidRequest = bidRequestWithAmxBidder()
@@ -1143,19 +1226,25 @@ class AlternateBidderCodeSpec extends BaseSpec {
         and: "Response should contain error"
         def error = response.ext?.errors[ErrorType.AMX][0]
         assert error.code == 5
-        assert error.message == "BidId `${bidResponse.seatbid[0].bid[0].id}` validation messages: " +
-                "Error: invalid bidder code ${allowedBidderCodes} was set by the adapter ${AMX} for the account ${bidRequest.accountId}"
+        assert error.message == ERROR_BID_CODE_VALIDATION
+                .formatted(bidResponse.seatbid[0].bid[0].id, allowedBidderCodes, AMX, bidRequest.accountId)
 
         and: "PBS should emit logs"
         def logs = pbsService.getLogsByValue(bidRequest.accountId)
-        assert logs.contains("invalid bidder code ${allowedBidderCodes} was set by the adapter ${AMX} for the account ${bidRequest.accountId}")
+        assert logs.contains(INVALID_BIDDER_CODE_LOGS.formatted(allowedBidderCodes, AMX, bidRequest.accountId))
+
+        and: "Response shouldn't contain demand source"
+        assert !response?.seatbid?.bid?.ext?.prebid?.meta?.demandSource
 
         and: "PBS should emit metrics"
         def metrics = pbsService.sendCollectedMetricsRequest()
-        assert metrics["adapter.${AMX}.response.validation.seat"]
+        assert metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(AMX)]
 
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
 
         where:
         allowedBidderCodes << [BOGUS, UNKNOWN]
@@ -1202,6 +1291,13 @@ class AlternateBidderCodeSpec extends BaseSpec {
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
 
+        and: "Response shouldn't contain demand source"
+        assert !response.seatbid.first.bid.first.ext.prebid.meta.demandSource
+
+        and: "PBS shouldn't emit validation metrics"
+        def metrics = defaultPbsService.sendCollectedMetricsRequest()
+        assert !metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(GENERIC)]
+
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsConfig)
     }
@@ -1239,6 +1335,9 @@ class AlternateBidderCodeSpec extends BaseSpec {
         and: "Response should contain adapter code"
         assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [AMX]
 
+        and: "Response shouldn't contain demand source"
+        assert !response.seatbid.first.bid.first.ext.prebid.meta.demandSource
+
         and: "Response should contain bidder targeting"
         def targeting = response.seatbid[0].bid[0].ext.prebid.targeting
         assert targeting["hb_pb_${GENERIC}"]
@@ -1256,9 +1355,9 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "PBS shouldn't emit validation metrics"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
-        assert !metrics["adapter.${ALIAS}.response.validation.seat"]
-        assert !metrics["adapter.${GENERIC}.response.validation.seat"]
-        assert !metrics["adapter.${AMX}.response.validation.seat"]
+        assert !metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(ALIAS)]
+        assert !metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(GENERIC)]
+        assert !metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(AMX)]
 
         where:
         requestAlternateBidderCode                                                                                                  | accountAlternateBidderCodes
@@ -1297,6 +1396,9 @@ class AlternateBidderCodeSpec extends BaseSpec {
         and: "Response should contain seat bid"
         assert response.seatbid.seat == [GENERIC]
 
+        and: "Response shouldn't contain demand source"
+        assert !response.seatbid.first.bid.first.ext.prebid.meta.demandSource
+
         and: "Response should contain bidder targeting"
         def targeting = response.seatbid[0].bid[0].ext.prebid.targeting
         assert targeting["hb_pb_${GENERIC}"]
@@ -1306,6 +1408,10 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
+
+        and: "PBS shouldn't emit validation metrics"
+        def metrics = defaultPbsService.sendCollectedMetricsRequest()
+        assert !metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(GENERIC)]
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsConfig)
