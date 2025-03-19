@@ -1,4 +1,4 @@
-package org.prebid.server.proto.openrtb.ext.request.nextmillennium;
+package org.prebid.server.bidder.nextmillennium.proto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Value;
@@ -6,7 +6,7 @@ import lombok.Value;
 import java.util.List;
 
 @Value(staticConstructor = "of")
-public class ExtRequestNextMillennium {
+public class NextMillenniumExtBidder {
 
     @JsonProperty("nmmFlags")
     List<String> nmmFlags;

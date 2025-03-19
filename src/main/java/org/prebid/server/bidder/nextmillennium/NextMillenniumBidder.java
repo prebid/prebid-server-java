@@ -12,7 +12,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -22,6 +21,8 @@ import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.bidder.nextmillennium.proto.NextMillenniumExt;
+import org.prebid.server.bidder.nextmillennium.proto.NextMillenniumExtBidder;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
@@ -31,8 +32,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidServer;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredRequest;
 import org.prebid.server.proto.openrtb.ext.request.nextmillennium.ExtImpNextMillennium;
-import org.prebid.server.proto.openrtb.ext.request.nextmillennium.ExtRequestNextMillennium;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.version.PrebidVersionProvider;
@@ -41,6 +42,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 public class NextMillenniumBidder implements Bidder<BidRequest> {
 
@@ -59,6 +61,7 @@ public class NextMillenniumBidder implements Bidder<BidRequest> {
                                 JacksonMapper mapper,
                                 List<String> nmmFlags,
                                 PrebidVersionProvider versionProvider) {
+
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
         this.nmmFlags = nmmFlags;
@@ -78,7 +81,12 @@ public class NextMillenniumBidder implements Bidder<BidRequest> {
                 errors.add(BidderError.badInput(e.getMessage()));
                 continue;
             }
-            httpRequests.add(makeHttpRequest(updateBidRequest(bidRequest, extImpNextMillennium)));
+            final BidRequest updatedRequest = updateBidRequest(bidRequest, extImpNextMillennium);
+            httpRequests.add(BidderUtil.defaultRequest(
+                    updatedRequest,
+                    headers(),
+                    endpointUrl,
+                    mapper));
         }
 
         return errors.isEmpty() ? Result.withValues(httpRequests) : Result.withErrors(errors);
@@ -92,7 +100,7 @@ public class NextMillenniumBidder implements Bidder<BidRequest> {
         }
     }
 
-    private BidRequest updateBidRequest(BidRequest bidRequest, ExtImpNextMillennium ext) {
+    private BidRequest updateBidRequest1(BidRequest bidRequest, ExtImpNextMillennium ext) {
         final ExtStoredRequest storedRequest = ExtStoredRequest.of(resolveStoredRequestId(bidRequest, ext));
         final ExtRequest requestExt = bidRequest.getExt();
         final ExtRequestPrebid existingPrebid = requestExt != null ? requestExt.getPrebid() : null;
@@ -106,7 +114,7 @@ public class NextMillenniumBidder implements Bidder<BidRequest> {
         final ExtRequest extRequest = ExtRequest.of(createdExtRequestPrebid);
 
         final ObjectNode nextMillenniumNode = mapper.mapper().valueToTree(
-                ExtRequestNextMillennium.of(nmmFlags, NM_ADAPTER_VERSION, versionProvider.getNameVersionRecord()));
+                NextMillenniumExtBidder.of(nmmFlags, NM_ADAPTER_VERSION, versionProvider.getNameVersionRecord()));
 
         extRequest.addProperty("nextMillennium", nextMillenniumNode);
 
@@ -130,6 +138,19 @@ public class NextMillenniumBidder implements Bidder<BidRequest> {
         return bidRequest.toBuilder()
                 .imp(updatedImps)
                 .ext(extRequest)
+                .build();
+    }
+
+    private BidRequest updateBidRequest(BidRequest bidRequest, ExtImpNextMillennium extImp) {
+        final String soredRequestId = resolveStoredRequestId(bidRequest, extImp);
+        final ExtRequestPrebidServer extRequestPrebidServer = Optional.ofNullable(bidRequest.getExt())
+                .map(ExtRequest::getPrebid)
+                .map(ExtRequestPrebid::getServer)
+                .orElse(null);
+
+        return bidRequest.toBuilder()
+                .imp(modifyFirstImp(bidRequest.getImp(), soredRequestId))
+                .ext(createExtRequest(soredRequestId, extRequestPrebidServer))
                 .build();
     }
 
@@ -170,14 +191,38 @@ public class NextMillenniumBidder implements Bidder<BidRequest> {
                 : null;
     }
 
-    private HttpRequest<BidRequest> makeHttpRequest(BidRequest bidRequest) {
-        return HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(endpointUrl)
-                .headers(headers())
-                .payload(bidRequest)
-                .body(mapper.encodeToBytes(bidRequest))
+    private List<Imp> modifyFirstImp(List<Imp> imps, String storedRequestId) {
+        final ExtRequestPrebid extRequestPrebid = ExtRequestPrebid.builder()
+                .storedrequest(ExtStoredRequest.of(storedRequestId))
                 .build();
+
+        final NextMillenniumExt nextMillenniumExt = NextMillenniumExt.of(
+                NextMillenniumExtBidder.of(nmmFlags, null, null));
+
+        final ExtRequest extRequest = ExtRequest.of(extRequestPrebid);
+        mapper.fillExtension(extRequest, nextMillenniumExt);
+
+        final ObjectNode impExt = mapper.mapper().valueToTree(extRequest);
+
+        final List<Imp> modifiedImps = new ArrayList<>(imps);
+        modifiedImps.set(0, imps.getFirst().toBuilder().ext(impExt).build());
+
+        return modifiedImps;
+    }
+
+    private ExtRequest createExtRequest(String storedRequestId, ExtRequestPrebidServer extRequestPrebidServer) {
+        final ExtRequestPrebid extRequestPrebid = ExtRequestPrebid.builder()
+                .storedrequest(ExtStoredRequest.of(storedRequestId))
+                .server(extRequestPrebidServer)
+                .build();
+
+        final NextMillenniumExt nextMillenniumExt = NextMillenniumExt.of(
+                NextMillenniumExtBidder.of(nmmFlags, NM_ADAPTER_VERSION, versionProvider.getNameVersionRecord()));
+
+        final ExtRequest extRequest = ExtRequest.of(extRequestPrebid);
+        mapper.fillExtension(extRequest, nextMillenniumExt);
+
+        return extRequest;
     }
 
     private static MultiMap headers() {

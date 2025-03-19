@@ -278,132 +278,6 @@ public class NextMillenniumBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBidWhenMTypeIsOne() throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = givenBidRequest(identity());
-        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.mtype(1).impid("123"))));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().mtype(1).impid("123").build(),
-                        BidType.banner, "USD"));
-    }
-
-    @Test
-    public void makeBidsShouldReturnVideoBidWhenMTypeIsTwo() throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = givenBidRequest(identity());
-        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.mtype(2).impid("123"))));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().mtype(2).impid("123").build(),
-                        BidType.video, "USD"));
-    }
-
-    @Test
-    public void makeBidsShouldReturnErrorWhenMTypeIsUnknown() throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = givenBidRequest(identity());
-        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.mtype(999).impid("123"))));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
-
-        // then
-        assertThat(result.getErrors())
-                .contains(BidderError.badServerResponse("Unable to fetch mediaType 999 in multi-format: 123"));
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnErrorWhenMTypeIsMissing() throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = givenBidRequest(identity());
-        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.id("bidId").impid("123"))));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
-
-        // then
-        assertThat(result.getErrors()).contains(BidderError.badServerResponse("Missing MType for bid: bidId"));
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnBothValidAndInvalidBidderBidAtTheSameTime() throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = givenBidRequest(identity());
-        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
-                mapper.writeValueAsString(givenBidResponse(
-                        bidBuilder -> bidBuilder.mtype(999).impid("123"),
-                        bidBuilder -> bidBuilder.mtype(1).impid("312"))));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
-
-        // then
-        assertThat(result.getErrors())
-                .contains(BidderError.badServerResponse("Unable to fetch mediaType 999 in multi-format: 123"));
-        assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().mtype(1).impid("312").build(),
-                        BidType.banner, "USD"));
-    }
-
-    @Test
-    public void makeBidsWithZeroSeatBidsShouldReturnNoErrorsAndNoValues() throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = givenBidRequest(identity());
-        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
-                mapper.writeValueAsString(BidResponse.builder()
-                        .seatbid(emptyList())
-                        .build()));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
-                                              Imp... imps) {
-
-        return bidRequestCustomizer.apply(BidRequest.builder().imp(asList(imps))).build();
-    }
-
-    @Test
-    public void makeBidsWithUnparsableBidResponseShouldReturnError() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(identity());
-        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
-                mapper.createArrayNode().toString());
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isNotEmpty()
-                .allSatisfy(bidderError -> {
-                    assertThat(bidderError.getType()).isEqualTo(BidderError.Type.bad_server_response);
-                    assertThat(bidderError.getMessage()).startsWith("Failed to decode:");
-                });
-    }
-
-    @Test
     public void makeHttpRequestsImpExtComparison() {
         // given
         final String placementId = "6821";
@@ -538,6 +412,132 @@ public class NextMillenniumBidderTest extends VertxTest {
                 .usingRecursiveComparison()
                 .ignoringFields("imp", "ext")
                 .isEqualTo(bidRequest);
+    }
+
+    @Test
+    public void makeBidsShouldReturnBannerBidWhenMTypeIsOne() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.mtype(1).impid("123"))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(Bid.builder().mtype(1).impid("123").build(),
+                        BidType.banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnVideoBidWhenMTypeIsTwo() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.mtype(2).impid("123"))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(Bid.builder().mtype(2).impid("123").build(),
+                        BidType.video, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorWhenMTypeIsUnknown() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.mtype(999).impid("123"))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors())
+                .contains(BidderError.badServerResponse("Unable to fetch mediaType 999 in multi-format: 123"));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorWhenMTypeIsMissing() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.id("bidId").impid("123"))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).contains(BidderError.badServerResponse("Missing MType for bid: bidId"));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnBothValidAndInvalidBidderBidAtTheSameTime() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
+                mapper.writeValueAsString(givenBidResponse(
+                        bidBuilder -> bidBuilder.mtype(999).impid("123"),
+                        bidBuilder -> bidBuilder.mtype(1).impid("312"))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors())
+                .contains(BidderError.badServerResponse("Unable to fetch mediaType 999 in multi-format: 123"));
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(Bid.builder().mtype(1).impid("312").build(),
+                        BidType.banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsWithZeroSeatBidsShouldReturnNoErrorsAndNoValues() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
+                mapper.writeValueAsString(BidResponse.builder()
+                        .seatbid(emptyList())
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsWithUnparsableBidResponseShouldReturnError() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
+                mapper.createArrayNode().toString());
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isNotEmpty()
+                .allSatisfy(bidderError -> {
+                    assertThat(bidderError.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(bidderError.getMessage()).startsWith("Failed to decode:");
+                });
+    }
+
+    private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
+                                              Imp... imps) {
+
+        return bidRequestCustomizer.apply(BidRequest.builder().imp(asList(imps))).build();
     }
 
     private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
