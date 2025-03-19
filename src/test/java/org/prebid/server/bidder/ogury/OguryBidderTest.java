@@ -2,7 +2,6 @@ package org.prebid.server.bidder.ogury;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
@@ -30,11 +29,14 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.function.UnaryOperator;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
+import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.mockito.ArgumentMatchers.any;
@@ -108,69 +110,42 @@ public class OguryBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1).first()
                 .extracting(HttpRequest::getHeaders)
                 .satisfies(headers -> assertThat(headers.getAll(HttpUtil.X_FORWARDED_FOR_HEADER))
-                        .contains("0.0.0.0", "ip6"));
-        assertThat(result.getErrors()).isEmpty();
-    }
-
-    @Test
-    public void makeHttpRequestsShouldEncodePassedBidRequest() {
-        // given
-        final BidRequest bidRequest = givenBidRequest();
-        final BidRequest modifiedBidRequest = givenModifiedBidRequest();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue().getFirst()).extracting(HttpRequest::getBody)
-                .isEqualTo(jacksonMapper.encodeToBytes(modifiedBidRequest));
+                        .containsExactlyInAnyOrder("0.0.0.0", "ip6"));
         assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
     public void makeHttpRequestsShouldReturnErrorWhenRequestDoesNotHaveOguryKeys() {
         // given
-        final ObjectNode ext = givenExtWithEmptyBidder();
-        final BidRequest bidrequest = givenBidRequest(bidRequest ->
-                bidRequest.imp(List.of(Imp.builder().ext(ext).build())));
+        final BidRequest bidrequest = givenBidRequest(
+                identity(),
+                givenImp(imp -> imp.ext(givenEmptyImpExt())));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidrequest);
 
         // then
-        assertThat(result.getErrors()).isNotEmpty()
-                .contains(BidderError.badInput(
-                        "Invalid request. assetKey/adUnitId or request.site.publisher.id required"));
+        assertThat(result.getErrors()).containsExactly(
+                BidderError.badInput("Invalid request. assetKey/adUnitId or request.site.publisher.id required"));
     }
 
     @Test
     public void makeHttpRequestsShouldSendOnlyImpsWithOguryParamsIfPresent() {
         // given
-        final ObjectNode ext = givenExtWithEmptyBidder();
-        final ObjectNode extWithOguryKeyas = givenExtWithBidderWithOguryKeys();
-        final Site site = givenSite();
-
-        final BidRequest bidrequest = givenBidRequest(bidRequest ->
-                bidRequest.site(site)
-                        .imp(List.of(
-                                Imp.builder()
-                                        .id("without_ogury_keys")
-                                        .ext(ext)
-                                        .build(),
-                                Imp.builder()
-                                        .id("with_ogury_keys")
-                                        .ext(extWithOguryKeyas)
-                                        .build())));
+        final BidRequest bidrequest = givenBidRequest(
+                bidRequest -> bidRequest.site(givenSite()),
+                givenImp(imp -> imp.id("without_ogury_keys").ext(givenEmptyImpExt())),
+                givenImp(imp -> imp.id("with_ogury_keys").ext(givenImpExtWithOguryKeys())));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidrequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
-                .hasSize(1)
-                .allSatisfy(imp -> assertThat(imp.getId()).isEqualTo("with_ogury_keys"));
+                .extracting(Imp::getId)
+                .containsExactly("with_ogury_keys");
 
         assertThat(result.getErrors()).isEmpty();
     }
@@ -178,27 +153,18 @@ public class OguryBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldSendAllImpsWhenHasPublisherIdAndImpsWithOguryIsEmpty() {
         // given
-        final ObjectNode ext = givenExtWithEmptyBidder();
-        final Site site = givenSite();
-
-        final BidRequest bidrequest = givenBidRequest(bidRequest ->
-                bidRequest.site(site)
-                        .imp(List.of(
-                                Imp.builder()
-                                        .id("id1")
-                                        .ext(ext)
-                                        .build(),
-                                Imp.builder()
-                                        .id("id2")
-                                        .ext(ext)
-                                        .build())));
+        final ObjectNode emptyImpExt = givenEmptyImpExt();
+        final BidRequest bidrequest = givenBidRequest(
+                bidRequest -> bidRequest.site(givenSite()),
+                givenImp(imp -> imp.id("id1").ext(emptyImpExt)),
+                givenImp(imp -> imp.id("id2").ext(emptyImpExt)));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidrequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .hasSize(2);
 
@@ -208,19 +174,12 @@ public class OguryBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldNotSendImpsWhenHasNotPublisherIdAndImpsWithOguryIsEmpty() {
         // given
-        final ObjectNode ext = givenExtWithEmptyBidder();
+        final ObjectNode emptyImpExt = givenEmptyImpExt();
 
-        final BidRequest bidrequest = givenBidRequest(bidRequest ->
-                bidRequest.site(Site.builder().build())
-                        .imp(List.of(
-                                Imp.builder()
-                                        .id("id1")
-                                        .ext(ext)
-                                        .build(),
-                                Imp.builder()
-                                        .id("id2")
-                                        .ext(ext)
-                                        .build())));
+        final BidRequest bidrequest = givenBidRequest(
+                bidRequest -> bidRequest.site(Site.builder().build()),
+                givenImp(imp -> imp.id("id1").ext(emptyImpExt)),
+                givenImp(imp -> imp.id("id2").ext(emptyImpExt)));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidrequest);
@@ -228,36 +187,26 @@ public class OguryBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
 
-        assertThat(result.getErrors()).isNotEmpty()
-                .contains(BidderError.badInput(
-                        "Invalid request. assetKey/adUnitId or request.site.publisher.id required"));
+        assertThat(result.getErrors()).containsExactly(
+                BidderError.badInput("Invalid request. assetKey/adUnitId or request.site.publisher.id required"));
     }
 
     @Test
     public void makeHttpRequestsShouldCopyImpIdToTagId() {
         // given
-        final ObjectNode ext = givenExtWithEmptyBidder();
-        final Site site = givenSite();
-
-        final BidRequest bidrequest = givenBidRequest(bidRequest ->
-                bidRequest.site(site)
-                        .imp(List.of(
-                                Imp.builder()
-                                        .id("id1")
-                                        .ext(ext)
-                                        .build())));
+        final BidRequest bidrequest = givenBidRequest(
+                bidRequest -> bidRequest.site(givenSite()),
+                givenImp(imp -> imp.id("id1").ext(givenEmptyImpExt())));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidrequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .flatExtracting(Imp::getTagid)
-                .hasSize(1)
-                .first()
-                .isEqualTo("id1");
+                .containsExactly("id1");
 
         assertThat(result.getErrors()).isEmpty();
     }
@@ -265,56 +214,46 @@ public class OguryBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldCleanImpExtWithoutLostExtraFields() {
         // given
-        final ObjectNode extWithOguryKeys = givenExtWithBidderWithOguryKeys();
-        extWithOguryKeys.putIfAbsent("extra_field", TextNode.valueOf("extra_value"));
+        final ObjectNode extWithOguryKeys = givenImpExtWithOguryKeys();
+        extWithOguryKeys.put("extra_field", "extra_value");
 
-        final BidRequest bidrequest = givenBidRequest(bidRequest ->
-                bidRequest.imp(List.of(
-                        Imp.builder()
-                                .id("id1")
-                                .ext(extWithOguryKeys)
-                                .build())));
+        final BidRequest bidrequest = givenBidRequest(
+                identity(),
+                givenImp(imp -> imp.id("id1").ext(extWithOguryKeys)));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidrequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
                 .hasSize(1)
                 .first()
-                .satisfies(ext -> {
-                    assertThat(ext.get("extra_field").asText()).isEqualTo("extra_value");
-                    assertThat(ext.get("prebid")).isNull();
-                });
-
+                .isEqualTo(mapper.valueToTree(Map.of(
+                        "extra_field", "extra_value",
+                        "adUnitId", "1",
+                        "assetKey", "key")));
         assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
     public void makeHttpRequestsShouldConvertPriceIfCurrencyIsDifferentFromUSD() {
         // given
-        final ObjectNode ext = givenExtWithEmptyBidder();
-        final Site site = givenSite();
-
-        final BidRequest bidrequest = givenBidRequest(bidRequest ->
-                bidRequest.site(site)
-                        .imp(List.of(
-                            Imp.builder()
-                                    .id("id1")
-                                    .bidfloorcur("CA")
-                                    .ext(ext)
-                                    .bidfloor(BigDecimal.valueOf(1.5))
-                                    .build())));
+        final BidRequest bidrequest = givenBidRequest(
+                bidRequest -> bidRequest.site(givenSite()),
+                givenImp(imp -> imp.id("id1")
+                        .bidfloorcur("CA")
+                        .bidfloor(BigDecimal.valueOf(1.5))
+                        .ext(givenEmptyImpExt())));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidrequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .hasSize(1)
                 .first()
@@ -329,25 +268,19 @@ public class OguryBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldNotConvertPriceIfCurrencyIsUSD() {
         // given
-        final ObjectNode ext = givenExtWithEmptyBidder();
-        final Site site = givenSite();
-
-        final BidRequest bidrequest = givenBidRequest(bidRequest ->
-                bidRequest.site(site)
-                        .imp(List.of(
-                                Imp.builder()
-                                        .id("id1")
-                                        .bidfloorcur("USD")
-                                        .ext(ext)
-                                        .bidfloor(BigDecimal.valueOf(1.5))
-                                        .build())));
+        final BidRequest bidrequest = givenBidRequest(
+                bidRequest -> bidRequest.site(givenSite()),
+                givenImp(imp -> imp.id("id1")
+                        .bidfloorcur("USD")
+                        .bidfloor(BigDecimal.valueOf(1.5))
+                        .ext(givenEmptyImpExt())));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidrequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .hasSize(1)
                 .first()
@@ -362,24 +295,18 @@ public class OguryBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldNotConvertPriceIfCurrencyIsAbsent() {
         // given
-        final ObjectNode ext = givenExtWithEmptyBidder();
-        final Site site = givenSite();
-
-        final BidRequest bidrequest = givenBidRequest(bidRequest ->
-                bidRequest.site(site)
-                        .imp(List.of(
-                                Imp.builder()
-                                        .id("id1")
-                                        .ext(ext)
-                                        .bidfloor(BigDecimal.valueOf(1.5))
-                                        .build())));
+        final BidRequest bidrequest = givenBidRequest(
+                bidRequest -> bidRequest.site(givenSite()),
+                givenImp(imp -> imp.id("id1")
+                        .bidfloor(BigDecimal.valueOf(1.5))
+                        .ext(givenEmptyImpExt())));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidrequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .hasSize(1)
                 .first()
@@ -394,23 +321,16 @@ public class OguryBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldNotConvertPriceIfFloorIsAbsent() {
         // given
-        final ObjectNode ext = givenExtWithEmptyBidder();
-        final Site site = givenSite();
-
-        final BidRequest bidrequest = givenBidRequest(bidRequest ->
-                bidRequest.site(site)
-                        .imp(List.of(
-                                Imp.builder()
-                                        .id("id1")
-                                        .ext(ext)
-                                        .build())));
+        final BidRequest bidrequest = givenBidRequest(
+                bidRequest -> bidRequest.site(givenSite()),
+                givenImp(imp -> imp.id("id1").ext(givenEmptyImpExt())));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidrequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .hasSize(1)
                 .first()
@@ -600,54 +520,40 @@ public class OguryBidderTest extends VertxTest {
                 .build());
     }
 
-    private BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer) {
-        return bidRequestCustomizer.apply(BidRequest.builder()
-                        .id("id"))
-                .build();
+    private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
+                                              Imp... imps) {
+
+        final BidRequest.BidRequestBuilder bidRequestBuilder = BidRequest.builder()
+                .id("id");
+
+        if (imps != null) {
+            final List<Imp> impressions = Arrays.stream(imps).toList();
+            bidRequestBuilder.imp(impressions);
+        }
+
+        return bidRequestCustomizer.apply(bidRequestBuilder).build();
     }
 
     private BidRequest givenBidRequest() {
-        final ObjectNode bidder = givenExtWithBidderWithOguryKeys();
-        return givenBidRequest(bidRequest -> bidRequest.device(Device.builder()
+        return givenBidRequest(
+                bidRequest -> bidRequest.device(Device.builder()
                         .ua("ua")
                         .ip("0.0.0.0")
                         .ipv6("ip6")
                         .language("en-US")
-                        .build())
-                .imp(List.of(Imp.builder()
+                        .build()),
+                givenImp(imp -> imp
                         .id("imp_id")
                         .bidfloor(BigDecimal.TWO)
                         .bidfloorcur("CAD")
-                        .ext(bidder)
-                        .build())));
+                        .ext(givenImpExtWithOguryKeys())));
+
     }
 
-    private BidRequest givenModifiedBidRequest() {
-        final ObjectNode oguryKeys = mapper.createObjectNode();
-        oguryKeys.putIfAbsent("adUnitId", TextNode.valueOf("1"));
-        oguryKeys.putIfAbsent("assetKey", TextNode.valueOf("key"));
-
-        return givenBidRequest(bidRequest -> bidRequest.device(Device.builder()
-                        .ua("ua")
-                        .ip("0.0.0.0")
-                        .ipv6("ip6")
-                        .language("en-US")
-                        .build())
-                .imp(List.of(Imp.builder()
-                        .id("imp_id")
-                        .bidfloor(BigDecimal.ONE)
-                        .bidfloorcur("USD")
-                        .tagid("imp_id")
-                        .ext(oguryKeys)
-                        .bidfloorcur("USD")
-                        .build())));
-    }
-
-    private ObjectNode givenExtWithEmptyBidder() {
-        final ObjectNode bidder = mapper.createObjectNode();
-        bidder.putIfAbsent("bidder", mapper.createObjectNode());
-
-        return bidder;
+    private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
+        return impCustomizer
+                .apply(Imp.builder())
+                .build();
     }
 
     private Site givenSite() {
@@ -658,24 +564,27 @@ public class OguryBidderTest extends VertxTest {
                 .build();
     }
 
-    private ObjectNode givenExtWithBidderWithOguryKeys() {
-        final ObjectNode ogury = mapper.createObjectNode();
-        ogury.putIfAbsent("adUnitId", TextNode.valueOf("1"));
-        ogury.putIfAbsent("assetKey", TextNode.valueOf("key"));
-        final ObjectNode bidder = mapper.createObjectNode();
-        bidder.putIfAbsent("bidder", ogury);
+    private ObjectNode givenEmptyImpExt() {
+        final ObjectNode ext = mapper.createObjectNode();
+        ext.putIfAbsent("bidder", mapper.createObjectNode());
 
-        return bidder;
+        return ext;
+    }
+
+    private ObjectNode givenImpExtWithOguryKeys() {
+        final ObjectNode ext = mapper.createObjectNode();
+        final ObjectNode ogury = ext.putObject("bidder");
+
+        ogury.put("adUnitId", "1");
+        ogury.put("assetKey", "key");
+
+        return ext;
     }
 
     private static BidderCall<BidRequest> givenHttpCall(String body) {
-        return givenHttpCall(HttpResponseStatus.OK.code(), body);
-    }
-
-    private static BidderCall<BidRequest> givenHttpCall(int statusCode, String body) {
         return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(null).build(),
-                HttpResponse.of(statusCode, null, body),
+                HttpResponse.of(HttpResponseStatus.OK.code(), null, body),
                 null);
     }
 }
