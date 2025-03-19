@@ -1,4 +1,4 @@
-package org.prebid.server.auction;
+package org.prebid.server.auction.aliases;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -6,8 +6,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAlternateBidderCodes;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAlternateBidderCodesBidder;
 
 import java.util.Map;
+import java.util.Set;
 
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -190,5 +193,90 @@ public class BidderAliasesTest {
 
         // when and then
         assertThat(aliases.resolveAliasVendorId("alias")).isEqualTo(3);
+    }
+
+    @Test
+    public void isAllowedAlternateBidderCodeShouldReturnFalseWhenAlternateBidderCodesAreDisabledForBidder() {
+        // given
+        final ExtRequestPrebidAlternateBidderCodes alternateBidderCodes = ExtRequestPrebidAlternateBidderCodes.of(
+                true,
+                Map.of("bidder", ExtRequestPrebidAlternateBidderCodesBidder.of(false, Set.of("seat"))));
+        final BidderAliases aliases = BidderAliases.of(null, null, bidderCatalog, alternateBidderCodes);
+
+        // when and then
+        assertThat(aliases.isAllowedAlternateBidderCode("bidder", "seat")).isFalse();
+    }
+
+    @Test
+    public void isAllowedAlternateBidderCodeShouldReturnFalseWhenAlternateBidderCodesAreLackingSeat() {
+        // given
+        final ExtRequestPrebidAlternateBidderCodes alternateBidderCodes = ExtRequestPrebidAlternateBidderCodes.of(
+                true,
+                Map.of("bidder", ExtRequestPrebidAlternateBidderCodesBidder.of(true, Set.of("another"))));
+        final BidderAliases aliases = BidderAliases.of(null, null, bidderCatalog, alternateBidderCodes);
+
+        // when and then
+        assertThat(aliases.isAllowedAlternateBidderCode("bidder", "seat")).isFalse();
+    }
+
+    @Test
+    public void isAllowedAlternateBidderCodeShouldReturnFalseWhenAlternateBidderCodesAreLackingBidders() {
+        // given
+        final ExtRequestPrebidAlternateBidderCodes alternateBidderCodes = ExtRequestPrebidAlternateBidderCodes.of(
+                true,
+                null);
+        final BidderAliases aliases = BidderAliases.of(null, null, bidderCatalog, alternateBidderCodes);
+
+        // when and then
+        assertThat(aliases.isAllowedAlternateBidderCode("bidder", "seat")).isFalse();
+    }
+
+    @Test
+    public void isAllowedAlternateBidderCodeShouldReturnFalseWhenAlternateBidderCodesAreDisabled() {
+        // given
+        final ExtRequestPrebidAlternateBidderCodes alternateBidderCodes = ExtRequestPrebidAlternateBidderCodes.of(
+                false,
+                Map.of("bidder", ExtRequestPrebidAlternateBidderCodesBidder.of(true, Set.of("seat"))));
+        final BidderAliases aliases = BidderAliases.of(null, null, bidderCatalog, alternateBidderCodes);
+
+        // when and then
+        assertThat(aliases.isAllowedAlternateBidderCode("bidder", "seat")).isFalse();
+    }
+
+    @Test
+    public void isAllowedAlternateBidderCodeShouldReturnTrueWhenAllowedAlternateCodesAreNull() {
+        // given
+        final ExtRequestPrebidAlternateBidderCodes alternateBidderCodes = ExtRequestPrebidAlternateBidderCodes.of(
+                true,
+                Map.of("bidder", ExtRequestPrebidAlternateBidderCodesBidder.of(true, null)));
+        final BidderAliases aliases = BidderAliases.of(null, null, bidderCatalog, alternateBidderCodes);
+
+        // when and then
+        assertThat(aliases.isAllowedAlternateBidderCode("bidder", "seat")).isTrue();
+    }
+
+    @Test
+    public void isAllowedAlternateBidderCodeShouldReturnTrueWhenAllowedAlternateCodesContainsWildcard() {
+        // given
+        final ExtRequestPrebidAlternateBidderCodes alternateBidderCodes = ExtRequestPrebidAlternateBidderCodes.of(
+                true,
+                Map.of("bidder", ExtRequestPrebidAlternateBidderCodesBidder.of(true, Set.of("*"))));
+        final BidderAliases aliases = BidderAliases.of(null, null, bidderCatalog, alternateBidderCodes);
+
+        // when and then
+        assertThat(aliases.isAllowedAlternateBidderCode("bidder", "seat")).isTrue();
+    }
+
+    @Test
+    public void isAllowedAlternateBidderCodeShouldReturnTrueWhenAllowedAlternateCodesContainsSeatCaseInsensitive() {
+        // given
+        final ExtRequestPrebidAlternateBidderCodes alternateBidderCodes = ExtRequestPrebidAlternateBidderCodes.of(
+                true,
+                Map.of("BiDDEr", ExtRequestPrebidAlternateBidderCodesBidder.of(true, Set.of("SeaT"))));
+
+        final BidderAliases aliases = BidderAliases.of(null, null, bidderCatalog, alternateBidderCodes);
+
+        // when and then
+        assertThat(aliases.isAllowedAlternateBidderCode("bidder", "seat")).isTrue();
     }
 }
