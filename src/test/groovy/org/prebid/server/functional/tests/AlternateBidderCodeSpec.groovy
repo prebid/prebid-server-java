@@ -635,9 +635,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
     def "PBS shouldn't discard bid when alternate bidder code allows bidder codes fully configured with different case"() {
         given: "Default bid request with amx bidder"
-        def bidRequest = getBidRequestWithAmxBidder().tap {
-            setAccountId(PBSUtils.randomString)
-        }
+        def bidRequest = getBidRequestWithAmxBidder()
 
         and: "Save account config into DB with alternate bidder codes"
         def account = accountWithAlternateBidderCode(bidRequest).tap {
