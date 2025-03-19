@@ -9,8 +9,8 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
-import org.prebid.server.activity.infrastructure.privacy.AbstainPrivacyModule;
 import org.prebid.server.activity.infrastructure.privacy.PrivacyModuleQualifier;
+import org.prebid.server.activity.infrastructure.privacy.SkippedPrivacyModule;
 import org.prebid.server.activity.infrastructure.rule.AndRule;
 import org.prebid.server.activity.infrastructure.rule.Rule;
 import org.prebid.server.activity.infrastructure.rule.TestRule;
@@ -167,10 +167,10 @@ public class ActivityInfrastructureDebugTest extends VertxTest {
         final ActivityInfrastructureDebug debug = debug(TraceLevel.verbose);
 
         // when
-        debug.emitProcessedRule(new AbstainPrivacyModule(PrivacyModuleQualifier.US_NAT), Rule.Result.ABSTAIN);
+        debug.emitProcessedRule(new SkippedPrivacyModule(PrivacyModuleQualifier.US_NAT), Rule.Result.ABSTAIN);
 
         // then
-        assertThat(debug.skippedModules()).containsExactly(PrivacyModuleQualifier.US_NAT);
+        assertThat(debug.skippedPrivacyModules()).containsExactly(PrivacyModuleQualifier.US_NAT);
         assertThat(debug.trace()).containsExactly(ExtTraceActivityRule.of(
                 "Processing rule.",
                 mapper.createObjectNode()
@@ -190,11 +190,11 @@ public class ActivityInfrastructureDebugTest extends VertxTest {
 
         // when
         debug.emitProcessedRule(
-                new AndRule(List.of(new AbstainPrivacyModule(PrivacyModuleQualifier.US_NAT))),
+                new AndRule(List.of(new SkippedPrivacyModule(PrivacyModuleQualifier.US_NAT))),
                 Rule.Result.ABSTAIN);
 
         // then
-        assertThat(debug.skippedModules()).containsExactly(PrivacyModuleQualifier.US_NAT);
+        assertThat(debug.skippedPrivacyModules()).containsExactly(PrivacyModuleQualifier.US_NAT);
         assertThat(debug.trace()).containsExactly(ExtTraceActivityRule.of(
                 "Processing rule.",
                 mapper.createObjectNode().set("and", mapper.createArrayNode().add(mapper.createObjectNode()
@@ -204,6 +204,23 @@ public class ActivityInfrastructureDebugTest extends VertxTest {
                 Rule.Result.ABSTAIN));
         verify(metrics).updateRequestsActivityProcessedRulesCount();
         verify(metrics).updateAccountActivityProcessedRulesCount(eq("accountId"));
+        verifyNoMoreInteractions(metrics);
+    }
+
+    @Test
+    public void emitProcessedRuleShouldLogSkippedModuleWhenTraceLevelIsNull() {
+        // given
+        final ActivityInfrastructureDebug debug = debug(null);
+
+        // when
+        debug.emitProcessedRule(
+                new AndRule(List.of(new SkippedPrivacyModule(PrivacyModuleQualifier.US_NAT))),
+                Rule.Result.ABSTAIN);
+
+        // then
+        assertThat(debug.skippedPrivacyModules()).containsExactly(PrivacyModuleQualifier.US_NAT);
+        assertThat(debug.trace()).isEmpty();
+        verify(metrics).updateRequestsActivityProcessedRulesCount();
         verifyNoMoreInteractions(metrics);
     }
 

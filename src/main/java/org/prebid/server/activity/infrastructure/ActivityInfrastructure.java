@@ -51,7 +51,7 @@ public class ActivityInfrastructure {
         return debug.trace();
     }
 
-    public Set<PrivacyModuleQualifier> skippedModules() {
-        return debug.skippedModules();
+    public Set<PrivacyModuleQualifier> skippedPrivacyModules() {
+        return debug.skippedPrivacyModules();
     }
 }
