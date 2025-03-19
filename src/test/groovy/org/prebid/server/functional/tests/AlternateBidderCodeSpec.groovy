@@ -343,7 +343,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
         }
 
         and: "Save account config into DB with alternate bidder codes"
-        def account = accountWithAlternateBidderCode(bidRequest).tap {
+        def account = getAccountWithAlternateBidderCode(bidRequest).tap {
             config.alternateBidderCodes = accountAlternateBidderCodes
         }
         accountDao.save(account)
@@ -451,7 +451,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
         def bidRequest = getBidRequestWithAmxBidder()
 
         and: "Save account config into DB with alternate bidder codes"
-        def account = accountWithAlternateBidderCode(bidRequest).tap {
+        def account = getAccountWithAlternateBidderCode(bidRequest).tap {
             config.alternateBidderCodes = accountAlternateBidderCodes
         }
         accountDao.save(account)
@@ -636,7 +636,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
         def bidRequest = getBidRequestWithAmxBidder()
 
         and: "Save account config into DB with alternate bidder codes"
-        def account = accountWithAlternateBidderCode(bidRequest).tap {
+        def account = getAccountWithAlternateBidderCode(bidRequest).tap {
             config = configAccountAlternateBidderCodes
         }
         accountDao.save(account)
@@ -693,7 +693,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
         def bidRequest = getBidRequestWithAmxBidderAndAlternateBidderCode()
 
         and: "Save account config into DB with alternate bidder codes"
-        def account = accountWithAlternateBidderCode(bidRequest).tap {
+        def account = getAccountWithAlternateBidderCode(bidRequest).tap {
             config.alternateBidderCodes.bidders[AMX].allowedBidderCodes = [UNKNOWN]
         }
         accountDao.save(account)
@@ -746,7 +746,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
         }
 
         and: "Save account config into DB with alternate bidder codes"
-        def account = accountWithAlternateBidderCode(bidRequest).tap {
+        def account = getAccountWithAlternateBidderCode(bidRequest).tap {
             config.alternateBidderCodes.enabled = accountAlternateBidderCodes
         }
         accountDao.save(account)
@@ -804,7 +804,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
         def bidRequest = getBidRequestWithAmxBidder()
 
         and: "Save account config into DB with alternate bidder codes"
-        def account = accountWithAlternateBidderCode(bidRequest).tap {
+        def account = getAccountWithAlternateBidderCode(bidRequest).tap {
             config.alternateBidderCodes.bidders[AMX].allowedBidderCodes = accountAllowedBidderCodes
         }
         accountDao.save(account)
@@ -961,7 +961,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
         def bidRequest = getBidRequestWithAmxBidder()
 
         and: "Save account config into DB with alternate bidder codes"
-        def account = accountWithAlternateBidderCode(bidRequest).tap {
+        def account = getAccountWithAlternateBidderCode(bidRequest).tap {
             config.alternateBidderCodes.bidders = accountAlternateBidders
         }
         accountDao.save(account)
@@ -1126,7 +1126,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
         def bidRequest = getBidRequestWithAmxBidder()
 
         and: "Save account config into DB with alternate bidder codes"
-        def account = accountWithAlternateBidderCode(bidRequest)
+        def account = getAccountWithAlternateBidderCode(bidRequest)
         accountDao.save(account)
 
         and: "Bid response with bidder code"
@@ -1298,7 +1298,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
         }
 
         and: "Save account config into DB with alternate bidder codes"
-        def account = accountWithAlternateBidderCode(bidRequest).tap {
+        def account = getAccountWithAlternateBidderCode(bidRequest).tap {
             config.alternateBidderCodes = accountAlternateBidderCodes
         }
         accountDao.save(account)
@@ -1402,7 +1402,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
         pbsServiceFactory.removeContainer(pbsConfig)
     }
 
-    private static Account accountWithAlternateBidderCode(BidRequest bidRequest) {
+    private static Account getAccountWithAlternateBidderCode(BidRequest bidRequest) {
         new Account().tap {
             it.uuid = bidRequest.accountId
             it.config = new AccountConfig(status: ACTIVE, alternateBidderCodes: new AlternateBidderCodes().tap {
