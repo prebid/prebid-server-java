@@ -100,47 +100,6 @@ public class NextMillenniumBidder implements Bidder<BidRequest> {
         }
     }
 
-    private BidRequest updateBidRequest1(BidRequest bidRequest, ExtImpNextMillennium ext) {
-        final ExtStoredRequest storedRequest = ExtStoredRequest.of(resolveStoredRequestId(bidRequest, ext));
-        final ExtRequest requestExt = bidRequest.getExt();
-        final ExtRequestPrebid existingPrebid = requestExt != null ? requestExt.getPrebid() : null;
-        final ExtRequestPrebidServer existingServer = existingPrebid != null ? existingPrebid.getServer() : null;
-
-        final ExtRequestPrebid createdExtRequestPrebid = ExtRequestPrebid.builder()
-                .storedrequest(storedRequest)
-                .server(existingServer)
-                .build();
-
-        final ExtRequest extRequest = ExtRequest.of(createdExtRequestPrebid);
-
-        final ObjectNode nextMillenniumNode = mapper.mapper().valueToTree(
-                NextMillenniumExtBidder.of(nmmFlags, NM_ADAPTER_VERSION, versionProvider.getNameVersionRecord()));
-
-        extRequest.addProperty("nextMillennium", nextMillenniumNode);
-
-        final Imp firstImp = bidRequest.getImp().getFirst();
-        final ObjectNode updatedImpExt = mapper.mapper().createObjectNode();
-        final ObjectNode impNextMillNode = nextMillenniumNode.deepCopy();
-        impNextMillNode.retain("nmmFlags");
-        updatedImpExt.set("nextMillennium", impNextMillNode);
-
-        final ObjectNode prebidNode = mapper.mapper().createObjectNode();
-        prebidNode.set("storedrequest", mapper.mapper().valueToTree(storedRequest));
-        updatedImpExt.set("prebid", prebidNode);
-
-        final Imp updatedImp = firstImp.toBuilder()
-                .ext(updatedImpExt)
-                .build();
-
-        final List<Imp> updatedImps = new ArrayList<>(bidRequest.getImp());
-        updatedImps.set(0, updatedImp);
-
-        return bidRequest.toBuilder()
-                .imp(updatedImps)
-                .ext(extRequest)
-                .build();
-    }
-
     private BidRequest updateBidRequest(BidRequest bidRequest, ExtImpNextMillennium extImp) {
         final String soredRequestId = resolveStoredRequestId(bidRequest, extImp);
         final ExtRequestPrebidServer extRequestPrebidServer = Optional.ofNullable(bidRequest.getExt())
