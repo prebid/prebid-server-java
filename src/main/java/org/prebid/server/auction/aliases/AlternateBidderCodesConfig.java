@@ -6,5 +6,5 @@ public interface AlternateBidderCodesConfig {
 
     Boolean getEnabled();
 
-    <T extends AlternateBidder> Map<String, T> getBidders();
+    Map<String, ? extends AlternateBidder> getBidders();
 }

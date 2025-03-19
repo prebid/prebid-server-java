@@ -89,7 +89,7 @@ public class BidderAliases {
         return allowedBidderCodes.contains(WILDCARD) || allowedBidderCodes.contains(alternateBidderCode);
     }
 
-    private static <T> Map<String, Set<String>> resolveAlternateBidderCodes(
+    private static Map<String, Set<String>> resolveAlternateBidderCodes(
             AlternateBidderCodesConfig alternateBidderCodes) {
 
         return Optional.ofNullable(alternateBidderCodes)

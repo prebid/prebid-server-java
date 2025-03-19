@@ -1,11 +1,10 @@
-package org.prebid.server.auction;
+package org.prebid.server.auction.aliases;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.prebid.server.auction.aliases.BidderAliases;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAlternateBidderCodes;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAlternateBidderCodesBidder;
