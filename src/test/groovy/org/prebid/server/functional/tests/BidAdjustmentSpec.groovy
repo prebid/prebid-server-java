@@ -1114,14 +1114,13 @@ class BidAdjustmentSpec extends BaseSpec {
 
     def "PBS should prefer bid price adjustment based on media type and alternate bidder code when request has per-media-type bid adjustment factors"() {
         given: "Default bid request with bid adjustment"
-        def bidAdjustment = randomDecimal
         def mediaTypeBidAdjustment = bidAdjustmentFactor
         def bidRequest = BidRequest.getDefaultBidRequest(SITE).tap {
             imp[0].ext.prebid.bidder.generic = null
             imp[0].ext.prebid.bidder.amx = new Amx()
             ext.prebid.tap {
                 bidAdjustmentFactors = new BidAdjustmentFactors().tap {
-                    adjustments = [(GENERIC): bidAdjustment]
+                    adjustments = [(GENERIC): randomDecimal]
                     mediaTypes = [(BANNER): [(GENERIC): mediaTypeBidAdjustment]]
                 }
                 alternateBidderCodes = new AlternateBidderCodes().tap {

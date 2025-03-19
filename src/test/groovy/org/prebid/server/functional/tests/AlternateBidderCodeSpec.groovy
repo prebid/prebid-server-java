@@ -47,7 +47,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
     def "PBS shouldn't discard bid amx alias when soft alias request with allowed bidder code"() {
         given: "Default bid request with amx bidder"
-        def bidRequest = bidRequestWithAmxBidder().tap {
+        def bidRequest = getBidRequestWithAmxBidder().tap {
             imp[0].ext.prebid.bidder.alias = new Generic()
             imp[0].ext.prebid.bidder.amx = null
             ext.prebid.aliases = [(ALIAS.value): AMX]
@@ -96,7 +96,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
     def "PBS should populate meta demand source when bid response with demand source"() {
         given: "Default bid request with amx bidder"
-        def bidRequest = bidRequestWithAmxBidder()
+        def bidRequest = getBidRequestWithAmxBidder()
 
         and: "Bid response with demand source"
         def demandSource = PBSUtils.getRandomString()
@@ -142,7 +142,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
     def "PBS shouldn't populate meta demand source when bid response without demand source"() {
         given: "Default bid request with amx bidder"
-        def bidRequest = bidRequestWithAmxBidder()
+        def bidRequest = getBidRequestWithAmxBidder()
 
         and: "Bid response without demand source"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest, AMX).tap {
@@ -187,7 +187,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
     def "PBS shouldn't discard bid for amx bidder same seat in response as seat in bid.ext.bidderCode"() {
         given: "Default bid request with amx bidder"
-        def bidRequest = bidRequestWithAmxBidder()
+        def bidRequest = getBidRequestWithAmxBidder()
 
         and: "Bid response with bidder code"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest, AMX).tap {
@@ -235,7 +235,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
     def "PBS should discard bid for amx bidder when imp[].bidder isn't same as in bid.ext.bidderCode"() {
         given: "Default bid request with amx bidder"
-        def bidRequest = bidRequestWithAmxBidder()
+        def bidRequest = getBidRequestWithAmxBidder()
 
         and: "Bid response with bidder code"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest, AMX).tap {
@@ -283,7 +283,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
     def "PBS should discard bid amx alias requested when imp[].bidder isn't same as in bid.ext.bidderCode"() {
         given: "Default bid request with amx bidder"
-        def bidRequest = bidRequestWithAmxBidder().tap {
+        def bidRequest = getBidRequestWithAmxBidder().tap {
             imp[0].ext.prebid.bidder.alias = new Generic()
             imp[0].ext.prebid.bidder.amx = null
             ext.prebid.aliases = [(ALIAS.value): AMX]
@@ -335,7 +335,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
     def "PBS shouldn't discard bid amx alias requested when imp[].bidder is same as in bid.ext.bidderCode and alternate bidder code allow"() {
         given: "Default bid request with amx bidder"
-        def bidRequest = bidRequestWithAmxBidderAndAlternateBidderCode().tap {
+        def bidRequest = getBidRequestWithAmxBidderAndAlternateBidderCode().tap {
             imp[0].ext.prebid.bidder.alias = new Generic()
             imp[0].ext.prebid.bidder.amx = null
             ext.prebid.aliases = [(ALIAS.value): AMX]
@@ -396,7 +396,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
     def "PBS shouldn't discard bid amx alias requested when imp[].bidder is same as in bid.ext.bidderCode"() {
         given: "Default bid request with amx bidder"
-        def bidRequest = bidRequestWithAmxBidder().tap {
+        def bidRequest = getBidRequestWithAmxBidder().tap {
             imp[0].ext.prebid.bidder.alias = new Generic()
             imp[0].ext.prebid.bidder.amx = null
             ext.prebid.aliases = [(ALIAS.value): AMX]
@@ -448,7 +448,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
     def "PBS shouldn't discard the bid or emit a response warning when account alternate bidder codes not fully configured"() {
         given: "Default bid request with alternate bidder codes"
-        def bidRequest = bidRequestWithAmxBidder().tap {
+        def bidRequest = getBidRequestWithAmxBidder().tap {
             setAccountId(PBSUtils.randomString)
         }
 
@@ -519,7 +519,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
     def "PBS shouldn't discard the bid or emit a response warning when request alternate bidder codes not fully configured"() {
         given: "Default bid request with alternate bidder codes"
-        def bidRequest = bidRequestWithAmxBidderAndAlternateBidderCode().tap {
+        def bidRequest = getBidRequestWithAmxBidderAndAlternateBidderCode().tap {
             ext.prebid.alternateBidderCodes = requestedAlternateBidderCodes
         }
 
@@ -584,7 +584,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
     def "PBS shouldn't discard bid when alternate bidder code allows bidder codes fully configured and bidder requested in uppercase"() {
         given: "Default bid request with AMX bidder"
-        def bidRequest = bidRequestWithAmxBidderAndAlternateBidderCode().tap {
+        def bidRequest = getBidRequestWithAmxBidderAndAlternateBidderCode().tap {
             imp[0].ext.prebid.bidder.tap {
                 amxUpperCase = new Amx()
                 amx = null
@@ -635,7 +635,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
     def "PBS shouldn't discard bid when alternate bidder code allows bidder codes fully configured with different case"() {
         given: "Default bid request with amx bidder"
-        def bidRequest = bidRequestWithAmxBidder().tap {
+        def bidRequest = getBidRequestWithAmxBidder().tap {
             setAccountId(PBSUtils.randomString)
         }
 
@@ -694,7 +694,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
     def "PBS should take precede of request and discard the bid and emit a response error when alternate bidder codes enabled and bidder came with different bidder code"() {
         given: "Default bid request with alternate bidder codes"
-        def bidRequest = bidRequestWithAmxBidderAndAlternateBidderCode().tap {
+        def bidRequest = getBidRequestWithAmxBidderAndAlternateBidderCode().tap {
             setAccountId(PBSUtils.randomString)
         }
 
@@ -747,7 +747,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
     def "PBS should discard the bid and emit a response warning when alternate bidder codes disabled and bidder came with different bidderCode"() {
         given: "Default bid request with alternate bidder codes"
-        def bidRequest = bidRequestWithAmxBidderAndAlternateBidderCode().tap {
+        def bidRequest = getBidRequestWithAmxBidderAndAlternateBidderCode().tap {
             ext.prebid.alternateBidderCodes.enabled = requestedAlternateBidderCodes
             setAccountId(PBSUtils.randomString)
         }
@@ -808,7 +808,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
     def "PBS shouldn't discard the bid or emit a response warning when account alternate bidder codes are enabled and allowed bidder codes are either a wildcard or empty"() {
         given: "Default bid request with alternate bidder codes"
-        def bidRequest = bidRequestWithAmxBidder().tap {
+        def bidRequest = getBidRequestWithAmxBidder().tap {
             setAccountId(PBSUtils.randomString)
         }
 
@@ -864,7 +864,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
     def "PBS shouldn't discard the bid or emit a response warning when request alternate bidder codes are enabled and allowed bidder codes are either a wildcard or empty"() {
         given: "Default bid request with alternate bidder codes"
-        def bidRequest = bidRequestWithAmxBidderAndAlternateBidderCode().tap {
+        def bidRequest = getBidRequestWithAmxBidderAndAlternateBidderCode().tap {
             ext.prebid.alternateBidderCodes.bidders[AMX].allowedBidderCodesLowerCase = requestedAllowedBidderCodes
         }
 
@@ -914,7 +914,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
     def "PBS shouldn't discard the bid or emit a response warning when request alternate bidder codes are enabled and the allowed bidder codes is same as bidder's request"() {
         given: "Default bid request with alternate bidder codes"
-        def bidRequest = bidRequestWithAmxBidderAndAlternateBidderCode().tap {
+        def bidRequest = getBidRequestWithAmxBidderAndAlternateBidderCode().tap {
             ext.prebid.alternateBidderCodes.bidders = requestAlternateBidders
         }
 
@@ -967,7 +967,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
     def "PBS shouldn't discard the bid or emit a response warning when account alternate bidder codes are enabled and the allowed bidder codes is same as bidder's request"() {
         given: "Default bid request with alternate bidder codes"
-        def bidRequest = bidRequestWithAmxBidder().tap {
+        def bidRequest = getBidRequestWithAmxBidder().tap {
             setAccountId(PBSUtils.randomString)
         }
 
@@ -1036,7 +1036,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
         def pbsService = pbsServiceFactory.getService(config)
 
         and: "Default bid request"
-        def bidRequest = bidRequestWithAmxBidderAndAlternateBidderCode().tap {
+        def bidRequest = getBidRequestWithAmxBidderAndAlternateBidderCode().tap {
             ext.prebid.alternateBidderCodes = null
         }
 
@@ -1086,7 +1086,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
     def "PBS should discard the bid and emit a response warning when request alternate bidder codes are enabled and the allowed bidder codes doesn't match the bidder's request"() {
         given: "Default bid request with alternate bidder codes"
-        def bidRequest = bidRequestWithAmxBidderAndAlternateBidderCode()
+        def bidRequest = getBidRequestWithAmxBidderAndAlternateBidderCode()
 
         and: "Bid response with bidder code"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest, AMX).tap {
@@ -1134,7 +1134,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
     def "PBS should discard the bid and emit a response warning when account alternate bidder codes are enabled and the allowed bidder codes doesn't match the bidder's request"() {
         given: "Default bid request with alternate bidder codes"
-        def bidRequest = bidRequestWithAmxBidder().tap {
+        def bidRequest = getBidRequestWithAmxBidder().tap {
             setAccountId(PBSUtils.randomString)
         }
 
@@ -1198,7 +1198,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
         def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request"
-        def bidRequest = bidRequestWithAmxBidder()
+        def bidRequest = getBidRequestWithAmxBidder()
 
         and: "Bid response with bidder code"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest, AMX).tap {
@@ -1257,12 +1257,11 @@ class AlternateBidderCodeSpec extends BaseSpec {
         def defaultPbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request with alias"
-        def bidRequest = bidRequestWithAmxBidderAndAlternateBidderCode().tap {
+        def bidRequest = getBidRequestWithAmxBidderAndAlternateBidderCode().tap {
             imp[0].ext.prebid.bidder.tap {
                 amx = null
                 alias = new Generic()
             }
-            ext.prebid.targeting = new Targeting()
             ext.prebid.alternateBidderCodes.bidders = [(ALIAS): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])]
         }
 
@@ -1304,7 +1303,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
     def "PBS shouldn't discard bid when alternate bidder code allow and soft alias with case"() {
         given: "Default bid request with amx bidder"
-        def bidRequest = bidRequestWithAmxBidderAndAlternateBidderCode().tap {
+        def bidRequest = getBidRequestWithAmxBidderAndAlternateBidderCode().tap {
             imp[0].ext.prebid.bidder.aliasUpperCase = new Generic()
             imp[0].ext.prebid.bidder.amx = null
             ext.prebid.aliases = [(ALIAS.value): AMX]
@@ -1372,13 +1371,12 @@ class AlternateBidderCodeSpec extends BaseSpec {
         def defaultPbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Bid request with amx bidder and targeting"
-        def bidRequest = bidRequestWithAmxBidderAndAlternateBidderCode().tap {
+        def bidRequest = getBidRequestWithAmxBidderAndAlternateBidderCode().tap {
             imp[0].ext.prebid.bidder.alias = new Generic()
             imp[0].ext.prebid.bidder.amx = null
             imp[0].ext.prebid.bidder.generic = null
             it.ext.prebid.aliases = [(ALIAS.value): GENERIC]
             it.ext.prebid.alternateBidderCodes.bidders = [(ALIAS): new BidderConfig(enabled: true, allowedBidderCodesLowerCase: [GENERIC])]
-            it.ext.prebid.targeting = new Targeting()
         }
 
         and: "Bid response with bidder code"
@@ -1427,8 +1425,8 @@ class AlternateBidderCodeSpec extends BaseSpec {
         }
     }
 
-    private static BidRequest bidRequestWithAmxBidderAndAlternateBidderCode() {
-        bidRequestWithAmxBidder().tap {
+    private static BidRequest getBidRequestWithAmxBidderAndAlternateBidderCode() {
+        getBidRequestWithAmxBidder().tap {
             it.ext.prebid.alternateBidderCodes = new AlternateBidderCodes().tap {
                 enabled = true
                 bidders = [(AMX): new BidderConfig(enabled: true, allowedBidderCodesLowerCase: [AMX])]
@@ -1436,7 +1434,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
         }
     }
 
-    private static BidRequest bidRequestWithAmxBidder() {
+    private static BidRequest getBidRequestWithAmxBidder() {
         BidRequest.defaultBidRequest.tap {
             it.imp[0].ext.prebid.bidder.tap {
                 generic = null
