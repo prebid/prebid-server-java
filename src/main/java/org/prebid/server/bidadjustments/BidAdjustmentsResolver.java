@@ -1,7 +1,6 @@
 package org.prebid.server.bidadjustments;
 
 import com.iab.openrtb.request.BidRequest;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidadjustments.model.BidAdjustmentType;
 import org.prebid.server.bidadjustments.model.BidAdjustments;
@@ -43,22 +42,13 @@ public class BidAdjustmentsResolver {
                          BidAdjustments bidAdjustments,
                          ImpMediaType targetMediaType,
                          String targetBidder,
-                         String targetSeat,
                          String targetDealId) {
 
-        List<ExtRequestBidAdjustmentsRule> adjustmentsRules = findRules(
+        final List<ExtRequestBidAdjustmentsRule> adjustmentsRules = findRules(
                 bidAdjustments,
                 targetMediaType,
-                targetSeat,
+                targetBidder,
                 targetDealId);
-
-        if (CollectionUtils.isEmpty(adjustmentsRules)) {
-            adjustmentsRules = findRules(
-                    bidAdjustments,
-                    targetMediaType,
-                    targetBidder,
-                    targetDealId);
-        }
 
         return adjustPrice(initialPrice, adjustmentsRules, bidRequest);
     }

@@ -105,7 +105,6 @@ public class BidAdjustmentsProcessor {
             final Price priceWithAdjustmentsApplied = applyBidAdjustmentRules(
                     priceWithFactorsApplied,
                     bidder,
-                    bidderBid.getSeat(),
                     bidRequest,
                     bidAdjustments,
                     mediaType,
@@ -196,7 +195,6 @@ public class BidAdjustmentsProcessor {
 
     private Price applyBidAdjustmentRules(Price bidPrice,
                                           String bidder,
-                                          String seat,
                                           BidRequest bidRequest,
                                           BidAdjustments bidAdjustments,
                                           ImpMediaType mediaType,
@@ -208,7 +206,6 @@ public class BidAdjustmentsProcessor {
                 bidAdjustments,
                 mediaType,
                 bidder,
-                seat,
                 dealId);
     }
 }
