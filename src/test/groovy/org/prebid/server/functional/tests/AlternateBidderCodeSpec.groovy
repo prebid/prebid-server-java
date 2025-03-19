@@ -448,9 +448,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
     def "PBS shouldn't discard the bid or emit a response warning when account alternate bidder codes not fully configured"() {
         given: "Default bid request with alternate bidder codes"
-        def bidRequest = getBidRequestWithAmxBidder().tap {
-            setAccountId(PBSUtils.randomString)
-        }
+        def bidRequest = getBidRequestWithAmxBidder()
 
         and: "Save account config into DB with alternate bidder codes"
         def account = accountWithAlternateBidderCode(bidRequest).tap {
@@ -692,9 +690,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
     def "PBS should take precede of request and discard the bid and emit a response error when alternate bidder codes enabled and bidder came with different bidder code"() {
         given: "Default bid request with alternate bidder codes"
-        def bidRequest = getBidRequestWithAmxBidderAndAlternateBidderCode().tap {
-            setAccountId(PBSUtils.randomString)
-        }
+        def bidRequest = getBidRequestWithAmxBidderAndAlternateBidderCode()
 
         and: "Save account config into DB with alternate bidder codes"
         def account = accountWithAlternateBidderCode(bidRequest).tap {
@@ -747,7 +743,6 @@ class AlternateBidderCodeSpec extends BaseSpec {
         given: "Default bid request with alternate bidder codes"
         def bidRequest = getBidRequestWithAmxBidderAndAlternateBidderCode().tap {
             ext.prebid.alternateBidderCodes.enabled = requestedAlternateBidderCodes
-            setAccountId(PBSUtils.randomString)
         }
 
         and: "Save account config into DB with alternate bidder codes"
@@ -806,9 +801,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
     def "PBS shouldn't discard the bid or emit a response warning when account alternate bidder codes are enabled and allowed bidder codes are either a wildcard or empty"() {
         given: "Default bid request with alternate bidder codes"
-        def bidRequest = getBidRequestWithAmxBidder().tap {
-            setAccountId(PBSUtils.randomString)
-        }
+        def bidRequest = getBidRequestWithAmxBidder()
 
         and: "Save account config into DB with alternate bidder codes"
         def account = accountWithAlternateBidderCode(bidRequest).tap {
@@ -965,9 +958,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
     def "PBS shouldn't discard the bid or emit a response warning when account alternate bidder codes are enabled and the allowed bidder codes is same as bidder's request"() {
         given: "Default bid request with alternate bidder codes"
-        def bidRequest = getBidRequestWithAmxBidder().tap {
-            setAccountId(PBSUtils.randomString)
-        }
+        def bidRequest = getBidRequestWithAmxBidder()
 
         and: "Save account config into DB with alternate bidder codes"
         def account = accountWithAlternateBidderCode(bidRequest).tap {
@@ -1132,9 +1123,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
     def "PBS should discard the bid and emit a response warning when account alternate bidder codes are enabled and the allowed bidder codes doesn't match the bidder's request"() {
         given: "Default bid request with alternate bidder codes"
-        def bidRequest = getBidRequestWithAmxBidder().tap {
-            setAccountId(PBSUtils.randomString)
-        }
+        def bidRequest = getBidRequestWithAmxBidder()
 
         and: "Save account config into DB with alternate bidder codes"
         def account = accountWithAlternateBidderCode(bidRequest)
