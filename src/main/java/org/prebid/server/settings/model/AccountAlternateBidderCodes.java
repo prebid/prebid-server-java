@@ -1,13 +1,12 @@
 package org.prebid.server.settings.model;
 
-import lombok.Builder;
 import lombok.Value;
+import org.prebid.server.auction.aliases.AlternateBidderCodesConfig;
 
 import java.util.Map;
 
-@Builder(toBuilder = true)
-@Value
-public class AccountAlternateBidderCodes {
+@Value(staticConstructor = "of")
+public class AccountAlternateBidderCodes implements AlternateBidderCodesConfig {
 
     Boolean enabled;
 

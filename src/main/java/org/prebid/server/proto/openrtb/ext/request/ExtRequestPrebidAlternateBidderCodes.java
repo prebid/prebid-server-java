@@ -1,13 +1,12 @@
 package org.prebid.server.proto.openrtb.ext.request;
 
-import lombok.Builder;
 import lombok.Value;
+import org.prebid.server.auction.aliases.AlternateBidderCodesConfig;
 
 import java.util.Map;
 
-@Builder(toBuilder = true)
-@Value
-public class ExtRequestPrebidAlternateBidderCodes {
+@Value(staticConstructor = "of")
+public class ExtRequestPrebidAlternateBidderCodes implements AlternateBidderCodesConfig {
 
     Boolean enabled;
 

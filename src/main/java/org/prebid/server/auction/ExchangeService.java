@@ -28,6 +28,8 @@ import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
 import org.prebid.server.activity.infrastructure.payload.impl.ActivityInvocationPayloadImpl;
 import org.prebid.server.activity.infrastructure.payload.impl.BidRequestActivityInvocationPayload;
+import org.prebid.server.auction.aliases.AlternateBidderCodesConfig;
+import org.prebid.server.auction.aliases.BidderAliases;
 import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessingResult;
 import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessor;
 import org.prebid.server.auction.model.AuctionContext;
@@ -271,10 +273,8 @@ public class ExchangeService {
                                 context.getBidRejectionTrackers()))
                         .map(auctionParticipations -> dropZeroNonDealBids(
                                 auctionParticipations, debugWarnings, debugEnabled))
-                        .map(auctionParticipations -> bidsAdjuster.validateAndAdjustBids(
-                                auctionParticipations,
-                                context,
-                                aliases))
+                        .map(auctionParticipations ->
+                                bidsAdjuster.validateAndAdjustBids(auctionParticipations, context, aliases))
                         .map(auctionParticipations -> updateResponsesMetrics(auctionParticipations, account, aliases))
                         .map(context::with))
                 // produce response from bidder results
@@ -297,9 +297,11 @@ public class ExchangeService {
                 ? prebid.getAlternateBidderCodes()
                 : null;
 
-        return alternateBidderCodes != null
-                ? BidderAliases.of(aliases, aliasgvlids, bidderCatalog, alternateBidderCodes)
-                : BidderAliases.of(aliases, aliasgvlids, bidderCatalog, account.getAlternateBidderCodes());
+        final AlternateBidderCodesConfig alternateBidderCodesConfig = ObjectUtils.defaultIfNull(
+                alternateBidderCodes,
+                account.getAlternateBidderCodes());
+
+        return BidderAliases.of(aliases, aliasgvlids, bidderCatalog, alternateBidderCodesConfig);
     }
 
     private static ExtRequestTargeting targeting(BidRequest bidRequest) {
@@ -1246,42 +1248,31 @@ public class ExchangeService {
                         .seat(ObjectUtils.defaultIfNull(bidderBid.getSeat(), bidderName))
                         .bid(bidderBid.getBid().toBuilder()
                                 .ext(prepareBidExt(
-                                        bidderBid.getBid(),
+                                        bidderBid.getBid().getExt(),
                                         bidderCatalog.configuredName(resolvedBidderName)))
                                 .build())
                         .build())
                 .toList());
     }
 
-    private ObjectNode prepareBidExt(Bid bid, String bidderName) {
-        final ObjectNode bidExt = bid.getExt();
-        final ObjectNode extPrebid = bidExt != null ? (ObjectNode) bidExt.get(PREBID_EXT) : null;
-        final ExtBidPrebidMeta meta = extPrebid != null
-                ? getExtPrebidMeta(extPrebid.get(PREBID_META_EXT))
-                : null;
-
-        final ExtBidPrebidMeta updatedMeta = Optional.ofNullable(meta)
-                .map(ExtBidPrebidMeta::toBuilder)
-                .orElseGet(ExtBidPrebidMeta::builder)
-                .adapterCode(bidderName)
-                .build();
-
+    private ObjectNode prepareBidExt(ObjectNode bidExt, String bidderName) {
         final ObjectNode updatedBidExt = bidExt != null ? bidExt : mapper.mapper().createObjectNode();
-        final ObjectNode updatedBidExtPrebid = extPrebid != null ? extPrebid : mapper.mapper().createObjectNode();
-        updatedBidExtPrebid.set(PREBID_META_EXT, mapper.mapper().valueToTree(updatedMeta));
-        updatedBidExt.set(PREBID_EXT, mapper.mapper().valueToTree(updatedBidExtPrebid));
+
+        final ObjectNode extPrebid = objectNodeFromOrNew(updatedBidExt, PREBID_EXT);
+        final ObjectNode extPrebidMeta = objectNodeFromOrNew(extPrebid, PREBID_META_EXT);
+
+        final ObjectNode newData = mapper.mapper().valueToTree(
+                ExtBidPrebidMeta.builder().adapterCode(bidderName).build());
+        extPrebidMeta.setAll(newData);
 
         return updatedBidExt;
     }
 
-    private ExtBidPrebidMeta getExtPrebidMeta(JsonNode bidExtPrebidMeta) {
-        try {
-            return bidExtPrebidMeta != null
-                    ? mapper.mapper().convertValue(bidExtPrebidMeta, ExtBidPrebidMeta.class)
-                    : null;
-        } catch (IllegalArgumentException e) {
-            return null;
-        }
+    private ObjectNode objectNodeFromOrNew(ObjectNode parent, String key) {
+        final JsonNode childNode = parent.get(key);
+        return childNode == null || !childNode.isObject()
+                ? parent.putObject(key)
+                : (ObjectNode) childNode;
     }
 
     private BidRequest adjustTmax(BidRequest bidRequest,

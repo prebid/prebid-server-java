@@ -1,4 +1,4 @@
-package org.prebid.server.proto.openrtb.ext.request;
+package org.prebid.server.auction.aliases;
 
 import java.util.Set;
 

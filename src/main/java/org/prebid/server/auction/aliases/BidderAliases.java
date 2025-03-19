@@ -1,13 +1,10 @@
-package org.prebid.server.auction;
+package org.prebid.server.auction.aliases;
 
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.proto.openrtb.ext.request.AlternateBidder;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAlternateBidderCodes;
-import org.prebid.server.settings.model.AccountAlternateBidderCodes;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -16,7 +13,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -55,27 +51,13 @@ public class BidderAliases {
     public static BidderAliases of(Map<String, String> aliasToBidder,
                                    Map<String, Integer> aliasToVendorId,
                                    BidderCatalog bidderCatalog,
-                                   AccountAlternateBidderCodes alternateBidderCodes) {
+                                   AlternateBidderCodesConfig alternateBidderCodes) {
 
-        final Map<String, Set<String>> bidderToAllowedSeats = resolveAlternateBidderCodes(
-                        alternateBidderCodes,
-                        AccountAlternateBidderCodes::getEnabled,
-                        AccountAlternateBidderCodes::getBidders);
-
-        return new BidderAliases(aliasToBidder, aliasToVendorId, bidderToAllowedSeats, bidderCatalog);
-    }
-
-    public static BidderAliases of(Map<String, String> aliasToBidder,
-                                   Map<String, Integer> aliasToVendorId,
-                                   BidderCatalog bidderCatalog,
-                                   ExtRequestPrebidAlternateBidderCodes alternateBidderCodes) {
-
-        final Map<String, Set<String>> bidderToAllowedSeats = resolveAlternateBidderCodes(
-                alternateBidderCodes,
-                ExtRequestPrebidAlternateBidderCodes::getEnabled,
-                ExtRequestPrebidAlternateBidderCodes::getBidders);
-
-        return new BidderAliases(aliasToBidder, aliasToVendorId, bidderToAllowedSeats, bidderCatalog);
+        return new BidderAliases(
+                aliasToBidder,
+                aliasToVendorId,
+                resolveAlternateBidderCodes(alternateBidderCodes),
+                bidderCatalog);
     }
 
     public boolean isAliasDefined(String alias) {
@@ -108,13 +90,11 @@ public class BidderAliases {
     }
 
     private static <T> Map<String, Set<String>> resolveAlternateBidderCodes(
-            T alternateBidderCodes,
-            Function<T, Boolean> isEnabled,
-            Function<T, Map<String, ? extends AlternateBidder>> getBidders) {
+            AlternateBidderCodesConfig alternateBidderCodes) {
 
         return Optional.ofNullable(alternateBidderCodes)
-                .filter(codes -> BooleanUtils.isTrue(isEnabled.apply(codes)))
-                .map(getBidders::apply)
+                .filter(config -> BooleanUtils.isTrue(config.getEnabled()))
+                .map(AlternateBidderCodesConfig::getBidders)
                 .map(Map::entrySet)
                 .stream()
                 .flatMap(Collection::stream)
@@ -129,8 +109,13 @@ public class BidderAliases {
 
     private static Set<String> allowedBidderCodes(AlternateBidder alternateBidder) {
         final Set<String> allowedBidderCodes = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
-        Optional.ofNullable(alternateBidder.getAllowedBidderCodes())
-                .ifPresentOrElse(allowedBidderCodes::addAll, () -> allowedBidderCodes.add(WILDCARD));
+        final Set<String> alternateCodes = alternateBidder.getAllowedBidderCodes();
+
+        if (alternateCodes == null) {
+            allowedBidderCodes.add(WILDCARD);
+        } else {
+            allowedBidderCodes.addAll(alternateCodes);
+        }
         return allowedBidderCodes;
     }
 }

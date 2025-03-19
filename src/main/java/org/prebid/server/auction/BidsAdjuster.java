@@ -2,6 +2,7 @@ package org.prebid.server.auction;
 
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.Bid;
+import org.prebid.server.auction.aliases.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionParticipation;
 import org.prebid.server.auction.model.BidderResponse;
@@ -43,11 +44,7 @@ public class BidsAdjuster {
                                                             BidderAliases aliases) {
 
         return auctionParticipations.stream()
-                .map(auctionParticipation -> validBidderResponse(
-                        auctionParticipation,
-                        auctionContext,
-                        aliases))
-
+                .map(auctionParticipation -> validBidderResponse(auctionParticipation, auctionContext, aliases))
                 .map(auctionParticipation -> bidAdjustmentsProcessor.enrichWithAdjustedBids(
                         auctionParticipation,
                         auctionContext.getBidRequest(),

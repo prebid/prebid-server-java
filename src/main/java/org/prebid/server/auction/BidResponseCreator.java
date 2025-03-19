@@ -23,6 +23,7 @@ import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.aliases.BidderAliases;
 import org.prebid.server.auction.categorymapping.CategoryMappingService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionParticipation;
@@ -769,16 +770,8 @@ public class BidResponseCreator {
         final int multiBidSize = bidderImpIdBidInfos.size();
         for (int i = 0; i < multiBidSize; i++) {
             // first bid have the highest value and can't be extra bid
-            final boolean isFirstBid = i == 0;
-            final String targetingBidderCode = isFirstBid
-                    ? bidder
-                    : bidderCodePrefix == null ? null : bidderCodePrefix + (i + 1);
-
+            final String targetingBidderCode = targetingCode(bidder, bidderCodePrefix, i);
             final BidInfo bidInfo = bidderImpIdBidInfos.get(i);
-
-            final String targetingSeat = isFirstBid
-                    ? bidInfo.getSeat()
-                    : bidderCodePrefix == null ? null : bidderCodePrefix + (i + 1);
 
             final TargetingInfo targetingInfo = TargetingInfo.builder()
                     .isTargetingEnabled(targetingBidderCode != null)
@@ -786,7 +779,7 @@ public class BidResponseCreator {
                     .isWinningBid(winningBids.contains(bidInfo))
                     .isAddTargetBidderCode(targetingBidderCode != null && multiBidSize > 1)
                     .bidderCode(targetingBidderCode)
-                    .seat(targetingSeat)
+                    .seat(targetingCode(bidInfo.getSeat(), bidderCodePrefix, i))
                     .build();
 
             final BidInfo modifiedBidInfo = bidInfo.toBuilder().targetingInfo(targetingInfo).build();
@@ -794,6 +787,14 @@ public class BidResponseCreator {
         }
 
         return result;
+    }
+
+    private static String targetingCode(String base, String prefix, int i) {
+        if (i == 0) {
+            return base;
+        }
+
+        return prefix != null ? prefix + (i + 1) : null;
     }
 
     /**

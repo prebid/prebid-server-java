@@ -3075,7 +3075,7 @@ public class ExchangeServiceTest extends VertxTest {
                         givenBidderBid(Bid.builder().impid("impId").price(TEN).build()))));
 
         final ExtRequestPrebidAlternateBidderCodes requestAlternateBidderCodes =
-                ExtRequestPrebidAlternateBidderCodes.builder().enabled(false).build();
+                ExtRequestPrebidAlternateBidderCodes.of(false, null);
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
                 builder -> builder
@@ -3083,14 +3083,9 @@ public class ExchangeServiceTest extends VertxTest {
                                 .alternateBidderCodes(requestAlternateBidderCodes)
                                 .build())));
 
-        final AccountAlternateBidderCodes accountAlternateBidderCodes =
-                AccountAlternateBidderCodes.builder()
-                        .enabled(true)
-                        .bidders(Map.of("someBidder", AccountAlternateBidderCodesBidder.builder()
-                                .enabled(true)
-                                .allowedBidderCodes(Set.of("seat"))
-                                .build()))
-                        .build();
+        final AccountAlternateBidderCodes accountAlternateBidderCodes = AccountAlternateBidderCodes.of(
+                true,
+                Map.of("someBidder", AccountAlternateBidderCodesBidder.of(true, Set.of("seat"))));
 
         final Account givenAccount = Account.builder()
                 .id("accountId")
@@ -3118,14 +3113,9 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder().build())));
 
-        final AccountAlternateBidderCodes accountAlternateBidderCodes =
-                AccountAlternateBidderCodes.builder()
-                        .enabled(true)
-                        .bidders(Map.of("someBidder", AccountAlternateBidderCodesBidder.builder()
-                                .enabled(true)
-                                .allowedBidderCodes(Set.of("seat"))
-                                .build()))
-                        .build();
+        final AccountAlternateBidderCodes accountAlternateBidderCodes = AccountAlternateBidderCodes.of(
+                true,
+                Map.of("someBidder", AccountAlternateBidderCodesBidder.of(true, Set.of("seat"))));
 
         final Account givenAccount = Account.builder()
                 .id("accountId")
