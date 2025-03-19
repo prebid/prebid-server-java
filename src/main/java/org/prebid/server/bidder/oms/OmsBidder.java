@@ -47,12 +47,9 @@ public class OmsBidder implements Bidder<BidRequest> {
         if (!request.getImp().isEmpty()) {
             try {
                 final ExtImpOms impExt = parseImpExt(request.getImp().getFirst());
-                final String publisherId = impExt.getPid() == null
-                        && impExt.getPublisherId() != null
-                        && impExt.getPublisherId() > 0
-                        ? String.valueOf(impExt.getPublisherId())
-                        : impExt.getPid();
-                final String url = "%s?publisherId=%s".formatted(endpointUrl, publisherId);
+                final String publisherId = resolverPublisherId(impExt.getPid(), impExt.getPublisherId());
+                final String encodedPublisherId = HttpUtil.encodeUrl(publisherId);
+                final String url = "%s?publisherId=%s".formatted(endpointUrl, encodedPublisherId);
                 return Result.withValue(BidderUtil.defaultRequest(request, url, mapper));
             } catch (PreBidException e) {
                 return Result.withError(BidderError.badInput(e.getMessage()));
@@ -68,6 +65,13 @@ public class OmsBidder implements Bidder<BidRequest> {
         } catch (IllegalArgumentException e) {
             throw new PreBidException("Invalid ext. Imp.Id: " + imp.getId());
         }
+    }
+
+    private String resolverPublisherId(String pid, Integer publisherId) {
+        if (StringUtils.isEmpty(pid) && publisherId != null && publisherId > 0) {
+            return String.valueOf(publisherId);
+        }
+        return pid;
     }
 
     @Override
@@ -93,16 +97,18 @@ public class OmsBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> {
-                    final BidType bidType = getBidType(bid);
-                    return BidderBid.builder()
-                            .bid(bid)
-                            .type(bidType)
-                            .bidCurrency(bidResponse.getCur())
-                            .videoInfo(videoInfo(bidType, bid))
-                            .build();
-                })
+                .map(bid -> createBidderBid(bid, bidResponse.getCur()))
                 .toList();
+    }
+
+    private static BidderBid createBidderBid(Bid bid, String currency) {
+        final BidType bidType = getBidType(bid);
+        return BidderBid.builder()
+                .bid(bid)
+                .type(bidType)
+                .bidCurrency(currency)
+                .videoInfo(videoInfo(bidType, bid))
+                .build();
     }
 
     private static BidType getBidType(Bid bid) {
@@ -118,7 +124,6 @@ public class OmsBidder implements Bidder<BidRequest> {
 
         return ExtBidPrebidVideo.of(
                 ObjectUtils.defaultIfNull(duration, 0),
-                CollectionUtils.isNotEmpty(cat) ? cat.getFirst() : StringUtils.EMPTY
-        );
+                CollectionUtils.isNotEmpty(cat) ? cat.getFirst() : StringUtils.EMPTY);
     }
 }
