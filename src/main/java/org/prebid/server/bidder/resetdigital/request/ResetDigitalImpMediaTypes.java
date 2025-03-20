@@ -3,7 +3,7 @@ package org.prebid.server.bidder.resetdigital.request;
 import lombok.Builder;
 import lombok.Value;
 
-@Value(staticConstructor = "of")
+@Value
 @Builder
 public class ResetDigitalImpMediaTypes {
 

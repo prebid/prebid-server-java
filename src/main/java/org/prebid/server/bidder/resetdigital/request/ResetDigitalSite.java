@@ -1,10 +1,8 @@
 package org.prebid.server.bidder.resetdigital.request;
 
-import lombok.Builder;
 import lombok.Value;
 
-@Value
-@Builder
+@Value(staticConstructor = "of")
 public class ResetDigitalSite {
 
     String domain;

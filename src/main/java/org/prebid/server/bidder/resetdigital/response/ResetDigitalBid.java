@@ -5,7 +5,7 @@ import lombok.Value;
 
 import java.math.BigDecimal;
 
-@Value(staticConstructor = "of")
+@Value
 @Builder
 public class ResetDigitalBid {
 

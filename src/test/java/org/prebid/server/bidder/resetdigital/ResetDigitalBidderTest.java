@@ -103,11 +103,11 @@ public class ResetDigitalBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(ResetDigitalRequest::getImps)
                 .extracting(ResetDigitalImp::getImpId)
-                .containsExactlyInAnyOrder("givenImp1", "givenImp2", "givenImp3");
+                .containsOnly("givenImp1", "givenImp2", "givenImp3");
 
         assertThat(result.getValue()).hasSize(3)
                 .extracting(HttpRequest::getImpIds)
-                .containsExactlyInAnyOrder(Set.of("givenImp1"), Set.of("givenImp2"), Set.of("givenImp3"));
+                .containsOnly(Set.of("givenImp1"), Set.of("givenImp2"), Set.of("givenImp3"));
     }
 
     @Test
@@ -122,7 +122,7 @@ public class ResetDigitalBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsExactlyInAnyOrder(ENDPOINT_URL);
+                .containsOnly(ENDPOINT_URL);
     }
 
     @Test
@@ -192,13 +192,12 @@ public class ResetDigitalBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(ResetDigitalRequest::getImps)
-                .containsExactlyInAnyOrder(ResetDigitalImp.builder()
+                .containsOnly(ResetDigitalImp.builder()
                         .impId("impId")
                         .bidId("requestId")
                         .zoneId(ResetDigitalImpZone.of("placementId"))
-                        .mediaTypes(ResetDigitalImpMediaTypes.banner(ResetDigitalImpMediaType.builder()
-                                .sizes(List.of(List.of(1, 2)))
-                                .build()))
+                        .mediaTypes(ResetDigitalImpMediaTypes.banner(
+                                ResetDigitalImpMediaType.of(List.of(List.of(1, 2)), null)))
                         .build());
     }
 
@@ -221,14 +220,13 @@ public class ResetDigitalBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(ResetDigitalRequest::getImps)
-                .containsExactlyInAnyOrder(ResetDigitalImp.builder()
+                .containsOnly(ResetDigitalImp.builder()
                         .impId("impId")
                         .bidId("requestId")
                         .zoneId(ResetDigitalImpZone.of("placementId"))
-                        .mediaTypes(ResetDigitalImpMediaTypes.video(ResetDigitalImpMediaType.builder()
-                                .sizes(List.of(List.of(1, 2)))
-                                .mimes(List.of("mime1", "mime2"))
-                                .build()))
+                        .mediaTypes(ResetDigitalImpMediaTypes.video(ResetDigitalImpMediaType.of(
+                                List.of(List.of(1, 2)),
+                                List.of("mime1", "mime2"))))
                         .build());
     }
 
@@ -251,18 +249,17 @@ public class ResetDigitalBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(ResetDigitalRequest::getImps)
-                .containsExactlyInAnyOrder(ResetDigitalImp.builder()
+                .containsOnly(ResetDigitalImp.builder()
                         .impId("impId")
                         .bidId("requestId")
                         .zoneId(ResetDigitalImpZone.of("placementId"))
-                        .mediaTypes(ResetDigitalImpMediaTypes.audio(ResetDigitalImpMediaType.builder()
-                                .mimes(List.of("mime1", "mime2"))
-                                .build()))
+                        .mediaTypes(ResetDigitalImpMediaTypes.audio(
+                                ResetDigitalImpMediaType.of(null, List.of("mime1", "mime2"))))
                         .build());
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnFailWhenImpIsNative() {
+    public void makeHttpRequestsShouldFailWhenImpIsNative() {
         // given
         final BidRequest bidRequest = givenBidRequest(imp -> imp
                 .id("impId")
@@ -299,10 +296,7 @@ public class ResetDigitalBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(ResetDigitalRequest::getSite)
-                .containsExactlyInAnyOrder(ResetDigitalSite.builder()
-                        .referrer("page")
-                        .domain("domain")
-                        .build());
+                .containsOnly(ResetDigitalSite.of("domain", "page"));
     }
 
     @Test

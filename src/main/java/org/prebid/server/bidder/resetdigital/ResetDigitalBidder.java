@@ -31,6 +31,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.proto.openrtb.ext.request.resetdigital.ExtImpResetDigital;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -39,6 +40,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 public class ResetDigitalBidder implements Bidder<ResetDigitalRequest> {
@@ -87,27 +89,34 @@ public class ResetDigitalBidder implements Bidder<ResetDigitalRequest> {
                 .bidId(request.getId())
                 .impId(imp.getId())
                 .mediaTypes(resolveMediaTypes(imp))
-                .zoneId(extImp.getPlacementId() == null ? null : ResetDigitalImpZone.of(extImp.getPlacementId()))
+                .zoneId(Optional.ofNullable(extImp.getPlacementId())
+                        .map(ResetDigitalImpZone::of)
+                        .orElse(null))
                 .build();
     }
 
     private static ResetDigitalImpMediaTypes resolveMediaTypes(Imp imp) {
-        final Banner banner = imp.getBanner();
-        final Video video = imp.getVideo();
-        final Audio audio = imp.getAudio();
+        return switch (mediaType(imp)) {
+            case banner -> ResetDigitalImpMediaTypes.banner(makeBanner(imp.getBanner()));
+            case video -> ResetDigitalImpMediaTypes.video(makeVideo(imp.getVideo()));
+            case audio -> ResetDigitalImpMediaTypes.audio(makeAudio(imp.getAudio()));
+            case null, default -> throw new PreBidException(
+                    "Banner, video or audio must be present in the imp %s".formatted(imp.getId()));
+        };
+    }
 
-        if (banner != null) {
-            final ResetDigitalImpMediaType mediaType = makeBanner(banner);
-            return mediaType == null ? null : ResetDigitalImpMediaTypes.banner(mediaType);
-        } else if (video != null) {
-            final ResetDigitalImpMediaType mediaType = makeVideo(video);
-            return mediaType == null ? null : ResetDigitalImpMediaTypes.video(mediaType);
-        } else if (audio != null) {
-            final ResetDigitalImpMediaType mediaType = makeAudio(audio);
-            return mediaType == null ? null : ResetDigitalImpMediaTypes.audio(mediaType);
-        } else {
-            throw new PreBidException("Banner, video or audio must be present in the imp %s".formatted(imp.getId()));
+    private static ImpMediaType mediaType(Imp imp) {
+        if (imp.getBanner() != null) {
+            return ImpMediaType.banner;
         }
+        if (imp.getVideo() != null) {
+            return ImpMediaType.video;
+        }
+        if (imp.getAudio() != null) {
+            return ImpMediaType.audio;
+        }
+
+        return null;
     }
 
     private static ResetDigitalImpMediaType makeBanner(Banner banner) {
@@ -130,10 +139,9 @@ public class ResetDigitalBidder implements Bidder<ResetDigitalRequest> {
             return null;
         }
 
-        return ResetDigitalImpMediaType.builder()
-                .sizes(hasValidSizes ? List.of(List.of(width, height)) : null)
-                .mimes(hasMimes ? mimes : null)
-                .build();
+        return ResetDigitalImpMediaType.of(
+                hasValidSizes ? List.of(List.of(width, height)) : null,
+                hasMimes ? mimes : null);
     }
 
     private static boolean isValidSizeValue(Integer value) {
@@ -154,19 +162,16 @@ public class ResetDigitalBidder implements Bidder<ResetDigitalRequest> {
     }
 
     private static ResetDigitalRequest makeRequest(BidRequest request, ResetDigitalImp resetDigitalImp) {
-        return ResetDigitalRequest.builder()
-                .site(makeSite(request.getSite()))
-                .imps(Collections.singletonList(resetDigitalImp))
-                .build();
+        return ResetDigitalRequest.of(makeSite(request.getSite()), Collections.singletonList(resetDigitalImp));
     }
 
     private static ResetDigitalSite makeSite(Site site) {
-        return site == null || ObjectUtils.allNull(site.getDomain(), site.getPage())
-                ? null
-                : ResetDigitalSite.builder()
-                .domain(site.getDomain())
-                .referrer(site.getPage())
-                .build();
+        final String domain = site != null ? site.getDomain() : null;
+        final String page = site != null ? site.getPage() : null;
+
+        return ObjectUtils.anyNotNull(domain, page)
+                ? ResetDigitalSite.of(domain, page)
+                : null;
     }
 
     private static MultiMap makeHeaders(BidRequest request) {
@@ -240,10 +245,11 @@ public class ResetDigitalBidder implements Bidder<ResetDigitalRequest> {
     private static BidType resolveBidType(Imp imp) throws PreBidException {
         if (imp.getVideo() != null) {
             return BidType.video;
-        } else if (imp.getAudio() != null) {
-            return BidType.audio;
-        } else {
-            return BidType.banner;
         }
+        if (imp.getAudio() != null) {
+            return BidType.audio;
+        }
+
+        return BidType.banner;
     }
 }
