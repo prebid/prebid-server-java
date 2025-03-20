@@ -430,6 +430,7 @@ public class BidResponseCreator {
 
             String seat = bidder;
             String adapterCode = bidder;
+            boolean seatAndAdapterCodeSet = false;
             for (final BidderBid bidderBid : seatBid.getBids()) {
                 final BidInfo bidInfo = toBidInfo(
                         bidderBid.getBid(),
@@ -441,13 +442,16 @@ public class BidResponseCreator {
                         cacheInfo,
                         account);
                 bidInfos.add(bidInfo);
-                seat = bidderBid.getSeat();
-                adapterCode = Optional.ofNullable(bidderBid.getBid())
-                        .map(Bid::getExt)
-                        .flatMap(ext -> getExtPrebid(ext, ExtBidPrebid.class))
-                        .map(ExtBidPrebid::getMeta)
-                        .map(ExtBidPrebidMeta::getAdapterCode)
-                        .orElse(bidder);
+                if (!seatAndAdapterCodeSet) {
+                    seat = bidderBid.getSeat();
+                    adapterCode = Optional.ofNullable(bidderBid.getBid())
+                            .map(Bid::getExt)
+                            .flatMap(ext -> getExtPrebid(ext, ExtBidPrebid.class))
+                            .map(ExtBidPrebid::getMeta)
+                            .map(ExtBidPrebidMeta::getAdapterCode)
+                            .orElse(bidder);
+                    seatAndAdapterCodeSet = true;
+                }
             }
 
             final BidderSeatBidInfo bidderSeatBidInfo = BidderSeatBidInfo.of(
