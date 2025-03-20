@@ -15,6 +15,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.aliases.AlternateBidder;
 import org.prebid.server.auction.aliases.AlternateBidderCodesConfig;
 import org.prebid.server.auction.aliases.BidderAliases;
 import org.prebid.server.auction.model.debug.DebugContext;
@@ -34,8 +35,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidAdjustmentFactors;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAlternateBidderCodes;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAlternateBidderCodesBidder;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidDataEidPermissions;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchain;
@@ -250,16 +249,14 @@ public class RequestValidator {
         }
     }
 
-    private void validateAlternateBidderCodes(ExtRequestPrebidAlternateBidderCodes adjustmentFactors,
+    private void validateAlternateBidderCodes(AlternateBidderCodesConfig alternateBidderCodesConfig,
                                               Map<String, String> aliases) throws ValidationException {
 
-        final Map<String, ExtRequestPrebidAlternateBidderCodesBidder> alternateBidders = adjustmentFactors != null
-                ? adjustmentFactors.getBidders()
-                : Collections.emptyMap();
+        final Map<String, ? extends AlternateBidder> alternateBidders = Optional.ofNullable(alternateBidderCodesConfig)
+                .map(AlternateBidderCodesConfig::getBidders)
+                .orElse(Collections.emptyMap());
 
-        for (Map.Entry<String, ExtRequestPrebidAlternateBidderCodesBidder> alternateBidder
-                : alternateBidders.entrySet()) {
-
+        for (Map.Entry<String, ? extends AlternateBidder> alternateBidder : alternateBidders.entrySet()) {
             final String bidder = alternateBidder.getKey();
             if (isUnknownBidderOrAlias(bidder, aliases)) {
                 throw new ValidationException(
