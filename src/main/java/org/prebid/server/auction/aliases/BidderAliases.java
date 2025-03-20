@@ -3,6 +3,7 @@ package org.prebid.server.auction.aliases;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.BidderCatalog;
 
@@ -85,8 +86,17 @@ public class BidderAliases {
     }
 
     public boolean isAllowedAlternateBidderCode(String bidder, String alternateBidderCode) {
-        final Set<String> allowedBidderCodes = bidderToAllowedBidderCodes.getOrDefault(bidder, Collections.emptySet());
+        final Set<String> allowedBidderCodes = ObjectUtils.firstNonNull(
+                bidderToAllowedBidderCodes.get(bidder),
+                bidderToAllowedBidderCodes.get(resolveBidder(bidder)),
+                Collections.emptySet());
         return allowedBidderCodes.contains(WILDCARD) || allowedBidderCodes.contains(alternateBidderCode);
+    }
+
+    public boolean isKnownAlternateBidderCode(String alternateBidderCode) {
+        return bidderToAllowedBidderCodes.values().stream()
+                .anyMatch(knownBidderCodes ->
+                        knownBidderCodes.contains(WILDCARD) || knownBidderCodes.contains(alternateBidderCode));
     }
 
     private static Map<String, Set<String>> resolveAlternateBidderCodes(
