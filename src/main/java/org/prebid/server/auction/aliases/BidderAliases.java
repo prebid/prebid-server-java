@@ -93,6 +93,12 @@ public class BidderAliases {
         return allowedBidderCodes.contains(WILDCARD) || allowedBidderCodes.contains(alternateBidderCode);
     }
 
+    public boolean isKnownAlternateBidderCode(String alternateBidderCode) {
+        return bidderToAllowedBidderCodes.values().stream()
+                .anyMatch(knownBidderCodes ->
+                        knownBidderCodes.contains(WILDCARD) || knownBidderCodes.contains(alternateBidderCode));
+    }
+
     private static Map<String, Set<String>> resolveAlternateBidderCodes(
             AlternateBidderCodesConfig alternateBidderCodes) {
 

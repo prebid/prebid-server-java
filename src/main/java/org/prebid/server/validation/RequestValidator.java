@@ -13,9 +13,10 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
-import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.aliases.AlternateBidderCodesConfig;
+import org.prebid.server.auction.aliases.BidderAliases;
 import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.json.JacksonMapper;
@@ -33,6 +34,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidAdjustmentFactors;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAlternateBidderCodes;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAlternateBidderCodesBidder;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidDataEidPermissions;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchain;
@@ -134,11 +137,18 @@ public class RequestValidator {
                 if (targeting != null) {
                     validateTargeting(targeting);
                 }
-                aliases = new CaseInsensitiveMap<>(MapUtils.emptyIfNull(extRequestPrebid.getAliases()));
-
+                aliases = ObjectUtils.defaultIfNull(extRequestPrebid.getAliases(), Collections.emptyMap());
                 validateAliases(aliases, warnings, account);
                 validateAliasesGvlIds(extRequestPrebid, aliases);
-                validateBidAdjustmentFactors(extRequestPrebid.getBidadjustmentfactors());
+                validateAlternateBidderCodes(extRequestPrebid.getAlternateBidderCodes(), aliases);
+
+                final AlternateBidderCodesConfig alternateBidderCodesConfig = ObjectUtils.defaultIfNull(
+                        extRequestPrebid.getAlternateBidderCodes(),
+                        account == null ? null : account.getAlternateBidderCodes());
+
+                final BidderAliases bidderAliases = BidderAliases.of(
+                        aliases, null, bidderCatalog, alternateBidderCodesConfig);
+                validateBidAdjustmentFactors(extRequestPrebid.getBidadjustmentfactors(), bidderAliases);
                 validateExtBidPrebidData(extRequestPrebid.getData(), aliases, isDebugEnabled, warnings);
                 validateSchains(extRequestPrebid.getSchains());
             }
@@ -219,8 +229,7 @@ public class RequestValidator {
     private void validateAliasesGvlIds(ExtRequestPrebid extRequestPrebid,
                                        Map<String, String> aliases) throws ValidationException {
 
-        final Map<String, Integer> aliasGvlIds = new CaseInsensitiveMap<>(MapUtils.emptyIfNull(
-                extRequestPrebid.getAliasgvlids()));
+        final Map<String, Integer> aliasGvlIds = MapUtils.emptyIfNull(extRequestPrebid.getAliasgvlids());
 
         for (Map.Entry<String, Integer> aliasToGvlId : aliasGvlIds.entrySet()) {
 
@@ -241,8 +250,26 @@ public class RequestValidator {
         }
     }
 
-    private void validateBidAdjustmentFactors(ExtRequestBidAdjustmentFactors adjustmentFactors)
-            throws ValidationException {
+    private void validateAlternateBidderCodes(ExtRequestPrebidAlternateBidderCodes adjustmentFactors,
+                                              Map<String, String> aliases) throws ValidationException {
+
+        final Map<String, ExtRequestPrebidAlternateBidderCodesBidder> alternateBidders = adjustmentFactors != null
+                ? adjustmentFactors.getBidders()
+                : Collections.emptyMap();
+
+        for (Map.Entry<String, ExtRequestPrebidAlternateBidderCodesBidder> alternateBidder
+                : alternateBidders.entrySet()) {
+
+            final String bidder = alternateBidder.getKey();
+            if (isUnknownBidderOrAlias(bidder, aliases)) {
+                throw new ValidationException(
+                        "request.ext.prebid.alternatebiddercodes.bidders.%s is not a known bidder or alias", bidder);
+            }
+        }
+    }
+
+    private void validateBidAdjustmentFactors(ExtRequestBidAdjustmentFactors adjustmentFactors,
+                                              BidderAliases bidderAliases) throws ValidationException {
 
         final Map<String, BigDecimal> bidderAdjustments = adjustmentFactors != null
                 ? adjustmentFactors.getAdjustments()
@@ -250,6 +277,14 @@ public class RequestValidator {
 
         for (Map.Entry<String, BigDecimal> bidderAdjustment : bidderAdjustments.entrySet()) {
             final String bidder = bidderAdjustment.getKey();
+
+            if (!bidderCatalog.isValidName(bidder)
+                    && !bidderAliases.isAliasDefined(bidder)
+                    && !bidderAliases.isKnownAlternateBidderCode(bidder)) {
+
+                throw new ValidationException(
+                        "request.ext.prebid.bidadjustmentfactors.%s is not a known bidder or alias", bidder);
+            }
 
             final BigDecimal adjustmentFactor = bidderAdjustment.getValue();
             if (adjustmentFactor.compareTo(BigDecimal.ZERO) <= 0) {
@@ -269,16 +304,25 @@ public class RequestValidator {
 
         for (Map.Entry<ImpMediaType, Map<String, BigDecimal>> entry
                 : adjustmentsMediaTypeFactors.entrySet()) {
-            validateBidAdjustmentFactorsByMediatype(entry.getKey(), entry.getValue());
+            validateBidAdjustmentFactorsByMediatype(entry.getKey(), entry.getValue(), bidderAliases);
         }
     }
 
     private void validateBidAdjustmentFactorsByMediatype(ImpMediaType mediaType,
-                                                         Map<String, BigDecimal> bidderAdjustments)
-            throws ValidationException {
+                                                         Map<String, BigDecimal> bidderAdjustments,
+                                                         BidderAliases bidderAliases) throws ValidationException {
 
         for (Map.Entry<String, BigDecimal> bidderAdjustment : bidderAdjustments.entrySet()) {
             final String bidder = bidderAdjustment.getKey();
+
+            if (!bidderCatalog.isValidName(bidder)
+                    && !bidderAliases.isAliasDefined(bidder)
+                    && !bidderAliases.isKnownAlternateBidderCode(bidder)) {
+
+                throw new ValidationException(
+                        "request.ext.prebid.bidadjustmentfactors.%s.%s is not a known bidder or alias",
+                        mediaType, bidder);
+            }
 
             final BigDecimal adjustmentFactor = bidderAdjustment.getValue();
             if (adjustmentFactor.compareTo(BigDecimal.ZERO) <= 0) {
@@ -533,7 +577,7 @@ public class RequestValidator {
                 }
             }
 
-            if (alias.equalsIgnoreCase(coreBidder)) {
+            if (alias.equals(coreBidder)) {
                 throw new ValidationException("""
                         request.ext.prebid.aliases.%s defines a no-op alias. \
                         Choose a different alias, or remove this entry""".formatted(alias));

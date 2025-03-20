@@ -428,9 +428,15 @@ public class BidResponseCreator {
             final List<BidInfo> bidInfos = new ArrayList<>();
             final BidderSeatBid seatBid = bidderResponse.getSeatBid();
 
-            String seat = bidder;
-            String adapterCode = bidder;
-            boolean seatAndAdapterCodeSet = false;
+            final BidderBid firstBid = CollectionUtils.isEmpty(seatBid.getBids()) ? null : seatBid.getBids().getFirst();
+            final String seat = firstBid == null ? bidder : firstBid.getSeat();
+            final String adapterCode = firstBid == null ? bidder : Optional.ofNullable(firstBid.getBid())
+                    .map(Bid::getExt)
+                    .flatMap(ext -> getExtPrebid(ext, ExtBidPrebid.class))
+                    .map(ExtBidPrebid::getMeta)
+                    .map(ExtBidPrebidMeta::getAdapterCode)
+                    .orElse(bidder);
+
             for (final BidderBid bidderBid : seatBid.getBids()) {
                 final BidInfo bidInfo = toBidInfo(
                         bidderBid.getBid(),
@@ -442,16 +448,6 @@ public class BidResponseCreator {
                         cacheInfo,
                         account);
                 bidInfos.add(bidInfo);
-                if (!seatAndAdapterCodeSet) {
-                    seat = bidderBid.getSeat();
-                    adapterCode = Optional.ofNullable(bidderBid.getBid())
-                            .map(Bid::getExt)
-                            .flatMap(ext -> getExtPrebid(ext, ExtBidPrebid.class))
-                            .map(ExtBidPrebid::getMeta)
-                            .map(ExtBidPrebidMeta::getAdapterCode)
-                            .orElse(bidder);
-                    seatAndAdapterCodeSet = true;
-                }
             }
 
             final BidderSeatBidInfo bidderSeatBidInfo = BidderSeatBidInfo.of(

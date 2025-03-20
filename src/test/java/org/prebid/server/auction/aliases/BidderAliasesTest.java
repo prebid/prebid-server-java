@@ -314,4 +314,124 @@ public class BidderAliasesTest {
         // when and then
         assertThat(aliases.isAllowedAlternateBidderCode("alias", "seat")).isTrue();
     }
+
+    @Test
+    public void isKnownAlternateBidderCodeShouldReturnFalseWhenAlternateBidderCodesAreDisabledForBidder() {
+        // given
+        final ExtRequestPrebidAlternateBidderCodes alternateBidderCodes = ExtRequestPrebidAlternateBidderCodes.of(
+                true,
+                Map.of("bidder", ExtRequestPrebidAlternateBidderCodesBidder.of(false, Set.of("seat"))));
+        final BidderAliases aliases = BidderAliases.of(null, null, bidderCatalog, alternateBidderCodes);
+
+        // when and then
+        assertThat(aliases.isKnownAlternateBidderCode("seat")).isFalse();
+    }
+
+    @Test
+    public void isKnownAlternateBidderCodeShouldReturnFalseWhenAlternateBidderCodesAreLackingSeat() {
+        // given
+        final ExtRequestPrebidAlternateBidderCodes alternateBidderCodes = ExtRequestPrebidAlternateBidderCodes.of(
+                true,
+                Map.of("bidder", ExtRequestPrebidAlternateBidderCodesBidder.of(true, Set.of("another"))));
+        final BidderAliases aliases = BidderAliases.of(null, null, bidderCatalog, alternateBidderCodes);
+
+        // when and then
+        assertThat(aliases.isKnownAlternateBidderCode("seat")).isFalse();
+    }
+
+    @Test
+    public void isKnownAlternateBidderCodeShouldReturnFalseWhenAlternateBidderCodesAreLackingBidders() {
+        // given
+        final ExtRequestPrebidAlternateBidderCodes alternateBidderCodes = ExtRequestPrebidAlternateBidderCodes.of(
+                true,
+                null);
+        final BidderAliases aliases = BidderAliases.of(null, null, bidderCatalog, alternateBidderCodes);
+
+        // when and then
+        assertThat(aliases.isKnownAlternateBidderCode("seat")).isFalse();
+    }
+
+    @Test
+    public void iisKnownAlternateBidderCodeShouldReturnFalseWhenAlternateBidderCodesAreDisabled() {
+        // given
+        final ExtRequestPrebidAlternateBidderCodes alternateBidderCodes = ExtRequestPrebidAlternateBidderCodes.of(
+                false,
+                Map.of("bidder", ExtRequestPrebidAlternateBidderCodesBidder.of(true, Set.of("seat"))));
+        final BidderAliases aliases = BidderAliases.of(null, null, bidderCatalog, alternateBidderCodes);
+
+        // when and then
+        assertThat(aliases.isKnownAlternateBidderCode("seat")).isFalse();
+    }
+
+    @Test
+    public void isKnownAlternateBidderCodeShouldReturnTrueWhenAllowedAlternateCodesAreNull() {
+        // given
+        final ExtRequestPrebidAlternateBidderCodes alternateBidderCodes = ExtRequestPrebidAlternateBidderCodes.of(
+                true,
+                Map.of("bidder", ExtRequestPrebidAlternateBidderCodesBidder.of(true, null)));
+        final BidderAliases aliases = BidderAliases.of(null, null, bidderCatalog, alternateBidderCodes);
+
+        // when and then
+        assertThat(aliases.isKnownAlternateBidderCode("seat")).isTrue();
+    }
+
+    @Test
+    public void isKnownAlternateBidderCodeShouldReturnTrueWhenAllowedAlternateCodesContainsWildcard() {
+        // given
+        final ExtRequestPrebidAlternateBidderCodes alternateBidderCodes = ExtRequestPrebidAlternateBidderCodes.of(
+                true,
+                Map.of("bidder", ExtRequestPrebidAlternateBidderCodesBidder.of(true, Set.of("*"))));
+        final BidderAliases aliases = BidderAliases.of(null, null, bidderCatalog, alternateBidderCodes);
+
+        // when and then
+        assertThat(aliases.isKnownAlternateBidderCode("seat")).isTrue();
+    }
+
+    @Test
+    public void isKnownAlternateBidderCodeShouldReturnTrueWhenAllowedAlternateCodesContainsSeatCaseInsensitive() {
+        // given
+        final ExtRequestPrebidAlternateBidderCodes alternateBidderCodes = ExtRequestPrebidAlternateBidderCodes.of(
+                true,
+                Map.of("BiDDEr", ExtRequestPrebidAlternateBidderCodesBidder.of(true, Set.of("SeaT"))));
+
+        final BidderAliases aliases = BidderAliases.of(null, null, bidderCatalog, alternateBidderCodes);
+
+        // when and then
+        assertThat(aliases.isKnownAlternateBidderCode("seat")).isTrue();
+    }
+
+    @Test
+    public void isKnownAlternateBidderCodeShouldReturnTrueForActualBidderWhenAliasIsNotDefined() {
+        // given
+        final ExtRequestPrebidAlternateBidderCodes alternateBidderCodes = ExtRequestPrebidAlternateBidderCodes.of(
+                true,
+                Map.of("bidder", ExtRequestPrebidAlternateBidderCodesBidder.of(true, Set.of("seat"))));
+
+        final BidderAliases aliases = BidderAliases.of(
+                Map.of("alias", "bidder"),
+                null,
+                bidderCatalog,
+                alternateBidderCodes);
+
+        // when and then
+        assertThat(aliases.isKnownAlternateBidderCode("seat")).isTrue();
+    }
+
+    @Test
+    public void isKnownAlternateBidderCodeShouldReturnTrueForAliasWhenAliasIsDefined() {
+        // given
+        final ExtRequestPrebidAlternateBidderCodes alternateBidderCodes = ExtRequestPrebidAlternateBidderCodes.of(
+                true,
+                Map.of("bidder", ExtRequestPrebidAlternateBidderCodesBidder.of(true, Set.of("another")),
+                        "alias", ExtRequestPrebidAlternateBidderCodesBidder.of(true, Set.of("seat"))));
+
+        final BidderAliases aliases = BidderAliases.of(
+                Map.of("alias", "bidder"),
+                null,
+                bidderCatalog,
+                alternateBidderCodes);
+
+        // when and then
+        assertThat(aliases.isKnownAlternateBidderCode("seat")).isTrue();
+    }
 }
