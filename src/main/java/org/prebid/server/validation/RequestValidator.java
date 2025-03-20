@@ -13,6 +13,7 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
+import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.aliases.AlternateBidder;
@@ -136,7 +137,7 @@ public class RequestValidator {
                 if (targeting != null) {
                     validateTargeting(targeting);
                 }
-                aliases = ObjectUtils.defaultIfNull(extRequestPrebid.getAliases(), Collections.emptyMap());
+                aliases = new CaseInsensitiveMap<>(MapUtils.emptyIfNull(extRequestPrebid.getAliases()));
                 validateAliases(aliases, warnings, account);
                 validateAliasesGvlIds(extRequestPrebid, aliases);
                 validateAlternateBidderCodes(extRequestPrebid.getAlternateBidderCodes(), aliases);
@@ -228,7 +229,8 @@ public class RequestValidator {
     private void validateAliasesGvlIds(ExtRequestPrebid extRequestPrebid,
                                        Map<String, String> aliases) throws ValidationException {
 
-        final Map<String, Integer> aliasGvlIds = MapUtils.emptyIfNull(extRequestPrebid.getAliasgvlids());
+        final Map<String, Integer> aliasGvlIds = new CaseInsensitiveMap<>(MapUtils.emptyIfNull(
+                extRequestPrebid.getAliasgvlids()));
 
         for (Map.Entry<String, Integer> aliasToGvlId : aliasGvlIds.entrySet()) {
 
@@ -574,7 +576,7 @@ public class RequestValidator {
                 }
             }
 
-            if (alias.equals(coreBidder)) {
+            if (alias.equalsIgnoreCase(coreBidder)) {
                 throw new ValidationException("""
                         request.ext.prebid.aliases.%s defines a no-op alias. \
                         Choose a different alias, or remove this entry""".formatted(alias));
