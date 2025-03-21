@@ -165,7 +165,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final String SEGTAX = "segtax";
 
     private static final Set<Integer> USER_SEGTAXES = Set.of(4);
-    private static final Set<Integer> SITE_SEGTAXES = Set.of(1, 2, 5, 6);
+    private static final Set<Integer> SITE_SEGTAXES = Set.of(1, 2, 5, 6, 7);
 
     private static final Set<String> STYPE_TO_REMOVE = new HashSet<>(Arrays.asList(PPUID_STYPE, SHA256EMAIL_STYPE,
             DMP_STYPE));

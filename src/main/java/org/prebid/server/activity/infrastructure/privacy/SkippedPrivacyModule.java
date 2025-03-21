@@ -7,11 +7,11 @@ import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPaylo
 
 import java.util.Objects;
 
-public class AbstainPrivacyModule implements PrivacyModule, Loggable {
+public class SkippedPrivacyModule implements PrivacyModule, Loggable {
 
     private final PrivacyModuleQualifier privacyModuleQualifier;
 
-    public AbstainPrivacyModule(PrivacyModuleQualifier privacyModuleQualifier) {
+    public SkippedPrivacyModule(PrivacyModuleQualifier privacyModuleQualifier) {
         this.privacyModuleQualifier = Objects.requireNonNull(privacyModuleQualifier);
     }
 
@@ -26,5 +26,9 @@ public class AbstainPrivacyModule implements PrivacyModule, Loggable {
                 .put("privacy_module", privacyModuleQualifier.moduleName())
                 .put("skipped", true)
                 .put("result", Result.ABSTAIN.name());
+    }
+
+    public PrivacyModuleQualifier skippedModule() {
+        return privacyModuleQualifier;
     }
 }
