@@ -16,7 +16,10 @@
             "origbidcpm": 12.34,
             "origbidcur": "USD",
             "prebid": {
-              "type": "banner"
+              "type": "banner",
+              "meta": {
+                "adaptercode": "flipp"
+              }
             }
           }
         }
