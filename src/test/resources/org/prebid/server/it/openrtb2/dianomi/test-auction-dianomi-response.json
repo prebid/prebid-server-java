@@ -13,7 +13,10 @@
           "crid": "test-creative-id-2",
           "ext": {
             "prebid": {
-              "type": "banner"
+              "type": "banner",
+              "meta": {
+                "adaptercode": "dianomi"
+              }
             },
             "pt": "gross",
             "origbidcpm": 10,
