@@ -1,6 +1,5 @@
 package org.prebid.server.bidadjustments;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.DecimalNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
@@ -22,22 +21,18 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidAdjustmentFactors;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
-import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
-import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidMeta;
 import org.prebid.server.util.PbsUtil;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class BidAdjustmentsProcessor {
 
     private static final String ORIGINAL_BID_CPM = "origbidcpm";
     private static final String ORIGINAL_BID_CURRENCY = "origbidcur";
-    private static final String PREBID_EXT = "prebid";
 
     private final CurrencyConversionService currencyService;
     private final BidAdjustmentFactorResolver bidAdjustmentFactorResolver;
@@ -102,7 +97,7 @@ public class BidAdjustmentsProcessor {
 
             final Price priceWithFactorsApplied = applyBidAdjustmentFactors(
                     originalPrice,
-                    getAdapterCode(bidderBid.getBid()),
+                    bidder,
                     bidderBid.getSeat(),
                     bidRequest,
                     mediaType);
@@ -118,23 +113,6 @@ public class BidAdjustmentsProcessor {
             return updateBid(originalPrice, priceWithAdjustmentsApplied, bidderBid, bidRequest);
         } catch (PreBidException e) {
             errors.add(BidderError.generic(e.getMessage()));
-            return null;
-        }
-    }
-
-    private String getAdapterCode(Bid bid) {
-        return Optional.ofNullable(bid.getExt())
-                .filter(ext -> ext.hasNonNull(PREBID_EXT))
-                .map(this::convertValue)
-                .map(ExtBidPrebid::getMeta)
-                .map(ExtBidPrebidMeta::getAdapterCode)
-                .orElse(null);
-    }
-
-    private ExtBidPrebid convertValue(JsonNode jsonNode) {
-        try {
-            return mapper.mapper().convertValue(jsonNode.get(PREBID_EXT), ExtBidPrebid.class);
-        } catch (IllegalArgumentException ignored) {
             return null;
         }
     }

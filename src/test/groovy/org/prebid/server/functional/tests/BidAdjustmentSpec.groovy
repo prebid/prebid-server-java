@@ -1108,9 +1108,6 @@ class BidAdjustmentSpec extends BaseSpec {
         assert response?.seatbid?.first?.bid?.first?.price == bidResponse.seatbid.first.bid.first.price *
                 bidAdjustmentFactor
 
-        and: "Response should contain repose millis with corresponding bidder"
-        assert response.ext.responsetimemillis.containsKey(GENERIC.value)
-
         where:
         bidAdjustmentFactor << [0.9, 1.1]
     }
@@ -1144,9 +1141,6 @@ class BidAdjustmentSpec extends BaseSpec {
         then: "Final bid price should be adjusted"
         assert response?.seatbid?.first?.bid?.first?.price == bidResponse.seatbid.first.bid.first.price *
                 bidAdjustmentFactor
-
-        and: "Response should contain repose millis with corresponding bidder"
-        assert response.ext.responsetimemillis.containsKey(GENERIC.value)
 
         where:
         bidAdjustmentFactor << [0.9, 1.1]
