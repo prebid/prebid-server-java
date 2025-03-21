@@ -1,6 +1,6 @@
 adapters:
   smilewanted:
-    endpoint: http://prebid-server.smilewanted.com
+    endpoint: https://prebid-server.smilewanted.com
     meta-info:
       maintainer-email: tech@smilewanted.com
       app-media-types:
