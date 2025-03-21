@@ -13,10 +13,7 @@
           "crid": "crid",
           "ext": {
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "brave"
-              }
+              "type": "banner"
             },
             "origbidcur": "USD",
             "origbidcpm": 0.01

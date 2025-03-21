@@ -24,10 +24,7 @@
             "origbidcpm": 2.184,
             "origbidcur": "USD",
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "adhese"
-              }
+              "type": "banner"
             }
           }
         }

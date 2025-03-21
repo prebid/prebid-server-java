@@ -15,10 +15,7 @@
           "h": 50,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "audienceNetwork"
-              }
+              "type": "banner"
             },
             "origbidcpm": 9.0
           }

@@ -9,7 +9,7 @@ import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.auction.aliases.BidderAliases;
+import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.auction.model.BidRejectionTracker;

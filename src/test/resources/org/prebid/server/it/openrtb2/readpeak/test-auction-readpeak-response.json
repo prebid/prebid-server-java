@@ -13,9 +13,7 @@
           "ext": {
             "prebid": {
               "type": "banner",
-              "meta": {
-                "adaptercode": "readpeak"
-              }
+              "meta": {}
             },
             "origbidcpm": 3.33
           }

@@ -12,10 +12,7 @@
           "crid": "crid6",
           "ext": {
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "bematterfull"
-              }
+              "type": "banner"
             },
             "origbidcpm": 4.7
           }

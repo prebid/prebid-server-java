@@ -10,10 +10,7 @@
           "ext": {
             "format": "BANNER",
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "admixer"
-              }
+              "type": "banner"
             },
             "origbidcpm": 0.01
           },

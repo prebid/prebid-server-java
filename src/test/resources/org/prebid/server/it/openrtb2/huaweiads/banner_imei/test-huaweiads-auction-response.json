@@ -30,10 +30,7 @@
             "origbidcpm": 2.8,
             "origbidcur": "CNY",
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "huaweiads"
-              }
+              "type": "banner"
             }
           }
         }

@@ -15,10 +15,7 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "mgid"
-              }
+              "type": "banner"
             },
             "origbidcpm": 3.5,
             "crtype": "banner"

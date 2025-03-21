@@ -23,10 +23,7 @@
               "duration": 30
             },
             "prebid": {
-              "type": "video",
-              "meta": {
-                "adaptercode": "avocet"
-              }
+              "type": "video"
             },
             "origbidcpm": 0.5
           }

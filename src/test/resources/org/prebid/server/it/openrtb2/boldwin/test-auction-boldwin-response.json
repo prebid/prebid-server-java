@@ -14,10 +14,7 @@
           "h": 600,
           "ext": {
             "prebid": {
-              "type": "video",
-              "meta": {
-                "adaptercode": "boldwin"
-              }
+              "type": "video"
             },
             "origbidcpm": 1.25
           },

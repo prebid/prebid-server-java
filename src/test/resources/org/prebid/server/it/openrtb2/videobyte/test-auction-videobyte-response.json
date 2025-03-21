@@ -18,10 +18,7 @@
             "origbidcpm": 3.33,
             "origbidcur": "USD",
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "videobyte"
-              }
+              "type": "banner"
             }
           }
         }

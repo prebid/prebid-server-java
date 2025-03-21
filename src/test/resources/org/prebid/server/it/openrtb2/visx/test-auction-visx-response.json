@@ -17,10 +17,7 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "visx"
-              }
+              "type": "banner"
             },
             "origbidcpm": 0.5
           }

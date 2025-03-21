@@ -22,10 +22,7 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "adkernelAdn"
-              }
+              "type": "banner"
             },
             "origbidcpm": 0.5
           }

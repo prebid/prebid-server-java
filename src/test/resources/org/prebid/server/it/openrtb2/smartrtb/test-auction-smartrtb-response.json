@@ -10,10 +10,7 @@
           "crid": "crid",
           "ext": {
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "smartrtb"
-              }
+              "type": "banner"
             },
             "origbidcpm": 0.01
           },

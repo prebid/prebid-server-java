@@ -15,10 +15,7 @@
           "mtype": 2,
           "ext": {
             "prebid": {
-              "type": "video",
-              "meta": {
-                "adaptercode": "escalax"
-              }
+              "type": "video"
             },
             "origbidcpm": 1.25
           }

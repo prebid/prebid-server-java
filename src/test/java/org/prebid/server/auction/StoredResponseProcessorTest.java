@@ -530,8 +530,7 @@ public class StoredResponseProcessorTest extends VertxTest {
         // given
         final BidderResponse bidderResponse = BidderResponse.of(
                 "rubicon",
-                BidderSeatBid.of(singletonList(BidderBid.of(
-                        Bid.builder().id("bid1").build(), BidType.banner, "rubicon", "USD"))),
+                BidderSeatBid.of(singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD"))),
                 100);
         final AuctionParticipation requestAuctionParticipation = AuctionParticipation.builder()
                 .bidder("rubicon")
@@ -567,14 +566,12 @@ public class StoredResponseProcessorTest extends VertxTest {
                                 .impid("storedImp")
                                 .build(),
                         BidType.banner,
-                        "rubicon",
                         "USD"),
                 BidderBid.of(
                         Bid.builder()
                                 .id("bid1")
                                 .build(),
                         BidType.banner,
-                        "rubicon",
                         "USD"));
 
         verifyNoInteractions(appnexusBidRejectionTracker);
@@ -614,7 +611,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // then
         final List<BidderBid> expectedAppnexusBids = singletonList(
-                BidderBid.of(Bid.builder().id("bid2").impid("storedImp").build(), BidType.banner, "appnexus", "USD"));
+                BidderBid.of(Bid.builder().id("bid2").impid("storedImp").build(), BidType.banner, "USD"));
 
         verify(rubiconBidRejectionTracker).restoreFromRejection(givenRubiconBids);
         verify(appnexusBidRejectionTracker).restoreFromRejection(expectedAppnexusBids);
@@ -650,7 +647,6 @@ public class StoredResponseProcessorTest extends VertxTest {
         final List<BidderBid> expectedBids = singletonList(BidderBid.of(
                 Bid.builder().id("bid2").impid("storedImp").build(),
                 BidType.banner,
-                "rubicon",
                 "USD"));
 
         verify(rubiconBidRejectionTracker).restoreFromRejection(expectedBids);
@@ -667,8 +663,7 @@ public class StoredResponseProcessorTest extends VertxTest {
         final BidderResponse bidderResponse = BidderResponse.of(
                 "rubicon",
                 BidderSeatBid.of(
-                        singletonList(BidderBid.of(
-                                Bid.builder().id("bid1").build(), BidType.banner, "rubicon", "EUR"))),
+                        singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "EUR"))),
                 100);
         final AuctionParticipation requestAuctionParticipation = AuctionParticipation.builder()
                 .bidder("rubicon")
@@ -696,12 +691,10 @@ public class StoredResponseProcessorTest extends VertxTest {
                 BidderBid.of(
                         Bid.builder().id("bid2").impid("storedImp").build(),
                         BidType.banner,
-                        "rubicon",
                         "EUR"),
                 BidderBid.of(
                         Bid.builder().id("bid1").build(),
                         BidType.banner,
-                        "rubicon",
                         "EUR"));
 
         verify(rubiconBidRejectionTracker).restoreFromRejection(expectedBids);
@@ -718,8 +711,7 @@ public class StoredResponseProcessorTest extends VertxTest {
         final BidderResponse bidderResponse = BidderResponse.of(
                 "rubicon",
                 BidderSeatBid.of(
-                        singletonList(BidderBid.of(
-                                Bid.builder().id("bid1").build(), BidType.banner, "rubicon", "USD"))),
+                        singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD"))),
                 100);
         final AuctionParticipation requestAuctionParticipation = AuctionParticipation.builder()
                 .bidder("rubicon")
@@ -756,8 +748,8 @@ public class StoredResponseProcessorTest extends VertxTest {
                                 .impid("storedImp")
                                 .ext(mapper.createObjectNode()
                                         .set("prebid", mapper.valueToTree(extBidPrebid))).build(),
-                        BidType.video, "rubicon", "USD"),
-                BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "rubicon", "USD"));
+                        BidType.video, "USD"),
+                BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD"));
 
         verify(rubiconBidRejectionTracker).restoreFromRejection(expectedBids);
         verifyNoInteractions(appnexusBidRejectionTracker);

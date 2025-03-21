@@ -75,7 +75,6 @@ public enum MetricName {
     err,
     networkerr,
     buyeruid_scrubbed,
-    seat,
 
     // bids validation
     warn,

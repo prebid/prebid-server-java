@@ -5,7 +5,7 @@ import com.iab.openrtb.request.BidRequest;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.auction.aliases.BidderAliases;
+import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtAppPrebid;

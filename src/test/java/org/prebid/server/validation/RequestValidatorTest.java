@@ -1184,26 +1184,6 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationMessageWhenAliasNameEqualsToBidderItPointsOnCaseInsensitive() {
-        // given
-        final ExtRequest ext = ExtRequest.of(ExtRequestPrebid.builder()
-                .aliases(singletonMap("RUBICOn", "ruBIcon"))
-                .build());
-        final BidRequest bidRequest = validBidRequestBuilder().ext(ext).build();
-        given(bidderCatalog.isValidName("ruBIcon")).willReturn(true);
-        given(bidderCatalog.isActive("ruBIcon")).willReturn(true);
-
-        // when
-        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("""
-                        request.ext.prebid.aliases.rubicon defines a no-op alias. \
-                        Choose a different alias, or remove this entry""");
-    }
-
-    @Test
     public void validateShouldReturnValidationErrorMessageWhenAliasPointOnNotValidBidderName() {
         // given
         final ExtRequest ext = ExtRequest.of(ExtRequestPrebid.builder()
@@ -1347,6 +1327,48 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
+    public void validateShouldReturnValidationMessageWhenBidderUnknown() {
+        // given
+        final ExtRequestBidAdjustmentFactors givenAdjustments = ExtRequestBidAdjustmentFactors.builder().build();
+        givenAdjustments.addFactor("unknownBidder", BigDecimal.valueOf(1.1F));
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .ext(ExtRequest.of(
+                        ExtRequestPrebid.builder()
+                                .bidadjustmentfactors(givenAdjustments)
+                                .build()))
+                .build();
+
+        // when
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.ext.prebid.bidadjustmentfactors.unknownBidder is not a known bidder or alias");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenMediaBidderUnknown() {
+        // given
+        final ExtRequestBidAdjustmentFactors givenAdjustments = ExtRequestBidAdjustmentFactors.builder()
+                .mediatypes(new EnumMap<>(Collections.singletonMap(ImpMediaType.xNative,
+                        Collections.singletonMap("unknownBidder", BigDecimal.valueOf(1.1)))))
+                .build();
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .ext(ExtRequest.of(
+                        ExtRequestPrebid.builder()
+                                .bidadjustmentfactors(givenAdjustments)
+                                .build()))
+                .build();
+        // when
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly(
+                        "request.ext.prebid.bidadjustmentfactors.native.unknownBidder is not a known bidder or alias");
+    }
+
+    @Test
     public void validateShouldReturnEmptyValidationMessagesWhenBidderIsKnownAndAdjustmentIsValid() {
         // given
         final ExtRequestBidAdjustmentFactors givenAdjustments = ExtRequestBidAdjustmentFactors.builder()
@@ -1389,6 +1411,29 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void validateShouldReturnEmptyValidationMessagesWhenBidderIsKnownBidderConfigAliasAndAdjustmentIsValid() {
+        // given
+        final String rubiconAlias = "rubicon_alias";
+        final ExtRequestBidAdjustmentFactors givenAdjustments = ExtRequestBidAdjustmentFactors.builder().build();
+        givenAdjustments.addFactor(rubiconAlias, BigDecimal.valueOf(1.1));
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .ext(ExtRequest.of(
+                        ExtRequestPrebid.builder()
+                                .aliases(singletonMap(rubiconAlias, "rubicon"))
+                                .bidadjustmentfactors(givenAdjustments)
+                                .build()))
+                .build();
+
+        // when
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
+
+        // then
+        verify(bidderCatalog).isValidName(rubiconAlias);
+
         assertThat(result.getErrors()).isEmpty();
     }
 

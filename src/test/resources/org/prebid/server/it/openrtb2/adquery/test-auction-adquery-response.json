@@ -19,10 +19,7 @@
             "origbidcpm": 4.14,
             "origbidcur": "PLN",
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "adquery"
-              }
+              "type": "banner"
             }
           }
         }

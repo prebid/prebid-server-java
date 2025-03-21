@@ -1,12 +1,10 @@
 package org.prebid.server.functional.model.request.auction
 
-import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.databind.annotation.JsonNaming
 import groovy.transform.ToString
 import org.prebid.server.functional.model.ChannelType
 import org.prebid.server.functional.model.bidder.BidderName
-import org.prebid.server.functional.model.config.AlternateBidderCodes
 
 @JsonNaming(PropertyNamingStrategies.LowerCaseStrategy)
 @ToString(includeNames = true, ignoreNulls = true)
@@ -43,8 +41,6 @@ class Prebid {
     PrebidAnalytics analytics
     StoredAuctionResponse storedAuctionResponse
     PaaFormat paaFormat
-    @JsonProperty("alternatebiddercodes")
-    AlternateBidderCodes alternateBidderCodes
 
     static class Channel {
 

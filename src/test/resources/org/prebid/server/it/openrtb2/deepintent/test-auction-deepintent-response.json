@@ -13,10 +13,7 @@
           "crid": "24080",
           "ext": {
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "deepintent"
-              }
+              "type": "banner"
             },
             "origbidcpm": 0.01
           }

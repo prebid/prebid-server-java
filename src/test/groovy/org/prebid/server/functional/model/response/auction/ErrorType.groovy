@@ -14,9 +14,7 @@ enum ErrorType {
     ALIAS("alias"),
     TARGETING("targeting"),
     IX("ix"),
-    OPENX("openx"),
-    AMX("amx"),
-    AMX_UPPER_CASE("AMX"),
+    OPENX("openx")
 
     @JsonValue
     final String value

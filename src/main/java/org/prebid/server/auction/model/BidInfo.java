@@ -21,8 +21,6 @@ public class BidInfo {
 
     String bidder;
 
-    String seat;
-
     BidType bidType;
 
     CacheInfo cacheInfo;

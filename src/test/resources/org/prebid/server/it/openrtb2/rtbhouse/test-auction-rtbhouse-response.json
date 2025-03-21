@@ -16,10 +16,7 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "rtbhouse"
-              }
+              "type": "banner"
             },
             "origbidcpm": 0.5
           }

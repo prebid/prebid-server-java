@@ -382,10 +382,6 @@ public class Metrics extends UpdatableMetrics {
         forAccount(accountId).response().validation().secure().incCounter(type);
     }
 
-    public void updateSeatValidationMetrics(String bidder) {
-        forAdapter(bidder).response().validation().incCounter(MetricName.seat);
-    }
-
     public void updateUserSyncOptoutMetric() {
         userSync().incCounter(MetricName.opt_outs);
     }

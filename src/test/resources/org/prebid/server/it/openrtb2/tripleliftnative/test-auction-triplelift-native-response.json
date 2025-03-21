@@ -20,10 +20,7 @@
           "w": 300,
           "ext": {
             "prebid": {
-              "type": "native",
-              "meta": {
-                "adaptercode": "triplelift_native"
-              }
+              "type": "native"
             },
             "origbidcpm": 0.5,
             "origbidcur": "USD"

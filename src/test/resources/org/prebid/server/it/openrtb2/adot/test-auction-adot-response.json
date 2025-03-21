@@ -18,10 +18,7 @@
             },
             "origbidcpm": 1.16346,
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "adot"
-              }
+              "type": "banner"
             }
           }
         }

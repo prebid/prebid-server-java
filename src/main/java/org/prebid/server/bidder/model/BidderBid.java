@@ -19,8 +19,6 @@ public class BidderBid {
      */
     Bid bid;
 
-    String seat;
-
     /**
      * Will become response.seatbid[i].bid.ext.prebid.type in the final OpenRTB response.
      */
@@ -52,15 +50,6 @@ public class BidderBid {
                 .bid(bid)
                 .type(bidType)
                 .bidCurrency(bidCurrency)
-                .build();
-    }
-
-    public static BidderBid of(Bid bid, BidType bidType, String seat, String bidCurrency) {
-        return BidderBid.builder()
-                .bid(bid)
-                .type(bidType)
-                .bidCurrency(bidCurrency)
-                .seat(seat)
                 .build();
     }
 }

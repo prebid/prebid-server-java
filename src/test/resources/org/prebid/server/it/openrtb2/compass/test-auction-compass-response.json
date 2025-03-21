@@ -14,10 +14,7 @@
           "h": 600,
           "ext": {
             "prebid": {
-              "type": "video",
-              "meta": {
-                "adaptercode": "compass"
-              }
+              "type": "video"
             },
             "origbidcpm": 1.25
           }

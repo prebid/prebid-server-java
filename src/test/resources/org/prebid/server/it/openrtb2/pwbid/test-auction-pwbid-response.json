@@ -14,10 +14,7 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "pwbid"
-              }
+              "type": "banner"
             },
             "origbidcpm": 8.43
           }

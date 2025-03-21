@@ -13,10 +13,7 @@
           "crid": "crid",
           "ext": {
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "onetag"
-              }
+              "type": "banner"
             },
             "origbidcpm": 0.01
           }

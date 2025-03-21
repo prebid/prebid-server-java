@@ -14,10 +14,7 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "openx"
-              }
+              "type": "banner"
             },
             "origbidcpm": 5.78,
             "origbidcur": "USD"

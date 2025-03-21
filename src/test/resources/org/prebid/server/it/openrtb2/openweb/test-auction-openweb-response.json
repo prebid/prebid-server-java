@@ -16,10 +16,7 @@
           "ext": {
             "origbidcpm": 5.78,
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "openweb"
-              }
+              "type": "banner"
             }
           }
         }

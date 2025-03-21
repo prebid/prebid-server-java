@@ -554,7 +554,6 @@ public class PubmaticBidder implements Bidder<BidRequest> {
                 .type(bidType)
                 .bidCurrency(currency)
                 .dealPriority(getDealPriority(pubmaticBidExt))
-                .seat(pubmaticBidExt == null ? null : pubmaticBidExt.getMarketplace())
                 .build();
     }
 

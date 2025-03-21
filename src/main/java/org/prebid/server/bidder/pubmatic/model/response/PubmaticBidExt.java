@@ -17,6 +17,4 @@ public class PubmaticBidExt {
 
     @JsonProperty("prebiddealpriority")
     Integer prebidDealPriority;
-
-    String marketplace;
 }

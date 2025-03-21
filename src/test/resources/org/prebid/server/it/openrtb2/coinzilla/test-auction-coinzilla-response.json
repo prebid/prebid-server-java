@@ -16,10 +16,7 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "coinzilla"
-              }
+              "type": "banner"
             },
             "origbidcpm": 6.66
           }

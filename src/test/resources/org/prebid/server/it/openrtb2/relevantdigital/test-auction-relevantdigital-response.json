@@ -15,10 +15,7 @@
           "mtype": 2,
           "ext": {
             "prebid": {
-              "type": "video",
-              "meta": {
-                "adaptercode": "relevantdigital"
-              }
+              "type": "video"
             },
             "origbidcpm": 5.78
           }

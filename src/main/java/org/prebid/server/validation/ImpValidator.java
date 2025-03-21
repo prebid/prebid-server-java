@@ -28,7 +28,7 @@ import com.iab.openrtb.request.ntv.Protocol;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.prebid.server.auction.aliases.BidderAliases;
+import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
@@ -361,11 +361,8 @@ public class ImpValidator {
         }
     }
 
-    private void validateImpExt(ObjectNode ext,
-                                Map<String, String> aliases,
-                                int impIndex,
+    private void validateImpExt(ObjectNode ext, Map<String, String> aliases, int impIndex,
                                 List<String> warnings) throws ValidationException {
-
         validateImpExtPrebid(ext != null ? ext.get(PREBID_EXT) : null, aliases, impIndex, warnings);
     }
 

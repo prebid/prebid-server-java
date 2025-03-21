@@ -16,10 +16,7 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "zeta_global_ssp"
-              }
+              "type": "banner"
             },
             "origbidcpm": 3.33
           }

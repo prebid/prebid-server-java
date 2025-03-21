@@ -13,9 +13,6 @@
         "ext": {
           "prebid": {
             "type": "video",
-            "meta": {
-              "adaptercode": "generic"
-            },
             "events": {
               "win": "http://localhost:8080/event?t=win&b=21521324&a=5001&aid=tid&ts=1000&bidder=generic&f=i&int=",
               "imp": "http://localhost:8080/event?t=imp&b=21521324&a=5001&aid=tid&ts=1000&bidder=generic&f=i&int="
@@ -55,9 +52,6 @@
         "ext": {
           "prebid": {
             "type": "video",
-            "meta": {
-              "adaptercode": "genericAlias"
-            },
             "events": {
               "win": "http://localhost:8080/event?t=win&b=7706636740145184841&a=5001&aid=tid&ts=1000&bidder=genericAlias&f=i&int=",
               "imp": "http://localhost:8080/event?t=imp&b=7706636740145184841&a=5001&aid=tid&ts=1000&bidder=genericAlias&f=i&int="
@@ -91,9 +85,6 @@
         "ext": {
           "prebid": {
             "type": "video",
-            "meta": {
-              "adaptercode": "generic"
-            },
             "events": {
               "win": "http://localhost:8080/event?t=win&b=880290288&a=5001&aid=tid&ts=1000&bidder=generic&f=i&int=",
               "imp": "http://localhost:8080/event?t=imp&b=880290288&a=5001&aid=tid&ts=1000&bidder=generic&f=i&int="
@@ -133,9 +124,6 @@
         "ext": {
           "prebid": {
             "type": "video",
-            "meta": {
-              "adaptercode": "genericAlias"
-            },
             "events": {
               "win": "http://localhost:8080/event?t=win&b=222214214214&a=5001&aid=tid&ts=1000&bidder=genericAlias&f=i&int=",
               "imp": "http://localhost:8080/event?t=imp&b=222214214214&a=5001&aid=tid&ts=1000&bidder=genericAlias&f=i&int="

@@ -19,10 +19,7 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "gamma"
-              }
+              "type": "banner"
             },
             "origbidcpm": 0.5,
             "origbidcur": "USD"

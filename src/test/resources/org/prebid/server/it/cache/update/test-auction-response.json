@@ -15,9 +15,6 @@
           "ext": {
             "prebid": {
               "type": "banner",
-              "meta": {
-                "adaptercode": "generic"
-              },
               "targeting": {
                 "hb_pb": "4.20",
                 "hb_pb_generic": "4.20",
@@ -48,9 +45,6 @@
           "ext": {
             "prebid": {
               "type": "video",
-              "meta": {
-                "adaptercode": "genericAlias"
-              },
               "targeting": {
                 "hb_pb": "3.00",
                 "hb_pb_genericAlias": "3.00",

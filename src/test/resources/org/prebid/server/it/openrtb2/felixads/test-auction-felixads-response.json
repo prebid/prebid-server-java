@@ -18,10 +18,7 @@
             "mediaType": "video",
             "origbidcpm": 3.33,
             "prebid": {
-              "type": "video",
-              "meta": {
-                "adaptercode": "felixads"
-              }
+              "type": "video"
             }
           }
         }

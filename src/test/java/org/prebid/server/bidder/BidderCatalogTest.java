@@ -395,26 +395,4 @@ public class BidderCatalogTest {
         // when and then
         assertThat(target.bidderByName("unknown_bidder")).isNull();
     }
-
-    @Test
-    public void configuredNameShouldReturnOriginalBidderNameForKnownBidderIgnoringCase() {
-        // given
-        final BidderDeps bidderDeps = BidderDeps.of(singletonList(BidderInstanceDeps.builder()
-                .name("BIDder")
-                .deprecatedNames(emptyList())
-                .build()));
-        target = new BidderCatalog(singletonList(bidderDeps));
-
-        // when and then
-        assertThat(target.configuredName("bidDER")).isEqualTo("BIDder");
-    }
-
-    @Test
-    public void configuredNameShouldReturnNullForUnknownBidder() {
-        // given
-        target = new BidderCatalog(emptyList());
-
-        // when and then
-        assertThat(target.configuredName("unknown_bidder")).isNull();
-    }
 }

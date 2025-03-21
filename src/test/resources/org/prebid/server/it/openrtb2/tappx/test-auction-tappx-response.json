@@ -22,10 +22,7 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "tappx"
-              }
+              "type": "banner"
             },
             "origbidcpm": 0.5
           }
