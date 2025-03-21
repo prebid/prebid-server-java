@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Ogury Adapter Params",
+  "description": "A schema which validates params accepted by the Ogury adapter",
+  "type": "object",
+  "properties": {
+    "assetKey": {
+      "type": [
+        "string"
+      ],
+      "description": "The asset key provided by Ogury"
+    },
+    "adUnitId": {
+      "type": [
+        "string"
+      ],
+      "description": "Ad unit id configured with Ogury"
+    }
+  }
+}

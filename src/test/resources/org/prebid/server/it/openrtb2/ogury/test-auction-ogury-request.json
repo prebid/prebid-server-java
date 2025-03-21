@@ -1,0 +1,29 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "bidfloorcur" : "USD",
+      "banner": {
+        "w": 300,
+        "h": 250
+      },
+      "ext": {
+        "prebid": {
+          "bidder": {
+            "ogury": {
+              "adUnitId": "1",
+              "assetKey": "key"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "tmax": 5000,
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}
