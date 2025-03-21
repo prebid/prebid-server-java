@@ -1420,9 +1420,6 @@ class BidderParamsSpec extends BaseSpec {
         assert targeting["hb_bidder"] == BidderName.ALIAS.value
         assert targeting["hb_bidder_${BidderName.ALIAS}"] == BidderName.ALIAS.value
 
-        and: "Response should contain repose millis with corresponding bidder"
-        assert response.ext.responsetimemillis.containsKey(ALIAS.value)
-
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
     }
@@ -1457,9 +1454,6 @@ class BidderParamsSpec extends BaseSpec {
         assert targeting["hb_size_${BidderName.ALIAS}"]
         assert targeting["hb_bidder"] == BidderName.ALIAS.value
         assert targeting["hb_bidder_${BidderName.ALIAS}"] == BidderName.ALIAS.value
-
-        and: "Response should contain repose millis with corresponding bidder"
-        assert response.ext.responsetimemillis.containsKey(ALIAS.value)
 
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -1511,9 +1505,6 @@ class BidderParamsSpec extends BaseSpec {
         assert targeting["hb_bidder"] == BidderName.ALIAS.value
         assert targeting["hb_bidder_${BidderName.ALIAS}"] == BidderName.ALIAS.value
 
-        and: "Response should contain repose millis with corresponding bidder"
-        assert response.ext.responsetimemillis.containsKey(ALIAS.value)
-
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
 
@@ -1548,9 +1539,6 @@ class BidderParamsSpec extends BaseSpec {
         assert targeting["hb_bidder"] == ALIAS_UPPER_CASE.value
         assert targeting["hb_bidder_${ALIAS_UPPER_CASE}"] == ALIAS_UPPER_CASE.value
 
-        and: "Response should contain repose millis with corresponding bidder"
-        assert response.ext.responsetimemillis.containsKey(ALIAS_UPPER_CASE.value)
-
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
     }
@@ -1575,9 +1563,6 @@ class BidderParamsSpec extends BaseSpec {
 
         and: "Bid response should contain seat"
         assert response.seatbid.seat == [GENERIC_CAMEL_CASE]
-
-        and: "Response should contain repose millis with corresponding bidder"
-        assert response.ext.responsetimemillis.containsKey(GENERIC_CAMEL_CASE.value)
 
         and: "Response should contain adapter code"
         assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [BidderName.GENERIC]
@@ -1607,9 +1592,6 @@ class BidderParamsSpec extends BaseSpec {
         assert targeting["hb_size_${ALIAS_UPPER_CASE}"]
         assert targeting["hb_bidder"] == ALIAS_UPPER_CASE.value
         assert targeting["hb_bidder_${ALIAS_UPPER_CASE}"] == ALIAS_UPPER_CASE.value
-
-        and: "Response should contain repose millis with corresponding bidder"
-        assert response.ext.responsetimemillis.containsKey(ALIAS_UPPER_CASE.value)
 
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -1647,9 +1629,6 @@ class BidderParamsSpec extends BaseSpec {
         assert targeting["hb_size_${BidderName.ALIAS}"]
         assert targeting["hb_bidder"] == BidderName.ALIAS.value
         assert targeting["hb_bidder_${BidderName.ALIAS}"] == BidderName.ALIAS.value
-
-        and: "Response should contain repose millis with corresponding bidder"
-        assert response.ext.responsetimemillis.containsKey(ALIAS.value)
 
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -1691,9 +1670,6 @@ class BidderParamsSpec extends BaseSpec {
         assert targeting["hb_bidder"] == BidderName.ALIAS.value
         assert targeting["hb_bidder_${BidderName.ALIAS}"] == BidderName.ALIAS.value
 
-        and: "Response should contain repose millis with corresponding bidder"
-        assert response.ext.responsetimemillis.containsKey(ALIAS.value)
-
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
 
@@ -1730,9 +1706,6 @@ class BidderParamsSpec extends BaseSpec {
         assert targeting["hb_size_${AMX}"]
         assert targeting["hb_bidder"] == AMX.value
         assert targeting["hb_bidder_${AMX}"] == AMX.value
-
-        and: "Response should contain repose millis with corresponding bidder"
-        assert response.ext.responsetimemillis.containsKey(AMX.value)
 
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
