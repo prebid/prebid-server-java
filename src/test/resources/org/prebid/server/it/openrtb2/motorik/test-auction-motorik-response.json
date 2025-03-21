@@ -14,10 +14,7 @@
           "h": 600,
           "ext": {
             "prebid": {
-              "type": "video",
-              "meta": {
-                "adaptercode": "motorik"
-              }
+              "type": "video"
             },
             "origbidcpm": 1.25
           }

@@ -173,11 +173,8 @@ public class AmxBidder implements Bidder<BidRequest> {
             errors.add(BidderError.badInput(e.getMessage()));
             return null;
         }
-        return BidderBid.of(
-                resolveBid(bid, amxBidExt.getDemandSource()),
-                getBidType(amxBidExt),
-                amxBidExt.getBidderCode(),
-                cur);
+        // TODO: After adding support to change seat data, add bid.ext bidderCode processing
+        return BidderBid.of(resolveBid(bid, amxBidExt.getDemandSource()), getBidType(amxBidExt), cur);
     }
 
     private AmxBidExt parseBidderExt(ObjectNode ext) {

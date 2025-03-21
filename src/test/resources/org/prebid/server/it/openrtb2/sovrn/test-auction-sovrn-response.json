@@ -14,10 +14,7 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "video",
-              "meta": {
-                "adaptercode": "sovrn"
-              }
+              "type": "video"
             },
             "origbidcpm": 5.78
           }

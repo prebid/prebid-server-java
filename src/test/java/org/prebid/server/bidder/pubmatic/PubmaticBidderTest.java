@@ -1138,7 +1138,7 @@ public class PubmaticBidderTest extends VertxTest {
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123")
                                 .ext(mapper.valueToTree(
-                                        PubmaticBidExt.of(null, VideoCreativeInfo.of(1), null, null))))));
+                                        PubmaticBidExt.of(null, VideoCreativeInfo.of(1), null))))));
 
         // when
         final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
@@ -1161,7 +1161,7 @@ public class PubmaticBidderTest extends VertxTest {
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123")
                                 .ext(mapper.valueToTree(
-                                        PubmaticBidExt.of(null, VideoCreativeInfo.of(null), null, null))))));
+                                        PubmaticBidExt.of(null, VideoCreativeInfo.of(null), null))))));
 
         // when
         final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
@@ -1182,7 +1182,7 @@ public class PubmaticBidderTest extends VertxTest {
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123")
                                 .ext(mapper.valueToTree(
-                                        PubmaticBidExt.of(null, null, null, null))))));
+                                        PubmaticBidExt.of(null, null, null))))));
 
         // when
         final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
@@ -1200,7 +1200,7 @@ public class PubmaticBidderTest extends VertxTest {
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123")
                                 .ext(mapper.valueToTree(
-                                        PubmaticBidExt.of(null, null, 12, null))))));
+                                        PubmaticBidExt.of(null, null, 12))))));
 
         // when
         final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
@@ -1210,25 +1210,6 @@ public class PubmaticBidderTest extends VertxTest {
         assertThat(result.getBids())
                 .extracting(BidderBid::getDealPriority)
                 .containsExactly(12);
-    }
-
-    @Test
-    public void makeBidderResponseShouldFillSeat() throws JsonProcessingException {
-        // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123")
-                                .ext(mapper.valueToTree(
-                                        PubmaticBidExt.of(null, null, 12, "marketplace"))))));
-
-        // when
-        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getBids())
-                .extracting(BidderBid::getSeat)
-                .containsExactly("marketplace");
     }
 
     @Test
@@ -1243,7 +1224,7 @@ public class PubmaticBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123")
                                 .adm(admNode.toString())
                                 .ext(mapper.valueToTree(
-                                        PubmaticBidExt.of(2, null, 12, null))))));
+                                        PubmaticBidExt.of(2, null, 12))))));
 
         // when
         final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);

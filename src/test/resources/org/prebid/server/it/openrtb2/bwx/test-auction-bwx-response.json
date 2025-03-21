@@ -14,10 +14,7 @@
           "crid": "crid",
           "ext": {
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "bwx"
-              }
+              "type": "banner"
             },
             "origbidcpm": 0.01
           }

@@ -13,10 +13,7 @@
           "crid": "crid6",
           "ext": {
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "bcmint"
-              }
+              "type": "banner"
             },
             "origbidcpm": 4.7
           }

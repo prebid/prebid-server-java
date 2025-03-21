@@ -27,9 +27,6 @@ public class Account {
 
     AccountSettings settings;
 
-    @JsonAlias("alternate-bidder-codes")
-    AccountAlternateBidderCodes alternateBidderCodes;
-
     public static Account empty(String id) {
         return Account.builder().id(id).build();
     }

@@ -18,10 +18,7 @@
           "mtype": 1,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "adkernel"
-              }
+              "type": "banner"
             },
             "origbidcpm": 2.25
           }

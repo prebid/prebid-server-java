@@ -16,10 +16,7 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "lockerdome"
-              }
+              "type": "banner"
             },
             "origbidcpm": 7.35
           }

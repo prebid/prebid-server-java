@@ -14,10 +14,7 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "adman"
-              }
+              "type": "banner"
             },
             "origbidcpm": 1.25
           }

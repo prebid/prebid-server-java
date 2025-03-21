@@ -98,7 +98,6 @@ public class BidAdjustmentsProcessor {
             final Price priceWithFactorsApplied = applyBidAdjustmentFactors(
                     originalPrice,
                     bidder,
-                    bidderBid.getSeat(),
                     bidRequest,
                     mediaType);
 
@@ -155,31 +154,26 @@ public class BidAdjustmentsProcessor {
 
     private Price applyBidAdjustmentFactors(Price bidPrice,
                                             String bidder,
-                                            String seat,
                                             BidRequest bidRequest,
                                             ImpMediaType mediaType) {
 
         final String bidCurrency = bidPrice.getCurrency();
         final BigDecimal price = bidPrice.getValue();
 
-        final BigDecimal priceAdjustmentFactor = bidAdjustmentForBidder(bidder, seat, bidRequest, mediaType);
+        final BigDecimal priceAdjustmentFactor = bidAdjustmentForBidder(bidder, bidRequest, mediaType);
         final BigDecimal adjustedPrice = adjustPrice(priceAdjustmentFactor, price);
 
         return Price.of(bidCurrency, adjustedPrice.compareTo(price) != 0 ? adjustedPrice : price);
     }
 
-    private BigDecimal bidAdjustmentForBidder(String bidder,
-                                              String seat,
-                                              BidRequest bidRequest,
-                                              ImpMediaType mediaType) {
-
+    private BigDecimal bidAdjustmentForBidder(String bidder, BidRequest bidRequest, ImpMediaType mediaType) {
         final ExtRequestBidAdjustmentFactors adjustmentFactors = extBidAdjustmentFactors(bidRequest);
         if (adjustmentFactors == null) {
             return null;
         }
 
         final ImpMediaType targetMediaType = mediaType == ImpMediaType.video_instream ? ImpMediaType.video : mediaType;
-        return bidAdjustmentFactorResolver.resolve(targetMediaType, adjustmentFactors, bidder, seat);
+        return bidAdjustmentFactorResolver.resolve(targetMediaType, adjustmentFactors, bidder);
     }
 
     private static ExtRequestBidAdjustmentFactors extBidAdjustmentFactors(BidRequest bidRequest) {

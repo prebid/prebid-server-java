@@ -14,10 +14,7 @@
           "ext": {
             "origbidcpm": 3.33,
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "adtrgtme"
-              }
+              "type": "banner"
             }
           }
         }

@@ -16,10 +16,7 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "e_volution"
-              }
+              "type": "banner"
             },
             "mediaType": "banner",
             "origbidcpm": 3.33

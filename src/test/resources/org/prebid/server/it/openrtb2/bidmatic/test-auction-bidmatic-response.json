@@ -15,10 +15,7 @@
           "mtype": 1,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "bidmatic"
-              }
+              "type": "banner"
             },
             "origbidcpm": 8.43
           }

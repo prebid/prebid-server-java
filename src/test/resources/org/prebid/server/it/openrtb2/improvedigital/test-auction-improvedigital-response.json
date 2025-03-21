@@ -15,10 +15,7 @@
           "mtype": 1,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "improvedigital"
-              }
+              "type": "banner"
             },
             "origbidcpm": 1.25
           }

@@ -13,10 +13,7 @@
           "crid": "crid",
           "ext": {
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "nobid"
-              }
+              "type": "banner"
             },
             "origbidcpm": 0.01
           }

@@ -16,10 +16,7 @@
           "ext": {
             "creative_type": 1,
             "prebid": {
-              "type": "video",
-              "meta": {
-                "adaptercode": "sovrnXsp"
-              }
+              "type": "video"
             },
             "origbidcpm": 5.78
           }

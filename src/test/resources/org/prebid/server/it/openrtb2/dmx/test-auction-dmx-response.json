@@ -13,10 +13,7 @@
           "ext": {
             "format": "BANNER",
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "dmx"
-              }
+              "type": "banner"
             },
             "origbidcpm": 0.01
           }

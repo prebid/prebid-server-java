@@ -13,10 +13,7 @@
           "crid": "test-creative-id-1",
           "ext": {
             "prebid": {
-              "type": "native",
-              "meta": {
-                "adaptercode": "definemedia"
-              }
+              "type": "native"
             },
             "origbidcpm": 10,
             "origbidcur": "EUR"

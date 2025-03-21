@@ -16,10 +16,7 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "operaads"
-              }
+              "type": "banner"
             },
             "origbidcpm": 3.33,
             "origbidcur": "USD"

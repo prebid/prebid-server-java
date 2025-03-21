@@ -11,7 +11,6 @@ enum BidderName {
     BOGUS("bogus"),
     ALIAS("alias"),
     ALIAS_CAMEL_CASE("AlIaS"),
-    ALIAS_UPPER_CASE("ALIAS"),
     GENERIC_CAMEL_CASE("GeNerIc"),
     GENERIC("generic"),
     GENER_X("gener_x"),
@@ -26,10 +25,7 @@ enum BidderName {
     ADKERNEL("adkernel"),
     IX("ix"),
     GRID("grid"),
-    MEDIANET("medianet"),
-    AMX("amx"),
-    AMX_CAMEL_CASE("AmX"),
-    AMX_UPPER_CASE("AMX"),
+    MEDIANET("medianet")
 
     @JsonValue
     final String value

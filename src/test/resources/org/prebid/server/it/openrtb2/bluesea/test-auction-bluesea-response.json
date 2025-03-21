@@ -15,10 +15,7 @@
           "ext": {
             "mediatype":"banner",
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "bluesea"
-              }
+              "type": "banner"
             },
             "origbidcpm": 1.25
           }

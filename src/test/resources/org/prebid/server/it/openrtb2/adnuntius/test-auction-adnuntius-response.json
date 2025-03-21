@@ -20,10 +20,7 @@
           "h": 90,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "adnuntius"
-              }
+              "type": "banner"
             },
             "origbidcpm": 42420.00,
             "origbidcur": "USD"

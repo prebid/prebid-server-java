@@ -14,10 +14,7 @@
           "h": 600,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "epsilon"
-              }
+              "type": "banner"
             },
             "origbidcpm": 6.0
           }

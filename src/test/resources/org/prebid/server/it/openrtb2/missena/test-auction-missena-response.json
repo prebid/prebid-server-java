@@ -14,10 +14,7 @@
             "origbidcpm": 10.2,
             "origbidcur": "USD",
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "missena"
-              }
+              "type": "banner"
             }
           }
         }

@@ -14,10 +14,7 @@
           "crid": "7857",
           "ext": {
             "prebid": {
-              "type": "video",
-              "meta": {
-                "adaptercode": "freewheelssp"
-              }
+              "type": "video"
             },
             "origbidcpm": 1
           }

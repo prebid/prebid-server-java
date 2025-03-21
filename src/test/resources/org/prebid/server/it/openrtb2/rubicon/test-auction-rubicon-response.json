@@ -22,8 +22,7 @@
                   "id1",
                   "id2"
                 ],
-                "networkId": 123,
-                "adaptercode": "rubicon"
+                "networkId": 123
               },
               "type": "video"
             },

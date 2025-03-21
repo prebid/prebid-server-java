@@ -12,10 +12,7 @@
           "crid": "24080",
           "ext": {
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "generic"
-              }
+              "type": "banner"
             },
             "origbidcpm": 13,
             "origbidcur":"GBP"

@@ -14,10 +14,7 @@
           "mtype": 1,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "mediago"
-              }
+              "type": "banner"
             },
             "origbidcpm": 0.01
           }

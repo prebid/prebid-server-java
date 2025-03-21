@@ -14,10 +14,7 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "pulsepoint"
-              }
+              "type": "banner"
             },
             "origbidcpm": 4.75
           }

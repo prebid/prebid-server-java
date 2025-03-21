@@ -204,26 +204,6 @@ public class AmxBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBidWithSeatSetWhenBidderCodeIsPresentInBidExt()
-            throws JsonProcessingException {
-
-        // given
-        final ObjectNode bidExt = mapper.createObjectNode();
-        bidExt.put("bc", "seat");
-        final BidderCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder().build(),
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt))));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().ext(bidExt).build(), banner, "seat", "USD"));
-    }
-
-    @Test
     public void makeBidsShouldReturnVideoBidIfStartDelayIsPresentInBidExt() throws JsonProcessingException {
         // given
         final ObjectNode bidExt = mapper.createObjectNode();

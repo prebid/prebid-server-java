@@ -13,10 +13,7 @@
           "ext": {
             "origbidcpm": 3.33,
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "roulax"
-              }
+              "type": "banner"
             }
           }
         }

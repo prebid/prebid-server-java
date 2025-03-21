@@ -16,10 +16,7 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "video",
-              "meta": {
-                "adaptercode": "vungle"
-              }
+              "type": "video"
             },
             "origbidcpm": 3.33
           }

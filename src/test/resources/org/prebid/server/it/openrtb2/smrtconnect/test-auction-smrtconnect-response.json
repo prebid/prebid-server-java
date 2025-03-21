@@ -17,10 +17,7 @@
           "mtype": 1,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "smrtconnect"
-              }
+              "type": "banner"
             },
             "origbidcpm": 0.5
           }

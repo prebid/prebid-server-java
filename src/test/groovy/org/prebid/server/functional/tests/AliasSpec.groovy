@@ -110,7 +110,7 @@ class AliasSpec extends BaseSpec {
         then: "Request should fail with error"
         def exception = thrown(PrebidServerException)
         assert exception.responseBody.contains("Invalid request format: request.ext.prebid.aliasgvlids. " +
-                "vendorId ${validId} refers to unknown bidder alias: ${bidderName.toLowerCase()}")
+                "vendorId ${validId} refers to unknown bidder alias: ${bidderName}")
     }
 
     def "PBS should return an error when GVL ID alias value is lower that one"() {
@@ -126,7 +126,7 @@ class AliasSpec extends BaseSpec {
         then: "Request should fail with error"
         def exception = thrown(PrebidServerException)
         assert exception.responseBody.contains("Invalid request format: request.ext.prebid.aliasgvlids. " +
-                "Invalid vendorId ${invalidId} for alias: ${bidderName.toLowerCase()}. Choose a different vendorId, or remove this entry.")
+                "Invalid vendorId ${invalidId} for alias: ${bidderName}. Choose a different vendorId, or remove this entry.")
 
         where:
         invalidId << [PBSUtils.randomNegativeNumber, 0]
@@ -145,7 +145,7 @@ class AliasSpec extends BaseSpec {
         then: "Request should fail with an error"
         def exception = thrown(PrebidServerException)
         assert exception.statusCode == BAD_REQUEST.code()
-        assert exception.responseBody == "Invalid request format: request.ext.prebid.aliases.${randomString.toLowerCase()} " +
+        assert exception.responseBody == "Invalid request format: request.ext.prebid.aliases.$randomString " +
                 "refers to unknown bidder: $BOGUS.value"
     }
 

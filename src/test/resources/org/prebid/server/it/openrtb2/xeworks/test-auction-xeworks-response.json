@@ -14,10 +14,7 @@
           "crid": "test-creative-id-1",
           "ext": {
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "xeworks"
-              }
+              "type": "banner"
             },
             "origbidcpm": 10,
             "origbidcur": "EUR"

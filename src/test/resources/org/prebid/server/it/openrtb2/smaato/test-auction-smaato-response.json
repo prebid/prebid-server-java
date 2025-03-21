@@ -14,10 +14,7 @@
           "exp": 300,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "smaato"
-              }
+              "type": "banner"
             },
             "origbidcpm": 0.01,
             "format": "BANNER",

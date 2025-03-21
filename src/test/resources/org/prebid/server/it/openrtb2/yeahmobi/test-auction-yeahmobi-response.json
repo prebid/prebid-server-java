@@ -13,10 +13,7 @@
           "crid": "1",
           "ext": {
             "prebid": {
-              "type": "native",
-              "meta": {
-                "adaptercode": "yeahmobi"
-              }
+              "type": "native"
             },
             "origbidcpm": 1.2
           }

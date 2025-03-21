@@ -13,10 +13,7 @@
           "crid": "crid",
           "ext": {
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "interactiveoffers"
-              }
+              "type": "banner"
             },
             "origbidcpm": 10,
             "origbidcur": "USD"
