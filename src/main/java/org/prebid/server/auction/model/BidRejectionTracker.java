@@ -120,15 +120,18 @@ public class BidRejectionTracker {
         involvedImpIds.forEach(impId -> rejectImp(impId, reason));
     }
 
-    public Map<String, BidRejectionReason> getRejectedImps() {
-        final Map<String, BidRejectionReason> rejectedImpIds = new HashMap<>();
+    public Map<String, Pair<String, BidRejectionReason>> getRejectedImps() {
+        final Map<String, Pair<String, BidRejectionReason>> rejectedImpIds = new HashMap<>();
         for (String impId : involvedImpIds) {
             final Set<String> succeededBids = succeededBidsIds.getOrDefault(impId, Collections.emptySet());
             if (succeededBids.isEmpty()) {
                 if (rejectedBids.containsKey(impId)) {
-                    rejectedImpIds.put(impId, rejectedBids.get(impId).getFirst().getRight());
+                    final Pair<BidderBid, BidRejectionReason> rejected = rejectedBids.get(impId).getFirst();
+                    final String seat = Optional.ofNullable(rejected.getLeft()).map(BidderBid::getSeat).orElse(bidder);
+                    final BidRejectionReason bidRejectionReason = rejected.getRight();
+                    rejectedImpIds.put(impId, Pair.of(seat, bidRejectionReason));
                 } else {
-                    rejectedImpIds.put(impId, BidRejectionReason.NO_BID);
+                    rejectedImpIds.put(impId, Pair.of(bidder, BidRejectionReason.NO_BID));
                 }
             }
         }

@@ -15,7 +15,10 @@
           "nurl": "https://example.com/nurl",
           "ext": {
             "prebid": {
-              "type": "video"
+              "type": "video",
+              "meta": {
+                "adaptercode": "alkimi"
+              }
             },
             "origbidcpm": 1
           }

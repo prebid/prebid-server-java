@@ -14,7 +14,10 @@
           "crid": "crid001",
           "ext": {
             "prebid": {
-              "type": "banner"
+              "type": "banner",
+              "meta": {
+                "adaptercode": "gumgum"
+              }
             },
             "origbidcpm": 1.25
           }

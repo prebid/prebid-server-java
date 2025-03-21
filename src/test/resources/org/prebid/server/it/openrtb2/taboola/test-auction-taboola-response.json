@@ -15,7 +15,10 @@
           "ext": {
             "origbidcpm": 8.43,
             "prebid": {
-              "type": "banner"
+              "type": "banner",
+              "meta": {
+                "adaptercode": "taboola"
+              }
             }
           }
         },
@@ -31,7 +34,10 @@
           "ext": {
             "origbidcpm": 8.43,
             "prebid": {
-              "type": "native"
+              "type": "native",
+              "meta": {
+                "adaptercode": "taboola"
+              }
             }
           }
         }
