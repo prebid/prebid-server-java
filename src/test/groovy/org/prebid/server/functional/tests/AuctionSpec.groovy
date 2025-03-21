@@ -181,9 +181,11 @@ class AuctionSpec extends BaseSpec {
 
     def "PBS should populate buyeruid from uids cookie when buyeruids with appropriate bidder but without value present in request"() {
         given: "PBS config"
-        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG
-                + ["adapters.${GENERIC.value}.usersync.${REDIRECT.value}.url"         : USER_SYNC_URL,
-                   "adapters.${GENERIC.value}.usersync.${REDIRECT.value}.support-cors": "false"])
+        def pbsConfig = PBS_CONFIG +
+                ["adapters.${GENERIC.value}.usersync.${REDIRECT.value}.url"         : USER_SYNC_URL,
+                 "adapters.${GENERIC.value}.usersync.${REDIRECT.value}.support-cors": "false"]
+        def prebidServerService = pbsServiceFactory.getService(pbsConfig)
+
 
         and: "Bid request with buyeruids"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -200,13 +202,17 @@ class AuctionSpec extends BaseSpec {
         then: "Bidder request should contain buyeruid from the uids cookie"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest?.user?.buyeruid == uidsCookie.tempUIDs[GENERIC].uid
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS shouldn't populate buyeruid from uids cookie when buyeruids with appropriate bidder but without value present in request"() {
         given: "PBS config"
-        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG
-                + ["adapters.${GENERIC.value}.usersync.${REDIRECT.value}.url"         : USER_SYNC_URL,
-                   "adapters.${GENERIC.value}.usersync.${REDIRECT.value}.support-cors": "false"])
+        def pbsConfig = PBS_CONFIG +
+                ["adapters.${GENERIC.value}.usersync.${REDIRECT.value}.url"         : USER_SYNC_URL,
+                 "adapters.${GENERIC.value}.usersync.${REDIRECT.value}.support-cors": "false"]
+        def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Bid request with buyeruids"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -222,6 +228,9 @@ class AuctionSpec extends BaseSpec {
         then: "Bidder request shouldn't contain buyeruid from the uids cookie"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert !bidderRequest.user.buyeruid
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS should take precedence buyeruids whenever present valid uid cookie"() {
@@ -269,10 +278,11 @@ class AuctionSpec extends BaseSpec {
     def "PBS shouldn't populate buyeruid from cookie name config when host cookie family not matched with requested cookie-family-name"() {
         given: "PBS config"
         def cookieName = PBSUtils.randomString
-        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG + GENERIC_CONFIG
-                + ["host-cookie.family"                          : APPNEXUS.value,
-                   "host-cookie.cookie-name"                     : cookieName,
-                   "adapters.generic.usersync.cookie-family-name": GENERIC.value])
+        def pbsConfig = PBS_CONFIG + GENERIC_CONFIG +
+                ["host-cookie.family"                          : APPNEXUS.value,
+                 "host-cookie.cookie-name"                     : cookieName,
+                 "adapters.generic.usersync.cookie-family-name": GENERIC.value]
+        def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Bid request"
         def bidRequest = BidRequest.defaultBidRequest
@@ -287,6 +297,9 @@ class AuctionSpec extends BaseSpec {
         then: "Bidder request shouldn't contain buyeruid from cookieName"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert !bidderRequest.user
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS shouldn't populate buyeruid from cookie when cookie-name in cookie and config are diferent"() {
