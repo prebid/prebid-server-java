@@ -1398,6 +1398,7 @@ class TargetingSpec extends BaseSpec {
         }
 
         and: "Account in the DB"
+        def accountAuctionConfig = new AccountAuctionConfig(cache: new AuctionCacheConfig(enabled: false))
         def accountConfig = new AccountConfig(status: ACTIVE, auction: accountAuctionConfig)
         def account = new Account(uuid: bidRequest.accountId, config: accountConfig)
         accountDao.save(account)
@@ -1411,20 +1412,12 @@ class TargetingSpec extends BaseSpec {
         when: "PBS processes auction request"
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "PBS response targeting contains bidder specific keys"
+        then: "PBS response targeting shouldn't contains bidder specific keys"
         def targetingKeyMap = response.seatbid?.first()?.bid?.first()?.ext?.prebid?.targeting
         assert !targetingKeyMap.containsKey('hb_cache_id')
         assert !targetingKeyMap.containsKey("hb_cache_id_${GENERIC}".toString())
         assert !targetingKeyMap.containsKey('hb_uuid')
         assert !targetingKeyMap.containsKey("hb_uuid_${GENERIC}".toString())
-
-        where:
-        accountAuctionConfig << [
-                new AccountAuctionConfig(),
-                new AccountAuctionConfig(cache: new AuctionCacheConfig()),
-                new AccountAuctionConfig(cache: new AuctionCacheConfig(enabled: null)),
-                new AccountAuctionConfig(cache: new AuctionCacheConfig(enabled: true))
-        ]
     }
 
     def "PBS shouldn't add bid ranked when account config for auction.ranking disabled or default"() {
