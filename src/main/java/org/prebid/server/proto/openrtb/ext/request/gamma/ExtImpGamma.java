@@ -16,4 +16,3 @@ public class ExtImpGamma {
 
     String wid;
 }
-

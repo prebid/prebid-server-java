@@ -14,4 +14,3 @@ public class ExtImpAdvangelists {
 
     String placement;
 }
-

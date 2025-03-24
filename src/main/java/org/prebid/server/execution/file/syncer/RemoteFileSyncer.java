@@ -168,7 +168,7 @@ public class RemoteFileSyncer {
 
     private Future<Boolean> isLengthChanged(HttpClientResponse response) {
         final String contentLengthParameter = response.getHeader(HttpHeaders.CONTENT_LENGTH);
-        return StringUtils.isNumeric(contentLengthParameter) && !contentLengthParameter.equals("0")
+        return StringUtils.isNumeric(contentLengthParameter) && !"0".equals(contentLengthParameter)
                 ? fileSystem.props(saveFilePath).map(props -> props.size() != Long.parseLong(contentLengthParameter))
                 : Future.failedFuture("ContentLength is invalid: " + contentLengthParameter);
     }

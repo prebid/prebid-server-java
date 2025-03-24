@@ -230,4 +230,3 @@ public class AmxBidder implements Bidder<BidRequest> {
         return bidExtPrebidCasted.set("meta", mapper.mapper().valueToTree(extBidPrebidMeta));
     }
 }
-

@@ -198,7 +198,7 @@ public abstract class IntegrationTest extends VertxTest {
 
             final List<CacheObject> responseCacheObjects = new ArrayList<>();
             for (BidPutObject putItem : puts) {
-                final String id = putItem.getType().equals("json")
+                final String id = "json".equals(putItem.getType())
                         ? putItem.getValue().get("id").textValue() + "@" + resolvePriceForJsonMediaType(putItem)
                         : putItem.getValue().textValue();
 

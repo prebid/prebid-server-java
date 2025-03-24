@@ -297,7 +297,7 @@ public class DeviceEnricher {
             return null;
         }
         final JsonNode savedValue = ext.getProperty(EXT_DEVICE_ID_KEY);
-        return (savedValue != null && savedValue.isTextual()) ? savedValue.textValue() : null;
+        return savedValue != null && savedValue.isTextual() ? savedValue.textValue() : null;
     }
 
     private static void setDeviceId(Device.DeviceBuilder deviceBuilder, Device device, String deviceId) {
@@ -324,4 +324,3 @@ public class DeviceEnricher {
         return null;
     }
 }
-

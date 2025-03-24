@@ -237,8 +237,8 @@ public class AccountConfigReaderTest {
         // when and then
         assertThatThrownBy(() -> reader.blockedAttributesFor(emptyRequest()))
                 .isInstanceOf(InvalidAccountConfigurationException.class)
-                .hasMessage("conditions field in account configuration must contain at least one of bidders or " +
-                        "media-type");
+                .hasMessage("conditions field in account configuration must contain at least one of bidders or "
+                        + "media-type");
     }
 
     @Test
@@ -602,8 +602,8 @@ public class AccountConfigReaderTest {
                         .banner(Banner.builder().build()))))
                 .isEqualTo(Result.of(
                         attributesWithBadv(singletonList("domain3.com")),
-                        singletonList("More than one conditions matches request. Bidder: bidder1, " +
-                                "request media types: [banner, video]")));
+                        singletonList("More than one conditions matches request. Bidder: bidder1, "
+                                + "request media types: [banner, video]")));
     }
 
     @Test
@@ -661,8 +661,8 @@ public class AccountConfigReaderTest {
                         .banner(Banner.builder().build()))))
                 .isEqualTo(Result.of(
                         attributesWithBadv(singletonList("domain3.com")),
-                        singletonList("More than one conditions matches request. Bidder: bidder1, " +
-                                "request media types: [banner, video]")));
+                        singletonList("More than one conditions matches request. Bidder: bidder1, "
+                                + "request media types: [banner, video]")));
     }
 
     @Test
@@ -689,8 +689,8 @@ public class AccountConfigReaderTest {
                         .banner(Banner.builder().build()))))
                 .isEqualTo(Result.of(
                         attributesWithBadv(singletonList("domain5.com")),
-                        singletonList("More than one conditions matches request. Bidder: bidder1, " +
-                                "request media types: [banner, video]")));
+                        singletonList("More than one conditions matches request. Bidder: bidder1, "
+                                + "request media types: [banner, video]")));
     }
 
     @Test
@@ -732,8 +732,8 @@ public class AccountConfigReaderTest {
                         .build()))
                 .isEqualTo(Result.of(
                         BlockedAttributes.builder().btype(expectedBtype).build(),
-                        List.of("More than one conditions matches request. Bidder: bidder1, " +
-                                "request media types: [banner]")));
+                        List.of("More than one conditions matches request. Bidder: bidder1, "
+                                + "request media types: [banner]")));
     }
 
     @Test

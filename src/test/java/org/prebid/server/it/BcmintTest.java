@@ -35,4 +35,3 @@ public class BcmintTest extends IntegrationTest {
                 singletonList("bcmint"));
     }
 }
-

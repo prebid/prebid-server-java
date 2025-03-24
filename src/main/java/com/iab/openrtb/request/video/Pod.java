@@ -17,4 +17,3 @@ public class Pod {
     @JsonProperty("configid")
     String configId;
 }
-

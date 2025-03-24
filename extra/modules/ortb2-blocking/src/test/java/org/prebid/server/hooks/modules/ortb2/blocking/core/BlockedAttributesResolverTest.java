@@ -83,8 +83,8 @@ public class BlockedAttributesResolverTest {
         // when and then
         assertThat(resolver.resolve()).isEqualTo(ExecutionResult.builder()
                 .value(BlockedAttributes.builder().badv(singletonList("domain3.com")).build())
-                .warnings(singletonList("More than one conditions matches request. Bidder: bidder1, " +
-                        "request media types: [banner, video]"))
+                .warnings(singletonList("More than one conditions matches request. Bidder: bidder1, "
+                        + "request media types: [banner, video]"))
                 .build());
     }
 

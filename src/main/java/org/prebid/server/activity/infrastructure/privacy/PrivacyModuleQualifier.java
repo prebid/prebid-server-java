@@ -24,5 +24,8 @@ public enum PrivacyModuleQualifier {
 
         public static final String US_NAT = "iab.usgeneral";
         public static final String US_CUSTOM_LOGIC = "iab.uscustomlogic";
+
+        private Names() {
+        }
     }
 }

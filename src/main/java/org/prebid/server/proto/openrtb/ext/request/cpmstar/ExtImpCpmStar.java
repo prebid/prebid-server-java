@@ -14,4 +14,3 @@ public class ExtImpCpmStar {
     @JsonProperty("subpoolId")
     Integer subPoolId;
 }
-

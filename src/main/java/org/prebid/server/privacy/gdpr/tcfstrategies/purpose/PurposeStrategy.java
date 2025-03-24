@@ -136,4 +136,3 @@ public abstract class PurposeStrategy {
                 getPurpose(), vendorConsent, vendorForPurpose, excludedVendors, isEnforceVendors);
     }
 }
-

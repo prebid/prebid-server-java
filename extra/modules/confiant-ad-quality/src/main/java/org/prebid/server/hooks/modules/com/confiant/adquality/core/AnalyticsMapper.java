@@ -68,4 +68,7 @@ public class AnalyticsMapper {
                 .map(BidderBid::getBid)
                 .collect(Collectors.toList());
     }
+
+    private AnalyticsMapper() {
+    }
 }

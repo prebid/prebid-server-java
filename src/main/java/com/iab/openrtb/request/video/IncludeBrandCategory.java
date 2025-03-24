@@ -16,4 +16,3 @@ public class IncludeBrandCategory {
     @JsonProperty("translatecategories")
     Boolean translateCategories;
 }
-

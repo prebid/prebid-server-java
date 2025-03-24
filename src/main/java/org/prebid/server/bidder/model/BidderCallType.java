@@ -10,4 +10,3 @@ public enum BidderCallType {
     @JsonProperty("stored-bid-response-call")
     STORED_BID_RESPONSE
 }
-

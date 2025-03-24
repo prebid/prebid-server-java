@@ -8,6 +8,7 @@ import org.prebid.server.hooks.execution.model.GroupExecutionOutcome;
 import org.prebid.server.hooks.execution.model.HookExecutionOutcome;
 import org.prebid.server.hooks.execution.model.Stage;
 import org.prebid.server.hooks.execution.model.StageExecutionOutcome;
+import org.prebid.server.hooks.v1.analytics.Activity;
 import org.prebid.server.hooks.v1.analytics.AppliedTo;
 import org.prebid.server.hooks.v1.analytics.Result;
 import org.prebid.server.hooks.v1.analytics.Tags;
@@ -204,7 +205,7 @@ public class HookDebugInfoEnricher {
     }
 
     private static ExtModulesTraceAnalyticsActivity toTraceAnalyticsActivity(
-            org.prebid.server.hooks.v1.analytics.Activity activity) {
+            Activity activity) {
 
         return ExtModulesTraceAnalyticsActivity.of(
                 activity.name(),

@@ -153,4 +153,3 @@ public class TpmnBidder implements Bidder<BidRequest> {
         };
     }
 }
-

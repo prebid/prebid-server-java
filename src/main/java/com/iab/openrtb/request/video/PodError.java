@@ -15,4 +15,3 @@ public class PodError {
 
     List<String> podErrors;
 }
-

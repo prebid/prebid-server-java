@@ -120,7 +120,7 @@ public class BidsScanner {
         if (redisAPI != null) {
             redisAPI.get("scan-disabled", scanDisabledValue -> {
                 final Response scanDisabled = scanDisabledValue.result();
-                isDisabled.complete(scanDisabled != null && scanDisabled.toString().equals("true"));
+                isDisabled.complete(scanDisabled != null && "true".equals(scanDisabled.toString()));
             });
 
             return isDisabled.future();

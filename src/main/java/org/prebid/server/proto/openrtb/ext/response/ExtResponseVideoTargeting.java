@@ -16,4 +16,3 @@ public class ExtResponseVideoTargeting {
 
     String hbCacheID;
 }
-

@@ -725,6 +725,9 @@ public class Metrics extends UpdatableMetrics {
         static MetricName fromAction(ExecutionAction action) {
             return ACTION_TO_METRIC.getOrDefault(action, MetricName.unknown);
         }
+
+        private HookMetricMapper() {
+        }
     }
 
     public void updateRequestsActivityDisallowedCount(Activity activity) {

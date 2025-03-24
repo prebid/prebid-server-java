@@ -441,7 +441,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(activityInfrastructure.isAllowed(
                 eq(Activity.CALL_BIDDER),
                 argThat(argument -> argument.componentType().equals(ComponentType.BIDDER)
-                        && argument.componentName().equals("disallowed"))))
+                        && "disallowed".equals(argument.componentName()))))
                 .willReturn(false);
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("disallowed", 0)));

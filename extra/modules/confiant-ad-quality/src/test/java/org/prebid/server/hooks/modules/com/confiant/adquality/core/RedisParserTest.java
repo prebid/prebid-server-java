@@ -28,52 +28,52 @@ public class RedisParserTest {
     @Test
     public void shouldParseFullBidsScanResult() {
         // given
-        final String redisResponse = "[[[{\n" +
-                "  \"tag_key\": \"tg\",\n" +
-                "  \"imp_id\": \"123\",\n" +
-                "  \"known_creative\": true,\n" +
-                "  \"ro_skipped\": false,\n" +
-                "  \"issues\": [{\n" +
-                "    \"value\": \"ads.deceivenetworks.net\",\n" +
-                "    \"spec_name\": \"malicious_domain\",\n" +
-                "    \"first_adinstance\": \"e91e8da982bb8b7f80100426\"\n" +
-                "  }],\n" +
-                "  \"attributes\": {\n" +
-                "    \"is_ssl\": true,\n" +
-                "    \"ssl_error\": false,\n" +
-                "    \"width\": 600,\n" +
-                "    \"height\": 300,\n" +
-                "    \"anim\": 5,\n" +
-                "    \"network_load_startup\": 1024,\n" +
-                "    \"network_load_polite\": 1024,\n" +
-                "    \"vast\": {\n" +
-                "      \"redirects\": 3\n" +
-                "    },\n" +
-                "    \"brands\": [\n" +
-                "      \"Pfizer\"\n" +
-                "    ],\n" +
-                "    \"categories\": [\n" +
-                "      {\n" +
-                "        \"code\": \"CAT-2\",\n" +
-                "        \"name\": \"Health and Medical Services\"\n" +
-                "      },\n" +
-                "      {\n" +
-                "        \"code\": \"CAT-75\",\n" +
-                "        \"name\": \"Pharmaceutical Drugs\"\n" +
-                "      }\n" +
-                "    ]\n" +
-                "  },\n" +
-                "  \"metrics\": {\n" +
-                "    \"submitted\": \"2017-05-10T13:29:28-04:00\",\n" +
-                "    \"fetched\":\"2017-05-10T13:29:29-04:00\",\n" +
-                "    \"scanned\":\"2017-07-22T11:49:40-04:00\",\n" +
-                "    \"synchronized\": {\n" +
-                "      \"first\":\"2017-05-10T13:29:55-04:00\",\n" +
-                "      \"last\":\"2017-07-24T00:52:04-04:00\"\n" +
-                "    }\n" +
-                "  },\n" +
-                "  \"adinstance\": \"qwerty\"\n" +
-                "}]]]";
+        final String redisResponse = "[[[{\n"
+                + "  \"tag_key\": \"tg\",\n"
+                + "  \"imp_id\": \"123\",\n"
+                + "  \"known_creative\": true,\n"
+                + "  \"ro_skipped\": false,\n"
+                + "  \"issues\": [{\n"
+                + "    \"value\": \"ads.deceivenetworks.net\",\n"
+                + "    \"spec_name\": \"malicious_domain\",\n"
+                + "    \"first_adinstance\": \"e91e8da982bb8b7f80100426\"\n"
+                + "  }],\n"
+                + "  \"attributes\": {\n"
+                + "    \"is_ssl\": true,\n"
+                + "    \"ssl_error\": false,\n"
+                + "    \"width\": 600,\n"
+                + "    \"height\": 300,\n"
+                + "    \"anim\": 5,\n"
+                + "    \"network_load_startup\": 1024,\n"
+                + "    \"network_load_polite\": 1024,\n"
+                + "    \"vast\": {\n"
+                + "      \"redirects\": 3\n"
+                + "    },\n"
+                + "    \"brands\": [\n"
+                + "      \"Pfizer\"\n"
+                + "    ],\n"
+                + "    \"categories\": [\n"
+                + "      {\n"
+                + "        \"code\": \"CAT-2\",\n"
+                + "        \"name\": \"Health and Medical Services\"\n"
+                + "      },\n"
+                + "      {\n"
+                + "        \"code\": \"CAT-75\",\n"
+                + "        \"name\": \"Pharmaceutical Drugs\"\n"
+                + "      }\n"
+                + "    ]\n"
+                + "  },\n"
+                + "  \"metrics\": {\n"
+                + "    \"submitted\": \"2017-05-10T13:29:28-04:00\",\n"
+                + "    \"fetched\":\"2017-05-10T13:29:29-04:00\",\n"
+                + "    \"scanned\":\"2017-07-22T11:49:40-04:00\",\n"
+                + "    \"synchronized\": {\n"
+                + "      \"first\":\"2017-05-10T13:29:55-04:00\",\n"
+                + "      \"last\":\"2017-07-24T00:52:04-04:00\"\n"
+                + "    }\n"
+                + "  },\n"
+                + "  \"adinstance\": \"qwerty\"\n"
+                + "}]]]";
 
         // when
         final BidsScanResult actualScanResults = redisParser.parseBidsScanResult(redisResponse);

@@ -14,4 +14,3 @@ public class ExtImpEmxDigital {
 
     String bidfloor;
 }
-

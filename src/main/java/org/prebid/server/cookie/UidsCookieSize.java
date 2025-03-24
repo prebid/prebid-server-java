@@ -69,5 +69,8 @@ public class UidsCookieSize {
         private static int base64Size(int encodedSize) {
             return (encodedSize & -4) + 4 * Integer.signum(encodedSize % 4);
         }
+
+        private Base64Size() {
+        }
     }
 }

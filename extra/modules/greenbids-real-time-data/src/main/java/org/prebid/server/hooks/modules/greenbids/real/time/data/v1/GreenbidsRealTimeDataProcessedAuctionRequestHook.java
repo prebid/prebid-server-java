@@ -210,7 +210,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                 toObjectNode(entry),
                 AppliedToImpl.builder()
                         .impIds(Collections.singletonList(impId))
-                        .bidders(removedBidders.isEmpty() ? null: removedBidders)
+                        .bidders(removedBidders.isEmpty() ? null : removedBidders)
                         .build());
     }
 

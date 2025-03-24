@@ -42,4 +42,7 @@ public class BidsMapper {
                         .build()))
                 .build();
     }
+
+    private BidsMapper() {
+    }
 }

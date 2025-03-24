@@ -26,4 +26,7 @@ public class AdQualityModuleTestUtils {
                         .build()))
                 .build(), 11);
     }
+
+    private AdQualityModuleTestUtils() {
+    }
 }

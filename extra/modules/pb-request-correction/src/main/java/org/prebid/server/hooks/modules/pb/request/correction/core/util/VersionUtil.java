@@ -32,4 +32,7 @@ public class VersionUtil {
             return defaultValue;
         }
     }
+
+    private VersionUtil() {
+    }
 }
