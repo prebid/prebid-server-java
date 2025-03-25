@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.function.Function;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -44,6 +45,87 @@ public class GumgumBidderTest extends VertxTest {
     private static final String ENDPOINT_URL = "https://test.endpoint.com/providers/prbds2s/bid";
 
     private final GumgumBidder target = new GumgumBidder(ENDPOINT_URL, jacksonMapper);
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorIfImpHasNoBannerOrVideo() {
+
+        final BidRequest bidRequest = givenBidRequest(impBuilder ->
+                impBuilder.banner(null).video(null));
+
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+                    assertThat(error.getMessage()).isEqualTo("Invalid impression: missing banner and video");
+                });
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorIfCurrencyIsMissing() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder().id("123").build()))
+                .build();
+        final BidResponse bidResponse = BidResponse.builder()
+                .seatbid(singletonList(SeatBid.builder()
+                        .bid(singletonList(Bid.builder().impid("123").price(BigDecimal.valueOf(5)).build()))
+                        .build()))
+                .build();
+
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, mapper.writeValueAsString(bidResponse));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getMessage()).isEqualTo("Bid response currency is missing");
+                });
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldHandleMultipleImpressions() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(asList(
+                        givenImp(impBuilder -> impBuilder.banner(Banner.builder().w(300).h(250).build())),
+                        givenImp(impBuilder -> impBuilder.video(Video.builder().w(640).h(360).build()))
+                ))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+    }
+
+    @Test
+    public void makeBidsShouldReturnEmptyListIfNoValidBidsArePresent() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder().id("123").build()))
+                .build();
+        final BidResponse bidResponse = BidResponse.builder()
+                .seatbid(singletonList(SeatBid.builder().bid(emptyList()).build()))
+                .build();
+
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, mapper.writeValueAsString(bidResponse));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
+    }
+
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
