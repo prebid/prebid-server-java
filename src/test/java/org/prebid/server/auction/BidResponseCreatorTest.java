@@ -409,13 +409,13 @@ public class BidResponseCreatorTest extends VertxTest {
         final List<BidderResponse> bidderResponses = asList(
                 BidderResponse.of("bidder1",
                         givenSeatBid(
-                                BidderBid.of(bid1, banner, "USD"),
-                                BidderBid.of(bid2, banner, "USD")),
+                                BidderBid.of(bid1, banner, "seat1", "USD"),
+                                BidderBid.of(bid2, banner, "seat1", "USD")),
                         100),
                 BidderResponse.of("bidder2",
                         givenSeatBid(
-                                BidderBid.of(bid3, banner, "USD"),
-                                BidderBid.of(bid4, banner, "USD")),
+                                BidderBid.of(bid3, banner, "seat2", "USD"),
+                                BidderBid.of(bid4, banner, "seat2", "USD")),
                         100));
 
         final BidRequestCacheInfo cacheInfo = BidRequestCacheInfo.builder()
@@ -481,13 +481,13 @@ public class BidResponseCreatorTest extends VertxTest {
         final List<BidderResponse> bidderResponses = asList(
                 BidderResponse.of("bidder1",
                         givenSeatBid(
-                                BidderBid.of(bid1, banner, "USD"),
-                                BidderBid.of(bid2, banner, "USD")),
+                                BidderBid.of(bid1, banner, "seat1", "USD"),
+                                BidderBid.of(bid2, banner, "seat1", "USD")),
                         100),
                 BidderResponse.of("bidder2",
                         givenSeatBid(
-                                BidderBid.of(bid3, banner, "USD"),
-                                BidderBid.of(bid4, banner, "USD")),
+                                BidderBid.of(bid3, banner, "seat2", "USD"),
+                                BidderBid.of(bid4, banner, "seat2", "USD")),
                         100));
 
         final BidRequestCacheInfo cacheInfo = BidRequestCacheInfo.builder()
@@ -549,8 +549,8 @@ public class BidResponseCreatorTest extends VertxTest {
 
         final String bidder1 = "bidder1";
         final List<BidderResponse> bidderResponses = asList(
-                BidderResponse.of(bidder1, givenSeatBid(BidderBid.of(bid1, video, "USD")), 100),
-                BidderResponse.of("bidder2", givenSeatBid(BidderBid.of(bid2, banner, "USD")), 100));
+                BidderResponse.of(bidder1, givenSeatBid(BidderBid.of(bid1, video, "seat1", "USD")), 100),
+                BidderResponse.of("bidder2", givenSeatBid(BidderBid.of(bid2, banner, "seat2", "USD")), 100));
 
         final BidRequestCacheInfo cacheInfo = BidRequestCacheInfo.builder()
                 .doCaching(true)
@@ -652,7 +652,7 @@ public class BidResponseCreatorTest extends VertxTest {
         // given
         final Bid bid1 = Bid.builder().id("bidId1").impid(IMP_ID).price(BigDecimal.valueOf(0.05)).build();
         final List<BidderResponse> bidderResponses = singletonList(
-                BidderResponse.of("bidder1", givenSeatBid(BidderBid.of(bid1, banner, "USD")), 100));
+                BidderResponse.of("bidder1", givenSeatBid(BidderBid.of(bid1, banner, "seat1", "USD")), 100));
 
         final BidRequestCacheInfo cacheInfo = BidRequestCacheInfo.builder().doCaching(true).build();
         final AuctionContext auctionContext = givenAuctionContext(givenBidRequest(givenImp()))
@@ -888,20 +888,33 @@ public class BidResponseCreatorTest extends VertxTest {
         final ObjectNode bidExt = mapper.createObjectNode()
                 .put("origbidcpm", BigDecimal.ONE)
                 .put("origbidcur", "USD");
-        final Bid bid = Bid.builder()
-                .id("bidId")
+
+        final Bid bid1 = Bid.builder()
+                .id("bidId1")
                 .price(BigDecimal.ONE)
                 .adm(BID_ADM)
-                .impid(IMP_ID)
+                .impid("impId1")
+                .ext(bidExt)
+                .build();
+
+        final Bid bid2 = Bid.builder()
+                .id("bidId2")
+                .price(BigDecimal.ONE)
+                .adm(BID_ADM)
+                .impid("impId2")
                 .ext(bidExt)
                 .build();
 
         final String bidder = "bidder1";
-        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of(bidder,
-                givenSeatBid(BidderBid.of(bid, banner, "seat", "USD")), 100));
+        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of(
+                bidder,
+                givenSeatBid(
+                        BidderBid.of(bid1, banner, "seat1", "USD"),
+                        BidderBid.of(bid2, banner, "seat2", "USD")),
+                100));
 
         final AuctionContext auctionContext = givenAuctionContext(
-                givenBidRequest(givenImp()),
+                givenBidRequest(givenImp("impId1"), givenImp("impId2")),
                 contextBuilder -> contextBuilder.auctionParticipations(toAuctionParticipant(bidderResponses)));
 
         final BidRequestCacheInfo cacheInfo = BidRequestCacheInfo.builder().doCaching(true).build();
@@ -919,21 +932,34 @@ public class BidResponseCreatorTest extends VertxTest {
         final ArgumentCaptor<List<BidInfo>> bidsArgumentCaptor = ArgumentCaptor.forClass(List.class);
         verify(coreCacheService).cacheBidsOpenrtb(bidsArgumentCaptor.capture(), any(), any(), any());
 
-        assertThat(bidsArgumentCaptor.getValue()).extracting(bidInfo -> bidInfo.getBid().getExt())
+        assertThat(bidsArgumentCaptor.getValue())
+                .extracting(bidInfo -> bidInfo.getBid().getExt())
                 .containsOnly(expectedBidExt);
 
         assertThat(bidResponse.getSeatbid())
-                .containsOnly(SeatBid.builder()
-                        .seat("seat")
-                        .group(0)
-                        .bid(singletonList(Bid.builder()
-                                .id("bidId")
-                                .impid(IMP_ID)
-                                .price(BigDecimal.ONE)
-                                .adm(BID_ADM)
-                                .ext(expectedBidExt)
-                                .build()))
-                        .build());
+                .containsOnly(
+                        SeatBid.builder()
+                                .seat("seat1")
+                                .group(0)
+                                .bid(singletonList(Bid.builder()
+                                        .id("bidId1")
+                                        .impid("impId1")
+                                        .price(BigDecimal.ONE)
+                                        .adm(BID_ADM)
+                                        .ext(expectedBidExt)
+                                        .build()))
+                                .build(),
+                        SeatBid.builder()
+                                .seat("seat2")
+                                .group(0)
+                                .bid(singletonList(Bid.builder()
+                                        .id("bidId2")
+                                        .impid("impId2")
+                                        .price(BigDecimal.ONE)
+                                        .adm(BID_ADM)
+                                        .ext(expectedBidExt)
+                                        .build()))
+                                .build());
     }
 
     @Test
@@ -2653,8 +2679,8 @@ public class BidResponseCreatorTest extends VertxTest {
         final Bid bid2 = Bid.builder().id("bidId2").impid("impId2").price(BigDecimal.ZERO).dealid("dealId2").build();
 
         final List<BidderResponse> bidderResponses = asList(
-                BidderResponse.of("bidder1", givenSeatBid(BidderBid.of(bid1, banner, null)), 99),
-                BidderResponse.of("bidder2", givenSeatBid(BidderBid.of(bid2, banner, null)), 99));
+                BidderResponse.of("bidder1", givenSeatBid(BidderBid.of(bid1, banner, "seat1", null)), 99),
+                BidderResponse.of("bidder2", givenSeatBid(BidderBid.of(bid2, banner, "seat2", null)), 99));
 
         final AuctionContext auctionContext = givenAuctionContext(
                 givenBidRequest(imp1, imp2),
