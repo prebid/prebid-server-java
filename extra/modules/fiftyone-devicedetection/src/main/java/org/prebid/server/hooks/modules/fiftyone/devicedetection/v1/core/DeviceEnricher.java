@@ -27,6 +27,7 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 
 public class DeviceEnricher {
+
     private static final String EXT_DEVICE_ID_KEY = "fiftyonedegrees_deviceId";
 
     private final Pipeline pipeline;

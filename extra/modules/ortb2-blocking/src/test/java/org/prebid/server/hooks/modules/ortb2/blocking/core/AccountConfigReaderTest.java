@@ -48,7 +48,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class AccountConfigReaderTest {
 
-    private static final ObjectMapper mapper = new ObjectMapper()
+    private static final ObjectMapper MAPPER = new ObjectMapper()
             .setPropertyNamingStrategy(PropertyNamingStrategies.KEBAB_CASE)
             .setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
@@ -98,7 +98,7 @@ public class AccountConfigReaderTest {
     @Test
     public void blockedAttributesForShouldReturnErrorWhenAttributesIsNotObject() {
         // given
-        final ObjectNode accountConfig = mapper.createObjectNode().put("attributes", 1);
+        final ObjectNode accountConfig = MAPPER.createObjectNode().put("attributes", 1);
         final AccountConfigReader reader = AccountConfigReader.create(accountConfig, "bidder1", ORTB_VERSION, true);
 
         // when and then
@@ -110,8 +110,8 @@ public class AccountConfigReaderTest {
     @Test
     public void blockedAttributesForShouldReturnErrorWhenBadvIsNotObject() {
         // given
-        final ObjectNode accountConfig = mapper.createObjectNode()
-                .set("attributes", mapper.createObjectNode()
+        final ObjectNode accountConfig = MAPPER.createObjectNode()
+                .set("attributes", MAPPER.createObjectNode()
                         .put("badv", 1));
         final AccountConfigReader reader = AccountConfigReader.create(accountConfig, "bidder1", ORTB_VERSION, true);
 
@@ -124,9 +124,9 @@ public class AccountConfigReaderTest {
     @Test
     public void blockedAttributesForShouldReturnErrorWhenBlockedAdomainsIsNotArray() {
         // given
-        final ObjectNode accountConfig = mapper.createObjectNode()
-                .set("attributes", mapper.createObjectNode()
-                        .set("badv", mapper.createObjectNode()
+        final ObjectNode accountConfig = MAPPER.createObjectNode()
+                .set("attributes", MAPPER.createObjectNode()
+                        .set("badv", MAPPER.createObjectNode()
                                 .put("blocked-adomain", 1)));
         final AccountConfigReader reader = AccountConfigReader.create(accountConfig, "bidder1", ORTB_VERSION, true);
 
@@ -139,10 +139,10 @@ public class AccountConfigReaderTest {
     @Test
     public void blockedAttributesForShouldReturnErrorWhenBlockedAdomainsIsNotStringArray() {
         // given
-        final ObjectNode accountConfig = mapper.createObjectNode()
-                .set("attributes", mapper.createObjectNode()
-                        .set("badv", mapper.createObjectNode()
-                                .set("blocked-adomain", mapper.createArrayNode()
+        final ObjectNode accountConfig = MAPPER.createObjectNode()
+                .set("attributes", MAPPER.createObjectNode()
+                        .set("badv", MAPPER.createObjectNode()
+                                .set("blocked-adomain", MAPPER.createArrayNode()
                                         .add(1)
                                         .add("domain2.com"))));
         final AccountConfigReader reader = AccountConfigReader.create(accountConfig, "bidder1", ORTB_VERSION, true);
@@ -157,9 +157,9 @@ public class AccountConfigReaderTest {
     @Test
     public void blockedAttributesForShouldReturnErrorWhenBadvActionOverridesIsNotObject() {
         // given
-        final ObjectNode accountConfig = mapper.createObjectNode()
-                .set("attributes", mapper.createObjectNode()
-                        .set("badv", mapper.createObjectNode()
+        final ObjectNode accountConfig = MAPPER.createObjectNode()
+                .set("attributes", MAPPER.createObjectNode()
+                        .set("badv", MAPPER.createObjectNode()
                                 .put("action-overrides", 1)));
         final AccountConfigReader reader = AccountConfigReader.create(accountConfig, "bidder1", ORTB_VERSION, true);
 
@@ -172,13 +172,13 @@ public class AccountConfigReaderTest {
     @Test
     public void blockedAttributesForShouldReturnErrorWhenBadvActionOverridesBlockedAdomainIsNotObjectArray() {
         // given
-        final ObjectNode accountConfig = mapper.createObjectNode()
-                .set("attributes", mapper.createObjectNode()
-                        .set("badv", mapper.createObjectNode()
-                                .set("action-overrides", mapper.createObjectNode()
-                                        .set("blocked-adomain", mapper.createArrayNode()
+        final ObjectNode accountConfig = MAPPER.createObjectNode()
+                .set("attributes", MAPPER.createObjectNode()
+                        .set("badv", MAPPER.createObjectNode()
+                                .set("action-overrides", MAPPER.createObjectNode()
+                                        .set("blocked-adomain", MAPPER.createArrayNode()
                                                 .add(1)
-                                                .add(mapper.createObjectNode())))));
+                                                .add(MAPPER.createObjectNode())))));
         final AccountConfigReader reader = AccountConfigReader.create(accountConfig, "bidder1", ORTB_VERSION, true);
 
         // when and then
@@ -190,12 +190,12 @@ public class AccountConfigReaderTest {
     @Test
     public void blockedAttributesForShouldReturnErrorWhenOverridesHasNoConditions() {
         // given
-        final ObjectNode accountConfig = mapper.createObjectNode()
-                .set("attributes", mapper.createObjectNode()
-                        .set("badv", mapper.createObjectNode()
-                                .set("action-overrides", mapper.createObjectNode()
-                                        .set("blocked-adomain", mapper.createArrayNode()
-                                                .add(mapper.createObjectNode())))));
+        final ObjectNode accountConfig = MAPPER.createObjectNode()
+                .set("attributes", MAPPER.createObjectNode()
+                        .set("badv", MAPPER.createObjectNode()
+                                .set("action-overrides", MAPPER.createObjectNode()
+                                        .set("blocked-adomain", MAPPER.createArrayNode()
+                                                .add(MAPPER.createObjectNode())))));
         final AccountConfigReader reader = AccountConfigReader.create(accountConfig, "bidder1", ORTB_VERSION, true);
 
         // when and then
@@ -207,12 +207,12 @@ public class AccountConfigReaderTest {
     @Test
     public void blockedAttributesForShouldReturnErrorWhenConditionsIsNotObject() {
         // given
-        final ObjectNode accountConfig = mapper.createObjectNode()
-                .set("attributes", mapper.createObjectNode()
-                        .set("badv", mapper.createObjectNode()
-                                .set("action-overrides", mapper.createObjectNode()
-                                        .set("blocked-adomain", mapper.createArrayNode()
-                                                .add(mapper.createObjectNode()
+        final ObjectNode accountConfig = MAPPER.createObjectNode()
+                .set("attributes", MAPPER.createObjectNode()
+                        .set("badv", MAPPER.createObjectNode()
+                                .set("action-overrides", MAPPER.createObjectNode()
+                                        .set("blocked-adomain", MAPPER.createArrayNode()
+                                                .add(MAPPER.createObjectNode()
                                                         .put("conditions", 1))))));
         final AccountConfigReader reader = AccountConfigReader.create(accountConfig, "bidder1", ORTB_VERSION, true);
 
@@ -225,32 +225,32 @@ public class AccountConfigReaderTest {
     @Test
     public void blockedAttributesForShouldReturnErrorWhenBadvActionOverridesBlockedAdomainConditionsIsEmpty() {
         // given
-        final ObjectNode accountConfig = mapper.createObjectNode()
-                .set("attributes", mapper.createObjectNode()
-                        .set("badv", mapper.createObjectNode()
-                                .set("action-overrides", mapper.createObjectNode()
-                                        .set("blocked-adomain", mapper.createArrayNode()
-                                                .add(mapper.createObjectNode()
-                                                        .set("conditions", mapper.createObjectNode()))))));
+        final ObjectNode accountConfig = MAPPER.createObjectNode()
+                .set("attributes", MAPPER.createObjectNode()
+                        .set("badv", MAPPER.createObjectNode()
+                                .set("action-overrides", MAPPER.createObjectNode()
+                                        .set("blocked-adomain", MAPPER.createArrayNode()
+                                                .add(MAPPER.createObjectNode()
+                                                        .set("conditions", MAPPER.createObjectNode()))))));
         final AccountConfigReader reader = AccountConfigReader.create(accountConfig, "bidder1", ORTB_VERSION, true);
 
         // when and then
         assertThatThrownBy(() -> reader.blockedAttributesFor(emptyRequest()))
                 .isInstanceOf(InvalidAccountConfigurationException.class)
-                .hasMessage("conditions field in account configuration must contain at least one of bidders or "
-                        + "media-type");
+                .hasMessage(
+                        "conditions field in account configuration must contain at least one of bidders or media-type");
     }
 
     @Test
     public void blockedAttributesForShouldReturnErrorWhenConditionBiddersIsNotArray() {
         // given
-        final ObjectNode accountConfig = mapper.createObjectNode()
-                .set("attributes", mapper.createObjectNode()
-                        .set("badv", mapper.createObjectNode()
-                                .set("action-overrides", mapper.createObjectNode()
-                                        .set("blocked-adomain", mapper.createArrayNode()
-                                                .add(mapper.createObjectNode()
-                                                        .set("conditions", mapper.createObjectNode()
+        final ObjectNode accountConfig = MAPPER.createObjectNode()
+                .set("attributes", MAPPER.createObjectNode()
+                        .set("badv", MAPPER.createObjectNode()
+                                .set("action-overrides", MAPPER.createObjectNode()
+                                        .set("blocked-adomain", MAPPER.createArrayNode()
+                                                .add(MAPPER.createObjectNode()
+                                                        .set("conditions", MAPPER.createObjectNode()
                                                                 .put("bidders", 1)))))));
         final AccountConfigReader reader = AccountConfigReader.create(accountConfig, "bidder1", ORTB_VERSION, true);
 
@@ -263,14 +263,14 @@ public class AccountConfigReaderTest {
     @Test
     public void blockedAttributesForShouldReturnErrorWhenConditionBiddersIsNotStringArray() {
         // given
-        final ObjectNode accountConfig = mapper.createObjectNode()
-                .set("attributes", mapper.createObjectNode()
-                        .set("badv", mapper.createObjectNode()
-                                .set("action-overrides", mapper.createObjectNode()
-                                        .set("blocked-adomain", mapper.createArrayNode()
-                                                .add(mapper.createObjectNode()
-                                                        .set("conditions", mapper.createObjectNode()
-                                                                .set("bidders", mapper.createArrayNode()
+        final ObjectNode accountConfig = MAPPER.createObjectNode()
+                .set("attributes", MAPPER.createObjectNode()
+                        .set("badv", MAPPER.createObjectNode()
+                                .set("action-overrides", MAPPER.createObjectNode()
+                                        .set("blocked-adomain", MAPPER.createArrayNode()
+                                                .add(MAPPER.createObjectNode()
+                                                        .set("conditions", MAPPER.createObjectNode()
+                                                                .set("bidders", MAPPER.createArrayNode()
                                                                         .add(1)
                                                                         .add("abc"))))))));
         final AccountConfigReader reader = AccountConfigReader.create(accountConfig, "bidder1", ORTB_VERSION, true);
@@ -285,13 +285,13 @@ public class AccountConfigReaderTest {
     @Test
     public void blockedAttributesForShouldReturnErrorWhenConditionMediaTypeIsNotArray() {
         // given
-        final ObjectNode accountConfig = mapper.createObjectNode()
-                .set("attributes", mapper.createObjectNode()
-                        .set("badv", mapper.createObjectNode()
-                                .set("action-overrides", mapper.createObjectNode()
-                                        .set("blocked-adomain", mapper.createArrayNode()
-                                                .add(mapper.createObjectNode()
-                                                        .set("conditions", mapper.createObjectNode()
+        final ObjectNode accountConfig = MAPPER.createObjectNode()
+                .set("attributes", MAPPER.createObjectNode()
+                        .set("badv", MAPPER.createObjectNode()
+                                .set("action-overrides", MAPPER.createObjectNode()
+                                        .set("blocked-adomain", MAPPER.createArrayNode()
+                                                .add(MAPPER.createObjectNode()
+                                                        .set("conditions", MAPPER.createObjectNode()
                                                                 .put("media-type", 1)))))));
         final AccountConfigReader reader = AccountConfigReader.create(accountConfig, "bidder1", ORTB_VERSION, true);
 
@@ -304,14 +304,14 @@ public class AccountConfigReaderTest {
     @Test
     public void blockedAttributesForShouldReturnErrorWhenConditionMediaTypeIsNotStringArray() {
         // given
-        final ObjectNode accountConfig = mapper.createObjectNode()
-                .set("attributes", mapper.createObjectNode()
-                        .set("badv", mapper.createObjectNode()
-                                .set("action-overrides", mapper.createObjectNode()
-                                        .set("blocked-adomain", mapper.createArrayNode()
-                                                .add(mapper.createObjectNode()
-                                                        .set("conditions", mapper.createObjectNode()
-                                                                .set("media-type", mapper.createArrayNode()
+        final ObjectNode accountConfig = MAPPER.createObjectNode()
+                .set("attributes", MAPPER.createObjectNode()
+                        .set("badv", MAPPER.createObjectNode()
+                                .set("action-overrides", MAPPER.createObjectNode()
+                                        .set("blocked-adomain", MAPPER.createArrayNode()
+                                                .add(MAPPER.createObjectNode()
+                                                        .set("conditions", MAPPER.createObjectNode()
+                                                                .set("media-type", MAPPER.createArrayNode()
                                                                         .add(1)
                                                                         .add("abc"))))))));
         final AccountConfigReader reader = AccountConfigReader.create(accountConfig, "bidder1", ORTB_VERSION, true);
@@ -326,14 +326,14 @@ public class AccountConfigReaderTest {
     @Test
     public void blockedAttributesForShouldReturnErrorWhenActionOverridesHasNoOverride() {
         // given
-        final ObjectNode accountConfig = mapper.createObjectNode()
-                .set("attributes", mapper.createObjectNode()
-                        .set("badv", mapper.createObjectNode()
-                                .set("action-overrides", mapper.createObjectNode()
-                                        .set("blocked-adomain", mapper.createArrayNode()
-                                                .add(mapper.createObjectNode()
-                                                        .<ObjectNode>set("conditions", mapper.createObjectNode()
-                                                                .set("bidders", mapper.createArrayNode()
+        final ObjectNode accountConfig = MAPPER.createObjectNode()
+                .set("attributes", MAPPER.createObjectNode()
+                        .set("badv", MAPPER.createObjectNode()
+                                .set("action-overrides", MAPPER.createObjectNode()
+                                        .set("blocked-adomain", MAPPER.createArrayNode()
+                                                .add(MAPPER.createObjectNode()
+                                                        .<ObjectNode>set("conditions", MAPPER.createObjectNode()
+                                                                .set("bidders", MAPPER.createArrayNode()
                                                                         .add("bidder1"))))))));
         final AccountConfigReader reader = AccountConfigReader.create(accountConfig, "bidder1", ORTB_VERSION, true);
 
@@ -346,14 +346,14 @@ public class AccountConfigReaderTest {
     @Test
     public void blockedAttributesForShouldReturnErrorWhenBadvBlockedAdomainOverrideIsNotArray() {
         // given
-        final ObjectNode accountConfig = mapper.createObjectNode()
-                .set("attributes", mapper.createObjectNode()
-                        .set("badv", mapper.createObjectNode()
-                                .set("action-overrides", mapper.createObjectNode()
-                                        .set("blocked-adomain", mapper.createArrayNode()
-                                                .add(mapper.createObjectNode()
-                                                        .<ObjectNode>set("conditions", mapper.createObjectNode()
-                                                                .set("bidders", mapper.createArrayNode()
+        final ObjectNode accountConfig = MAPPER.createObjectNode()
+                .set("attributes", MAPPER.createObjectNode()
+                        .set("badv", MAPPER.createObjectNode()
+                                .set("action-overrides", MAPPER.createObjectNode()
+                                        .set("blocked-adomain", MAPPER.createArrayNode()
+                                                .add(MAPPER.createObjectNode()
+                                                        .<ObjectNode>set("conditions", MAPPER.createObjectNode()
+                                                                .set("bidders", MAPPER.createArrayNode()
                                                                         .add("bidder1")))
                                                         .put("override", 1))))));
         final AccountConfigReader reader = AccountConfigReader.create(accountConfig, "bidder1", ORTB_VERSION, true);
@@ -367,16 +367,16 @@ public class AccountConfigReaderTest {
     @Test
     public void blockedAttributesForShouldReturnErrorWhenBlockedAdomainOverrideIsNotStringArray() {
         // given
-        final ObjectNode accountConfig = mapper.createObjectNode()
-                .set("attributes", mapper.createObjectNode()
-                        .set("badv", mapper.createObjectNode()
-                                .set("action-overrides", mapper.createObjectNode()
-                                        .set("blocked-adomain", mapper.createArrayNode()
-                                                .add(mapper.createObjectNode()
-                                                        .<ObjectNode>set("conditions", mapper.createObjectNode()
-                                                                .set("bidders", mapper.createArrayNode()
+        final ObjectNode accountConfig = MAPPER.createObjectNode()
+                .set("attributes", MAPPER.createObjectNode()
+                        .set("badv", MAPPER.createObjectNode()
+                                .set("action-overrides", MAPPER.createObjectNode()
+                                        .set("blocked-adomain", MAPPER.createArrayNode()
+                                                .add(MAPPER.createObjectNode()
+                                                        .<ObjectNode>set("conditions", MAPPER.createObjectNode()
+                                                                .set("bidders", MAPPER.createArrayNode()
                                                                         .add("bidder1")))
-                                                        .set("override", mapper.createArrayNode()
+                                                        .set("override", MAPPER.createArrayNode()
                                                                 .add(1)
                                                                 .add("abc")))))));
         final AccountConfigReader reader = AccountConfigReader.create(accountConfig, "bidder1", ORTB_VERSION, true);
@@ -391,10 +391,10 @@ public class AccountConfigReaderTest {
     @Test
     public void blockedAttributesForShouldReturnErrorWhenBlockedBannerTypeIsNotIntegerArray() {
         // given
-        final ObjectNode accountConfig = mapper.createObjectNode()
-                .set("attributes", mapper.createObjectNode()
-                        .set("btype", mapper.createObjectNode()
-                                .set("blocked-banner-type", mapper.createArrayNode()
+        final ObjectNode accountConfig = MAPPER.createObjectNode()
+                .set("attributes", MAPPER.createObjectNode()
+                        .set("btype", MAPPER.createObjectNode()
+                                .set("blocked-banner-type", MAPPER.createArrayNode()
                                         .add(1)
                                         .add("type2"))));
         final AccountConfigReader reader = AccountConfigReader.create(accountConfig, "bidder1", ORTB_VERSION, true);
@@ -632,7 +632,7 @@ public class AccountConfigReaderTest {
     }
 
     @Test
-    public void blockedAttributesForShouldReturnResultWithBadvAndWarningFromOverridesWhenMultipleSpecificAndCatchAllMatches() {
+    public void blockedAttributesForShouldReturnResultWithBadvAndWarningFromOverridesOnMultipleMatches() {
         // given
         final ObjectNode accountConfig = toObjectNode(ModuleConfig.of(Attributes.builder()
                 .badv(Attribute.badvBuilder()
@@ -899,7 +899,7 @@ public class AccountConfigReaderTest {
     @Test
     public void blockedAttributesForShouldNotReturnCattaxIfBidderSupportsLowerThan26() throws JsonProcessingException {
         // given
-        final ObjectNode accountConfig = (ObjectNode) mapper.readTree("""
+        final ObjectNode accountConfig = (ObjectNode) MAPPER.readTree("""
                 {
                   "attributes": {
                     "bcat": {
@@ -919,7 +919,7 @@ public class AccountConfigReaderTest {
     @Test
     public void blockedAttributesForShouldReturnCattaxFromRequestIfPresent() throws JsonProcessingException {
         // given
-        final ObjectNode accountConfig = (ObjectNode) mapper.readTree("""
+        final ObjectNode accountConfig = (ObjectNode) MAPPER.readTree("""
                 {
                   "attributes": {
                     "bcat": {
@@ -941,7 +941,7 @@ public class AccountConfigReaderTest {
     @Test
     public void blockedAttributesForShouldReturnCattaxFromConfigIfNotPresentInRequest() throws JsonProcessingException {
         // given
-        final ObjectNode accountConfig = (ObjectNode) mapper.readTree("""
+        final ObjectNode accountConfig = (ObjectNode) MAPPER.readTree("""
                 {
                   "attributes": {
                     "bcat": {
@@ -963,9 +963,9 @@ public class AccountConfigReaderTest {
     @Test
     public void responseBlockingConfigForShouldReturnErrorWhenDefaultEnforceBlocksIsNotBoolean() {
         // given
-        final ObjectNode accountConfig = mapper.createObjectNode()
-                .set("attributes", mapper.createObjectNode()
-                        .set("badv", mapper.createObjectNode()
+        final ObjectNode accountConfig = MAPPER.createObjectNode()
+                .set("attributes", MAPPER.createObjectNode()
+                        .set("badv", MAPPER.createObjectNode()
                                 .put("enforce-blocks", 1)));
         final AccountConfigReader reader = AccountConfigReader.create(accountConfig, "bidder1", ORTB_VERSION, true);
 
@@ -979,9 +979,9 @@ public class AccountConfigReaderTest {
     @Test
     public void responseBlockingConfigForShouldReturnErrorWhenDefaultAllowedAdomainIsNotArray() {
         // given
-        final ObjectNode accountConfig = mapper.createObjectNode()
-                .set("attributes", mapper.createObjectNode()
-                        .set("badv", mapper.createObjectNode()
+        final ObjectNode accountConfig = MAPPER.createObjectNode()
+                .set("attributes", MAPPER.createObjectNode()
+                        .set("badv", MAPPER.createObjectNode()
                                 .put("allowed-adomain-for-deals", 1)));
         final AccountConfigReader reader = AccountConfigReader.create(accountConfig, "bidder1", ORTB_VERSION, true);
 
@@ -994,10 +994,10 @@ public class AccountConfigReaderTest {
     @Test
     public void responseBlockingConfigForShouldReturnErrorWhenDefaultAllowedAdomainIsNotStringArray() {
         // given
-        final ObjectNode accountConfig = mapper.createObjectNode()
-                .set("attributes", mapper.createObjectNode()
-                        .set("badv", mapper.createObjectNode()
-                                .set("allowed-adomain-for-deals", mapper.createArrayNode()
+        final ObjectNode accountConfig = MAPPER.createObjectNode()
+                .set("attributes", MAPPER.createObjectNode()
+                        .set("badv", MAPPER.createObjectNode()
+                                .set("allowed-adomain-for-deals", MAPPER.createArrayNode()
                                         .add(1)
                                         .add("domain1.com"))));
         final AccountConfigReader reader = AccountConfigReader.create(accountConfig, "bidder1", ORTB_VERSION, true);
@@ -1012,10 +1012,10 @@ public class AccountConfigReaderTest {
     @Test
     public void responseBlockingConfigForShouldReturnErrorWhenDefaultAllowedBlockedAttrIsNotIntegerArray() {
         // given
-        final ObjectNode accountConfig = mapper.createObjectNode()
-                .set("attributes", mapper.createObjectNode()
-                        .set("battr", mapper.createObjectNode()
-                                .set("allowed-banner-attr-for-deals", mapper.createArrayNode()
+        final ObjectNode accountConfig = MAPPER.createObjectNode()
+                .set("attributes", MAPPER.createObjectNode()
+                        .set("battr", MAPPER.createObjectNode()
+                                .set("allowed-banner-attr-for-deals", MAPPER.createArrayNode()
                                         .add(1)
                                         .add("domain1.com"))));
         final AccountConfigReader reader = AccountConfigReader.create(accountConfig, "bidder1", ORTB_VERSION, true);
@@ -1030,13 +1030,13 @@ public class AccountConfigReaderTest {
     @Test
     public void responseBlockingConfigForShouldReturnErrorWhenDealConditionsIsEmpty() {
         // given
-        final ObjectNode accountConfig = mapper.createObjectNode()
-                .set("attributes", mapper.createObjectNode()
-                        .set("badv", mapper.createObjectNode()
-                                .set("action-overrides", mapper.createObjectNode()
-                                        .set("allowed-adomain-for-deals", mapper.createArrayNode()
-                                                .add(mapper.createObjectNode()
-                                                        .set("conditions", mapper.createObjectNode()))))));
+        final ObjectNode accountConfig = MAPPER.createObjectNode()
+                .set("attributes", MAPPER.createObjectNode()
+                        .set("badv", MAPPER.createObjectNode()
+                                .set("action-overrides", MAPPER.createObjectNode()
+                                        .set("allowed-adomain-for-deals", MAPPER.createArrayNode()
+                                                .add(MAPPER.createObjectNode()
+                                                        .set("conditions", MAPPER.createObjectNode()))))));
         final AccountConfigReader reader = AccountConfigReader.create(accountConfig, "bidder1", ORTB_VERSION, true);
 
         // when and then
@@ -1554,6 +1554,6 @@ public class AccountConfigReaderTest {
     }
 
     private static ObjectNode toObjectNode(ModuleConfig config) {
-        return mapper.valueToTree(config);
+        return MAPPER.valueToTree(config);
     }
 }

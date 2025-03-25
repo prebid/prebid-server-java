@@ -204,9 +204,7 @@ public class HookDebugInfoEnricher {
                 .toList());
     }
 
-    private static ExtModulesTraceAnalyticsActivity toTraceAnalyticsActivity(
-            Activity activity) {
-
+    private static ExtModulesTraceAnalyticsActivity toTraceAnalyticsActivity(Activity activity) {
         return ExtModulesTraceAnalyticsActivity.of(
                 activity.name(),
                 activity.status(),

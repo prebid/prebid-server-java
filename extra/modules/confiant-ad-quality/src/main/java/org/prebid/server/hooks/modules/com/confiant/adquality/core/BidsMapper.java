@@ -13,16 +13,19 @@ import java.util.List;
 
 public class BidsMapper {
 
-    public static RedisBidsData toRedisBidsFromBidResponses(
-            BidRequest bidRequest,
-            List<BidderResponse> bidderResponses) {
+    private BidsMapper() {
+    }
 
-        final List<RedisBidResponseData> confiantBidResponses = bidderResponses
-                .stream().map(bidResponse -> RedisBidResponseData
+    public static RedisBidsData toRedisBidsFromBidResponses(BidRequest bidRequest,
+                                                            List<BidderResponse> bidderResponses) {
+
+        final List<RedisBidResponseData> confiantBidResponses = bidderResponses.stream()
+                .map(bidResponse -> RedisBidResponseData
                         .builder()
                         .dspId(bidResponse.getBidder())
                         .bidresponse(toBidResponseFromBidderResponse(bidRequest, bidResponse))
-                        .build()).toList();
+                        .build())
+                .toList();
 
         return RedisBidsData.builder()
                 .breq(bidRequest)
@@ -30,19 +33,15 @@ public class BidsMapper {
                 .build();
     }
 
-    private static BidResponse toBidResponseFromBidderResponse(
-            BidRequest bidRequest,
-            BidderResponse bidderResponse) {
+    private static BidResponse toBidResponseFromBidderResponse(BidRequest bidRequest,
+                                                               BidderResponse bidderResponse) {
 
         return BidResponse.builder()
                 .id(bidRequest.getId())
-                .cur(bidRequest.getCur().get(0))
+                .cur(bidRequest.getCur().getFirst())
                 .seatbid(Collections.singletonList(SeatBid.builder()
                         .bid(bidderResponse.getSeatBid().getBids().stream().map(BidderBid::getBid).toList())
                         .build()))
                 .build();
-    }
-
-    private BidsMapper() {
     }
 }

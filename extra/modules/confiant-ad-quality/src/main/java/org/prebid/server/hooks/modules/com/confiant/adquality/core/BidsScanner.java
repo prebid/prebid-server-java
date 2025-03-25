@@ -65,7 +65,12 @@ public class BidsScanner {
             readRedisNodeAPI.get("function_submit_bids", submitHash -> {
                 final Object submitHashResult = submitHash.result();
                 if (submitHashResult != null) {
-                    final List<String> readArgs = List.of(submitHashResult.toString(), "0", toBidsAsJson(bids), apiKey, "true");
+                    final List<String> readArgs = List.of(
+                            submitHashResult.toString(),
+                            "0",
+                            toBidsAsJson(bids),
+                            apiKey,
+                            "true");
 
                     readRedisNodeAPI.evalsha(readArgs, response -> {
                         if (response.result() != null) {

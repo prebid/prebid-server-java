@@ -12,21 +12,24 @@ import java.util.List;
 
 public class AdQualityModuleTestUtils {
 
-    public static BidderResponse getBidderResponse(String bidderName, String impId, String bidId) {
-        return BidderResponse.of(bidderName, BidderSeatBid.builder()
-                .bids(Collections.singletonList(BidderBid.builder()
-                        .type(BidType.banner)
-                        .bid(Bid.builder()
-                                .id(bidId)
-                                .price(BigDecimal.valueOf(11))
-                                .impid(impId)
-                                .adm("adm")
-                                .adomain(List.of("www.goog.com", "www.gumgum.com"))
-                                .build())
-                        .build()))
-                .build(), 11);
+    private AdQualityModuleTestUtils() {
     }
 
-    private AdQualityModuleTestUtils() {
+    public static BidderResponse getBidderResponse(String bidderName, String impId, String bidId) {
+        return BidderResponse.of(
+                bidderName,
+                BidderSeatBid.builder()
+                        .bids(Collections.singletonList(BidderBid.builder()
+                                .type(BidType.banner)
+                                .bid(Bid.builder()
+                                        .id(bidId)
+                                        .price(BigDecimal.valueOf(11))
+                                        .impid(impId)
+                                        .adm("adm")
+                                        .adomain(List.of("www.goog.com", "www.gumgum.com"))
+                                        .build())
+                                .build()))
+                        .build(),
+                11);
     }
 }
