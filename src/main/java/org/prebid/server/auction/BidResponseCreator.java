@@ -1123,7 +1123,11 @@ public class BidResponseCreator {
                 .filter(bidderResponse -> CollectionUtils.isNotEmpty(bidderResponse.getSeatBid().getHttpCalls()))
                 .collect(Collectors.toMap(
                         BidderResponseInfo::getSeat,
-                        bidderResponse -> bidderResponse.getSeatBid().getHttpCalls()));
+                        bidderResponse -> new ArrayList<>(bidderResponse.getSeatBid().getHttpCalls()),
+                        (httpCalls1, httpCalls2) -> {
+                            httpCalls1.addAll(httpCalls2);
+                            return httpCalls1;
+                        }));
 
         final DebugHttpCall httpCall = cacheResult.getHttpCall();
         final ExtHttpCall cacheExtHttpCall = httpCall != null ? toExtHttpCall(httpCall) : null;
@@ -1594,11 +1598,9 @@ public class BidResponseCreator {
         final ObjectNode updatedBidExt =
                 originalBidExt != null ? originalBidExt.deepCopy() : mapper.mapper().createObjectNode();
         updatedBidExt.set(PREBID_EXT, mapper.mapper().valueToTree(updatedExtBidPrebid));
-
         final Integer ttl = Optional.ofNullable(cacheInfo)
                 .map(info -> ObjectUtils.max(cacheInfo.getTtl(), cacheInfo.getVideoTtl()))
                 .orElseGet(() -> ObjectUtils.max(bidInfo.getTtl(), bidInfo.getVastTtl()));
-
         return bid.toBuilder()
                 .ext(updatedBidExt)
                 .exp(ttl)
