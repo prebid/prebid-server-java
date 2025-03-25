@@ -12,7 +12,9 @@
         ]
       },
       "ext": {
-        "zeta_global_ssp": {}
+        "zeta_global_ssp": {
+          "sid": 11
+        }
       }
     }
   ],

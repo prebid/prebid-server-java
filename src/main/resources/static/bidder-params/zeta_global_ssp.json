@@ -3,8 +3,11 @@
   "title": "Zeta Global SSP Adapter Params",
   "description": "A schema which validates params accepted by the Zeta SSP adapter",
   "type": "object",
-
-  "properties": {},
-
+  "properties": {
+    "sid": {
+      "type": "integer",
+      "description": "An ID which identifies the publisher"
+    }
+  },
   "required": []
 }
