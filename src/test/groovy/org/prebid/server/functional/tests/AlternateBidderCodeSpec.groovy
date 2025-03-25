@@ -1651,17 +1651,25 @@ class AlternateBidderCodeSpec extends BaseSpec {
         assert response.seatbid.seat == [GENERIC, AMX]
 
         and: "Response should contain adapter code"
-        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [AMX, GENERIC, GENERIC]
+        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [AMX, AMX]
 
         and: "Response should contain bidder targeting"
-        def targeting = response.seatbid[0].bid[0].ext.prebid.targeting
-        assert targeting["hb_pb_${GENERIC}"]
-        assert targeting["hb_size_${GENERIC}"]
-        assert targeting["hb_bidder"] == GENERIC.value
-        assert targeting["hb_bidder_${GENERIC}"] == GENERIC.value
+        def genericTargeting = response.seatbid[0].bid[0].ext.prebid.targeting
+        assert genericTargeting["hb_pb_${GENERIC}"]
+        assert genericTargeting["hb_size_${GENERIC}"]
+        assert genericTargeting["hb_bidder"] == GENERIC.value
+        assert genericTargeting["hb_bidder_${GENERIC}"] == GENERIC.value
+
+        and: "Response should contain bidder targeting"
+        def amxTargeting = response.seatbid[1].bid[0].ext.prebid.targeting
+        assert amxTargeting["hb_pb_${AMX}"]
+        assert amxTargeting["hb_size_${AMX}"]
+        assert amxTargeting["hb_bidder"] == AMX.value
+        assert amxTargeting["hb_bidder_${AMX}"] == AMX.value
 
         and: "Response should contain repose millis with corresponding bidder"
         assert response.ext.responsetimemillis.containsKey(GENERIC.value)
+        assert response.ext.responsetimemillis.containsKey(AMX.value)
 
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -1677,6 +1685,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
         and: "PBS shouldn't emit validation metrics"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
         assert !metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(AMX)]
+        assert !metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(GENERIC)]
     }
 
     private static Account getAccountWithAlternateBidderCode(BidRequest bidRequest) {
