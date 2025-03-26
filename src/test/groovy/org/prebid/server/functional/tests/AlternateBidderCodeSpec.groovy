@@ -1593,20 +1593,24 @@ class AlternateBidderCodeSpec extends BaseSpec {
         def response = pbsServiceWithAmxBidder.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seat"
-        assert response.seatbid.seat == [GENERIC]
+        assert response.seatbid.seat == [GENERIC, GENERIC]
 
         and: "Response should contain adapter code"
-        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [AMX]
+        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten().sort() == [AMX, GENERIC].sort()
 
         and: "Response should contain bidder targeting"
-        def targeting = response.seatbid[0].bid[0].ext.prebid.targeting
+        def targeting = response.seatbid.bid.ext.prebid.targeting.flatten().collectEntries()
         assert targeting["hb_pb_${GENERIC}"]
         assert targeting["hb_size_${GENERIC}"]
-        assert targeting["hb_bidder"] == GENERIC.value
         assert targeting["hb_bidder_${GENERIC}"] == GENERIC.value
+
+        assert !targeting["hb_pb_${AMX}"]
+        assert !targeting["hb_size_${AMX}"]
+        assert !targeting["hb_bidder_${AMX}"]
 
         and: "Response should contain repose millis with corresponding bidder"
         assert response.ext.responsetimemillis.containsKey(GENERIC.value)
+        assert !response.ext.responsetimemillis.containsKey(AMX.value)
 
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -1648,24 +1652,19 @@ class AlternateBidderCodeSpec extends BaseSpec {
         def response = pbsServiceWithAmxBidder.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seat"
-        assert response.seatbid.seat == [GENERIC, AMX]
+        assert response.seatbid.seat.sort() == [GENERIC, AMX].sort()
 
         and: "Response should contain adapter code"
         assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [AMX, AMX]
 
         and: "Response should contain bidder targeting"
-        def genericTargeting = response.seatbid[0].bid[0].ext.prebid.targeting
-        assert genericTargeting["hb_pb_${GENERIC}"]
-        assert genericTargeting["hb_size_${GENERIC}"]
-        assert genericTargeting["hb_bidder"] == GENERIC.value
-        assert genericTargeting["hb_bidder_${GENERIC}"] == GENERIC.value
-
-        and: "Response should contain bidder targeting"
-        def amxTargeting = response.seatbid[1].bid[0].ext.prebid.targeting
-        assert amxTargeting["hb_pb_${AMX}"]
-        assert amxTargeting["hb_size_${AMX}"]
-        assert amxTargeting["hb_bidder"] == AMX.value
-        assert amxTargeting["hb_bidder_${AMX}"] == AMX.value
+        def targeting = response.seatbid.bid.ext.prebid.targeting.flatten().collectEntries()
+        assert targeting["hb_pb_${AMX}"]
+        assert targeting["hb_size_${AMX}"]
+        assert targeting["hb_bidder_${AMX}"] == AMX.value
+        assert targeting["hb_pb_${GENERIC}"]
+        assert targeting["hb_size_${GENERIC}"]
+        assert targeting["hb_bidder_${GENERIC}"] == GENERIC.value
 
         and: "Response should contain repose millis with corresponding bidder"
         assert response.ext.responsetimemillis.containsKey(GENERIC.value)
