@@ -1,6 +1,7 @@
 package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.model.Currency
+import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AlternateBidderCodes
@@ -31,6 +32,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
 import static org.prebid.server.functional.model.Currency.EUR
 import static org.prebid.server.functional.model.Currency.GBP
 import static org.prebid.server.functional.model.Currency.USD
+import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.AMX
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
@@ -1120,6 +1122,45 @@ class BidAdjustmentSpec extends BaseSpec {
         def bidRequest = BidRequest.getDefaultBidRequest(SITE).tap {
             imp[0].ext.prebid.bidder.generic = null
             imp[0].ext.prebid.bidder.amx = new Amx()
+            ext.prebid.tap {
+                bidAdjustmentFactors = new BidAdjustmentFactors().tap {
+                    adjustments = [(GENERIC): randomDecimal]
+                    mediaTypes = [(BANNER): [(GENERIC): bidAdjustmentFactor]]
+                }
+                alternateBidderCodes = new AlternateBidderCodes().tap {
+                    enabled = true
+                    bidders = [(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])]
+                }
+            }
+        }
+
+        and: "Bid response with bidder code"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest, AMX).tap {
+            it.seatbid[0].bid[0].ext = new BidExt(bidderCode: GENERIC)
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "Final bid price should be adjusted"
+        assert response?.seatbid?.first?.bid?.first?.price == bidResponse.seatbid.first.bid.first.price *
+                bidAdjustmentFactor
+
+        and: "Response should contain repose millis with corresponding bidder"
+        assert response.ext.responsetimemillis.containsKey(GENERIC.value)
+
+        where:
+        bidAdjustmentFactor << [0.9, 1.1]
+    }
+
+    def "PBS should prefer bid price adjustment based on media type and alternate bidder code when request has per-media-type bid adjustment factors with soft alias"() {
+        given: "Default bid request with bid adjustment"
+        def bidRequest = BidRequest.getDefaultBidRequest(SITE).tap {
+            ext.prebid.aliases = [(ALIAS.value): AMX]
+            imp[0].ext.prebid.bidder.generic = null
+            imp[0].ext.prebid.bidder.amx = null
+            imp[0].ext.prebid.bidder.alias = new Generic()
             ext.prebid.tap {
                 bidAdjustmentFactors = new BidAdjustmentFactors().tap {
                     adjustments = [(GENERIC): randomDecimal]

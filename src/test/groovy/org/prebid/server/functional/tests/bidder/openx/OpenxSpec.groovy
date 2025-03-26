@@ -26,7 +26,6 @@ import java.time.Instant
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX_ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.WILDCARD
-import static org.prebid.server.functional.model.request.auction.AuctionEnvironment.*
 import static org.prebid.server.functional.model.request.auction.AuctionEnvironment.DEVICE_ORCHESTRATED
 import static org.prebid.server.functional.model.request.auction.AuctionEnvironment.NOT_SUPPORTED
 import static org.prebid.server.functional.model.request.auction.PaaFormat.IAB
@@ -307,7 +306,7 @@ class OpenxSpec extends BaseSpec {
         assert auctionConfigs?.size() == 1
         assert auctionConfigs[0].impId == impId
         assert auctionConfigs[0].bidder == OPENX_ALIAS.value
-        assert auctionConfigs[0].adapter == OPENX.value
+        assert auctionConfigs[0].adapter == OPENX_ALIAS.value
         assert auctionConfigs[0].config == fledgeConfig
 
         and: "PBS response shouldn't contain igi config"
@@ -350,7 +349,13 @@ class OpenxSpec extends BaseSpec {
         assert interestGroupAuctionSeller.impId == impId
         assert interestGroupAuctionSeller.config == fledgeConfig
         assert interestGroupAuctionSeller.ext.bidder == OPENX_ALIAS.value
-        assert interestGroupAuctionSeller.ext.adapter == OPENX.value
+        assert interestGroupAuctionSeller.ext.adapter == OPENX_ALIAS.value
+
+        and: "Response should contain seat"
+        assert response.seatbid[0].seat == OPENX_ALIAS
+
+        and: "Response should contain seat"
+        assert response.seatbid[0].bid[0].ext.prebid.meta.adapterCode == OPENX_ALIAS
 
         and: "PBS response shouldn't contain igi config"
         assert !response.ext?.interestGroupAuctionIntent?[0].interestGroupAuctionBuyer
