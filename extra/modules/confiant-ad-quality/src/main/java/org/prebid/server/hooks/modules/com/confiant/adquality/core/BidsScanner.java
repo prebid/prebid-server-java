@@ -59,7 +59,7 @@ public class BidsScanner {
 
         final RedisAPI readRedisNodeAPI = this.readRedisNode.getRedisAPI();
         final boolean shouldSubmit = !isScanDisabled
-                && readRedisNodeAPI != null && bids.getBresps().size() > 0;
+                && readRedisNodeAPI != null && !bids.getBresps().isEmpty();
 
         if (shouldSubmit) {
             readRedisNodeAPI.get("function_submit_bids", submitHash -> {

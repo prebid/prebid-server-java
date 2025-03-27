@@ -98,7 +98,7 @@ public class DatabaseReaderFactory implements Initializable {
 
             TarArchiveEntry currentEntry;
             boolean hasDatabaseFile = false;
-            while ((currentEntry = tarInput.getNextTarEntry()) != null) {
+            while ((currentEntry = tarInput.getNextEntry()) != null) {
                 if (currentEntry.getName().contains("GeoLite2-Country.mmdb")) {
                     hasDatabaseFile = true;
                     break;
