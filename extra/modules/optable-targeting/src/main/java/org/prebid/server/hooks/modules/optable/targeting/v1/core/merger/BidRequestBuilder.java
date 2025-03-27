@@ -16,8 +16,6 @@ import java.util.Optional;
 
 public class BidRequestBuilder {
 
-    private static final PayloadCleaner PAYLOAD_CLEANER = new PayloadCleaner();
-
     private BidRequest bidRequest;
 
     public BidRequestBuilder(BidRequest bidRequest) {
@@ -78,7 +76,7 @@ public class BidRequestBuilder {
 
         final JsonNode userExtOptable = userOpt.map(User::getExt)
                 .map(it -> it.getProperty("optable"))
-                .map(it -> PAYLOAD_CLEANER.cleanUserExtOptable((ObjectNode) it))
+                .map(it -> PayloadCleaner.cleanUserExtOptable((ObjectNode) it))
                 .orElse(null);
 
         if (userExtOptable != null) {
