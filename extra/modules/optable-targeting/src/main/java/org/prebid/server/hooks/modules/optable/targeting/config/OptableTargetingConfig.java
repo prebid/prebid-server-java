@@ -3,21 +3,20 @@ package org.prebid.server.hooks.modules.optable.targeting.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.vertx.core.Vertx;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.AuctionResponseValidator;
-import org.prebid.server.hooks.modules.optable.targeting.v1.net.OptableHttpClientWrapper;
 import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingAuctionResponseHook;
 import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingModule;
 import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingProcessedAuctionRequestHook;
 import org.prebid.server.hooks.modules.optable.targeting.v1.analytics.AnalyticTagsResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.IdsMapper;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.IpResolver;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableAttributesResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargeting;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.PayloadResolver;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableAttributesResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.QueryBuilder;
 import org.prebid.server.hooks.modules.optable.targeting.v1.net.APIClient;
+import org.prebid.server.hooks.modules.optable.targeting.v1.net.OptableHttpClientWrapper;
 import org.prebid.server.hooks.modules.optable.targeting.v1.net.OptableResponseParser;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.json.ObjectMapperProvider;
 import org.prebid.server.spring.config.VertxContextScope;
 import org.prebid.server.spring.config.model.HttpClientProperties;
 import org.prebid.server.util.HttpUtil;
@@ -39,7 +38,7 @@ public class OptableTargetingConfig {
 
     @Bean
     ObjectMapper objectMapper() {
-        return new ObjectMapper();
+        return ObjectMapperProvider.mapper();
     }
 
     @Bean
@@ -89,11 +88,11 @@ public class OptableTargetingConfig {
     }
 
     @Bean
-    OptableAttributesResolver optableAttributesResolver(IpResolver ipResolver) {
-        return new OptableAttributesResolver(ipResolver);
+    OptableAttributesResolver optableAttributesResolver() {
+        return new OptableAttributesResolver();
     }
 
-    @Bean()
+    @Bean
     OptableTargeting optableTargeting(IdsMapper parametersExtractor,
                                       QueryBuilder queryBuilder, APIClient apiClient) {
 
@@ -101,27 +100,16 @@ public class OptableTargetingConfig {
     }
 
     @Bean
-    IpResolver ipResolver() {
-        return new IpResolver();
-    }
-
-    @Bean
-    AuctionResponseValidator auctionResponseValidator() {
-        return new AuctionResponseValidator();
-    }
-
-    @Bean
     OptableTargetingModule optableTargetingModule(OptableTargetingProperties properties,
                                                   AnalyticTagsResolver analyticTagsResolver,
                                                   OptableTargeting optableTargeting,
                                                   PayloadResolver payloadResolver,
-                                                  OptableAttributesResolver optableAttributesResolver,
-                                                  AuctionResponseValidator auctionResponseValidator) {
+                                                  OptableAttributesResolver optableAttributesResolver) {
 
         return new OptableTargetingModule(List.of(
                 new OptableTargetingProcessedAuctionRequestHook(properties, optableTargeting, payloadResolver,
                         optableAttributesResolver),
                 new OptableTargetingAuctionResponseHook(analyticTagsResolver, payloadResolver,
-                        properties.getAdserverTargeting(), auctionResponseValidator)));
+                        properties.getAdserverTargeting())));
     }
 }

@@ -6,7 +6,6 @@ import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.impl.headers.HeadersMultiMap;
-import lombok.AllArgsConstructor;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.hooks.modules.optable.targeting.model.net.HttpRequest;
@@ -22,10 +21,10 @@ import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 
-@AllArgsConstructor
 public class APIClient {
 
     private static final Logger logger = LoggerFactory.getLogger(APIClient.class);
@@ -41,6 +40,19 @@ public class APIClient {
     private final OptableResponseParser responseParser;
 
     private final String apiKey;
+
+    public APIClient(String endpoint,
+                     HttpClient httpClient,
+                     double logSamplingRate,
+                     OptableResponseParser responseParser,
+                     String apiKey) {
+
+        this.endpoint = Objects.requireNonNull(endpoint);
+        this.httpClient = Objects.requireNonNull(httpClient);
+        this.logSamplingRate = logSamplingRate;
+        this.responseParser = Objects.requireNonNull(responseParser);
+        this.apiKey = apiKey;
+    }
 
     public Future<TargetingResult> getTargeting(String query, List<String> ips, long timeout) {
         logger.debug("Query string: %s".formatted(query));

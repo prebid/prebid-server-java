@@ -1,14 +1,10 @@
 package org.prebid.server.hooks.modules.optable.targeting.model;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Value;
 
 import javax.validation.constraints.NotNull;
 
-@AllArgsConstructor(staticName = "of")
-@Builder(toBuilder = true)
-@Value
+@Value(staticConstructor = "of")
 public class Id {
 
     public static final String EMAIL = "e";
@@ -39,10 +35,8 @@ public class Id {
 
     public static final String OPTABLE_VID = "v";
 
-    /** Name of Identifier */
     @NotNull
     String name;
 
-    /** Identifier's value */
     String value;
 }

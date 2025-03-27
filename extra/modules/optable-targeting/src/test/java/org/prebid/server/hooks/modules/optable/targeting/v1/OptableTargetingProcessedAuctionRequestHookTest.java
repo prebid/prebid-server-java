@@ -14,15 +14,15 @@ import org.mockito.quality.Strictness;
 import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.IpResolver;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableAttributesResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargeting;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.PayloadResolver;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableAttributesResolver;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
+import org.prebid.server.json.ObjectMapperProvider;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -52,15 +52,13 @@ public class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptable
 
     private OptableTargetingProcessedAuctionRequestHook target;
 
-    private IpResolver ipResolver;
-
     @BeforeEach
     public void setUp() {
         when(timeout.remaining()).thenReturn(1000L);
         when(invocationContext.auctionContext()).thenReturn(givenAuctionContext(timeout));
+        mapper = ObjectMapperProvider.mapper();
         payloadResolver = new PayloadResolver(mapper);
-        ipResolver = new IpResolver();
-        optableAttributesResolver = new OptableAttributesResolver(ipResolver);
+        optableAttributesResolver = new OptableAttributesResolver();
         target = new OptableTargetingProcessedAuctionRequestHook(optableTargetingProperties, optableTargeting,
                 payloadResolver, optableAttributesResolver);
     }

@@ -4,9 +4,12 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.util.Optional;
 
-public class BaseMerger {
+public class ExtMerger {
 
-    protected ObjectNode mergeExt(ObjectNode origin, ObjectNode newExt) {
+    private ExtMerger() {
+    }
+
+    protected static ObjectNode mergeExt(ObjectNode origin, ObjectNode newExt) {
         if (newExt == null) {
             return origin;
         }

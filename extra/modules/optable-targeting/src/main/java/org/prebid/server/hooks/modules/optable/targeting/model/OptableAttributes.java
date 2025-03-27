@@ -22,7 +22,7 @@ public class OptableAttributes {
 
     Long timeout;
 
-    public static OptableAttributes of() {
+    public static OptableAttributes empty() {
         return OptableAttributes.builder().build();
     }
 }

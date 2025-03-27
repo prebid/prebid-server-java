@@ -3,28 +3,28 @@ package org.prebid.server.hooks.modules.optable.targeting.v1.core;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.BidResponse;
-import lombok.AllArgsConstructor;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Audience;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Ortb2;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.User;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.merger.BidRequestBuilder;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.merger.BidResponseBuilder;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.merger.BidResponseResolver;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
-@AllArgsConstructor
 public class PayloadResolver {
 
     private ObjectMapper mapper;
 
+    public PayloadResolver(ObjectMapper mapper) {
+        this.mapper = Objects.requireNonNull(mapper);
+    }
+
     public BidRequest enrichBidRequest(BidRequest bidRequest, TargetingResult targetingResults) {
-        if (bidRequest == null) {
-            return null;
-        }
-        if (targetingResults == null) {
+        if (bidRequest == null || targetingResults == null) {
             return bidRequest;
         }
 
@@ -33,36 +33,27 @@ public class PayloadResolver {
             return bidRequest;
         }
 
-        return BidRequestBuilder.of(bidRequest)
+        return new BidRequestBuilder(bidRequest)
                 .addEids(user.getEids())
                 .addData(user.getData())
                 .build();
     }
 
     public BidResponse enrichBidResponse(BidResponse bidResponse, List<Audience> targeting) {
-        if (bidResponse == null) {
-            return null;
-        }
-        if (CollectionUtils.isEmpty(targeting)) {
+        if (bidResponse == null || CollectionUtils.isEmpty(targeting)) {
             return bidResponse;
         }
 
-        return BidResponseBuilder.of(bidResponse, mapper)
-                .applyTargeting(targeting)
-                .build();
+        return BidResponseResolver.of(bidResponse, mapper).applyTargeting(targeting);
     }
 
     public BidRequest clearBidRequest(BidRequest bidRequest) {
-        if (bidRequest == null) {
-            return null;
-        }
-
-        return BidRequestBuilder.of(bidRequest)
-                .clearExtUserOptable()
-                .build();
+        return bidRequest != null
+                ? new BidRequestBuilder(bidRequest).clearExtUserOptable().build()
+                : null;
     }
 
-    private User getUser(TargetingResult targetingResults) {
+    private static User getUser(TargetingResult targetingResults) {
         return Optional.ofNullable(targetingResults)
                 .map(TargetingResult::getOrtb2)
                 .map(Ortb2::getUser)

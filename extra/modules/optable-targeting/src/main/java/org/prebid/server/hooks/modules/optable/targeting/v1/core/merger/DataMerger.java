@@ -9,16 +9,21 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-public class DataMerger extends BaseMerger {
+public class DataMerger {
 
-    public List<com.iab.openrtb.request.Data> merge(List<com.iab.openrtb.request.Data> destination, List<Data> source) {
+    private DataMerger() {
+    }
+
+    public static List<com.iab.openrtb.request.Data> merge(List<com.iab.openrtb.request.Data> destination,
+                                                           List<Data> source) {
+
         if (CollectionUtils.isEmpty(source)) {
             return destination;
         }
 
         final Map<String, com.iab.openrtb.request.Data> idToData = mapDataToId(destination);
         if (idToData == null || idToData.isEmpty()) {
-            return source.stream().map(this::toData).toList();
+            return source.stream().map(DataMerger::toData).toList();
         }
 
         source.forEach(data -> idToData.compute(data.getId(), (id, item) -> item != null
@@ -28,7 +33,7 @@ public class DataMerger extends BaseMerger {
         return idToData.values().stream().toList();
     }
 
-    private com.iab.openrtb.request.Data mergeData(com.iab.openrtb.request.Data destination, Data source) {
+    private static com.iab.openrtb.request.Data mergeData(com.iab.openrtb.request.Data destination, Data source) {
         if (source == null) {
             return destination;
         }
@@ -48,31 +53,31 @@ public class DataMerger extends BaseMerger {
                 .build();
     }
 
-    private Segment mergeSegment(Segment destination,
+    private static Segment mergeSegment(Segment destination,
                                  org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Segment source) {
 
         return Segment.builder()
                 .id(destination.getId())
                 .value(destination.getValue())
                 .name(destination.getName())
-                .ext(mergeExt(destination.getExt(), source.getExt()))
+                .ext(ExtMerger.mergeExt(destination.getExt(), source.getExt()))
                 .build();
     }
 
-    private Segment toSegment(org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Segment segment) {
+    private static Segment toSegment(org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Segment segment) {
         return Segment.builder()
                 .id(segment.getId())
                 .ext(segment.getExt())
                 .build();
     }
 
-    private Map<String, Segment> mapSegmentToId(List<Segment> segment) {
+    private static Map<String, Segment> mapSegmentToId(List<Segment> segment) {
         return CollectionUtils.isNotEmpty(segment)
                 ? segment.stream().collect(Collectors.toMap(Segment::getId, it -> it))
                 : null;
     }
 
-    private com.iab.openrtb.request.Data toData(Data data) {
+    private static com.iab.openrtb.request.Data toData(Data data) {
         if (data == null) {
             return null;
         }
@@ -93,7 +98,7 @@ public class DataMerger extends BaseMerger {
                 .build();
     }
 
-    private Map<String, com.iab.openrtb.request.Data> mapDataToId(List<com.iab.openrtb.request.Data> data) {
+    private static Map<String, com.iab.openrtb.request.Data> mapDataToId(List<com.iab.openrtb.request.Data> data) {
         return CollectionUtils.isNotEmpty(data)
                 ? data.stream().collect(Collectors.toMap(com.iab.openrtb.request.Data::getId, it -> it))
                 : null;

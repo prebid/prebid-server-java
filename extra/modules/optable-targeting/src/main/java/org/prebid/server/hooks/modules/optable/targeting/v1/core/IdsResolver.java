@@ -106,7 +106,7 @@ public class IdsResolver {
     }
 
     private Optional<ExtUserOptable> getExtUserOptable() {
-        return this.extUser.map(it -> it.getProperty("optable"))
+        return extUser.map(it -> it.getProperty("optable"))
                 .map(it -> {
                     try {
                         return objectMapper.treeToValue(it, ExtUserOptable.class);

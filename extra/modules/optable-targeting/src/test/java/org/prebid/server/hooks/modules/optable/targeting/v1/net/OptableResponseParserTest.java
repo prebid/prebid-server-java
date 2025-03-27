@@ -1,6 +1,5 @@
 package org.prebid.server.hooks.modules.optable.targeting.v1.net;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.hooks.modules.optable.targeting.model.net.HttpResponse;
@@ -10,6 +9,7 @@ import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.User;
 import org.prebid.server.hooks.modules.optable.targeting.v1.BaseOptableTest;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.json.ObjectMapperProvider;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -18,7 +18,7 @@ public class OptableResponseParserTest extends BaseOptableTest {
 
     private OptableResponseParser target;
 
-    private final JacksonMapper mapper = new JacksonMapper(new ObjectMapper());
+    private final JacksonMapper mapper = new JacksonMapper(ObjectMapperProvider.mapper());
 
     @BeforeEach
     public void setUp() {

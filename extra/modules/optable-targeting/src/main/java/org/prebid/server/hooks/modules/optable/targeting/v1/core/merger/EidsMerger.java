@@ -9,9 +9,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-public class EidsMerger extends BaseMerger {
+public class EidsMerger {
 
-    public List<Eid> merge(List<Eid> destination, List<Eid> source) {
+    private EidsMerger() {
+    }
+
+    public static List<Eid> merge(List<Eid> destination, List<Eid> source) {
         if (CollectionUtils.isEmpty(source)) {
             return destination;
         }
@@ -29,7 +32,7 @@ public class EidsMerger extends BaseMerger {
         return sourceToEid.values().stream().toList();
     }
 
-    private Eid mergeEids(Eid destination, Eid source) {
+    private static Eid mergeEids(Eid destination, Eid source) {
         if (source == null) {
             return destination;
         }
@@ -50,20 +53,20 @@ public class EidsMerger extends BaseMerger {
                 .build();
     }
 
-    private Uid mergeUids(Uid destination, Uid source) {
+    private static Uid mergeUids(Uid destination, Uid source) {
         return destination.toBuilder()
                 .atype(source.getAtype())
-                .ext(mergeExt(destination.getExt(), source.getExt()))
+                .ext(ExtMerger.mergeExt(destination.getExt(), source.getExt()))
                 .build();
     }
 
-    private Map<String, Eid> mapEidToSource(List<Eid> eids) {
+    private static Map<String, Eid> mapEidToSource(List<Eid> eids) {
         return CollectionUtils.isNotEmpty(eids)
                 ? eids.stream().collect(Collectors.toMap(Eid::getSource, eid -> eid))
                 : null;
     }
 
-    private Map<String, Uid> mapUidToId(List<Uid> uids) {
+    private static Map<String, Uid> mapUidToId(List<Uid> uids) {
         return CollectionUtils.isNotEmpty(uids)
                 ? uids.stream().collect(Collectors.toMap(Uid::getId, uid -> uid))
                 : null;

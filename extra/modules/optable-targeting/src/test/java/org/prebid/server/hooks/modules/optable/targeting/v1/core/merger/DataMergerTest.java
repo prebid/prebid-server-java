@@ -1,6 +1,5 @@
 package org.prebid.server.hooks.modules.optable.targeting.v1.core.merger;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Data;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Segment;
@@ -13,13 +12,6 @@ import static org.assertj.core.api.Assertions.from;
 
 public class DataMergerTest extends BaseMergerTest {
 
-    private DataMerger target;
-
-    @BeforeEach
-    public void setUp() {
-        target = new DataMerger();
-    }
-
     @Test
     public void shouldMergeDifferentData() {
         // given
@@ -28,7 +20,7 @@ public class DataMergerTest extends BaseMergerTest {
         final List<Data> source = givenOptableData("dataId2", "segmentId2", "field2", "value2");
 
         // when
-        final List<com.iab.openrtb.request.Data> result = target.merge(destination, source);
+        final List<com.iab.openrtb.request.Data> result = DataMerger.merge(destination, source);
 
         // then
         assertThat(result).isNotNull()
@@ -53,7 +45,7 @@ public class DataMergerTest extends BaseMergerTest {
         final List<Data> source = givenOptableData("dataId1", "segmentId2", "field2", "value2");
 
         // when
-        final List<com.iab.openrtb.request.Data> result = target.merge(destination, source);
+        final List<com.iab.openrtb.request.Data> result = DataMerger.merge(destination, source);
 
         // then
         assertThat(result).isNotNull()
@@ -75,7 +67,7 @@ public class DataMergerTest extends BaseMergerTest {
         final List<Data> source = givenOptableData("dataId1", "segmentId1", "field2", "value2");
 
         // when
-        final List<com.iab.openrtb.request.Data> result = target.merge(destination, source);
+        final List<com.iab.openrtb.request.Data> result = DataMerger.merge(destination, source);
 
         // then
         assertThat(result).isNotNull()
@@ -94,7 +86,7 @@ public class DataMergerTest extends BaseMergerTest {
         final List<Data> source = givenOptableData("dataId1", "segmentId1", "field1", "value1");
 
         // when
-        final List<com.iab.openrtb.request.Data> result = target.merge(null, source);
+        final List<com.iab.openrtb.request.Data> result = DataMerger.merge(null, source);
 
         // then
         assertThat(result).isNotNull()
@@ -112,7 +104,7 @@ public class DataMergerTest extends BaseMergerTest {
         final List<com.iab.openrtb.request.Data> destination = givenORTBData("dataId1", "segmentId1",
                 "field1", "value1");
         // when
-        final List<com.iab.openrtb.request.Data> result = target.merge(destination, null);
+        final List<com.iab.openrtb.request.Data> result = DataMerger.merge(destination, null);
 
         // then
         assertThat(result).isNotNull()
@@ -127,7 +119,7 @@ public class DataMergerTest extends BaseMergerTest {
     @Test
     public void shouldNotFailWhenArgumentsAreAbsent() {
         // given and when
-        final List<com.iab.openrtb.request.Data> result = target.merge(null, null);
+        final List<com.iab.openrtb.request.Data> result = DataMerger.merge(null, null);
 
         // then
         assertThat(result).isNull();
