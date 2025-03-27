@@ -1,10 +1,8 @@
 package com.iab.openrtb.request.video;
 
-import lombok.AllArgsConstructor;
 import lombok.Value;
 
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class CacheConfig {
 
     Integer ttl;

@@ -151,7 +151,7 @@ public class ApplicationServerConfiguration {
 
             httpServerOptions
                     .setSsl(true)
-                    .setKeyStoreOptions(jksOptions);
+                    .setKeyCertOptions(jksOptions);
         }
 
         return httpServerOptions;
@@ -195,7 +195,8 @@ public class ApplicationServerConfiguration {
 
     @Bean
     CorsHandler corsHandler() {
-        return CorsHandler.create(".*")
+        return CorsHandler.create()
+                .addRelativeOrigin(".*")
                 .allowCredentials(true)
                 .allowedHeaders(new HashSet<>(Arrays.asList(
                         HttpUtil.ORIGIN_HEADER.toString(),

@@ -12,7 +12,6 @@ import io.restassured.config.RestAssuredConfig;
 import io.restassured.internal.mapping.Jackson2Mapper;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
-import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONException;
@@ -297,8 +296,7 @@ public abstract class IntegrationTest extends VertxTest {
         }
     }
 
-    @Value
-    @AllArgsConstructor(staticName = "of")
+    @Value(staticConstructor = "of")
     static class BidRequestExecutionParameters {
         String dealId;
 

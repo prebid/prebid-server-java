@@ -1,13 +1,11 @@
 package org.prebid.server.proto.openrtb.ext.response;
 
-import lombok.AllArgsConstructor;
 import lombok.Value;
 
 /**
  * Defines the contract for bidresponse.ext.debug
  */
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class ExtResponseVideoTargeting {
 
     String hbPb;

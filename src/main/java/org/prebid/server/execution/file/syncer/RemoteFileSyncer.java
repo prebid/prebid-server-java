@@ -26,7 +26,7 @@ import org.prebid.server.util.HttpUtil;
 import java.util.Objects;
 import java.util.function.Function;
 
-@Deprecated
+@Deprecated(forRemoval = true)
 public class RemoteFileSyncer {
 
     private static final Logger logger = LoggerFactory.getLogger(RemoteFileSyncer.class);

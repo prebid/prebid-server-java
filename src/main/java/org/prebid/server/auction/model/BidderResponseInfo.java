@@ -1,11 +1,9 @@
 package org.prebid.server.auction.model;
 
-import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.prebid.server.bidder.model.BidderSeatBidInfo;
 
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class BidderResponseInfo {
 
     String bidder;

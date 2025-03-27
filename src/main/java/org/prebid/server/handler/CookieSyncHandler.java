@@ -146,7 +146,7 @@ public class CookieSyncHandler implements ApplicationResource {
     }
 
     private CookieSyncRequest parseRequest(RoutingContext routingContext) {
-        final Buffer body = routingContext.getBody();
+        final Buffer body = routingContext.body().buffer();
         if (body == null) {
             throw new InvalidCookieSyncRequestException("Request has no body");
         }

@@ -1,7 +1,6 @@
 package org.prebid.server.proto.openrtb.ext.request.triplelift;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
 import lombok.Value;
 
 import java.math.BigDecimal;
@@ -9,8 +8,7 @@ import java.math.BigDecimal;
 /**
  * Defines the contract for bidRequest.imp[i].ext.triplelift
  */
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class ExtImpTriplelift {
 
     @JsonProperty("inventoryCode")

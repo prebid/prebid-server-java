@@ -2,14 +2,12 @@ package org.prebid.server.bidder.adgeneration.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import lombok.AllArgsConstructor;
 import lombok.Value;
 
 import java.math.BigDecimal;
 import java.util.List;
 
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class AdgenerationResponse {
 
     String locationid;

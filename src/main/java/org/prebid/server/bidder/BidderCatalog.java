@@ -136,7 +136,7 @@ public class BidderCatalog {
     /**
      * Returns an {@link BidderInfo} registered by the given name or null if there is none.
      * <p>
-     * Therefore this method should be called only for names that previously passed validity check
+     * Therefore, this method should be called only for names that previously passed validity check
      * through calling {@link #isValidName(String)}.
      */
     public BidderInfo bidderInfoByName(String name) {
@@ -149,7 +149,7 @@ public class BidderCatalog {
     /**
      * Returns an VendorId registered by the given name or null if there is none.
      * <p>
-     * Therefore this method should be called only for names that previously passed validity check
+     * Therefore, this method should be called only for names that previously passed validity check
      * through calling {@link #isValidName(String)}.
      */
     public Integer vendorIdByName(String name) {
@@ -217,7 +217,7 @@ public class BidderCatalog {
     /**
      * Returns an {@link Bidder} registered by the given name or null if there is none.
      * <p>
-     * Therefore this method should be called only for names that previously passed validity check
+     * Therefore, this method should be called only for names that previously passed validity check
      * through calling {@link #isValidName(String)}.
      */
     public Bidder<?> bidderByName(String name) {

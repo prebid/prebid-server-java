@@ -47,7 +47,7 @@ public abstract class PurposeStrategy {
 
     /**
      * This method represents allowance of permission that purpose should provide after full enforcement
-     * (can downgrade to basic if GVL failed) despite of host company or account configuration.
+     * (can downgrade to basic if GVL failed) despite host company or account configuration.
      */
     protected abstract void allowNaturally(PrivacyEnforcementAction privacyEnforcementAction);
 
