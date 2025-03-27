@@ -37,6 +37,33 @@ public class FeedAdBidder implements Bidder<BidRequest> {
         this.mapper = Objects.requireNonNull(mapper);
     }
 
+    @Override
+    public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
+        final MultiMap headers = resolveHeaders(bidRequest.getDevice());
+        return Result.withValue(BidderUtil.defaultRequest(bidRequest, headers, endpointUrl, mapper));
+    }
+
+    private MultiMap resolveHeaders(Device device) {
+        final MultiMap headers = HttpUtil.headers()
+                .add(X_FA_PBS_ADAPTER_VERSION_HEADER, FEED_AD_ADAPTER_VERSION)
+                .add(HttpUtil.X_OPENRTB_VERSION_HEADER, OPENRTB_VERSION);
+        if (device != null) {
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIpv6());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
+        }
+        return headers;
+    }
+
+    @Override
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
+        try {
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            return Result.withValues(extractBids(bidResponse));
+        } catch (DecodeException e) {
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
+        }
+    }
+
     private static List<BidderBid> extractBids(BidResponse bidResponse) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
@@ -52,32 +79,5 @@ public class FeedAdBidder implements Bidder<BidRequest> {
                 .flatMap(Collection::stream)
                 .map(bid -> BidderBid.of(bid, BidType.banner, bidResponse.getCur()))
                 .toList();
-    }
-
-    private MultiMap resolveHeaders(Device device) {
-        final MultiMap headers = HttpUtil.headers()
-                .add(X_FA_PBS_ADAPTER_VERSION_HEADER, FEED_AD_ADAPTER_VERSION)
-                .add(HttpUtil.X_OPENRTB_VERSION_HEADER, OPENRTB_VERSION);
-        if (device != null) {
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIpv6());
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
-        }
-        return headers;
-    }
-
-    @Override
-    public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
-        final MultiMap headers = resolveHeaders(bidRequest.getDevice());
-        return Result.withValue(BidderUtil.defaultRequest(bidRequest, headers, endpointUrl, mapper));
-    }
-
-    @Override
-    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
-        try {
-            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.withValues(extractBids(bidResponse));
-        } catch (DecodeException e) {
-            return Result.withError(BidderError.badServerResponse(e.getMessage()));
-        }
     }
 }

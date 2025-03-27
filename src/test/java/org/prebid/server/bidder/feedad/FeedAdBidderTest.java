@@ -58,15 +58,14 @@ public class FeedAdBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldCorrectlyAddHeadersWhenDevicePresent() {
+    public void makeHttpRequestsShouldCorrectlyAddHeadersWhenDeviceIsPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 bidRequestBuilder -> bidRequestBuilder
                         .device(Device.builder()
                                 .ip("ip")
                                 .ipv6("ipV6").build()),
-                Function.identity()
-        );
+                Function.identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -91,8 +90,7 @@ public class FeedAdBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 bidRequestBuilder -> bidRequestBuilder.device(null),
-                Function.identity()
-        );
+                Function.identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -128,12 +126,11 @@ public class FeedAdBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBid() throws JsonProcessingException {
+    public void makeBidsShouldAlwaysReturnBannerBid() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 null,
-                mapper.writeValueAsString(givenBidResponse(impBuilder -> impBuilder.impid("123")))
-        );
+                mapper.writeValueAsString(givenBidResponse(impBuilder -> impBuilder.impid("123"))));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
