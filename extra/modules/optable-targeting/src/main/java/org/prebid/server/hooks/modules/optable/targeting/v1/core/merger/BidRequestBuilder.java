@@ -5,25 +5,24 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.User;
-import lombok.AllArgsConstructor;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Data;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
-@AllArgsConstructor(staticName = "of")
 public class BidRequestBuilder {
 
-    BidRequest bidRequest;
-
-    private static final EidsMerger EIDS_MERGER = new EidsMerger();
-
-    private static final DataMerger DATA_MERGER = new DataMerger();
-
     private static final PayloadCleaner PAYLOAD_CLEANER = new PayloadCleaner();
+
+    private BidRequest bidRequest;
+
+    public BidRequestBuilder(BidRequest bidRequest) {
+        this.bidRequest = Objects.requireNonNull(bidRequest);
+    }
 
     public BidRequestBuilder addEids(List<Eid> eids) {
         if (bidRequest == null || CollectionUtils.isEmpty(eids)) {
@@ -33,7 +32,7 @@ public class BidRequestBuilder {
         final User user = getOrCreateUser(bidRequest);
         bidRequest = bidRequest.toBuilder()
                 .user(user.toBuilder()
-                        .eids(EIDS_MERGER.merge(user.getEids(), eids))
+                        .eids(EidsMerger.merge(user.getEids(), eids))
                         .build())
                 .build();
 
@@ -49,7 +48,7 @@ public class BidRequestBuilder {
 
         bidRequest = bidRequest.toBuilder()
                 .user(user.toBuilder()
-                        .data(DATA_MERGER.merge(user.getData(), data))
+                        .data(DataMerger.merge(user.getData(), data))
                         .build())
                 .build();
 

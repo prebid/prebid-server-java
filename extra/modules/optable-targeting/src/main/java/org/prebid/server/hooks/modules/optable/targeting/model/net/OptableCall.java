@@ -14,10 +14,7 @@ public class OptableCall {
 
     OptableError error;
 
-    public static OptableCall succeededHttp(HttpRequest request,
-                                                  HttpResponse response,
-                                                  OptableError error) {
-
+    public static OptableCall succeededHttp(HttpRequest request, HttpResponse response, OptableError error) {
         return new OptableCall(request, response, error);
     }
 

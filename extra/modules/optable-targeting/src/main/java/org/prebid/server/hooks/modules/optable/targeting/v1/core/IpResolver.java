@@ -11,7 +11,10 @@ import java.util.Optional;
 
 public class IpResolver {
 
-    public List<String> resolveIp(AuctionContext auctionContext) {
+    private IpResolver() {
+    }
+
+    public static List<String> resolveIp(AuctionContext auctionContext) {
         final List<String> result = new ArrayList<>();
 
         final Optional<AuctionContext> auctionContextOpt = Optional.ofNullable(auctionContext);

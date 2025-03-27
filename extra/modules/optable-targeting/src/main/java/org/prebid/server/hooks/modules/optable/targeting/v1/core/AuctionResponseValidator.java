@@ -13,7 +13,10 @@ import java.util.Optional;
 
 public class AuctionResponseValidator {
 
-    public EnrichmentStatus checkEnrichmentPossibility(BidResponse bidResponse, List<Audience> targeting) {
+    private AuctionResponseValidator() {
+    }
+
+    public static EnrichmentStatus checkEnrichmentPossibility(BidResponse bidResponse, List<Audience> targeting) {
         Status status = Status.SUCCESS;
         Reason reason = Reason.NONE;
 
@@ -31,7 +34,7 @@ public class AuctionResponseValidator {
                 .build();
     }
 
-    private boolean hasKeywords(List<Audience> targeting) {
+    private static boolean hasKeywords(List<Audience> targeting) {
         if (CollectionUtils.isEmpty(targeting)) {
             return false;
         }
@@ -43,7 +46,7 @@ public class AuctionResponseValidator {
         return idsCounter > 0;
     }
 
-    private boolean hasBids(BidResponse bidResponse) {
+    private static boolean hasBids(BidResponse bidResponse) {
         final List<SeatBid> seatBids = Optional.ofNullable(bidResponse).map(BidResponse::getSeatbid).orElse(null);
         if (CollectionUtils.isEmpty(seatBids)) {
             return false;

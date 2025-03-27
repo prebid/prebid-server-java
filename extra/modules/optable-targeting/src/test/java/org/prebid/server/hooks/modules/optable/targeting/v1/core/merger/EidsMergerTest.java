@@ -2,7 +2,6 @@ package org.prebid.server.hooks.modules.optable.targeting.v1.core.merger;
 
 import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Uid;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -13,13 +12,6 @@ import static org.assertj.core.api.Assertions.from;
 
 public class EidsMergerTest extends BaseMergerTest {
 
-    private EidsMerger target;
-
-    @BeforeEach
-    public void setUp() {
-        target = new EidsMerger();
-    }
-
     @Test
     public void shouldMergeDifferentEids() {
         // given
@@ -27,7 +19,7 @@ public class EidsMergerTest extends BaseMergerTest {
         final List<Eid> source = givenEids("source2", "uid2", "field2", "value2");
 
         // when
-        final List<Eid> result = target.merge(destination, source);
+        final List<Eid> result = EidsMerger.merge(destination, source);
 
         // then
         assertThat(result).isNotNull()
@@ -51,7 +43,7 @@ public class EidsMergerTest extends BaseMergerTest {
         final List<Eid> source = givenEids("source1", "uid2", "field2", "value2");
 
         // when
-        final List<Eid> result = target.merge(destination, source);
+        final List<Eid> result = EidsMerger.merge(destination, source);
 
         // then
         assertThat(result).isNotNull()
@@ -72,7 +64,7 @@ public class EidsMergerTest extends BaseMergerTest {
         final List<Eid> source = givenEids("source1", "uid1", "field2", "value2");
 
         // when
-        final List<Eid> result = target.merge(destination, source);
+        final List<Eid> result = EidsMerger.merge(destination, source);
 
         // then
         assertThat(result).isNotNull()
@@ -91,7 +83,7 @@ public class EidsMergerTest extends BaseMergerTest {
         final List<Eid> destination = givenEids("source1", "uid1", "field1", "value1");
 
         // when
-        final List<Eid> result = target.merge(destination, null);
+        final List<Eid> result = EidsMerger.merge(destination, null);
 
         // then
         assertThat(result).isNotNull()
@@ -109,7 +101,7 @@ public class EidsMergerTest extends BaseMergerTest {
         final List<Eid> source = givenEids("source1", "uid1", "field1", "value1");
 
         // when
-        final List<Eid> result = target.merge(null, source);
+        final List<Eid> result = EidsMerger.merge(null, source);
 
         // then
         assertThat(result).isNotNull()
@@ -125,9 +117,9 @@ public class EidsMergerTest extends BaseMergerTest {
         return List.of(Eid.builder()
                 .source(source)
                 .uids(List.of(Uid.builder()
-                                        .id(uidId)
-                                        .ext(givenExt(Map.of(extField, extValue)))
-                                .build()))
+                        .id(uidId)
+                        .ext(givenExt(Map.of(extField, extValue)))
+                        .build()))
                 .build());
     }
 }

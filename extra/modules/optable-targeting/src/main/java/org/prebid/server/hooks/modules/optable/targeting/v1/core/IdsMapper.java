@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Uid;
-import lombok.AllArgsConstructor;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.prebid.server.hooks.modules.optable.targeting.model.Id;
@@ -16,12 +15,16 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-@AllArgsConstructor
 public class IdsMapper {
 
     private final ObjectMapper objectMapper;
 
     private final Map<String, String> ppidMapping;
+
+    public IdsMapper(ObjectMapper objectMapper, Map<String, String> ppidMapping) {
+        this.objectMapper = Objects.requireNonNull(objectMapper);
+        this.ppidMapping = Objects.requireNonNull(ppidMapping);
+    }
 
     public List<Id> toIds(BidRequest bidRequest) {
         final IdsResolver idsResolver = IdsResolver.of(objectMapper, bidRequest);
@@ -43,15 +46,20 @@ public class IdsMapper {
             return null;
         }
 
-        return eids.stream().map(it -> {
-            final String key = ppidMapping.get(it.getSource());
+        return eids.stream()
+                .map(this::eidSourceToFirstUidId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
+    }
 
-            if (key != null) {
-                return Pair.of(key, it.getUids().stream().findFirst().map(Uid::getId).orElse(null));
-            }
+    private Pair<String, String> eidSourceToFirstUidId(Eid eid) {
+        final String key = ppidMapping.get(eid.getSource());
 
-            return null;
-        }).filter(Objects::nonNull).collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
+        return key != null ? Pair.of(key, getFirstUidId(eid)) : null;
+    }
+
+    private String getFirstUidId(Eid eid) {
+        return eid.getUids().stream().findFirst().map(Uid::getId).orElse(null);
     }
 
     private Map<String, String> applyDynamicMapping(IdsResolver idsResolver) {

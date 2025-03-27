@@ -1,7 +1,6 @@
 package org.prebid.server.hooks.modules.optable.targeting.v1;
 
 import io.vertx.core.Future;
-import lombok.AllArgsConstructor;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionResponsePayloadImpl;
@@ -20,24 +19,27 @@ import org.prebid.server.hooks.v1.auction.AuctionResponseHook;
 import org.prebid.server.hooks.v1.auction.AuctionResponsePayload;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
 
-@AllArgsConstructor
 public class OptableTargetingAuctionResponseHook implements AuctionResponseHook {
 
     private static final String CODE = "optable-targeting-auction-response-hook";
 
-    private AnalyticTagsResolver analyticTagsResolver;
+    private final AnalyticTagsResolver analyticTagsResolver;
 
-    private PayloadResolver payloadResolver;
+    private final PayloadResolver payloadResolver;
 
-    boolean adserverTargeting;
+    private final boolean adserverTargeting;
 
-    private AuctionResponseValidator auctionResponseValidator;
+    public OptableTargetingAuctionResponseHook(
+            AnalyticTagsResolver analyticTagsResolver,
+            PayloadResolver payloadResolver,
+            boolean adserverTargeting) {
 
-    @Override
-    public String code() {
-        return CODE;
+        this.analyticTagsResolver = Objects.requireNonNull(analyticTagsResolver);
+        this.payloadResolver = Objects.requireNonNull(payloadResolver);
+        this.adserverTargeting = adserverTargeting;
     }
 
     @Override
@@ -48,31 +50,31 @@ public class OptableTargetingAuctionResponseHook implements AuctionResponseHook 
         moduleContext.setAdserverTargetingEnabled(adserverTargeting);
 
         if (adserverTargeting) {
-            final EnrichmentStatus validationStatus = auctionResponseValidator.checkEnrichmentPossibility(
+            final EnrichmentStatus validationStatus = AuctionResponseValidator.checkEnrichmentPossibility(
                     auctionResponsePayload.bidResponse(), moduleContext.getTargeting());
             moduleContext.setEnrichResponseStatus(validationStatus);
 
             if (validationStatus.status() == Status.SUCCESS) {
-                return enrichedPayloadFuture(moduleContext);
+                return enrichedPayload(moduleContext);
             }
         }
 
-        return successFeature(moduleContext);
+        return success(moduleContext);
     }
 
-    private Future<InvocationResult<AuctionResponsePayload>> enrichedPayloadFuture(ModuleContext moduleContext) {
+    private Future<InvocationResult<AuctionResponsePayload>> enrichedPayload(ModuleContext moduleContext) {
         final List<Audience> targeting = moduleContext.getTargeting();
 
         return CollectionUtils.isNotEmpty(targeting)
-                ? updateFeature(payload -> enrichPayload(payload, targeting), moduleContext)
-                : successFeature(moduleContext);
+                ? update(payload -> enrichPayload(payload, targeting), moduleContext)
+                : success(moduleContext);
     }
 
     private AuctionResponsePayload enrichPayload(AuctionResponsePayload payload, List<Audience> targeting) {
         return AuctionResponsePayloadImpl.of(payloadResolver.enrichBidResponse(payload.bidResponse(), targeting));
     }
 
-    private Future<InvocationResult<AuctionResponsePayload>> updateFeature(
+    private Future<InvocationResult<AuctionResponsePayload>> update(
             Function<AuctionResponsePayload, AuctionResponsePayload> func, ModuleContext moduleContext) {
 
         return Future.succeededFuture(
@@ -85,8 +87,7 @@ public class OptableTargetingAuctionResponseHook implements AuctionResponseHook 
                         .build());
     }
 
-    private Future<InvocationResult<AuctionResponsePayload>> successFeature(ModuleContext moduleContext) {
-
+    private Future<InvocationResult<AuctionResponsePayload>> success(ModuleContext moduleContext) {
         return Future.succeededFuture(
                 InvocationResultImpl.<AuctionResponsePayload>builder()
                         .status(InvocationStatus.success)
@@ -94,5 +95,10 @@ public class OptableTargetingAuctionResponseHook implements AuctionResponseHook 
                         .moduleContext(moduleContext)
                         .analyticsTags(analyticTagsResolver.resolve(moduleContext))
                         .build());
+    }
+
+    @Override
+    public String code() {
+        return CODE;
     }
 }

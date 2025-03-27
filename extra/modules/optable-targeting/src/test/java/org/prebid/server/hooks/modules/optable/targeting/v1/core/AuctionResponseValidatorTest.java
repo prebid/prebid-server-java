@@ -3,7 +3,6 @@ package org.prebid.server.hooks.modules.optable.targeting.v1.core;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.hooks.modules.optable.targeting.model.EnrichmentStatus;
 import org.prebid.server.hooks.modules.optable.targeting.model.Reason;
@@ -17,20 +16,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class AuctionResponseValidatorTest {
 
-    private AuctionResponseValidator target;
-
-    @BeforeEach
-    public void setUp() {
-        target = new AuctionResponseValidator();
-    }
-
     @Test
     public void shouldReturnNobidStatusWhenBidResponseIsEmpty() {
         // given
         final BidResponse bidResponse = BidResponse.builder().build();
 
         // when
-        final EnrichmentStatus result = target.checkEnrichmentPossibility(bidResponse, givenTargeting());
+        final EnrichmentStatus result = AuctionResponseValidator.checkEnrichmentPossibility(
+                bidResponse,
+                givenTargeting());
 
         // then
         assertThat(result).isNotNull()
@@ -44,7 +38,9 @@ public class AuctionResponseValidatorTest {
         final BidResponse bidResponse = BidResponse.builder().build();
 
         // when
-        final EnrichmentStatus result = target.checkEnrichmentPossibility(bidResponse, givenTargeting());
+        final EnrichmentStatus result = AuctionResponseValidator.checkEnrichmentPossibility(
+                bidResponse,
+                givenTargeting());
 
         // then
         assertThat(result).isNotNull()
@@ -62,7 +58,9 @@ public class AuctionResponseValidatorTest {
                 .build();
 
         // when
-        final EnrichmentStatus result = target.checkEnrichmentPossibility(bidResponse, givenTargeting());
+        final EnrichmentStatus result = AuctionResponseValidator.checkEnrichmentPossibility(
+                bidResponse,
+                givenTargeting());
 
         // then
         assertThat(result).isNotNull()

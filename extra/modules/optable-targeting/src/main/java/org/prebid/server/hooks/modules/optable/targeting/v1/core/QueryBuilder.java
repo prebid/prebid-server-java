@@ -1,8 +1,7 @@
 package org.prebid.server.hooks.modules.optable.targeting.v1.core;
 
-import lombok.AllArgsConstructor;
 import org.apache.commons.collections4.CollectionUtils;
-import org.codehaus.plexus.util.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.hooks.modules.optable.targeting.model.Id;
 import org.prebid.server.hooks.modules.optable.targeting.model.OptableAttributes;
 
@@ -12,13 +11,15 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-@AllArgsConstructor
 public class QueryBuilder {
 
     private String idPrefixOrder;
+
+    public QueryBuilder(String idPrefixOrder) {
+        this.idPrefixOrder = idPrefixOrder;
+    }
 
     public String build(List<Id> ids, OptableAttributes optableAttributes) {
         if (CollectionUtils.isEmpty(ids)) {
@@ -40,17 +41,20 @@ public class QueryBuilder {
             final int lastIndex = ids.size() - 1;
             final List<String> order = Stream.of(idPrefixOrder.split(",", -1)).toList();
             final List<Id> orderedIds = new ArrayList<>(ids);
-            orderedIds.sort(Comparator.comparing(item -> {
-                int value = order.indexOf(item.getName());
-                if (value == -1) {
-                    value = lastIndex;
-                }
-                return value;
-            }));
+
+            orderedIds.sort(Comparator.comparing(item -> checkOrder(item, order, lastIndex)));
 
             return orderedIds;
         }
         return ids;
+    }
+
+    private int checkOrder(Id item, List<String> order, int lastIndex) {
+        int value = order.indexOf(item.getName());
+        if (value == -1) {
+            value = lastIndex;
+        }
+        return value;
     }
 
     private void addAttributes(StringBuilder sb, OptableAttributes optableAttributes) {
@@ -71,15 +75,14 @@ public class QueryBuilder {
 
     private void buildQueryString(StringBuilder sb, List<Id> ids) {
         final int size = ids.size();
-        IntStream.range(0, size)
-                .forEach(index -> {
-                    final Id id = ids.get(index);
-                    sb.append(URLEncoder.encode(
-                            "%s:%s".formatted(id.getName(), id.getValue()),
-                            StandardCharsets.UTF_8));
-                    if (index != size - 1) {
-                        sb.append("&id=");
-                    }
-                });
+        for (int index = 0; index < size; index++) {
+            final Id id = ids.get(index);
+            sb.append(URLEncoder.encode(
+                    "%s:%s".formatted(id.getName(), id.getValue()),
+                    StandardCharsets.UTF_8));
+            if (index != size - 1) {
+                sb.append("&id=");
+            }
+        }
     }
 }

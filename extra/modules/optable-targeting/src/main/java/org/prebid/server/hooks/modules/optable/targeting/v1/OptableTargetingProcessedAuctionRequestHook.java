@@ -2,7 +2,6 @@ package org.prebid.server.hooks.modules.optable.targeting.v1;
 
 import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Future;
-import lombok.AllArgsConstructor;
 import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
@@ -22,10 +21,10 @@ import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.ProcessedAuctionRequestHook;
 
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 
-@AllArgsConstructor
 public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuctionRequestHook {
 
     private static final String CODE = "optable-targeting-processed-auction-request-hook";
@@ -34,29 +33,38 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
 
     private final OptableTargetingProperties properties;
 
-    private OptableTargeting optableTargeting;
+    private final OptableTargeting optableTargeting;
 
-    private PayloadResolver payloadResolver;
+    private final PayloadResolver payloadResolver;
 
     private final OptableAttributesResolver optableAttributesResolver;
 
-    @Override
-    public String code() {
-        return CODE;
+    public OptableTargetingProcessedAuctionRequestHook(OptableTargetingProperties properties,
+                                                       OptableTargeting optableTargeting,
+                                                       PayloadResolver payloadResolver,
+                                                       OptableAttributesResolver optableAttributesResolver) {
+
+        this.properties = Objects.requireNonNull(properties);
+        this.optableTargeting = Objects.requireNonNull(optableTargeting);
+        this.payloadResolver = Objects.requireNonNull(payloadResolver);
+        this.optableAttributesResolver = Objects.requireNonNull(optableAttributesResolver);
     }
 
     @Override
     public Future<InvocationResult<AuctionRequestPayload>> call(AuctionRequestPayload auctionRequestPayload,
                                                                 AuctionInvocationContext invocationContext) {
 
-        final ModuleContext moduleContext = createModuleContext();
+        final ModuleContext moduleContext = new ModuleContext()
+                .setMetrics(Metrics.builder()
+                .moduleStartTime(System.currentTimeMillis())
+                .build());
 
         final BidRequest bidRequest = getBidRequest(auctionRequestPayload);
         if (bidRequest == null) {
-            return failedFeature(moduleContext);
+            return failure(moduleContext);
         }
 
-        final long timeout = getHookRemainTime(invocationContext);
+        final long timeout = getHookRemainingTime(invocationContext);
         final OptableAttributes attributes = optableAttributesResolver.resolveAttributes(
                 invocationContext.auctionContext(),
                 properties.getTimeout());
@@ -67,19 +75,15 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
                 timeout);
 
         if (targetingResultFuture == null) {
-            return failedFeature(this::sanitizePayload, moduleContext);
+            return failure(
+                    this::sanitizePayload,
+                    moduleContext.setEnrichRequestStatus(EnrichmentStatus.failure()));
         }
 
-        return targetingResultFuture.compose(targetingResult -> enrichedPayloadFuture(targetingResult, moduleContext))
-                .recover(throwable -> failedFeature(this::sanitizePayload, moduleContext));
-    }
-
-    private ModuleContext createModuleContext() {
-        final ModuleContext moduleContext = new ModuleContext();
-        moduleContext.setMetrics(Metrics.builder().moduleStartTime(System.currentTimeMillis())
-                        .build());
-
-        return moduleContext;
+        return targetingResultFuture.compose(targetingResult -> enrichedPayload(targetingResult, moduleContext))
+                .recover(throwable -> failure(
+                        this::sanitizePayload,
+                        moduleContext.setEnrichRequestStatus(EnrichmentStatus.failure())));
     }
 
     private BidRequest getBidRequest(AuctionRequestPayload auctionRequestPayload) {
@@ -88,30 +92,29 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
                 .orElse(null);
     }
 
-    private long getHookRemainTime(AuctionInvocationContext invocationContext) {
+    private long getHookRemainingTime(AuctionInvocationContext invocationContext) {
         return Optional.ofNullable(invocationContext)
                 .map(AuctionInvocationContext::timeout)
                 .map(Timeout::remaining)
                 .orElse(DEFAULT_API_CALL_TIMEOUT);
     }
 
-    private Future<InvocationResult<AuctionRequestPayload>> enrichedPayloadFuture(TargetingResult targetingResult,
-                                                                                  ModuleContext moduleContext) {
+    private Future<InvocationResult<AuctionRequestPayload>> enrichedPayload(TargetingResult targetingResult,
+                                                                            ModuleContext moduleContext) {
 
-        moduleContext.setMetrics(moduleContext.getMetrics().toBuilder()
-                .moduleFinishTime(System.currentTimeMillis())
-                .build());
+        moduleContext.setFinishTime(System.currentTimeMillis());
 
         if (targetingResult != null) {
-            moduleContext.setTargeting(targetingResult.getAudience());
-            moduleContext.setEnrichRequestStatus(EnrichmentStatus.success());
+            moduleContext.setTargeting(targetingResult.getAudience())
+                    .setEnrichRequestStatus(EnrichmentStatus.success());
 
-            return updateFeature(payload -> {
+            return update(payload -> {
                 final AuctionRequestPayload sanitizedPayload = sanitizePayload(payload);
                 return enrichPayload(sanitizedPayload, targetingResult);
             }, moduleContext);
         } else {
-            return failedFeature(this::sanitizePayload, moduleContext);
+            moduleContext.setEnrichRequestStatus(EnrichmentStatus.failure());
+            return failure(this::sanitizePayload, moduleContext);
         }
     }
 
@@ -123,7 +126,7 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
         return AuctionRequestPayloadImpl.of(payloadResolver.clearBidRequest(payload.bidRequest()));
     }
 
-    private Future<InvocationResult<AuctionRequestPayload>> updateFeature(
+    private static Future<InvocationResult<AuctionRequestPayload>> update(
             Function<AuctionRequestPayload, AuctionRequestPayload> func,
             ModuleContext moduleContext) {
 
@@ -136,16 +139,15 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
                         .build());
     }
 
-    private Future<InvocationResult<AuctionRequestPayload>> failedFeature(ModuleContext moduleContext) {
-        moduleContext.setEnrichRequestStatus(EnrichmentStatus.fail());
-        return succeededFeature(moduleContext);
+    private static Future<InvocationResult<AuctionRequestPayload>> failure(ModuleContext moduleContext) {
+        return success(moduleContext
+                .setEnrichRequestStatus(EnrichmentStatus.failure())
+                .setFinishTime(System.currentTimeMillis()));
     }
 
-    private Future<InvocationResult<AuctionRequestPayload>> failedFeature(
+    private static Future<InvocationResult<AuctionRequestPayload>> failure(
             Function<AuctionRequestPayload, AuctionRequestPayload> func,
             ModuleContext moduleContext) {
-
-        moduleContext.setEnrichRequestStatus(EnrichmentStatus.fail());
 
         return Future.succeededFuture(
                 InvocationResultImpl.<AuctionRequestPayload>builder()
@@ -156,16 +158,17 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
                         .build());
     }
 
-    private Future<InvocationResult<AuctionRequestPayload>> succeededFeature(ModuleContext moduleContext) {
-        moduleContext.setMetrics(moduleContext.getMetrics().toBuilder()
-                .moduleFinishTime(System.currentTimeMillis())
-                .build());
-
+    private static Future<InvocationResult<AuctionRequestPayload>> success(ModuleContext moduleContext) {
         return Future.succeededFuture(
                 InvocationResultImpl.<AuctionRequestPayload>builder()
                         .status(InvocationStatus.success)
                         .action(InvocationAction.no_action)
                         .moduleContext(moduleContext)
                         .build());
+    }
+
+    @Override
+    public String code() {
+        return CODE;
     }
 }

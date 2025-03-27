@@ -44,7 +44,7 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
     @BeforeEach
     public void setUp() {
         when(properties.getTimeout()).thenReturn(100L);
-        target = new OptableAttributesResolver(new IpResolver());
+        target = new OptableAttributesResolver();
     }
 
     @Test

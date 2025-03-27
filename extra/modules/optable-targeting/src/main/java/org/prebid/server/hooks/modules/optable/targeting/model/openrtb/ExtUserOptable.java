@@ -5,10 +5,6 @@ import lombok.EqualsAndHashCode;
 import lombok.Value;
 import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
 
-/**
- * An object containing identifiers
- * which are provided by Optable
- */
 @EqualsAndHashCode(callSuper = true)
 @Builder(toBuilder = true)
 @Value

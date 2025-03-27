@@ -5,7 +5,7 @@ import lombok.Builder;
 @Builder(toBuilder = true)
 public record EnrichmentStatus(Status status, Reason reason) {
 
-    public static EnrichmentStatus fail() {
+    public static EnrichmentStatus failure() {
         return EnrichmentStatus.builder().status(Status.FAIL).build();
     }
 

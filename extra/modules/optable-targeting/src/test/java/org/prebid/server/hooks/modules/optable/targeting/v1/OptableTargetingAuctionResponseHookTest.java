@@ -46,9 +46,10 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
     @BeforeEach
     public void setUp() {
         payloadResolver = new PayloadResolver(mapper);
-        auctionResponseValidator = new AuctionResponseValidator();
-        target = new OptableTargetingAuctionResponseHook(new AnalyticTagsResolver(mapper),
-                payloadResolver, true, auctionResponseValidator);
+        target = new OptableTargetingAuctionResponseHook(
+                new AnalyticTagsResolver(mapper),
+                payloadResolver,
+                true);
     }
 
     @Test
@@ -122,8 +123,10 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
         // given
         when(invocationContext.moduleContext()).thenReturn(givenModuleContext(List.of(new Audience("provider",
                 List.of(new AudienceId("audienceId")), "keyspace", 1))));
-        target = new OptableTargetingAuctionResponseHook(new AnalyticTagsResolver(mapper),
-                payloadResolver, false, auctionResponseValidator);
+        target = new OptableTargetingAuctionResponseHook(
+                new AnalyticTagsResolver(mapper),
+                payloadResolver,
+                false);
 
         // when
         final Future<InvocationResult<AuctionResponsePayload>> future = target.call(auctionResponsePayload,

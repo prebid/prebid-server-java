@@ -1,6 +1,5 @@
 package org.prebid.server.hooks.modules.optable.targeting.v1.net;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
@@ -15,6 +14,7 @@ import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Targeting
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.User;
 import org.prebid.server.hooks.modules.optable.targeting.v1.BaseOptableTest;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.json.ObjectMapperProvider;
 import org.prebid.server.vertx.httpclient.HttpClient;
 
 import java.util.List;
@@ -43,7 +43,8 @@ public class APIClientTest extends BaseOptableTest {
 
     private APIClient target;
 
-    private final OptableResponseParser parser = new OptableResponseParser(new JacksonMapper(new ObjectMapper()));
+    private final OptableResponseParser parser = new OptableResponseParser(
+            new JacksonMapper(ObjectMapperProvider.mapper()));
 
     @BeforeEach
     public void setUp() {

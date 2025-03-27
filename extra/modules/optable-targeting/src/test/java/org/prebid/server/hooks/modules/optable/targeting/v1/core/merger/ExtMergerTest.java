@@ -1,7 +1,6 @@
 package org.prebid.server.hooks.modules.optable.targeting.v1.core.merger;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
@@ -10,13 +9,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class ExtMergerTest extends BaseMergerTest {
 
-    private BaseMerger target;
-
-    @BeforeEach
-    public void setUp() {
-        target = new BaseMerger();
-    }
-
     @Test
     public void shouldMergeTwoExtObjects() {
         // given
@@ -24,7 +16,7 @@ public class ExtMergerTest extends BaseMergerTest {
         final ObjectNode source = givenExt(Map.of("field3", "value3", "field4", "value4"));
 
         // when
-        final ObjectNode result = target.mergeExt(destination, source);
+        final ObjectNode result = ExtMerger.mergeExt(destination, source);
 
         // then
         assertThat(result).isNotNull().hasSize(4);
@@ -40,7 +32,7 @@ public class ExtMergerTest extends BaseMergerTest {
         final ObjectNode destination = givenExt(Map.of("field1", "value1", "field2", "value2"));
 
         // when
-        final ObjectNode result = target.mergeExt(destination, null);
+        final ObjectNode result = ExtMerger.mergeExt(destination, null);
 
         // then
         assertThat(result).isNotNull().hasSize(2);
@@ -54,7 +46,7 @@ public class ExtMergerTest extends BaseMergerTest {
         final ObjectNode source = givenExt(Map.of("field1", "value1", "field2", "value2"));
 
         // when
-        final ObjectNode result = target.mergeExt(null, source);
+        final ObjectNode result = ExtMerger.mergeExt(null, source);
 
         // then
         assertThat(result).isNotNull().hasSize(2);
@@ -65,7 +57,7 @@ public class ExtMergerTest extends BaseMergerTest {
     @Test
     public void shouldNotFail() {
         // given and when
-        final ObjectNode result = target.mergeExt(null, null);
+        final ObjectNode result = ExtMerger.mergeExt(null, null);
 
         // then
         assertThat(result).isNull();

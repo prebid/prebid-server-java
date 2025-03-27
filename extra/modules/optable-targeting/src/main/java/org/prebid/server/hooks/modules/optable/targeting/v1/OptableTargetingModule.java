@@ -6,10 +6,20 @@ import org.prebid.server.hooks.v1.Module;
 
 import java.util.Collection;
 
-public record OptableTargetingModule(
-        Collection<? extends Hook<?, ? extends InvocationContext>> hooks) implements Module {
+public class OptableTargetingModule implements Module {
 
     public static final String CODE = "optable-targeting";
+
+    private final Collection<? extends Hook<?, ? extends InvocationContext>> hooks;
+
+    public OptableTargetingModule(Collection<? extends Hook<?, ? extends InvocationContext>> hooks) {
+        this.hooks = hooks;
+    }
+
+    @Override
+    public Collection<? extends Hook<?, ? extends InvocationContext>> hooks() {
+        return hooks;
+    }
 
     @Override
     public String code() {
