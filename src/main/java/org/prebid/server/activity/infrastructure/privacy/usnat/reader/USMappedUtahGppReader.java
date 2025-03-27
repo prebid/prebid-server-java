@@ -1,7 +1,7 @@
 package org.prebid.server.activity.infrastructure.privacy.usnat.reader;
 
 import com.iab.gpp.encoder.GppModel;
-import com.iab.gpp.encoder.section.UsUtV1;
+import com.iab.gpp.encoder.section.UsUt;
 import org.prebid.server.activity.infrastructure.privacy.uscustomlogic.USCustomLogicGppReader;
 import org.prebid.server.activity.infrastructure.privacy.usnat.USNatGppReader;
 import org.prebid.server.util.ObjectUtil;
@@ -17,15 +17,15 @@ public class USMappedUtahGppReader implements USNatGppReader, USCustomLogicGppRe
     private static final List<Integer> CHILD_SENSITIVE_DATA = List.of(1, 1);
     private static final List<Integer> NON_CHILD_SENSITIVE_DATA = List.of(0, 0);
 
-    private final UsUtV1 consent;
+    private final UsUt consent;
 
     public USMappedUtahGppReader(GppModel gppModel) {
-        consent = gppModel != null ? gppModel.getUsUtV1Section() : null;
+        consent = gppModel != null ? gppModel.getUsUtSection() : null;
     }
 
     @Override
     public Integer getVersion() {
-        return ObjectUtil.getIfNotNull(consent, UsUtV1::getVersion);
+        return ObjectUtil.getIfNotNull(consent, UsUt::getVersion);
     }
 
     @Override
@@ -45,17 +45,17 @@ public class USMappedUtahGppReader implements USNatGppReader, USCustomLogicGppRe
 
     @Override
     public Integer getSaleOptOut() {
-        return ObjectUtil.getIfNotNull(consent, UsUtV1::getSaleOptOut);
+        return ObjectUtil.getIfNotNull(consent, UsUt::getSaleOptOut);
     }
 
     @Override
     public Integer getSaleOptOutNotice() {
-        return ObjectUtil.getIfNotNull(consent, UsUtV1::getSaleOptOutNotice);
+        return ObjectUtil.getIfNotNull(consent, UsUt::getSaleOptOutNotice);
     }
 
     @Override
     public Integer getSharingNotice() {
-        return ObjectUtil.getIfNotNull(consent, UsUtV1::getSharingNotice);
+        return ObjectUtil.getIfNotNull(consent, UsUt::getSharingNotice);
     }
 
     @Override
@@ -70,12 +70,12 @@ public class USMappedUtahGppReader implements USNatGppReader, USCustomLogicGppRe
 
     @Override
     public Integer getTargetedAdvertisingOptOut() {
-        return ObjectUtil.getIfNotNull(consent, UsUtV1::getTargetedAdvertisingOptOut);
+        return ObjectUtil.getIfNotNull(consent, UsUt::getTargetedAdvertisingOptOut);
     }
 
     @Override
     public Integer getTargetedAdvertisingOptOutNotice() {
-        return ObjectUtil.getIfNotNull(consent, UsUtV1::getTargetedAdvertisingOptOutNotice);
+        return ObjectUtil.getIfNotNull(consent, UsUt::getTargetedAdvertisingOptOutNotice);
     }
 
     @Override
@@ -86,7 +86,7 @@ public class USMappedUtahGppReader implements USNatGppReader, USCustomLogicGppRe
     @Override
     public List<Integer> getSensitiveDataProcessing() {
         final List<Integer> originalData = Optional.ofNullable(consent)
-                .map(UsUtV1::getSensitiveDataProcessing)
+                .map(UsUt::getSensitiveDataProcessing)
                 .orElse(DEFAULT_SENSITIVE_DATA_PROCESSING);
 
         final List<Integer> data = new ArrayList<>(DEFAULT_SENSITIVE_DATA_PROCESSING);
@@ -104,7 +104,7 @@ public class USMappedUtahGppReader implements USNatGppReader, USCustomLogicGppRe
 
     @Override
     public Integer getSensitiveDataProcessingOptOutNotice() {
-        return ObjectUtil.getIfNotNull(consent, UsUtV1::getSensitiveDataProcessingOptOutNotice);
+        return ObjectUtil.getIfNotNull(consent, UsUt::getSensitiveDataProcessingOptOutNotice);
     }
 
     @Override
@@ -126,16 +126,16 @@ public class USMappedUtahGppReader implements USNatGppReader, USCustomLogicGppRe
 
     @Override
     public Integer getMspaCoveredTransaction() {
-        return ObjectUtil.getIfNotNull(consent, UsUtV1::getMspaCoveredTransaction);
+        return ObjectUtil.getIfNotNull(consent, UsUt::getMspaCoveredTransaction);
     }
 
     @Override
     public Integer getMspaServiceProviderMode() {
-        return ObjectUtil.getIfNotNull(consent, UsUtV1::getMspaServiceProviderMode);
+        return ObjectUtil.getIfNotNull(consent, UsUt::getMspaServiceProviderMode);
     }
 
     @Override
     public Integer getMspaOptOutOptionMode() {
-        return ObjectUtil.getIfNotNull(consent, UsUtV1::getMspaOptOutOptionMode);
+        return ObjectUtil.getIfNotNull(consent, UsUt::getMspaOptOutOptionMode);
     }
 }
