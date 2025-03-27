@@ -1,17 +1,5 @@
 package org.prebid.server.bidder.feedad;
 
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.function.UnaryOperator;
-
-import static java.util.Collections.singletonList;
-import static java.util.function.UnaryOperator.identity;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.assertj.core.api.Assertions.tuple;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -30,6 +18,18 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.util.HttpUtil;
+
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.function.UnaryOperator;
+
+import static java.util.Collections.singletonList;
+import static java.util.function.UnaryOperator.identity;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.tuple;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 
 public class FeedAdBidderTest extends VertxTest {
 

@@ -1,10 +1,5 @@
 package org.prebid.server.bidder.feedad;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.response.BidResponse;
@@ -23,21 +18,44 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+
 public class FeedAdBidder implements Bidder<BidRequest> {
-    private final String endpointUrl;
-    private final JacksonMapper mapper;
 
     private static final String OPENRTB_VERSION = "2.5";
     private static final String X_FA_PBS_ADAPTER_VERSION_HEADER = "X-FA-PBS-Adapter-Version";
     private static final String FEED_AD_ADAPTER_VERSION = "1.0.0";
+
+    private final String endpointUrl;
+    private final JacksonMapper mapper;
 
     public FeedAdBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
+    private static List<BidderBid> extractBids(BidResponse bidResponse) {
+        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
+            return Collections.emptyList();
+        }
+        return bidsFromResponse(bidResponse);
+    }
+
+    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
+        return bidResponse.getSeatbid().stream()
+                .filter(Objects::nonNull)
+                .map(SeatBid::getBid)
+                .filter(Objects::nonNull)
+                .flatMap(Collection::stream)
+                .map(bid -> BidderBid.of(bid, BidType.banner, bidResponse.getCur()))
+                .toList();
+    }
+
     private MultiMap resolveHeaders(Device device) {
-        MultiMap headers = HttpUtil.headers()
+        final MultiMap headers = HttpUtil.headers()
                 .add(X_FA_PBS_ADAPTER_VERSION_HEADER, FEED_AD_ADAPTER_VERSION)
                 .add(HttpUtil.X_OPENRTB_VERSION_HEADER, OPENRTB_VERSION);
         if (device != null) {
@@ -49,7 +67,7 @@ public class FeedAdBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
-        MultiMap headers = resolveHeaders(bidRequest.getDevice());
+        final MultiMap headers = resolveHeaders(bidRequest.getDevice());
         return Result.withValue(BidderUtil.defaultRequest(bidRequest, headers, endpointUrl, mapper));
     }
 
@@ -61,23 +79,5 @@ public class FeedAdBidder implements Bidder<BidRequest> {
         } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
-    }
-
-    private static List<BidderBid> extractBids(BidResponse bidResponse) {
-        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
-            return Collections.emptyList();
-        }
-        List<BidderBid> bids = bidsFromResponse(bidResponse);
-        return bids;
-    }
-
-    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
-        return bidResponse.getSeatbid().stream()
-                .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, BidType.banner, bidResponse.getCur()))
-                .toList();
     }
 }
