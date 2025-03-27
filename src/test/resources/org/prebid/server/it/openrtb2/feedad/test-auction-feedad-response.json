@@ -1,0 +1,41 @@
+{
+  "id": "some-request-id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "a3ae1b4e2fc24a4fb45540082e98e161",
+          "impid": "some-impression-id1",
+          "price": 3.5,
+          "adm": "awesome-markup",
+          "adomain": [
+            "awesome.com"
+          ],
+          "crid": "20",
+          "w": 320,
+          "h": 50,
+          "exp": 300,
+          "mtype": 1,
+          "ext": {
+            "prebid": {
+              "type": "banner"
+            },
+            "origbidcpm": 3.5
+          }
+        }
+      ],
+      "seat": "feedad",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "feedad": "{{ feedad.response_time_ms }}"
+    },
+    "tmaxrequest": 5000,
+    "prebid": {
+      "auctiontimestamp": 0
+    }
+  }
+}
