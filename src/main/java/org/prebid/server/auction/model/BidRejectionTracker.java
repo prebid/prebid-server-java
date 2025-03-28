@@ -23,7 +23,7 @@ public class BidRejectionTracker {
 
     private static final Logger logger = LoggerFactory.getLogger(BidRejectionTracker.class);
 
-    private static final ConditionalLogger BID_REJECTIONS_LOGGER =
+    private static final ConditionalLogger bidRejectionsLogger =
             new ConditionalLogger("multiple-bid-rejections", logger);
 
     private static final String MULTIPLE_REJECTIONS_WARNING_TEMPLATE =
@@ -60,7 +60,7 @@ public class BidRejectionTracker {
         if (involvedImpIds.contains(impId)) {
             succeededBidsIds.computeIfAbsent(impId, key -> new HashSet<>()).add(bidId);
             if (rejectedBids.containsKey(impId)) {
-                BID_REJECTIONS_LOGGER.warn(
+                bidRejectionsLogger.warn(
                         INCONSISTENT_RESPONSES_WARNING_TEMPLATE.formatted(bidder, impId),
                         logSamplingRate);
             }
@@ -85,7 +85,7 @@ public class BidRejectionTracker {
     private void reject(String impId, BidderBid bid, BidRejectionReason reason) {
         if (involvedImpIds.contains(impId)) {
             if (rejectedBids.containsKey(impId)) {
-                BID_REJECTIONS_LOGGER.warn(
+                bidRejectionsLogger.warn(
                         MULTIPLE_REJECTIONS_WARNING_TEMPLATE.formatted(bidder, impId), logSamplingRate);
             }
 
@@ -96,7 +96,7 @@ public class BidRejectionTracker {
                 final Set<String> succeededBids = succeededBidsIds.get(impId);
                 final boolean removed = bidId == null || succeededBids.remove(bidId);
                 if (removed && !succeededBids.isEmpty()) {
-                    BID_REJECTIONS_LOGGER.warn(
+                    bidRejectionsLogger.warn(
                             INCONSISTENT_RESPONSES_WARNING_TEMPLATE.formatted(bidder, impId),
                             logSamplingRate);
                 }
