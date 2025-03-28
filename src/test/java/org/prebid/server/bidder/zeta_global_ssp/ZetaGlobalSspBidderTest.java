@@ -21,7 +21,6 @@ import org.prebid.server.proto.openrtb.ext.request.zeta_global_ssp.ExtImpZetaGlo
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
@@ -44,20 +43,6 @@ public class ZetaGlobalSspBidderTest extends VertxTest {
     @Test
     public void shouldFailOnBidderCreation() {
         assertThatIllegalArgumentException().isThrownBy(() -> new TheadxBidder("invalid_url", jacksonMapper));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnErrorIfNoImps() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder().imp(Collections.emptyList()).build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .allSatisfy(error -> assertThat(error.getMessage()).contains("No impressions in request"));
-        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
@@ -101,7 +86,7 @@ public class ZetaGlobalSspBidderTest extends VertxTest {
         final BidRequest payload = httpRequest.getPayload();
         assertThat(payload.getImp())
                 .extracting(Imp::getExt)
-                .containsExactly(null, null);
+                .containsExactly(null, givenImpExt(44));
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -214,13 +199,6 @@ public class ZetaGlobalSspBidderTest extends VertxTest {
 
     private static ObjectNode givenImpExt(Integer sid) {
         return mapper.valueToTree(ExtPrebid.of(null, ExtImpZetaGlobalSSP.of(sid)));
-    }
-
-    private static String givenBidResponse(Bid... bids) throws JsonProcessingException {
-        return mapper.writeValueAsString(BidResponse.builder()
-                .cur("USD")
-                .seatbid(singletonList(SeatBid.builder().bid(List.of(bids)).build()))
-                .build());
     }
 
     private static BidderCall<BidRequest> givenHttpCall(String body) {

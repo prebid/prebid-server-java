@@ -7,7 +7,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -22,6 +21,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.zeta_global_ssp.ExtImpZetaGlobalSSP;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
@@ -45,18 +45,13 @@ public class ZetaGlobalSspBidder implements Bidder<BidRequest> {
     private final JacksonMapper mapper;
 
     public ZetaGlobalSspBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = endpointUrl;
-        this.mapper = mapper;
+        this.endpointUrl = HttpUtil.validateUrl(endpointUrl);
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<BidderError> errors = new ArrayList<>();
-
-        if (request.getImp().isEmpty()) {
-            return Result.withError(BidderError.badInput("No impressions in request"));
-        }
-
         final Imp firstImp = request.getImp().getFirst();
         final ExtImpZetaGlobalSSP extImp;
 
@@ -68,7 +63,10 @@ public class ZetaGlobalSspBidder implements Bidder<BidRequest> {
 
         final BidRequest cleanedRequest = removeImpsExt(request);
 
-        return Result.of(Collections.singletonList(createHttpRequest(cleanedRequest, extImp)), errors);
+        final HttpRequest<BidRequest> httpRequest =
+                BidderUtil.defaultRequest(cleanedRequest, resolveEndpoint(extImp), mapper);
+
+        return Result.of(Collections.singletonList(httpRequest), errors);
     }
 
     private ExtImpZetaGlobalSSP parseImpExt(Imp imp) {
@@ -79,26 +77,18 @@ public class ZetaGlobalSspBidder implements Bidder<BidRequest> {
         }
     }
 
-    private HttpRequest<BidRequest> createHttpRequest(BidRequest request, ExtImpZetaGlobalSSP extImpZetaGlobalSSP) {
-        return HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(resolveEndpoint(extImpZetaGlobalSSP))
-                .body(mapper.encodeToBytes(request))
-                .payload(request)
-                .headers(HttpUtil.headers())
-                .build();
-    }
-
     private String resolveEndpoint(ExtImpZetaGlobalSSP extImpZetaGlobalSSP) {
         return endpointUrl
                 .replace(SID_MACRO, StringUtils.defaultString(String.valueOf(extImpZetaGlobalSSP.getSid())));
     }
 
     private BidRequest removeImpsExt(BidRequest request) {
+        final List<Imp> imps = new ArrayList<>(request.getImp());
+        final Imp firstImp = imps.getFirst().toBuilder().ext(null).build();
+        imps.set(0, firstImp);
+
         return request.toBuilder()
-                .imp(request.getImp().stream()
-                        .map(imp -> imp.toBuilder().ext(null).build())
-                        .toList())
+                .imp(imps)
                 .build();
     }
 
