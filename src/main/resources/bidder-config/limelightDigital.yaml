@@ -7,6 +7,8 @@ adapters:
       iionads:
         enabled: false
         endpoint: http://ads-pbs.iionads.com/openrtb/{{PublisherID}}?host={{Host}}
+        meta-info:
+          vendor-id: 1358
       evtech:
         enabled: false
         endpoint: http://ads-pbs.direct.e-volution.ai/openrtb/{{PublisherID}}?host={{Host}}
