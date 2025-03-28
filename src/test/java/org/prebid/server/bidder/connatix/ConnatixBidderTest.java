@@ -282,7 +282,7 @@ public class ConnatixBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        List<HttpRequest<BidRequest>> httpRequests = result.getValue();
+        final List<HttpRequest<BidRequest>> httpRequests = result.getValue();
         httpRequests.forEach(request -> {
             assertThat(request.getUri().contains("dc=us-east-2"));
         });
@@ -301,7 +301,7 @@ public class ConnatixBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        List<HttpRequest<BidRequest>> httpRequests = result.getValue();
+        final List<HttpRequest<BidRequest>> httpRequests = result.getValue();
         httpRequests.forEach(request -> {
             assertThat(request.getUri().contains("dc=us-west-2"));
         });
@@ -320,7 +320,7 @@ public class ConnatixBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        List<HttpRequest<BidRequest>> httpRequests = result.getValue();
+        final List<HttpRequest<BidRequest>> httpRequests = result.getValue();
         httpRequests.forEach(request -> {
             assertThat(request.getUri().contains("dc=eu-west-1"));
         });
@@ -339,7 +339,7 @@ public class ConnatixBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        List<HttpRequest<BidRequest>> httpRequests = result.getValue();
+        final List<HttpRequest<BidRequest>> httpRequests = result.getValue();
         httpRequests.forEach(request -> {
             assertThat(request.getUri() == CONNATIX_ENDPOINT);
         });
@@ -358,7 +358,7 @@ public class ConnatixBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        List<HttpRequest<BidRequest>> httpRequests = result.getValue();
+        final List<HttpRequest<BidRequest>> httpRequests = result.getValue();
         httpRequests.forEach(request -> {
             assertThat(request.getUri() == CONNATIX_ENDPOINT);
         });

@@ -87,7 +87,6 @@ public class ConnatixBidder implements Bidder<BidRequest> {
             return Result.withErrors(errors);
         }
 
-
         final String displayManagerVer = buildDisplayManagerVersion(request);
         final MultiMap headers = resolveHeaders(device);
 
@@ -229,7 +228,8 @@ public class ConnatixBidder implements Bidder<BidRequest> {
         return banner;
     }
 
-    private HttpRequest<BidRequest> makeHttpRequest(BidRequest request, Imp imp, MultiMap headers, String optimalEndpointUrl) {
+    private HttpRequest<BidRequest> makeHttpRequest(BidRequest request, Imp imp, MultiMap headers,
+                                                    String optimalEndpointUrl) {
         final BidRequest outgoingRequest = request.toBuilder()
                 .imp(List.of(imp))
                 .build();
