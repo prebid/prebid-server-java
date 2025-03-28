@@ -42,14 +42,17 @@ import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
 class AuctionSpec extends BaseSpec {
 
     private static final String USER_SYNC_URL = "$networkServiceContainer.rootUri/generic-usersync"
-    private static final boolean CORS_SUPPORT = false
+    private static final Boolean CORS_SUPPORT = false
     private static final UserSyncInfo.Type USER_SYNC_TYPE = REDIRECT
-    private static final int DEFAULT_TIMEOUT = getRandomTimeout()
+    private static final Integer DEFAULT_TIMEOUT = getRandomTimeout()
+    private static final Integer MIN_BID_ID_LENGTH = 17
+    private static final Integer DEFAULT_UUID_LENGTH = 36
     private static final Map<String, String> PBS_CONFIG = ["auction.biddertmax.max"    : MAX_TIMEOUT as String,
                                                            "auction.default-timeout-ms": DEFAULT_TIMEOUT as String]
     private static final Map<String, String> GENERIC_CONFIG = [
             "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url"         : USER_SYNC_URL,
             "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.support-cors": CORS_SUPPORT.toString()]
+
     @Shared
     PrebidServerService prebidServerService = pbsServiceFactory.getService(PBS_CONFIG)
 
@@ -590,5 +593,98 @@ class AuctionSpec extends BaseSpec {
         and: "BidderRequest shouldn't have device.ext.cdep"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert !bidderRequest?.device?.ext?.cdep
+    }
+
+    def "PBS should override short bid.id with random uuid when enforce-random-bid-id is enabled"() {
+        given: "PBS with disabled generate-bid-id"
+        def pbsConfig = ['auction.enforce-random-bid-id': 'true']
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
+
+        and: "Default big request"
+        def bidRequest = BidRequest.defaultBidRequest
+
+        and: "Default bid response"
+        def originalBidId = PBSUtils.getRandomString(PBSUtils.getRandomNumber(0, MIN_BID_ID_LENGTH))
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid.first.bid.first.id = originalBidId
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "Should include imp from original request"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.imp.id.sort() == bidRequest.imp.id.sort()
+
+        and: "BidResponse should contain bid.id equals to generated pr-bid-id"
+        assert response.seatbid.bid.id.flatten().sort() != [originalBidId]
+
+        and: "Bidder request should contain generated pb-bid-id"
+        assert PBSUtils.isUUID(response.seatbid.first.bid.first.id)
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
+    }
+
+    def "PBS shouldn't override short bid.id when enforce-random-bid-id in default or disabled"() {
+        given: "PBS with disabled generate-bid-id"
+        def pbsConfig = ["auction.enforce-random-bid-id": enforceRandomBidId]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
+
+        and: "Default big request"
+        def bidRequest = BidRequest.defaultBidRequest
+
+        and: "Default bid response"
+        def originalBidId = PBSUtils.getRandomString(PBSUtils.getRandomNumber(0, MIN_BID_ID_LENGTH))
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid.first.bid.first.id = originalBidId
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "Should include imp from original request"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.imp.id.sort() == bidRequest.imp.id.sort()
+
+        and: "BidResponse should contain bid.id equals to generated pr-bid-id"
+        assert response.seatbid.bid.id.flatten().sort() == [originalBidId]
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
+
+        where:
+        enforceRandomBidId << [null, 'false']
+    }
+
+    def "PBS shouldn't override long enough bid.id with random uuid when enforce-random-bid-id is enabled"() {
+        given: "PBS with disabled generate-bid-id"
+        def pbsConfig = ['auction.enforce-random-bid-id': 'true']
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
+
+        and: "Default big request"
+        def bidRequest = BidRequest.defaultBidRequest
+
+        and: "Default bid response"
+        def originalBidId = PBSUtils.getRandomString(PBSUtils.getRandomNumber(MIN_BID_ID_LENGTH, DEFAULT_UUID_LENGTH))
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid.first.bid.first.id = originalBidId
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "Should include imp from original request"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.imp.id.sort() == bidRequest.imp.id.sort()
+
+        and: "BidResponse should contain bid.id equals to generated pr-bid-id"
+        assert response.seatbid.bid.id.flatten().sort() == [originalBidId]
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
     }
 }
