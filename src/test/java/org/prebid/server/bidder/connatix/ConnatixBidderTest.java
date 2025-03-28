@@ -8,6 +8,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -266,6 +267,101 @@ public class ConnatixBidderTest extends VertxTest {
                         tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), "deviceIpv6"),
                         tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUseDataCenterUsEast2WhenUserIdStartsWith1() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                request -> request.user(User.builder().buyeruid("1-UserId").build()),
+                givenImp(impBuilder -> impBuilder
+                        .ext(mapper.valueToTree(ExtImpConnatix.of("placementId", null)))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        List<HttpRequest<BidRequest>> httpRequests = result.getValue();
+        httpRequests.forEach(request -> {
+            assertThat(request.getUri().contains("dc=us-east-2"));
+        });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUseDataCenterUsWest2WhenUserIdStartsWith2() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                request -> request.user(User.builder().buyeruid("2-UserId").build()),
+                givenImp(impBuilder -> impBuilder
+                        .ext(mapper.valueToTree(ExtImpConnatix.of("placementId", null)))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        List<HttpRequest<BidRequest>> httpRequests = result.getValue();
+        httpRequests.forEach(request -> {
+            assertThat(request.getUri().contains("dc=us-west-2"));
+        });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUseDataCenterEuWest1WhenUserIdStartsWith3() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                request -> request.user(User.builder().buyeruid("3-UserId").build()),
+                givenImp(impBuilder -> impBuilder
+                        .ext(mapper.valueToTree(ExtImpConnatix.of("placementId", null)))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        List<HttpRequest<BidRequest>> httpRequests = result.getValue();
+        httpRequests.forEach(request -> {
+            assertThat(request.getUri().contains("dc=eu-west-1"));
+        });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldExcludeDataCenterWhenUserIdPrefixDoesNotMatch() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                request -> request.user(User.builder().buyeruid("4-UserId").build()),
+                givenImp(impBuilder -> impBuilder
+                        .ext(mapper.valueToTree(ExtImpConnatix.of("placementId", null)))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        List<HttpRequest<BidRequest>> httpRequests = result.getValue();
+        httpRequests.forEach(request -> {
+            assertThat(request.getUri() == CONNATIX_ENDPOINT);
+        });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldExcludeDataCenterWhenUserIdIsMissing() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                UnaryOperator.identity(),
+                givenImp(impBuilder -> impBuilder
+                        .ext(mapper.valueToTree(ExtImpConnatix.of("placementId", null)))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        List<HttpRequest<BidRequest>> httpRequests = result.getValue();
+        httpRequests.forEach(request -> {
+            assertThat(request.getUri() == CONNATIX_ENDPOINT);
+        });
     }
 
     @Test
