@@ -7,6 +7,10 @@ adapters:
         meta-info:
           maintainer-email: publisher@adtarget.com.tr
         vendor-id: 779
+      monetixads:
+        enabled: false
+        meta-info:
+          maintainer-email: team@monetixads.com
     meta-info:
       maintainer-email: prebid@admatic.com.tr
       app-media-types:
