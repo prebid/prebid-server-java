@@ -55,8 +55,6 @@ public class APIClient {
     }
 
     public Future<TargetingResult> getTargeting(String query, List<String> ips, long timeout) {
-        logger.debug("Query string: %s".formatted(query));
-
         final MultiMap headers = HeadersMultiMap.headers()
                 .add(HttpUtil.ACCEPT_HEADER, "application/json");
 
