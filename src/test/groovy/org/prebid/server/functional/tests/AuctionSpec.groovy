@@ -675,8 +675,8 @@ class AuctionSpec extends BaseSpec {
         and: "BidResponse should contain original bid.id"
         assert response.seatbid.bid.id.flatten().sort() == [originalBidId]
 
-//        cleanup: "Stop and remove pbs container"
-//        pbsServiceFactory.removeContainer(pbsConfig)
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
 
         where:
         enforceRandomBidId << [null, 'false']
