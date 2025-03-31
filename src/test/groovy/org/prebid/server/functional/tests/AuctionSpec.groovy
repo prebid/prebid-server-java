@@ -601,14 +601,20 @@ class AuctionSpec extends BaseSpec {
         def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request"
-        def bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            enableEvents()
+        }
 
         and: "Default bid response"
-        def originalBidId = PBSUtils.getRandomString(PBSUtils.getRandomNumber(0, MIN_BID_ID_LENGTH))
+        def originalBidId = PBSUtils.getRandomString(PBSUtils.getRandomNumber(1, MIN_BID_ID_LENGTH - 1))
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
             seatbid.first.bid.first.id = originalBidId
         }
         bidder.setResponse(bidRequest.id, bidResponse)
+
+        and: "Save account in DB"
+        def account = new Account(uuid: bidRequest.accountId, eventsEnabled: true)
+        accountDao.save(account)
 
         when: "PBS processes auction request"
         def response = pbsService.sendAuctionRequest(bidRequest)
@@ -617,8 +623,14 @@ class AuctionSpec extends BaseSpec {
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp.id.sort() == bidRequest.imp.id.sort()
 
+        and: "Bid response should contain changed bid.id for wins event"
+        def bidIds = response.seatbid.bid.id.flatten()
+        def bidResponseEvents = response.seatbid.first.bid.first.ext.prebid.events
+        assert bidResponseEvents.win.contains("win&b=${bidIds.first}")
+        assert bidResponseEvents.imp.contains("imp&b=${bidIds.first}")
+
         and: "BidResponse should contain different bid.id"
-        assert response.seatbid.bid.id.flatten().sort() != [originalBidId]
+        assert bidIds.sort() != [originalBidId]
 
         and: "BidResponse should contain generated UUID"
         assert PBSUtils.isUUID(response.seatbid.first.bid.first.id)
@@ -633,7 +645,9 @@ class AuctionSpec extends BaseSpec {
         def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request"
-        def bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            enableEvents()
+        }
 
         and: "Default bid response"
         def originalBidId = PBSUtils.getRandomString(PBSUtils.getRandomNumber(0, MIN_BID_ID_LENGTH))
@@ -642,6 +656,10 @@ class AuctionSpec extends BaseSpec {
         }
         bidder.setResponse(bidRequest.id, bidResponse)
 
+        and: "Save account in DB"
+        def account = new Account(uuid: bidRequest.accountId, eventsEnabled: true)
+        accountDao.save(account)
+
         when: "PBS processes auction request"
         def response = pbsService.sendAuctionRequest(bidRequest)
 
@@ -649,11 +667,16 @@ class AuctionSpec extends BaseSpec {
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp.id.sort() == bidRequest.imp.id.sort()
 
-        and: "BidResponse should contain bid.id equals to generated pr-bid-id"
+        and: "Bid response should contain changed bid.id for wins event"
+        def bidResponseEvents = response.seatbid.first.bid.first.ext.prebid.events
+        assert bidResponseEvents.win.contains("win&b=${originalBidId}")
+        assert bidResponseEvents.imp.contains("imp&b=${originalBidId}")
+
+        and: "BidResponse should contain original bid.id"
         assert response.seatbid.bid.id.flatten().sort() == [originalBidId]
 
-        cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(pbsConfig)
+//        cleanup: "Stop and remove pbs container"
+//        pbsServiceFactory.removeContainer(pbsConfig)
 
         where:
         enforceRandomBidId << [null, 'false']
@@ -665,7 +688,9 @@ class AuctionSpec extends BaseSpec {
         def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request"
-        def bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            enableEvents()
+        }
 
         and: "Default bid response"
         def originalBidId = PBSUtils.getRandomString(PBSUtils.getRandomNumber(MIN_BID_ID_LENGTH, DEFAULT_UUID_LENGTH))
@@ -674,6 +699,10 @@ class AuctionSpec extends BaseSpec {
         }
         bidder.setResponse(bidRequest.id, bidResponse)
 
+        and: "Save account in DB"
+        def account = new Account(uuid: bidRequest.accountId, eventsEnabled: true)
+        accountDao.save(account)
+
         when: "PBS processes auction request"
         def response = pbsService.sendAuctionRequest(bidRequest)
 
@@ -681,7 +710,12 @@ class AuctionSpec extends BaseSpec {
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp.id.sort() == bidRequest.imp.id.sort()
 
-        and: "BidResponse should contain bid.id equals to generated pr-bid-id"
+        and: "Bid response should contain changed bid.id for wins event"
+        def bidResponseEvents = response.seatbid.first.bid.first.ext.prebid.events
+        assert bidResponseEvents.win.contains("win&b=${originalBidId}")
+        assert bidResponseEvents.imp.contains("imp&b=${originalBidId}")
+
+        and: "BidResponse should contain original bid.id"
         assert response.seatbid.bid.id.flatten().sort() == [originalBidId]
 
         cleanup: "Stop and remove pbs container"
