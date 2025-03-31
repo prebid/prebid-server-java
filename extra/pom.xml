@@ -53,6 +53,7 @@
         <protoc.version>${protobuf.version}</protoc.version>
         <json-logic.version>1.0.7</json-logic.version>
         <aws.awssdk.version>2.26.24</aws.awssdk.version>
+        <netty-handler.version>4.1.118.Final</netty-handler.version>
 
         <!-- Project test dependency versions -->
         <wiremock.version>3.9.1</wiremock.version>
@@ -77,7 +78,7 @@
             <dependency>
                 <groupId>io.netty</groupId>
                 <artifactId>netty-handler</artifactId>
-                <version>4.1.118.Final</version>
+                <version>${netty-handler.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.springframework.boot</groupId>
