@@ -596,11 +596,11 @@ class AuctionSpec extends BaseSpec {
     }
 
     def "PBS should override short bid.id with random uuid when enforce-random-bid-id is enabled"() {
-        given: "PBS with disabled generate-bid-id"
+        given: "PBS with enabled generate-bid-id"
         def pbsConfig = ['auction.enforce-random-bid-id': 'true']
         def pbsService = pbsServiceFactory.getService(pbsConfig)
 
-        and: "Default big request"
+        and: "Default bid request"
         def bidRequest = BidRequest.defaultBidRequest
 
         and: "Default bid response"
@@ -617,10 +617,10 @@ class AuctionSpec extends BaseSpec {
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp.id.sort() == bidRequest.imp.id.sort()
 
-        and: "BidResponse should contain bid.id equals to generated pr-bid-id"
+        and: "BidResponse should contain different bid.id"
         assert response.seatbid.bid.id.flatten().sort() != [originalBidId]
 
-        and: "Bidder request should contain generated pb-bid-id"
+        and: "BidResponse should contain generated UUID"
         assert PBSUtils.isUUID(response.seatbid.first.bid.first.id)
 
         cleanup: "Stop and remove pbs container"
@@ -632,7 +632,7 @@ class AuctionSpec extends BaseSpec {
         def pbsConfig = ["auction.enforce-random-bid-id": enforceRandomBidId]
         def pbsService = pbsServiceFactory.getService(pbsConfig)
 
-        and: "Default big request"
+        and: "Default bid request"
         def bidRequest = BidRequest.defaultBidRequest
 
         and: "Default bid response"
@@ -660,11 +660,11 @@ class AuctionSpec extends BaseSpec {
     }
 
     def "PBS shouldn't override long enough bid.id with random uuid when enforce-random-bid-id is enabled"() {
-        given: "PBS with disabled generate-bid-id"
+        given: "PBS with enabled generate-bid-id"
         def pbsConfig = ['auction.enforce-random-bid-id': 'true']
         def pbsService = pbsServiceFactory.getService(pbsConfig)
 
-        and: "Default big request"
+        and: "Default bid request"
         def bidRequest = BidRequest.defaultBidRequest
 
         and: "Default bid response"
