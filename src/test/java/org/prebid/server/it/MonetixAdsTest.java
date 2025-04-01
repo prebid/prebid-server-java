@@ -27,8 +27,7 @@ public class MonetixAdsTest extends IntegrationTest {
         // when
         final Response response = responseFor(
                 "openrtb2/monetixads/test-auction-monetixads-request.json",
-                Endpoint.openrtb2_auction
-        );
+                Endpoint.openrtb2_auction);
 
         // then
         assertJsonEquals("openrtb2/monetixads/test-auction-monetixads-response.json", response, List.of("monetixads"));
