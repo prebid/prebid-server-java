@@ -14,23 +14,23 @@ import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 
-public class AdmaticDeTest extends IntegrationTest {
+public class YobeeTest extends IntegrationTest {
 
     @Test
-    public void openrtb2AuctionShouldRespondWithBidsFromAdmaticDe() throws IOException, JSONException {
+    public void openrtb2AuctionShouldRespondWithBidsFromYobee() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/admaticde-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/yobee-exchange"))
                 .withQueryParam("host", equalTo("host"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/admaticde/test-admaticde-bid-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/admaticde/test-admaticde-bid-response.json"))));
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/yobee/test-yobee-bid-request.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/yobee/test-yobee-bid-response.json"))));
 
         // when
         final Response response = responseFor(
-                "openrtb2/admaticde/test-auction-admaticde-request.json",
+                "openrtb2/yobee/test-auction-yobee-request.json",
                 Endpoint.openrtb2_auction);
 
         // then
-        assertJsonEquals("openrtb2/admaticde/test-auction-admaticde-response.json", response, List.of("admaticde"));
+        assertJsonEquals("openrtb2/yobee/test-auction-yobee-response.json", response, List.of("yobee"));
     }
 
 }

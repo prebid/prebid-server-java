@@ -9,6 +9,10 @@ adapters:
         vendor-id: 779
       admaticde:
         enabled: false
+      yobee:
+        enabled: false
+        meta-info:
+          maintainer-email: adops@yobee.it
     meta-info:
       maintainer-email: prebid@admatic.com.tr
       app-media-types:
