@@ -20,9 +20,7 @@ public class NextMillenniumTest extends IntegrationTest {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/nextmillennium-exchange"))
                 .withRequestBody(equalToJson(
-                        jsonFrom("openrtb2/nextmillennium/test-nextmillennium-bid-request.json"),
-                        true,
-                        true))
+                        jsonFrom("openrtb2/nextmillennium/test-nextmillennium-bid-request.json")))
                 .willReturn(aResponse().withBody(
                         jsonFrom("openrtb2/nextmillennium/test-nextmillennium-bid-response.json"))));
 

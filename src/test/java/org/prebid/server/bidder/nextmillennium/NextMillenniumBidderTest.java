@@ -26,6 +26,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidServer;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredRequest;
 import org.prebid.server.proto.openrtb.ext.request.nextmillennium.ExtImpNextMillennium;
@@ -412,6 +413,40 @@ public class NextMillenniumBidderTest extends VertxTest {
                 .usingRecursiveComparison()
                 .ignoringFields("imp", "ext")
                 .isEqualTo(bidRequest);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldPreserveExtPrebidServer() {
+        // given
+        final ExtRequestPrebidServer extRequestPrebidServer = ExtRequestPrebidServer.of(
+                "http://localhost:8080",
+                1,
+                "dc-test",
+                "/openrtb2/auction"
+        );
+
+        final ExtRequest extRequest = ExtRequest.of(ExtRequestPrebid.builder()
+                .server(extRequestPrebidServer)
+                .build());
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .id("test-request")
+                .imp(singletonList(givenImpWithExt(
+                        imp -> imp.banner(Banner.builder().w(300).h(250).build()),
+                        ExtImpNextMillennium.of("placement_id", null))))
+                .ext(extRequest)
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        final BidRequest resultingBidRequest = result.getValue().get(0).getPayload();
+
+        assertThat(resultingBidRequest.getExt()).isNotNull();
+        assertThat(resultingBidRequest.getExt().getPrebid()).isNotNull();
+        assertThat(resultingBidRequest.getExt().getPrebid().getServer()).isEqualTo(extRequestPrebidServer);
     }
 
     @Test
