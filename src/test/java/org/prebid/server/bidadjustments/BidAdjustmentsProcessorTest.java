@@ -31,6 +31,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestCurrency;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidMeta;
 
 import java.math.BigDecimal;
 import java.util.EnumMap;
@@ -95,7 +97,8 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
         final AuctionParticipation auctionParticipation = givenAuctionParticipation(bidderResponse, bidRequest);
 
         final Price adjustedPrice = Price.of("EUR", BigDecimal.valueOf(5.0));
-        given(bidAdjustmentsResolver.resolve(any(), any(), any(), any(), any(), any())).willReturn(adjustedPrice);
+        given(bidAdjustmentsResolver.resolve(any(), any(), any(), any(), any(), any()))
+                .willReturn(adjustedPrice);
 
         final BigDecimal expectedPrice = new BigDecimal("123.5");
         given(currencyService.convertCurrency(any(), any(), eq("EUR"), eq("UAH"))).willReturn(expectedPrice);
@@ -199,8 +202,14 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
     @Test
     public void shouldUpdateBidPriceWithCurrencyConversionAndPriceAdjustmentFactorAndBidAdjustments() {
         // given
-        final BidderResponse bidderResponse = givenBidderResponse(
-                Bid.builder().impid("impId").price(BigDecimal.valueOf(2.0)).dealid("dealId").build());
+        final BidderResponse bidderResponse = givenBidderResponse(Bid.builder()
+                .impid("impId")
+                .price(BigDecimal.valueOf(2.0))
+                .dealid("dealId")
+                .ext(mapper.createObjectNode().set("prebid", mapper.valueToTree(ExtBidPrebid.builder()
+                        .meta(ExtBidPrebidMeta.builder().adapterCode("adapter").build())
+                        .build())))
+                .build());
 
         final ExtRequestBidAdjustmentFactors givenAdjustments = ExtRequestBidAdjustmentFactors.builder().build();
         givenAdjustments.addFactor("bidder", BigDecimal.TEN);
@@ -214,10 +223,11 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
 
         final AuctionParticipation auctionParticipation = givenAuctionParticipation(bidderResponse, bidRequest);
 
-        given(bidAdjustmentFactorResolver.resolve(ImpMediaType.banner, givenAdjustments, "bidder"))
+        given(bidAdjustmentFactorResolver.resolve(ImpMediaType.banner, givenAdjustments, "adapter", "seat"))
                 .willReturn(BigDecimal.TEN);
         final Price adjustedPrice = Price.of("EUR", BigDecimal.valueOf(5.0));
-        given(bidAdjustmentsResolver.resolve(any(), any(), any(), any(), any(), any())).willReturn(adjustedPrice);
+        given(bidAdjustmentsResolver.resolve(any(), any(), any(), any(), any(), any()))
+                .willReturn(adjustedPrice);
         final BigDecimal expectedPrice = new BigDecimal("123.5");
         given(currencyService.convertCurrency(any(), any(), eq("EUR"), eq("UAH"))).willReturn(expectedPrice);
 
@@ -278,7 +288,7 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
         expectedBidExt.put("origbidcpm", new BigDecimal("2.0"));
         expectedBidExt.put("origbidcur", "CUR1");
         final Bid expectedBid = Bid.builder().impid("impId1").price(updatedPrice).ext(expectedBidExt).build();
-        final BidderBid expectedBidderBid = BidderBid.of(expectedBid, banner, "UAH");
+        final BidderBid expectedBidderBid = BidderBid.of(expectedBid, banner, "seat", "UAH");
         final BidderError expectedError =
                 BidderError.generic("Unable to convert bid currency CUR2 to desired ad server currency USD");
 
@@ -326,7 +336,7 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
         expectedBidExt.put("origbidcpm", new BigDecimal("2.0"));
         expectedBidExt.put("origbidcur", "USD");
         final Bid expectedBid = Bid.builder().impid("impId1").price(updatedPrice).ext(expectedBidExt).build();
-        final BidderBid expectedBidderBid = BidderBid.of(expectedBid, banner, "CUR");
+        final BidderBid expectedBidderBid = BidderBid.of(expectedBid, banner, "seat", "CUR");
         assertThat(result.getBidderResponse().getSeatBid().getBids()).containsOnly(expectedBidderBid);
 
         final BidderError expectedError = BidderError.generic(
@@ -383,11 +393,18 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
     public void shouldReturnBidsWithAdjustedPricesWhenAdjustmentFactorPresent() {
         // given
         final BidderResponse bidderResponse = givenBidderResponse(
-                Bid.builder().impid("impId").price(BigDecimal.valueOf(2)).dealid("dealId").build());
+                Bid.builder()
+                        .impid("impId")
+                        .price(BigDecimal.valueOf(2))
+                        .dealid("dealId")
+                        .ext(mapper.createObjectNode().set("prebid", mapper.valueToTree(ExtBidPrebid.builder()
+                                .meta(ExtBidPrebidMeta.builder().adapterCode("adapter").build())
+                                .build())))
+                        .build());
 
         final ExtRequestBidAdjustmentFactors givenAdjustments = ExtRequestBidAdjustmentFactors.builder().build();
         givenAdjustments.addFactor("bidder", BigDecimal.valueOf(2.468));
-        given(bidAdjustmentFactorResolver.resolve(ImpMediaType.banner, givenAdjustments, "bidder"))
+        given(bidAdjustmentFactorResolver.resolve(ImpMediaType.banner, givenAdjustments, "adapter", "seat"))
                 .willReturn(BigDecimal.valueOf(2.468));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), identity())),
@@ -421,24 +438,23 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
     @Test
     public void shouldReturnBidsWithAdjustedPricesWithVideoInstreamMediaTypeIfVideoPlacementEqualsOne() {
         // given
-        final BidderResponse bidderResponse = BidderResponse.of(
-                "bidder",
-                BidderSeatBid.builder()
-                        .bids(List.of(
-                                givenBidderBid(Bid.builder()
-                                                .impid("123")
-                                                .price(BigDecimal.valueOf(2))
-                                                .dealid("dealId")
-                                                .build(),
-                                        "USD", video)))
-                        .build(),
-                1);
+        final BidderSeatBid seatBid = BidderSeatBid.builder().bids(List.of(givenBidderBid(Bid.builder()
+                                .impid("123")
+                                .price(BigDecimal.valueOf(2))
+                                .dealid("dealId")
+                                .ext(mapper.createObjectNode().set("prebid", mapper.valueToTree(ExtBidPrebid.builder()
+                                        .meta(ExtBidPrebidMeta.builder().adapterCode("adapter").build())
+                                        .build())))
+                                .build(),
+                        "USD", video)))
+                .build();
+        final BidderResponse bidderResponse = BidderResponse.of("bidder", seatBid, 1);
 
         final ExtRequestBidAdjustmentFactors givenAdjustments = ExtRequestBidAdjustmentFactors.builder()
                 .mediatypes(new EnumMap<>(singletonMap(ImpMediaType.video,
                         singletonMap("bidder", BigDecimal.valueOf(3.456)))))
                 .build();
-        given(bidAdjustmentFactorResolver.resolve(ImpMediaType.video, givenAdjustments, "bidder"))
+        given(bidAdjustmentFactorResolver.resolve(ImpMediaType.video, givenAdjustments, "adapter", "seat"))
                 .willReturn(BigDecimal.valueOf(3.456));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), impBuilder ->
@@ -473,24 +489,23 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
     @Test
     public void shouldReturnBidsWithAdjustedPricesWithVideoInstreamMediaTypeIfVideoPlcmtEqualsOne() {
         // given
-        final BidderResponse bidderResponse = BidderResponse.of(
-                "bidder",
-                BidderSeatBid.builder()
-                        .bids(List.of(
-                                givenBidderBid(Bid.builder()
-                                                .impid("123")
-                                                .price(BigDecimal.valueOf(2))
-                                                .dealid("dealId")
-                                                .build(),
-                                        "USD", video)))
-                        .build(),
-                1);
+        final BidderSeatBid seatBid = BidderSeatBid.builder().bids(List.of(givenBidderBid(Bid.builder()
+                                .impid("123")
+                                .price(BigDecimal.valueOf(2))
+                                .dealid("dealId")
+                                .ext(mapper.createObjectNode().set("prebid", mapper.valueToTree(ExtBidPrebid.builder()
+                                        .meta(ExtBidPrebidMeta.builder().adapterCode("adapter").build())
+                                        .build())))
+                                .build(),
+                        "USD", video)))
+                .build();
+        final BidderResponse bidderResponse = BidderResponse.of("bidder", seatBid, 1);
 
         final ExtRequestBidAdjustmentFactors givenAdjustments = ExtRequestBidAdjustmentFactors.builder()
                 .mediatypes(new EnumMap<>(singletonMap(ImpMediaType.video,
                         singletonMap("bidder", BigDecimal.valueOf(3.456)))))
                 .build();
-        given(bidAdjustmentFactorResolver.resolve(ImpMediaType.video, givenAdjustments, "bidder"))
+        given(bidAdjustmentFactorResolver.resolve(ImpMediaType.video, givenAdjustments, "adapter", "seat"))
                 .willReturn(BigDecimal.valueOf(3.456));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), impBuilder ->
@@ -525,24 +540,26 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
     @Test
     public void shouldReturnBidsWithAdjustedPricesWithVideoOutstreamMediaTypeIfVideoPlacementAndPlcmtIsMissing() {
         // given
+        final BidderSeatBid seatBid = BidderSeatBid.builder().bids(List.of(givenBidderBid(Bid.builder()
+                                .impid("123")
+                                .price(BigDecimal.valueOf(2))
+                                .dealid("dealId")
+                                .ext(mapper.createObjectNode().set("prebid", mapper.valueToTree(ExtBidPrebid.builder()
+                                        .meta(ExtBidPrebidMeta.builder().adapterCode("adapter").build())
+                                        .build())))
+                                .build(),
+                        "USD", video)))
+                .build();
         final BidderResponse bidderResponse = BidderResponse.of(
                 "bidder",
-                BidderSeatBid.builder()
-                        .bids(List.of(
-                                givenBidderBid(Bid.builder()
-                                                .impid("123")
-                                                .price(BigDecimal.valueOf(2))
-                                                .dealid("dealId")
-                                                .build(),
-                                        "USD", video)))
-                        .build(),
+                seatBid,
                 1);
 
         final ExtRequestBidAdjustmentFactors givenAdjustments = ExtRequestBidAdjustmentFactors.builder()
                 .mediatypes(new EnumMap<>(singletonMap(ImpMediaType.video,
                         singletonMap("bidder", BigDecimal.valueOf(3.456)))))
                 .build();
-        given(bidAdjustmentFactorResolver.resolve(ImpMediaType.video_outstream, givenAdjustments, "bidder"))
+        given(bidAdjustmentFactorResolver.resolve(ImpMediaType.video_outstream, givenAdjustments, "adapter", "seat"))
                 .willReturn(BigDecimal.valueOf(3.456));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), impBuilder ->
@@ -576,18 +593,17 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
     @Test
     public void shouldReturnBidAdjustmentMediaTypeVideoOutstreamIfImpIdNotEqualBidImpId() {
         // given
-        final BidderResponse bidderResponse = BidderResponse.of(
-                "bidder",
-                BidderSeatBid.builder()
-                        .bids(List.of(
-                                givenBidderBid(Bid.builder()
-                                                .impid("125")
-                                                .price(BigDecimal.valueOf(2))
-                                                .dealid("dealId")
-                                                .build(),
-                                        "USD", video)))
-                        .build(),
-                1);
+        final BidderSeatBid seatBid = BidderSeatBid.builder().bids(List.of(givenBidderBid(Bid.builder()
+                                .impid("125")
+                                .price(BigDecimal.valueOf(2))
+                                .dealid("dealId")
+                                .ext(mapper.createObjectNode().set("prebid", mapper.valueToTree(ExtBidPrebid.builder()
+                                        .meta(ExtBidPrebidMeta.builder().adapterCode("adapter").build())
+                                        .build())))
+                                .build(),
+                        "USD", video)))
+                .build();
+        final BidderResponse bidderResponse = BidderResponse.of("bidder", seatBid, 1);
 
         final ExtRequestBidAdjustmentFactors givenAdjustments = ExtRequestBidAdjustmentFactors.builder()
                 .mediatypes(new EnumMap<>(singletonMap(ImpMediaType.video,
@@ -614,7 +630,7 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
                 .extracting(Bid::getPrice)
                 .containsExactly(BigDecimal.valueOf(2));
 
-        verify(bidAdjustmentFactorResolver).resolve(ImpMediaType.video_outstream, givenAdjustments, "bidder");
+        verify(bidAdjustmentFactorResolver).resolve(ImpMediaType.video_outstream, givenAdjustments, "adapter", "seat");
         verify(bidAdjustmentsResolver).resolve(
                 eq(Price.of("USD", BigDecimal.valueOf(2))),
                 eq(bidRequest),
@@ -691,7 +707,7 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
                 .mediatypes(new EnumMap<>(singletonMap(ImpMediaType.banner,
                         singletonMap("bidder", BigDecimal.valueOf(3.456)))))
                 .build();
-        given(bidAdjustmentFactorResolver.resolve(ImpMediaType.banner, givenAdjustments, "bidder"))
+        given(bidAdjustmentFactorResolver.resolve(ImpMediaType.banner, givenAdjustments, null, "seat"))
                 .willReturn(BigDecimal.valueOf(3.456));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), identity())),
@@ -720,17 +736,19 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
     @Test
     public void shouldAdjustPriceWithPriorityForMediaTypeAdjustment() {
         // given
+        final BidderSeatBid seatBid = BidderSeatBid.builder().bids(List.of(givenBidderBid(Bid.builder()
+                                .impid("123")
+                                .price(BigDecimal.valueOf(2))
+                                .dealid("dealId")
+                                .ext(mapper.createObjectNode().set("prebid", mapper.valueToTree(ExtBidPrebid.builder()
+                                        .meta(ExtBidPrebidMeta.builder().adapterCode("adapter").build())
+                                        .build())))
+                                .build(),
+                        "USD")))
+                .build();
         final BidderResponse bidderResponse = BidderResponse.of(
                 "bidder",
-                BidderSeatBid.builder()
-                        .bids(List.of(
-                                givenBidderBid(Bid.builder()
-                                                .impid("123")
-                                                .price(BigDecimal.valueOf(2))
-                                                .dealid("dealId")
-                                                .build(),
-                                        "USD")))
-                        .build(),
+                seatBid,
                 1);
 
         final ExtRequestBidAdjustmentFactors givenAdjustments = ExtRequestBidAdjustmentFactors.builder()
@@ -738,7 +756,7 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
                         singletonMap("bidder", BigDecimal.valueOf(3.456)))))
                 .build();
         givenAdjustments.addFactor("bidder", BigDecimal.valueOf(2.468));
-        given(bidAdjustmentFactorResolver.resolve(ImpMediaType.banner, givenAdjustments, "bidder"))
+        given(bidAdjustmentFactorResolver.resolve(ImpMediaType.banner, givenAdjustments, "adapter", "seat"))
                 .willReturn(BigDecimal.valueOf(3.456));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), identity())),
@@ -834,11 +852,11 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
     }
 
     private static BidderBid givenBidderBid(Bid bid, String currency) {
-        return BidderBid.of(bid, banner, currency);
+        return BidderBid.of(bid, banner, "seat", currency);
     }
 
     private static BidderBid givenBidderBid(Bid bid, String currency, BidType type) {
-        return BidderBid.of(bid, type, currency);
+        return BidderBid.of(bid, type, "seat", currency);
     }
 
     private static <K, V> Map<K, V> doubleMap(K key1, V value1, K key2, V value2) {
@@ -856,7 +874,7 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
         return BidderResponse.of(
                 "bidder",
                 BidderSeatBid.builder()
-                        .bids(singletonList(givenBidderBid(bid, "USD")))
+                        .bids(singletonList(givenBidderBid(bid, "USD", banner)))
                         .build(),
                 1);
     }

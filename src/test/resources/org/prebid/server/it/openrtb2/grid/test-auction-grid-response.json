@@ -18,7 +18,8 @@
             "prebid": {
               "type": "banner",
               "meta": {
-                "demandSource": "trustx"
+                "demandSource": "trustx",
+                "adaptercode": "grid"
               }
             },
             "origbidcpm": 3.33

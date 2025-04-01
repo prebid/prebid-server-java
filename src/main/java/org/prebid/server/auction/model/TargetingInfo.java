@@ -9,6 +9,8 @@ public class TargetingInfo {
 
     String bidderCode;
 
+    String seat;
+
     boolean isTargetingEnabled;
 
     boolean isWinningBid;

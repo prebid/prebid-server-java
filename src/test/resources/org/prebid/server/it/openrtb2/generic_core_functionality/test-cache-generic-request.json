@@ -30,7 +30,8 @@
               "rendererData": {
                 "data": "some data"
               },
-              "rendererUrl": "rendererUrl"
+              "rendererUrl": "rendererUrl",
+              "adaptercode": "generic"
             }
           },
           "origbidcpm": 3.33

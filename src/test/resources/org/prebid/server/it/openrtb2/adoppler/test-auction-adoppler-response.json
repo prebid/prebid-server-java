@@ -18,7 +18,10 @@
           ],
           "ext": {
             "prebid": {
-              "type": "banner"
+              "type": "banner",
+              "meta": {
+                "adaptercode": "adoppler"
+              }
             },
             "origbidcpm": 3.33,
             "ads": {

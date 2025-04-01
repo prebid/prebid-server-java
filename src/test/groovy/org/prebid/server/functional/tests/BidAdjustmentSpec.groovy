@@ -3,10 +3,13 @@ package org.prebid.server.functional.tests
 import org.prebid.server.functional.model.Currency
 import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountConfig
+import org.prebid.server.functional.model.config.AlternateBidderCodes
+import org.prebid.server.functional.model.config.BidderConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.mock.services.currencyconversion.CurrencyConversionRatesResponse
 import org.prebid.server.functional.model.request.auction.AdjustmentRule
 import org.prebid.server.functional.model.request.auction.AdjustmentType
+import org.prebid.server.functional.model.request.auction.Amx
 import org.prebid.server.functional.model.request.auction.BidAdjustment
 import org.prebid.server.functional.model.request.auction.BidAdjustmentFactors
 import org.prebid.server.functional.model.request.auction.BidAdjustmentRule
@@ -14,6 +17,7 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.VideoPlacementSubtypes
 import org.prebid.server.functional.model.request.auction.VideoPlcmtSubtype
+import org.prebid.server.functional.model.response.auction.BidExt
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
@@ -27,6 +31,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
 import static org.prebid.server.functional.model.Currency.EUR
 import static org.prebid.server.functional.model.Currency.GBP
 import static org.prebid.server.functional.model.Currency.USD
+import static org.prebid.server.functional.model.bidder.BidderName.AMX
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.RUBICON
@@ -68,7 +73,9 @@ class BidAdjustmentSpec extends BaseSpec {
     private static final CurrencyConversion currencyConversion = new CurrencyConversion(networkServiceContainer).tap {
         setCurrencyConversionRatesResponse(CurrencyConversionRatesResponse.getDefaultCurrencyConversionRatesResponse(DEFAULT_CURRENCY_RATES))
     }
-    private static final PrebidServerService pbsService = pbsServiceFactory.getService(externalCurrencyConverterConfig)
+    private static final Map AMX_CONFIG = ["adapters.amx.enabled" : "true",
+                                           "adapters.amx.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
+    private static final PrebidServerService pbsService = pbsServiceFactory.getService(externalCurrencyConverterConfig + AMX_CONFIG)
 
     def "PBS should adjust bid price for matching bidder when request has per-bidder bid adjustment factors"() {
         given: "Default bid request with bid adjustment"
@@ -1072,6 +1079,77 @@ class BidAdjustmentSpec extends BaseSpec {
 
         where:
         adjustmentType << [CPM, STATIC]
+    }
+
+    def "PBS should adjust bid price for matching bidder and alternate bidder code when request has per-bidder bid adjustment factors"() {
+        given: "Default bid request with bid adjustment and amx bidder"
+        def bidRequest = BidRequest.getDefaultBidRequest(SITE).tap {
+            imp[0].ext.prebid.bidder.generic = null
+            imp[0].ext.prebid.bidder.amx = new Amx()
+            it.ext.prebid.tap {
+                alternateBidderCodes = new AlternateBidderCodes().tap {
+                    enabled = true
+                    bidders = [(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])]
+                }
+                bidAdjustmentFactors = new BidAdjustmentFactors(adjustments: [(GENERIC): bidAdjustmentFactor])
+            }
+        }
+
+        and: "Bid response with bidder code"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest, AMX).tap {
+            it.seatbid[0].bid[0].ext = new BidExt(bidderCode: GENERIC)
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "Final bid price should be adjusted"
+        assert response?.seatbid?.first?.bid?.first?.price == bidResponse.seatbid.first.bid.first.price *
+                bidAdjustmentFactor
+
+        and: "Response should contain repose millis with corresponding bidder"
+        assert response.ext.responsetimemillis.containsKey(GENERIC.value)
+
+        where:
+        bidAdjustmentFactor << [0.9, 1.1]
+    }
+
+    def "PBS should prefer bid price adjustment based on media type and alternate bidder code when request has per-media-type bid adjustment factors"() {
+        given: "Default bid request with bid adjustment"
+        def bidRequest = BidRequest.getDefaultBidRequest(SITE).tap {
+            imp[0].ext.prebid.bidder.generic = null
+            imp[0].ext.prebid.bidder.amx = new Amx()
+            ext.prebid.tap {
+                bidAdjustmentFactors = new BidAdjustmentFactors().tap {
+                    adjustments = [(GENERIC): randomDecimal]
+                    mediaTypes = [(BANNER): [(GENERIC): bidAdjustmentFactor]]
+                }
+                alternateBidderCodes = new AlternateBidderCodes().tap {
+                    enabled = true
+                    bidders = [(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])]
+                }
+            }
+        }
+
+        and: "Bid response with bidder code"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest, AMX).tap {
+            it.seatbid[0].bid[0].ext = new BidExt(bidderCode: GENERIC)
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "Final bid price should be adjusted"
+        assert response?.seatbid?.first?.bid?.first?.price == bidResponse.seatbid.first.bid.first.price *
+                bidAdjustmentFactor
+
+        and: "Response should contain repose millis with corresponding bidder"
+        assert response.ext.responsetimemillis.containsKey(GENERIC.value)
+
+        where:
+        bidAdjustmentFactor << [0.9, 1.1]
     }
 
     private static Map<String, String> getExternalCurrencyConverterConfig() {

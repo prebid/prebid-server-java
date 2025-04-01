@@ -15,7 +15,10 @@
           "ext": {
             "bidtype": 1,
             "prebid": {
-              "type": "video"
+              "type": "video",
+              "meta": {
+                "adaptercode": "pubmatic"
+              }
             },
             "origbidcpm": 4.75
           }
