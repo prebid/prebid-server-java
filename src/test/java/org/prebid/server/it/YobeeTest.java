@@ -27,8 +27,7 @@ public class YobeeTest extends IntegrationTest {
         // when
         final Response response = responseFor(
                 "openrtb2/yobee/test-auction-yobee-request.json",
-                Endpoint.openrtb2_auction
-        );
+                Endpoint.openrtb2_auction);
 
         // then
         assertJsonEquals("openrtb2/yobee/test-auction-yobee-response.json", response, List.of("yobee"));
