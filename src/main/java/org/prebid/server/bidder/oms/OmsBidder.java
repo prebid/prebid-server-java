@@ -44,19 +44,15 @@ public class OmsBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        if (!request.getImp().isEmpty()) {
-            try {
-                final ExtImpOms impExt = parseImpExt(request.getImp().getFirst());
-                final String publisherId = resolverPublisherId(impExt.getPid(), impExt.getPublisherId());
-                final String encodedPublisherId = HttpUtil.encodeUrl(publisherId);
-                final String url = "%s?publisherId=%s".formatted(endpointUrl, encodedPublisherId);
-                return Result.withValue(BidderUtil.defaultRequest(request, url, mapper));
-            } catch (PreBidException e) {
-                return Result.withError(BidderError.badInput(e.getMessage()));
-            }
+        try {
+            final ExtImpOms impExt = parseImpExt(request.getImp().getFirst());
+            final String publisherId = resolverPublisherId(impExt.getPid(), impExt.getPublisherId());
+            final String encodedPublisherId = HttpUtil.encodeUrl(publisherId);
+            final String url = "%s?publisherId=%s".formatted(endpointUrl, encodedPublisherId);
+            return Result.withValue(BidderUtil.defaultRequest(request, url, mapper));
+        } catch (PreBidException e) {
+            return Result.withError(BidderError.badInput(e.getMessage()));
         }
-
-        return Result.withValue(BidderUtil.defaultRequest(request, endpointUrl, mapper));
     }
 
     private ExtImpOms parseImpExt(Imp imp) throws PreBidException {
