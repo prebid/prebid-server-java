@@ -7,6 +7,10 @@ adapters:
         meta-info:
           maintainer-email: publisher@adtarget.com.tr
         vendor-id: 779
+      pixad:
+        enabled: false
+        meta-info:
+          maintainer-email: prebid@pixad.com.tr
       monetixads:
         enabled: false
         meta-info:
