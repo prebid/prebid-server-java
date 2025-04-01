@@ -1,7 +1,7 @@
 package org.prebid.server.activity.infrastructure.privacy.usnat.reader;
 
 import com.iab.gpp.encoder.GppModel;
-import com.iab.gpp.encoder.section.UsCaV1;
+import com.iab.gpp.encoder.section.UsCa;
 import org.prebid.server.activity.infrastructure.privacy.uscustomlogic.USCustomLogicGppReader;
 import org.prebid.server.activity.infrastructure.privacy.usnat.USNatGppReader;
 import org.prebid.server.util.ObjectUtil;
@@ -15,20 +15,20 @@ public class USMappedCaliforniaGppReader implements USNatGppReader, USCustomLogi
     private static final List<Integer> DEFAULT_SENSITIVE_DATA = Collections.nCopies(12, null);
     private static final List<Integer> CHILD_SENSITIVE_DATA = List.of(1, 1);
 
-    private final UsCaV1 consent;
+    private final UsCa consent;
 
     public USMappedCaliforniaGppReader(GppModel gppModel) {
-        consent = gppModel != null ? gppModel.getUsCaV1Section() : null;
+        consent = gppModel != null ? gppModel.getUsCaSection() : null;
     }
 
     @Override
     public Integer getVersion() {
-        return ObjectUtil.getIfNotNull(consent, UsCaV1::getVersion);
+        return ObjectUtil.getIfNotNull(consent, UsCa::getVersion);
     }
 
     @Override
     public Boolean getGpc() {
-        return ObjectUtil.getIfNotNull(consent, UsCaV1::getGpc);
+        return ObjectUtil.getIfNotNull(consent, UsCa::getGpc);
     }
 
     @Override
@@ -38,17 +38,17 @@ public class USMappedCaliforniaGppReader implements USNatGppReader, USCustomLogi
 
     @Override
     public Boolean getGpcSegmentIncluded() {
-        return ObjectUtil.getIfNotNull(consent, UsCaV1::getGpcSegmentIncluded);
+        return ObjectUtil.getIfNotNull(consent, UsCa::getGpcSegmentIncluded);
     }
 
     @Override
     public Integer getSaleOptOut() {
-        return ObjectUtil.getIfNotNull(consent, UsCaV1::getSaleOptOut);
+        return ObjectUtil.getIfNotNull(consent, UsCa::getSaleOptOut);
     }
 
     @Override
     public Integer getSaleOptOutNotice() {
-        return ObjectUtil.getIfNotNull(consent, UsCaV1::getSaleOptOutNotice);
+        return ObjectUtil.getIfNotNull(consent, UsCa::getSaleOptOutNotice);
     }
 
     @Override
@@ -58,12 +58,12 @@ public class USMappedCaliforniaGppReader implements USNatGppReader, USCustomLogi
 
     @Override
     public Integer getSharingOptOut() {
-        return ObjectUtil.getIfNotNull(consent, UsCaV1::getSharingOptOut);
+        return ObjectUtil.getIfNotNull(consent, UsCa::getSharingOptOut);
     }
 
     @Override
     public Integer getSharingOptOutNotice() {
-        return ObjectUtil.getIfNotNull(consent, UsCaV1::getSharingOptOutNotice);
+        return ObjectUtil.getIfNotNull(consent, UsCa::getSharingOptOutNotice);
     }
 
     @Override
@@ -78,7 +78,7 @@ public class USMappedCaliforniaGppReader implements USNatGppReader, USCustomLogi
 
     @Override
     public Integer getSensitiveDataLimitUseNotice() {
-        return ObjectUtil.getIfNotNull(consent, UsCaV1::getSensitiveDataLimitUseNotice);
+        return ObjectUtil.getIfNotNull(consent, UsCa::getSensitiveDataLimitUseNotice);
     }
 
     @Override
@@ -117,21 +117,21 @@ public class USMappedCaliforniaGppReader implements USNatGppReader, USCustomLogi
 
     @Override
     public Integer getPersonalDataConsents() {
-        return ObjectUtil.getIfNotNull(consent, UsCaV1::getPersonalDataConsents);
+        return ObjectUtil.getIfNotNull(consent, UsCa::getPersonalDataConsents);
     }
 
     @Override
     public Integer getMspaCoveredTransaction() {
-        return ObjectUtil.getIfNotNull(consent, UsCaV1::getMspaCoveredTransaction);
+        return ObjectUtil.getIfNotNull(consent, UsCa::getMspaCoveredTransaction);
     }
 
     @Override
     public Integer getMspaServiceProviderMode() {
-        return ObjectUtil.getIfNotNull(consent, UsCaV1::getMspaServiceProviderMode);
+        return ObjectUtil.getIfNotNull(consent, UsCa::getMspaServiceProviderMode);
     }
 
     @Override
     public Integer getMspaOptOutOptionMode() {
-        return ObjectUtil.getIfNotNull(consent, UsCaV1::getMspaOptOutOptionMode);
+        return ObjectUtil.getIfNotNull(consent, UsCa::getMspaOptOutOptionMode);
     }
 }
