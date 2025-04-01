@@ -75,6 +75,7 @@
 
     <dependencyManagement>
         <dependencies>
+            <!-- set netty-handler version for CVE-2025-24970-->
             <dependency>
                 <groupId>io.netty</groupId>
                 <artifactId>netty-handler</artifactId>
