@@ -6,6 +6,7 @@ import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
@@ -21,12 +22,15 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
+import org.prebid.server.bidder.model.CompositeBidderResponse;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.epsilon.ExtImpEpsilon;
+import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 
 import java.math.BigDecimal;
 import java.util.Collections;
@@ -710,6 +714,59 @@ public class EpsilonBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getBidfloor, Imp::getBidfloorcur)
                 .containsOnly(AssertionsForClassTypes.tuple(BigDecimal.ONE, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnResultForNativeBidsWithExpectedFields() throws JsonProcessingException {
+        // given
+
+        final String nativeRequestString =
+                "{\"ver\":\"1.2\",\"assets\":[{\"id\":1,\"required\":1,\"title\":{\"len\":80}}";
+        final String nativeResponseString =
+                "\"native\"{\"assets\": [{\"id\": 1, \"title\": {\"text\": \"Native test (Title)\"}}], "
+                        + "\"link\": {\"url\": \"https://www.epsilon.com/\"}, "
+                        + "\"imptrackers\":[\"https://iad-usadmm.dotomi.com/event\"],\"jstracker\":\"\"}";
+        final BidRequest bidRequest = BidRequest.builder()
+                .id("native-test")
+                .imp(singletonList(Imp.builder()
+                        .id("impid-0")
+                        .xNative(Native.builder()
+                                .request(nativeRequestString)
+                                .ver("1.2")
+                                .build())
+                        .build()))
+                .build();
+
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
+                mapper.writeValueAsString(BidResponse.builder()
+                .seatbid(singletonList(SeatBid.builder()
+                        .bid(singletonList(Bid.builder()
+                                .price(BigDecimal.ONE)
+                                .impid("impid-0")
+                                .adm(nativeResponseString)
+                                .mtype(4)
+                                .cat(singletonList("IAB3"))
+                                .build()))
+                        .build()))
+                .cur("USD")
+                .ext(ExtBidResponse.builder().build())
+                .build()));
+
+        // when
+        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getBids()).hasSize(1)
+                .containsOnly(BidderBid.of(
+                        Bid.builder()
+                                .impid("impid-0")
+                                .price(BigDecimal.ONE)
+                                .adm(nativeResponseString)
+                                .cat(singletonList("IAB3"))
+                                .mtype(4)
+                                .build(),
+                        BidType.xNative, "USD"));
     }
 
     private static BidRequest givenBidRequest(
