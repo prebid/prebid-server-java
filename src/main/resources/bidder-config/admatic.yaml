@@ -7,6 +7,8 @@ adapters:
         meta-info:
           maintainer-email: publisher@adtarget.com.tr
         vendor-id: 779
+      admaticde:
+        enabled: false
       yobee:
         enabled: false
         meta-info:
