@@ -14,23 +14,23 @@ import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 
-public class AdmaticTest extends IntegrationTest {
+public class MonetixAdsTest extends IntegrationTest {
 
     @Test
-    public void openrtb2AuctionShouldRespondWithBidsFromAdmatic() throws IOException, JSONException {
+    public void openrtb2AuctionShouldRespondWithBidsFromMonetixAds() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/admatic-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/monetixads-exchange"))
                 .withQueryParam("host", equalTo("host"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/admatic/test-admatic-bid-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/admatic/test-admatic-bid-response.json"))));
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/monetixads/test-monetixads-bid-request.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/monetixads/test-monetixads-bid-response.json"))));
 
         // when
         final Response response = responseFor(
-                "openrtb2/admatic/test-auction-admatic-request.json",
+                "openrtb2/monetixads/test-auction-monetixads-request.json",
                 Endpoint.openrtb2_auction);
 
         // then
-        assertJsonEquals("openrtb2/admatic/test-auction-admatic-response.json", response, List.of("admatic"));
+        assertJsonEquals("openrtb2/monetixads/test-auction-monetixads-response.json", response, List.of("monetixads"));
     }
 
 }
