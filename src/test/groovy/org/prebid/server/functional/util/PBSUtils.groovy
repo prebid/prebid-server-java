@@ -155,4 +155,16 @@ class PBSUtils implements ObjectMapperWrapper {
         def version = versionParts.join('.')
         return (version >= minVersion && version <= maxVersion) ? version : getRandomVersion(minVersion, maxVersion)
     }
+
+    static Boolean isUUID(String str) {
+        if (str == null) {
+            return false
+        }
+        try {
+            UUID.fromString(str)
+            return true
+        } catch (IllegalArgumentException e) {
+            return false
+        }
+    }
 }
