@@ -83,8 +83,7 @@ public class ConnatixBidder implements Bidder<BidRequest> {
         try {
             optimalEndpointUrl = getOptimalEndpointUrl(request);
         } catch (PreBidException e) {
-            errors.add(BidderError.badInput(e.getMessage()));
-            return Result.withErrors(errors);
+            return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
         final String displayManagerVer = buildDisplayManagerVersion(request);
@@ -107,36 +106,24 @@ public class ConnatixBidder implements Bidder<BidRequest> {
     }
 
     private String getOptimalEndpointUrl(BidRequest request) {
-        final String userId = getUserId(request);
-        if (userId == null) {
-            return endpointUrl;
-        }
-
-        final String dataCenterCode = getDataCenterCode(userId);
-        if (dataCenterCode == null) {
-            return endpointUrl;
-        }
-
         try {
             final URIBuilder uriBuilder = new URIBuilder(endpointUrl);
-            return uriBuilder.addParameter("dc", dataCenterCode).build().toString();
+            return getUserId(request)
+                    .map(this::getDataCenterCode)
+                    .map(dataCenterCode -> uriBuilder.addParameter("dc", dataCenterCode))
+                    .orElse(uriBuilder)
+                    .build()
+                    .toString();
         } catch (URISyntaxException e) {
             throw new PreBidException(e.getMessage());
         }
     }
 
-    private String getUserId(BidRequest request) {
-        final User user = request.getUser();
-        if (user == null) {
-            return null;
-        }
-
-        final String buyerUid = user.getBuyeruid();
-        if (buyerUid == null || buyerUid.isEmpty()) {
-            return null;
-        }
-
-        return buyerUid.trim();
+    private Optional<String> getUserId(BidRequest request) {
+        return Optional.ofNullable(request.getUser())
+                .map(User::getBuyeruid)
+                .filter(StringUtils::isNotBlank)
+                .map(String::trim);
     }
 
     private String getDataCenterCode(String usedId) {
