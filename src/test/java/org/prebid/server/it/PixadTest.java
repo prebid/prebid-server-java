@@ -27,8 +27,7 @@ public class PixadTest extends IntegrationTest {
         // when
         final Response response = responseFor(
                 "openrtb2/pixad/test-auction-pixad-request.json",
-                Endpoint.openrtb2_auction
-        );
+                Endpoint.openrtb2_auction);
 
         // then
         assertJsonEquals("openrtb2/pixad/test-auction-pixad-response.json", response, List.of("pixad"));
