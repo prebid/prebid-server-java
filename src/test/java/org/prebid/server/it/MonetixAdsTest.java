@@ -17,7 +17,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 public class MonetixAdsTest extends IntegrationTest {
 
     @Test
-    public void openrtb2AuctionShouldRespondWithBidsFromMonetixads() throws IOException, JSONException {
+    public void openrtb2AuctionShouldRespondWithBidsFromMonetixAds() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/monetixads-exchange"))
                 .withQueryParam("host", equalTo("host"))
