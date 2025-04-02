@@ -43,8 +43,6 @@ public class KoblerBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.com";
     private static final String DEV_ENDPOINT = "https://bid-service.dev.essrtb.com/bid/prebid_server_rtb_call";
-    private static final String DEFAULT_BID_CURRENCY = "USD";
-    private static final String EXT_PREBID = "prebid";
 
     @Mock
     private CurrencyConversionService currencyConversionService;
@@ -55,9 +53,7 @@ public class KoblerBidderTest extends VertxTest {
     public void setUp() {
         target = new KoblerBidder(
                 ENDPOINT_URL,
-                DEFAULT_BID_CURRENCY,
                 DEV_ENDPOINT,
-                EXT_PREBID,
                 currencyConversionService,
                 jacksonMapper);
     }
@@ -67,9 +63,7 @@ public class KoblerBidderTest extends VertxTest {
         assertThatIllegalArgumentException().isThrownBy(() ->
                 new KoblerBidder(
                         "invalid_url",
-                        DEFAULT_BID_CURRENCY,
                         DEV_ENDPOINT,
-                        EXT_PREBID,
                         currencyConversionService,
                         jacksonMapper));
     }
@@ -131,7 +125,7 @@ public class KoblerBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().get(0).getUri()).isEqualTo(DEV_ENDPOINT);
+        assertThat(result.getValue().getFirst().getUri()).isEqualTo(DEV_ENDPOINT);
     }
 
     @Test
@@ -145,7 +139,7 @@ public class KoblerBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue().get(0).getPayload().getCur()).containsExactlyInAnyOrder("EUR", "USD");
+        assertThat(result.getValue().getFirst().getPayload().getCur()).containsExactlyInAnyOrder("EUR", "USD");
     }
 
     @Test
@@ -166,7 +160,7 @@ public class KoblerBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
 
-        final HttpRequest<BidRequest> httpRequest = result.getValue().get(0);
+        final HttpRequest<BidRequest> httpRequest = result.getValue().getFirst();
         assertThat(httpRequest.getUri()).isEqualTo(DEV_ENDPOINT);
     }
 

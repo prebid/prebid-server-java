@@ -43,9 +43,7 @@ public class KoblerConfiguration {
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(cfg -> new KoblerBidder(
                         cfg.getEndpoint(),
-                        cfg.getDefaultBidCurrency(),
                         cfg.getDevEndpoint(),
-                        cfg.getExtPrebid(),
                         currencyConversionService,
                         mapper))
                 .assemble();
@@ -59,12 +57,6 @@ public class KoblerConfiguration {
     private static class KoblerConfigurationProperties extends BidderConfigurationProperties {
 
         @NotBlank
-        private String defaultBidCurrency;
-
-        @NotBlank
         private String devEndpoint;
-
-        @NotBlank
-        private String extPrebid;
     }
 }
