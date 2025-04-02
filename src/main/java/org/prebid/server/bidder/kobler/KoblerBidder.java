@@ -54,6 +54,7 @@ public class KoblerBidder implements Bidder<BidRequest> {
                         String devEndpoint,
                         CurrencyConversionService currencyConversionService,
                         JacksonMapper mapper) {
+
         this.endpointUrl = HttpUtil.validateUrl(endpointUrl);
         this.devEndpoint = Objects.requireNonNull(devEndpoint);
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
@@ -63,18 +64,9 @@ public class KoblerBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         final List<BidderError> errors = new ArrayList<>();
-        boolean testMode = false;
         final List<Imp> modifiedImps = new ArrayList<>();
 
-        final List<String> currencies = normalizeCurrencies(bidRequest);
-
         final List<Imp> imps = bidRequest.getImp();
-        try {
-            testMode = isTest(imps.getFirst());
-        } catch (PreBidException e) {
-            errors.add(BidderError.badInput(e.getMessage()));
-        }
-
         for (Imp imp : imps) {
             try {
                 modifiedImps.add(modifyImp(bidRequest, imp));
@@ -85,30 +77,14 @@ public class KoblerBidder implements Bidder<BidRequest> {
         }
 
         final BidRequest modifiedRequest = bidRequest.toBuilder()
-                .cur(currencies)
                 .imp(modifiedImps)
+                .cur(normalizeCurrencies(bidRequest))
                 .build();
 
-        final String endpoint = testMode ? devEndpoint : endpointUrl;
+        final String endpoint = isTest(imps.getFirst(), errors) ? devEndpoint : endpointUrl;
 
         final HttpRequest<BidRequest> httpRequest = BidderUtil.defaultRequest(modifiedRequest, endpoint, mapper);
         return Result.of(Collections.singletonList(httpRequest), errors);
-    }
-
-    private boolean isTest(Imp imp) {
-        try {
-            return parseImpExt(imp).getTest();
-        } catch (PreBidException e) {
-            return false;
-        }
-    }
-
-    private List<String> normalizeCurrencies(BidRequest bidRequest) {
-        final List<String> currencies = new ArrayList<>(bidRequest.getCur());
-        if (!currencies.contains(DEFAULT_BID_CURRENCY)) {
-            currencies.add(DEFAULT_BID_CURRENCY);
-        }
-        return currencies;
     }
 
     private Imp modifyImp(BidRequest bidRequest, Imp imp) {
@@ -135,6 +111,26 @@ public class KoblerBidder implements Bidder<BidRequest> {
                 DEFAULT_BID_CURRENCY);
 
         return Price.of(DEFAULT_BID_CURRENCY, convertedPrice);
+    }
+
+    private List<String> normalizeCurrencies(BidRequest bidRequest) {
+        final List<String> currencies = bidRequest.getCur();
+        if (currencies.contains(DEFAULT_BID_CURRENCY)) {
+            return currencies;
+        }
+
+        final List<String> newCurrencies = new ArrayList<>(currencies);
+        newCurrencies.add(DEFAULT_BID_CURRENCY);
+        return newCurrencies;
+    }
+
+    private boolean isTest(Imp imp, List<BidderError> errors) {
+        try {
+            return parseImpExt(imp).getTest();
+        } catch (PreBidException e) {
+            errors.add(BidderError.badInput(e.getMessage()));
+            return false;
+        }
     }
 
     private ExtImpKobler parseImpExt(Imp imp) {

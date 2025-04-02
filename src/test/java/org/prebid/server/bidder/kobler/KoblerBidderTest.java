@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.kobler;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
@@ -26,8 +25,8 @@ import org.prebid.server.proto.openrtb.ext.request.kobler.ExtImpKobler;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.math.BigDecimal;
-import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.function.UnaryOperator;
 
 import static java.util.Collections.singletonList;
@@ -42,8 +41,7 @@ import static org.mockito.Mockito.when;
 public class KoblerBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.com";
-    private static final String DEV_ENDPOINT = "https://bid-service.dev.essrtb.com/bid/prebid_server_rtb_call";
-
+    private static final String DEV_ENDPOINT = "https://dev.test.com";
     @Mock
     private CurrencyConversionService currencyConversionService;
 
@@ -71,12 +69,8 @@ public class KoblerBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorIfNoValidImps() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .cur(singletonList("USD"))
-                .imp(singletonList(Imp.builder()
-                        .bidfloor(BigDecimal.ONE)
-                        .bidfloorcur("EUR")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpKobler.of(false)))).build())).build();
+        final BidRequest bidRequest = givenBidRequest(givenImp(
+                imp -> imp.bidfloor(BigDecimal.ONE).bidfloorcur("EUR")));
 
         when(currencyConversionService.convertCurrency(any(), any(), any(), any()))
                 .thenThrow(new PreBidException("Currency conversion failed"));
@@ -86,18 +80,15 @@ public class KoblerBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors())
-                .hasSize(1)
                 .extracting(BidderError::getMessage)
-                .containsExactlyInAnyOrder("Currency conversion failed");
+                .containsExactly("Currency conversion failed");
     }
 
     @Test
     public void makeHttpRequestsShouldConvertBidFloorCurrency() {
         // given
-        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
-                        .cur(singletonList("EUR")),
-                imp -> imp.bidfloor(BigDecimal.ONE).bidfloorcur("EUR")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpKobler.of(false)))));
+        final BidRequest bidRequest = givenBidRequest(givenImp(
+                imp -> imp.bidfloor(BigDecimal.ONE).bidfloorcur("EUR")));
 
         when(currencyConversionService.convertCurrency(any(), any(), any(), any())).thenReturn(BigDecimal.TEN);
 
@@ -116,62 +107,56 @@ public class KoblerBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldUseDevEndpointWhenTestModeEnabled() {
         // given
-        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
-                        .cur(singletonList("EUR")),
-                imp -> imp.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpKobler.of(true)))));
+        final BidRequest bidRequest = givenBidRequest(givenImp(
+                imp -> imp.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpKobler.of(true))))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().getFirst().getUri()).isEqualTo(DEV_ENDPOINT);
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly(DEV_ENDPOINT);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUseDefaultEndpointWhenTestModeDisabled() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(givenImp(identity()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly(ENDPOINT_URL);
     }
 
     @Test
     public void makeHttpRequestsShouldAddUsdToCurrenciesIfMissing() {
         // given
-        final BidRequest bidRequest = givenBidRequest(imp ->
-                imp.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpKobler.of(false))))).toBuilder()
-                .cur(singletonList("EUR")).build();
+        final BidRequest bidRequest = givenBidRequest(
+                request -> request.cur(singletonList("EUR")),
+                givenImp(identity()));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue().getFirst().getPayload().getCur()).containsExactlyInAnyOrder("EUR", "USD");
-    }
-
-    @Test
-    public void makeHttpRequestsShouldUseDevEndpointwhenImpExtTestIsTrue() {
-        // given
-        final ObjectNode extNode = jacksonMapper.mapper().createObjectNode();
-        extNode.putObject("bidder").put("test", true);
-
-        final Imp imp = Imp.builder().id("test-imp").ext(extNode).build();
-
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(Collections.singletonList(imp)).cur(Collections.singletonList("USD")).build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1);
-
-        final HttpRequest<BidRequest> httpRequest = result.getValue().getFirst();
-        assertThat(httpRequest.getUri()).isEqualTo(DEV_ENDPOINT);
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getCur)
+                .containsExactly(List.of("EUR", "USD"));
     }
 
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyIsInvalid() {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall();
+        final BidderCall<BidRequest> httpCall = givenHttpCallWithBody("invalid");
 
         // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, BidRequest.builder().build());
-
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
         // then
         assertThat(result.getErrors()).hasSize(1).allSatisfy(error -> {
             assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
@@ -180,80 +165,120 @@ public class KoblerBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBidsWithCorrectTypes() throws JsonProcessingException {
-        // given
-        final ObjectNode bidExt = mapper.createObjectNode()
-                .set("prebid", mapper.createObjectNode().put("type", "banner"));
-
-        final BidderCall<BidRequest> httpCall = givenHttpCall(BidResponse.builder()
-                .cur("USD")
-                .seatbid(singletonList(SeatBid.builder()
-                        .bid(singletonList(Bid.builder()
-                                .impid("123").ext(bidExt).build())).build())).build());
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, BidRequest.builder().build());
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).extracting(BidderBid::getType).containsExactly(BidType.banner);
-    }
-
-    @Test
-    public void makeBidsShouldReturnEmptyListwhenBidResponseIsNull() {
+    public void makeBidsShouldReturnEmptyListWhenBidResponseIsNull() {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCallWithBody("null");
 
         // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, BidRequest.builder().build());
-
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
-    public void makeBidsShouldReturnEmptyListwhenSeatbidIsEmpty() throws JsonProcessingException {
+    public void makeBidsShouldReturnEmptyListWhenSeatbidIsEmpty() throws JsonProcessingException {
         // given
-        final BidResponse bidResponse = BidResponse.builder()
-                .seatbid(Collections.emptyList())
-                .build();
-        final BidderCall<BidRequest> httpCall = givenHttpCall(bidResponse);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse());
 
         // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, BidRequest.builder().build());
-
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).isEmpty();
     }
 
-    private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
-        return givenBidRequest(identity(), impCustomizer);
+    @Test
+    public void makeBidsShouldReturnBidWithBannerType() throws JsonProcessingException {
+        // given
+        final Bid bid = Bid.builder()
+                .ext(mapper.valueToTree(Map.of("prebid", Map.of("type", "banner"))))
+                .build();
+
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(bid));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, BidRequest.builder().build());
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getType)
+                .containsExactly(BidType.banner);
+    }
+
+    @Test
+    public void makeBidsShouldReturnBannerWhenTypeIsNullOrMissing() throws JsonProcessingException {
+        // given
+        final Bid bid = Bid.builder()
+                .ext(mapper.valueToTree(Map.of("prebid", Map.of("type", "null"))))
+                .build();
+
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(bid));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, BidRequest.builder().build());
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getType)
+                .containsExactly(BidType.banner);
+    }
+
+    @Test
+    public void makeBidsShouldDefaultToBannerWhenPrebidTypeIsMissing() throws JsonProcessingException {
+        // given
+        final Bid bid = Bid.builder()
+                .ext(mapper.valueToTree(Map.of("prebid", Map.of())))
+                .build();
+
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(bid));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, BidRequest.builder().build());
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getType)
+                .containsExactly(BidType.banner);
+    }
+
+    private static BidRequest givenBidRequest(Imp... imps) {
+        return givenBidRequest(identity(), imps);
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
-                                              UnaryOperator<Imp.ImpBuilder> impCustomizer) {
+                                              Imp... imps) {
+
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(impCustomizer.apply(Imp.builder().id("123")).build()))).build();
+                        .cur(singletonList("USD"))
+                        .imp(List.of(imps)))
+                .build();
     }
 
-    private BidderCall<BidRequest> givenHttpCall(BidResponse bidResponse) throws JsonProcessingException {
-        return BidderCall.succeededHttp(
-                HttpRequest.<BidRequest>builder().payload(null).build(),
-                HttpResponse.of(200, null, mapper.writeValueAsString(bidResponse)), null);
+    private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
+        return impCustomizer.apply(Imp.builder()
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpKobler.of(false)))))
+                .build();
     }
 
-    private BidderCall<BidRequest> givenHttpCall() {
-        return BidderCall.succeededHttp(
-                HttpRequest.<BidRequest>builder().payload(null).build(),
-                HttpResponse.of(200, null, "invalid"), null);
-    }
-
-    private BidderCall<BidRequest> givenHttpCallWithBody(String body) {
+    private static BidderCall<BidRequest> givenHttpCallWithBody(String body) {
         return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(null).build(),
                 HttpResponse.of(200, null, body),
                 null);
+    }
+
+    private static BidderCall<BidRequest> givenHttpCall(BidResponse bidResponse) throws JsonProcessingException {
+        return givenHttpCallWithBody(mapper.writeValueAsString(bidResponse));
+    }
+
+    private static BidResponse givenBidResponse(Bid... bids) {
+        return BidResponse.builder()
+                .cur("USD")
+                .seatbid(singletonList(SeatBid.builder().bid(List.of(bids)).build()))
+                .build();
     }
 }
