@@ -819,7 +819,7 @@ class BidderFormatSpec extends BaseSpec {
 
         and: "Stored bid response in DB with adm"
         def storedBidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            it.seatbid[0].bid[0].adm = new Adm(assets: [Asset.getImgAsset("${url}://secure-assets.${PBSUtils.randomString}.com")])
+            it.seatbid[0].bid[0].adm = new Adm(assets: [Asset.getImgAsset(url)])
         }
         def storedResponse = new StoredResponse(responseId: storedResponseId, storedBidResponse: storedBidResponse)
         storedResponseDao.save(storedResponse)
@@ -847,16 +847,31 @@ class BidderFormatSpec extends BaseSpec {
         pbsServiceFactory.removeContainer(pbsConfig)
 
         where:
-        url       | secure     | secureMarkup
-        "http%3A" | NON_SECURE | SKIP.value
-        "http"    | NON_SECURE | SKIP.value
-        "https"   | SECURE     | SKIP.value
-        "http%3A" | NON_SECURE | WARN.value
-        "http"    | NON_SECURE | WARN.value
-        "https"   | SECURE     | WARN.value
-        "http%3A" | NON_SECURE | ENFORCE.value
-        "http"    | NON_SECURE | ENFORCE.value
-        "https"   | SECURE     | ENFORCE.value
+        url                                                    | secure     | secureMarkup
+        "http%3A://secure-assets.${PBSUtils.randomString}.com" | NON_SECURE | SKIP.value
+        "http://secure-assets.${PBSUtils.randomString}.com"    | NON_SECURE | SKIP.value
+
+        "https://secure-assets.${PBSUtils.randomString}.com"   | SECURE     | SKIP.value
+        "http://www.w3.org"                                    | SECURE     | SKIP.value
+        "http%3a://www.quantcast.com/adchoices"                | SECURE     | SKIP.value
+        "http://"                                              | SECURE     | SKIP.value
+
+        "http%3A://secure-assets.${PBSUtils.randomString}.com" | NON_SECURE | WARN.value
+        "http://secure-assets.${PBSUtils.randomString}.com"    | NON_SECURE | WARN.value
+
+        "https://secure-assets.${PBSUtils.randomString}.com"   | SECURE     | WARN.value
+        "http://www.w3.org"                                    | SECURE     | WARN.value
+        "http%3a://www.quantcast.com/adchoices"                | SECURE     | WARN.value
+        "http://"                                              | SECURE     | WARN.value
+
+        "http%3A://secure-assets.${PBSUtils.randomString}.com" | NON_SECURE | ENFORCE.value
+        "http://secure-assets.${PBSUtils.randomString}.com"    | NON_SECURE | ENFORCE.value
+
+        "https://secure-assets.${PBSUtils.randomString}.com"   | SECURE     | ENFORCE.value
+        "http://www.w3.org"                                    | SECURE     | ENFORCE.value
+        "http%3a://www.quantcast.com/adchoices"                | SECURE     | ENFORCE.value
+        "http://"                                              | SECURE     | ENFORCE.value
+
     }
 
     def "PBS should ignore specified secureMarkup #secureMarkup validation when secure is 0"() {
