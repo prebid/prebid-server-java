@@ -10,6 +10,7 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -126,7 +127,7 @@ public class KoblerBidder implements Bidder<BidRequest> {
 
     private boolean isTest(Imp imp, List<BidderError> errors) {
         try {
-            return parseImpExt(imp).getTest();
+            return BooleanUtils.isTrue(parseImpExt(imp).getTest());
         } catch (PreBidException e) {
             errors.add(BidderError.badInput(e.getMessage()));
             return false;
