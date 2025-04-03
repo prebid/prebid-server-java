@@ -134,6 +134,21 @@ public class KoblerBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldUseDefaultEndpointWhenTestModeAbsent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(givenImp(
+                imp -> imp.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpKobler.of(null))))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly(ENDPOINT_URL);
+    }
+
+    @Test
     public void makeHttpRequestsShouldAddUsdToCurrenciesIfMissing() {
         // given
         final BidRequest bidRequest = givenBidRequest(
