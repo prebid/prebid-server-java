@@ -3,15 +3,15 @@ package org.prebid.server.hooks.modules.rule.engine.core.rules;
 import java.util.Map;
 import java.util.function.Function;
 
-public sealed interface RuleNode<T, R> {
+public sealed interface RuleNode<T> {
 
-    record IntermediateNode<T, R>(Map<String, RuleNode<T, R>> children) implements RuleNode<T, R> {
+    record IntermediateNode<T>(Map<String, RuleNode<T>> children) implements RuleNode<T> {
 
-        public RuleNode<T, R> next(String arg) {
+        public RuleNode<T> next(String arg) {
             return children.get(arg);
         }
     }
 
-    record LeafNode<T, R>(Function<T, R> action) implements RuleNode<T, R> {
+    record LeafNode<T>(T value) implements RuleNode<T> {
     }
 }

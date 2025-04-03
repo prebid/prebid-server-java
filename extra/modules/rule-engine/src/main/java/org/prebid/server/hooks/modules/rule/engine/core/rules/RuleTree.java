@@ -6,31 +6,31 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 
-public class RuleTree<T, R> {
+public class RuleTree<T> {
 
-    RuleNode<T, R> root;
+    RuleNode<T> root;
 
-    public RuleTree(RuleNode<T, R> root) {
+    public RuleTree(RuleNode<T> root) {
         this.root = Objects.requireNonNull(root);
     }
 
-    public Function<T, R> getAction(List<String> args) {
-        RuleNode<T, R> next = root;
+    public T getValue(List<String> path) {
+        RuleNode<T> next = root;
 
-        for (String arg : args) {
+        for (String pathPart : path) {
             next = switch (next) {
-                case RuleNode.LeafNode<T, R> ignored -> throw new IllegalArgumentException("Argument count mismatch");
-                case RuleNode.IntermediateNode<T, R> node -> ObjectUtils.firstNonNull(node.next(arg), node.next("*"));
+                case RuleNode.LeafNode<T> ignored -> throw new IllegalArgumentException("Argument count mismatch");
+                case RuleNode.IntermediateNode<T> node ->
+                        ObjectUtils.firstNonNull(node.next(pathPart), node.next("*"));
                 case null -> throw new IllegalArgumentException("Action absent");
             };
         }
 
         return switch (next) {
-            case RuleNode.LeafNode<T, R> leaf -> leaf.action();
-            case RuleNode.IntermediateNode<T, R> ignored ->
+            case RuleNode.LeafNode<T> leaf -> leaf.value();
+            case RuleNode.IntermediateNode<T> ignored ->
                     throw new IllegalArgumentException("Argument count mismatch");
             case null -> throw new IllegalArgumentException("Action absent");
         };
     }
-
 }
