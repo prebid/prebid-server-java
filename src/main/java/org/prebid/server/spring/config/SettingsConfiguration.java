@@ -1,8 +1,5 @@
 package org.prebid.server.spring.config;
 
-import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.log.Logger;
-import org.prebid.server.log.LoggerFactory;
 import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
 import lombok.Data;
@@ -43,13 +40,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
-import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
-import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
-import software.amazon.awssdk.services.s3.S3AsyncClientBuilder;
-import software.amazon.awssdk.core.exception.SdkClientException;
 
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
@@ -64,8 +57,6 @@ import java.util.stream.Stream;
 
 @UtilityClass
 public class SettingsConfiguration {
-
-    private static final Logger logger = LoggerFactory.getLogger(SettingsConfiguration.class);
 
     @Configuration
     @ConditionalOnProperty(prefix = "settings.filesystem",
@@ -242,29 +233,17 @@ public class SettingsConfiguration {
 
         @Component
         @ConfigurationProperties(prefix = "settings.s3")
+        @ConditionalOnProperty(prefix = "settings.s3", name = {"accessKeyId", "secretAccessKey"})
         @Validated
         @Data
         @NoArgsConstructor
         protected static class S3ConfigurationProperties {
 
-            /**
-             * If accessKeyId and secretAccessKey are provided in the
-             * configuration file then they will be used. Otherwise, the
-             * DefaultCredentialsProvider will look for credentials in this order:
-             *
-             * - Java System Properties
-             * - Environment Variables
-             * - Web Identity Token
-             * - AWS credentials file (~/.aws/credentials)
-             * - ECS container credentials
-             * - EC2 instance profile
-             */
+            @NotBlank
             private String accessKeyId;
-            private String secretAccessKey;
 
-            private boolean useStaticCredentials() {
-                return StringUtils.isNotBlank(accessKeyId) && StringUtils.isNotBlank(secretAccessKey);
-            }
+            @NotBlank
+            private String secretAccessKey;
 
             /**
              * If not provided AWS_GLOBAL will be used as a region
@@ -295,32 +274,20 @@ public class SettingsConfiguration {
 
         @Bean
         S3AsyncClient s3AsyncClient(S3ConfigurationProperties s3ConfigurationProperties) throws URISyntaxException {
-
+            final AwsBasicCredentials credentials = AwsBasicCredentials.create(
+                    s3ConfigurationProperties.getAccessKeyId(),
+                    s3ConfigurationProperties.getSecretAccessKey());
             final Region awsRegion = Optional.ofNullable(s3ConfigurationProperties.getRegion())
                     .map(Region::of)
                     .orElse(Region.AWS_GLOBAL);
 
-            final S3AsyncClientBuilder clientBuilder = S3AsyncClient.builder()
+            return S3AsyncClient
+                    .builder()
+                    .credentialsProvider(StaticCredentialsProvider.create(credentials))
                     .endpointOverride(new URI(s3ConfigurationProperties.getEndpoint()))
                     .forcePathStyle(s3ConfigurationProperties.getForcePathStyle())
-                    .region(awsRegion);
-            final AwsCredentialsProvider credentialsProvider;
-            if (s3ConfigurationProperties.useStaticCredentials()) {
-                final AwsBasicCredentials basicCredentials = AwsBasicCredentials.create(
-                        s3ConfigurationProperties.getAccessKeyId(),
-                        s3ConfigurationProperties.getSecretAccessKey());
-                credentialsProvider = StaticCredentialsProvider.create(basicCredentials);
-            } else {
-                credentialsProvider = DefaultCredentialsProvider.create();
-            }
-            try {
-                credentialsProvider.resolveCredentials();
-            } catch (SdkClientException e) {
-                logger.error("Failed to resolve AWS credentials", e);
-            }
-            clientBuilder.credentialsProvider(credentialsProvider);
-
-            return clientBuilder.build();
+                    .region(awsRegion)
+                    .build();
         }
 
         @Bean
