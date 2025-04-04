@@ -79,8 +79,8 @@ class AliasSpec extends BaseSpec {
     def "PBS should apply compression type for bidder alias when adapters.BIDDER.endpoint-compression = gzip"() {
         given: "PBS with adapter configuration"
         def compressionType = GZIP.value
-        def pbsService = pbsServiceFactory.getService(
-                ["adapters.generic.endpoint-compression": compressionType])
+        def pbsConfig = ["adapters.generic.endpoint-compression": compressionType]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request with alias"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -94,6 +94,9 @@ class AliasSpec extends BaseSpec {
         then: "Bidder request should contain header Content-Encoding = gzip"
         assert response.ext?.debug?.httpcalls?.get(ALIAS.value)?.requestHeaders?.first()
                 ?.get(CONTENT_ENCODING_HEADER)?.first() == compressionType
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS should return an error when GVL Id alias refers to unknown bidder alias"() {

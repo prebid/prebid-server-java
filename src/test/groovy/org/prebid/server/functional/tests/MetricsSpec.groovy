@@ -2,6 +2,7 @@ package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountMetricsConfig
+import org.prebid.server.functional.model.config.ModuleName
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Dooh
@@ -17,11 +18,15 @@ import static org.prebid.server.functional.model.request.auction.DistributionCha
 
 class MetricsSpec extends BaseSpec {
 
-    private final PrebidServerService softPrebidService = pbsServiceFactory.getService(['auction.strict-app-site-dooh': 'false'])
+    private static final PrebidServerService softPrebidService = pbsServiceFactory.getService(['auction.strict-app-site-dooh': 'false'])
 
     def setup() {
         flushMetrics(defaultPbsService)
         flushMetrics(softPrebidService)
+    }
+
+    def cleanupSpec() {
+        pbsServiceFactory.removeContainer(['auction.strict-app-site-dooh': 'false'])
     }
 
     def "PBS should not populate account metric when verbosity level is none"() {
