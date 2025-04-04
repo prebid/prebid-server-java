@@ -391,8 +391,8 @@ contain 'WHERE last_updated > ?' for MySQL and 'WHERE last_updated > $1' for Pos
 
 For S3 storage configuration
 - `settings.in-memory-cache.s3-update.refresh-rate` - refresh period in ms for stored request updates in S3
-- `settings.s3.access-key-id` - an access key
-- `settings.s3.secret-access-key` - a secret access key
+- `settings.s3.access-key-id` - an access key (optional)
+- `settings.s3.secret-access-key` - a secret access key (optional)
 - `settings.s3.region` - a region, AWS_GLOBAL by default
 - `settings.s3.endpoint` - an endpoint
 - `settings.s3.bucket` - a bucket name
@@ -401,6 +401,16 @@ For S3 storage configuration
 - `settings.s3.stored-imps-dir` - a directory with stored imps
 - `settings.s3.stored-requests-dir` - a directory with stored requests
 - `settings.s3.stored-responses-dir` - a directory with stored responses
+
+If `settings.s3.access-key-id` and `settings.s3.secret-access-key` are not specified in the Prebid Server configuration then AWS credentials will be looked up in this order:
+- Java System Properties - `aws.accessKeyId` and `aws.secretAccessKey`
+- Environment Variables - `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`
+- Web Identity Token credentials from system properties or environment variables 
+- Credential profiles file at the default location (`~/.aws/credentials`) shared by all AWS SDKs and the AWS CLI
+- Credentials delivered through the Amazon EC2 container service if "AWS_CONTAINER_CREDENTIALS_RELATIVE_URI" environment variable is set and security manager has permission to access the variable,
+- Instance profile credentials delivered through the Amazon EC2 metadata service
+
+
 
 For targeting available next options:
 - `settings.targeting.truncate-attr-chars` - set the max length for names of targeting keywords (0 means no truncation).
