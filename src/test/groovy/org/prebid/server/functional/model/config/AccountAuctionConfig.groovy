@@ -31,6 +31,8 @@ class AccountAuctionConfig {
     PrivacySandbox privacySandbox
     @JsonProperty("bidadjustments")
     BidAdjustment bidAdjustments
+    AuctionCacheConfig cache
+    AuctionRankingConfig ranking
 
     @JsonProperty("price_granularity")
     PriceGranularityType priceGranularitySnakeCase
