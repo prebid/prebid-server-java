@@ -2,7 +2,6 @@ package org.prebid.server.proto.openrtb.ext;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpAuctionEnvironment;
@@ -12,8 +11,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtImpAuctionEnvironment;
  * <p>
  * Can be used by {@link Bidder}s to unmarshal any request.imp[i].ext.
  */
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class ExtPrebid<P, B> {
 
     P prebid;
@@ -24,7 +22,7 @@ public class ExtPrebid<P, B> {
      * Each bidder should specify their corresponding ExtImp{Bidder} class as a type argument when unmarshaling
      * extension using this class.
      * <p>
-     * Bidder implementations may safely assume that this extension has been validated by their parameters schema.
+     * Bidder implementations may safely assume that this extension has been validated by their parameters' schema.
      */
     B bidder;
 

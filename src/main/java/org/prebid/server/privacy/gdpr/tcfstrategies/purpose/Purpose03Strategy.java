@@ -29,4 +29,3 @@ public class Purpose03Strategy extends PurposeStrategy {
         return PurposeCode.THREE;
     }
 }
-

@@ -51,7 +51,7 @@ public class NoSignalBidderPriceFloorAdjuster implements PriceFloorAdjuster {
                 .map(PriceFloorRules::getData)
                 .map(PriceFloorData::getModelGroups)
                 .filter(CollectionUtils::isNotEmpty)
-                .map(modelGroups -> modelGroups.get(0))
+                .map(List::getFirst)
                 .map(PriceFloorModelGroup::getNoFloorSignalBidders)
                 .or(() -> optionalFloors
                         .map(PriceFloorRules::getData)

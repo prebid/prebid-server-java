@@ -19,7 +19,6 @@ public class ModuleConfigResolverTest {
     private static final PbRichMediaFilterProperties ACCOUNT_PROPERTIES =
             PbRichMediaFilterProperties.of(true, "<script src=\"mraid.js\"></script>");
 
-
     private ModuleConfigResolver target;
 
     @BeforeEach

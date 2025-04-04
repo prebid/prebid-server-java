@@ -18,7 +18,6 @@ import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.hooks.modules.com.confiant.adquality.model.GroupByIssues;
 import org.prebid.server.hooks.modules.com.confiant.adquality.model.RedisBidResponseData;
 import org.prebid.server.hooks.modules.com.confiant.adquality.model.RedisBidsData;
-import org.prebid.server.hooks.modules.com.confiant.adquality.util.AdQualityModuleTestUtils;
 
 import java.util.List;
 
@@ -26,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
+import static org.prebid.server.hooks.modules.com.confiant.adquality.util.AdQualityModuleTestUtils.getBidderResponse;
 
 @ExtendWith(MockitoExtension.class)
 public class BidsScannerTest {
@@ -118,9 +118,10 @@ public class BidsScannerTest {
     public void shouldReturnEmptyScanResultWhenThereIsNoBidderResponses() {
         // given
         doReturn(redisAPI).when(readRedisNode).getRedisAPI();
+        final RedisBidsData redisBidsData = RedisBidsData.builder().bresps(List.of()).build();
 
         // when
-        final Future<BidsScanResult> scanResult = bidsScannerTest.submitBids(RedisBidsData.builder().bresps(List.of()).build());
+        final Future<BidsScanResult> scanResult = bidsScannerTest.submitBids(redisBidsData);
         final GroupByIssues<BidderResponse> groupByIssues = scanResult.result().toGroupByIssues(List.of());
 
         // then
@@ -132,7 +133,16 @@ public class BidsScannerTest {
     @Test()
     public void shouldReturnEmptyScanResultWhenThereIsSomeBidderResponseAndScanIsDisabled() {
         // given
-        final String redisResponse = "[[[{\"tag_key\": \"key_a\", \"imp_id\": \"imp_a\", \"issues\": [{ \"value\": \"ads.deceivenetworks.net\", \"spec_name\": \"malicious_domain\", \"first_adinstance\": \"e91e8da982bb8b7f80100426\"}]}]]]";
+        final String redisResponse = """
+                [[[{
+                    "tag_key": "key_a",
+                    "imp_id": "imp_a",
+                    "issues": [{
+                        "value": "ads.deceivenetworks.net",
+                        "spec_name": "malicious_domain",
+                        "first_adinstance": "e91e8da982bb8b7f80100426"
+                    }]
+                }]]]""";
         final RedisAPI redisAPI = getRedisEmulationWithAnswer(redisResponse);
         final RedisBidsData bidsData = RedisBidsData.builder()
                 .breq(BidRequest.builder().build())
@@ -145,7 +155,7 @@ public class BidsScannerTest {
         // when
         final Future<BidsScanResult> scanResult = bidsScannerTest.submitBids(bidsData);
         final GroupByIssues<BidderResponse> groupByIssues = scanResult.result()
-                .toGroupByIssues(List.of(AdQualityModuleTestUtils.getBidderResponse("bidder-a", "imp-a", "imp-id-a")));
+                .toGroupByIssues(List.of(getBidderResponse("bidder-a", "imp-a", "imp-id-a")));
 
         // then
         assertThat(scanResult.succeeded()).isTrue();
@@ -156,7 +166,22 @@ public class BidsScannerTest {
     @Test()
     public void shouldReturnRedisScanResultFromReadNodeWhenThereAreSomeBidderResponsesAndScanIsEnabled() {
         // given
-        final String redisResponse = "[[[{\"tag_key\": \"key_a\", \"imp_id\": \"imp_a\", \"issues\": [{ \"value\": \"ads.deceivenetworks.net\", \"spec_name\": \"malicious_domain\", \"first_adinstance\": \"e91e8da982bb8b7f80100426\"}]}],[{\"tag_key\": \"key_b\", \"imp_id\": \"imp_b\"}]]]";
+        final String redisResponse = """
+                [[
+                    [{
+                        "tag_key": "key_a",
+                        "imp_id": "imp_a",
+                        "issues": [{
+                            "value": "ads.deceivenetworks.net",
+                            "spec_name": "malicious_domain",
+                            "first_adinstance": "e91e8da982bb8b7f80100426"
+                        }]
+                    }],
+                    [{
+                        "tag_key": "key_b",
+                        "imp_id": "imp_b"
+                    }]
+                ]]""";
         final RedisAPI redisAPI = getRedisEmulationWithAnswer(redisResponse);
         final RedisBidsData bidsData = RedisBidsData.builder()
                 .breq(BidRequest.builder().build())
@@ -171,8 +196,8 @@ public class BidsScannerTest {
         final Future<BidsScanResult> scanResult = bidsScannerTest.submitBids(bidsData);
         final GroupByIssues<BidderResponse> groupByIssues = scanResult.result()
                 .toGroupByIssues(List.of(
-                        AdQualityModuleTestUtils.getBidderResponse("bidder-a", "imp-a", "imp-id-a"),
-                        AdQualityModuleTestUtils.getBidderResponse("bidder-b", "imp-b", "imp-id-b")));
+                        getBidderResponse("bidder-a", "imp-a", "imp-id-a"),
+                        getBidderResponse("bidder-b", "imp-b", "imp-id-b")));
 
         // then
         assertThat(scanResult.succeeded()).isTrue();
@@ -183,7 +208,12 @@ public class BidsScannerTest {
     @Test()
     public void shouldReturnRedisScanResultFromWriteNodeWhenReadNodeHasMissingResults() {
         // given
-        final String readRedisResponse = "[[[{\"tag_key\": \"key_a\", \"imp_id\": \"imp_a\", \"ro_skipped\": \"true\"}]]]";
+        final String readRedisResponse = """
+                [[[{
+                    "tag_key": "key_a",
+                    "imp_id": "imp_a",
+                    "ro_skipped": "true"
+                }]]]""";
         final RedisAPI readRedisAPI = getRedisEmulationWithAnswer(readRedisResponse);
         final RedisBidsData bidsData = RedisBidsData.builder()
                 .breq(BidRequest.builder().build())
@@ -194,14 +224,23 @@ public class BidsScannerTest {
         bidsScannerTest.enableScan();
         doReturn(readRedisAPI).when(readRedisNode).getRedisAPI();
 
-        final String writeRedisResponse = "[[[{\"tag_key\": \"key_a\", \"imp_id\": \"imp_a\", \"issues\": [{ \"value\": \"ads.deceivenetworks.net\", \"spec_name\": \"malicious_domain\", \"first_adinstance\": \"e91e8da982bb8b7f80100426\"}]}]]]";
+        final String writeRedisResponse = """
+                [[[{
+                    "tag_key": "key_a",
+                    "imp_id": "imp_a",
+                    "issues": [{
+                        "value": "ads.deceivenetworks.net",
+                        "spec_name": "malicious_domain",
+                        "first_adinstance": "e91e8da982bb8b7f80100426"
+                    }]
+                }]]]""";
         final RedisAPI writeRedisAPI = getRedisEmulationWithAnswer(writeRedisResponse);
         doReturn(writeRedisAPI).when(writeRedisNode).getRedisAPI();
 
         // when
         final Future<BidsScanResult> scanResult = bidsScannerTest.submitBids(bidsData);
         final GroupByIssues<BidderResponse> groupByIssues = scanResult.result()
-                .toGroupByIssues(List.of(AdQualityModuleTestUtils.getBidderResponse("bidder-a", "imp-a", "imp-id-a")));
+                .toGroupByIssues(List.of(getBidderResponse("bidder-a", "imp-a", "imp-id-a")));
 
         // then
         assertThat(scanResult.succeeded()).isTrue();

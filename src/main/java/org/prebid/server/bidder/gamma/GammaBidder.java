@@ -271,4 +271,3 @@ public class GammaBidder implements Bidder<Void> {
         return bid;
     }
 }
-

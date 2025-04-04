@@ -4,7 +4,10 @@ import lombok.Data;
 
 @Data
 public final class DataFile {
+
     String path;
+
     Boolean makeTempCopy;
+
     DataFileUpdate update;
 }

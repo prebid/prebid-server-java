@@ -1,11 +1,9 @@
 package org.prebid.server.bidder.rubicon.proto.request;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import lombok.AllArgsConstructor;
 import lombok.Value;
 
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class RubiconSiteExtRp {
 
     Integer siteId;

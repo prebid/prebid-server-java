@@ -14,4 +14,3 @@ public class VideoResponse {
 
     ExtAmpVideoResponse ext;
 }
-

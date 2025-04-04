@@ -4,6 +4,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
+import org.apache.commons.collections4.ListUtils;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
@@ -12,6 +13,7 @@ import org.prebid.server.activity.infrastructure.payload.impl.BidRequestActivity
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
+import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.execution.v1.bidder.AllProcessedBidResponsesPayloadImpl;
 import org.prebid.server.hooks.modules.com.confiant.adquality.core.AnalyticsMapper;
 import org.prebid.server.hooks.modules.com.confiant.adquality.core.BidsMapper;
@@ -20,7 +22,6 @@ import org.prebid.server.hooks.modules.com.confiant.adquality.core.BidsScanner;
 import org.prebid.server.hooks.modules.com.confiant.adquality.model.GroupByIssues;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
-import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.v1.InvocationStatus;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.bidder.AllProcessedBidResponsesHook;
@@ -31,7 +32,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class ConfiantAdQualityBidResponsesScanHook implements AllProcessedBidResponsesHook {
 
@@ -117,7 +117,7 @@ public class ConfiantAdQualityBidResponsesScanHook implements AllProcessedBidRes
                         .analyticsTags(AnalyticsMapper.toAnalyticsTags(
                                 bidderResponsesWithIssues, bidderResponsesWithoutIssues, notScannedBidderResponses))
                         .payloadUpdate(payload -> AllProcessedBidResponsesPayloadImpl.of(
-                                Stream.concat(bidderResponsesWithoutIssues.stream(), notScannedBidderResponses.stream()).toList()));
+                                ListUtils.union(bidderResponsesWithoutIssues, notScannedBidderResponses)));
 
         return resultBuilder.build();
     }

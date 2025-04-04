@@ -1,14 +1,12 @@
 package org.prebid.server.proto.openrtb.ext.request.algorix;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
 import lombok.Value;
 
 /**
  * Algorix Ext Imp
  */
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class ExtImpAlgorix {
 
     String sid;

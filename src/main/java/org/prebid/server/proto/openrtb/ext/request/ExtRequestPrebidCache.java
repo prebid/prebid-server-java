@@ -1,13 +1,11 @@
 package org.prebid.server.proto.openrtb.ext.request;
 
-import lombok.AllArgsConstructor;
 import lombok.Value;
 
 /**
  * Defines the contract for bidrequest.ext.prebid.cache
  */
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class ExtRequestPrebidCache {
 
     public static final ExtRequestPrebidCache EMPTY = new ExtRequestPrebidCache(null, null, null);

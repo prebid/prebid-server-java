@@ -49,7 +49,7 @@ public class CompositeMediaTypeProcessorTest {
                         singletonList(BidderError.badInput("Error from mediaTypeProcessor1"))));
 
         given(mediaTypeProcessor2.process(
-                argThat(request -> request.getId().equals("processed by mediaTypeProcessor1")),
+                argThat(request -> "processed by mediaTypeProcessor1".equals(request.getId())),
                 anyString(),
                 any(),
                 any()))

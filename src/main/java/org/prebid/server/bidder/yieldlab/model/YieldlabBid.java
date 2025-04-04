@@ -1,12 +1,10 @@
 package org.prebid.server.bidder.yieldlab.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidDsa;
 
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class YieldlabBid {
 
     Long id;

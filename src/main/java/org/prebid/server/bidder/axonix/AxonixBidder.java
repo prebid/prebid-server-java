@@ -120,4 +120,3 @@ public class AxonixBidder implements Bidder<BidRequest> {
         return BidType.banner;
     }
 }
-

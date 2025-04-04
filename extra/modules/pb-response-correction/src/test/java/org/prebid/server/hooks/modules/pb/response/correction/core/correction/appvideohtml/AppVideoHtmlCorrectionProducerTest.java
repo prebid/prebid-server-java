@@ -12,7 +12,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 public class AppVideoHtmlCorrectionProducerTest {
 
-    private final AppVideoHtmlCorrection CORRECTION_INSTANCE =
+    private static final AppVideoHtmlCorrection CORRECTION_INSTANCE =
             new AppVideoHtmlCorrection(ObjectMapperProvider.mapper(), 0.1);
 
     private final AppVideoHtmlCorrectionProducer target = new AppVideoHtmlCorrectionProducer(CORRECTION_INSTANCE);

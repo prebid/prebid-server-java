@@ -18,6 +18,7 @@ import org.prebid.server.proto.request.CookieSyncRequest;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * GDPR-aware utilities
@@ -110,10 +111,10 @@ public class PrivacyExtractor {
         final String validGdpr = ObjectUtils.notEqual(gdpr, "1") && ObjectUtils.notEqual(gdpr, "0")
                 ? DEFAULT_GDPR_VALUE
                 : gdpr;
-        final String validConsent = StringUtils.defaultString(consent, DEFAULT_CONSENT_VALUE);
+        final String validConsent = Objects.toString(consent, DEFAULT_CONSENT_VALUE);
         final Ccpa validCcpa = usPrivacy == null ? DEFAULT_CCPA_VALUE : toValidCcpa(usPrivacy, errors);
         final Integer validCoppa = coppa == null ? DEFAULT_COPPA_VALUE : coppa;
-        final String validGpp = StringUtils.defaultString(gpp, DEFAULT_GPP_VALUE);
+        final String validGpp = Objects.toString(gpp, DEFAULT_GPP_VALUE);
         final List<Integer> validGppSid = ListUtils.defaultIfNull(gppSid, DEFAULT_GPP_SID_VALUE);
 
         return Privacy.builder()

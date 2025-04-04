@@ -17,9 +17,9 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Price;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.bidder.yieldmo.proto.YieldmoBidExt;
 import org.prebid.server.bidder.yieldmo.proto.YieldmoImpExt;
+import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
@@ -49,8 +49,8 @@ public class YieldmoBidder implements Bidder<BidRequest> {
     private final JacksonMapper mapper;
 
     public YieldmoBidder(String endpointUrl,
-            CurrencyConversionService currencyConversionService,
-            JacksonMapper mapper) {
+                         CurrencyConversionService currencyConversionService,
+                         JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
         this.mapper = Objects.requireNonNull(mapper);
@@ -91,16 +91,16 @@ public class YieldmoBidder implements Bidder<BidRequest> {
 
         Price bidFloorPrice = Price.of(imp.getBidfloorcur(), imp.getBidfloor());
         bidFloorPrice = BidderUtil.isValidPrice(bidFloorPrice)
-                ? convertBidFloor(bidFloorPrice, imp.getId(), bidRequest) : bidFloorPrice;
+                ? convertBidFloor(bidFloorPrice, bidRequest) : bidFloorPrice;
 
         return imp.toBuilder()
-            .bidfloor(bidFloorPrice.getValue())
-            .bidfloorcur(bidFloorPrice.getCurrency())
-            .ext(mapper.mapper().valueToTree(modifiedExt))
-            .build();
+                .bidfloor(bidFloorPrice.getValue())
+                .bidfloorcur(bidFloorPrice.getCurrency())
+                .ext(mapper.mapper().valueToTree(modifiedExt))
+                .build();
     }
 
-    private Price convertBidFloor(Price bidFloorPrice, String impId, BidRequest bidRequest) {
+    private Price convertBidFloor(Price bidFloorPrice, BidRequest bidRequest) {
         final String bidFloorCur = bidFloorPrice.getCurrency();
         try {
             final BigDecimal convertedPrice = currencyConversionService

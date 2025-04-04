@@ -3,9 +3,11 @@ package org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.UserAgent;
+import io.vertx.core.Future;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.boundary.CollectedEvidence;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.AccountFilter;
@@ -15,12 +17,10 @@ import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.core.SecureHe
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.model.ModuleContext;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
-import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.v1.InvocationStatus;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.RawAuctionRequestHook;
-import io.vertx.core.Future;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.ObjectUtil;
 
@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Optional;
 
 public class FiftyOneDeviceDetectionRawAuctionRequestHook implements RawAuctionRequestHook {
+
     private static final String CODE = "fiftyone-devicedetection-raw-auction-request-hook";
 
     private final AccountFilter accountFilter;

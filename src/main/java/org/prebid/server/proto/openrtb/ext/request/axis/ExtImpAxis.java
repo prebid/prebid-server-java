@@ -9,4 +9,3 @@ public class ExtImpAxis {
 
     String token;
 }
-

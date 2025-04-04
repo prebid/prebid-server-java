@@ -39,7 +39,7 @@ public class DatabaseStoredDataResultMapper {
      * @param impIds     - a specified set of stored imps' IDs. Adds error for each ID missing in result set
      * @return - a {@link StoredDataResult} object
      * <p>
-     * Note: mapper should never throws exception in case of using
+     * Note: mapper should never throw exception in case of using
      * {@link CircuitBreakerSecuredDatabaseClient}.
      */
     public static StoredDataResult map(RowSet<Row> rowSet,

@@ -19,7 +19,7 @@ public class LoggerControlKnob {
     private final Level originalLevel;
 
     private final Lock lock = new ReentrantLock();
-    private Long restoreTimerId = null;
+    private Long restoreTimerId;
 
     public LoggerControlKnob(Vertx vertx) {
         this.vertx = Objects.requireNonNull(vertx);

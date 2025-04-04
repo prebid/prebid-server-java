@@ -1,10 +1,8 @@
 package org.prebid.server.bidder.avocet.model;
 
-import lombok.AllArgsConstructor;
 import lombok.Value;
 
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class AvocetResponseExt {
 
     AvocetBidExtension avocet;

@@ -59,13 +59,18 @@ public class BidsScanner {
 
         final RedisAPI readRedisNodeAPI = this.readRedisNode.getRedisAPI();
         final boolean shouldSubmit = !isScanDisabled
-                && readRedisNodeAPI != null && bids.getBresps().size() > 0;
+                && readRedisNodeAPI != null && !bids.getBresps().isEmpty();
 
         if (shouldSubmit) {
             readRedisNodeAPI.get("function_submit_bids", submitHash -> {
                 final Object submitHashResult = submitHash.result();
                 if (submitHashResult != null) {
-                    final List<String> readArgs = List.of(submitHashResult.toString(), "0", toBidsAsJson(bids), apiKey, "true");
+                    final List<String> readArgs = List.of(
+                            submitHashResult.toString(),
+                            "0",
+                            toBidsAsJson(bids),
+                            apiKey,
+                            "true");
 
                     readRedisNodeAPI.evalsha(readArgs, response -> {
                         if (response.result() != null) {
@@ -120,7 +125,7 @@ public class BidsScanner {
         if (redisAPI != null) {
             redisAPI.get("scan-disabled", scanDisabledValue -> {
                 final Response scanDisabled = scanDisabledValue.result();
-                isDisabled.complete(scanDisabled != null && scanDisabled.toString().equals("true"));
+                isDisabled.complete(scanDisabled != null && "true".equals(scanDisabled.toString()));
             });
 
             return isDisabled.future();

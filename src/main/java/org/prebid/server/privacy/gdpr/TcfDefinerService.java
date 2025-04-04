@@ -44,15 +44,15 @@ import java.util.stream.Collectors;
 public class TcfDefinerService {
 
     private static final Logger logger = LoggerFactory.getLogger(TcfDefinerService.class);
-    private static final ConditionalLogger AMP_CORRUPT_CONSENT_LOGGER =
+    private static final ConditionalLogger ampCorruptConsentLogger =
             new ConditionalLogger("amp_corrupt_consent", logger);
-    private static final ConditionalLogger APP_CORRUPT_CONSENT_LOGGER =
+    private static final ConditionalLogger appCorruptConsentLogger =
             new ConditionalLogger("app_corrupt_consent", logger);
-    private static final ConditionalLogger SITE_CORRUPT_CONSENT_LOGGER =
+    private static final ConditionalLogger siteCorruptConsentLogger =
             new ConditionalLogger("site_corrupt_consent", logger);
-    private static final ConditionalLogger DOOH_CORRUPT_CONSENT_LOGGER =
+    private static final ConditionalLogger doohCorruptConsentLogger =
             new ConditionalLogger("dooh_corrupt_consent", logger);
-    private static final ConditionalLogger UNDEFINED_CORRUPT_CONSENT_LOGGER =
+    private static final ConditionalLogger undefinedCorruptConsentLogger =
             new ConditionalLogger("undefined_corrupt_consent", logger);
 
     private static final String GDPR_ENABLED = "1";
@@ -369,7 +369,7 @@ public class TcfDefinerService {
 
             final String message = "Unknown tcfPolicyVersion %s, defaulting to gvlSpecificationVersion=3"
                     .formatted(tcfPolicyVersion);
-            UNDEFINED_CORRUPT_CONSENT_LOGGER.warn(message, samplingRate);
+            undefinedCorruptConsentLogger.warn(message, samplingRate);
             warnings.add(message);
         }
 
@@ -390,20 +390,20 @@ public class TcfDefinerService {
         if (requestLogInfo == null || requestLogInfo.getRequestType() == null) {
             final String exceptionMessage = "Parsing consent string:\"%s\" failed for undefined type with exception %s"
                     .formatted(consent, message);
-            UNDEFINED_CORRUPT_CONSENT_LOGGER.info(exceptionMessage, 100);
+            undefinedCorruptConsentLogger.info(exceptionMessage, 100);
             return;
         }
 
         switch (requestLogInfo.getRequestType()) {
-            case amp -> AMP_CORRUPT_CONSENT_LOGGER.info(
+            case amp -> ampCorruptConsentLogger.info(
                     logMessage(consent, MetricName.amp.toString(), requestLogInfo, message), 100);
-            case openrtb2app -> APP_CORRUPT_CONSENT_LOGGER.info(
+            case openrtb2app -> appCorruptConsentLogger.info(
                     logMessage(consent, MetricName.openrtb2app.toString(), requestLogInfo, message), 100);
-            case openrtb2dooh -> DOOH_CORRUPT_CONSENT_LOGGER.info(
+            case openrtb2dooh -> doohCorruptConsentLogger.info(
                     logMessage(consent, MetricName.openrtb2dooh.toString(), requestLogInfo, message), 100);
-            case openrtb2web -> SITE_CORRUPT_CONSENT_LOGGER.info(
+            case openrtb2web -> siteCorruptConsentLogger.info(
                     logMessage(consent, MetricName.openrtb2web.toString(), requestLogInfo, message), 100);
-            default -> UNDEFINED_CORRUPT_CONSENT_LOGGER.info(
+            default -> undefinedCorruptConsentLogger.info(
                     logMessage(consent, "video or sync or setuid", requestLogInfo, message), 100);
         }
     }

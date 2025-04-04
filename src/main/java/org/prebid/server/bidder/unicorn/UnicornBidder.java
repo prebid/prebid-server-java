@@ -102,9 +102,9 @@ public class UnicornBidder implements Bidder<BidRequest> {
                 : null;
 
         final UnicornImpExt resolvedUnicornImpExt = resolvedPlacementId != null
-                ? unicornImpExt.toBuilder()
-                .bidder(extImpBidder.toBuilder().placementId(resolvedPlacementId).build())
-                .build()
+                ? UnicornImpExt.of(
+                unicornImpExt.getContext(),
+                extImpBidder.toBuilder().placementId(resolvedPlacementId).build())
                 : null;
 
         return imp.toBuilder()

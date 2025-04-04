@@ -34,7 +34,8 @@ public class ConfiantAdQualityModuleConfiguration {
     ConfiantAdQualityModule confiantAdQualityModule(
             @Value("${hooks.modules.confiant-ad-quality.api-key}") String apiKey,
             @Value("${hooks.modules.confiant-ad-quality.scan-state-check-interval}") int scanStateCheckInterval,
-            @Value("${hooks.modules.confiant-ad-quality.bidders-to-exclude-from-scan}") List<String> biddersToExcludeFromScan,
+            @Value("${hooks.modules.confiant-ad-quality.bidders-to-exclude-from-scan}")
+            List<String> biddersToExcludeFromScan,
             RedisConfig redisConfig,
             RedisRetryConfig retryConfig,
             Vertx vertx,
@@ -43,13 +44,24 @@ public class ConfiantAdQualityModuleConfiguration {
 
         final RedisConnectionConfig writeNodeConfig = redisConfig.getWriteNode();
         final RedisClient writeRedisNode = new RedisClient(
-                vertx, writeNodeConfig.getHost(), writeNodeConfig.getPort(), writeNodeConfig.getPassword(), retryConfig, "write node");
+                vertx,
+                writeNodeConfig.getHost(),
+                writeNodeConfig.getPort(),
+                writeNodeConfig.getPassword(),
+                retryConfig,
+                "write node");
         final RedisConnectionConfig readNodeConfig = redisConfig.getReadNode();
         final RedisClient readRedisNode = new RedisClient(
-                vertx, readNodeConfig.getHost(), readNodeConfig.getPort(), readNodeConfig.getPassword(), retryConfig, "read node");
+                vertx,
+                readNodeConfig.getHost(),
+                readNodeConfig.getPort(),
+                readNodeConfig.getPassword(),
+                retryConfig,
+                "read node");
 
         final BidsScanner bidsScanner = new BidsScanner(writeRedisNode, readRedisNode, apiKey, objectMapper);
-        final RedisScanStateChecker redisScanStateChecker = new RedisScanStateChecker(bidsScanner, scanStateCheckInterval, vertx);
+        final RedisScanStateChecker redisScanStateChecker = new RedisScanStateChecker(
+                bidsScanner, scanStateCheckInterval, vertx);
 
         final Promise<Void> scannerPromise = Promise.promise();
         scannerPromise.future().onComplete(r -> redisScanStateChecker.run());

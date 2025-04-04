@@ -7,7 +7,7 @@ import lombok.Value;
 import java.util.List;
 
 @Builder
-@Value(staticConstructor = "of")
+@Value
 public class ExtImpConcert {
 
     @JsonProperty("partnerId")

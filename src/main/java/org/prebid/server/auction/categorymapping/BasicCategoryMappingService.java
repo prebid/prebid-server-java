@@ -150,7 +150,7 @@ public class BasicCategoryMappingService implements CategoryMappingService {
 
         final Promise<List<CategoryBidContext>> categoryBidContextsPromise = Promise.promise();
 
-        final CompositeFuture compositeFuture = CompositeFuture.join(bidderResponses.stream()
+        final CompositeFuture compositeFuture = Future.join(bidderResponses.stream()
                 .flatMap(bidderResponse -> makeFetchCategoryFutures(
                         bidderResponse, primaryAdServer, publisher, timeout, withCategory, translateCategories))
                 .collect(Collectors.toList()));
@@ -729,14 +729,6 @@ public class BasicCategoryMappingService implements CategoryMappingService {
     @Builder(toBuilder = true)
     private static class CategoryBidContext {
 
-        public static CategoryBidContext of(BidderBid bidderBid, String bidder, String category) {
-            return CategoryBidContext.builder()
-                    .bidderBid(bidderBid)
-                    .bidder(bidder)
-                    .category(category)
-                    .build();
-        }
-
         BidderBid bidderBid;
 
         String bidder;
@@ -750,6 +742,14 @@ public class BasicCategoryMappingService implements CategoryMappingService {
         BigDecimal price;
 
         boolean satisfiedPriority;
+
+        public static CategoryBidContext of(BidderBid bidderBid, String bidder, String category) {
+            return CategoryBidContext.builder()
+                    .bidderBid(bidderBid)
+                    .bidder(bidder)
+                    .category(category)
+                    .build();
+        }
     }
 
     @Value(staticConstructor = "of")

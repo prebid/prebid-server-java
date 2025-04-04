@@ -30,4 +30,3 @@ public class FixedIntervalRetryPolicy implements Retryable {
                 : NonRetryable.instance();
     }
 }
-

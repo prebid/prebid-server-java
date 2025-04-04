@@ -33,4 +33,3 @@ public class TheadxTest extends IntegrationTest {
                 singletonList("theadx"));
     }
 }
-
