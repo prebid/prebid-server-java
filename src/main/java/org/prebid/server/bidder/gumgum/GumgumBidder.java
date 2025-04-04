@@ -75,7 +75,55 @@ public class GumgumBidder implements Bidder<BidRequest> {
                 errors);
     }
 
-    private BidRequest createBidRequest(BidRequest bidRequest, List<BidderError> errors) {
+//
+
+//    protected BidRequest createBidRequest(BidRequest bidRequest, List<BidderError> errors) {
+//        final List<Imp> modifiedImps = new ArrayList<>();
+//        String zone = null;
+//        BigInteger pubId = null;
+//
+//        for (Imp imp : bidRequest.getImp()) {
+//            try {
+//                final ExtImpGumgum extImp = parseImpExt(imp);
+//
+//                //extract AdUnitID also confirm for imp.tagId
+//                final String adUnitId = extractAdUnitId(imp);
+//
+//                //modify Imp to include AdUnitID in ext
+//                modifiedImps.add(modifyImp(imp, extImp, adUnitId));
+//
+//                final String extZone = extImp.getZone();
+//                if (StringUtils.isNotEmpty(extZone)) {
+//                    zone = extZone;
+//                }
+//                final BigInteger extPubId = extImp.getPubId();
+//                if (extPubId != null && !extPubId.equals(BigInteger.ZERO)) {
+//                    pubId = extPubId;
+//                }
+//            } catch (PreBidException e) {
+//                errors.add(BidderError.badInput(e.getMessage()));
+//            }
+//        }
+//
+//        if (modifiedImps.isEmpty()) {
+//            throw new PreBidException("No valid impressions");
+//        }
+//
+//        return bidRequest.toBuilder()
+//                .imp(modifiedImps)
+//                .site(modifySite(bidRequest.getSite(), zone, pubId))
+//                .build();
+//    }
+
+//    protected String extractAdUnitId(Imp imp) {
+//        if (imp.getExt() != null && imp.getExt().has("adunitid")) {
+//            return imp.getExt().get("adunitid").asText();
+//        }
+//        return null;
+//    }
+
+
+    protected BidRequest createBidRequest(BidRequest bidRequest, List<BidderError> errors) {
         final List<Imp> modifiedImps = new ArrayList<>();
         String zone = null;
         BigInteger pubId = null;
@@ -83,21 +131,26 @@ public class GumgumBidder implements Bidder<BidRequest> {
         for (Imp imp : bidRequest.getImp()) {
             try {
                 final ExtImpGumgum extImp = parseImpExt(imp);
+                if (extImp == null) {
+                    throw new PreBidException("Cannot parse extImp from imp.ext");
+                }
 
-                //extract AdUnitID also confirm for imp.tagId
-                String adUnitId = extractAdUnitId(imp);
+                // extract AdUnitID also confirm for imp.tagId
+                final String adUnitId = extractAdUnitId(imp);
 
-                //modify Imp to include AdUnitID in ext
+                // modify Imp to include AdUnitID in ext
                 modifiedImps.add(modifyImp(imp, extImp, adUnitId));
 
                 final String extZone = extImp.getZone();
                 if (StringUtils.isNotEmpty(extZone)) {
                     zone = extZone;
                 }
+
                 final BigInteger extPubId = extImp.getPubId();
                 if (extPubId != null && !extPubId.equals(BigInteger.ZERO)) {
                     pubId = extPubId;
                 }
+
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -113,9 +166,10 @@ public class GumgumBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private String extractAdUnitId(Imp imp) {
-        if (imp.getExt() != null && imp.getExt().has("adunitid")) {
-            return imp.getExt().get("adunitid").asText();
+
+    protected String extractAdUnitId(Imp imp) {
+        if (imp.getExt() != null && imp.getExt().has("bidder") && imp.getExt().get("bidder").has("adunitid")) {
+            return imp.getExt().get("bidder").get("adunitid").asText();
         }
         return null;
     }
@@ -128,8 +182,17 @@ public class GumgumBidder implements Bidder<BidRequest> {
         }
     }
 
-    private Imp modifyImp(Imp imp, ExtImpGumgum extImp, String adUnitId) {
+
+    protected Imp modifyImp(Imp imp, ExtImpGumgum extImp, String adUnitId) {
         final Imp.ImpBuilder impBuilder = imp.toBuilder();
+
+        // Debugging: Check the adUnitId and extImp
+        System.out.println("adUnitId: " + adUnitId);  // Debugging
+        System.out.println("extImp.getZone(): " + extImp.getZone());  // Debugging
+
+        if (extImp == null) {
+            extImp = ExtImpGumgum.of(null, null, null, null, null); // Create an empty ExtImpGumgum object
+        }
 
         final String product = extImp.getProduct();
         ObjectNode updatedExt = imp.getExt();
