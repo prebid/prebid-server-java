@@ -1,6 +1,7 @@
 adapters:
   nextmillennium:
     endpoint: https://pbs.nextmillmedia.com/openrtb2/auction
+    endpoint-compression: gzip
     meta-info:
       maintainer-email: accountmanagers@nextmillennium.io
       app-media-types:
