@@ -28,6 +28,8 @@ import static org.prebid.server.functional.model.bidder.BidderName.OPENX_ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.WILDCARD
 import static org.prebid.server.functional.model.request.auction.AuctionEnvironment.DEVICE_ORCHESTRATED
 import static org.prebid.server.functional.model.request.auction.AuctionEnvironment.NOT_SUPPORTED
+import static org.prebid.server.functional.model.request.auction.AuctionEnvironment.SERVER_ORCHESTRATED
+import static org.prebid.server.functional.model.request.auction.AuctionEnvironment.UNKNOWN
 import static org.prebid.server.functional.model.request.auction.PaaFormat.IAB
 import static org.prebid.server.functional.model.request.auction.PaaFormat.ORIGINAL
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
@@ -198,7 +200,7 @@ class OpenxSpec extends BaseSpec {
         assert interestGroupAuctionSeller.impId == impId
         assert interestGroupAuctionSeller.config
         assert interestGroupAuctionSeller.ext.bidder == bidResponse.seatbid[0].seat.value
-        assert interestGroupAuctionSeller.ext.adapter == OPENX.value
+        assert interestGroupAuctionSeller.ext.adapter == bidResponse.seatbid[0].seat.value
     }
 
     def "PBS shouldn't populate fledge config when bid response didn't return fledge config"() {
