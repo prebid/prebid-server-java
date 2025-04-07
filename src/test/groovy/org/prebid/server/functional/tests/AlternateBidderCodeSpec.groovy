@@ -1600,7 +1600,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
         assert response.seatbid.seat.sort() == [GENERIC, GENERIC].sort()
 
         and: "Response should contain adapter code"
-        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [AMX, GENERIC]
+        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten().sort() == [AMX, GENERIC].sort()
 
         and: "Response should contain bidder amx targeting"
         def targeting = response.seatbid.bid.ext.prebid.targeting.flatten().collectEntries()
@@ -1608,15 +1608,10 @@ class AlternateBidderCodeSpec extends BaseSpec {
         assert targeting["hb_size_${GENERIC}"]
         assert targeting["hb_bidder_${GENERIC}"] == GENERIC.value
 
-        and: 'Response targeting should contain generic'
-        assert targeting["hb_pb_${GENERIC}"]
-        assert targeting["hb_size_${GENERIC}"]
-        assert targeting["hb_bidder_${GENERIC}"] == GENERIC.value
-
         and: "Response should contain repose millis with corresponding bidder"
         assert response.ext.responsetimemillis.containsKey(GENERIC.value)
 
-        and: "Response should contain repose millis with amx bidder"
+        and: "Response shouldn't contain repose millis with amx bidder"
         assert !response.ext.responsetimemillis.containsKey(AMX.value)
 
         and: "Bidder request should be valid"
@@ -1639,7 +1634,6 @@ class AlternateBidderCodeSpec extends BaseSpec {
     def "PBS should return two seat when same bidder response with different bidder code"() {
         given: "Default bid request with amx and generic bidder"
         def bidRequest = getBidRequestWithAmxBidderAndAlternateBidderCode().tap {
-            imp[0].ext.prebid.bidder.amx = new Amx()
             imp.add(Imp.getDefaultImpression())
             imp[1].ext.prebid.bidder.amx = new Amx()
             imp[1].ext.prebid.bidder.generic = null
@@ -1723,7 +1717,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
         def response = pbsServiceWithAmxBidder.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seat"
-        assert response.seatbid.seat.sort() == [AMX].sort()
+        assert response.seatbid.seat == [AMX]
 
         and: "Response should contain adapter code"
         assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [AMX]
