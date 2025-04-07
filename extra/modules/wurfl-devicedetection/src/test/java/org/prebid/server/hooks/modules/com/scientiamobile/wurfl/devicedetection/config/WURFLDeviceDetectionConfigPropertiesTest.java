@@ -19,6 +19,9 @@ class WURFLDeviceDetectionConfigPropertiesTest {
         assertThat(properties.getWurflSnapshotUrl()).isNull();
         assertThat(properties.isExtCaps()).isFalse();
         assertThat(properties.isWurflRunUpdater()).isTrue();
+        assertThat(properties.getUpdateConnTimeoutMs()).isEqualTo(5000);
+        assertThat(properties.getUpdateRetries()).isEqualTo(3);
+        assertThat(properties.getRetryIntervalMs()).isEqualTo(200);
     }
 
     @Test
@@ -34,6 +37,10 @@ class WURFLDeviceDetectionConfigPropertiesTest {
         properties.setWurflRunUpdater(false);
         properties.setAllowedPublisherIds(List.of("1", "3"));
         properties.setExtCaps(true);
+        properties.setUpdateConnTimeoutMs(7000);
+        properties.setUpdateRetries(1);
+        properties.setRetryIntervalMs(100L);
+
 
         // then
         assertThat(properties.getCacheSize()).isEqualTo(1000);
@@ -42,5 +49,8 @@ class WURFLDeviceDetectionConfigPropertiesTest {
         assertThat(properties.isWurflRunUpdater()).isEqualTo(false);
         assertThat(properties.getAllowedPublisherIds()).isEqualTo(List.of("1", "3"));
         assertThat(properties.isExtCaps()).isTrue();
+        assertThat(properties.getUpdateConnTimeoutMs()).isEqualTo(7000);
+        assertThat(properties.getUpdateRetries()).isEqualTo(1);
+        assertThat(properties.getRetryIntervalMs()).isEqualTo(100);
     }
 }

@@ -4,8 +4,6 @@ import com.scientiamobile.wurfl.core.GeneralWURFLEngine;
 import com.scientiamobile.wurfl.core.WURFLEngine;
 import com.scientiamobile.wurfl.core.cache.LRUMapCacheProvider;
 import com.scientiamobile.wurfl.core.cache.NullCacheProvider;
-import com.scientiamobile.wurfl.core.updater.Frequency;
-import com.scientiamobile.wurfl.core.updater.WURFLUpdater;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -28,10 +26,9 @@ public class WURFLEngineInitializer {
     private WURFLDeviceDetectionConfigProperties configProperties;
 
     public WURFLEngine initWURFLEngine() {
+        // this happens in a spring bean that happens at module startup time
         downloadWurflFile(configProperties);
-        final WURFLEngine engine = initializeEngine(configProperties);
-        setupUpdater(configProperties, engine);
-        return engine;
+        return initializeEngine(configProperties);
     }
 
     static void downloadWurflFile(WURFLDeviceDetectionConfigProperties configProperties) {
@@ -62,7 +59,7 @@ public class WURFLEngineInitializer {
         return engine;
     }
 
-    private static String extractWURFLFileName(String wurflSnapshotUrl) {
+    public static String extractWURFLFileName(String wurflSnapshotUrl) {
 
         try {
             final URI uri = new URI(wurflSnapshotUrl);
@@ -98,15 +95,5 @@ public class WURFLEngineInitializer {
             throw new WURFLModuleConfigurationException(failedCheckMessage);
         }
 
-    }
-
-    static void setupUpdater(WURFLDeviceDetectionConfigProperties configProperties, WURFLEngine engine) {
-        final boolean runUpdater = configProperties.isWurflRunUpdater();
-
-        if (runUpdater) {
-            final WURFLUpdater updater = new WURFLUpdater(engine, configProperties.getWurflSnapshotUrl());
-            updater.setFrequency(Frequency.DAILY);
-            updater.performPeriodicUpdate();
-        }
     }
 }

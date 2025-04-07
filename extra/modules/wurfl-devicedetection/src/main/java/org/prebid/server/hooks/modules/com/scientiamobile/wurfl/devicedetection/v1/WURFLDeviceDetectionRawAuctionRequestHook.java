@@ -2,9 +2,6 @@ package org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection
 
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
-import com.scientiamobile.wurfl.core.WURFLEngine;
-import com.scientiamobile.wurfl.core.exc.CapabilityNotDefinedException;
-import com.scientiamobile.wurfl.core.exc.VirtualCapabilityNotDefinedException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.MapUtils;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
@@ -21,9 +18,9 @@ import org.prebid.server.hooks.v1.auction.RawAuctionRequestHook;
 import org.prebid.server.auction.model.AuctionContext;
 import io.vertx.core.Future;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -31,18 +28,18 @@ public class WURFLDeviceDetectionRawAuctionRequestHook implements RawAuctionRequ
 
     public static final String CODE = "wurfl-devicedetection-raw-auction-request";
 
-    private final WURFLEngine wurflEngine;
+    private final WURFLService wurflService;
     private final List<String> staticCaps;
     private final List<String> virtualCaps;
     private final OrtbDeviceUpdater ortbDeviceUpdater;
     private final Map<String, String> allowedPublisherIDs;
     private final boolean addExtCaps;
 
-    public WURFLDeviceDetectionRawAuctionRequestHook(WURFLEngine wurflEngine,
+    public WURFLDeviceDetectionRawAuctionRequestHook(WURFLService wurflService,
                                                      WURFLDeviceDetectionConfigProperties configProperties) {
-        this.wurflEngine = wurflEngine;
-        this.staticCaps = wurflEngine.getAllCapabilities().stream().toList();
-        this.virtualCaps = wurflEngine.getAllVirtualCapabilities().stream().toList();
+        this.wurflService = wurflService;
+        this.staticCaps = wurflService.getAllCapabilities().stream().toList();
+        this.virtualCaps = wurflService.getAllVirtualCapabilities().stream().toList();
         this.ortbDeviceUpdater = new OrtbDeviceUpdater();
         this.addExtCaps = configProperties.isExtCaps();
         this.allowedPublisherIDs = configProperties.getAllowedPublisherIds().stream()
@@ -78,11 +75,15 @@ public class WURFLDeviceDetectionRawAuctionRequestHook implements RawAuctionRequ
             }
 
             final Map<String, String> headers = new HeadersResolver().resolve(ortbDevice, requestHeaders);
-            final com.scientiamobile.wurfl.core.Device wurflDevice = wurflEngine.getDeviceForRequest(headers);
+            final Optional<com.scientiamobile.wurfl.core.Device> wurflDevice = wurflService.lookupDevice(headers);
+            if (wurflDevice.isEmpty()) {
+                return noUpdateResultFuture();
+            }
 
             try {
-                final Device updatedDevice = ortbDeviceUpdater.update(ortbDevice, wurflDevice, staticCaps,
+                final Device updatedDevice = ortbDeviceUpdater.update(ortbDevice, wurflDevice.get(), staticCaps,
                         virtualCaps, addExtCaps);
+
                 return Future.succeededFuture(
                         InvocationResultImpl.<AuctionRequestPayload>builder()
                                 .status(InvocationStatus.success)
