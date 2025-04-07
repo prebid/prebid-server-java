@@ -12,6 +12,10 @@ import java.util.Set;
 
 public class WURFLDeviceDetectionConfigProperties {
 
+    private static final int DEFAULT_UPDATE_TIMEOUT = 5000;
+    private static final long DEFAULT_RETRY_INTERVAL = 200L;
+    private static final int DEFAULT_UPDATE_RETRIES = 3;
+
     public static final Set<String> REQUIRED_STATIC_CAPS = Set.of(
             "ajax_support_javascript",
             "brand_name",
@@ -48,4 +52,10 @@ public class WURFLDeviceDetectionConfigProperties {
     boolean wurflRunUpdater = true;
 
     List<String> allowedPublisherIds = List.of();
+
+    int updateConnTimeoutMs = DEFAULT_UPDATE_TIMEOUT;
+
+    int updateRetries = DEFAULT_UPDATE_RETRIES;
+
+    long retryIntervalMs = DEFAULT_RETRY_INTERVAL;
 }

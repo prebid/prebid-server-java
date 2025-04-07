@@ -112,6 +112,7 @@ class WURFLEngineInitializerTest {
         when(configProperties.getWurflFileDirPath()).thenReturn("/test/path");
         when(configProperties.getCacheSize()).thenReturn(1000);
         when(configProperties.isWurflRunUpdater()).thenReturn(true);
+        when(configProperties.getUpdateConnTimeoutMs()).thenReturn(5000);
 
         // when
         final var builder = WURFLEngineInitializer.builder()
