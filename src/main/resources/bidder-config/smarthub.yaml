@@ -26,6 +26,9 @@ adapters:
       artechnology:
         enabled: false
         endpoint: https://artechnology-prebid.attekmi.com/pbserver/?seat={{AccountID}}&token={{SourceId}}
+      addigi:
+        enabled: false
+        endpoint: https://addigi-prebid.attekmi.com/pbserver/?seat={{AccountID}}&token={{SourceId}}
     meta-info:
       maintainer-email: prebid@attekmi.com
       app-media-types:
