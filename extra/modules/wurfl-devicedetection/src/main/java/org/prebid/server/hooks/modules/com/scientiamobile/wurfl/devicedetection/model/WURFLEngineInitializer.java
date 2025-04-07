@@ -26,6 +26,7 @@ public class WURFLEngineInitializer {
     private WURFLDeviceDetectionConfigProperties configProperties;
 
     public WURFLEngine initWURFLEngine() {
+        // this happens in a spring bean that happens at module startup time
         downloadWurflFile(configProperties);
         return initializeEngine(configProperties);
     }
