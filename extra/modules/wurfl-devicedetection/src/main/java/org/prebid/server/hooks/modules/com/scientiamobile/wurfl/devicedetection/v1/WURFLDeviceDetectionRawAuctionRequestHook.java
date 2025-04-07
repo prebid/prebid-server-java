@@ -77,7 +77,6 @@ public class WURFLDeviceDetectionRawAuctionRequestHook implements RawAuctionRequ
             final Map<String, String> headers = new HeadersResolver().resolve(ortbDevice, requestHeaders);
             final Optional<com.scientiamobile.wurfl.core.Device> wurflDevice = wurflService.lookupDevice(headers);
             if (wurflDevice.isEmpty()) {
-                log.warn("WURFL device is null: most likely WURFLService has not completed initialization");
                 return noUpdateResultFuture();
             }
 

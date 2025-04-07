@@ -30,7 +30,6 @@ public class WURFLService implements FileProcessor {
 
     public Future<?> setDataPath(String dataFilePath) {
 
-        log.info("setDataPath invoked");
         try {
             final WURFLEngine engine = new GeneralWURFLEngine(dataFilePath);
             engine.load();
