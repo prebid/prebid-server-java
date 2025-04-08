@@ -1,0 +1,235 @@
+{
+  "id": "12345",
+  "at": 1,
+  "tmax": 485,
+  "imp": [
+    {
+      "id": "impId001",
+      "tagid": "999999-1111-8888-2222-77777777777",
+      "instl": 1,
+      "bidfloor": 0.5,
+      "bidfloorcur": "USD",
+      "video": {
+        "api": [
+          7
+        ],
+        "battr": [
+          16
+        ],
+        "companiontype": [
+          1,
+          2
+        ],
+        "h": 480,
+        "w": 320,
+        "skip": 1,
+        "mimes": [
+          "video/mp4"
+        ],
+        "minduration": 5,
+        "maxduration": 30,
+        "linearity": 1,
+        "protocols": [
+          2,
+          3,
+          5,
+          6
+        ],
+        "pos": 7,
+        "startdelay": 0,
+        "placement": 4,
+        "skipmin": 0,
+        "skipafter": 0,
+        "companionad": [
+          {
+            "w": 320,
+            "h": 480,
+            "pos": 7,
+            "mimes": [
+              "image/jpg",
+              "image/gif"
+            ],
+            "api": [
+              3,
+              5,
+              6
+            ],
+            "vcm": 1
+          }
+        ],
+        "delivery": [],
+        "maxextended": 0,
+        "ext": {
+          "rewarded": 1,
+          "videotype": "rewarded",
+          "plcmt": 3
+        },
+        "plcmt": 2
+      },
+      "metric": [
+        {
+          "type": "viewability",
+          "value": 0.97,
+          "vendor": "ZZZ"
+        }
+      ],
+      "displaymanager": "ZZZ",
+      "displaymanagerver": "42.42.42",
+      "secure": 1,
+      "ext": {
+        "prebid": {
+          "bidder": {
+            "startio": {}
+          }
+        }
+      }
+    },
+    {
+      "id": "impId002",
+      "banner": {
+        "w": 320,
+        "h": 480,
+        "battr": [
+          16
+        ],
+        "pos": 7,
+        "mimes": [
+          "image/jpg",
+          "image/gif"
+        ],
+        "api": [
+          7
+        ]
+      },
+      "secure": 1,
+      "ext": {
+        "tid": "0440dd3b-c685-4f4b-bf32-f63f839df055",
+        "prebid": {
+          "bidder": {
+            "startio": {
+              "param": "paramValue"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "impId003",
+      "native": {
+        "ver": "1.1",
+        "request": "{\"adunit\":2,\"assets\":[{\"id\":3,\"img\":{\"h\":480,\"hmin\":0,\"type\":3,\"w\":320,\"wmin\":0},\"required\":1},{\"id\":0,\"required\":1,\"title\":{\"len\":25}},{\"data\":{\"len\":25,\"type\":1},\"id\":4,\"required\":1},{\"data\":{\"len\":140,\"type\":2},\"id\":6,\"required\":1}],\"context\":1,\"layout\":1,\"contextsubtype\":11,\"plcmtcnt\":1,\"plcmttype\":2,\"ver\":\"1.1\",\"ext\":{\"banner\":{\"w\":320,\"h\":480}}}"
+      },
+      "tagid": "0420420500",
+      "secure": 1,
+      "ext": {
+        "prebid": {
+          "bidder": {
+            "startio": {
+              "param": "paramValue"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "app": {
+    "id": "aaaaaa-ffff-bbbb-eeee-cccccccccccc",
+    "name": "appname",
+    "domain": "pubname.com",
+    "privacypolicy": 1,
+    "publisher": {
+      "id": "192837465",
+      "name": "pubname",
+      "domain": "pubname.com"
+    },
+    "bundle": "com.pubname.appname",
+    "content": {
+      "userrating": "4.53"
+    },
+    "storeurl": "https://play.google.com/store/apps/details?id=com.pubname.appname",
+    "ver": "2.27.2",
+    "paid": 0
+  },
+  "device": {
+    "ip": "111.111.111.111",
+    "devicetype": 4,
+    "carrier": "Verizon ",
+    "connectiontype": 6,
+    "make": "samsung",
+    "model": "SM-G960U",
+    "ua": "Mozilla/5.0 (Linux; Android 10; SM-G960U Build/QP1A.190711.020; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/131.0.6778.39 Mobile Safari/537.36",
+    "os": "Android",
+    "osv": "10",
+    "geo": {
+      "country": "USA",
+      "city": "Pennsauken",
+      "type": 2,
+      "region": "NJ",
+      "zip": "08110",
+      "metro": "504",
+      "ipservice": 3
+    },
+    "ifa": "11111111-2222-9999-8888-3333333333",
+    "h": 740,
+    "w": 360,
+    "pxratio": 2,
+    "lmt": 0,
+    "language": "en"
+  },
+  "cur": [
+    "USD"
+  ],
+  "bcat": [
+    "IAB23-1",
+    "IAB7-26",
+    "IAB7-44",
+    "IAB7-25",
+    "IAB7-30",
+    "IAB23-5",
+    "IAB25-3",
+    "IAB26-2",
+    "IAB23-4",
+    "IAB25-2",
+    "IAB26-1",
+    "IAB23-3",
+    "IAB25-1",
+    "IAB23-2",
+    "IAB23-9",
+    "IAB25-7",
+    "IAB23-8",
+    "IAB25-6",
+    "IAB23-7",
+    "IAB25-5",
+    "IAB26-4",
+    "IAB23-6",
+    "IAB25-4",
+    "IAB26-3",
+    "IAB23-10",
+    "IAB7-39",
+    "IAB7-5",
+    "IAB1-8",
+    "IAB11-5",
+    "IAB15-1",
+    "IAB14-1",
+    "IAB11-4",
+    "IAB15-5",
+    "IAB18-2",
+    "IAB9-7"
+  ],
+  "badv": [
+    "domain1.com",
+    "domain2.com",
+    "domain3.com",
+    "domain4.com"
+  ],
+  "source": {
+    "ext": {
+      "omidpn": "omidpn",
+      "omidpv": "omidpv"
+    }
+  },
+  "ext": {
+    "hb": 1
+  }
+}
+

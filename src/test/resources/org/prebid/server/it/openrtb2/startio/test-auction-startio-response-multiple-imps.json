@@ -1,0 +1,105 @@
+{
+  "id": "12345",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "0213b3e3-c59a-4129-aba5-458ad77b2d30",
+          "impid": "impId001",
+          "price": 0.6018685301576561,
+          "nurl": "https://adwin.startappservice.com/adwin/api/v1.0/adwin?d=dparam",
+          "lurl": "https://img.image.com/product/image.jpg",
+          "adm": "<VAST version=\"4.0\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns=\"http://www.iab.com/VAST\">\n  <Ad id=\"20008\" sequence=\"1\" conditionalAd=\"false\">\n    <InLine>\n      <AdSystem version=\"4.0\">iabtechlab</AdSystem>\n      <Error>http://example.com/error</Error>\n      <Extensions>\n        <Extension type=\"iab-Count\">\n          <total_available>\n            <![CDATA[ 2 ]]>\n          </total_available>\n        </Extension>\n      </Extensions>\n      <Impression id=\"Impression-ID\">http://example.com/track/impression</Impression>\n      <Pricing model=\"cpm\" currency=\"USD\">\n        <![CDATA[ 0.00 ]]>\n      </Pricing>\n      <AdTitle>iabtechlab video ad</AdTitle>\n      <Category authority=\"http://www.iabtechlab.com/categoryauthority\">AD CONTENT description category</Category>\n      <Creatives>\n        <Creative id=\"5480\" sequence=\"1\" adId=\"2447226\">\n          <UniversalAdId idRegistry=\"Ad-ID\" idValue=\"8465\">8465</UniversalAdId>\n          <Linear>\n            <TrackingEvents>\n              <Tracking event=\"start\">http://example.com/tracking/start</Tracking>\n              <Tracking event=\"firstQuartile\">http://example.com/tracking/firstQuartile</Tracking>\n              <Tracking event=\"midpoint\">http://example.com/tracking/midpoint</Tracking>\n              <Tracking event=\"thirdQuartile\">http://example.com/tracking/thirdQuartile</Tracking>\n              <Tracking event=\"complete\">http://example.com/tracking/complete</Tracking>\n              <Tracking event=\"progress\" offset=\"00:00:10\">http://example.com/tracking/progress-10</Tracking>\n            </TrackingEvents>\n            <Duration>00:00:16</Duration>\n            <MediaFiles>\n              <MediaFile id=\"5241\" delivery=\"progressive\" type=\"video/mp4\" bitrate=\"2000\" width=\"1280\" height=\"720\" minBitrate=\"1500\" maxBitrate=\"2500\" scalable=\"1\" maintainAspectRatio=\"1\" codec=\"H.264\">\n                <![CDATA[https://iab-publicfiles.s3.amazonaws.com/vast/VAST-4.0-Short-Intro.mp4]]>\n              </MediaFile>\n              <MediaFile id=\"5244\" delivery=\"progressive\" type=\"video/mp4\" bitrate=\"1000\" width=\"854\" height=\"480\" minBitrate=\"700\" maxBitrate=\"1500\" scalable=\"1\" maintainAspectRatio=\"1\" codec=\"H.264\">\n                <![CDATA[https://iab-publicfiles.s3.amazonaws.com/vast/VAST-4.0-Short-Intro-mid-resolution.mp4]]>\n              </MediaFile>\n              <MediaFile id=\"5246\" delivery=\"progressive\" type=\"video/mp4\" bitrate=\"600\" width=\"640\" height=\"360\" minBitrate=\"500\" maxBitrate=\"700\" scalable=\"1\" maintainAspectRatio=\"1\" codec=\"H.264\">\n                <![CDATA[https://iab-publicfiles.s3.amazonaws.com/vast/VAST-4.0-Short-Intro-low-resolution.mp4]]>\n              </MediaFile>\n            </MediaFiles>\n            <VideoClicks>\n              <ClickThrough id=\"blog\">\n                <![CDATA[https://iabtechlab.com]]>\n              </ClickThrough>\n            </VideoClicks>\n          </Linear>\n        </Creative>\n      </Creatives>\n    </InLine>\n  </Ad>\n</VAST>\n",
+          "adomain": [
+            "start.io"
+          ],
+          "iurl": "https://adimpression.startappservice.com/adimpression/api/v1.0/adimp?d=dparam",
+          "cid": "9147870261277510647",
+          "crid": "4176712578365726823",
+          "cat": [
+            "IAB0"
+          ],
+          "w": 480,
+          "h": 320,
+          "exp": 1500,
+          "ext": {
+            "origbidcpm": 0.6018685301576561,
+            "origbidcur": "USD",
+            "prebid": {
+              "type": "video"
+            }
+          }
+        },
+        {
+          "id": "01b916af-70bd-4032-8fa3-b70ceea87150",
+          "impid": "impId002",
+          "price": 0.48378391855747593,
+          "nurl": "https://adwin.startappservice.com/adwin/api/v1.0/adwin?d=dparam",
+          "lurl": "https://img.image.com/product/image.jpg",
+          "adm": "<script type='text/javascript'>\nfunction addTrackingPixel() {\n\nvar placeholder = document.createElement('div');\nplaceholder.style = 'position: absolute; left: 0px; top: 0px; visibility: hidden;';\nplaceholder.id = 'ph0-e5f2c9f9-e0bd-45e7-9950-b92e613cb78e';\n\n\nvar pixel0 = document.createElement('img');\npixel0.src = 'https://tracking.example.com/tp=e5f2c9f9-e0bd-45e7-9950-b92e613cb78e';\npixel0.width = '0';\npixel0.height = '0';\nplaceholder.appendChild(pixel0);\n\n\ndocument.body.appendChild(placeholder);\n}\n\nvar placeholderPlaced = false;\n\nfunction isMraid() {\n    if (window.mraid) {\n        window.mraid.addEventListener('viewableChange', function(isVisible) {\n            if (isVisible && !beaconDropped) {\n                placeholderPlaced = true;\n                addTrackingPixel();\n            }\n        });\n        return true;\n    } else {\n        return false;\n    }\n}\n\nif (!isMraid()) {\n    setTimeout(function() {\n        if (!tryUseMraid()) {\n            addTrackingPixel();\n        }\n    }, 1000);\n}\n\n</script>\n",
+          "adomain": [
+            "start.io"
+          ],
+          "iurl": "https://adimpression.startappservice.com/adimpression/api/v1.0/adimp?d=dparam",
+          "cid": "608765636039546023",
+          "crid": "6487611316533858701",
+          "cat": [],
+          "w": 480,
+          "h": 320,
+          "exp": 300,
+          "ext": {
+            "origbidcpm": 0.48378391855747593,
+            "origbidcur": "USD",
+            "prebid": {
+              "type": "banner"
+            }
+          }
+        },
+        {
+          "id": "00881ac4-d1f9-4f7b-a05d-c741cc8755eb",
+          "impid": "impId003",
+          "price": 0.8160129797250805,
+          "nurl": "https://adwin.startappservice.com/adwin/api/v1.0/adwin?d=dparam",
+          "lurl": "https://img.image.com/product/image.jpg",
+          "adm": "{\"native\":{\"assets\":[{\"id\":1,\"title\":{\"len\":90,\"text\":\"Title\"}},{\"id\":2,\"img\":{\"w\":320,\"h\":250,\"url\":\"https://img.image.com/product/image.jpg\"}},{\"id\":3,\"img\":{\"w\":50,\"h\":50,\"url\":\"https://img.image.com/product/icon.jpg\"}},{\"id\":4,\"data\":{\"type\":2,\"value\":\"Description\"}},{\"id\":5,\"data\":{\"type\":1,\"value\":\"Sponsored by Start.io\"}}],\"link\":{\"url\":\"https://click.url.com\"},\"imptrackers\":[\"https://impression.url.com\"],\"eventtrackers\":[{\"event\":1,\"method\":1,\"url\":\"https://event.url.com\"}],\"ver\":\"1.2\"}}",
+          "adomain": [
+            "start.io"
+          ],
+          "iurl": "https://adimpression.startappservice.com/adimpression/api/v1.0/adimp?d=dparam",
+          "cid": "3964362510039318661",
+          "crid": "4750185616442446679",
+          "cat": [
+            "IAB6-5",
+            "IAB6-8",
+            "IAB6-4",
+            "IAB6-7",
+            "IAB6-6",
+            "IAB6-2"
+          ],
+          "w": 480,
+          "h": 320,
+          "exp": 300,
+          "ext": {
+            "origbidcpm": 0.8160129797250805,
+            "origbidcur": "USD",
+            "prebid": {
+              "type": "native"
+            }
+          }
+        }
+      ],
+      "seat": "startio",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "startio": "{{ startio.response_time_ms }}"
+    },
+    "tmaxrequest": 485,
+    "prebid": {
+      "auctiontimestamp": 0
+    }
+  }
+}
