@@ -1602,7 +1602,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
         and: "Response should contain adapter code"
         assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten().sort() == [AMX, GENERIC].sort()
 
-        and: "Response should contain bidder amx targeting"
+        and: "Response should contain bidder generic targeting"
         def targeting = response.seatbid.bid.ext.prebid.targeting.flatten().collectEntries()
         assert targeting["hb_pb_${GENERIC}"]
         assert targeting["hb_size_${GENERIC}"]
