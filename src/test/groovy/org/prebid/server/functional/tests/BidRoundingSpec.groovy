@@ -39,7 +39,7 @@ class BidRoundingSpec extends BaseSpec {
         when: "PBS processes auction request"
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Price of bid response should be round"
+        then: "Targeting hb_pb should be round"
         def targeting = response.seatbid[0].bid[0].ext.prebid.targeting
         assert targeting["hb_pb"] == getRoundedTargetingValueWithDefaultPrecision(bidPrice)
     }
@@ -64,7 +64,7 @@ class BidRoundingSpec extends BaseSpec {
         when: "PBS processes auction request"
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Price of bid response should be round to the lower price"
+        then: "Targeting hb_pb should be round"
         def targeting = response.seatbid[0].bid[0].ext.prebid.targeting
         assert targeting["hb_pb"] == getRoundedTargetingValueWithUpPrecision(bidPrice)
 
@@ -95,7 +95,7 @@ class BidRoundingSpec extends BaseSpec {
         when: "PBS processes auction request"
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Price of bid response should be round to the lower price"
+        then: "Targeting hb_pb should be round"
         def targeting = response.seatbid[0].bid[0].ext.prebid.targeting
         assert targeting["hb_pb"] == getRoundedTargetingValueWithDefaultPrecision(bidPrice)
 
@@ -129,7 +129,7 @@ class BidRoundingSpec extends BaseSpec {
         when: "PBS processes auction request"
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Price of bid response should be round"
+        then: "Targeting hb_pb should be round"
         def targeting = response.seatbid[0].bid.ext.prebid.targeting
         assert targeting.collectEntries().findAll { it -> it.key.toString().contains("hb_pb_") }
                 .values().sort() == [getRoundedTargetingValueWithDefaultPrecision(bidPrice),
@@ -139,7 +139,6 @@ class BidRoundingSpec extends BaseSpec {
         accountAuctionConfig << [new AccountAuctionConfig(bidRounding: TIMESPLIT),
                                  new AccountAuctionConfig(bidRoundingSnakeCase: TIMESPLIT)]
     }
-
 
     private static final Account getAccountWithBidRounding(String accountId, AccountAuctionConfig accountAuctionConfig) {
         def accountConfig = new AccountConfig(status: ACTIVE, auction: accountAuctionConfig)
