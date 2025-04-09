@@ -20,6 +20,7 @@ import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Specification
 
 import static java.math.RoundingMode.DOWN
+import static java.math.RoundingMode.UP
 import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
 import static org.prebid.server.functional.util.SystemProperties.DEFAULT_TIMEOUT
 
@@ -82,6 +83,10 @@ abstract class BaseSpec extends Specification implements ObjectMapperWrapper {
 
     protected static String getRoundedTargetingValueWithDefaultPrecision(BigDecimal value) {
         "${value.setScale(DEFAULT_TARGETING_PRECISION, DOWN)}0"
+    }
+
+    protected static String getRoundedTargetingValueWithUpPrecision(BigDecimal value) {
+        "${value.setScale(DEFAULT_TARGETING_PRECISION, UP )}0"
     }
 
     protected static Map<String, List<BidderRequest>> getRequests(BidResponse bidResponse) {
