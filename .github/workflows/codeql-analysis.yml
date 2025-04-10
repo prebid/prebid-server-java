@@ -17,51 +17,32 @@ jobs:
         language: [ 'java' ]
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-      - name: Set up JDK
-        uses: actions/setup-java@v3
-        with:
-          distribution: 'temurin'
-          java-version: 21
+    - name: Set up JDK
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'
+        java-version: 21
 
-      - name: Cache Maven packages
-        uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
+    - name: Cache Maven packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-maven-
 
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v1
-        with:
-          languages: ${{ matrix.language }}
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v1
+      with:
+        languages: ${{ matrix.language }}
 
-      - name: Build with Maven
-        run: |
-          mvn -B package --file extra/pom.xml | tee build_output.txt
-          echo "exit_code=$?" >> $GITHUB_OUTPUT
+    - name: Build with Maven
+      run: mvn -B package --file extra/pom.xml
 
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v1
-        with:
-          category: "/language:${{ matrix.language }}"
-
-      - name: Format build output for PR comment
-        if: steps.build.outputs.exit_code != '0'
-        run: |
-          echo "❌ **Java CI Build Failed**" > comment.txt
-          echo "" >> comment.txt
-          echo '```' >> comment.txt
-          tail -n 100 build_output.txt >> comment.txt
-          echo '```' >> comment.txt
-
-      - name: Comment on PR with build failure output
-        if: steps.build.outputs.exit_code != '0' && github.event_name == 'pull_request'
-        uses: peter-evans/create-or-update-comment@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          issue-number: ${{ github.event.pull_request.number }}
-          body-path: comment.txt
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v1
+      with:
+        category: "/language:${{ matrix.language }}"
