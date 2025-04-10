@@ -47,7 +47,7 @@ jobs:
           echo '```' >> comment.txt
 
       - name: Comment on PR with build failure output
-        if: steps.build.outputs.exit_code != '0'
+        if: steps.build.outputs.exit_code != '0' && github.event_name == 'pull_request'
         uses: peter-evans/create-or-update-comment@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
