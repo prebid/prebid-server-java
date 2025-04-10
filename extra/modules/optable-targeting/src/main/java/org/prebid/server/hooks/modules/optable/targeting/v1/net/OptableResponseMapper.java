@@ -8,7 +8,7 @@ import org.prebid.server.json.JacksonMapper;
 import java.util.Optional;
 
 @AllArgsConstructor
-public class OptableResponseParser {
+public class OptableResponseMapper {
 
     private final JacksonMapper mapper;
 
@@ -17,5 +17,15 @@ public class OptableResponseParser {
                 .map(OptableCall::getResponse)
                 .map(resp -> mapper.decodeValue(resp.getBody(), TargetingResult.class))
                 .orElse(null);
+    }
+
+    public TargetingResult parse(String json) {
+        return Optional.ofNullable(json)
+                .map(it -> mapper.decodeValue(it, TargetingResult.class))
+                .orElse(null);
+    }
+
+    public String toJsonString(TargetingResult value) {
+        return mapper.encodeToString(value);
     }
 }

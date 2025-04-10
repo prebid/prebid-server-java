@@ -14,22 +14,22 @@ import org.prebid.server.json.ObjectMapperProvider;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-public class OptableResponseParserTest extends BaseOptableTest {
+public class OptableResponseMapperTest extends BaseOptableTest {
 
-    private OptableResponseParser target;
+    private OptableResponseMapper target;
 
     private final JacksonMapper mapper = new JacksonMapper(ObjectMapperProvider.mapper());
 
     @BeforeEach
     public void setUp() {
 
-        target = new OptableResponseParser(mapper);
+        target = new OptableResponseMapper(mapper);
     }
 
     @Test
     public void shouldNotFailWhenSourceIsNull() {
         // given and when
-        final TargetingResult result = target.parse(null);
+        final TargetingResult result = target.parse((OptableCall) null);
 
         //then
         assertThat(result).isNull();
