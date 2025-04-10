@@ -2,11 +2,14 @@ package org.prebid.server.hooks.modules.optable.targeting.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.vertx.core.Vertx;
+import org.prebid.server.cache.PbcStorageService;
+import org.prebid.server.hooks.modules.optable.targeting.model.config.CacheProperties;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
 import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingAuctionResponseHook;
 import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingModule;
 import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingProcessedAuctionRequestHook;
 import org.prebid.server.hooks.modules.optable.targeting.v1.analytics.AnalyticTagsResolver;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.Cache;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.IdsMapper;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableAttributesResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargeting;
@@ -14,7 +17,7 @@ import org.prebid.server.hooks.modules.optable.targeting.v1.core.PayloadResolver
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.QueryBuilder;
 import org.prebid.server.hooks.modules.optable.targeting.v1.net.APIClient;
 import org.prebid.server.hooks.modules.optable.targeting.v1.net.OptableHttpClientWrapper;
-import org.prebid.server.hooks.modules.optable.targeting.v1.net.OptableResponseParser;
+import org.prebid.server.hooks.modules.optable.targeting.v1.net.OptableResponseMapper;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.ObjectMapperProvider;
 import org.prebid.server.spring.config.VertxContextScope;
@@ -62,8 +65,8 @@ public class OptableTargetingConfig {
     }
 
     @Bean
-    OptableResponseParser optableResponseParser(JacksonMapper mapper) {
-        return new OptableResponseParser(mapper);
+    OptableResponseMapper optableResponseParser(JacksonMapper mapper) {
+        return new OptableResponseMapper(mapper);
     }
 
     @Bean
@@ -79,7 +82,7 @@ public class OptableTargetingConfig {
                         @Value("${logging.sampling-rate:0.01}")
                         double logSamplingRate,
                         OptableTargetingProperties properties,
-                        OptableResponseParser responseParser) {
+                        OptableResponseMapper responseParser) {
 
         final String endpoint = HttpUtil.validateUrl(Objects.requireNonNull(properties.getApiEndpoint()));
 
@@ -93,10 +96,33 @@ public class OptableTargetingConfig {
     }
 
     @Bean
-    OptableTargeting optableTargeting(IdsMapper parametersExtractor,
-                                      QueryBuilder queryBuilder, APIClient apiClient) {
+    Cache cache(PbcStorageService cacheService,
+                OptableResponseMapper responseParser,
+                OptableTargetingProperties properties,
+                @Value("${storage.pbc.enabled:false}")
+                boolean storageEnabled,
+                @Value("${cache.module.enabled:false}")
+                boolean moduleCacheEnabled
+    ) {
 
-        return new OptableTargeting(parametersExtractor, queryBuilder, apiClient);
+        final CacheProperties cacheProperties = properties.getCache();
+        final boolean isCacheEnabled = cacheProperties.isEnabled();
+        final boolean isCacheStorageEnabled = storageEnabled && moduleCacheEnabled;
+
+        return new Cache(
+                cacheService,
+                responseParser,
+                isCacheEnabled && isCacheStorageEnabled,
+                cacheProperties.getTtlseconds());
+    }
+
+    @Bean
+    OptableTargeting optableTargeting(IdsMapper parametersExtractor,
+                                      QueryBuilder queryBuilder,
+                                      APIClient apiClient,
+                                      Cache cache) {
+
+        return new OptableTargeting(cache, parametersExtractor, queryBuilder, apiClient);
     }
 
     @Bean

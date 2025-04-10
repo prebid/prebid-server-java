@@ -43,7 +43,7 @@ public class APIClientTest extends BaseOptableTest {
 
     private APIClient target;
 
-    private final OptableResponseParser parser = new OptableResponseParser(
+    private final OptableResponseMapper parser = new OptableResponseMapper(
             new JacksonMapper(ObjectMapperProvider.mapper()));
 
     @BeforeEach

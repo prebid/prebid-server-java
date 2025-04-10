@@ -37,20 +37,20 @@ public class APIClient {
 
     private final double logSamplingRate;
 
-    private final OptableResponseParser responseParser;
+    private final OptableResponseMapper responseMapper;
 
     private final String apiKey;
 
     public APIClient(String endpoint,
                      HttpClient httpClient,
                      double logSamplingRate,
-                     OptableResponseParser responseParser,
+                     OptableResponseMapper responseMapper,
                      String apiKey) {
 
         this.endpoint = Objects.requireNonNull(endpoint);
         this.httpClient = Objects.requireNonNull(httpClient);
         this.logSamplingRate = logSamplingRate;
-        this.responseParser = Objects.requireNonNull(responseParser);
+        this.responseMapper = Objects.requireNonNull(responseMapper);
         this.apiKey = apiKey;
     }
 
@@ -88,7 +88,7 @@ public class APIClient {
 
     private TargetingResult parseSilent(OptableCall optableCall, HttpRequest httpRequest) {
         try {
-            return responseParser.parse(optableCall);
+            return responseMapper.parse(optableCall);
         } catch (Exception e) {
             logParsingError(e, httpRequest);
         }
