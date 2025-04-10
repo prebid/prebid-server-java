@@ -33,7 +33,6 @@ jobs:
       - name: Build with Maven
         id: build
         run: |
-          set +e
           mvn -B package --file extra/pom.xml | tee build_output.txt
           echo "exit_code=$?" >> $GITHUB_OUTPUT
 
