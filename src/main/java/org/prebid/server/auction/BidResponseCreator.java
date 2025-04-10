@@ -58,7 +58,6 @@ import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
 import org.prebid.server.hooks.v1.bidder.AllProcessedBidResponsesPayload;
 import org.prebid.server.hooks.v1.bidder.BidderResponsePayload;
 import org.prebid.server.identity.IdGenerator;
-import org.prebid.server.identity.IdGeneratorType;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.ConditionalLogger;
@@ -139,6 +138,7 @@ public class BidResponseCreator {
     public static final String DEFAULT_DEBUG_KEY = "prebid";
     private static final String TARGETING_ENV_APP_VALUE = "mobile-app";
     private static final String TARGETING_ENV_AMP_VALUE = "amp";
+    private static final int MIN_BID_ID_LENGTH = 17;
 
     private final double logSamplingRate;
     private final CoreCacheService coreCacheService;
@@ -148,9 +148,11 @@ public class BidResponseCreator {
     private final StoredRequestProcessor storedRequestProcessor;
     private final WinningBidComparatorFactory winningBidComparatorFactory;
     private final IdGenerator bidIdGenerator;
+    private final IdGenerator enforcedBidIdGenerator;
     private final HookStageExecutor hookStageExecutor;
     private final CategoryMappingService categoryMappingService;
     private final int truncateAttrChars;
+    private final boolean enforceRandomBidId;
     private final Clock clock;
     private final JacksonMapper mapper;
     private final Metrics metrics;
@@ -169,9 +171,11 @@ public class BidResponseCreator {
                               StoredRequestProcessor storedRequestProcessor,
                               WinningBidComparatorFactory winningBidComparatorFactory,
                               IdGenerator bidIdGenerator,
+                              IdGenerator enforcedBidIdGenerator,
                               HookStageExecutor hookStageExecutor,
                               CategoryMappingService categoryMappingService,
                               int truncateAttrChars,
+                              boolean enforceRandomBidId,
                               Clock clock,
                               JacksonMapper mapper,
                               Metrics metrics,
@@ -185,9 +189,11 @@ public class BidResponseCreator {
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.winningBidComparatorFactory = Objects.requireNonNull(winningBidComparatorFactory);
         this.bidIdGenerator = Objects.requireNonNull(bidIdGenerator);
+        this.enforcedBidIdGenerator = Objects.requireNonNull(enforcedBidIdGenerator);
         this.hookStageExecutor = Objects.requireNonNull(hookStageExecutor);
         this.categoryMappingService = Objects.requireNonNull(categoryMappingService);
         this.truncateAttrChars = validateTruncateAttrChars(truncateAttrChars);
+        this.enforceRandomBidId = enforceRandomBidId;
         this.clock = Objects.requireNonNull(clock);
         this.mapper = Objects.requireNonNull(mapper);
         this.mediaTypeCacheTtl = Objects.requireNonNull(mediaTypeCacheTtl);
@@ -295,12 +301,13 @@ public class BidResponseCreator {
 
         final Account account = auctionContext.getAccount();
         final List<String> debugWarnings = auctionContext.getDebugWarnings();
-        final String generatedBidId = bidIdGenerator.getType() != IdGeneratorType.none
-                ? bidIdGenerator.generateId()
-                : null;
-        final String effectiveBidId = ObjectUtils.defaultIfNull(generatedBidId, bid.getId());
+
+        final String generatedBidId = bidIdGenerator.generateId();
+        final String enforcedRandomBidId = enforcedBidId(bid);
+        final String effectiveBidId = ObjectUtils.defaultIfNull(generatedBidId, enforcedRandomBidId);
 
         return bid.toBuilder()
+                .id(enforcedRandomBidId)
                 .adm(updateBidAdm(bid,
                         bidType,
                         bidder,
@@ -318,6 +325,13 @@ public class BidResponseCreator {
                         generatedBidId,
                         effectiveBidId))
                 .build();
+    }
+
+    private String enforcedBidId(Bid bid) {
+        final int bidIdLength = Optional.ofNullable(bid.getId()).map(String::length).orElse(0);
+        return enforceRandomBidId && bidIdLength < MIN_BID_ID_LENGTH
+                ? enforcedBidIdGenerator.generateId()
+                : bid.getId();
     }
 
     private String updateBidAdm(Bid bid,

@@ -69,7 +69,6 @@ import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
 import org.prebid.server.hooks.execution.v1.bidder.AllProcessedBidResponsesPayloadImpl;
 import org.prebid.server.hooks.execution.v1.bidder.BidderResponsePayloadImpl;
 import org.prebid.server.identity.IdGenerator;
-import org.prebid.server.identity.IdGeneratorType;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
@@ -194,6 +193,8 @@ public class BidResponseCreatorTest extends VertxTest {
     @Mock(strictness = LENIENT)
     private IdGenerator idGenerator;
     @Mock(strictness = LENIENT)
+    private IdGenerator enforcedIdGenerator;
+    @Mock(strictness = LENIENT)
     private CategoryMappingService categoryMappingService;
     @Mock(strictness = LENIENT)
     private HookStageExecutor hookStageExecutor;
@@ -205,7 +206,6 @@ public class BidResponseCreatorTest extends VertxTest {
     private CacheDefaultTtlProperties cacheDefaultProperties;
     @Mock(strictness = LENIENT)
     private Metrics metrics;
-
     @Spy
     private WinningBidComparatorFactory winningBidComparatorFactory;
 
@@ -236,7 +236,8 @@ public class BidResponseCreatorTest extends VertxTest {
         given(storedRequestProcessor.videoStoredDataResult(any(), anyList(), anyList(), any()))
                 .willReturn(Future.succeededFuture(VideoStoredDataResult.empty()));
 
-        given(idGenerator.getType()).willReturn(IdGeneratorType.none);
+        given(idGenerator.generateId()).willReturn(null);
+        given(enforcedIdGenerator.generateId()).willReturn(null);
 
         given(hookStageExecutor.executeProcessedBidderResponseStage(any(), any()))
                 .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
@@ -251,7 +252,7 @@ public class BidResponseCreatorTest extends VertxTest {
 
         clock = Clock.fixed(Instant.ofEpochMilli(1000L), ZoneOffset.UTC);
 
-        target = givenBidResponseCreator(0);
+        target = givenBidResponseCreator(0, false);
 
         timeout = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())).create(500);
     }
@@ -259,7 +260,7 @@ public class BidResponseCreatorTest extends VertxTest {
     @Test
     public void shouldThrowErrorWhenTruncateAttrCharsLessThatZeroOrBiggestThatTwoHundredFiftyFive() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> givenBidResponseCreator(-5))
+                .isThrownBy(() -> givenBidResponseCreator(-5, false))
                 .withMessage("truncateAttrChars must be between 0 and 255");
     }
 
@@ -268,7 +269,6 @@ public class BidResponseCreatorTest extends VertxTest {
         // given
         final Imp imp = givenImp();
         final String generatedId = "generatedId";
-        given(idGenerator.getType()).willReturn(IdGeneratorType.uuid);
         given(idGenerator.generateId()).willReturn(generatedId);
 
         final ObjectNode receivedBidExt = mapper.createObjectNode()
@@ -797,7 +797,6 @@ public class BidResponseCreatorTest extends VertxTest {
                 givenBidRequest(givenImp()),
                 contextBuilder -> contextBuilder.auctionParticipations(toAuctionParticipant(bidderResponses)));
 
-        given(idGenerator.getType()).willReturn(IdGeneratorType.uuid);
         given(idGenerator.generateId()).willReturn("de7fc739-0a6e-41ad-8961-701c30c82166");
 
         // when
@@ -813,6 +812,88 @@ public class BidResponseCreatorTest extends VertxTest {
                 .hasSize(1)
                 .first()
                 .isEqualTo("de7fc739-0a6e-41ad-8961-701c30c82166");
+
+        verify(coreCacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
+    }
+
+    @Test
+    public void shouldOverrideBidIdWhenBidIdHasLessThen17CharsAndRandomBidIdGenerationIsEnforced() {
+        // given
+        final Bid bid = Bid.builder()
+                .id("aaaaaaaaaaaaaaaa")
+                .impid(IMP_ID)
+                .ext(mapper.createObjectNode()
+                        .set("prebid", mapper.valueToTree(ExtBidPrebid.builder().type(banner).build())))
+                .build();
+        final List<BidderResponse> bidderResponses = singletonList(
+                BidderResponse.of("bidder2", givenSeatBid(BidderBid.of(bid, banner, "USD")), 0));
+
+        final AuctionContext auctionContext = givenAuctionContext(
+                givenBidRequest(givenImp()),
+                contextBuilder -> contextBuilder.auctionParticipations(toAuctionParticipant(bidderResponses)));
+
+        given(idGenerator.generateId()).willReturn("generatedId");
+        given(enforcedIdGenerator.generateId()).willReturn("enforcedGeneratedId");
+
+        target = givenBidResponseCreator(0, true);
+
+        // when
+        final BidResponse bidResponse = target.create(auctionContext, CACHE_INFO, aliases, MULTI_BIDS).result();
+
+        // then
+        assertThat(bidResponse.getSeatbid())
+                .flatExtracting(SeatBid::getBid)
+                .extracting(Bid::getExt)
+                .extracting(ext -> ext.get("prebid"))
+                .extracting(extPrebid -> mapper.treeToValue(extPrebid, ExtBidPrebid.class))
+                .extracting(ExtBidPrebid::getBidid)
+                .containsOnly("generatedId");
+
+        assertThat(bidResponse.getSeatbid())
+                .flatExtracting(SeatBid::getBid)
+                .extracting(Bid::getId)
+                .containsOnly("enforcedGeneratedId");
+
+        verify(coreCacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
+    }
+
+    @Test
+    public void shouldNotOverrideBidIdWhenBidIdHas17CharsAndRandomBidIdGenerationIsEnforced() {
+        // given
+        final Bid bid = Bid.builder()
+                .id("aaaaaaaaaaaaaaaaa")
+                .impid(IMP_ID)
+                .ext(mapper.createObjectNode()
+                        .set("prebid", mapper.valueToTree(ExtBidPrebid.builder().type(banner).build())))
+                .build();
+        final List<BidderResponse> bidderResponses = singletonList(
+                BidderResponse.of("bidder2", givenSeatBid(BidderBid.of(bid, banner, "USD")), 0));
+
+        final AuctionContext auctionContext = givenAuctionContext(
+                givenBidRequest(givenImp()),
+                contextBuilder -> contextBuilder.auctionParticipations(toAuctionParticipant(bidderResponses)));
+
+        given(idGenerator.generateId()).willReturn("generatedId");
+        given(enforcedIdGenerator.generateId()).willReturn("enforcedGeneratedId");
+
+        target = givenBidResponseCreator(0, true);
+
+        // when
+        final BidResponse bidResponse = target.create(auctionContext, CACHE_INFO, aliases, MULTI_BIDS).result();
+
+        // then
+        assertThat(bidResponse.getSeatbid())
+                .flatExtracting(SeatBid::getBid)
+                .extracting(Bid::getExt)
+                .extracting(ext -> ext.get("prebid"))
+                .extracting(extPrebid -> mapper.treeToValue(extPrebid, ExtBidPrebid.class))
+                .extracting(ExtBidPrebid::getBidid)
+                .containsOnly("generatedId");
+
+        assertThat(bidResponse.getSeatbid())
+                .flatExtracting(SeatBid::getBid)
+                .extracting(Bid::getId)
+                .containsOnly("aaaaaaaaaaaaaaaaa");
 
         verify(coreCacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }
@@ -853,7 +934,6 @@ public class BidResponseCreatorTest extends VertxTest {
                         .auctionParticipations(toAuctionParticipant(bidderResponses)));
 
         final String generatedBidId = "de7fc739-0a6e-41ad-8961-701c30c82166";
-        given(idGenerator.getType()).willReturn(IdGeneratorType.uuid);
         given(idGenerator.generateId()).willReturn(generatedBidId);
 
         final BidRequestCacheInfo cacheInfo = BidRequestCacheInfo.builder().doCaching(true).build();
@@ -1683,9 +1763,11 @@ public class BidResponseCreatorTest extends VertxTest {
                 storedRequestProcessor,
                 winningBidComparatorFactory,
                 idGenerator,
+                enforcedIdGenerator,
                 hookStageExecutor,
                 categoryMappingService,
                 20,
+                false,
                 clock,
                 jacksonMapper,
                 metrics,
@@ -5546,7 +5628,7 @@ public class BidResponseCreatorTest extends VertxTest {
         }
     }
 
-    private BidResponseCreator givenBidResponseCreator(int truncateAttrChars) {
+    private BidResponseCreator givenBidResponseCreator(int truncateAttrChars, boolean enforcedRandomBidId) {
         return new BidResponseCreator(
                 0,
                 coreCacheService,
@@ -5556,9 +5638,11 @@ public class BidResponseCreatorTest extends VertxTest {
                 storedRequestProcessor,
                 winningBidComparatorFactory,
                 idGenerator,
+                enforcedIdGenerator,
                 hookStageExecutor,
                 categoryMappingService,
                 truncateAttrChars,
+                enforcedRandomBidId,
                 clock,
                 jacksonMapper,
                 metrics,
