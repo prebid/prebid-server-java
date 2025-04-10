@@ -43,10 +43,11 @@ jobs:
 
       - name: Format build output for PR comment
         run: |
-          echo "❌ **Java CI Build Failed**" > comment.txt
-          echo "" >> comment.txt
+          sed -n '/\[ERROR\] Failures:/,/^\[ERROR\] Tests run:/p' build_output.txt | sed '$d' > test_failures.txt
+          echo "❌ **Java CI Build Failed - Test Failures**" > comment.txt
+          echo '' >> comment.txt
           echo '```' >> comment.txt
-          tail -n 100 build_output.txt >> comment.txt
+          cat test_failures.txt >> comment.txt
           echo '```' >> comment.txt
 
       - name: Comment on PR with build failure output
