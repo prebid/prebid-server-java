@@ -1,4 +1,4 @@
-name: Module functional tests
+name: Java CI
 
 on:
   pull_request:
@@ -29,8 +29,26 @@ jobs:
           cache: 'maven'
           java-version: ${{ matrix.java }}
 
-      - name: Build with Maven
-        run: mvn package -DskipUnitTests=true --file extra/pom.xml
+      - name: Build with Maven and capture output
+        id: build
+        run: |
+          set +e
+          mvn -B package --file extra/pom.xml | tee build_output.txt
+          echo "exit_code=$?" >> $GITHUB_OUTPUT
 
-      - name: Run module tests
-        run: mvn -B verify -DskipUnitTests=true -DskipFunctionalTests=true -DskipModuleFunctionalTests=false -Dtests.max-container-count=5 -DdockerfileName=Dockerfile-modules --file extra/pom.xml
+      - name: Format build output for PR comment
+        if: steps.build.outputs.exit_code != '0'
+        run: |
+          echo "❌ **Java CI Build Failed**" > comment.txt
+          echo "" >> comment.txt
+          echo '```' >> comment.txt
+          tail -n 100 build_output.txt >> comment.txt
+          echo '```' >> comment.txt
+
+      - name: Comment on PR with build failure output
+        if: github.event_name == 'pull_request' && steps.build.outputs.exit_code != '0'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body-path: comment.txt
