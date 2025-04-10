@@ -38,7 +38,6 @@ jobs:
       - name: Write to GITHUB_OUTPUT and debug
         id: example
         run: |
-          echo "my_output=hello-world" >> $GITHUB_OUTPUT
           echo "--- Debugging GITHUB_OUTPUT contents ---"
           cat $GITHUB_OUTPUT
 
