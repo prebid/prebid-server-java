@@ -34,7 +34,7 @@ jobs:
         id: build
         run: |
           mvn -B package --file extra/pom.xml | tee build_output.txt
-          echo "exit_code=$?" >> $GITHUB_OUTPUT
+          echo "exit_code=1" >> "$GITHUB_OUTPUT"
       - name: Write to GITHUB_OUTPUT and debug
         id: example
         run: |
