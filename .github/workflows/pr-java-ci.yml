@@ -30,7 +30,7 @@ jobs:
           cache-dependency-path: extra/pom.xml
           java-version: ${{ matrix.java }}
 
-      - name: Build with Maven and capture output
+      - name: Build with Maven
         id: build
         run: |
           set +e
