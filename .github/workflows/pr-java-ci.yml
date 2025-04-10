@@ -35,9 +35,14 @@ jobs:
         run: |
           mvn -B package --file extra/pom.xml | tee build_output.txt
           echo "exit_code=$?" >> $GITHUB_OUTPUT
+      - name: Write to GITHUB_OUTPUT and debug
+        id: example
+        run: |
+          echo "my_output=hello-world" >> $GITHUB_OUTPUT
+          echo "--- Debugging GITHUB_OUTPUT contents ---"
+          cat $GITHUB_OUTPUT
 
       - name: Format build output for PR comment
-        if: steps.build.outputs.exit_code != '0'
         run: |
           echo "❌ **Java CI Build Failed**" > comment.txt
           echo "" >> comment.txt
