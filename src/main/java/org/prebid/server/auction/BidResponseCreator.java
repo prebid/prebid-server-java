@@ -213,24 +213,6 @@ public class BidResponseCreator {
         return truncateAttrChars;
     }
 
-    Future<BidResponse> createOnSkippedAuction(AuctionContext auctionContext, List<SeatBid> seatBids) {
-        final BidRequest bidRequest = auctionContext.getBidRequest();
-        final ExtBidResponse extBidResponse = ExtBidResponse.builder()
-                .warnings(extractContextWarnings(auctionContext))
-                .tmaxrequest(bidRequest.getTmax())
-                .build();
-
-        final List<String> cur = bidRequest.getCur();
-        final BidResponse bidResponse = BidResponse.builder()
-                .id(bidRequest.getId())
-                .cur(CollectionUtils.isNotEmpty(cur) ? cur.getFirst() : null)
-                .seatbid(ListUtils.emptyIfNull(seatBids))
-                .ext(extBidResponse)
-                .build();
-
-        return Future.succeededFuture(bidResponse);
-    }
-
     Future<BidResponse> create(AuctionContext auctionContext,
                                BidRequestCacheInfo cacheInfo,
                                Map<String, MultiBidConfig> bidderToMultiBids) {

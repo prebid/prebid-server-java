@@ -826,7 +826,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         .set("prebid", mapper.valueToTree(ExtBidPrebid.builder().type(banner).build())))
                 .build();
         final List<BidderResponse> bidderResponses = singletonList(
-                BidderResponse.of("bidder2", givenSeatBid(BidderBid.of(bid, banner, "USD")), 0));
+                BidderResponse.of("bidder2", givenSeatBid(BidderBid.of(bid, banner, "seat", "USD")), 0));
 
         final AuctionContext auctionContext = givenAuctionContext(
                 givenBidRequest(givenImp()),
@@ -838,7 +838,7 @@ public class BidResponseCreatorTest extends VertxTest {
         target = givenBidResponseCreator(0, true);
 
         // when
-        final BidResponse bidResponse = target.create(auctionContext, CACHE_INFO, aliases, MULTI_BIDS).result();
+        final BidResponse bidResponse = target.create(auctionContext, CACHE_INFO, MULTI_BIDS).result();
 
         // then
         assertThat(bidResponse.getSeatbid())
@@ -867,7 +867,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         .set("prebid", mapper.valueToTree(ExtBidPrebid.builder().type(banner).build())))
                 .build();
         final List<BidderResponse> bidderResponses = singletonList(
-                BidderResponse.of("bidder2", givenSeatBid(BidderBid.of(bid, banner, "USD")), 0));
+                BidderResponse.of("bidder2", givenSeatBid(BidderBid.of(bid, banner, "seat", "USD")), 0));
 
         final AuctionContext auctionContext = givenAuctionContext(
                 givenBidRequest(givenImp()),
@@ -879,7 +879,7 @@ public class BidResponseCreatorTest extends VertxTest {
         target = givenBidResponseCreator(0, true);
 
         // when
-        final BidResponse bidResponse = target.create(auctionContext, CACHE_INFO, aliases, MULTI_BIDS).result();
+        final BidResponse bidResponse = target.create(auctionContext, CACHE_INFO, MULTI_BIDS).result();
 
         // then
         assertThat(bidResponse.getSeatbid())
@@ -5405,61 +5405,6 @@ public class BidResponseCreatorTest extends VertxTest {
                     assertThat(context.isShouldCacheBids()).isTrue();
                     assertThat(context.isShouldCacheVideoBids()).isTrue();
                 });
-    }
-
-    @Test
-    public void createOnSkippedAuctionShouldReturnExpectedBidResponse() {
-        // given
-        final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(5.67)).impid(IMP_ID).build();
-        final List<SeatBid> givenSeatBids = singletonList(SeatBid.builder().seat("bidder1").bid(List.of(bid)).build());
-
-        final AuctionContext givenAuctionContext = givenAuctionContext(
-                givenBidRequest(requestBuilder -> requestBuilder.cur(singletonList("USD"))),
-                builder -> builder.debugWarnings(List.of("warning1", "warning2")));
-
-        // when
-        final Future<BidResponse> bidResponseResult = target.createOnSkippedAuction(
-                givenAuctionContext,
-                givenSeatBids);
-
-        // then
-        assertThat(bidResponseResult.succeeded()).isTrue();
-        final BidResponse expectedBidResponse = BidResponse.builder()
-                .id("123")
-                .cur("USD")
-                .seatbid(givenSeatBids)
-                .ext(ExtBidResponse.builder()
-                        .tmaxrequest(1000L)
-                        .warnings(singletonMap("prebid", List.of(
-                                ExtBidderError.of(BidderError.Type.generic.getCode(), "warning1"),
-                                ExtBidderError.of(BidderError.Type.generic.getCode(), "warning2"))))
-                        .build())
-                .build();
-
-        assertThat(bidResponseResult.result()).isEqualTo(expectedBidResponse);
-    }
-
-    @Test
-    public void createOnSkippedAuctionShouldReturnExpectedBidResponseWithEmptySeatBidWhenSeatBidIsNull() {
-        // given
-        final AuctionContext givenAuctionContext = givenAuctionContext(givenBidRequest(identity()));
-
-        // when
-        final Future<BidResponse> bidResponseResult = target.createOnSkippedAuction(givenAuctionContext, null);
-
-        // then
-        assertThat(bidResponseResult.succeeded()).isTrue();
-        final BidResponse expectedBidResponse = BidResponse.builder()
-                .id("123")
-                .cur("USD")
-                .seatbid(emptyList())
-                .ext(ExtBidResponse.builder()
-                        .tmaxrequest(1000L)
-                        .warnings(emptyMap())
-                        .build())
-                .build();
-
-        assertThat(bidResponseResult.result()).isEqualTo(expectedBidResponse);
     }
 
     private AuctionContext givenAuctionContext(BidRequest bidRequest,
