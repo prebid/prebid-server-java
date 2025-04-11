@@ -6,9 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.util.Set;
 
-@ConfigurationProperties(prefix = "hooks.modules." + WURFLDeviceDetectionModule.CODE)
 @Data
-
 public class WURFLDeviceDetectionConfigProperties {
 
     private static final int DEFAULT_UPDATE_TIMEOUT = 5000;
