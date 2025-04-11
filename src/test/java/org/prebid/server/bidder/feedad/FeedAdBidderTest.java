@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.feedad;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
@@ -58,6 +59,49 @@ public class FeedAdBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldIncludeImpIdsInPayload() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .id("impId1")
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getId)
+                .containsExactly("impId1");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldIncludeRequestBodyInPayload() {
+        // given
+        final Banner banner = Banner.builder().w(320).h(50).build();
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .banner(banner)
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .containsExactly(banner);
+    }
+
+    @Test
     public void makeHttpRequestsShouldCorrectlyAddHeadersWhenDeviceIsPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
@@ -111,7 +155,7 @@ public class FeedAdBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<BidRequest> httpCall = givenHttpCallWithNoPayload("invalid");
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -128,8 +172,7 @@ public class FeedAdBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldAlwaysReturnBannerBid() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                null,
+        final BidderCall<BidRequest> httpCall = givenHttpCallWithNoPayload(
                 mapper.writeValueAsString(givenBidResponse(impBuilder -> impBuilder.impid("123"))));
 
         // when
@@ -144,8 +187,7 @@ public class FeedAdBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsEmpty() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                null,
+        final BidderCall<BidRequest> httpCall = givenHttpCallWithNoPayload(
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
@@ -159,8 +201,7 @@ public class FeedAdBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                null,
+        final BidderCall<BidRequest> httpCall = givenHttpCallWithNoPayload(
                 mapper.writeValueAsString(null));
 
         // when
@@ -194,9 +235,9 @@ public class FeedAdBidderTest extends VertxTest {
         return Bid.builder().impid("123").build();
     }
 
-    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+    private static BidderCall<BidRequest> givenHttpCallWithNoPayload(String body) {
         return BidderCall.succeededHttp(
-                HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
+                HttpRequest.<BidRequest>builder().payload(null).build(),
                 HttpResponse.of(200, null, body),
                 null);
     }
