@@ -39,7 +39,6 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
     private static PrebidServerService pbsServiceWithEnabledMediaFilter
     private static PrebidServerService pbsServiceWithEnabledMediaFilterAndDifferentCaseStrategy
 
-
     def setupSpec() {
         pbsServiceWithDisabledMediaFilter = pbsServiceFactory.getService(DISABLED_FILTER_SPECIFIC_PATTERN_NAME_CONFIG)
         pbsServiceWithEnabledMediaFilter = pbsServiceFactory.getService(SPECIFIC_PATTERN_NAME_CONFIG)
