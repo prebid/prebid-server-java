@@ -32,15 +32,7 @@ jobs:
 
       - name: Build with Maven
         id: build
-        run: |
-          mvn -B package --file extra/pom.xml | tee build_output.txt
-          echo "exit_code=1" >> "$GITHUB_OUTPUT"
-
-      - name: Write to GITHUB_OUTPUT and debug
-        id: example
-        run: |
-          echo "--- Debugging GITHUB_OUTPUT contents ---"
-          cat $GITHUB_OUTPUT
+        run: mvn -B package --file extra/pom.xml | tee build_output.txt
 
       - name: Format build output for PR comment
         run: |
@@ -52,7 +44,7 @@ jobs:
           echo '```' >> comment.txt
 
       - name: Comment on PR with build failure output
-        if: steps.build.outputs.exit_code != '0' && github.event_name == 'pull_request'
+        if: steps.build.outputs.exit_code != '0'
         uses: peter-evans/create-or-update-comment@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
