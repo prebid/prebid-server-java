@@ -282,10 +282,7 @@ public class ConnatixBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        final List<HttpRequest<BidRequest>> httpRequests = result.getValue();
-        httpRequests.forEach(request -> {
-            assertThat(request.getUri().contains("dc=us-east-2"));
-        });
+        assertThat(result.getValue()).extracting(HttpRequest::getUri).containsOnly("dc=us-east-2");
     }
 
     @Test
@@ -301,10 +298,7 @@ public class ConnatixBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        final List<HttpRequest<BidRequest>> httpRequests = result.getValue();
-        httpRequests.forEach(request -> {
-            assertThat(request.getUri().contains("dc=us-west-2"));
-        });
+        assertThat(result.getValue()).extracting(HttpRequest::getUri).containsOnly("dc=us-west-2");
     }
 
     @Test
@@ -320,10 +314,7 @@ public class ConnatixBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        final List<HttpRequest<BidRequest>> httpRequests = result.getValue();
-        httpRequests.forEach(request -> {
-            assertThat(request.getUri().contains("dc=eu-west-1"));
-        });
+        assertThat(result.getValue()).extracting(HttpRequest::getUri).containsOnly("dc=eu-west-1");
     }
 
     @Test
@@ -339,10 +330,7 @@ public class ConnatixBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        final List<HttpRequest<BidRequest>> httpRequests = result.getValue();
-        httpRequests.forEach(request -> {
-            assertThat(request.getUri() == CONNATIX_ENDPOINT);
-        });
+        assertThat(result.getValue()).extracting(HttpRequest::getUri).isEqualTo(CONNATIX_ENDPOINT);
     }
 
     @Test
@@ -358,10 +346,7 @@ public class ConnatixBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        final List<HttpRequest<BidRequest>> httpRequests = result.getValue();
-        httpRequests.forEach(request -> {
-            assertThat(request.getUri() == CONNATIX_ENDPOINT);
-        });
+        assertThat(result.getValue()).extracting(HttpRequest::getUri).isEqualTo(CONNATIX_ENDPOINT);
     }
 
     @Test

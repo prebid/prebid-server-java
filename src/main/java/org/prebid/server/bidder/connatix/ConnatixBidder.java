@@ -77,8 +77,6 @@ public class ConnatixBidder implements Bidder<BidRequest> {
             return Result.withError(BidderError.badInput("Device IP is required"));
         }
 
-        final List<BidderError> errors = new ArrayList<>();
-
         final String optimalEndpointUrl;
         try {
             optimalEndpointUrl = getOptimalEndpointUrl(request);
@@ -90,6 +88,7 @@ public class ConnatixBidder implements Bidder<BidRequest> {
         final MultiMap headers = resolveHeaders(device);
 
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
+        final List<BidderError> errors = new ArrayList<>();
 
         for (Imp imp : request.getImp()) {
             try {
@@ -119,14 +118,14 @@ public class ConnatixBidder implements Bidder<BidRequest> {
         }
     }
 
-    private Optional<String> getUserId(BidRequest request) {
+    private static Optional<String> getUserId(BidRequest request) {
         return Optional.ofNullable(request.getUser())
                 .map(User::getBuyeruid)
                 .filter(StringUtils::isNotBlank)
                 .map(String::trim);
     }
 
-    private String getDataCenterCode(String usedId) {
+    private static String getDataCenterCode(String usedId) {
         if (usedId.startsWith("1-")) {
             return "us-east-2";
         } else if (usedId.startsWith("2-")) {
@@ -215,12 +214,12 @@ public class ConnatixBidder implements Bidder<BidRequest> {
         return banner;
     }
 
-    private HttpRequest<BidRequest> makeHttpRequest(BidRequest request, Imp imp, MultiMap headers,
+    private HttpRequest<BidRequest> makeHttpRequest(BidRequest request,
+                                                    Imp imp,
+                                                    MultiMap headers,
                                                     String optimalEndpointUrl) {
-        final BidRequest outgoingRequest = request.toBuilder()
-                .imp(List.of(imp))
-                .build();
 
+        final BidRequest outgoingRequest = request.toBuilder().imp(List.of(imp)).build();
         return BidderUtil.defaultRequest(outgoingRequest, headers, optimalEndpointUrl, mapper);
     }
 
