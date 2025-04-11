@@ -1155,7 +1155,7 @@ public class RubiconBidderTest extends VertxTest {
                                         givenDataWithSegments(3, "thirdSegmentId_", 3),
                                         givenDataWithSegments(4, "fourthSegmentId_", 2),
                                         givenDataWithSegments(5, "fifthSegmentId_", 1),
-                                        givenDataWithSegments(6, "sixthSegmentId_", 100),
+                                        givenDataWithSegments(6, "sixthSegmentId_", 7),
                                         givenDataWithSegments(7, "seventhSegmentId_", 100)))
                                 .build())
                         .build()),
@@ -1177,7 +1177,8 @@ public class RubiconBidderTest extends VertxTest {
                         IntStream.range(1, 6).mapToObj(i -> "firstSegmentId_" + i),
                         IntStream.range(1, 5).mapToObj(i -> "secondSegmentId_" + i),
                         IntStream.range(1, 2).mapToObj(i -> "fifthSegmentId_" + i),
-                        IntStream.range(1, 86).mapToObj(i -> "sixthSegmentId_" + i))
+                        IntStream.range(1, 8).mapToObj(i -> "sixthSegmentId_" + i),
+                        IntStream.range(1, 79).mapToObj(i -> "seventhSegmentId_" + i))
                 .toList();
 
         assertThat(targetNode.get("iab").elements()).toIterable().hasSize(95)
