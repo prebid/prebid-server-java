@@ -1,8 +1,6 @@
 package org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.config;
 
 import lombok.Data;
-import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.v1.WURFLDeviceDetectionModule;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.util.Set;
 

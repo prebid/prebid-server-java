@@ -5,7 +5,6 @@ import org.prebid.server.model.CaseInsensitiveMultiMap;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 @Getter
 public class AuctionRequestHeadersContext {
