@@ -282,7 +282,7 @@ public class ConnatixBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).extracting(HttpRequest::getUri).containsOnly("dc=us-east-2");
+        assertThat(result.getValue()).extracting(HttpRequest::getUri).containsOnly("https://test-url.com/?dc=us-east-2");
     }
 
     @Test
@@ -298,7 +298,7 @@ public class ConnatixBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).extracting(HttpRequest::getUri).containsOnly("dc=us-west-2");
+        assertThat(result.getValue()).extracting(HttpRequest::getUri).containsOnly("https://test-url.com/?dc=us-west-2");
     }
 
     @Test
@@ -314,7 +314,7 @@ public class ConnatixBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).extracting(HttpRequest::getUri).containsOnly("dc=eu-west-1");
+        assertThat(result.getValue()).extracting(HttpRequest::getUri).containsOnly("https://test-url.com/?dc=eu-west-1");
     }
 
     @Test
@@ -330,7 +330,7 @@ public class ConnatixBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).extracting(HttpRequest::getUri).isEqualTo(CONNATIX_ENDPOINT);
+        assertThat(result.getValue()).extracting(HttpRequest::getUri).containsOnly(CONNATIX_ENDPOINT);
     }
 
     @Test
@@ -346,7 +346,7 @@ public class ConnatixBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).extracting(HttpRequest::getUri).isEqualTo(CONNATIX_ENDPOINT);
+        assertThat(result.getValue()).extracting(HttpRequest::getUri).containsOnly(CONNATIX_ENDPOINT);
     }
 
     @Test
