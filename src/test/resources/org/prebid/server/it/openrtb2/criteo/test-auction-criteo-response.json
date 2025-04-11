@@ -14,7 +14,10 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner"
+              "type": "banner",
+              "meta": {
+                "adaptercode": "criteo"
+              }
             },
             "origbidcpm": 1.25
           }

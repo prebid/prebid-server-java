@@ -34,6 +34,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidAdjustmentFactors;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAlternateBidderCodes;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAlternateBidderCodesBidder;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidDataEidPermissions;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchain;
@@ -49,6 +51,8 @@ import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -1327,6 +1331,27 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
+    public void validateShouldReturnValidationMessageWhenAlternateBidderUnknown() {
+        // given
+        final ExtRequestPrebidAlternateBidderCodes unknownBidderCodes = ExtRequestPrebidAlternateBidderCodes.of(
+                true,
+                Map.of("unknownBidder", ExtRequestPrebidAlternateBidderCodesBidder.of(true, Set.of("*"))));
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .ext(ExtRequest.of(
+                        ExtRequestPrebid.builder()
+                                .alternateBidderCodes(unknownBidderCodes)
+                                .build()))
+                .build();
+
+        // when
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1).containsOnly(
+                "request.ext.prebid.alternatebiddercodes.bidders.unknownBidder is not a known bidder or alias");
+    }
+
+    @Test
     public void validateShouldReturnValidationMessageWhenBidderUnknown() {
         // given
         final ExtRequestBidAdjustmentFactors givenAdjustments = ExtRequestBidAdjustmentFactors.builder().build();
@@ -1342,8 +1367,31 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.ext.prebid.bidadjustmentfactors.unknownBidder is not a known bidder or alias");
+        assertThat(result.getErrors()).hasSize(1).containsOnly(
+                "request.ext.prebid.bidadjustmentfactors.unknownBidder is not a known bidder or alias");
+    }
+
+    @Test
+    public void validateShouldNotFailWhenBidderIsKnownAsAlternativeBidderCode() {
+        // given
+        final ExtRequestBidAdjustmentFactors givenAdjustments = ExtRequestBidAdjustmentFactors.builder().build();
+        givenAdjustments.addFactor("unknownBidder", BigDecimal.valueOf(1.1F));
+        final ExtRequestPrebidAlternateBidderCodes givenAlternativeBidderCodes =
+                ExtRequestPrebidAlternateBidderCodes.of(true, Map.of("rubicon",
+                        ExtRequestPrebidAlternateBidderCodesBidder.of(true, Set.of("unknownBidder"))));
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .ext(ExtRequest.of(
+                        ExtRequestPrebid.builder()
+                                .bidadjustmentfactors(givenAdjustments)
+                                .alternateBidderCodes(givenAlternativeBidderCodes)
+                                .build()))
+                .build();
+
+        // when
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -1366,6 +1414,32 @@ public class RequestValidatorTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly(
                         "request.ext.prebid.bidadjustmentfactors.native.unknownBidder is not a known bidder or alias");
+    }
+
+    @Test
+    public void validateShouldNotFailWhenMediaBidderIsKnownAsAlternativeBidderCode() {
+        // given
+        final ExtRequestBidAdjustmentFactors givenAdjustments = ExtRequestBidAdjustmentFactors.builder()
+                .mediatypes(new EnumMap<>(Collections.singletonMap(ImpMediaType.xNative,
+                        Collections.singletonMap("unknownBidder", BigDecimal.valueOf(1.1)))))
+                .build();
+        givenAdjustments.addFactor("unknownBidder", BigDecimal.valueOf(1.1F));
+        final ExtRequestPrebidAlternateBidderCodes givenAlternativeBidderCodes =
+                ExtRequestPrebidAlternateBidderCodes.of(true, Map.of("rubicon",
+                        ExtRequestPrebidAlternateBidderCodesBidder.of(true, Set.of("unknownBidder"))));
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .ext(ExtRequest.of(
+                        ExtRequestPrebid.builder()
+                                .bidadjustmentfactors(givenAdjustments)
+                                .alternateBidderCodes(givenAlternativeBidderCodes)
+                                .build()))
+                .build();
+
+        // when
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test

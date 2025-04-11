@@ -19,7 +19,10 @@
           "h": 576,
           "ext": {
             "prebid": {
-              "type": "banner"
+              "type": "banner",
+              "meta": {
+                "adaptercode": "smartadserver"
+              }
             },
             "origbidcpm": 0.5
           }

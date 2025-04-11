@@ -10,7 +10,10 @@
           "ext": {
             "format": "BANNER",
             "prebid": {
-              "type": "banner"
+              "type": "banner",
+              "meta": {
+                "adaptercode": "orbidder"
+              }
             },
             "origbidcpm": 0.01
           },

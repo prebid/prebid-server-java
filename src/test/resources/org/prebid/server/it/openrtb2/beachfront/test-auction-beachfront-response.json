@@ -14,7 +14,10 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner"
+              "type": "banner",
+              "meta": {
+                "adaptercode": "beachfront"
+              }
             },
             "origbidcpm": 2.942807912826538,
             "origbidcur": "USD"

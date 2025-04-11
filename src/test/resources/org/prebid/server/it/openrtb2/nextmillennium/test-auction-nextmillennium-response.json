@@ -14,7 +14,10 @@
           "crid": "crid001",
           "ext": {
             "prebid": {
-              "type": "banner"
+              "type": "banner",
+              "meta": {
+                "adaptercode": "nextmillennium"
+              }
             },
             "origbidcpm": 0.01
           }

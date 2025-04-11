@@ -20,7 +20,10 @@
             "origbidcpm": 1.23,
             "origbidcur": "USD",
             "prebid": {
-              "type": "banner"
+              "type": "banner",
+              "meta": {
+                "adaptercode": "bidsmind"
+              }
             }
           }
         }

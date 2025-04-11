@@ -226,4 +226,11 @@ public class BidderCatalog {
                 .map(BidderInstanceDeps::getBidder)
                 .orElse(null);
     }
+
+    public String configuredName(String name) {
+        return Optional.ofNullable(name)
+                .map(bidderDepsMap::get)
+                .map(BidderInstanceDeps::getName)
+                .orElse(null);
+    }
 }

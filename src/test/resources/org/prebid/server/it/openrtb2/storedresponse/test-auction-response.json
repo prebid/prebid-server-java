@@ -15,6 +15,9 @@
           "ext": {
             "prebid": {
               "type": "banner",
+              "meta": {
+                "adaptercode": "generic"
+              },
               "targeting": {
                 "hb_size_generic": "300x250",
                 "hb_cache_id": "474175c2-815f-4bde-90ad-935d2f6e1aa0",

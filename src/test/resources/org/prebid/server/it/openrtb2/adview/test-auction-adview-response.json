@@ -15,7 +15,10 @@
           "ext": {
             "origbidcpm": 0.01,
             "prebid": {
-              "type": "banner"
+              "type": "banner",
+              "meta": {
+                "adaptercode": "adview"
+              }
             }
           }
         }
