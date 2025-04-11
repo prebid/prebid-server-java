@@ -41,7 +41,7 @@ public class ExtWURFLMapper {
                                 return Map.entry(sc, NULL_VALUE_TOKEN);
                             }
                         })
-                        .filter(entry -> Objects.nonNull(entry.getValue())
+                        .filter(entry -> entry.getValue() != null
                                 && !NULL_VALUE_TOKEN.equals(entry.getValue()))
                         .forEach(entry -> wurflNode.put(entry.getKey(), entry.getValue()));
 

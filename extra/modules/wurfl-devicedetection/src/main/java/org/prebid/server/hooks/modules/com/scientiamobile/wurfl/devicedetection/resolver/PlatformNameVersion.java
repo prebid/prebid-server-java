@@ -3,8 +3,6 @@ package org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection
 import com.iab.openrtb.request.BrandVersion;
 import lombok.Getter;
 
-import java.util.Objects;
-
 public class PlatformNameVersion {
 
     @Getter
@@ -13,7 +11,7 @@ public class PlatformNameVersion {
     private String platformVersion;
 
     public static PlatformNameVersion from(BrandVersion platform) {
-        if (Objects.isNull(platform)) {
+        if (platform == null) {
             return null;
         }
         final PlatformNameVersion platformNameVersion = new PlatformNameVersion();
