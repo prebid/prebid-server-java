@@ -32,9 +32,12 @@ jobs:
 
       - name: Build with Maven
         id: build
-        run: mvn -B package --file extra/pom.xml | tee build_output.txt
+        run: |
+          mvn -B package --file extra/pom.xml | tee build_output.txt
+          echo "exit_code=$?" >> "$GITHUB_ENV"
 
       - name: Format build output for PR comment
+        if: ${{ env.exit_code != '0' }}
         run: |
           sed -n '/\[ERROR\] Failures:/,/\[ERROR\] Tests run:/p' build_output.txt > test_failures.txt
           echo "❌ **Java CI Build Failed - Test Failures**" > comment.txt
@@ -51,8 +54,6 @@ jobs:
           issue-number: ${{ github.event.pull_request.number }}
           body-path: comment.txt
 
-      - name: Fail if '[ERROR]' is found in logs
-        run: |
-          if grep -q "\[ERROR\]" build_output.txt; then
-            exit 1  # This makes the check fail
-          fi
+      - name: Fail if error is found in logs
+        if: ${{ env.exit_code != '0' }}
+        run: exit 1
