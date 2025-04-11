@@ -45,20 +45,20 @@ public class WURFLEngineInitializer {
     }
 
     static void downloadWurflFile(WURFLDeviceDetectionConfigProperties configProperties) {
-        if (StringUtils.isNotBlank(configProperties.getWurflSnapshotUrl())
-                && StringUtils.isNotBlank(configProperties.getWurflFileDirPath())) {
+        if (StringUtils.isNotBlank(configProperties.getFileSnapshotUrl())
+                && StringUtils.isNotBlank(configProperties.getFileDirPath())) {
             GeneralWURFLEngine.wurflDownload(
-                    configProperties.getWurflSnapshotUrl(),
-                    configProperties.getWurflFileDirPath());
+                    configProperties.getFileSnapshotUrl(),
+                    configProperties.getFileDirPath());
         }
     }
 
     static WURFLEngine initializeEngine(WURFLDeviceDetectionConfigProperties configProperties) {
 
-        final String wurflFileName = extractWURFLFileName(configProperties.getWurflSnapshotUrl());
+        final String wurflFileName = extractWURFLFileName(configProperties.getFileSnapshotUrl());
 
         final Path wurflPath = Paths.get(
-                configProperties.getWurflFileDirPath(),
+                configProperties.getFileDirPath(),
                 wurflFileName
         );
         final WURFLEngine engine = new GeneralWURFLEngine(wurflPath.toString());

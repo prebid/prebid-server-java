@@ -15,13 +15,13 @@ public class WURFLDeviceDetectionConfigProperties {
 
     int cacheSize;
 
-    String wurflFileDirPath;
+    String fileDirPath;
 
-    String wurflSnapshotUrl;
+    String fileSnapshotUrl;
 
     boolean extCaps;
 
-    boolean wurflRunUpdater = true;
+    boolean runUpdater = true;
 
     Set<String> allowedPublisherIds = Set.of();
 

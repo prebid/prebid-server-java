@@ -33,8 +33,8 @@ public class WURFLService implements FileProcessor {
         try {
             final WURFLEngine engine = new GeneralWURFLEngine(dataFilePath);
             engine.load();
-            final String fileName = WURFLEngineInitializer.extractWURFLFileName(configProperties.getWurflSnapshotUrl());
-            final Path dir = Paths.get(configProperties.getWurflFileDirPath());
+            final String fileName = WURFLEngineInitializer.extractWURFLFileName(configProperties.getFileSnapshotUrl());
+            final Path dir = Paths.get(configProperties.getFileDirPath());
             final Path file = dir.resolve(fileName);
             Files.move(Paths.get(dataFilePath), file, StandardCopyOption.REPLACE_EXISTING);
             wurflEngine.reload(file.toAbsolutePath().toString());

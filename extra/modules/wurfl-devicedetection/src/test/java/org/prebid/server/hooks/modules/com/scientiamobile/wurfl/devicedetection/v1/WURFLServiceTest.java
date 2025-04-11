@@ -48,8 +48,8 @@ public class WURFLServiceTest {
         final String wurflFileDirPath = System.getProperty("java.io.tmpdir");
         final String fileName = "wurfl-snapshot.zip";
 
-        given(configProperties.getWurflSnapshotUrl()).willReturn(wurflSnapshotUrl);
-        given(configProperties.getWurflFileDirPath()).willReturn(wurflFileDirPath);
+        given(configProperties.getFileSnapshotUrl()).willReturn(wurflSnapshotUrl);
+        given(configProperties.getFileDirPath()).willReturn(wurflFileDirPath);
 
         // Simplified test that doesn't actually test the internal file operations
         // when

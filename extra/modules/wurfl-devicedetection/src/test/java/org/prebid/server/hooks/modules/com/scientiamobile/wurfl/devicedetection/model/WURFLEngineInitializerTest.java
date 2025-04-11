@@ -32,8 +32,8 @@ class WURFLEngineInitializerTest {
 
     @BeforeEach
     void setUp() {
-        when(configProperties.getWurflSnapshotUrl()).thenReturn("http://test.url/wurfl.zip");
-        when(configProperties.getWurflFileDirPath()).thenReturn("/test/path");
+        when(configProperties.getFileSnapshotUrl()).thenReturn("http://test.url/wurfl.zip");
+        when(configProperties.getFileDirPath()).thenReturn("/test/path");
     }
 
     @Test
@@ -108,10 +108,10 @@ class WURFLEngineInitializerTest {
     @Test
     void builderShouldCreateWURFLEngineInitializerBuilderFromProperties() {
         // given
-        when(configProperties.getWurflSnapshotUrl()).thenReturn("http://test.url/wurfl.zip");
-        when(configProperties.getWurflFileDirPath()).thenReturn("/test/path");
+        when(configProperties.getFileSnapshotUrl()).thenReturn("http://test.url/wurfl.zip");
+        when(configProperties.getFileDirPath()).thenReturn("/test/path");
         when(configProperties.getCacheSize()).thenReturn(1000);
-        when(configProperties.isWurflRunUpdater()).thenReturn(true);
+        when(configProperties.isRunUpdater()).thenReturn(true);
         when(configProperties.getUpdateConnTimeoutMs()).thenReturn(5000);
 
         // when

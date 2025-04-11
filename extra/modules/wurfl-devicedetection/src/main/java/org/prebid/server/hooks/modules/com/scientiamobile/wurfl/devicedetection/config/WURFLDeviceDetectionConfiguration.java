@@ -47,7 +47,7 @@ public class WURFLDeviceDetectionConfiguration {
 
         final WURFLService wurflService = new WURFLService(wurflEngine, configProperties);
 
-        if (configProperties.isWurflRunUpdater()) {
+        if (configProperties.isRunUpdater()) {
             final FileSyncer fileSyncer = createFileSyncer(configProperties, wurflService, vertx);
             // Update process via file syncer starts with a delay because wurfl file has just been downloaded
             vertx.setTimer(DAILY_SYNC_INTERVAL, ignored -> fileSyncer.sync());
@@ -70,7 +70,7 @@ public class WURFLDeviceDetectionConfiguration {
 
         final FileSyncerProperties fileSyncerProperties = new FileSyncerProperties();
         fileSyncerProperties.setCheckSize(true);
-        fileSyncerProperties.setDownloadUrl(configProperties.getWurflSnapshotUrl());
+        fileSyncerProperties.setDownloadUrl(configProperties.getFileSnapshotUrl());
         fileSyncerProperties.setSaveFilepath(downloadPath);
         fileSyncerProperties.setTmpFilepath(tempPath);
         fileSyncerProperties.setTimeoutMs((long) configProperties.getUpdateConnTimeoutMs());
@@ -83,16 +83,16 @@ public class WURFLDeviceDetectionConfiguration {
     }
 
     private String createDownloadPath(WURFLDeviceDetectionConfigProperties configProperties) {
-        final String basePath = configProperties.getWurflFileDirPath();
-        final String fileName = configProperties.getWurflSnapshotUrl().endsWith(".xml.gz")
+        final String basePath = configProperties.getFileDirPath();
+        final String fileName = configProperties.getFileSnapshotUrl().endsWith(".xml.gz")
                 ? "new_wurfl.xml.gz"
                 : "new_wurfl.zip";
         return Path.of(basePath, fileName).toString();
     }
 
     private String createTempPath(WURFLDeviceDetectionConfigProperties configProperties) {
-        final String basePath = configProperties.getWurflFileDirPath();
-        final String fileName = configProperties.getWurflSnapshotUrl().endsWith(".xml.gz")
+        final String basePath = configProperties.getFileDirPath();
+        final String fileName = configProperties.getFileSnapshotUrl().endsWith(".xml.gz")
                 ? "temp_wurfl.xml.gz"
                 : "temp_wurfl.zip";
         return Path.of(basePath, fileName).toString();
