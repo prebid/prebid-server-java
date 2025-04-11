@@ -650,7 +650,7 @@ class AuctionSpec extends BaseSpec {
         }
 
         and: "Default bid response"
-        def originalBidId = PBSUtils.getRandomString(PBSUtils.getRandomNumber(0, MIN_BID_ID_LENGTH))
+        def originalBidId = PBSUtils.getRandomString(PBSUtils.getRandomNumber(1, MIN_BID_ID_LENGTH))
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
             seatbid.first.bid.first.id = originalBidId
         }
