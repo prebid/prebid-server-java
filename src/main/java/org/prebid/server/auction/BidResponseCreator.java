@@ -105,6 +105,7 @@ import org.prebid.server.settings.model.AccountEventsConfig;
 import org.prebid.server.settings.model.AccountTargetingConfig;
 import org.prebid.server.settings.model.VideoStoredDataResult;
 import org.prebid.server.spring.config.model.CacheDefaultTtlProperties;
+import org.prebid.server.util.ListUtil;
 import org.prebid.server.util.StreamUtil;
 import org.prebid.server.vast.VastModifier;
 
@@ -1119,11 +1120,8 @@ public class BidResponseCreator {
                 .filter(bidderResponse -> CollectionUtils.isNotEmpty(bidderResponse.getSeatBid().getHttpCalls()))
                 .collect(Collectors.toMap(
                         BidderResponseInfo::getSeat,
-                        bidderResponse -> new ArrayList<>(bidderResponse.getSeatBid().getHttpCalls()),
-                        (httpCalls1, httpCalls2) -> {
-                            httpCalls1.addAll(httpCalls2);
-                            return httpCalls1;
-                        }));
+                        bidderResponse -> bidderResponse.getSeatBid().getHttpCalls(),
+                        ListUtil::union));
 
         final DebugHttpCall httpCall = cacheResult.getHttpCall();
         final ExtHttpCall cacheExtHttpCall = httpCall != null ? toExtHttpCall(httpCall) : null;
@@ -1191,12 +1189,10 @@ public class BidResponseCreator {
 
         return bidderResponses.stream()
                 .filter(bidderResponse -> CollectionUtils.isNotEmpty(bidderResponse.getSeatBid().getErrors()))
-                .collect(Collectors.toMap(BidderResponseInfo::getSeat,
+                .collect(Collectors.toMap(
+                        BidderResponseInfo::getSeat,
                         bidderResponse -> errorsDetails(bidderResponse.getSeatBid().getErrors()),
-                        (errors1, errors2) -> {
-                            errors1.addAll(errors2);
-                            return errors1;
-                        }));
+                        ListUtil::union));
     }
 
     /**
@@ -1207,12 +1203,10 @@ public class BidResponseCreator {
 
         return bidderResponses.stream()
                 .filter(bidderResponse -> CollectionUtils.isNotEmpty(bidderResponse.getSeatBid().getWarnings()))
-                .collect(Collectors.toMap(BidderResponseInfo::getSeat,
+                .collect(Collectors.toMap(
+                        BidderResponseInfo::getSeat,
                         bidderResponse -> errorsDetails(bidderResponse.getSeatBid().getWarnings()),
-                        (warnings1, warnings2) -> {
-                            warnings1.addAll(warnings2);
-                            return warnings1;
-                        }));
+                        ListUtil::union));
     }
 
     /**
