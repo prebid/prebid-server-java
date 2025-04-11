@@ -108,7 +108,7 @@ public class ConnatixBidder implements Bidder<BidRequest> {
         try {
             final URIBuilder uriBuilder = new URIBuilder(endpointUrl);
             return getUserId(request)
-                    .map(this::getDataCenterCode)
+                    .map(userId -> getDataCenterCode(userId))
                     .map(dataCenterCode -> uriBuilder.addParameter("dc", dataCenterCode))
                     .orElse(uriBuilder)
                     .build()
