@@ -37,7 +37,7 @@ jobs:
           echo "exit_code=$?" >> "$GITHUB_ENV"
 
       - name: Format build output for PR comment
-        if: ${{ env.exit_code != '0' }}
+        if: steps.build.outputs.exit_code != '0'
         run: |
           sed -n '/\[ERROR\] Failures:/,/\[ERROR\] Tests run:/p' build_output.txt > test_failures.txt
           echo "❌ **Java CI Build Failed - Test Failures**" > comment.txt
@@ -55,5 +55,5 @@ jobs:
           body-path: comment.txt
 
       - name: Fail if error is found in logs
-        if: ${{ env.exit_code != '0' }}
+        if: steps.build.outputs.exit_code != '0'
         run: exit 1
