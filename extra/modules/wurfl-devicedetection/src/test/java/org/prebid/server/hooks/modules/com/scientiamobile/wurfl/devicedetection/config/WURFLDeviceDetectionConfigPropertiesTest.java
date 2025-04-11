@@ -2,7 +2,7 @@ package org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection
 
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -35,7 +35,7 @@ class WURFLDeviceDetectionConfigPropertiesTest {
 
         properties.setWurflSnapshotUrl("https://example-scientiamobile.com/wurfl.zip");
         properties.setWurflRunUpdater(false);
-        properties.setAllowedPublisherIds(List.of("1", "3"));
+        properties.setAllowedPublisherIds(Set.of("1", "3"));
         properties.setExtCaps(true);
         properties.setUpdateConnTimeoutMs(7000);
         properties.setUpdateRetries(1);
@@ -47,7 +47,7 @@ class WURFLDeviceDetectionConfigPropertiesTest {
         assertThat(properties.getWurflFileDirPath()).isEqualTo("/path/to/file");
         assertThat(properties.getWurflSnapshotUrl()).isEqualTo("https://example-scientiamobile.com/wurfl.zip");
         assertThat(properties.isWurflRunUpdater()).isEqualTo(false);
-        assertThat(properties.getAllowedPublisherIds()).isEqualTo(List.of("1", "3"));
+        assertThat(properties.getAllowedPublisherIds()).isEqualTo(Set.of("1", "3"));
         assertThat(properties.isExtCaps()).isTrue();
         assertThat(properties.getUpdateConnTimeoutMs()).isEqualTo(7000);
         assertThat(properties.getUpdateRetries()).isEqualTo(1);

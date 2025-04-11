@@ -16,9 +16,9 @@ public class AuctionRequestHeadersContext {
         this.headers = headers;
     }
 
-    public static AuctionRequestHeadersContext from(final CaseInsensitiveMultiMap headers) {
+    public static AuctionRequestHeadersContext from(CaseInsensitiveMultiMap headers) {
         final Map<String, String> headersMap = new HashMap<>();
-        if (Objects.isNull(headers)) {
+        if (headers == null) {
             return new AuctionRequestHeadersContext(headersMap);
         }
 

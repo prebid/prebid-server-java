@@ -10,7 +10,6 @@ import org.apache.commons.collections4.MapUtils;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -25,9 +24,9 @@ public class HeadersResolver {
     static final String SEC_CH_UA_FULL_VERSION_LIST = "Sec-CH-UA-Full-Version-List";
     static final String USER_AGENT = "User-Agent";
 
-    public Map<String, String> resolve(final Device device, final Map<String, String> headers) {
+    public Map<String, String> resolve(Device device, Map<String, String> headers) {
 
-        if (Objects.isNull(device) && Objects.isNull(headers)) {
+        if (device == null && headers == null) {
             return new HashMap<>();
         }
 
@@ -43,12 +42,12 @@ public class HeadersResolver {
 
         final Map<String, String> resolvedHeaders = new HashMap<>();
 
-        if (Objects.isNull(device)) {
+        if (device == null) {
             log.warn("ORBT Device is null");
             return resolvedHeaders;
         }
 
-        if (Objects.nonNull(device.getUa())) {
+        if (device.getUa() != null) {
             resolvedHeaders.put(USER_AGENT, device.getUa());
         }
 
@@ -60,7 +59,7 @@ public class HeadersResolver {
 
         final Map<String, String> headers = new HashMap<>();
 
-        if (Objects.isNull(sua)) {
+        if (sua == null) {
             log.warn("Sua is null, returning empty headers");
             return new HashMap<>();
         }
@@ -78,26 +77,26 @@ public class HeadersResolver {
 
         // Platform
         final PlatformNameVersion platformNameVersion = PlatformNameVersion.from(sua.getPlatform());
-        if (Objects.nonNull(platformNameVersion)) {
+        if (platformNameVersion != null) {
             headers.put(SEC_CH_UA_PLATFORM, escape(platformNameVersion.getPlatformName()));
             headers.put(SEC_CH_UA_PLATFORM_VERSION, escape(platformNameVersion.getPlatformVersion()));
         }
 
         // Model
         final String model = sua.getModel();
-        if (Objects.nonNull(model) && !model.isEmpty()) {
+        if (model != null && !model.isEmpty()) {
             headers.put(SEC_CH_UA_MODEL, escape(model));
         }
 
         // Architecture
         final String arch = sua.getArchitecture();
-        if (Objects.nonNull(arch) && !arch.isEmpty()) {
+        if (arch != null && !arch.isEmpty()) {
             headers.put(SEC_CH_UA_ARCH, escape(arch));
         }
 
         // Mobile
         final Integer mobile = sua.getMobile();
-        if (Objects.nonNull(mobile)) {
+        if (mobile != null) {
             headers.put(SEC_CH_UA_MOBILE, "?" + mobile);
         }
         return headers;

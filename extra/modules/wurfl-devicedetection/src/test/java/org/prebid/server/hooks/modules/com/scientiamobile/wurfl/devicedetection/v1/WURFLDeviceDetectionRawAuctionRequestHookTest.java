@@ -113,7 +113,7 @@ class WURFLDeviceDetectionRawAuctionRequestHookTest {
     @Test
     void shouldEnrichDeviceWhenAllowedPublisherIdsIsEmpty() {
         // given
-        when(configProperties.getAllowedPublisherIds()).thenReturn(Collections.emptyList());
+        when(configProperties.getAllowedPublisherIds()).thenReturn(Collections.emptySet());
         WURFLService wurflService = new WURFLService(wurflEngine, configProperties);
         target = new WURFLDeviceDetectionRawAuctionRequestHook(wurflService, configProperties);
 

@@ -17,11 +17,24 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Builder
 public class WURFLEngineInitializer {
+
+    private static final Set<String> REQUIRED_STATIC_CAPS = Set.of(
+            "ajax_support_javascript",
+            "brand_name",
+            "density_class",
+            "is_connected_tv",
+            "is_ott",
+            "is_tablet",
+            "model_name",
+            "resolution_height",
+            "resolution_width",
+            "physical_form_factor");
 
     private WURFLDeviceDetectionConfigProperties configProperties;
 
@@ -79,7 +92,7 @@ public class WURFLEngineInitializer {
                         value -> true
                 ));
 
-        for (String requiredCapName : WURFLDeviceDetectionConfigProperties.REQUIRED_STATIC_CAPS) {
+        for (String requiredCapName : REQUIRED_STATIC_CAPS) {
             if (!allCaps.containsKey(requiredCapName)) {
                 unsupportedStaticCaps.add(requiredCapName);
             }
