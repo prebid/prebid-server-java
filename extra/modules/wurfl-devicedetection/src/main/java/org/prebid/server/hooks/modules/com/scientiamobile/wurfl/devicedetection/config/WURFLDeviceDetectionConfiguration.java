@@ -6,6 +6,7 @@ import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.
 import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.v1.WURFLDeviceDetectionModule;
 import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.v1.WURFLDeviceDetectionRawAuctionRequestHook;
 import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.v1.WURFLService;
+import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.config.WURFLDeviceDetectionConfigProperties;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -17,19 +18,23 @@ import org.prebid.server.execution.file.syncer.FileSyncer;
 import org.prebid.server.spring.config.model.FileSyncerProperties;
 import org.prebid.server.spring.config.model.HttpClientProperties;
 import org.prebid.server.execution.file.FileUtil;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
 
 import java.nio.file.Path;
 import java.util.List;
 
 @ConditionalOnProperty(prefix = "hooks." + WURFLDeviceDetectionModule.CODE, name = "enabled", havingValue = "true")
 @Configuration
-@PropertySource(
-        value = "classpath:/module-config/wurfl-devicedetection.yaml",
-        factory = YamlPropertySourceFactory.class)
-@EnableConfigurationProperties(WURFLDeviceDetectionConfigProperties.class)
 public class WURFLDeviceDetectionConfiguration {
 
     private static final Long DAILY_SYNC_INTERVAL = 86400000L;
+
+    @Bean
+    @ConfigurationProperties(prefix = "hooks.modules." + WURFLDeviceDetectionModule.CODE)
+    WURFLDeviceDetectionConfigProperties configProperties() {
+        return new WURFLDeviceDetectionConfigProperties();
+    }
 
     @Bean
     public WURFLDeviceDetectionModule wurflDeviceDetectionModule(WURFLDeviceDetectionConfigProperties

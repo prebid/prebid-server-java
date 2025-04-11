@@ -78,3 +78,12 @@ hooks:
       }
     }
 
+
+  modules:
+    wurfl-devicedetection:
+      wurfl-file-dir-path: </path/to/wurfl_snapshot_dir>
+      wurfl-snapshot-url: https://data.scientiamobile.com/your_wurfl_snapshot_url/wurfl.zip
+      cache-size: 200000
+      wurfl-run-updater: true
+      allowed-publisher-ids: 1
+      ext-caps: true
