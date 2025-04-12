@@ -8,7 +8,6 @@ import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Targeting
 import org.prebid.server.hooks.modules.optable.targeting.v1.net.OptableResponseMapper;
 
 import java.util.Objects;
-import java.util.function.Function;
 
 public class Cache {
 
@@ -20,19 +19,11 @@ public class Cache {
 
     private final OptableResponseMapper optableResponseMapper;
 
-    private final boolean isEnabled;
-
-    private final int ttlSeconds;
-
     public Cache(PbcStorageService cacheService,
-                 OptableResponseMapper optableResponseMapper,
-                 boolean isEnabled,
-                 int ttlSeconds) {
+                 OptableResponseMapper optableResponseMapper) {
 
         this.cacheService = Objects.requireNonNull(cacheService);
         this.optableResponseMapper = Objects.requireNonNull(optableResponseMapper);
-        this.isEnabled = isEnabled;
-        this.ttlSeconds = ttlSeconds;
     }
 
     public Future<TargetingResult> get(String query) {
@@ -42,17 +33,12 @@ public class Cache {
                 .otherwise(it -> null);
     }
 
-    public boolean put(String query, TargetingResult value) {
-        cacheService.storeEntry(
+    public Future<Void> put(String query, TargetingResult value, int ttlSeconds) {
+        return cacheService.storeEntry(
                 query,
                 optableResponseMapper.toJsonString(value),
                 StorageDataType.TEXT,
                 ttlSeconds,
                 APPLICATION, APP_CODE);
-        return true;
-    }
-
-    public boolean isEnabled() {
-        return isEnabled;
     }
 }

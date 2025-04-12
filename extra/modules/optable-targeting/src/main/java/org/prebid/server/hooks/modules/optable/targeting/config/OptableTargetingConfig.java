@@ -3,7 +3,6 @@ package org.prebid.server.hooks.modules.optable.targeting.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.vertx.core.Vertx;
 import org.prebid.server.cache.PbcStorageService;
-import org.prebid.server.hooks.modules.optable.targeting.model.config.CacheProperties;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
 import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingAuctionResponseHook;
 import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingModule;
@@ -11,6 +10,7 @@ import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingProc
 import org.prebid.server.hooks.modules.optable.targeting.v1.analytics.AnalyticTagsResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.Cache;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.IdsMapper;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableAttributesResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargeting;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.PayloadResolver;
@@ -50,8 +50,8 @@ public class OptableTargetingConfig {
     }
 
     @Bean
-    IdsMapper queryParametersExtractor(OptableTargetingProperties properties, ObjectMapper objectMapper) {
-        return new IdsMapper(objectMapper, properties.getPpidMapping());
+    IdsMapper queryParametersExtractor(ObjectMapper objectMapper) {
+        return new IdsMapper(objectMapper);
     }
 
     @Bean
@@ -60,8 +60,8 @@ public class OptableTargetingConfig {
     }
 
     @Bean
-    QueryBuilder queryBuilder(OptableTargetingProperties properties) {
-        return new QueryBuilder(properties.getIdPrefixOrder());
+    QueryBuilder queryBuilder() {
+        return new QueryBuilder();
     }
 
     @Bean
@@ -86,8 +86,7 @@ public class OptableTargetingConfig {
 
         final String endpoint = HttpUtil.validateUrl(Objects.requireNonNull(properties.getApiEndpoint()));
 
-        return new APIClient(endpoint, httpClientWrapper.getHttpClient(), logSamplingRate, responseParser,
-                properties.getApiKey());
+        return new APIClient(endpoint, httpClientWrapper.getHttpClient(), logSamplingRate, responseParser);
     }
 
     @Bean
@@ -96,46 +95,39 @@ public class OptableTargetingConfig {
     }
 
     @Bean
-    Cache cache(PbcStorageService cacheService,
-                OptableResponseMapper responseParser,
-                OptableTargetingProperties properties,
-                @Value("${storage.pbc.enabled:false}")
-                boolean storageEnabled,
-                @Value("${cache.module.enabled:false}")
-                boolean moduleCacheEnabled
-    ) {
-
-        final CacheProperties cacheProperties = properties.getCache();
-        final boolean isCacheEnabled = cacheProperties.isEnabled();
-        final boolean isCacheStorageEnabled = storageEnabled && moduleCacheEnabled;
-
-        return new Cache(
-                cacheService,
-                responseParser,
-                isCacheEnabled && isCacheStorageEnabled,
-                cacheProperties.getTtlseconds());
+    Cache cache(PbcStorageService cacheService, OptableResponseMapper responseMapper) {
+        return new Cache(cacheService, responseMapper);
     }
 
     @Bean
     OptableTargeting optableTargeting(IdsMapper parametersExtractor,
                                       QueryBuilder queryBuilder,
                                       APIClient apiClient,
-                                      Cache cache) {
+                                      Cache cache,
+                                      @Value("${storage.pbc.enabled:false}")
+                                      boolean storageEnabled,
+                                      @Value("${cache.module.enabled:false}")
+                                      boolean moduleCacheEnabled) {
 
-        return new OptableTargeting(cache, parametersExtractor, queryBuilder, apiClient);
+        return new OptableTargeting(cache, parametersExtractor, queryBuilder, apiClient,
+                storageEnabled && moduleCacheEnabled);
     }
 
     @Bean
-    OptableTargetingModule optableTargetingModule(OptableTargetingProperties properties,
+    ConfigResolver configResolver(ObjectMapper mapper, OptableTargetingProperties globalProperties) {
+        return new ConfigResolver(mapper, globalProperties);
+    }
+
+    @Bean
+    OptableTargetingModule optableTargetingModule(ConfigResolver configResolver,
                                                   AnalyticTagsResolver analyticTagsResolver,
                                                   OptableTargeting optableTargeting,
                                                   PayloadResolver payloadResolver,
                                                   OptableAttributesResolver optableAttributesResolver) {
 
         return new OptableTargetingModule(List.of(
-                new OptableTargetingProcessedAuctionRequestHook(properties, optableTargeting, payloadResolver,
+                new OptableTargetingProcessedAuctionRequestHook(configResolver, optableTargeting, payloadResolver,
                         optableAttributesResolver),
-                new OptableTargetingAuctionResponseHook(analyticTagsResolver, payloadResolver,
-                        properties.getAdserverTargeting())));
+                new OptableTargetingAuctionResponseHook(analyticTagsResolver, payloadResolver, configResolver)));
     }
 }

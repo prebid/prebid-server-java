@@ -14,6 +14,7 @@ import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Audience;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.AudienceId;
 import org.prebid.server.hooks.modules.optable.targeting.v1.analytics.AnalyticTagsResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.AuctionResponseValidator;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.PayloadResolver;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
@@ -25,6 +26,7 @@ import org.prebid.server.hooks.v1.auction.AuctionResponsePayload;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -32,7 +34,7 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
 
     @Mock
     AuctionResponsePayload auctionResponsePayload;
-    @Mock
+    @Mock(strictness = LENIENT)
     AuctionInvocationContext invocationContext;
 
     private PayloadResolver payloadResolver;
@@ -43,13 +45,17 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
 
     private AuctionResponseHook target;
 
+    private ConfigResolver configResolver;
+
     @BeforeEach
     public void setUp() {
+        when(invocationContext.accountConfig()).thenReturn(givenAccountConfig(true));
         payloadResolver = new PayloadResolver(mapper);
+        configResolver = new ConfigResolver(mapper, givenOptableTargetingProperties(false));
         target = new OptableTargetingAuctionResponseHook(
                 new AnalyticTagsResolver(mapper),
                 payloadResolver,
-                true);
+                configResolver);
     }
 
     @Test
@@ -126,7 +132,7 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
         target = new OptableTargetingAuctionResponseHook(
                 new AnalyticTagsResolver(mapper),
                 payloadResolver,
-                false);
+                configResolver);
 
         // when
         final Future<InvocationResult<AuctionResponsePayload>> future = target.call(auctionResponsePayload,
@@ -139,5 +145,9 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
         assertThat(result).isNotNull()
                 .returns(InvocationStatus.success, InvocationResult::status)
                 .returns(InvocationAction.no_action, InvocationResult::action);
+    }
+
+    private ObjectNode givenAccountConfig(boolean cacheEnabled) {
+        return mapper.valueToTree(givenOptableTargetingProperties(cacheEnabled));
     }
 }

@@ -19,18 +19,15 @@ public class IdsMapper {
 
     private final ObjectMapper objectMapper;
 
-    private final Map<String, String> ppidMapping;
-
-    public IdsMapper(ObjectMapper objectMapper, Map<String, String> ppidMapping) {
+    public IdsMapper(ObjectMapper objectMapper) {
         this.objectMapper = Objects.requireNonNull(objectMapper);
-        this.ppidMapping = Objects.requireNonNull(ppidMapping);
     }
 
-    public List<Id> toIds(BidRequest bidRequest) {
+    public List<Id> toIds(BidRequest bidRequest, Map<String, String> ppidMapping) {
         final IdsResolver idsResolver = IdsResolver.of(objectMapper, bidRequest);
 
         final Map<String, String> ids = applyStaticMapping(idsResolver);
-        final Map<String, String> dynamicIds = applyDynamicMapping(idsResolver);
+        final Map<String, String> dynamicIds = applyDynamicMapping(idsResolver, ppidMapping);
         if (dynamicIds != null && !dynamicIds.isEmpty()) {
             ids.putAll(dynamicIds);
         }
@@ -41,18 +38,18 @@ public class IdsMapper {
                 .toList();
     }
 
-    private Map<String, String> toIds(List<Eid> eids) {
+    private Map<String, String> toIds(List<Eid> eids, Map<String, String> ppidMapping) {
         if (ppidMapping == null || ppidMapping.isEmpty() || CollectionUtils.isEmpty(eids)) {
             return null;
         }
 
         return eids.stream()
-                .map(this::eidSourceToFirstUidId)
+                .map(eid -> eidSourceToFirstUidId(eid, ppidMapping))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
     }
 
-    private Pair<String, String> eidSourceToFirstUidId(Eid eid) {
+    private Pair<String, String> eidSourceToFirstUidId(Eid eid, Map<String, String> ppidMapping) {
         final String key = ppidMapping.get(eid.getSource());
 
         return key != null ? Pair.of(key, getFirstUidId(eid)) : null;
@@ -62,8 +59,8 @@ public class IdsMapper {
         return eid.getUids().stream().findFirst().map(Uid::getId).orElse(null);
     }
 
-    private Map<String, String> applyDynamicMapping(IdsResolver idsResolver) {
-        return toIds(idsResolver.getEIDs());
+    private Map<String, String> applyDynamicMapping(IdsResolver idsResolver, Map<String, String> ppidMapping) {
+        return toIds(idsResolver.getEIDs(), ppidMapping);
     }
 
     private Map<String, String> applyStaticMapping(IdsResolver idsResolver) {

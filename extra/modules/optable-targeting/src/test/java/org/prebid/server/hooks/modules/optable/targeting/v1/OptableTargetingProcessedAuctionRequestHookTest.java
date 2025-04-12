@@ -1,6 +1,5 @@
 package org.prebid.server.hooks.modules.optable.targeting.v1;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Future;
@@ -13,7 +12,7 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
-import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableAttributesResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargeting;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.PayloadResolver;
@@ -22,7 +21,6 @@ import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
-import org.prebid.server.json.ObjectMapperProvider;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -34,8 +32,6 @@ import static org.mockito.Mockito.when;
 public class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
 
     @Mock
-    OptableTargetingProperties optableTargetingProperties;
-    @Mock
     OptableTargeting optableTargeting;
     @Mock
     AuctionRequestPayload auctionRequestPayload;
@@ -44,7 +40,7 @@ public class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptable
     @Mock
     Timeout timeout;
 
-    private ObjectMapper mapper;
+    private ConfigResolver configResolver;
 
     private PayloadResolver payloadResolver;
 
@@ -55,11 +51,12 @@ public class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptable
     @BeforeEach
     public void setUp() {
         when(timeout.remaining()).thenReturn(1000L);
+        when(invocationContext.accountConfig()).thenReturn(givenAccountConfig(true));
         when(invocationContext.auctionContext()).thenReturn(givenAuctionContext(timeout));
-        mapper = ObjectMapperProvider.mapper();
+        configResolver = new ConfigResolver(mapper, givenOptableTargetingProperties(false));
         payloadResolver = new PayloadResolver(mapper);
         optableAttributesResolver = new OptableAttributesResolver();
-        target = new OptableTargetingProcessedAuctionRequestHook(optableTargetingProperties, optableTargeting,
+        target = new OptableTargetingProcessedAuctionRequestHook(configResolver, optableTargeting,
                 payloadResolver, optableAttributesResolver);
     }
 
@@ -73,7 +70,7 @@ public class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptable
     public void shouldReturnResultWithUpdateActionWhenOptableTargetingReturnTargeting() {
         // given
         when(auctionRequestPayload.bidRequest()).thenReturn(givenBidRequest());
-        when(optableTargeting.getTargeting(any(), any(), anyLong()))
+        when(optableTargeting.getTargeting(any(), any(), any(), anyLong()))
                 .thenReturn(Future.succeededFuture(givenTargetingResult()));
 
         // when
@@ -101,8 +98,9 @@ public class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptable
     @Test
     public void shouldReturnResultWithCleanedUpUserExtOptableTag() {
         // given
+        when(invocationContext.accountConfig()).thenReturn(givenAccountConfig(false));
         when(auctionRequestPayload.bidRequest()).thenReturn(givenBidRequest());
-        when(optableTargeting.getTargeting(any(), any(), anyLong()))
+        when(optableTargeting.getTargeting(any(), any(), any(), anyLong()))
                 .thenReturn(Future.succeededFuture(givenTargetingResult()));
 
         // when
@@ -131,7 +129,7 @@ public class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptable
     public void shouldReturnResultWithoutUpdateActionWhenBidRequestIsNull() {
         // given
         when(auctionRequestPayload.bidRequest()).thenReturn(null);
-        when(optableTargeting.getTargeting(any(), any(), anyLong()))
+        when(optableTargeting.getTargeting(any(), any(), any(), anyLong()))
                 .thenReturn(Future.succeededFuture(givenTargetingResult()));
 
         // when
@@ -153,7 +151,7 @@ public class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptable
     public void shouldReturnResultWithUpdateWhenOptableTargetingDoesntReturnResult() {
         // given
         when(auctionRequestPayload.bidRequest()).thenReturn(givenBidRequest());
-        when(optableTargeting.getTargeting(any(), any(), anyLong())).thenReturn(Future.succeededFuture(null));
+        when(optableTargeting.getTargeting(any(), any(), any(), anyLong())).thenReturn(Future.succeededFuture(null));
 
         // when
         final Future<InvocationResult<AuctionRequestPayload>> future = target.call(auctionRequestPayload,
@@ -168,5 +166,9 @@ public class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptable
         assertThat(result.status()).isEqualTo(InvocationStatus.success);
         assertThat(result.action()).isEqualTo(InvocationAction.update);
         assertThat(result.errors()).isNull();
+    }
+
+    private ObjectNode givenAccountConfig(boolean cacheEnabled) {
+        return mapper.valueToTree(givenOptableTargetingProperties(cacheEnabled));
     }
 }

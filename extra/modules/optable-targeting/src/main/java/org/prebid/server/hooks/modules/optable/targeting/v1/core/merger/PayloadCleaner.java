@@ -8,6 +8,9 @@ public class PayloadCleaner {
 
     private static final List<String> FIELDS_FILTER = List.of("email", "phone", "zip", "vid");
 
+    private PayloadCleaner() {
+    }
+
     public static ObjectNode cleanUserExtOptable(ObjectNode optable) {
         return optable.deepCopy().remove(FIELDS_FILTER);
     }

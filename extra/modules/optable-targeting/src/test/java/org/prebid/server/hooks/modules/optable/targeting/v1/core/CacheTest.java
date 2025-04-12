@@ -42,28 +42,7 @@ public class CacheTest {
 
     @BeforeEach
     public void setUp() {
-        target = new Cache(pbcStorageService, optableResponseMapper, true, 86400);
-    }
-
-    @Test
-    public void cacheShouldBeEnabled() {
-        // given and when
-        boolean isEnabled = target.isEnabled();
-
-        // then
-        Assertions.assertThat(isEnabled).isTrue();
-    }
-
-    @Test
-    public void cacheShouldBeDisabled() {
-        // given
-        target = new Cache(pbcStorageService, optableResponseMapper, false, 86400);
-
-        // when
-        boolean isEnabled = target.isEnabled();
-
-        // then
-        Assertions.assertThat(isEnabled).isFalse();
+        target = new Cache(pbcStorageService, optableResponseMapper);
     }
 
     @Test
@@ -73,7 +52,7 @@ public class CacheTest {
                 Future.succeededFuture(ModuleCacheResponse.empty()));
 
         // when
-        TargetingResult result = target.get("key").result();
+        final TargetingResult result = target.get("key").result();
 
         // then
         Assertions.assertThat(result).isNull();
@@ -89,7 +68,7 @@ public class CacheTest {
                         mapper.encodeToString(targetingResult))));
 
         // when
-        TargetingResult result = target.get("key").result();
+        final TargetingResult result = target.get("key").result();
 
         // then
         Assertions.assertThat(result)
@@ -105,7 +84,9 @@ public class CacheTest {
         final TargetingResult targetingResult = givenTargetingResult();
 
         // when
-        final boolean result = target.put("key", targetingResult);
+        when(pbcStorageService.storeEntry(any(), any(), any(), any(), any(), any()))
+                .thenReturn(Future.succeededFuture());
+        final boolean result = target.put("key", targetingResult, 86400).succeeded();
 
         // then
         Assertions.assertThat(result).isTrue();

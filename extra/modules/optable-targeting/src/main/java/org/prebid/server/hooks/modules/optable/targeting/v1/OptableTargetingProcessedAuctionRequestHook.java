@@ -2,7 +2,6 @@ package org.prebid.server.hooks.modules.optable.targeting.v1;
 
 import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Future;
-import org.prebid.server.cache.PbcStorageService;
 import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
@@ -12,7 +11,7 @@ import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
 import org.prebid.server.hooks.modules.optable.targeting.model.OptableAttributes;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.Cache;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableAttributesResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargeting;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.PayloadResolver;
@@ -33,7 +32,7 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
 
     private static final long DEFAULT_API_CALL_TIMEOUT = 1000L;
 
-    private final OptableTargetingProperties properties;
+    private final ConfigResolver configResolver;
 
     private final OptableTargeting optableTargeting;
 
@@ -41,12 +40,12 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
 
     private final OptableAttributesResolver optableAttributesResolver;
 
-    public OptableTargetingProcessedAuctionRequestHook(OptableTargetingProperties properties,
+    public OptableTargetingProcessedAuctionRequestHook(ConfigResolver configResolver,
                                                        OptableTargeting optableTargeting,
                                                        PayloadResolver payloadResolver,
                                                        OptableAttributesResolver optableAttributesResolver) {
 
-        this.properties = Objects.requireNonNull(properties);
+        this.configResolver = Objects.requireNonNull(configResolver);
         this.optableTargeting = Objects.requireNonNull(optableTargeting);
         this.payloadResolver = Objects.requireNonNull(payloadResolver);
         this.optableAttributesResolver = Objects.requireNonNull(optableAttributesResolver);
@@ -56,6 +55,7 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
     public Future<InvocationResult<AuctionRequestPayload>> call(AuctionRequestPayload auctionRequestPayload,
                                                                 AuctionInvocationContext invocationContext) {
 
+        final OptableTargetingProperties properties = configResolver.resolve(invocationContext.accountConfig());
         final ModuleContext moduleContext = new ModuleContext()
                 .setMetrics(Metrics.builder()
                 .moduleStartTime(System.currentTimeMillis())
@@ -72,6 +72,7 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
                 properties.getTimeout());
 
         final Future<TargetingResult> targetingResultFuture = optableTargeting.getTargeting(
+                properties,
                 bidRequest,
                 attributes,
                 timeout);

@@ -26,9 +26,11 @@ public class IdMapperTest {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private IdsMapper target;
 
+    private Map<String, String> ppidMapping = Map.of("test.com", "c");
+
     @BeforeEach
     public void setUp() {
-        target = new IdsMapper(objectMapper, Map.of("test.com", "c"));
+        target = new IdsMapper(objectMapper);
     }
 
     @Test
@@ -55,7 +57,7 @@ public class IdMapperTest {
         });
 
         // when
-        final List<Id> ids = target.toIds(bidRequest);
+        final List<Id> ids = target.toIds(bidRequest, ppidMapping);
 
         // then
         assertThat(ids).isNotNull()
@@ -90,7 +92,7 @@ public class IdMapperTest {
         final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder);
 
         // when
-        final List<Id> ids = target.toIds(bidRequest);
+        final List<Id> ids = target.toIds(bidRequest, ppidMapping);
 
         // then
         assertThat(ids).isNotNull();

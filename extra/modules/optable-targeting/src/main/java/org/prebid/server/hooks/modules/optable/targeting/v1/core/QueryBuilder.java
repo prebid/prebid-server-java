@@ -15,19 +15,13 @@ import java.util.stream.Stream;
 
 public class QueryBuilder {
 
-    private String idPrefixOrder;
-
-    public QueryBuilder(String idPrefixOrder) {
-        this.idPrefixOrder = idPrefixOrder;
-    }
-
-    public String build(List<Id> ids, OptableAttributes optableAttributes) {
+    public String build(List<Id> ids, OptableAttributes optableAttributes, String idPrefixOrder) {
         if (CollectionUtils.isEmpty(ids)) {
             return null;
         }
 
         final StringBuilder sb = new StringBuilder();
-        final List<Id> reorderedIds = reorderIds(ids);
+        final List<Id> reorderedIds = reorderIds(ids, idPrefixOrder);
         if (CollectionUtils.isNotEmpty(reorderedIds)) {
             buildQueryString(sb, reorderedIds);
         }
@@ -36,7 +30,7 @@ public class QueryBuilder {
         return sb.toString();
     }
 
-    private List<Id> reorderIds(List<Id> ids) {
+    private List<Id> reorderIds(List<Id> ids, String idPrefixOrder) {
         if (!StringUtils.isEmpty(idPrefixOrder)) {
             final int lastIndex = ids.size() - 1;
             final List<String> order = Stream.of(idPrefixOrder.split(",", -1)).toList();

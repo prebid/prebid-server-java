@@ -22,12 +22,15 @@ import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.hooks.modules.optable.targeting.model.EnrichmentStatus;
 import org.prebid.server.hooks.modules.optable.targeting.model.Metrics;
 import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
+import org.prebid.server.hooks.modules.optable.targeting.model.config.CacheProperties;
+import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Audience;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.AudienceId;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Data;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Ortb2;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Segment;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
+import org.prebid.server.json.ObjectMapperProvider;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
@@ -38,10 +41,11 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 public abstract class BaseOptableTest {
 
-    private final ObjectMapper mapper = new ObjectMapper();
+    protected final ObjectMapper mapper = ObjectMapperProvider.mapper();
 
     protected ModuleContext givenModuleContext() {
         return givenModuleContext(null);
@@ -166,5 +170,17 @@ public abstract class BaseOptableTest {
                 }
             }
         }
+    }
+
+    protected OptableTargetingProperties givenOptableTargetingProperties(boolean enableCache) {
+        return new OptableTargetingProperties(
+                "endpoint",
+                "key",
+                Map.of("c", "id"),
+                true,
+                100L,
+                null,
+                new CacheProperties(enableCache, 86400)
+        );
     }
 }

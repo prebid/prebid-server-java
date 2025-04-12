@@ -11,17 +11,38 @@ import java.util.Map;
 @Data
 public final class OptableTargetingProperties {
 
+    @JsonProperty("api-endpoint")
     String apiEndpoint;
 
+    @JsonProperty("api-key")
     String apiKey;
 
+    @JsonProperty("ppid-mapping")
     Map<String, String> ppidMapping;
 
+    @JsonProperty("adserver-targeting")
     Boolean adserverTargeting = true;
 
     Long timeout;
 
+    @JsonProperty("id-prefix-order")
     String idPrefixOrder;
 
-    CacheProperties cache = new CacheProperties();
+    public OptableTargetingProperties() {
+    }
+
+    public OptableTargetingProperties(String apiEndpoint, String apiKey, Map<String, String> ppidMapping,
+                                      Boolean adserverTargeting, Long timeout, String idPrefixOrder,
+                                      CacheProperties cache) {
+
+        this.apiEndpoint = apiEndpoint;
+        this.apiKey = apiKey;
+        this.ppidMapping = ppidMapping;
+        this.adserverTargeting = adserverTargeting;
+        this.timeout = timeout;
+        this.idPrefixOrder = idPrefixOrder;
+        this.cache = cache;
+    }
+
+    CacheProperties cache = new CacheProperties(false, 86400);
 }

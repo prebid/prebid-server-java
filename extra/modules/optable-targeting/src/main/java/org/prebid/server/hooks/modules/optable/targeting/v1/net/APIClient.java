@@ -39,22 +39,18 @@ public class APIClient {
 
     private final OptableResponseMapper responseMapper;
 
-    private final String apiKey;
-
     public APIClient(String endpoint,
                      HttpClient httpClient,
                      double logSamplingRate,
-                     OptableResponseMapper responseMapper,
-                     String apiKey) {
+                     OptableResponseMapper responseMapper) {
 
         this.endpoint = Objects.requireNonNull(endpoint);
         this.httpClient = Objects.requireNonNull(httpClient);
         this.logSamplingRate = logSamplingRate;
         this.responseMapper = Objects.requireNonNull(responseMapper);
-        this.apiKey = apiKey;
     }
 
-    public Future<TargetingResult> getTargeting(String query, List<String> ips, long timeout) {
+    public Future<TargetingResult> getTargeting(String apiKey, String query, List<String> ips, long timeout) {
         final MultiMap headers = HeadersMultiMap.headers()
                 .add(HttpUtil.ACCEPT_HEADER, "application/json");
 

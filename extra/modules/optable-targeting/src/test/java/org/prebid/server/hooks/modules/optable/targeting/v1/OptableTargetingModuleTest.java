@@ -4,8 +4,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
 import org.prebid.server.hooks.modules.optable.targeting.v1.analytics.AnalyticTagsResolver;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableAttributesResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargeting;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.PayloadResolver;
@@ -22,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class OptableTargetingModuleTest {
 
     @Mock
-    OptableTargetingProperties properties;
+    ConfigResolver configResolver;
 
     @Mock
     OptableTargeting optableTargeting;
@@ -53,14 +53,14 @@ public class OptableTargetingModuleTest {
         // given
         final Collection<Hook<?, ? extends InvocationContext>> hooks =
                 List.of(new OptableTargetingProcessedAuctionRequestHook(
-                        properties,
+                        configResolver,
                         optableTargeting,
                         payloadResolver,
                         optableAttributesResolver),
                         new OptableTargetingAuctionResponseHook(
                                 analyticTagsResolver,
                                 payloadResolver,
-                                true));
+                                configResolver));
 
         final Module module = new OptableTargetingModule(hooks);
 

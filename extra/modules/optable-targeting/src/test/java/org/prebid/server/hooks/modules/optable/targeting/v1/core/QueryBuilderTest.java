@@ -15,10 +15,13 @@ public class QueryBuilderTest {
 
     private OptableAttributes optableAttributes;
 
+    private String idPrefixOrder;
+
     @BeforeEach
     public void setUp() {
         optableAttributes = givenOptableAttributes();
-        target = new QueryBuilder("c,c1");
+        target = new QueryBuilder();
+        idPrefixOrder = "c,c1";
     }
 
     @Test
@@ -27,7 +30,7 @@ public class QueryBuilderTest {
         final List<Id> ids = List.of(Id.of(Id.EMAIL, "email"), Id.of(Id.PHONE, "123"));
 
         // when
-        final String query = target.build(ids, optableAttributes);
+        final String query = target.build(ids, optableAttributes, idPrefixOrder);
 
         // then
         assertThat(query).contains("e%3Aemail", "p%3A123");
@@ -39,7 +42,7 @@ public class QueryBuilderTest {
         final List<Id> ids = List.of(Id.of(Id.EMAIL, "email"), Id.of(Id.PHONE, "123"));
 
         // when
-        final String query = target.build(ids, optableAttributes);
+        final String query = target.build(ids, optableAttributes, idPrefixOrder);
 
         // then
         assertThat(query).contains("&gdpr=1", "&gdpr_consent=tcf", "&timeout=100ms");
@@ -52,7 +55,7 @@ public class QueryBuilderTest {
                 Id.of("c", "234"));
 
         // when
-        final String query = target.build(ids, optableAttributes);
+        final String query = target.build(ids, optableAttributes, idPrefixOrder);
 
         // then
         assertThat(query).startsWith("c%3A234&id=c1%3A123&id=id5%3AID5&id=e%3Aemail");
@@ -64,7 +67,7 @@ public class QueryBuilderTest {
         final List<Id> ids = List.of();
 
         // when
-        final String query = target.build(ids, optableAttributes);
+        final String query = target.build(ids, optableAttributes, idPrefixOrder);
 
         // then
 

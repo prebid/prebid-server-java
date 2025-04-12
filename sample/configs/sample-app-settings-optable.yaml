@@ -15,3 +15,47 @@ accounts:
         default: true
     analytics:
       allow-client-details: true
+    hooks:
+      modules:
+        optable-targeting:
+          api-key: key
+          ppid-mapping: { "pubcid.org": "c" }
+          adserver-targeting: true
+          cache:
+            enabled: false
+            ttlseconds: 86400
+      execution-plan:
+        {
+          "endpoints": {
+            "/openrtb2/auction": {
+              "stages": {
+                "processed-auction-request": {
+                  "groups": [
+                    {
+                      "timeout": 600,
+                      "hook-sequence": [
+                        {
+                          "module-code": "optable-targeting",
+                          "hook-impl-code": "optable-targeting-processed-auction-request-hook"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "auction-response": {
+                  "groups": [
+                    {
+                      "timeout": 10,
+                      "hook-sequence": [
+                        {
+                          "module-code": "optable-targeting",
+                          "hook-impl-code": "optable-targeting-auction-response-hook"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }

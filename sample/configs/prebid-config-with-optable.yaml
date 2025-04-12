@@ -48,44 +48,6 @@ admin-endpoints:
 hooks:
   optable-targeting:
     enabled: true
-  host-execution-plan: >
-    {
-      "endpoints": {
-        "/openrtb2/auction": {
-          "stages": {
-            "processed-auction-request": {
-              "groups": [
-                {
-                  "timeout": 600,
-                  "hook-sequence": [
-                    {
-                      "module-code": "optable-targeting",
-                      "hook-impl-code": "optable-targeting-processed-auction-request-hook"
-                    }
-                  ]
-                }
-              ]
-            },
-            "auction-response": {
-              "groups": [
-                {
-                  "timeout": 10,
-                  "hook-sequence": [
-                    {
-                      "module-code": "optable-targeting",
-                      "hook-impl-code": "optable-targeting-auction-response-hook"
-                    }
-                  ]
-                }
-              ]
-            }
-          }
-        }
-      }
-    }
   modules:
     optable-targeting:
       api-endpoint: endpoint
-      api-key: key
-      ppid-mapping: {"pubcid.org": "c"}
-      adserver-targeting: true

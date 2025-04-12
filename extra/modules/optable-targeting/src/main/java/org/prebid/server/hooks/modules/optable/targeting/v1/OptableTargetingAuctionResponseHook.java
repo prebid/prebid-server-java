@@ -7,9 +7,11 @@ import org.prebid.server.hooks.execution.v1.auction.AuctionResponsePayloadImpl;
 import org.prebid.server.hooks.modules.optable.targeting.model.EnrichmentStatus;
 import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
 import org.prebid.server.hooks.modules.optable.targeting.model.Status;
+import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Audience;
 import org.prebid.server.hooks.modules.optable.targeting.v1.analytics.AnalyticTagsResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.AuctionResponseValidator;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.PayloadResolver;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
@@ -30,21 +32,24 @@ public class OptableTargetingAuctionResponseHook implements AuctionResponseHook 
 
     private final PayloadResolver payloadResolver;
 
-    private final boolean adserverTargeting;
+    private final ConfigResolver configResolver;
 
     public OptableTargetingAuctionResponseHook(
             AnalyticTagsResolver analyticTagsResolver,
             PayloadResolver payloadResolver,
-            boolean adserverTargeting) {
+            ConfigResolver configResolver) {
 
         this.analyticTagsResolver = Objects.requireNonNull(analyticTagsResolver);
         this.payloadResolver = Objects.requireNonNull(payloadResolver);
-        this.adserverTargeting = adserverTargeting;
+        this.configResolver = configResolver;
     }
 
     @Override
     public Future<InvocationResult<AuctionResponsePayload>> call(AuctionResponsePayload auctionResponsePayload,
                                                                  AuctionInvocationContext invocationContext) {
+
+        final OptableTargetingProperties properties = configResolver.resolve(invocationContext.accountConfig());
+        final boolean adserverTargeting = properties.getAdserverTargeting();
 
         final ModuleContext moduleContext = ModuleContext.of(invocationContext);
         moduleContext.setAdserverTargetingEnabled(adserverTargeting);
