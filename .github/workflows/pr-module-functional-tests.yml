@@ -43,7 +43,9 @@ jobs:
           -Dtests.max-container-count=5 \
           -DdockerfileName=Dockerfile-modules \
           --file extra/pom.xml | tee build_output.txt
-          echo "exit_code=$?" >> $GITHUB_OUTPUT
+          result=${PIPESTATUS[0]}
+          echo "exit_code=$result" >> "$GITHUB_OUTPUT"
+          exit $result
 
       - name: Extract Failsafe Failures
         if: steps.build.outputs.exit_code != '0'
