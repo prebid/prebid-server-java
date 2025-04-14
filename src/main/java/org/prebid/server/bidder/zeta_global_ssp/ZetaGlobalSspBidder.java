@@ -51,7 +51,6 @@ public class ZetaGlobalSspBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final List<BidderError> errors = new ArrayList<>();
         final Imp firstImp = request.getImp().getFirst();
         final ExtImpZetaGlobalSSP extImp;
 
@@ -66,7 +65,7 @@ public class ZetaGlobalSspBidder implements Bidder<BidRequest> {
         final HttpRequest<BidRequest> httpRequest =
                 BidderUtil.defaultRequest(cleanedRequest, resolveEndpoint(extImp), mapper);
 
-        return Result.of(Collections.singletonList(httpRequest), errors);
+        return Result.of(Collections.singletonList(httpRequest), Collections.emptyList());
     }
 
     private ExtImpZetaGlobalSSP parseImpExt(Imp imp) {
