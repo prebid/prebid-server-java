@@ -52,7 +52,7 @@ jobs:
           echo "Looking for failed functional tests..."
           mkdir -p failsafe-failures
           find . -type f -path "*/failsafe-reports/*.txt" -exec cp {} failsafe-failures/ \;
-          grep -iE "Tests run:.*Failures: [1-9]|ERROR|FAILURE" failsafe-failures/* > test_failures.txt || echo "No obvious test failures found."
+          grep -iE "Tests run:.*Failures: [1-9][0-9]*|ERROR|FAILURE" failsafe-failures/* > test_failures.txt || echo "No obvious test failures found."
           cat test_failures.txt
 
       - name: Read test failures into output
