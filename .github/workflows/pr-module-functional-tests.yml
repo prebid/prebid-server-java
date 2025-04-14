@@ -33,6 +33,7 @@ jobs:
         run: mvn package -DskipUnitTests=true --file extra/pom.xml
 
       - name: Run module tests
+        id: build
         run: |
           set +e
           mvn -B verify \
@@ -57,7 +58,7 @@ jobs:
         id: test-results
         if: steps.build.outputs.exit_code != '0'
         run: |
-          content=$(test_failures.txt)
+          content=$(cat test_failures.txt)
           echo "content<<EOF" >> $GITHUB_OUTPUT
           echo "$content" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
