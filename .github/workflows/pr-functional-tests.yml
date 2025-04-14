@@ -31,12 +31,7 @@ jobs:
 
       - name: Build with Maven
         run: |
-          mvn -B verify 
-          -DskipUnitTests=true 
-          -DskipModuleFunctionalTests=true 
-          -Dtests.max-container-count=5 
-          -DdockerfileName=Dockerfile 
-          --file extra/pom.xml | tee build_output.txt
+          mvn -B verify -DskipUnitTests=true -DskipModuleFunctionalTests=true -Dtests.max-container-count=5 -DdockerfileName=Dockerfile --file extra/pom.xml | tee build_output.txt
           echo "exit_code=1" >> "$GITHUB_OUTPUT"
 
       - name: Format build output for PR comment
