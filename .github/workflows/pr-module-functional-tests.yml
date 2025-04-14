@@ -49,11 +49,11 @@ jobs:
       - name: Extract Failsafe Failures
         if: steps.build.outputs.exit_code != '0'
         run: |
-          echo "Looking for failed integration tests..."
+          echo "Looking for failed integration test results..."
           mkdir -p failsafe-failures
           find . -type f -path "*/failsafe-reports/*.txt" -exec cp {} failsafe-failures/ \;
-          grep -iE "Tests run:.*Failures: [1-9]|ERROR|FAILURE" failsafe-failures/* > test_failures.txt || echo "No obvious test failures found."
-          cat test_failures.txt
+          grep -A 1 "Results:" failsafe-failures/* > test_failures.txt
+          cat test_failures.txt 
 
       - name: Read test failures into output
         id: test-results
