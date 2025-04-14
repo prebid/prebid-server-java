@@ -95,9 +95,7 @@ public class FeedAdBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getPayload)
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getBanner)
-                .containsExactly(banner);
+                .containsExactly(bidRequest);
     }
 
     @Test
