@@ -45,7 +45,6 @@ jobs:
           --file extra/pom.xml | tee build_output.txt
           result=${PIPESTATUS[0]}
           echo "exit_code=$result" >> "$GITHUB_OUTPUT"
-          exit $result
 
       - name: Extract Failsafe Failures
         if: steps.build.outputs.exit_code != '0'
