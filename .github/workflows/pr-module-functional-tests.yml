@@ -34,26 +34,45 @@ jobs:
 
       - name: Run module tests
         run: |
-          mvn -B verify -DskipUnitTests=true -DskipFunctionalTests=true -DskipModuleFunctionalTests=false -Dtests.max-container-count=5 -DdockerfileName=Dockerfile-modules --file extra/pom.xml | tee build_output.txt
-          echo "exit_code=1" >> "$GITHUB_OUTPUT"
+          set +e
+          mvn -B verify \
+          -DskipUnitTests=true \
+          -DskipFunctionalTests=true \
+          -DskipModuleFunctionalTests=false \
+          -Dtests.max-container-count=5 \
+          -DdockerfileName=Dockerfile-modules \
+          --file extra/pom.xml | tee build_output.txt
+          echo "exit_code=$?" >> $GITHUB_OUTPUT
 
-      - name: Format build output for PR comment
+      - name: Extract Failsafe Failures
         if: steps.build.outputs.exit_code != '0'
         run: |
-          sed -n '/\[ERROR\] Failures:/,/\[ERROR\] Tests run:/p' build_output.txt > test_failures.txt
-          echo "❌ **Java CI Build Failed - Test Failures**" > comment.txt
-          echo '' >> comment.txt
-          echo '```' >> comment.txt
-          cat test_failures.txt >> comment.txt
-          echo '```' >> comment.txt
+          echo "Looking for failed integration tests..."
+          mkdir -p failsafe-failures
+          find . -type f -path "*/failsafe-reports/*.txt" -exec cp {} failsafe-failures/ \;
+          grep -iE "Tests run:.*Failures: [1-9]|ERROR|FAILURE" failsafe-failures/* > test_failures.txt || echo "No obvious test failures found."
+          cat test_failures.txt
 
-      - name: Comment on PR with build failure output
+      - name: Read test failures into output
+        id: test-results
+        if: steps.build.outputs.exit_code != '0'
+        run: |
+          content=$(test_failures.txt)
+          echo "content<<EOF" >> $GITHUB_OUTPUT
+          echo "$content" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Comment test failures on PR
         if: steps.build.outputs.exit_code != '0'
         uses: peter-evans/create-or-update-comment@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
           issue-number: ${{ github.event.pull_request.number }}
-          body-path: comment.txt
+          body: |
+            🚨 Functional tests failed in CI:
+            
+            ```
+            ${{ steps.test-results.outputs.content }}
+            ```
 
       - name: Fail if error is found in logs
         if: steps.build.outputs.exit_code != '0'
