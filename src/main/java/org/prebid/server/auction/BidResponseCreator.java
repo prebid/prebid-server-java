@@ -437,7 +437,7 @@ public class BidResponseCreator {
                 continue;
             }
 
-            for (final Map.Entry<String, List<BidderBid>> bidsEntry : seatToBids.entrySet()) {
+            for (Map.Entry<String, List<BidderBid>> bidsEntry : seatToBids.entrySet()) {
                 final List<BidInfo> bidInfos = new ArrayList<>();
                 final String seat = bidsEntry.getKey();
                 final List<BidderBid> bids = bidsEntry.getValue();
@@ -454,7 +454,7 @@ public class BidResponseCreator {
                     final BidInfo bidInfo = toBidInfo(
                             bidderBid.getBid(),
                             bidderBid.getType(),
-                            bidderBid.getSeat(),
+                            seat,
                             imps,
                             bidder,
                             categoryMappingResult,
