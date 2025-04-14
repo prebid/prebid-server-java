@@ -29,11 +29,13 @@ public class Cache {
     public Future<TargetingResult> get(String query) {
         return cacheService.retrieveEntry(query, APP_CODE, APPLICATION)
                 .map(ModuleCacheResponse::getValue)
-                .map(optableResponseMapper::parse)
+                .map(it -> it != null ? optableResponseMapper.parse(it) : null)
                 .otherwise(it -> null);
     }
 
     public Future<Void> put(String query, TargetingResult value, int ttlSeconds) {
+        if (value == null) return Future.succeededFuture();
+
         return cacheService.storeEntry(
                 query,
                 optableResponseMapper.toJsonString(value),

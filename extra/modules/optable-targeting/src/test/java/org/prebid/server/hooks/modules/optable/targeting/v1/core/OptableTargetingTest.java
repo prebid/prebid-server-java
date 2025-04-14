@@ -63,7 +63,7 @@ public class OptableTargetingTest extends BaseOptableTest {
         final BidRequest bidRequest = givenBidRequest();
         properties = givenOptableTargetingProperties(false);
         when(idsMapper.toIds(any(), any())).thenReturn(List.of(Id.of(Id.ID5, "id")));
-        when(apiClient.getTargeting(any(), any(), any(), anyLong()))
+        when(apiClient.getTargeting(any(), any(), any(), any(), any(), anyLong()))
                 .thenReturn(Future.succeededFuture(givenTargetingResult()));
 
         // when
@@ -78,7 +78,7 @@ public class OptableTargetingTest extends BaseOptableTest {
                 .returns("id", it -> it.getData().getFirst().getId())
                 .returns("id", it -> it.getData().getFirst().getSegment().getFirst().getId());
         verify(cache, times(0)).get(any());
-        verify(apiClient, times(1)).getTargeting(any(), any(), any(), anyLong());
+        verify(apiClient, times(1)).getTargeting(any(), any(), any(), any(), any(), anyLong());
         verify(cache, times(0)).put(any(), eq(targetingResult.result()), anyInt());
     }
 
@@ -89,7 +89,7 @@ public class OptableTargetingTest extends BaseOptableTest {
         when(cache.put(any(), any(), anyInt())).thenReturn(Future.succeededFuture());
         final BidRequest bidRequest = givenBidRequest();
         when(idsMapper.toIds(any(), any())).thenReturn(List.of(Id.of(Id.ID5, "id")));
-        when(apiClient.getTargeting(any(), any(), any(), anyLong()))
+        when(apiClient.getTargeting(any(), any(), any(), any(), any(), anyLong()))
                 .thenReturn(Future.succeededFuture(givenTargetingResult()));
 
         // when
@@ -113,7 +113,7 @@ public class OptableTargetingTest extends BaseOptableTest {
         when(cache.put(any(), any(), anyInt())).thenReturn(Future.succeededFuture());
         final BidRequest bidRequest = givenBidRequest();
         when(idsMapper.toIds(any(), any())).thenReturn(List.of(Id.of(Id.ID5, "id")));
-        when(apiClient.getTargeting(any(), any(), any(), anyLong()))
+        when(apiClient.getTargeting(any(), any(), any(), any(), any(), anyLong()))
                 .thenReturn(Future.succeededFuture(givenTargetingResult()));
 
         // when
@@ -127,7 +127,7 @@ public class OptableTargetingTest extends BaseOptableTest {
                 .returns("id", it -> it.getEids().getFirst().getUids().getFirst().getId())
                 .returns("id", it -> it.getData().getFirst().getId())
                 .returns("id", it -> it.getData().getFirst().getSegment().getFirst().getId());
-        verify(apiClient, times(1)).getTargeting(any(), any(), any(), anyLong());
+        verify(apiClient, times(1)).getTargeting(any(), any(), any(), any(), any(), anyLong());
         verify(cache).put(any(), eq(targetingResult.result()), anyInt());
     }
 
@@ -150,7 +150,7 @@ public class OptableTargetingTest extends BaseOptableTest {
                 .returns("id", it -> it.getData().getFirst().getId())
                 .returns("id", it -> it.getData().getFirst().getSegment().getFirst().getId());
         verify(cache, times(1)).get(any());
-        verify(apiClient, times(0)).getTargeting(any(), any(), any(), anyLong());
+        verify(apiClient, times(0)).getTargeting(any(), any(), any(), any(), any(), anyLong());
         verify(cache, times(0)).put(any(), eq(targetingResult.result()), anyInt());
     }
 
@@ -175,7 +175,7 @@ public class OptableTargetingTest extends BaseOptableTest {
         properties = givenOptableTargetingProperties(false);
         final BidRequest bidRequest = givenBidRequest();
         when(idsMapper.toIds(any(), any())).thenReturn(List.of(Id.of(Id.ID5, "id")));
-        when(apiClient.getTargeting(any(), any(), any(), anyLong())).thenReturn(null);
+        when(apiClient.getTargeting(any(), any(), any(), any(), any(), anyLong())).thenReturn(null);
 
         // when
         final Future<TargetingResult> targetingResult = target.getTargeting(properties, bidRequest,
@@ -191,7 +191,8 @@ public class OptableTargetingTest extends BaseOptableTest {
         final BidRequest bidRequest = givenBidRequest();
         properties = givenOptableTargetingProperties(false);
         when(idsMapper.toIds(any(), any())).thenReturn(List.of(Id.of(Id.ID5, "id")));
-        when(apiClient.getTargeting(any(), any(), any(), anyLong())).thenReturn(Future.failedFuture("File"));
+        when(apiClient.getTargeting(any(), any(), any(), any(), any(), anyLong()))
+                .thenReturn(Future.failedFuture("File"));
 
         // when
         final Future<TargetingResult> targetingResult = target.getTargeting(properties, bidRequest,

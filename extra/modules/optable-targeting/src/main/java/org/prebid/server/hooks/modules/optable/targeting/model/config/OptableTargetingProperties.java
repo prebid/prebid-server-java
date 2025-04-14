@@ -17,6 +17,11 @@ public final class OptableTargetingProperties {
     @JsonProperty("api-key")
     String apiKey;
 
+    @JsonProperty("user-id")
+    String userId;
+
+    String origin;
+
     @JsonProperty("ppid-mapping")
     Map<String, String> ppidMapping;
 

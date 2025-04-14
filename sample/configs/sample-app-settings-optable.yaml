@@ -19,6 +19,8 @@ accounts:
       modules:
         optable-targeting:
           api-key: key
+          user-id: optable
+          origin: web-sdk-demo
           ppid-mapping: { "pubcid.org": "c" }
           adserver-targeting: true
           cache:

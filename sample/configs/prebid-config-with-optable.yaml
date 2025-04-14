@@ -50,4 +50,4 @@ hooks:
     enabled: true
   modules:
     optable-targeting:
-      api-endpoint: endpoint
+      api-endpoint: https://na.edge.optable.co/v2/targeting?t={ACCOUNT_ID}&o={ORIGIN}

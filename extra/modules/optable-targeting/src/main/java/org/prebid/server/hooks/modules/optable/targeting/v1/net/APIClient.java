@@ -13,6 +13,7 @@ import org.prebid.server.hooks.modules.optable.targeting.model.net.HttpResponse;
 import org.prebid.server.hooks.modules.optable.targeting.model.net.OptableCall;
 import org.prebid.server.hooks.modules.optable.targeting.model.net.OptableError;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.EndpointResolver;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
@@ -50,7 +51,9 @@ public class APIClient {
         this.responseMapper = Objects.requireNonNull(responseMapper);
     }
 
-    public Future<TargetingResult> getTargeting(String apiKey, String query, List<String> ips, long timeout) {
+    public Future<TargetingResult> getTargeting(String apiKey, String accountId, String origin,
+                                                String query, List<String> ips, long timeout) {
+
         final MultiMap headers = HeadersMultiMap.headers()
                 .add(HttpUtil.ACCEPT_HEADER, "application/json");
 
@@ -65,7 +68,7 @@ public class APIClient {
         }
 
         final HttpRequest request = HttpRequest.builder()
-                .uri(endpoint)
+                .uri(EndpointResolver.resolve(endpoint, accountId, origin))
                 .query(query)
                 .headers(headers)
                 .build();
@@ -103,7 +106,7 @@ public class APIClient {
     private Future<HttpClientResponse> createRequest(HttpRequest httpRequest, long remainingTimeout) {
         try {
             return httpClient.request(HttpMethod.GET,
-                    httpRequest.getUri() + "?id=" + httpRequest.getQuery(),
+                    httpRequest.getUri() + "&id=" + httpRequest.getQuery(),
                     httpRequest.getHeaders(),
                     (String) null,
                     remainingTimeout);
