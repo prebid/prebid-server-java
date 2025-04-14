@@ -51,9 +51,19 @@ jobs:
         run: |
           echo "Looking for failed integration test results..."
           mkdir -p failsafe-failures
-          find . -type f -path "*/failsafe-reports/*.txt" -exec cp {} failsafe-failures/ \;
-          grep -A 1 "Results:" failsafe-failures/* > test_failures.txt
-          cat test_failures.txt 
+
+          find . -type f -path "*/failsafe-reports/*.txt" -exec cp {} failsafe-failures/ \; || true
+
+          if compgen -G "failsafe-failures/*.txt" > /dev/null; then
+            for file in failsafe-failures/*.txt; do
+              echo "--- $file ---" >> test_failures.txt
+              grep -A 1 "Results:" "$file" >> test_failures.txt
+            done
+          else
+            touch test_failures.txt
+          fi
+
+          cat test_failures.txt
 
       - name: Read test failures into output
         id: test-results
