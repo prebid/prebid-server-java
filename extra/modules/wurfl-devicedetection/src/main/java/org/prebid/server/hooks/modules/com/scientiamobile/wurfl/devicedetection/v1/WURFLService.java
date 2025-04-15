@@ -17,7 +17,7 @@ import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.
 public class WURFLService implements FileProcessor {
 
     private final AtomicReference<WURFLEngine> arWurflEngine = new AtomicReference<>();
-    private WURFLDeviceDetectionConfigProperties configProperties;
+    private final WURFLDeviceDetectionConfigProperties configProperties;
 
     public WURFLService(WURFLEngine wurflEngine, WURFLDeviceDetectionConfigProperties configProperties) {
         this.arWurflEngine.set(wurflEngine);

@@ -60,14 +60,12 @@ public class WURFLDeviceDetectionConfiguration {
 
     private FileSyncerProperties createFileSyncerProperties(WURFLDeviceDetectionConfigProperties configProperties) {
         final String downloadPath = createDownloadPath(configProperties);
-        final String tempPath = createTempPath(configProperties);
         final HttpClientProperties httpProperties = createHttpProperties(configProperties);
 
         final FileSyncerProperties fileSyncerProperties = new FileSyncerProperties();
         fileSyncerProperties.setCheckSize(true);
         fileSyncerProperties.setDownloadUrl(configProperties.getFileSnapshotUrl());
         fileSyncerProperties.setSaveFilepath(downloadPath);
-        fileSyncerProperties.setTmpFilepath(tempPath);
         fileSyncerProperties.setTimeoutMs((long) configProperties.getUpdateConnTimeoutMs());
         fileSyncerProperties.setUpdateIntervalMs(DAILY_SYNC_INTERVAL);
         fileSyncerProperties.setRetryCount(configProperties.getUpdateRetries());
@@ -79,17 +77,7 @@ public class WURFLDeviceDetectionConfiguration {
 
     private String createDownloadPath(WURFLDeviceDetectionConfigProperties configProperties) {
         final String basePath = configProperties.getFileDirPath();
-        final String fileName = configProperties.getFileSnapshotUrl().endsWith(".xml.gz")
-                ? "new_wurfl.xml.gz"
-                : "new_wurfl.zip";
-        return Path.of(basePath, fileName).toString();
-    }
-
-    private String createTempPath(WURFLDeviceDetectionConfigProperties configProperties) {
-        final String basePath = configProperties.getFileDirPath();
-        final String fileName = configProperties.getFileSnapshotUrl().endsWith(".xml.gz")
-                ? "temp_wurfl.xml.gz"
-                : "temp_wurfl.zip";
+        final String fileName = WURFLEngineInitializer.extractWURFLFileName(configProperties.getFileSnapshotUrl());
         return Path.of(basePath, fileName).toString();
     }
 
