@@ -2,6 +2,7 @@ package org.prebid.server.bidder.gumgum;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.annotations.VisibleForTesting;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
@@ -75,6 +76,7 @@ public class GumgumBidder implements Bidder<BidRequest> {
                 errors);
     }
 
+    @VisibleForTesting
     protected BidRequest createBidRequest(BidRequest bidRequest, List<BidderError> errors) {
         final List<Imp> modifiedImps = new ArrayList<>();
         String zone = null;
@@ -118,7 +120,7 @@ public class GumgumBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-
+    @VisibleForTesting
     protected String extractAdUnitId(Imp imp) {
         if (imp.getExt() != null && imp.getExt().has("bidder") && imp.getExt().get("bidder").has("adunitid")) {
             return imp.getExt().get("bidder").get("adunitid").asText();
@@ -134,6 +136,7 @@ public class GumgumBidder implements Bidder<BidRequest> {
         }
     }
 
+    @VisibleForTesting
     protected Imp modifyImp(Imp imp, ExtImpGumgum extImp, String adUnitId) {
         final Imp.ImpBuilder impBuilder = imp.toBuilder();
 
