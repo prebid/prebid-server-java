@@ -1,12 +1,9 @@
 package org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.v1;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.scientiamobile.wurfl.core.Device;
 import com.scientiamobile.wurfl.core.GeneralWURFLEngine;
@@ -15,29 +12,29 @@ import io.vertx.core.Future;
 import lombok.extern.slf4j.Slf4j;
 import org.prebid.server.execution.file.FileProcessor;
 import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.config.WURFLDeviceDetectionConfigProperties;
-import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.model.WURFLEngineInitializer;
 
 @Slf4j
 public class WURFLService implements FileProcessor {
 
-    private WURFLEngine wurflEngine;
+    private final AtomicReference<WURFLEngine> arWurflEngine = new AtomicReference<>();
     private WURFLDeviceDetectionConfigProperties configProperties;
 
     public WURFLService(WURFLEngine wurflEngine, WURFLDeviceDetectionConfigProperties configProperties) {
-        this.wurflEngine = wurflEngine;
+        this.arWurflEngine.set(wurflEngine);
         this.configProperties = configProperties;
+    }
+
+    protected WURFLEngine createEngine(String dataFilePath) {
+        final WURFLEngine engine = new GeneralWURFLEngine(dataFilePath);
+        engine.load();
+        return engine;
     }
 
     public Future<?> setDataPath(String dataFilePath) {
 
         try {
-            final WURFLEngine engine = new GeneralWURFLEngine(dataFilePath);
-            engine.load();
-            final String fileName = WURFLEngineInitializer.extractWURFLFileName(configProperties.getFileSnapshotUrl());
-            final Path dir = Paths.get(configProperties.getFileDirPath());
-            final Path file = dir.resolve(fileName);
-            Files.move(Paths.get(dataFilePath), file, StandardCopyOption.REPLACE_EXISTING);
-            wurflEngine.reload(file.toAbsolutePath().toString());
+            final WURFLEngine engine = this.createEngine(dataFilePath);
+            this.arWurflEngine.set(engine);
         } catch (Exception e) {
             return Future.failedFuture(e);
         }
@@ -46,17 +43,20 @@ public class WURFLService implements FileProcessor {
     }
 
     public Optional<Device> lookupDevice(Map<String, String> headers) {
+        final WURFLEngine wurflEngine = arWurflEngine.get();
         return Optional.ofNullable(wurflEngine)
                 .map(engine -> engine.getDeviceForRequest(headers));
     }
 
     public Set<String> getAllCapabilities() {
+        final WURFLEngine wurflEngine = arWurflEngine.get();
         return Optional.ofNullable(wurflEngine)
                 .map(WURFLEngine::getAllCapabilities)
                 .orElse(Set.of());
     }
 
     public Set<String> getAllVirtualCapabilities() {
+        final WURFLEngine wurflEngine = arWurflEngine.get();
         return Optional.ofNullable(wurflEngine)
                 .map(WURFLEngine::getAllVirtualCapabilities)
                 .orElse(Set.of());
