@@ -31,6 +31,7 @@ jobs:
 
       - name: Build with Maven
         run: |
+          set +e
           mvn -B verify \
           -DskipUnitTests=true \
           -DskipModuleFunctionalTests=true \
