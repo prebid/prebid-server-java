@@ -1,0 +1,17 @@
+adapters:
+  seedtag:
+    endpoint: "https://s.seedtag.com/c/openrtb?partner=prebidserver"
+    endpoint-compression: gzip
+    meta-info:
+      maintainer-email: prebid@seedtag.com
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 157
+    usersync:
+      cookie-family-name: seedtag
+      iframe:
+        url: https://s.seedtag.com/cs/cookiesync/prebid?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&usp_consent={{us_privacy}}&redirect={{redirect_url}}
+        support-cors: false
+        uid-macro: '$UID'
