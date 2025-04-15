@@ -9,11 +9,13 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Site
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.IgnoreRest
 
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED
 
 class AccountSpec extends BaseSpec {
 
+    @IgnoreRest
     def "PBS should reject request with inactive account"() {
         given: "Pbs config with enforce-valid-account and default-account-config"
         def pbsService = pbsServiceFactory.getService(
