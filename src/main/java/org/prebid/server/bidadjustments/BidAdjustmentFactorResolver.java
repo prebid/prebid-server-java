@@ -1,4 +1,4 @@
-package org.prebid.server.auction.adjustment;
+package org.prebid.server.bidadjustments;
 
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -28,6 +28,7 @@ public class BidAdjustmentFactorResolver {
         }
 
         return Optional.ofNullable(impMediaType)
+                .map(type -> type == ImpMediaType.video_instream ? ImpMediaType.video : type)
                 .map(adjustmentFactorsByMediaTypes::get)
                 .flatMap(factors -> factors.entrySet().stream()
                         .filter(entry -> StringUtils.equalsIgnoreCase(entry.getKey(), bidder))

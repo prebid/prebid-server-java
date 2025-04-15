@@ -1231,6 +1231,7 @@ public class ExchangeServiceTest extends VertxTest {
                                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                                         .auctiontimestamp(1000L)
                                         .build()))))
+                        .originalPriceFloors(Collections.emptyMap())
                         .build()),
                 any(),
                 any(),
@@ -1253,6 +1254,7 @@ public class ExchangeServiceTest extends VertxTest {
                                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                                         .auctiontimestamp(1000L)
                                         .build()))))
+                        .originalPriceFloors(Collections.emptyMap())
                         .build()),
                 any(),
                 any(),

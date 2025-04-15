@@ -1,4 +1,4 @@
-package org.prebid.server.auction.adjustment;
+package org.prebid.server.bidadjustments;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,17 +13,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class BidAdjustmentFactorResolverTest {
 
-    private BidAdjustmentFactorResolver bidAdjustmentFactorResolver;
+    private BidAdjustmentFactorResolver target;
 
     @BeforeEach
     public void setUp() {
-        bidAdjustmentFactorResolver = new BidAdjustmentFactorResolver();
+        target = new BidAdjustmentFactorResolver();
     }
 
     @Test
     public void resolveShouldReturnOneIfAdjustmentsByMediaTypeAndBidderAreAbsent() {
         // when
-        final BigDecimal result = bidAdjustmentFactorResolver.resolve(
+        final BigDecimal result = target.resolve(
                 ImpMediaType.video,
                 ExtRequestBidAdjustmentFactors.builder().build(),
                 "bidder");
@@ -40,7 +40,7 @@ public class BidAdjustmentFactorResolverTest {
         adjustmentFactors.addFactor("BIDder", BigDecimal.valueOf(3.456));
 
         // when
-        final BigDecimal result = bidAdjustmentFactorResolver.resolve(ImpMediaType.video, adjustmentFactors, "bidDER");
+        final BigDecimal result = target.resolve(ImpMediaType.video, adjustmentFactors, "bidDER");
 
         // then
         assertThat(result).isEqualTo(BigDecimal.valueOf(3.456));
@@ -60,7 +60,7 @@ public class BidAdjustmentFactorResolverTest {
                         .build();
 
         // when
-        final BigDecimal result = bidAdjustmentFactorResolver.resolve(ImpMediaType.video, adjustmentFactors, "bidDER");
+        final BigDecimal result = target.resolve(ImpMediaType.video_instream, adjustmentFactors, "bidDER");
 
         // then
         assertThat(result).isEqualTo(BigDecimal.valueOf(1.234));

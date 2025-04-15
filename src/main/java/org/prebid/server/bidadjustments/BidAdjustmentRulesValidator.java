@@ -3,8 +3,8 @@ package org.prebid.server.bidadjustments;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidadjustments.model.BidAdjustmentType;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidAdjustments;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidAdjustmentsRule;
+import org.prebid.server.bidadjustments.model.BidAdjustments;
+import org.prebid.server.bidadjustments.model.BidAdjustmentsRule;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.validation.ValidationException;
 
@@ -16,7 +16,7 @@ import java.util.Set;
 public class BidAdjustmentRulesValidator {
 
     public static final Set<String> SUPPORTED_MEDIA_TYPES = Set.of(
-            BidAdjustmentsResolver.WILDCARD,
+            BidAdjustmentsRulesResolver.WILDCARD,
             ImpMediaType.banner.toString(),
             ImpMediaType.audio.toString(),
             ImpMediaType.video_instream.toString(),
@@ -27,13 +27,13 @@ public class BidAdjustmentRulesValidator {
 
     }
 
-    public static void validate(ExtRequestBidAdjustments bidAdjustments) throws ValidationException {
+    public static void validate(BidAdjustments bidAdjustments) throws ValidationException {
         if (bidAdjustments == null) {
             return;
         }
 
-        final Map<String, Map<String, Map<String, List<ExtRequestBidAdjustmentsRule>>>> mediatypes =
-                bidAdjustments.getMediatype();
+        final Map<String, Map<String, Map<String, List<BidAdjustmentsRule>>>> mediatypes =
+                bidAdjustments.getRules();
 
         if (MapUtils.isEmpty(mediatypes)) {
             return;
@@ -41,12 +41,12 @@ public class BidAdjustmentRulesValidator {
 
         for (String mediatype : mediatypes.keySet()) {
             if (SUPPORTED_MEDIA_TYPES.contains(mediatype)) {
-                final Map<String, Map<String, List<ExtRequestBidAdjustmentsRule>>> bidders = mediatypes.get(mediatype);
+                final Map<String, Map<String, List<BidAdjustmentsRule>>> bidders = mediatypes.get(mediatype);
                 if (MapUtils.isEmpty(bidders)) {
                     throw new ValidationException("no bidders found in %s".formatted(mediatype));
                 }
                 for (String bidder : bidders.keySet()) {
-                    final Map<String, List<ExtRequestBidAdjustmentsRule>> deals = bidders.get(bidder);
+                    final Map<String, List<BidAdjustmentsRule>> deals = bidders.get(bidder);
 
                     if (MapUtils.isEmpty(deals)) {
                         throw new ValidationException("no deals found in %s.%s".formatted(mediatype, bidder));
@@ -61,14 +61,14 @@ public class BidAdjustmentRulesValidator {
         }
     }
 
-    private static void validateRules(List<ExtRequestBidAdjustmentsRule> rules,
+    private static void validateRules(List<BidAdjustmentsRule> rules,
                                       String path) throws ValidationException {
 
         if (rules == null) {
             throw new ValidationException("no bid adjustment rules found in %s".formatted(path));
         }
 
-        for (ExtRequestBidAdjustmentsRule rule : rules) {
+        for (BidAdjustmentsRule rule : rules) {
             final BidAdjustmentType type = rule.getAdjType();
             final String currency = rule.getCurrency();
             final BigDecimal value = rule.getValue();

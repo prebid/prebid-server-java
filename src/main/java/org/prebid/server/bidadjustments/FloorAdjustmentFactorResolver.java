@@ -1,4 +1,4 @@
-package org.prebid.server.auction.adjustment;
+package org.prebid.server.bidadjustments;
 
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -32,6 +32,7 @@ public class FloorAdjustmentFactorResolver {
         }
 
         final BigDecimal mediaTypeMinFactor = impMediaTypes.stream()
+                .map(type -> type == ImpMediaType.video_instream ? ImpMediaType.video : type)
                 .map(adjustmentFactorsByMediaTypes::get)
                 .map(bidderToFactor -> MapUtils.isNotEmpty(bidderToFactor)
                         ? bidderToFactor.entrySet().stream()

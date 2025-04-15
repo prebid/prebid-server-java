@@ -89,6 +89,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ListUtil;
 import org.prebid.server.util.PbsUtil;
@@ -713,20 +714,34 @@ public class ExchangeService {
         final String storedBidResponse = impBidderToStoredBidResponse.size() == 1
                 ? impBidderToStoredBidResponse.get(imps.getFirst().getId()).get(bidder)
                 : null;
+
+        final BidRequest enrichedWithPriceFloors = priceFloorProcessor.enrichWithPriceFloors(
+                context.getBidRequest().toBuilder().imp(imps).build(),
+                context.getAccount(),
+                bidder,
+                context.getPrebidErrors(),
+                context.getDebugWarnings());
+
         final BidRequest preparedBidRequest = prepareBidRequest(
                 bidderPrivacyResult,
-                imps,
+                enrichedWithPriceFloors,
                 bidderToMultiBid,
                 biddersToConfigs,
                 bidderToPrebidBidders,
                 bidderAliases,
                 context);
 
+        final Map<String, Price> originalPriceFloors = enrichedWithPriceFloors.getImp().stream()
+                .filter(imp -> BidderUtil.isValidPrice(imp.getBidfloor())
+                        && StringUtils.isNotBlank(imp.getBidfloorcur()))
+                .collect(Collectors.toMap(Imp::getId, imp -> Price.of(imp.getBidfloorcur(), imp.getBidfloor())));
+
         final BidderRequest bidderRequest = BidderRequest.builder()
                 .bidder(bidder)
                 .ortbVersion(ortbVersion)
                 .storedResponse(storedBidResponse)
                 .bidRequest(preparedBidRequest)
+                .originalPriceFloors(originalPriceFloors)
                 .build();
 
         return AuctionParticipation.builder()
@@ -742,7 +757,7 @@ public class ExchangeService {
     }
 
     private BidRequest prepareBidRequest(BidderPrivacyResult bidderPrivacyResult,
-                                         List<Imp> imps,
+                                         BidRequest bidRequest,
                                          Map<String, MultiBidConfig> bidderToMultiBid,
                                          Map<String, ExtBidderConfigOrtb> biddersToConfigs,
                                          Map<String, JsonNode> bidderToPrebidBidders,
@@ -750,12 +765,6 @@ public class ExchangeService {
                                          AuctionContext context) {
 
         final String bidder = bidderPrivacyResult.getRequestBidder();
-        final BidRequest bidRequest = priceFloorProcessor.enrichWithPriceFloors(
-                context.getBidRequest().toBuilder().imp(imps).build(),
-                context.getAccount(),
-                bidder,
-                context.getPrebidErrors(),
-                context.getDebugWarnings());
         final boolean transmitTid = transmitTransactionId(bidder, context);
         final List<String> firstPartyDataBidders = firstPartyDataBidders(bidRequest.getExt());
         final boolean useFirstPartyData = firstPartyDataBidders == null || firstPartyDataBidders.stream()
