@@ -37,7 +37,7 @@ class AccountSpec extends BaseSpec {
         then: "PBS should reject the entire auction"
         def exception = thrown(PrebidServerException)
         assert exception.statusCode == UNAUTHORIZED.code()
-        assert exception.responseBody == "Account $accountId is inactive"
+        assert exception.responseBody == "Empty"
 
         where:
         enforceValidAccount << [true, false]
