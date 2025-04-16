@@ -13,6 +13,7 @@ import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
+import org.prebid.server.auction.model.RejectedBid;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
@@ -349,7 +350,7 @@ public class BasicPriceFloorEnforcerTest {
 
         final BidderBid rejectedBid = BidderBid.of(
                 Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.ONE).build(), null, null);
-        verify(rejectionTracker).rejectBid(rejectedBid, BidRejectionReason.RESPONSE_REJECTED_BELOW_FLOOR);
+        verify(rejectionTracker).reject(RejectedBid.of(rejectedBid, BidRejectionReason.RESPONSE_REJECTED_BELOW_FLOOR));
         assertThat(singleton(result))
                 .extracting(AuctionParticipation::getBidderResponse)
                 .extracting(BidderResponse::getSeatBid)
