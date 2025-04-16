@@ -51,7 +51,7 @@ public class APIClient {
         this.responseMapper = Objects.requireNonNull(responseMapper);
     }
 
-    public Future<TargetingResult> getTargeting(String apiKey, String accountId, String origin,
+    public Future<TargetingResult> getTargeting(String apiKey, String tenant, String origin,
                                                 String query, List<String> ips, long timeout) {
 
         final MultiMap headers = HeadersMultiMap.headers()
@@ -68,7 +68,7 @@ public class APIClient {
         }
 
         final HttpRequest request = HttpRequest.builder()
-                .uri(EndpointResolver.resolve(endpoint, accountId, origin))
+                .uri(EndpointResolver.resolve(endpoint, tenant, origin))
                 .query(query)
                 .headers(headers)
                 .build();

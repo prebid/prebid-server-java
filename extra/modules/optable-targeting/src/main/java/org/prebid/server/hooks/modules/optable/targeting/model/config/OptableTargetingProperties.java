@@ -17,8 +17,7 @@ public final class OptableTargetingProperties {
     @JsonProperty("api-key")
     String apiKey;
 
-    @JsonProperty("user-id")
-    String userId;
+    String tenant;
 
     String origin;
 

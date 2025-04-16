@@ -19,7 +19,7 @@ accounts:
       modules:
         optable-targeting:
           api-key: key
-          user-id: optable
+          tenant: optable
           origin: web-sdk-demo
           ppid-mapping: { "pubcid.org": "c" }
           adserver-targeting: true

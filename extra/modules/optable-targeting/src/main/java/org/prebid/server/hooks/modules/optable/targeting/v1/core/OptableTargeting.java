@@ -43,13 +43,13 @@ public class OptableTargeting {
                         ? getOrFetchTargetingResults(
                                 properties.getCache(),
                                 properties.getApiKey(),
-                                properties.getUserId(),
+                                properties.getTenant(),
                                 properties.getOrigin(),
                                 query,
                                 attributes.getIps(), timeout)
                         : apiClient.getTargeting(
                                 properties.getApiKey(),
-                                properties.getUserId(),
+                                properties.getTenant(),
                                 properties.getOrigin(),
                                 query,
                                 attributes.getIps(),
@@ -58,24 +58,24 @@ public class OptableTargeting {
     }
 
     private Future<TargetingResult> getOrFetchTargetingResults(CacheProperties cacheProperties, String apiKey,
-                                                               String accountId, String origin,
+                                                               String tenant, String origin,
                                                                String query, List<String> ips, long timeout) {
 
-        final String key = accountId + ":" +URLEncoder.encode(query, StandardCharsets.UTF_8);
+        final String key = tenant + ":" +URLEncoder.encode(query, StandardCharsets.UTF_8);
 
         return cache.get(key)
                 .recover(err -> Future.succeededFuture(null))
                 .compose(entry -> entry != null
                         ? Future.succeededFuture(entry)
-                        : fetchAndCacheResult(accountId, origin, cacheProperties.getTtlseconds(), apiKey,
+                        : fetchAndCacheResult(tenant, origin, cacheProperties.getTtlseconds(), apiKey,
                         query, ips, timeout));
 
     }
 
-    private Future<TargetingResult> fetchAndCacheResult(String accountId, String origin, int ttlSeconds, String apiKey,
+    private Future<TargetingResult> fetchAndCacheResult(String tenant, String origin, int ttlSeconds, String apiKey,
                                                         String query, List<String> ips, long timeout) {
 
-        return apiClient.getTargeting(apiKey, accountId, origin, query, ips, timeout)
-                .compose(result -> cache.put(accountId + ":" + query, result, ttlSeconds).map(result));
+        return apiClient.getTargeting(apiKey, tenant, origin, query, ips, timeout)
+                .compose(result -> cache.put(tenant + ":" + query, result, ttlSeconds).map(result));
     }
 }
