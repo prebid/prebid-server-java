@@ -18,7 +18,10 @@
           "mtype": 1,
           "ext": {
             "prebid": {
-              "type": "banner"
+              "type": "banner",
+              "meta":{
+                "adaptercode": "feedad"
+              }
             },
             "origbidcpm": 3.5
           }
