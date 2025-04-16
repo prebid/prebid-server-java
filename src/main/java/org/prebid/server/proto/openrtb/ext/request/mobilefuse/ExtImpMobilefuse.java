@@ -16,7 +16,4 @@ public class ExtImpMobilefuse {
 
     @JsonProperty("pub_id")
     Integer publisherId;
-
-    @JsonProperty("tagid_src")
-    String tagidSrc;
 }
