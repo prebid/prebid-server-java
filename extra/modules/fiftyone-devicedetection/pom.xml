@@ -14,7 +14,7 @@
     <description>51Degrees Device Detection module</description>
 
     <properties>
-        <fiftyone-device-detection.version>4.4.94</fiftyone-device-detection.version>
+        <fiftyone-device-detection.version>4.4.226</fiftyone-device-detection.version>
     </properties>
 
     <dependencies>
