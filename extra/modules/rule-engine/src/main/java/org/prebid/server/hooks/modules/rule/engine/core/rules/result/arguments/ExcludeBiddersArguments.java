@@ -1,11 +1,11 @@
-package org.prebid.server.hooks.modules.rule.engine.core.rules.result;
+package org.prebid.server.hooks.modules.rule.engine.core.rules.result.arguments;
 
 import lombok.Value;
 
 import java.util.List;
 
 @Value(staticConstructor = "of")
-public class ResultFunctionArguments {
+public class ExcludeBiddersArguments implements ResultFunctionArguments {
 
     List<String> bidders;
 

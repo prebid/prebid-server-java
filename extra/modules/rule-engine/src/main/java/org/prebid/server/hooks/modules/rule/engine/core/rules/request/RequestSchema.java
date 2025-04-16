@@ -5,15 +5,24 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Geo;
 import org.apache.commons.collections4.CollectionUtils;
+import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunctionArguments;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public class RequestSchema {
 
     private RequestSchema() {
     }
+
+    public static final String DEVICE_COUNTRY_FUNCTION = "deviceCountry";
+    public static final String AD_UNIT_CODE_FUNCTION = "adUnitCode";
+    public static final String MEDIA_TYPE_FUNCTION = "mediaType";
+
+    private static final Map<String, SchemaFunction<BidRequest>> SCHEMA_FUNCTIONS = Map.of(
+            AD_UNIT_CODE_FUNCTION, RequestSchema::deviceCountryExtractor);
 
     public static String deviceCountryExtractor(SchemaFunctionArguments<BidRequest> arguments) {
         final BidRequest bidRequest = arguments.getOperand();
@@ -27,4 +36,5 @@ public class RequestSchema {
 
         return "true";
     }
+
 }
