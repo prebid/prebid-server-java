@@ -5,12 +5,18 @@ import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AlternateBidderCodes
 import org.prebid.server.functional.model.config.BidderConfig
 import org.prebid.server.functional.model.db.Account
+import org.prebid.server.functional.model.db.StoredImp
+import org.prebid.server.functional.model.db.StoredResponse
 import org.prebid.server.functional.model.request.auction.Amx
 import org.prebid.server.functional.model.request.auction.BidRequest
+import org.prebid.server.functional.model.request.auction.Imp
+import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
+import org.prebid.server.functional.model.request.auction.StoredBidResponse
 import org.prebid.server.functional.model.request.auction.Targeting
 import org.prebid.server.functional.model.response.auction.BidExt
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
+import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Shared
@@ -78,6 +84,9 @@ class AlternateBidderCodeSpec extends BaseSpec {
         assert targeting["hb_bidder"] == ALIAS.value
         assert targeting["hb_bidder_${ALIAS}"] == ALIAS.value
 
+        and: "Response should contain repose millis with corresponding bidder"
+        assert response.ext.responsetimemillis.containsKey(ALIAS.value)
+
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
 
@@ -127,6 +136,9 @@ class AlternateBidderCodeSpec extends BaseSpec {
         assert targeting["hb_bidder"] == AMX.value
         assert targeting["hb_bidder_${AMX}"] == AMX.value
 
+        and: "Response should contain repose millis with corresponding bidder"
+        assert response.ext.responsetimemillis.containsKey(AMX.value)
+
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
 
@@ -172,6 +184,9 @@ class AlternateBidderCodeSpec extends BaseSpec {
         assert targeting["hb_bidder"] == AMX.value
         assert targeting["hb_bidder_${AMX}"] == AMX.value
 
+        and: "Response should contain repose millis with corresponding bidder"
+        assert response.ext.responsetimemillis.containsKey(AMX.value)
+
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
 
@@ -213,6 +228,9 @@ class AlternateBidderCodeSpec extends BaseSpec {
         assert targeting["hb_size_${bidderCode}"]
         assert targeting["hb_bidder"] == bidderCode.value
         assert targeting["hb_bidder_${bidderCode}"] == bidderCode.value
+
+        and: "Response should contain repose millis with corresponding bidder"
+        assert response.ext.responsetimemillis.containsKey(bidderCode.value)
 
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -256,7 +274,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
         assert response.ext.seatnonbid.size() == 1
 
         def seatNonBid = response.ext.seatnonbid[0]
-        assert seatNonBid.seat == AMX.value
+        assert seatNonBid.seat == bidderName.value
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == RESPONSE_REJECTED_GENERAL
 
@@ -269,6 +287,9 @@ class AlternateBidderCodeSpec extends BaseSpec {
         and: "PBS should emit logs"
         def logs = pbsServiceWithAmxBidder.getLogsByValue(bidRequest.accountId)
         assert logs.contains(INVALID_BIDDER_CODE_LOGS.formatted(bidderName, AMX, bidRequest.accountId))
+
+        and: "Response should contain repose millis with corresponding bidder"
+        assert response.ext.responsetimemillis.containsKey(AMX.value)
 
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -308,7 +329,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
         assert response.ext.seatnonbid.size() == 1
 
         def seatNonBid = response.ext.seatnonbid[0]
-        assert seatNonBid.seat == ALIAS.value
+        assert seatNonBid.seat == bidderName.value
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == RESPONSE_REJECTED_GENERAL
 
@@ -324,6 +345,9 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
+
+        and: "Response should contain repose millis with corresponding bidder"
+        assert response.ext.responsetimemillis.containsKey(ALIAS.value)
 
         and: "PBS should emit validation metrics"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
@@ -375,6 +399,9 @@ class AlternateBidderCodeSpec extends BaseSpec {
         assert targeting["hb_size_${GENERIC}"]
         assert targeting["hb_bidder"] == GENERIC.value
         assert targeting["hb_bidder_${GENERIC}"] == GENERIC.value
+
+        and: "Response should contain repose millis with corresponding bidder"
+        assert response.ext.responsetimemillis.containsKey(GENERIC.value)
 
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -430,6 +457,9 @@ class AlternateBidderCodeSpec extends BaseSpec {
         assert targeting["hb_bidder"] == bidderCode.value
         assert targeting["hb_bidder_${bidderCode}"] == bidderCode.value
 
+        and: "Response should contain repose millis with corresponding bidder"
+        assert response.ext.responsetimemillis.containsKey(bidderCode.value)
+
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
 
@@ -480,6 +510,9 @@ class AlternateBidderCodeSpec extends BaseSpec {
         assert targeting["hb_size_${AMX}"]
         assert targeting["hb_bidder"] == AMX.value
         assert targeting["hb_bidder_${AMX}"] == AMX.value
+
+        and: "Response should contain repose millis with corresponding bidder"
+        assert response.ext.responsetimemillis.containsKey(AMX.value)
 
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -554,6 +587,9 @@ class AlternateBidderCodeSpec extends BaseSpec {
         assert !response.ext?.errors
         assert !response.ext?.seatnonbid
 
+        and: "Response should contain repose millis with corresponding bidder"
+        assert response.ext.responsetimemillis.containsKey(AMX.value)
+
         and: "Response shouldn't contain demand source"
         assert !response.seatbid.first.bid.first.ext.prebid.meta.demandSource
 
@@ -567,16 +603,44 @@ class AlternateBidderCodeSpec extends BaseSpec {
                                           new AlternateBidderCodes(enabled: true),
                                           new AlternateBidderCodes(enabled: false),
                                           new AlternateBidderCodes(bidders: [(AMX): new BidderConfig()]),
-                                          new AlternateBidderCodes(bidders: [(UNKNOWN): new BidderConfig()]),
                                           new AlternateBidderCodes(enabled: true, bidders: [(AMX): new BidderConfig()]),
-                                          new AlternateBidderCodes(enabled: true, bidders: [(UNKNOWN): new BidderConfig()]),
-                                          new AlternateBidderCodes(enabled: false, bidders: [(UNKNOWN): new BidderConfig()]),
                                           new AlternateBidderCodes(enabled: false, bidders: [(AMX): new BidderConfig()]),
                                           new AlternateBidderCodes(bidders: [(AMX): new BidderConfig(enabled: false, allowedBidderCodes: [UNKNOWN])]),
-                                          new AlternateBidderCodes(bidders: [(UNKNOWN): new BidderConfig(enabled: false, allowedBidderCodes: [AMX])]),
                                           new AlternateBidderCodes(enabled: false, bidders: [(AMX): new BidderConfig(enabled: false, allowedBidderCodes: [UNKNOWN])]),
+                                          new AlternateBidderCodes(enabled: true, bidders: [(AMX): new BidderConfig(enabled: false, allowedBidderCodes: [UNKNOWN])]),]
+    }
+
+    def "PBS should validate and throw error when request alternate bidder codes not fully configured"() {
+        given: "Default bid request with alternate bidder codes"
+        def bidRequest = getBidRequestWithAmxBidderAndAlternateBidderCode().tap {
+            ext.prebid.alternateBidderCodes = requestedAlternateBidderCodes
+        }
+
+        and: "Bid response with bidder code"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest, AMX).tap {
+            it.seatbid[0].bid[0].ext = new BidExt(bidderCode: AMX)
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        and: "Flash metrics"
+        flushMetrics(pbsServiceWithAmxBidder)
+
+        when: "PBS processes auction request"
+        pbsServiceWithAmxBidder.sendAuctionRequest(bidRequest)
+
+        then: "Request should fail with error"
+        def exception = thrown(PrebidServerException)
+        assert exception.statusCode == 400
+        assert exception.responseBody == "Invalid request format: " +
+                "request.ext.prebid.alternatebiddercodes.bidders.unknown is not a known bidder or alias"
+
+
+        where:
+        requestedAlternateBidderCodes << [new AlternateBidderCodes(bidders: [(UNKNOWN): new BidderConfig()]),
+                                          new AlternateBidderCodes(enabled: true, bidders: [(UNKNOWN): new BidderConfig()]),
+                                          new AlternateBidderCodes(enabled: false, bidders: [(UNKNOWN): new BidderConfig()]),
+                                          new AlternateBidderCodes(bidders: [(UNKNOWN): new BidderConfig(enabled: false, allowedBidderCodes: [AMX])]),
                                           new AlternateBidderCodes(enabled: false, bidders: [(UNKNOWN): new BidderConfig(enabled: false, allowedBidderCodes: [AMX])]),
-                                          new AlternateBidderCodes(enabled: true, bidders: [(AMX): new BidderConfig(enabled: false, allowedBidderCodes: [UNKNOWN])]),
                                           new AlternateBidderCodes(enabled: true, bidders: [(UNKNOWN): new BidderConfig(enabled: false, allowedBidderCodes: [AMX])])]
     }
 
@@ -614,6 +678,9 @@ class AlternateBidderCodeSpec extends BaseSpec {
         assert targeting["hb_size_${GENERIC}"]
         assert targeting["hb_bidder"] == GENERIC.value
         assert targeting["hb_bidder_${GENERIC}"] == GENERIC.value
+
+        and: "Response should contain repose millis with corresponding bidder"
+        assert response.ext.responsetimemillis.containsKey(GENERIC.value)
 
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -666,6 +733,9 @@ class AlternateBidderCodeSpec extends BaseSpec {
         assert targeting["hb_bidder"] == GENERIC.value
         assert targeting["hb_bidder_${GENERIC}"] == GENERIC.value
 
+        and: "Response should contain repose millis with corresponding bidder"
+        assert response.ext.responsetimemillis.containsKey(GENERIC.value)
+
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
 
@@ -717,7 +787,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
         assert response.ext.seatnonbid.size() == 1
 
         def seatNonBid = response.ext.seatnonbid[0]
-        assert seatNonBid.seat == AMX.value
+        assert seatNonBid.seat == UNKNOWN.value
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == RESPONSE_REJECTED_GENERAL
 
@@ -734,6 +804,9 @@ class AlternateBidderCodeSpec extends BaseSpec {
         and: "PBS should emit metrics"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
         assert metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(AMX)]
+
+        and: "Response should contain repose millis with corresponding bidder"
+        assert response.ext.responsetimemillis.containsKey(AMX.value)
 
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -770,7 +843,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
         assert response.ext.seatnonbid.size() == 1
 
         def seatNonBid = response.ext.seatnonbid[0]
-        assert seatNonBid.seat == AMX.value
+        assert seatNonBid.seat == UNKNOWN.value
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == RESPONSE_REJECTED_GENERAL
 
@@ -787,6 +860,9 @@ class AlternateBidderCodeSpec extends BaseSpec {
         and: "PBS should emit metrics"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
         assert metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(AMX)]
+
+        and: "Response should contain repose millis with corresponding bidder"
+        assert response.ext.responsetimemillis.containsKey(AMX.value)
 
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -837,6 +913,9 @@ class AlternateBidderCodeSpec extends BaseSpec {
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
 
+        and: "Response should contain repose millis with corresponding bidder"
+        assert response.ext.responsetimemillis.containsKey(GENERIC.value)
+
         and: "Response shouldn't contain demand source"
         assert !response.seatbid.first.bid.first.ext.prebid.meta.demandSource
 
@@ -883,6 +962,9 @@ class AlternateBidderCodeSpec extends BaseSpec {
         assert targeting["hb_size_${GENERIC}"]
         assert targeting["hb_bidder"] == GENERIC.value
         assert targeting["hb_bidder_${GENERIC}"] == GENERIC.value
+
+        and: "Response should contain repose millis with corresponding bidder"
+        assert response.ext.responsetimemillis.containsKey(GENERIC.value)
 
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -936,6 +1018,9 @@ class AlternateBidderCodeSpec extends BaseSpec {
         assert targeting["hb_size_${GENERIC}"]
         assert targeting["hb_bidder"] == GENERIC.value
         assert targeting["hb_bidder_${GENERIC}"] == GENERIC.value
+
+        and: "Response should contain repose millis with corresponding bidder"
+        assert response.ext.responsetimemillis.containsKey(GENERIC.value)
 
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -997,6 +1082,9 @@ class AlternateBidderCodeSpec extends BaseSpec {
         assert targeting["hb_bidder"] == GENERIC.value
         assert targeting["hb_bidder_${GENERIC}"] == GENERIC.value
 
+        and: "Response should contain repose millis with corresponding bidder"
+        assert response.ext.responsetimemillis.containsKey(GENERIC.value)
+
         and: "Response shouldn't contain warnings and errors and seatNonBid"
         assert !response.ext?.warnings
         assert !response.ext?.errors
@@ -1057,6 +1145,9 @@ class AlternateBidderCodeSpec extends BaseSpec {
         assert targeting["hb_bidder"] == AMX.value
         assert targeting["hb_bidder_${AMX}"] == AMX.value
 
+        and: "Response should contain repose millis with corresponding bidder"
+        assert response.ext.responsetimemillis.containsKey(AMX.value)
+
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
 
@@ -1096,7 +1187,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
         assert response.ext.seatnonbid.size() == 1
 
         def seatNonBid = response.ext.seatnonbid[0]
-        assert seatNonBid.seat == AMX.value
+        assert seatNonBid.seat == requestedAllowedBidderCode.value
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == RESPONSE_REJECTED_GENERAL
 
@@ -1113,6 +1204,9 @@ class AlternateBidderCodeSpec extends BaseSpec {
         and: "PBS should emit metrics"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
         assert metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(AMX)]
+
+        and: "Response should contain repose millis with corresponding bidder"
+        assert response.ext.responsetimemillis.containsKey(AMX.value)
 
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -1148,7 +1242,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
         assert response.ext.seatnonbid.size() == 1
 
         def seatNonBid = response.ext.seatnonbid[0]
-        assert seatNonBid.seat == AMX.value
+        assert seatNonBid.seat == requestedAllowedBidderCode.value
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == RESPONSE_REJECTED_GENERAL
 
@@ -1165,6 +1259,9 @@ class AlternateBidderCodeSpec extends BaseSpec {
         and: "PBS should emit metrics"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
         assert metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(AMX)]
+
+        and: "Response should contain repose millis with corresponding bidder"
+        assert response.ext.responsetimemillis.containsKey(AMX.value)
 
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -1206,7 +1303,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
         assert response.ext.seatnonbid.size() == 1
 
         def seatNonBid = response.ext.seatnonbid[0]
-        assert seatNonBid.seat == AMX.value
+        assert seatNonBid.seat == allowedBidderCodes.value
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == RESPONSE_REJECTED_GENERAL
 
@@ -1226,6 +1323,9 @@ class AlternateBidderCodeSpec extends BaseSpec {
         and: "PBS should emit metrics"
         def metrics = pbsService.sendCollectedMetricsRequest()
         assert metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(AMX)]
+
+        and: "Response should contain repose millis with corresponding bidder"
+        assert response.ext.responsetimemillis.containsKey(AMX.value)
 
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -1273,6 +1373,9 @@ class AlternateBidderCodeSpec extends BaseSpec {
         assert targeting["hb_size_${GENERIC}"]
         assert targeting["hb_bidder"] == GENERIC.value
         assert targeting["hb_bidder_${GENERIC}"] == GENERIC.value
+
+        and: "Response should contain repose millis with corresponding bidder"
+        assert response.ext.responsetimemillis.containsKey(GENERIC.value)
 
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -1331,6 +1434,9 @@ class AlternateBidderCodeSpec extends BaseSpec {
         assert targeting["hb_bidder"] == GENERIC.value
         assert targeting["hb_bidder_${GENERIC}"] == GENERIC.value
 
+        and: "Response should contain repose millis with corresponding bidder"
+        assert response.ext.responsetimemillis.containsKey(GENERIC.value)
+
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
 
@@ -1349,6 +1455,72 @@ class AlternateBidderCodeSpec extends BaseSpec {
         requestAlternateBidderCode                                                                                                  | accountAlternateBidderCodes
         new AlternateBidderCodes(enabled: true, bidders: [(ALIAS): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])]) | null
         null                                                                                                                        | new AlternateBidderCodes(enabled: true, bidders: [(ALIAS): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])])
+    }
+
+    def "PBS shouldn't discard bid when alternate bidder code allow and soft alias with case with base bidder in alternate bidder code"() {
+        given: "Default bid request with amx bidder"
+        def bidRequest = getBidRequestWithAmxBidderAndAlternateBidderCode().tap {
+            imp[0].ext.prebid.bidder.aliasUpperCase = new Generic()
+            imp[0].ext.prebid.bidder.amx = null
+            ext.prebid.aliases = [(ALIAS.value): AMX]
+            ext.prebid.alternateBidderCodes = requestAlternateBidderCode
+        }
+
+        and: "Save account config into DB with alternate bidder codes"
+        def account = getAccountWithAlternateBidderCode(bidRequest).tap {
+            config.alternateBidderCodes = accountAlternateBidderCodes
+        }
+        accountDao.save(account)
+
+        and: "Bid response with bidder code"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest, ALIAS).tap {
+            it.seatbid[0].bid[0].ext = new BidExt(bidderCode: GENERIC)
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        and: "Flash metrics"
+        flushMetrics(pbsServiceWithAmxBidder)
+
+        when: "PBS processes auction request"
+        def response = pbsServiceWithAmxBidder.sendAuctionRequest(bidRequest)
+
+        then: "Bid response should contain exp data"
+        assert response.seatbid.seat == [GENERIC]
+
+        and: "Response should contain adapter code"
+        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [AMX]
+
+        and: "Response shouldn't contain demand source"
+        assert !response.seatbid.first.bid.first.ext.prebid.meta.demandSource
+
+        and: "Response should contain bidder targeting"
+        def targeting = response.seatbid[0].bid[0].ext.prebid.targeting
+        assert targeting["hb_pb_${GENERIC}"]
+        assert targeting["hb_size_${GENERIC}"]
+        assert targeting["hb_bidder"] == GENERIC.value
+        assert targeting["hb_bidder_${GENERIC}"] == GENERIC.value
+
+        and: "Response should contain repose millis with corresponding bidder"
+        assert response.ext.responsetimemillis.containsKey(GENERIC.value)
+
+        and: "Bidder request should be valid"
+        assert bidder.getBidderRequests(bidRequest.id)
+
+        and: "Response shouldn't contain warnings and error and seatNonBid"
+        assert !response.ext?.warnings
+        assert !response.ext?.errors
+        assert !response.ext?.seatnonbid
+
+        and: "PBS shouldn't emit validation metrics"
+        def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
+        assert !metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(ALIAS)]
+        assert !metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(GENERIC)]
+        assert !metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(AMX)]
+
+        where:
+        requestAlternateBidderCode                                                                                                | accountAlternateBidderCodes
+        new AlternateBidderCodes(enabled: true, bidders: [(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])]) | null
+        null                                                                                                                      | new AlternateBidderCodes(enabled: true, bidders: [(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])])
     }
 
     def "PBS should populate adapter code with requested bidder when conflict soft and hard alias and alternate bidder code"() {
@@ -1391,6 +1563,9 @@ class AlternateBidderCodeSpec extends BaseSpec {
         assert targeting["hb_bidder"] == GENERIC.value
         assert targeting["hb_bidder_${GENERIC}"] == GENERIC.value
 
+        and: "Response should contain repose millis with corresponding bidder"
+        assert response.ext.responsetimemillis.containsKey(GENERIC.value)
+
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
 
@@ -1400,6 +1575,228 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsConfig)
+    }
+
+    def "PBS should populate two seat bid when different bidder response with same seat"() {
+        given: "Default bid request with amx and generic bidder"
+        def bidRequest = getBidRequestWithAmxBidderAndAlternateBidderCode().tap {
+            imp[0].ext.prebid.bidder.generic = new Generic()
+            ext.prebid.alternateBidderCodes.bidders = [(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])]
+        }
+
+        and: "Bid response with bidder code"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest, AMX).tap {
+            it.seatbid[0].bid[0].ext = new BidExt(bidderCode: GENERIC)
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        and: "Flash metrics"
+        flushMetrics(pbsServiceWithAmxBidder)
+
+        when: "PBS processes auction request"
+        def response = pbsServiceWithAmxBidder.sendAuctionRequest(bidRequest)
+
+        then: "Bid response should contain seat"
+        assert response.seatbid.seat.sort() == [GENERIC, GENERIC].sort()
+
+        and: "Response should contain adapter code"
+        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten().sort() == [AMX, GENERIC].sort()
+
+        and: "Response should contain bidder generic targeting"
+        def targeting = response.seatbid.bid.ext.prebid.targeting.flatten().collectEntries()
+        assert targeting["hb_pb_${GENERIC}"]
+        assert targeting["hb_size_${GENERIC}"]
+        assert targeting["hb_bidder_${GENERIC}"] == GENERIC.value
+
+        and: "Response should contain repose millis with corresponding bidder"
+        assert response.ext.responsetimemillis.containsKey(GENERIC.value)
+
+        and: "Response shouldn't contain repose millis with amx bidder"
+        assert !response.ext.responsetimemillis.containsKey(AMX.value)
+
+        and: "Bidder request should be valid"
+        assert bidder.getBidderRequests(bidRequest.id)
+
+        and: "Response shouldn't contain warnings and error and seatNonBid"
+        assert !response.ext?.warnings
+        assert !response.ext?.errors
+        assert !response.ext?.seatnonbid
+
+        and: "Response shouldn't contain demand source"
+        assert !response.seatbid.first.bid.first.ext.prebid.meta.demandSource
+
+        and: "PBS shouldn't emit validation metrics"
+        def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
+        assert !metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(AMX)]
+        assert !metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(GENERIC)]
+    }
+
+    def "PBS should return two seat when same bidder response with different bidder code"() {
+        given: "Default bid request with amx and generic bidder"
+        def bidRequest = getBidRequestWithAmxBidderAndAlternateBidderCode().tap {
+            imp.add(Imp.getDefaultImpression())
+            imp[1].ext.prebid.bidder.amx = new Amx()
+            imp[1].ext.prebid.bidder.generic = null
+            ext.prebid.alternateBidderCodes.bidders = [(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC, AMX])]
+        }
+
+        and: "Bid response with bidder code"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest, AMX).tap {
+            it.seatbid[0].bid[0].ext = new BidExt(bidderCode: GENERIC)
+            it.seatbid[0].bid[1].ext = new BidExt(bidderCode: AMX)
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        and: "Flash metrics"
+        flushMetrics(pbsServiceWithAmxBidder)
+
+        when: "PBS processes auction request"
+        def response = pbsServiceWithAmxBidder.sendAuctionRequest(bidRequest)
+
+        then: "Bid response should contain seat"
+        assert response.seatbid.seat.sort() == [GENERIC, AMX].sort()
+
+        and: "Response should contain adapter code"
+        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [AMX, AMX]
+
+        and: "Response should contain bidder amx targeting"
+        def targeting = response.seatbid.bid.ext.prebid.targeting.flatten().collectEntries()
+        assert targeting["hb_pb_${AMX}"]
+        assert targeting["hb_size_${AMX}"]
+        assert targeting["hb_bidder_${AMX}"] == AMX.value
+
+        and: 'Response targeting should contain generic'
+        assert targeting["hb_pb_${GENERIC}"]
+        assert targeting["hb_size_${GENERIC}"]
+        assert targeting["hb_bidder_${GENERIC}"] == GENERIC.value
+
+        and: "Response should contain repose millis with corresponding bidder"
+        assert response.ext.responsetimemillis.containsKey(GENERIC.value)
+        assert response.ext.responsetimemillis.containsKey(AMX.value)
+
+        and: "Bidder request should be valid"
+        assert bidder.getBidderRequests(bidRequest.id)
+
+        and: "Response shouldn't contain warnings and error and seatNonBid"
+        assert !response.ext?.warnings
+        assert !response.ext?.errors
+        assert !response.ext?.seatnonbid
+
+        and: "Response shouldn't contain demand source"
+        assert !response.seatbid.first.bid.first.ext.prebid.meta.demandSource
+
+        and: "PBS shouldn't emit validation metrics"
+        def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
+        assert !metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(AMX)]
+        assert !metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(GENERIC)]
+    }
+
+    def "PBS should populate seat bid from stored bid response when stored bid response and alternate bidder code specified"() {
+        given: "Default bid request with amx bidder"
+        def storedResponseId = PBSUtils.randomNumber
+        def bidRequest = getBidRequestWithAmxBidderAndAlternateBidderCode().tap {
+            imp[0].ext.prebid.storedBidResponse = [new StoredBidResponse(id: storedResponseId, bidder: AMX)]
+            ext.prebid.alternateBidderCodes.bidders = [(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])]
+        }
+
+        and: "Stored bid response in DB"
+        def storedBidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        def storedResponse = new StoredResponse(responseId: storedResponseId, storedBidResponse: storedBidResponse)
+        storedResponseDao.save(storedResponse)
+
+        and: "Bid response with bidder code"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest, AMX).tap {
+            it.seatbid[0].bid[0].ext = new BidExt(bidderCode: GENERIC)
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        and: "Flash metrics"
+        flushMetrics(pbsServiceWithAmxBidder)
+
+        when: "PBS processes auction request"
+        def response = pbsServiceWithAmxBidder.sendAuctionRequest(bidRequest)
+
+        then: "Bid response should contain seat"
+        assert response.seatbid.seat == [AMX]
+
+        and: "Response should contain adapter code"
+        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [AMX]
+
+        and: "Response should contain bidder generic targeting"
+        def targeting = response.seatbid.bid.ext.prebid.targeting.flatten().collectEntries()
+        assert targeting["hb_pb_${AMX}"]
+        assert targeting["hb_size_${AMX}"]
+        assert targeting["hb_bidder_${AMX}"] == AMX.value
+
+        and: "Response should contain repose millis with corresponding bidder"
+        assert response.ext.responsetimemillis.containsKey(AMX.value)
+
+        and: "Bidder request shouldn't be called due to storedBidResponse"
+        assert !bidder.getBidderRequests(bidRequest.id)
+
+        and: "Response shouldn't contain warnings and error and seatNonBid"
+        assert !response.ext?.warnings
+        assert !response.ext?.errors
+        assert !response.ext?.seatnonbid
+
+        and: "Response shouldn't contain demand source"
+        assert !response.seatbid.first.bid.first.ext.prebid.meta.demandSource
+
+        and: "PBS shouldn't emit validation metrics"
+        def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
+        assert !metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(AMX)]
+    }
+
+    def "PBS auction allow bidder code when imp stored request and allowed bidder code present"() {
+        given: "Default bid request"
+        def bidRequest = getBidRequestWithAmxBidderAndAlternateBidderCode().tap {
+            imp[0].ext.prebid.storedRequest = new PrebidStoredRequest(id: PBSUtils.randomString)
+            ext.prebid.alternateBidderCodes.bidders = [(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])]
+        }
+
+        and: "Save storedImp into DB"
+        def storedImp = StoredImp.getStoredImp(bidRequest)
+        storedImpDao.save(storedImp)
+
+        and: "Bid response with bidder code"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest, AMX).tap {
+            it.seatbid[0].bid[0].ext = new BidExt(bidderCode: GENERIC)
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "Requesting PBS auction"
+        def response = pbsServiceWithAmxBidder.sendAuctionRequest(bidRequest)
+
+        then: "Bid response should contain seat"
+        assert response.seatbid.seat.sort() == [GENERIC].sort()
+
+        and: "Response should contain adapter code"
+        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [AMX]
+
+        and: "Response should contain bidder generic targeting"
+        def targeting = response.seatbid.bid.ext.prebid.targeting.flatten().collectEntries()
+        assert targeting["hb_pb_${GENERIC}"]
+        assert targeting["hb_size_${GENERIC}"]
+        assert targeting["hb_bidder_${GENERIC}"] == GENERIC.value
+
+        and: "Response should contain repose millis with corresponding bidder"
+        assert response.ext.responsetimemillis.containsKey(GENERIC.value)
+
+        and: "Bidder request should be called"
+        assert bidder.getBidderRequests(bidRequest.id)
+
+        and: "Response shouldn't contain warnings and error and seatNonBid"
+        assert !response.ext?.warnings
+        assert !response.ext?.errors
+        assert !response.ext?.seatnonbid
+
+        and: "Response shouldn't contain demand source"
+        assert !response.seatbid.first.bid.first.ext.prebid.meta.demandSource
+
+        and: "PBS shouldn't emit validation metrics"
+        def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
+        assert !metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(GENERIC)]
+        assert !metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(AMX)]
     }
 
     private static Account getAccountWithAlternateBidderCode(BidRequest bidRequest) {
