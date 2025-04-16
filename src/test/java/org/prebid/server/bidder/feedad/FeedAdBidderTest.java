@@ -170,7 +170,7 @@ public class FeedAdBidderTest extends VertxTest {
     public void makeBidsShouldAlwaysReturnBannerBid() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCallWithNoPayload(
-                mapper.writeValueAsString(givenBidResponse(impBuilder -> impBuilder.impid("123"))));
+                mapper.writeValueAsString(givenBidResponse(bid -> bid.impid("123"))));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -216,6 +216,7 @@ public class FeedAdBidderTest extends VertxTest {
     private static BidRequest givenBidRequest(
             UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
             UnaryOperator<Imp.ImpBuilder> impCustomizer) {
+
         return bidRequestCustomizer.apply(BidRequest.builder()
                         .imp(singletonList(impCustomizer.apply(Imp.builder().id("123")).build())))
                 .build();
@@ -223,7 +224,8 @@ public class FeedAdBidderTest extends VertxTest {
 
     private static BidResponse givenBidResponse(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
-                .seatbid(singletonList(SeatBid.builder().bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
+                .seatbid(singletonList(SeatBid.builder()
+                        .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
                         .build()))
                 .build();
     }
