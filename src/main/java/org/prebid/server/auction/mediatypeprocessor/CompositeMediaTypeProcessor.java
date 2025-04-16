@@ -1,7 +1,7 @@
 package org.prebid.server.auction.mediatypeprocessor;
 
 import com.iab.openrtb.request.BidRequest;
-import org.prebid.server.auction.BidderAliases;
+import org.prebid.server.auction.aliases.BidderAliases;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.settings.model.Account;
 

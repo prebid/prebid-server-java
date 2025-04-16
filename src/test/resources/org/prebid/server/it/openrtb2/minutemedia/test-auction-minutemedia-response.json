@@ -22,7 +22,10 @@
             "origbidcpm": 0.5,
             "origbidcur": "USD",
             "prebid": {
-              "type": "banner"
+              "type": "banner",
+              "meta": {
+                "adaptercode": "minutemedia"
+              }
             }
           }
         }
