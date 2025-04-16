@@ -59,4 +59,3 @@ public class CookieSyncRequest {
         include, exclude
     }
 }
-

@@ -2,15 +2,15 @@ package org.prebid.server.hooks.modules.greenbids.real.time.data.core;
 
 import ai.onnxruntime.OrtException;
 import com.github.benmanes.caffeine.cache.Cache;
+import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import com.google.cloud.storage.Blob;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.exception.PreBidException;

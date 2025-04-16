@@ -18,7 +18,6 @@ public class ModuleConfigResolver {
         this.globalProperties = Objects.requireNonNull(globalProperties);
     }
 
-
     public PbRichMediaFilterProperties resolve(ObjectNode accountConfigNode) {
         return readAccountConfig(accountConfigNode).orElse(globalProperties);
     }

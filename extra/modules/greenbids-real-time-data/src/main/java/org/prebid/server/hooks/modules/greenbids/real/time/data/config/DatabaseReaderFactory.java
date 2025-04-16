@@ -1,16 +1,16 @@
 package org.prebid.server.hooks.modules.greenbids.real.time.data.config;
 
-import io.netty.handler.codec.http.HttpResponseStatus;
-import io.vertx.core.file.FileSystem;
-import io.vertx.core.http.HttpClientOptions;
-import io.vertx.core.http.HttpClientRequest;
-import io.vertx.core.http.HttpClientResponse;
 import com.maxmind.db.Reader;
+import com.maxmind.geoip2.DatabaseReader;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import com.maxmind.geoip2.DatabaseReader;
+import io.vertx.core.file.FileSystem;
 import io.vertx.core.file.OpenOptions;
+import io.vertx.core.http.HttpClientOptions;
+import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.RequestOptions;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
@@ -98,7 +98,7 @@ public class DatabaseReaderFactory implements Initializable {
 
             TarArchiveEntry currentEntry;
             boolean hasDatabaseFile = false;
-            while ((currentEntry = tarInput.getNextTarEntry()) != null) {
+            while ((currentEntry = tarInput.getNextEntry()) != null) {
                 if (currentEntry.getName().contains("GeoLite2-Country.mmdb")) {
                     hasDatabaseFile = true;
                     break;
@@ -119,7 +119,7 @@ public class DatabaseReaderFactory implements Initializable {
     private void removeFile(String filePath) {
         fileSystem.exists(filePath).onSuccess(exists -> {
             if (exists) {
-               fileSystem.delete(filePath)
+                fileSystem.delete(filePath)
                         .onFailure(err -> logger.error("Failed to remove file {}", filePath, err));
             }
         });

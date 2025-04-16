@@ -93,6 +93,7 @@ public class InterstitialProcessor {
     }
 
     private static class InterstitialSize {
+
         private static final List<InterstitialSize> INTERSTITIAL_SIZES = new ArrayList<>();
 
         static {
@@ -360,8 +361,12 @@ public class InterstitialProcessor {
             return new InterstitialSize(w, h);
         }
 
-        private static List<InterstitialSize> getNestedSizes(double minWidth, double minHeight, double maxWidth,
-                                                             double maxHeight, int count) {
+        private static List<InterstitialSize> getNestedSizes(double minWidth,
+                                                             double minHeight,
+                                                             double maxWidth,
+                                                             double maxHeight,
+                                                             int count) {
+
             return INTERSTITIAL_SIZES.stream()
                     .filter(size -> isNested(size, minWidth, minHeight, maxWidth, maxHeight))
                     .limit(count)

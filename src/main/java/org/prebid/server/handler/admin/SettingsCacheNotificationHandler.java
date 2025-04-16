@@ -46,7 +46,7 @@ public class SettingsCacheNotificationHandler implements Handler<RoutingContext>
      * Propagates updating settings cache.
      */
     private void doSave(RoutingContext routingContext) {
-        final Buffer body = routingContext.getBody();
+        final Buffer body = routingContext.body().buffer();
         if (body == null) {
             respondWithBadRequest(routingContext, "Missing update data.");
             return;
@@ -68,7 +68,7 @@ public class SettingsCacheNotificationHandler implements Handler<RoutingContext>
      * Propagates invalidating settings cache.
      */
     private void doInvalidate(RoutingContext routingContext) {
-        final Buffer body = routingContext.getBody();
+        final Buffer body = routingContext.body().buffer();
         if (body == null) {
             respondWithBadRequest(routingContext, "Missing invalidation data.");
             return;

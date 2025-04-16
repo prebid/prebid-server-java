@@ -88,8 +88,8 @@ public class Ortb2RequestFactory {
 
     private static final Logger logger = LoggerFactory.getLogger(Ortb2RequestFactory.class);
 
-    private static final ConditionalLogger EMPTY_ACCOUNT_LOGGER = new ConditionalLogger("empty_account", logger);
-    private static final ConditionalLogger UNKNOWN_ACCOUNT_LOGGER = new ConditionalLogger("unknown_account", logger);
+    private static final ConditionalLogger emptyAccountLogger = new ConditionalLogger("empty_account", logger);
+    private static final ConditionalLogger unknownAccountLogger = new ConditionalLogger("unknown_account", logger);
 
     private final int timeoutAdjustmentFactor;
     private final double logSamplingRate;
@@ -472,7 +472,7 @@ public class Ortb2RequestFactory {
 
     private Future<Account> loadAccount(Timeout timeout, HttpRequestContext httpRequest, String accountId) {
         if (StringUtils.isBlank(accountId)) {
-            EMPTY_ACCOUNT_LOGGER.warn(accountErrorMessage("Account not specified", httpRequest), logSamplingRate);
+            emptyAccountLogger.warn(accountErrorMessage("Account not specified", httpRequest), logSamplingRate);
         }
 
         return applicationSettings.getAccountById(accountId, timeout)
@@ -528,7 +528,7 @@ public class Ortb2RequestFactory {
         if (exception instanceof UnauthorizedAccountException) {
             return Future.failedFuture(exception);
         } else if (exception instanceof PreBidException) {
-            UNKNOWN_ACCOUNT_LOGGER.warn(accountErrorMessage(exception.getMessage(), httpRequest), 100);
+            unknownAccountLogger.warn(accountErrorMessage(exception.getMessage(), httpRequest), 100);
         } else {
             metrics.updateAccountRequestRejectedByFailedFetch(accountId);
             logger.warn("Error occurred while fetching account: {}", exception.getMessage());

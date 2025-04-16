@@ -35,4 +35,3 @@ public class BidAgencyTest extends IntegrationTest {
                 singletonList("bidagency"));
     }
 }
-

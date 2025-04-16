@@ -52,7 +52,7 @@ import java.util.Optional;
 public class CookieSyncHandler implements ApplicationResource {
 
     private static final Logger logger = LoggerFactory.getLogger(CookieSyncHandler.class);
-    private static final ConditionalLogger BAD_REQUEST_LOGGER = new ConditionalLogger(logger);
+    private static final ConditionalLogger badRequestLogger = new ConditionalLogger(logger);
 
     private final long defaultTimeout;
     private final double logSamplingRate;
@@ -146,7 +146,7 @@ public class CookieSyncHandler implements ApplicationResource {
     }
 
     private CookieSyncRequest parseRequest(RoutingContext routingContext) {
-        final Buffer body = routingContext.getBody();
+        final Buffer body = routingContext.body().buffer();
         if (body == null) {
             throw new InvalidCookieSyncRequestException("Request has no body");
         }
@@ -238,7 +238,7 @@ public class CookieSyncHandler implements ApplicationResource {
                 body = "Invalid request format: " + message;
 
                 metrics.updateUserSyncBadRequestMetric();
-                BAD_REQUEST_LOGGER.info(message, logSamplingRate);
+                badRequestLogger.info(message, logSamplingRate);
             }
             case UnauthorizedUidsException unauthorizedUidsException -> {
                 status = HttpResponseStatus.UNAUTHORIZED;
@@ -250,7 +250,7 @@ public class CookieSyncHandler implements ApplicationResource {
                 status = HttpResponseStatus.BAD_REQUEST;
                 body = "Invalid account configuration: " + message;
 
-                BAD_REQUEST_LOGGER.info(message, logSamplingRate);
+                badRequestLogger.info(message, logSamplingRate);
             }
             default -> {
                 status = HttpResponseStatus.INTERNAL_SERVER_ERROR;

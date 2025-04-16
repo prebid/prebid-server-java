@@ -15,4 +15,3 @@ public class SpecialFeatures {
 
     SpecialFeature sf2;
 }
-

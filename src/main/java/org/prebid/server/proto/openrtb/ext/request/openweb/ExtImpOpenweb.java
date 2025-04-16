@@ -1,11 +1,9 @@
 package org.prebid.server.proto.openrtb.ext.request.openweb;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
 import lombok.Value;
 
-@Value
-@AllArgsConstructor(staticName = "of")
+@Value(staticConstructor = "of")
 public class ExtImpOpenweb {
 
     Integer aid;

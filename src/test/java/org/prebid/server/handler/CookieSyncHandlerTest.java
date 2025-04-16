@@ -7,6 +7,7 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.Cookie;
 import io.vertx.core.http.CookieSameSite;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.RequestBody;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -98,6 +99,8 @@ public class CookieSyncHandlerTest extends VertxTest {
     private RoutingContext routingContext;
     @Mock(strictness = LENIENT)
     private HttpServerResponse httpResponse;
+    @Mock
+    private RequestBody requestBody;
 
     private CookieSyncHandler target;
 
@@ -110,6 +113,7 @@ public class CookieSyncHandlerTest extends VertxTest {
                 .willAnswer(invocation -> invocation.getArgument(0));
 
         given(routingContext.response()).willReturn(httpResponse);
+        given(routingContext.body()).willReturn(requestBody);
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
         given(httpResponse.putHeader(any(CharSequence.class), any(AsciiString.class))).willReturn(httpResponse);
 
@@ -145,7 +149,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithErrorAndSendToAnalyticsWithoutTcfWhenRequestBodyIsMissing() {
         // given
-        given(routingContext.getBody()).willReturn(null);
+        given(requestBody.buffer()).willReturn(null);
 
         // when
         target.handle(routingContext);
@@ -165,7 +169,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithErrorAndSendToAnalyticsWithoutTcfWhenRequestBodyCouldNotBeParsed() {
         // given
-        given(routingContext.getBody()).willReturn(Buffer.buffer("{"));
+        given(requestBody.buffer()).willReturn(Buffer.buffer("{"));
 
         // when
         target.handle(routingContext);
@@ -185,7 +189,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithErrorAndSendToAnalyticsWithTcfWhenOptedOut() {
         // given
-        given(routingContext.getBody())
+        given(requestBody.buffer())
                 .willReturn(givenRequestBody(CookieSyncRequest.builder().bidders(emptySet()).gdpr(1).build()));
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).optout(true).build(), jacksonMapper));
@@ -210,7 +214,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithErrorIfGdprConsentIsMissing() {
         // given
-        given(routingContext.getBody())
+        given(requestBody.buffer())
                 .willReturn(givenRequestBody(CookieSyncRequest.builder().bidders(emptySet()).gdpr(1).build()));
         given(cookieSyncService.processContext(any())).willAnswer(answerWithException(
                 tcfContext -> new InvalidCookieSyncRequestException(
@@ -234,7 +238,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithBadRequestStatusIfGdprConsentIsInvalid() {
         // given
-        given(routingContext.getBody())
+        given(requestBody.buffer())
                 .willReturn(givenRequestBody(CookieSyncRequest.builder()
                         .bidders(singleton("rubicon"))
                         .gdpr(1)
@@ -259,7 +263,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithBadRequestStatusOnInvalidAccountConfigException() {
         // given
-        given(routingContext.getBody())
+        given(requestBody.buffer())
                 .willReturn(givenRequestBody(CookieSyncRequest.builder()
                         .bidders(singleton("rubicon"))
                         .gdpr(1)
@@ -284,7 +288,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Test
     public void shouldNotSendResponseIfClientClosedConnection() {
         // given
-        given(routingContext.getBody()).willReturn(
+        given(requestBody.buffer()).willReturn(
                 givenRequestBody(CookieSyncRequest.builder().bidders(emptySet()).build()));
 
         given(routingContext.response().closed()).willReturn(true);
@@ -304,7 +308,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithExpectedHeaders() {
         // given
-        given(routingContext.getBody()).willReturn(
+        given(requestBody.buffer()).willReturn(
                 givenRequestBody(CookieSyncRequest.builder().bidders(emptySet()).build()));
 
         givenDefaultCookieSyncServicePipelineResult();
@@ -320,7 +324,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithDeprecationCookieHeaderWhenCookieIsResolved() {
         // given
-        given(routingContext.getBody()).willReturn(
+        given(requestBody.buffer()).willReturn(
                 givenRequestBody(CookieSyncRequest.builder().bidders(emptySet()).build()));
         final PartitionedCookie givenDeprecationCookie = PartitionedCookie.of(
                 Cookie.cookie("receive-cookie-deprecation", "1")
@@ -348,7 +352,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Test
     public void shouldPassAccountToPrivacyEnforcementServiceWhenAccountIsFound() {
         // given
-        given(routingContext.getBody()).willReturn(
+        given(requestBody.buffer()).willReturn(
                 givenRequestBody(CookieSyncRequest.builder().bidders(emptySet()).account("account").build()));
 
         final AccountGdprConfig accountGdprConfig = AccountGdprConfig.builder()
@@ -372,7 +376,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Test
     public void shouldPassAccountToPrivacyEnforcementServiceWhenAccountIsNotFound() {
         // given
-        given(routingContext.getBody()).willReturn(
+        given(requestBody.buffer()).willReturn(
                 givenRequestBody(CookieSyncRequest.builder().bidders(emptySet()).account("account").build()));
 
         given(applicationSettings.getAccountById(any(), any())).willReturn(Future.failedFuture("bad"));
@@ -392,7 +396,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Test
     public void shouldIncrementMetrics() {
         // given
-        given(routingContext.getBody()).willReturn(
+        given(requestBody.buffer()).willReturn(
                 givenRequestBody(CookieSyncRequest.builder().bidders(emptySet()).build()));
         givenDefaultCookieSyncServicePipelineResult();
 
@@ -406,7 +410,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Test
     public void shouldPassSuccessfulEventToAnalyticsReporter() {
         // given
-        given(routingContext.getBody())
+        given(requestBody.buffer())
                 .willReturn(givenRequestBody(CookieSyncRequest.builder().bidders(singleton("rubicon")).build()));
 
         final List<BidderUsersyncStatus> bidderStatuses =

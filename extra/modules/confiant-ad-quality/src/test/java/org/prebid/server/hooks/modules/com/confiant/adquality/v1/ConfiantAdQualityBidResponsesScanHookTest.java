@@ -24,7 +24,6 @@ import org.prebid.server.hooks.modules.com.confiant.adquality.core.BidsMapper;
 import org.prebid.server.hooks.modules.com.confiant.adquality.core.BidsScanResult;
 import org.prebid.server.hooks.modules.com.confiant.adquality.core.BidsScanner;
 import org.prebid.server.hooks.modules.com.confiant.adquality.core.RedisParser;
-import org.prebid.server.hooks.modules.com.confiant.adquality.util.AdQualityModuleTestUtils;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
@@ -41,6 +40,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
+import static org.prebid.server.hooks.modules.com.confiant.adquality.util.AdQualityModuleTestUtils.getBidderResponse;
 
 @ExtendWith(MockitoExtension.class)
 public class ConfiantAdQualityBidResponsesScanHookTest {
@@ -105,12 +105,19 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
     @Test
     public void callShouldReturnResultWithUpdateActionWhenRedisHasFoundSomeIssues() {
         // given
-        final BidsScanResult bidsScanResult = redisParser.parseBidsScanResult(
-                "[[[{\"tag_key\": \"tag\", \"issues\":[{\"spec_name\":\"malicious_domain\",\"value\":\"ads.deceivenetworks.net\",\"first_adinstance\":\"e91e8da982bb8b7f80100426\"}]}]]]");
+        final BidsScanResult bidsScanResult = redisParser.parseBidsScanResult("""
+                [[[{
+                    "tag_key": "tag",
+                    "issues": [{
+                        "spec_name": "malicious_domain",
+                        "value": "ads.deceivenetworks.net",
+                        "first_adinstance": "e91e8da982bb8b7f80100426"
+                    }]
+                }]]]""");
 
         doReturn(Future.succeededFuture(bidsScanResult)).when(bidsScanner).submitBids(any());
         doReturn(getAuctionContext()).when(auctionInvocationContext).auctionContext();
-        doReturn(List.of(AdQualityModuleTestUtils.getBidderResponse("bidder_a", "imp_a", "bid_id_a")))
+        doReturn(List.of(getBidderResponse("bidder_a", "imp_a", "bid_id_a")))
                 .when(allProcessedBidResponsesPayload).bidResponses();
 
         // when
@@ -125,7 +132,12 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
         assertThat(result).isNotNull();
         assertThat(result.status()).isEqualTo(InvocationStatus.success);
         assertThat(result.action()).isEqualTo(InvocationAction.update);
-        assertThat(result.errors().get(0)).isEqualTo("tag: [Issue(specName=malicious_domain, value=ads.deceivenetworks.net, firstAdinstance=e91e8da982bb8b7f80100426)]");
+        assertThat(result.errors().getFirst())
+                .isEqualTo("""
+                        tag: [\
+                        Issue(specName=malicious_domain, \
+                        value=ads.deceivenetworks.net, \
+                        firstAdinstance=e91e8da982bb8b7f80100426)]""");
         assertThat(result.debugMessages()).isNull();
         assertThat(result.analyticsTags().activities()).isEqualTo(singletonList(ActivityImpl.of(
                 "ad-scan", "success", List.of(
@@ -140,8 +152,15 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
     @Test
     public void callShouldSubmitBidsToScanWhenBidsCome() {
         // given
-        final BidsScanResult bidsScanResult = redisParser.parseBidsScanResult(
-                "[[[{\"tag_key\": \"tag\", \"issues\":[{\"spec_name\":\"malicious_domain\",\"value\":\"ads.deceivenetworks.net\",\"first_adinstance\":\"e91e8da982bb8b7f80100426\"}]}]]]");
+        final BidsScanResult bidsScanResult = redisParser.parseBidsScanResult("""
+                [[[{
+                    "tag_key": "tag",
+                    "issues": [{
+                        "spec_name": "malicious_domain",
+                        "value": "ads.deceivenetworks.net",
+                        "first_adinstance": "e91e8da982bb8b7f80100426"
+                    }]
+                }]]]""");
 
         doReturn(Future.succeededFuture(bidsScanResult)).when(bidsScanner).submitBids(any());
         doReturn(getAuctionContext()).when(auctionInvocationContext).auctionContext();
@@ -154,16 +173,32 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
     }
 
     @Test
-    public void callShouldSubmitToScanBidsWhichAreNotPartOfTheExcludeToScanListWhenHookIsConfiguredWithExcludeToScanList() {
+    public void callShouldSubmitBidsWhichAreNotPartOfTheExcludeToScanListWhenHookIsConfiguredWithExcludeToScanList() {
         // given
         final String secureBidderName = "securebidder";
         final String notSecureBadBidderName = "notsecurebadbidder";
         final String notSecureGoodBidderName = "notsecuregoodbidder";
-        final BidderResponse secureBidderResponse = AdQualityModuleTestUtils.getBidderResponse(secureBidderName, "imp_a", "bid_id_a");
-        final BidderResponse notSecureBadBidderResponse = AdQualityModuleTestUtils.getBidderResponse(notSecureBadBidderName, "imp_b", "bid_id_b");
-        final BidderResponse notSecureGoodBidderResponse = AdQualityModuleTestUtils.getBidderResponse(notSecureGoodBidderName, "imp_c", "bid_id_c");
-        final BidsScanResult bidsScanResult = redisParser.parseBidsScanResult(
-                "[[[{\"tag_key\": \"tag\", \"issues\":[{\"spec_name\":\"malicious_domain\",\"value\":\"ads.deceivenetworks.net\",\"first_adinstance\":\"e91e8da982bb8b7f80100426\"}]}]],[[{\"tag_key\": \"key_b\", \"imp_id\": \"imp_b\", \"issues\": []}]]]]");
+        final BidderResponse secureBidderResponse = getBidderResponse(secureBidderName, "imp_a", "bid_id_a");
+        final BidderResponse notSecureBadBidderResponse =
+                getBidderResponse(notSecureBadBidderName, "imp_b", "bid_id_b");
+        final BidderResponse notSecureGoodBidderResponse =
+                getBidderResponse(notSecureGoodBidderName, "imp_c", "bid_id_c");
+        final BidsScanResult bidsScanResult = redisParser.parseBidsScanResult("""
+                [
+                    [[{
+                        "tag_key": "tag",
+                        "issues": [{
+                            "spec_name": "malicious_domain",
+                            "value": "ads.deceivenetworks.net",
+                            "first_adinstance": "e91e8da982bb8b7f80100426"
+                        }]
+                    }]],
+                    [[{
+                        "tag_key": "key_b",
+                        "imp_id": "imp_b",
+                        "issues": []
+                    }]]
+                ]""");
         final AuctionContext auctionContext = AuctionContext.builder()
                 .activityInfrastructure(activityInfrastructure)
                 .bidRequest(BidRequest.builder().cur(List.of("USD")).build())
@@ -171,7 +206,8 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
 
         target = new ConfiantAdQualityBidResponsesScanHook(bidsScanner, List.of(secureBidderName), userFpdActivityMask);
 
-        doReturn(List.of(secureBidderResponse, notSecureBadBidderResponse, notSecureGoodBidderResponse)).when(allProcessedBidResponsesPayload).bidResponses();
+        doReturn(List.of(secureBidderResponse, notSecureBadBidderResponse, notSecureGoodBidderResponse))
+                .when(allProcessedBidResponsesPayload).bidResponses();
         doReturn(Future.succeededFuture(bidsScanResult)).when(bidsScanner).submitBids(any());
         doReturn(auctionContext).when(auctionInvocationContext).auctionContext();
 
@@ -180,9 +216,9 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
                 .call(allProcessedBidResponsesPayload, auctionInvocationContext);
 
         // then
-        verify(bidsScanner).submitBids(
-                BidsMapper.toRedisBidsFromBidResponses(auctionContext.getBidRequest(), List.of(notSecureBadBidderResponse, notSecureGoodBidderResponse))
-        );
+        verify(bidsScanner).submitBids(BidsMapper.toRedisBidsFromBidResponses(
+                auctionContext.getBidRequest(),
+                List.of(notSecureBadBidderResponse, notSecureGoodBidderResponse)));
 
         final PayloadUpdate<AllProcessedBidResponsesPayload> payloadUpdate = invocationResult.result().payloadUpdate();
         final AllProcessedBidResponsesPayloadImpl initPayloadToUpdate = AllProcessedBidResponsesPayloadImpl.of(
@@ -217,11 +253,19 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
         final String secureBidderName = "securebidder";
         final String notSecureBadBidderName = "notsecurebadbidder";
         final String emptyBidderName = "emptybidder";
-        final BidderResponse secureBidderResponse = AdQualityModuleTestUtils.getBidderResponse(secureBidderName, "imp_a", "bid_id_a");
-        final BidderResponse notSecureBadBidderResponse = AdQualityModuleTestUtils.getBidderResponse(notSecureBadBidderName, "imp_b", "bid_id_b");
-        final BidderResponse emptyBidderResponse = getEmptyBidderResponse(emptyBidderName);
-        final BidsScanResult bidsScanResult = redisParser.parseBidsScanResult(
-                "[[[{\"tag_key\": \"tag\", \"issues\":[{\"spec_name\":\"malicious_domain\",\"value\":\"ads.deceivenetworks.net\",\"first_adinstance\":\"e91e8da982bb8b7f80100426\"}]}]]]");
+        final BidderResponse secureBidderResponse = getBidderResponse(secureBidderName, "imp_a", "bid_id_a");
+        final BidderResponse notSecureBadBidderResponse =
+                getBidderResponse(notSecureBadBidderName, "imp_b", "bid_id_b");
+        final BidderResponse emptyBidderResponse = getEmptyBidderResponse();
+        final BidsScanResult bidsScanResult = redisParser.parseBidsScanResult("""
+                [[[{
+                    "tag_key": "tag",
+                    "issues": [{
+                        "spec_name": "malicious_domain",
+                        "value": "ads.deceivenetworks.net",
+                        "first_adinstance":"e91e8da982bb8b7f80100426"
+                    }]
+                }]]]""");
         final AuctionContext auctionContext = AuctionContext.builder()
                 .activityInfrastructure(activityInfrastructure)
                 .bidRequest(BidRequest.builder().cur(List.of("USD")).build())
@@ -229,7 +273,8 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
 
         target = new ConfiantAdQualityBidResponsesScanHook(bidsScanner, List.of(secureBidderName), userFpdActivityMask);
 
-        doReturn(List.of(secureBidderResponse, notSecureBadBidderResponse, emptyBidderResponse)).when(allProcessedBidResponsesPayload).bidResponses();
+        doReturn(List.of(secureBidderResponse, notSecureBadBidderResponse, emptyBidderResponse))
+                .when(allProcessedBidResponsesPayload).bidResponses();
         doReturn(Future.succeededFuture(bidsScanResult)).when(bidsScanner).submitBids(any());
         doReturn(auctionContext).when(auctionInvocationContext).auctionContext();
 
@@ -238,9 +283,8 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
                 .call(allProcessedBidResponsesPayload, auctionInvocationContext);
 
         // then
-        verify(bidsScanner).submitBids(
-                BidsMapper.toRedisBidsFromBidResponses(auctionContext.getBidRequest(), List.of(notSecureBadBidderResponse))
-        );
+        verify(bidsScanner).submitBids(BidsMapper.toRedisBidsFromBidResponses(
+                auctionContext.getBidRequest(), List.of(notSecureBadBidderResponse)));
 
         final PayloadUpdate<AllProcessedBidResponsesPayload> payloadUpdate = invocationResult.result().payloadUpdate();
         final AllProcessedBidResponsesPayloadImpl initPayloadToUpdate = AllProcessedBidResponsesPayloadImpl.of(
@@ -260,16 +304,22 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
                                 .bidders(List.of(notSecureBadBidderName))
                                 .impIds(List.of("imp_b"))
                                 .bidIds(List.of("bid_id_b"))
-                                .build()))
-        )));
+                                .build())))));
     }
 
     @Test
     public void callShouldSubmitBidsWithoutMaskedGeoInfoWhenTransmitGeoIsAllowed() {
         // given
         final Boolean transmitGeoIsAllowed = true;
-        final BidsScanResult bidsScanResult = redisParser.parseBidsScanResult(
-                "[[[{\"tag_key\": \"tag\", \"issues\":[{\"spec_name\":\"malicious_domain\",\"value\":\"ads.deceivenetworks.net\",\"first_adinstance\":\"e91e8da982bb8b7f80100426\"}]}]]]");
+        final BidsScanResult bidsScanResult = redisParser.parseBidsScanResult("""
+                [[[{
+                    "tag_key": "tag",
+                    "issues": [{
+                        "spec_name": "malicious_domain",
+                        "value": "ads.deceivenetworks.net",
+                        "first_adinstance": "e91e8da982bb8b7f80100426"
+                    }]
+                }]]]""");
         final User user = userFpdActivityMask.maskUser(getUser(), true, true);
         final Device device = userFpdActivityMask.maskDevice(
                 getDevice(), true, !transmitGeoIsAllowed);
@@ -296,8 +346,15 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
     public void callShouldSubmitBidsWithMaskedGeoInfoWhenTransmitGeoIsNotAllowed() {
         // given
         final Boolean transmitGeoIsAllowed = false;
-        final BidsScanResult bidsScanResult = redisParser.parseBidsScanResult(
-                "[[[{\"tag_key\": \"tag\", \"issues\":[{\"spec_name\":\"malicious_domain\",\"value\":\"ads.deceivenetworks.net\",\"first_adinstance\":\"e91e8da982bb8b7f80100426\"}]}]]]");
+        final BidsScanResult bidsScanResult = redisParser.parseBidsScanResult("""
+                [[[{
+                    "tag_key": "tag",
+                    "issues": [{
+                        "spec_name": "malicious_domain",
+                        "value": "ads.deceivenetworks.net",
+                        "first_adinstance": "e91e8da982bb8b7f80100426"
+                    }]
+                }]]]""");
         final User user = userFpdActivityMask.maskUser(getUser(), true, true);
         final Device device = userFpdActivityMask.maskDevice(
                 getDevice(), true, !transmitGeoIsAllowed);
@@ -342,7 +399,7 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
         assertThat(result.status()).isEqualTo(InvocationStatus.success);
         assertThat(result.action()).isEqualTo(InvocationAction.no_action);
         assertThat(result.errors()).isNull();
-        assertThat(result.debugMessages().get(0)).isEqualTo("Error during parse redis response: [[[{\"t");
+        assertThat(result.debugMessages().getFirst()).isEqualTo("Error during parse redis response: [[[{\"t");
     }
 
     @Test
@@ -389,8 +446,8 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
         return Device.builder().geo(Geo.builder().country("country-d").region("region-d").build()).build();
     }
 
-    private static BidderResponse getEmptyBidderResponse(String bidderName) {
-        return BidderResponse.of(bidderName, BidderSeatBid.builder()
+    private static BidderResponse getEmptyBidderResponse() {
+        return BidderResponse.of("emptybidder", BidderSeatBid.builder()
                 .bids(Collections.emptyList())
                 .build(), 5);
     }

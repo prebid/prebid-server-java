@@ -22,7 +22,6 @@ public class UserAgentCorrectionProducer implements CorrectionProducer {
     private static final String PREBID_MOBILE = "prebid-mobile";
     private static final Pattern USER_AGENT_PATTERN = Pattern.compile(".*PrebidMobile/[0-9]+[^ ]*.*");
 
-
     private static final int MAX_VERSION_MAJOR = 2;
     private static final int MAX_VERSION_MINOR = 1;
     private static final int MAX_VERSION_PATCH = 6;
@@ -67,7 +66,6 @@ public class UserAgentCorrectionProducer implements CorrectionProducer {
                 .map(Matcher::matches)
                 .orElse(false);
     }
-
 
     @Override
     public Correction produce(Config config) {

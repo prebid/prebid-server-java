@@ -1,6 +1,7 @@
 package org.prebid.server.auction;
 
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixList;
+import io.vertx.core.MultiMap;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
@@ -65,7 +66,7 @@ public class ImplicitParametersExtractor {
         return ipFrom(headers::get, host);
     }
 
-    public List<String> ipFrom(io.vertx.core.MultiMap headers, String host) {
+    public List<String> ipFrom(MultiMap headers, String host) {
         return ipFrom(headers::get, host);
     }
 

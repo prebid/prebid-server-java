@@ -218,31 +218,31 @@ public class AdkernelBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
+            return Result.withValues(extractBids(bidResponse));
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
+    private static List<BidderBid> extractBids(BidResponse bidResponse) {
         if (bidResponse == null || bidResponse.getSeatbid() == null) {
             return Collections.emptyList();
         }
         if (bidResponse.getSeatbid().size() != 1) {
             throw new PreBidException("Invalid SeatBids count: " + bidResponse.getSeatbid().size());
         }
-        return bidsFromResponse(bidRequest, bidResponse);
+        return bidsFromResponse(bidResponse);
     }
 
-    private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
+    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
         return bidResponse.getSeatbid().stream()
                 .map(SeatBid::getBid)
                 .flatMap(Collection::stream)
-                .map(bid -> makeBidderBid(bid, bidRequest.getImp(), bidResponse.getCur()))
+                .map(bid -> makeBidderBid(bid, bidResponse.getCur()))
                 .toList();
     }
 
-    private static BidderBid makeBidderBid(Bid bid, List<Imp> imps, String currency) {
+    private static BidderBid makeBidderBid(Bid bid, String currency) {
         final Optional<String> mfSuffix = getMfSuffix(bid.getImpid());
         final Bid updatedBid = mfSuffix.map(suffix -> removeMfSuffixFromImpId(bid, suffix)).orElse(bid);
 

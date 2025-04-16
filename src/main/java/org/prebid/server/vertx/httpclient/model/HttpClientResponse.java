@@ -1,7 +1,6 @@
 package org.prebid.server.vertx.httpclient.model;
 
 import io.vertx.core.MultiMap;
-import lombok.AllArgsConstructor;
 import lombok.Value;
 
 /**
@@ -9,8 +8,7 @@ import lombok.Value;
  * <p>
  * Should be created in "bodyHandler(...) after response has been read."
  */
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class HttpClientResponse {
 
     int statusCode;

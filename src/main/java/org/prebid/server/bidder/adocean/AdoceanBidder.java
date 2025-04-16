@@ -123,14 +123,14 @@ public class AdoceanBidder implements Bidder<Void> {
                 final List<NameValuePair> queryParams = uriBuilder.getQueryParams();
 
                 final String masterId = queryParams.stream()
-                        .filter(param -> param.getName().equals("id"))
+                        .filter(param -> "id".equals(param.getName()))
                         .findFirst()
                         .map(NameValuePair::getValue)
                         .orElse(null);
 
                 if (masterId != null && masterId.equals(extImpAdocean.getMasterId())) {
                     final boolean isExistingSlaveId = queryParams.stream()
-                            .filter(param -> param.getName().equals("aid"))
+                            .filter(param -> "aid".equals(param.getName()))
                             .map(param -> param.getValue().split(":")[0])
                             .anyMatch(slaveId -> slaveId.equals(extImpAdocean.getSlaveId()));
                     if (isExistingSlaveId) {
@@ -306,7 +306,7 @@ public class AdoceanBidder implements Bidder<Void> {
         }
 
         final Map<String, String> auctionIds = params != null ? params.stream()
-                .filter(param -> param.getName().equals("aid"))
+                .filter(param -> "aid".equals(param.getName()))
                 .map(param -> param.getValue().split(":"))
                 .collect(Collectors.toMap(name -> name[0], value -> value[1])) : null;
 
@@ -319,7 +319,7 @@ public class AdoceanBidder implements Bidder<Void> {
         }
 
         final List<BidderBid> bidderBids = adoceanResponses.stream()
-                .filter(adoceanResponse -> !adoceanResponse.getError().equals("true"))
+                .filter(adoceanResponse -> !"true".equals(adoceanResponse.getError()))
                 .filter(adoceanResponse ->
                         StringUtils.isNotBlank(MapUtils.getString(auctionIds, adoceanResponse.getId())))
                 .map(adoceanResponse -> BidderBid.of(createBid(auctionIds, adoceanResponse), BidType.banner,

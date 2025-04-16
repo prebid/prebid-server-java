@@ -48,7 +48,7 @@ public class HttpBidderRequestEnricher {
             BidderAliases aliases,
             BidRequest bidRequest) {
 
-        // some bidders has headers on class level, so we create copy to not affect them
+        // some bidders have headers on class level, so we create copy to not affect them
         final MultiMap bidderRequestHeadersCopy = copyMultiMap(bidderRequestHeaders);
 
         addOriginalRequestHeaders(bidderRequestHeadersCopy, originalRequestHeaders);

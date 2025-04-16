@@ -14,8 +14,4 @@ public class PriceFloorResult {
     BigDecimal floorValue;
 
     String currency;
-
-    public static PriceFloorResult empty() {
-        return PriceFloorResult.of(null, null, null, null);
-    }
 }

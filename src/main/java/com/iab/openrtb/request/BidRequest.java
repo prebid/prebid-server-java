@@ -105,7 +105,7 @@ public class BidRequest {
 
     /**
      * Flag to indicate if Exchange can verify that the impressions offered
-     * represent all of the impressions available in context (e.g., all on the
+     * represent all the impressions available in context (e.g., all on the
      * web page, all video spots such as pre/mid/post roll) to support
      * road-blocking. 0 = no or unknown, 1 = yes, the impressions offered
      * represent all that are available.

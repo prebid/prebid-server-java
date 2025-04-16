@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
 public class OrtbTypesResolver {
 
     private static final Logger logger = LoggerFactory.getLogger(OrtbTypesResolver.class);
-    private static final ConditionalLogger ORTB_TYPES_RESOLVING_LOGGER =
+    private static final ConditionalLogger ortbTypesResolverLogger =
             new ConditionalLogger("ortb_resolving_warnings", logger);
 
     private static final String USER = "user";
@@ -350,7 +350,7 @@ public class OrtbTypesResolver {
 
     private void logDeprecatedFpdConfig(String source) {
         final String messagePart = source != null ? " on " + source : StringUtils.EMPTY;
-        ORTB_TYPES_RESOLVING_LOGGER.warn("Usage of deprecated FPD config path" + messagePart, logSamplingRate);
+        ortbTypesResolverLogger.warn("Usage of deprecated FPD config path" + messagePart, logSamplingRate);
     }
 
     private JsonNode updatedOrtb2Node(JsonNode configFpd, String fpdField, JsonNode configOrtb, String ortbField) {
@@ -376,7 +376,7 @@ public class OrtbTypesResolver {
         if (CollectionUtils.isNotEmpty(resolverWarnings)) {
             warnings.addAll(updateWithWarningPrefix(resolverWarnings));
 
-            ORTB_TYPES_RESOLVING_LOGGER.warn(
+            ortbTypesResolverLogger.warn(
                     "WARNINGS: %s. \n Referer = %s and %s = %s".formatted(
                             String.join("\n", resolverWarnings),
                             StringUtils.isNotBlank(referer) ? referer : UNKNOWN_REFERER,

@@ -25,4 +25,3 @@ public class VideoEvent {
 
     VideoResponse bidResponse;
 }
-

@@ -76,10 +76,10 @@ public class TheTradeDeskBidder implements Bidder<BidRequest> {
         for (Imp imp : request.getImp()) {
             try {
                 final ExtImpTheTradeDesk extImp = parseImpExt(imp);
-                publisherId = publisherId == null
-                        ? StringUtils.isNotBlank(extImp.getPublisherId())
-                        ? extImp.getPublisherId()
-                        : publisherId
+
+                final String extImpPublisherId = extImp.getPublisherId();
+                publisherId = publisherId == null && StringUtils.isNotBlank(extImpPublisherId)
+                        ? extImpPublisherId
                         : publisherId;
 
                 modifiedImps.add(modifyImp(imp));

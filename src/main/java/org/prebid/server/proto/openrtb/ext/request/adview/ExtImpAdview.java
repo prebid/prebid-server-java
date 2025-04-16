@@ -1,11 +1,9 @@
 package org.prebid.server.proto.openrtb.ext.request.adview;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
 import lombok.Value;
 
-@Value
-@AllArgsConstructor(staticName = "of")
+@Value(staticConstructor = "of")
 public class ExtImpAdview {
 
     @JsonProperty("placementId")

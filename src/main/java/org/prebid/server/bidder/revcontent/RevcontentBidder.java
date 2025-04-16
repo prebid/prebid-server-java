@@ -90,4 +90,3 @@ public class RevcontentBidder implements Bidder<BidRequest> {
                 : BidType.xNative;
     }
 }
-

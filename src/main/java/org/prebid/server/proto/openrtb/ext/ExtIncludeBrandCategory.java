@@ -1,14 +1,12 @@
 package org.prebid.server.proto.openrtb.ext;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
 import lombok.Value;
 
 /**
  * Defines the contract for bidrequest.ext.prebid.targeting.includebrandcategory
  */
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class ExtIncludeBrandCategory {
 
     @JsonProperty("primaryadserver")

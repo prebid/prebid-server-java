@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import io.vertx.core.http.HttpServerRequest;
+import io.vertx.ext.web.RequestBody;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,14 +41,17 @@ public class HttpInteractionLoggerTest extends VertxTest {
     private RoutingContext routingContext;
     @Mock(strictness = LENIENT)
     private HttpServerRequest serverRequest;
+    @Mock(strictness = LENIENT)
+    private RequestBody requestBody;
 
     private HttpInteractionLogger target;
 
     @BeforeEach
     public void setUp() {
         target = new HttpInteractionLogger(jacksonMapper);
-        given(routingContext.getBodyAsString()).willReturn("{}");
         given(routingContext.request()).willReturn(serverRequest);
+        given(routingContext.body()).willReturn(requestBody);
+        given(requestBody.asString()).willReturn("{}");
         given(serverRequest.uri()).willReturn("example.com");
         ReflectionTestUtils.setField(target, "logger", logger);
     }
@@ -150,7 +154,7 @@ public class HttpInteractionLoggerTest extends VertxTest {
     @Test
     public void maybeLogOpenrtb2AuctionShouldLogOneLineBodyFromContext() {
         // given
-        given(routingContext.getBodyAsString()).willReturn("""
+        given(requestBody.asString()).willReturn("""
                 {
                   "param": "value"
                 }""");
@@ -169,7 +173,7 @@ public class HttpInteractionLoggerTest extends VertxTest {
     @Test
     public void maybeLogOpenrtb2AuctionShouldLogMessageInsteadOfInvalidBody() {
         // given
-        given(routingContext.getBodyAsString()).willReturn("{");
+        given(requestBody.asString()).willReturn("{");
         final AuctionContext givenAuctionContext =
                 givenAuctionContext(accountBuilder -> accountBuilder.id("123"));
         final HttpLogSpec givenSpec = HttpLogSpec.of(null, null, "123", null, 1);

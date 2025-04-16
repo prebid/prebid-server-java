@@ -1,12 +1,10 @@
 package org.prebid.server.proto.openrtb.ext.request.invibes;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.prebid.server.proto.openrtb.ext.request.invibes.model.InvibesDebug;
 
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class ExtImpInvibes {
 
     @JsonProperty("placementId")

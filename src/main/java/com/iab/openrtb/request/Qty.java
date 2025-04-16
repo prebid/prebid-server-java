@@ -23,7 +23,7 @@ public class Qty {
     BigDecimal multiplier;
 
     /**
-     * The source type of the quantity measurement, ie. publisher.
+     * The source type of the quantity measurement, i.e. publisher.
      */
     Integer sourcetype;
 

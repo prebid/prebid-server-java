@@ -11,7 +11,7 @@ public class CaseInsensitiveMultiMap {
 
     private static final CaseInsensitiveMultiMap EMPTY = builder().build();
 
-    private final io.vertx.core.MultiMap delegate;
+    private final MultiMap delegate;
 
     private CaseInsensitiveMultiMap(MultiMap delegate) {
         this.delegate = delegate;
@@ -85,10 +85,10 @@ public class CaseInsensitiveMultiMap {
 
     public static class Builder {
 
-        private final io.vertx.core.MultiMap delegate;
+        private final MultiMap delegate;
 
         public Builder() {
-            this.delegate = io.vertx.core.MultiMap.caseInsensitiveMultiMap();
+            this.delegate = MultiMap.caseInsensitiveMultiMap();
         }
 
         public CaseInsensitiveMultiMap build() {

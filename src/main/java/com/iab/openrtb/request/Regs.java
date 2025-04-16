@@ -23,7 +23,7 @@ public class Regs {
     Integer coppa;
 
     /**
-     * Flag that indicates whether or not the request is subject to
+     * Flag that indicates whether the request is subject to
      * GDPR regulations 0 = No, 1 = Yes, omission indicates Unknown.
      * Refer to Section 7.5 for more information.
      */

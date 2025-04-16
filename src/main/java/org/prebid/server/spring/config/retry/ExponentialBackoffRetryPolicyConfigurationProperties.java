@@ -27,4 +27,3 @@ public final class ExponentialBackoffRetryPolicyConfigurationProperties {
         return ExponentialBackoffRetryPolicy.of(delayMillis, maxDelayMillis, factor, jitter);
     }
 }
-

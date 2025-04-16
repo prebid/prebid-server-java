@@ -91,7 +91,7 @@ public class NextMillenniumBidder implements Bidder<BidRequest> {
                 .storedrequest(storedRequest)
                 .build();
 
-        final ExtRequestPrebid extRequestPrebid = Optional.ofNullable(bidRequest)
+        final ExtRequestPrebid extRequestPrebid = Optional.of(bidRequest)
                 .map(BidRequest::getExt)
                 .map(ExtRequest::getPrebid)
                 .map(prebid -> prebid.toBuilder().storedrequest(storedRequest).build())

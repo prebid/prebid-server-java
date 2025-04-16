@@ -233,4 +233,3 @@ public class AdvangelistsBidder implements Bidder<BidRequest> {
         return BidType.banner;
     }
 }
-
