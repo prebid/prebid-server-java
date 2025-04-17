@@ -441,8 +441,6 @@ public class NextMillenniumBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        final BidRequest resultingBidRequest = result.getValue().get(0).getPayload();
-
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getExt)
