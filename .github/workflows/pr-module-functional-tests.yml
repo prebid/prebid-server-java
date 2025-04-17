@@ -70,8 +70,8 @@ jobs:
         with:
           issue-number: ${{ github.event.pull_request.number }}
           body: |
-            "❌ **Functional module tests CI Failed**"
-            
+            ❌ **Functional module tests CI Failed**
+            p
             ```
             ${{ steps.test-results.outputs.content }}
             ```
