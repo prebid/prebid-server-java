@@ -27,4 +27,9 @@ public class ExtBidderConfigOrtb {
      * Defines the contract for bidrequest.ext.prebid.bidderconfig.config.ortb2.user
      */
     ObjectNode user;
+
+    /**
+     * Defines the contract for bidrequest.ext.prebid.bidderconfig.config.ortb2.device
+     */
+    ObjectNode device;
 }
