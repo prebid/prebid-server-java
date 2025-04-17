@@ -596,7 +596,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         }
 
         final JsonNode nativeNode = admNode.get("native");
-        if (!nativeNode.isMissingNode()) {
+        if (nativeNode != null && !nativeNode.isMissingNode()) {
             return nativeNode.toString();
         }
 
