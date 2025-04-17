@@ -9,6 +9,7 @@
           "exp": 300,
           "price": 3.33,
           "crid": "creativeId",
+          "mtype": 1,
           "ext": {
             "origbidcpm": 3.33,
             "prebid": {
