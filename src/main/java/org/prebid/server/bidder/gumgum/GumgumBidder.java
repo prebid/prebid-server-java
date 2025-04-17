@@ -2,6 +2,7 @@ package org.prebid.server.bidder.gumgum;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.annotations.VisibleForTesting;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
@@ -75,7 +76,8 @@ public class GumgumBidder implements Bidder<BidRequest> {
                 errors);
     }
 
-    private BidRequest createBidRequest(BidRequest bidRequest, List<BidderError> errors) {
+    @VisibleForTesting
+    protected BidRequest createBidRequest(BidRequest bidRequest, List<BidderError> errors) {
         final List<Imp> modifiedImps = new ArrayList<>();
         String zone = null;
         BigInteger pubId = null;
@@ -83,16 +85,26 @@ public class GumgumBidder implements Bidder<BidRequest> {
         for (Imp imp : bidRequest.getImp()) {
             try {
                 final ExtImpGumgum extImp = parseImpExt(imp);
-                modifiedImps.add(modifyImp(imp, extImp));
+                if (extImp == null) {
+                    throw new PreBidException("Cannot parse extImp from imp.ext");
+                }
+
+                //extract AdUnitID also confirm for imp.tagId
+                final String adUnitId = extractAdUnitId(imp);
+
+                //modify Imp to include AdUnitID in ext
+                modifiedImps.add(modifyImp(imp, extImp, adUnitId));
 
                 final String extZone = extImp.getZone();
                 if (StringUtils.isNotEmpty(extZone)) {
                     zone = extZone;
                 }
+
                 final BigInteger extPubId = extImp.getPubId();
                 if (extPubId != null && !extPubId.equals(BigInteger.ZERO)) {
                     pubId = extPubId;
                 }
+
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -108,6 +120,14 @@ public class GumgumBidder implements Bidder<BidRequest> {
                 .build();
     }
 
+    @VisibleForTesting
+    protected String extractAdUnitId(Imp imp) {
+        if (imp.getExt() != null && imp.getExt().has("bidder") && imp.getExt().get("bidder").has("adunitid")) {
+            return imp.getExt().get("bidder").get("adunitid").asText();
+        }
+        return null;
+    }
+
     private ExtImpGumgum parseImpExt(Imp imp) {
         try {
             return mapper.mapper().convertValue(imp.getExt(), GUMGUM_EXT_TYPE_REFERENCE).getBidder();
@@ -116,14 +136,27 @@ public class GumgumBidder implements Bidder<BidRequest> {
         }
     }
 
-    private Imp modifyImp(Imp imp, ExtImpGumgum extImp) {
+    @VisibleForTesting
+    protected Imp modifyImp(Imp imp, ExtImpGumgum extImp, String adUnitId) {
         final Imp.ImpBuilder impBuilder = imp.toBuilder();
 
-        final String product = extImp.getProduct();
-        if (StringUtils.isNotEmpty(product)) {
-            final ObjectNode productExt = mapper.mapper().createObjectNode().put(REQUEST_EXT_PRODUCT, product);
-            impBuilder.ext(productExt);
+        if (extImp == null) {
+            extImp = ExtImpGumgum.of(null, null, null, null, null); //create an empty ExtImpGumgum object
         }
+
+        final String product = extImp.getProduct();
+        ObjectNode updatedExt = imp.getExt();
+
+        if (StringUtils.isNotEmpty(product)) {
+            updatedExt = mapper.mapper().createObjectNode().put(REQUEST_EXT_PRODUCT, product);
+        }
+
+        //set AdUnitID to imp.tagId
+        if (StringUtils.isNotEmpty(adUnitId)) {
+            impBuilder.tagid(adUnitId);
+        }
+
+        impBuilder.ext(updatedExt);
 
         final Banner banner = imp.getBanner();
         if (banner != null) {
