@@ -11,13 +11,37 @@ import java.util.List;
 
 public class GppModelWrapper extends GppModel {
 
+    private static final String SECTIONS_DELIMITER = "~";
+    private static final String BASE64_PADDING_CHAR = "A";
+
     private static final int TCF_EU_V2_ID = 2;
     private static final int USP_V1_ID = 6;
 
     private IntObjectMap<String> sectionIdToEncodedString;
 
     public GppModelWrapper(String encodedString) throws DecodingException {
-        super(encodedString);
+        super(padSections(encodedString));
+    }
+
+    private static String padSections(String encodedString) {
+        final String[] sections = sections(encodedString);
+
+        boolean modified = false;
+        for (int i = 1; i < sections.length; i++) {
+            final String currentSection = sections[i];
+            if (currentSection.length() % 4 > 0 && !currentSection.endsWith("=")) {
+                sections[i] = currentSection + BASE64_PADDING_CHAR;
+                modified = true;
+            }
+        }
+
+        return modified
+                ? String.join(SECTIONS_DELIMITER, sections)
+                : encodedString;
+    }
+
+    private static String[] sections(String encodedString) {
+        return encodedString.split(SECTIONS_DELIMITER);
     }
 
     private void init() {
@@ -32,7 +56,7 @@ public class GppModelWrapper extends GppModel {
         super.decode(str);
         init();
 
-        final String[] encodedSections = str.split("~");
+        final String[] encodedSections = sections(str);
         final List<Integer> sectionIds = ((HeaderV1) getSection(HeaderV1.NAME)).getSectionsIds();
 
         for (int i = 0; i < sectionIds.size(); i++) {
