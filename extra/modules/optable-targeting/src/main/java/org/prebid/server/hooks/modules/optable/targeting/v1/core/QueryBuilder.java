@@ -17,7 +17,7 @@ import java.util.stream.Stream;
 public class QueryBuilder {
 
     public Query build(List<Id> ids, OptableAttributes optableAttributes, String idPrefixOrder) {
-        if (CollectionUtils.isEmpty(ids)) {
+        if (CollectionUtils.isEmpty(ids) && CollectionUtils.isEmpty(optableAttributes.getIps())) {
             return null;
         }
 

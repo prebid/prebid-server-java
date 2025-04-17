@@ -89,12 +89,31 @@ public class QueryBuilderTest {
     }
 
     @Test
-    public void shouldNotBuildQueryStringWhenIdsListIsEmpty() {
+    public void shouldBuildQueryStringWhenIdsListIsEmptyAndIpIsPresent() {
         // given
         final List<Id> ids = List.of();
+        final OptableAttributes attributes = OptableAttributes.builder()
+                .ips(List.of("8.8.8.8"))
+                .build();
 
         // when
-        final String query = target.build(ids, optableAttributes, idPrefixOrder).toQueryString();
+        final Query query = target.build(ids, attributes, idPrefixOrder);
+
+        // then
+
+        assertThat(query).isNotNull();
+        assertThat(query.toQueryString()).isEqualTo("gdpr=0");
+    }
+
+    @Test
+    public void shouldNotBuildQueryStringWhenIdsListIsEmptyAndIpIsAbsent() {
+        // given
+        final List<Id> ids = List.of();
+        final OptableAttributes attributes = OptableAttributes.builder()
+                .build();
+
+        // when
+        final Query query = target.build(ids, attributes, idPrefixOrder);
 
         // then
 
