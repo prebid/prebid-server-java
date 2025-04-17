@@ -22,3 +22,7 @@ adapters:
         url: https://s.ad.smaato.net/c/?adExInit=p&redir={{redirect_url}}&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}
         support-cors: false
         uid-macro: '$UID'
+      iframe:
+        url: https://s.ad.smaato.net/i/?adExInit=p&redir={{redirect_url}}&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}
+        support-cors: false
+        uid-macro: '$UID'
