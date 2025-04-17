@@ -22,6 +22,7 @@ import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.hooks.modules.optable.targeting.model.EnrichmentStatus;
 import org.prebid.server.hooks.modules.optable.targeting.model.Metrics;
 import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
+import org.prebid.server.hooks.modules.optable.targeting.model.Query;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.CacheProperties;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Audience;
@@ -182,5 +183,9 @@ public abstract class BaseOptableTest {
                 null,
                 new CacheProperties(enableCache, 86400)
         );
+    }
+
+    protected Query givenQuery() {
+        return Query.of("que", "ry");
     }
 }

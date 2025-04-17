@@ -62,7 +62,7 @@ public class APIClientTest extends BaseOptableTest {
 
         // when
         final Future<TargetingResult> result = target.getTargeting("key", "accountId", "origin",
-                "query", List.of("8.8.8.8"), 1000);
+                givenQuery(), List.of("8.8.8.8"), 1000);
 
         // then
         assertThat(result.result()).isNotNull();
@@ -80,7 +80,7 @@ public class APIClientTest extends BaseOptableTest {
 
         // when
         final Future<TargetingResult> result = target.getTargeting("key", "accountId", "origin",
-                "query", List.of("8.8.8.8"), 1000);
+                givenQuery(), List.of("8.8.8.8"), 1000);
 
         // then
         assertThat(result.result()).isNull();
@@ -94,7 +94,7 @@ public class APIClientTest extends BaseOptableTest {
 
         // when
         final Future<TargetingResult> result = target.getTargeting("key", "accountId", "origin",
-                "query", List.of("8.8.8.8"), 1000);
+                givenQuery(), List.of("8.8.8.8"), 1000);
 
         // then
         assertThat(result.result()).isNull();
@@ -108,7 +108,7 @@ public class APIClientTest extends BaseOptableTest {
 
         // when
         final Future<TargetingResult> result = target.getTargeting("key", "accountId", "origin",
-                "query", List.of("8.8.8.8"), 1000);
+                givenQuery(), List.of("8.8.8.8"), 1000);
 
         // then
         assertThat(result.result()).isNull();
@@ -123,7 +123,7 @@ public class APIClientTest extends BaseOptableTest {
 
         // when
         final Future<TargetingResult> result = target.getTargeting("key", "accountId", "origin",
-                "query", List.of("8.8.8.8"), 1000);
+                givenQuery(), List.of("8.8.8.8"), 1000);
 
         // then
         assertThat(result.result()).isNull();
@@ -143,7 +143,7 @@ public class APIClientTest extends BaseOptableTest {
 
         // when
         final Future<TargetingResult> result = target.getTargeting("key", "accountId", "origin",
-                "query", List.of("8.8.8.8"), 1000);
+                givenQuery(), List.of("8.8.8.8"), 1000);
 
         // then
         final ArgumentCaptor<MultiMap> headersCaptor = ArgumentCaptor.forClass(MultiMap.class);
@@ -163,7 +163,7 @@ public class APIClientTest extends BaseOptableTest {
 
         // when
         final Future<TargetingResult> result = target.getTargeting(null, "accountId", "origin",
-                "query", List.of("8.8.8.8"), 1000);
+                givenQuery(), List.of("8.8.8.8"), 1000);
 
         // then
         final ArgumentCaptor<MultiMap> headersCaptor = ArgumentCaptor.forClass(MultiMap.class);
@@ -186,7 +186,7 @@ public class APIClientTest extends BaseOptableTest {
                 "key",
                 "accountId",
                 "origin",
-                "query",
+                givenQuery(),
                 List.of("8.8.8.8", "2001:4860:4860::8888"),
                 1000);
 
@@ -207,7 +207,7 @@ public class APIClientTest extends BaseOptableTest {
 
         // when
         final Future<TargetingResult> result = target.getTargeting("key", "accountId", "origin",
-                "query", null, 1000);
+                givenQuery(), null, 1000);
 
         // then
         final ArgumentCaptor<MultiMap> headersCaptor = ArgumentCaptor.forClass(MultiMap.class);

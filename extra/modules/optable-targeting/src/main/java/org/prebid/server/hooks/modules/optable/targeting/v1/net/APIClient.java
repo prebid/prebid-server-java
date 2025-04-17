@@ -8,6 +8,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.impl.headers.HeadersMultiMap;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.hooks.modules.optable.targeting.model.Query;
 import org.prebid.server.hooks.modules.optable.targeting.model.net.HttpRequest;
 import org.prebid.server.hooks.modules.optable.targeting.model.net.HttpResponse;
 import org.prebid.server.hooks.modules.optable.targeting.model.net.OptableCall;
@@ -52,7 +53,7 @@ public class APIClient {
     }
 
     public Future<TargetingResult> getTargeting(String apiKey, String tenant, String origin,
-                                                String query, List<String> ips, long timeout) {
+                                                Query query, List<String> ips, long timeout) {
 
         final MultiMap headers = HeadersMultiMap.headers()
                 .add(HttpUtil.ACCEPT_HEADER, "application/json");
@@ -69,7 +70,7 @@ public class APIClient {
 
         final HttpRequest request = HttpRequest.builder()
                 .uri(EndpointResolver.resolve(endpoint, tenant, origin))
-                .query(query)
+                .query(query.toQueryString())
                 .headers(headers)
                 .build();
 

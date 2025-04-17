@@ -4,6 +4,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.hooks.modules.optable.targeting.model.Id;
 import org.prebid.server.hooks.modules.optable.targeting.model.OptableAttributes;
+import org.prebid.server.hooks.modules.optable.targeting.model.Query;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -15,17 +16,20 @@ import java.util.stream.Stream;
 
 public class QueryBuilder {
 
-    public String build(List<Id> ids, OptableAttributes optableAttributes, String idPrefixOrder) {
+    public Query build(List<Id> ids, OptableAttributes optableAttributes, String idPrefixOrder) {
         if (CollectionUtils.isEmpty(ids)) {
             return null;
         }
 
+        return Query.of(buildIdsString(ids, idPrefixOrder), buildAttributesString(optableAttributes));
+    }
+
+    private String buildIdsString(List<Id> ids, String idPrefixOrder) {
         final StringBuilder sb = new StringBuilder();
         final List<Id> reorderedIds = reorderIds(ids, idPrefixOrder);
         if (CollectionUtils.isNotEmpty(reorderedIds)) {
             buildQueryString(sb, reorderedIds);
         }
-        addAttributes(sb, optableAttributes);
 
         return sb.toString();
     }
@@ -51,7 +55,8 @@ public class QueryBuilder {
         return value;
     }
 
-    private void addAttributes(StringBuilder sb, OptableAttributes optableAttributes) {
+    private String buildAttributesString(OptableAttributes optableAttributes) {
+        final StringBuilder sb = new StringBuilder();
         Optional.ofNullable(optableAttributes.getGdprConsent()).ifPresent(consent ->
                 sb.append("&gdpr_consent=").append(consent));
         Optional.of(optableAttributes.isGdprApplies()).ifPresent(applies ->
@@ -65,6 +70,8 @@ public class QueryBuilder {
         });
         Optional.ofNullable(optableAttributes.getTimeout()).ifPresent(timeout ->
                 sb.append("&timeout=").append(timeout).append("ms"));
+
+        return sb.toString();
     }
 
     private void buildQueryString(StringBuilder sb, List<Id> ids) {

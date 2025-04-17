@@ -34,7 +34,9 @@ public class Cache {
     }
 
     public Future<Void> put(String query, TargetingResult value, int ttlSeconds) {
-        if (value == null) return Future.succeededFuture();
+        if (value == null) {
+            return Future.succeededFuture();
+        }
 
         return cacheService.storeEntry(
                 query,
