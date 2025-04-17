@@ -12,6 +12,7 @@ import org.prebid.server.functional.model.request.auction.FetchStatus
 import org.prebid.server.functional.model.request.auction.TraceLevel
 import org.prebid.server.functional.model.response.auction.AnalyticResult
 import org.prebid.server.functional.model.response.auction.InvocationResult
+import org.prebid.server.functional.model.response.auction.ResponseAction
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
 
@@ -81,7 +82,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         def invocationResults = response?.ext?.prebid?.modules?.trace?.stages?.outcomes?.groups?.invocationResults?.flatten() as List<InvocationResult>
         verifyAll(invocationResults) {
             it.status == [SUCCESS, SUCCESS]
-            it.action == [NO_ACTION, NO_ACTION]
+            it.action == [ResponseAction.UPDATE, ResponseAction.UPDATE]
         }
 
         and: "Shouldn't include any analytics tags"

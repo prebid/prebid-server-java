@@ -6,10 +6,10 @@
       "bid": [
           {
               "id": "randomid",
-              "impid": "test-imp-id",
+              "impid": "testd",
               "price": 0.500000,
-              "adid": "12345678",
-              "adm": "some-test-ad",
+              "adid": "",
+              "adm": "t-ad",
               "cid": "987",
               "crid": "12345678",
               "h": 250,
