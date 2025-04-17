@@ -9,8 +9,11 @@ import com.iab.gpp.encoder.section.UspV1;
 import org.junit.jupiter.api.Test;
 
 import java.util.Comparator;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 
 public class GppModelWrapperTest {
 
@@ -35,7 +38,7 @@ public class GppModelWrapperTest {
             + "1YN-";
 
     @Test
-    public void test() throws DecodingException, EncodingException {
+    public void wrapperShouldStoreSomeOfOriginalSections() throws DecodingException, EncodingException {
         // given and when
         final GppModel originalGpp = new GppModel(GPP_STRING);
         final GppModel wrappedGpp = new GppModelWrapper(GPP_STRING);
@@ -46,6 +49,30 @@ public class GppModelWrapperTest {
                 .usingComparator(Comparator.comparing(GppModelWrapperTest::normalizeEncodedTcfEuV2Section))
                 .isEqualTo(originalGpp.encodeSection(TcfEuV2.ID));
         assertThat(wrappedGpp.encodeSection(UspV1.ID)).isEqualTo(originalGpp.encodeSection(UspV1.ID));
+    }
+
+    @Test
+    public void wrapperShouldPadSectionsIfNeeded() {
+        // given
+        final List<String> samples = List.of(
+                "DBABLA~BVQqAAAAAg",
+                "DBABLA~BVVqCAAACg",
+                "DBABLA~BVVVBAAABg",
+                "DBABLA~BVVqCACACg",
+                "DBABLA~BVQVAAAAAg",
+                "DBABLA~BVVVBABABg");
+
+        for (String sample : samples) {
+            // when
+            final GppModel originalGpp = new GppModel(sample);
+            final GppModel wrappedGpp = new GppModelWrapper(sample);
+
+            // then
+            assertThatExceptionOfType(DecodingException.class)
+                    .isThrownBy(() -> originalGpp.getUsNatSection().getMspaCoveredTransaction());
+            assertThatNoException()
+                    .isThrownBy(() -> wrappedGpp.getUsNatSection().getMspaCoveredTransaction());
+        }
     }
 
     public static String normalizeEncodedTcfEuV2Section(String encodedSection) {
