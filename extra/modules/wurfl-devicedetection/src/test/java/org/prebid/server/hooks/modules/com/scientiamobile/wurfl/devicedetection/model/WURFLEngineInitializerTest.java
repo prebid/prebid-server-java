@@ -37,18 +37,6 @@ class WURFLEngineInitializerTest {
     }
 
     @Test
-    void downloadWurflFileIfNeededShouldDownloadWhenUrlAndPathArePresent() {
-        try (MockedStatic<GeneralWURFLEngine> mockedStatic = mockStatic(GeneralWURFLEngine.class)) {
-            // when
-            WURFLEngineInitializer.downloadWurflFile(configProperties);
-
-            // then
-            mockedStatic.verify(() ->
-                    GeneralWURFLEngine.wurflDownload("http://test.url/wurfl.zip", "/test/path"));
-        }
-    }
-
-    @Test
     void verifyStaticCapabilitiesDefinitionShouldThrowExceptionWhenCapabilitiesAreNotDefined() {
         // given
         when(wurflEngine.getAllCapabilities()).thenReturn(Set.of(
@@ -111,7 +99,7 @@ class WURFLEngineInitializerTest {
         when(configProperties.getFileSnapshotUrl()).thenReturn("http://test.url/wurfl.zip");
         when(configProperties.getFileDirPath()).thenReturn("/test/path");
         when(configProperties.getCacheSize()).thenReturn(1000);
-        when(configProperties.isRunUpdater()).thenReturn(true);
+        when(configProperties.getUpdateFrequencyInHours()).thenReturn(48);
         when(configProperties.getUpdateConnTimeoutMs()).thenReturn(5000);
 
         // when

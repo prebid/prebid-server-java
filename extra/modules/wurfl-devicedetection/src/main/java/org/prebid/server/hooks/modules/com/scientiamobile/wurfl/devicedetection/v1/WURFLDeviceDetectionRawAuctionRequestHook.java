@@ -18,7 +18,6 @@ import org.prebid.server.hooks.v1.auction.RawAuctionRequestHook;
 import org.prebid.server.auction.model.AuctionContext;
 import io.vertx.core.Future;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -29,8 +28,6 @@ public class WURFLDeviceDetectionRawAuctionRequestHook implements RawAuctionRequ
     public static final String CODE = "wurfl-devicedetection-raw-auction-request";
 
     private final WURFLService wurflService;
-    private final List<String> staticCaps;
-    private final List<String> virtualCaps;
     private final OrtbDeviceUpdater ortbDeviceUpdater;
     private final Map<String, String> allowedPublisherIDs;
     private final boolean addExtCaps;
@@ -38,8 +35,6 @@ public class WURFLDeviceDetectionRawAuctionRequestHook implements RawAuctionRequ
     public WURFLDeviceDetectionRawAuctionRequestHook(WURFLService wurflService,
                                                      WURFLDeviceDetectionConfigProperties configProperties) {
         this.wurflService = wurflService;
-        this.staticCaps = wurflService.getAllCapabilities().stream().toList();
-        this.virtualCaps = wurflService.getAllVirtualCapabilities().stream().toList();
         this.ortbDeviceUpdater = new OrtbDeviceUpdater();
         this.addExtCaps = configProperties.isExtCaps();
         this.allowedPublisherIDs = configProperties.getAllowedPublisherIds().stream()
@@ -77,12 +72,15 @@ public class WURFLDeviceDetectionRawAuctionRequestHook implements RawAuctionRequ
             final Map<String, String> headers = new HeadersResolver().resolve(ortbDevice, requestHeaders);
             final Optional<com.scientiamobile.wurfl.core.Device> wurflDevice = wurflService.lookupDevice(headers);
             if (wurflDevice.isEmpty()) {
+                log.info("No WURFL device found, returning original bid request");
                 return noUpdateResultFuture();
             }
 
             try {
-                final Device updatedDevice = ortbDeviceUpdater.update(ortbDevice, wurflDevice.get(), staticCaps,
-                        virtualCaps, addExtCaps);
+                final Device updatedDevice = ortbDeviceUpdater.update(ortbDevice, wurflDevice.get(),
+                        wurflService.getAllCapabilities(),
+                        wurflService.getAllVirtualCapabilities(),
+                        addExtCaps);
 
                 return Future.succeededFuture(
                         InvocationResultImpl.<AuctionRequestPayload>builder()

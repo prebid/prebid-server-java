@@ -1,6 +1,5 @@
 package org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.config;
 
-import com.scientiamobile.wurfl.core.WURFLEngine;
 import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.model.WURFLEngineInitializer;
 import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.v1.WURFLDeviceDetectionEntrypointHook;
 import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.v1.WURFLDeviceDetectionModule;
@@ -23,7 +22,8 @@ import java.util.List;
 @Configuration
 public class WURFLDeviceDetectionConfiguration {
 
-    private static final Long DAILY_SYNC_INTERVAL = 86400000L;
+    private static final Long HOUR_IN_MILLIS = 3600000L;
+    private static final int DEFAULT_UPDATE_FREQ_IN_HOURS = 24;
 
     @Bean
     @ConfigurationProperties(prefix = "hooks.modules." + WURFLDeviceDetectionModule.CODE)
@@ -35,24 +35,16 @@ public class WURFLDeviceDetectionConfiguration {
     public WURFLDeviceDetectionModule wurflDeviceDetectionModule(WURFLDeviceDetectionConfigProperties
                                                                          configProperties, Vertx vertx) {
 
-        final WURFLEngine wurflEngine = WURFLEngineInitializer.builder()
-                .configProperties(configProperties)
-                .build().initWURFLEngine();
-        wurflEngine.load();
-
-        final WURFLService wurflService = new WURFLService(wurflEngine, configProperties);
-
-        if (configProperties.isRunUpdater()) {
-            final FileSyncer fileSyncer = createFileSyncer(configProperties, wurflService, vertx);
-            // Update process via file syncer starts with a delay because wurfl file has just been downloaded
-            vertx.setTimer(DAILY_SYNC_INTERVAL, ignored -> fileSyncer.sync());
-        }
+        final WURFLService wurflService;
+        wurflService = new WURFLService(null, configProperties);
+        final FileSyncer fileSyncer = createFileSyncer(configProperties, wurflService, vertx);
+        fileSyncer.sync();
 
         return new WURFLDeviceDetectionModule(List.of(new WURFLDeviceDetectionEntrypointHook(),
                 new WURFLDeviceDetectionRawAuctionRequestHook(wurflService, configProperties)));
     }
 
-    private FileSyncer createFileSyncer(WURFLDeviceDetectionConfigProperties configProperties,
+    FileSyncer createFileSyncer(WURFLDeviceDetectionConfigProperties configProperties,
                                         WURFLService wurflService, Vertx vertx) {
         final FileSyncerProperties fileSyncerProperties = createFileSyncerProperties(configProperties);
         return FileUtil.fileSyncerFor(wurflService, fileSyncerProperties, vertx);
@@ -60,19 +52,33 @@ public class WURFLDeviceDetectionConfiguration {
 
     private FileSyncerProperties createFileSyncerProperties(WURFLDeviceDetectionConfigProperties configProperties) {
         final String downloadPath = createDownloadPath(configProperties);
+        final String tempPath = createTempPath(configProperties);
         final HttpClientProperties httpProperties = createHttpProperties(configProperties);
 
         final FileSyncerProperties fileSyncerProperties = new FileSyncerProperties();
         fileSyncerProperties.setCheckSize(true);
         fileSyncerProperties.setDownloadUrl(configProperties.getFileSnapshotUrl());
         fileSyncerProperties.setSaveFilepath(downloadPath);
+        fileSyncerProperties.setTmpFilepath(tempPath);
         fileSyncerProperties.setTimeoutMs((long) configProperties.getUpdateConnTimeoutMs());
-        fileSyncerProperties.setUpdateIntervalMs(DAILY_SYNC_INTERVAL);
         fileSyncerProperties.setRetryCount(configProperties.getUpdateRetries());
         fileSyncerProperties.setRetryIntervalMs(configProperties.getRetryIntervalMs());
         fileSyncerProperties.setHttpClient(httpProperties);
+        int updateFreqInHours = configProperties.getUpdateFrequencyInHours();
+        if (updateFreqInHours == 0) {
+            updateFreqInHours = DEFAULT_UPDATE_FREQ_IN_HOURS;
+        }
+        final long syncIntervalMillis = updateFreqInHours * HOUR_IN_MILLIS;
+        fileSyncerProperties.setUpdateIntervalMs(syncIntervalMillis);
 
         return fileSyncerProperties;
+    }
+
+    private String createTempPath(WURFLDeviceDetectionConfigProperties configProperties) {
+        final String basePath = configProperties.getFileDirPath();
+        String fileName = WURFLEngineInitializer.extractWURFLFileName(configProperties.getFileSnapshotUrl());
+        fileName = "tmp_" + fileName;
+        return Path.of(basePath, fileName).toString();
     }
 
     private String createDownloadPath(WURFLDeviceDetectionConfigProperties configProperties) {

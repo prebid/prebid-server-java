@@ -18,7 +18,7 @@ class WURFLDeviceDetectionConfigPropertiesTest {
         assertThat(properties.getFileDirPath()).isNull();
         assertThat(properties.getFileSnapshotUrl()).isNull();
         assertThat(properties.isExtCaps()).isFalse();
-        assertThat(properties.isRunUpdater()).isTrue();
+        assertThat(properties.getUpdateFrequencyInHours()).isEqualTo(0);
         assertThat(properties.getUpdateConnTimeoutMs()).isEqualTo(5000);
         assertThat(properties.getUpdateRetries()).isEqualTo(3);
         assertThat(properties.getRetryIntervalMs()).isEqualTo(200);
@@ -34,7 +34,7 @@ class WURFLDeviceDetectionConfigPropertiesTest {
         properties.setFileDirPath("/path/to/file");
 
         properties.setFileSnapshotUrl("https://example-scientiamobile.com/wurfl.zip");
-        properties.setRunUpdater(false);
+        properties.setUpdateFrequencyInHours(48);
         properties.setAllowedPublisherIds(Set.of("1", "3"));
         properties.setExtCaps(true);
         properties.setUpdateConnTimeoutMs(7000);
@@ -46,7 +46,7 @@ class WURFLDeviceDetectionConfigPropertiesTest {
         assertThat(properties.getCacheSize()).isEqualTo(1000);
         assertThat(properties.getFileDirPath()).isEqualTo("/path/to/file");
         assertThat(properties.getFileSnapshotUrl()).isEqualTo("https://example-scientiamobile.com/wurfl.zip");
-        assertThat(properties.isRunUpdater()).isEqualTo(false);
+        assertThat(properties.getUpdateFrequencyInHours()).isEqualTo(48);
         assertThat(properties.getAllowedPublisherIds()).isEqualTo(Set.of("1", "3"));
         assertThat(properties.isExtCaps()).isTrue();
         assertThat(properties.getUpdateConnTimeoutMs()).isEqualTo(7000);

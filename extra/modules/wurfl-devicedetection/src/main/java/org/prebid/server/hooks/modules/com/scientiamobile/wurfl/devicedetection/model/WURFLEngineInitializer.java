@@ -6,7 +6,6 @@ import com.scientiamobile.wurfl.core.cache.LRUMapCacheProvider;
 import com.scientiamobile.wurfl.core.cache.NullCacheProvider;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.config.WURFLDeviceDetectionConfigProperties;
 import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.exc.WURFLModuleConfigurationException;
 
@@ -38,30 +37,25 @@ public class WURFLEngineInitializer {
 
     private WURFLDeviceDetectionConfigProperties configProperties;
 
+    private String wurflFilePath;
+
     public WURFLEngine initWURFLEngine() {
         // this happens in a spring bean that happens at module startup time
-        downloadWurflFile(configProperties);
-        return initializeEngine(configProperties);
+        return initializeEngine(configProperties, wurflFilePath);
     }
 
-    static void downloadWurflFile(WURFLDeviceDetectionConfigProperties configProperties) {
-        if (StringUtils.isNotBlank(configProperties.getFileSnapshotUrl())
-                && StringUtils.isNotBlank(configProperties.getFileDirPath())) {
-            GeneralWURFLEngine.wurflDownload(
-                    configProperties.getFileSnapshotUrl(),
-                    configProperties.getFileDirPath());
+    static WURFLEngine initializeEngine(WURFLDeviceDetectionConfigProperties configProperties, String wurflInFilePath) {
+
+        String wurflFilePath = wurflInFilePath;
+        if (wurflFilePath == null) {
+            final String wurflFileName = extractWURFLFileName(configProperties.getFileSnapshotUrl());
+
+            final Path wurflPath = Paths.get(
+                    configProperties.getFileDirPath(),
+                    wurflFileName);
+            wurflFilePath = wurflPath.toAbsolutePath().toString();
         }
-    }
-
-    static WURFLEngine initializeEngine(WURFLDeviceDetectionConfigProperties configProperties) {
-
-        final String wurflFileName = extractWURFLFileName(configProperties.getFileSnapshotUrl());
-
-        final Path wurflPath = Paths.get(
-                configProperties.getFileDirPath(),
-                wurflFileName
-        );
-        final WURFLEngine engine = new GeneralWURFLEngine(wurflPath.toString());
+        final WURFLEngine engine = new GeneralWURFLEngine(wurflFilePath);
         verifyStaticCapabilitiesDefinition(engine);
 
         if (configProperties.getCacheSize() > 0) {

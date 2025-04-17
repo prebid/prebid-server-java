@@ -82,7 +82,8 @@ hooks:
   modules:
     wurfl-devicedetection:
       file-dir-path: </path/to/wurfl_snapshot_dir>
-      file-snapshot-url: https://data.scientiamobile.com/your_wurfl_snapshot_url/wurfl.zip
+      # replace with your wurfl file snapshot URL when using a licensed version of wurfl
+      file-snapshot-url: https://httpstat.us/200
       cache-size: 200000
       run-updater: true
       allowed-publisher-ids: 1

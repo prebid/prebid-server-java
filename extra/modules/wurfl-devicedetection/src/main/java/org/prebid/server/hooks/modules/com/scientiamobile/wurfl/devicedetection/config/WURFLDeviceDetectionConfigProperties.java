@@ -19,7 +19,7 @@ public class WURFLDeviceDetectionConfigProperties {
 
     boolean extCaps;
 
-    boolean runUpdater = true;
+    int updateFrequencyInHours;
 
     Set<String> allowedPublisherIds = Set.of();
 

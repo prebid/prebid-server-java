@@ -6,7 +6,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.scientiamobile.wurfl.core.Device;
-import com.scientiamobile.wurfl.core.GeneralWURFLEngine;
+import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.model.WURFLEngineInitializer;
 import com.scientiamobile.wurfl.core.WURFLEngine;
 import io.vertx.core.Future;
 import lombok.extern.slf4j.Slf4j;
@@ -25,9 +25,13 @@ public class WURFLService implements FileProcessor {
     }
 
     protected WURFLEngine createEngine(String dataFilePath) {
-        final WURFLEngine engine = new GeneralWURFLEngine(dataFilePath);
-        engine.load();
-        return engine;
+        final WURFLEngine wurflEngine = WURFLEngineInitializer.builder()
+                .configProperties(configProperties)
+                .wurflFilePath(dataFilePath)
+                .build().initWURFLEngine();
+        wurflEngine.load();
+        log.info("WURFL Engine initialized");
+        return wurflEngine;
     }
 
     public Future<?> setDataPath(String dataFilePath) {

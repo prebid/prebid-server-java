@@ -9,9 +9,8 @@ import org.prebid.server.model.UpdateResult;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.Set;
 
 @Slf4j
 public class OrtbDeviceUpdater {
@@ -30,7 +29,7 @@ public class OrtbDeviceUpdater {
     );
 
     public Device update(Device ortbDevice, com.scientiamobile.wurfl.core.Device wurflDevice,
-                         List<String> staticCaps, List<String> virtualCaps, boolean addExtCaps) {
+                         Set<String> staticCaps, Set<String> virtualCaps, boolean addExtCaps) {
 
         final Device.DeviceBuilder deviceBuilder = ortbDevice.toBuilder();
 
