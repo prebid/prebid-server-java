@@ -7,15 +7,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
-import org.prebid.server.bidadjustments.model.BidAdjustments;
+import org.prebid.server.bidadjustments.model.BidAdjustmentsRule;
 import org.prebid.server.bidder.model.Price;
 import org.prebid.server.currency.CurrencyConversionService;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidAdjustmentsRule;
-import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 
 import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -26,6 +24,8 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.prebid.server.bidadjustments.model.BidAdjustmentType.CPM;
 import static org.prebid.server.bidadjustments.model.BidAdjustmentType.MULTIPLIER;
 import static org.prebid.server.bidadjustments.model.BidAdjustmentType.STATIC;
+import static org.prebid.server.proto.openrtb.ext.request.ImpMediaType.banner;
+import static org.prebid.server.proto.openrtb.ext.request.ImpMediaType.video_outstream;
 
 @ExtendWith(MockitoExtension.class)
 public class BidAdjustmentsResolverTest extends VertxTest {
@@ -33,11 +33,14 @@ public class BidAdjustmentsResolverTest extends VertxTest {
     @Mock(strictness = LENIENT)
     private CurrencyConversionService currencyService;
 
+    @Mock(strictness = LENIENT)
+    private BidAdjustmentsRulesResolver bidAdjustmentsRulesResolver;
+
     private BidAdjustmentsResolver target;
 
     @BeforeEach
     public void before() {
-        target = new BidAdjustmentsResolver(currencyService);
+        target = new BidAdjustmentsResolver(currencyService, bidAdjustmentsRulesResolver);
 
         given(currencyService.convertCurrency(any(), any(), any(), any())).willAnswer(invocation -> {
             final BigDecimal initialPrice = (BigDecimal) invocation.getArguments()[0];
@@ -48,16 +51,15 @@ public class BidAdjustmentsResolverTest extends VertxTest {
     @Test
     public void resolveShouldPickAndApplyRulesBySpecificMediaType() {
         // given
-        final BidAdjustments givenBidAdjustments = BidAdjustments.of(Map.of(
-                "banner|*|*", List.of(givenStatic("15", "EUR")),
-                "*|*|*", List.of(givenStatic("25", "UAH"))));
+        final BidRequest givenBidRequest = BidRequest.builder().build();
+        given(bidAdjustmentsRulesResolver.resolve(givenBidRequest, banner, "bidderName", "dealId"))
+                .willReturn(List.of(givenStatic("15", "EUR")));
 
         // when
         final Price actual = target.resolve(
                 Price.of("USD", BigDecimal.ONE),
-                BidRequest.builder().build(),
-                givenBidAdjustments,
-                ImpMediaType.banner,
+                givenBidRequest,
+                banner,
                 "bidderName",
                 "dealId");
 
@@ -69,18 +71,15 @@ public class BidAdjustmentsResolverTest extends VertxTest {
     @Test
     public void resolveShouldPickAndApplyRulesByWildcardMediaType() {
         // given
-        final BidAdjustments givenBidAdjustments = BidAdjustments.of(Map.of(
-                "banner|*|*", List.of(givenCpm("15", "EUR")),
-                "*|*|*", List.of(givenCpm("25", "UAH"))));
-
         final BidRequest givenBidRequest = BidRequest.builder().build();
+        given(bidAdjustmentsRulesResolver.resolve(givenBidRequest, video_outstream, "bidderName", "dealId"))
+                .willReturn(List.of(givenCpm("25", "UAH")));
 
         // when
         final Price actual = target.resolve(
                 Price.of("USD", BigDecimal.ONE),
                 givenBidRequest,
-                givenBidAdjustments,
-                ImpMediaType.video_outstream,
+                video_outstream,
                 "bidderName",
                 "dealId");
 
@@ -92,16 +91,15 @@ public class BidAdjustmentsResolverTest extends VertxTest {
     @Test
     public void resolveShouldPickAndApplyRulesBySpecificBidder() {
         // given
-        final BidAdjustments givenBidAdjustments = BidAdjustments.of(Map.of(
-                "*|bidderName|*", List.of(givenMultiplier("15")),
-                "*|*|*", List.of(givenMultiplier("25"))));
+        final BidRequest givenBidRequest = BidRequest.builder().build();
+        given(bidAdjustmentsRulesResolver.resolve(givenBidRequest, banner, "bidderName", "dealId"))
+                .willReturn(List.of(givenMultiplier("15")));
 
         // when
         final Price actual = target.resolve(
                 Price.of("USD", BigDecimal.ONE),
                 BidRequest.builder().build(),
-                givenBidAdjustments,
-                ImpMediaType.banner,
+                banner,
                 "bidderName",
                 "dealId");
 
@@ -113,16 +111,15 @@ public class BidAdjustmentsResolverTest extends VertxTest {
     @Test
     public void resolveShouldPickAndApplyRulesByWildcardBidder() {
         // given
-        final BidAdjustments givenBidAdjustments = BidAdjustments.of(Map.of(
-                "*|bidderName|*", List.of(givenStatic("15", "EUR"), givenMultiplier("15")),
-                "*|*|*", List.of(givenStatic("25", "UAH"), givenMultiplier("25"))));
+        final BidRequest givenBidRequest = BidRequest.builder().build();
+        given(bidAdjustmentsRulesResolver.resolve(givenBidRequest, banner, "anotherBidderName", "dealId"))
+                .willReturn(List.of(givenStatic("25", "UAH"), givenMultiplier("25")));
 
         // when
         final Price actual = target.resolve(
                 Price.of("USD", BigDecimal.ONE),
                 BidRequest.builder().build(),
-                givenBidAdjustments,
-                ImpMediaType.banner,
+                banner,
                 "anotherBidderName",
                 "dealId");
 
@@ -134,17 +131,15 @@ public class BidAdjustmentsResolverTest extends VertxTest {
     @Test
     public void resolveShouldPickAndApplyRulesBySpecificDealId() {
         // given
-        final BidAdjustments givenBidAdjustments = BidAdjustments.of(Map.of(
-                "*|*|dealId", List.of(givenCpm("15", "JPY"), givenStatic("15", "EUR")),
-                "*|*|*", List.of(givenCpm("25", "JPY"), givenStatic("25", "UAH"))));
         final BidRequest givenBidRequest = BidRequest.builder().build();
+        given(bidAdjustmentsRulesResolver.resolve(givenBidRequest, banner, "bidderName", "dealId"))
+                .willReturn(List.of(givenCpm("15", "JPY"), givenStatic("15", "EUR")));
 
         // when
         final Price actual = target.resolve(
                 Price.of("USD", BigDecimal.ONE),
                 givenBidRequest,
-                givenBidAdjustments,
-                ImpMediaType.banner,
+                banner,
                 "bidderName",
                 "dealId");
 
@@ -156,17 +151,15 @@ public class BidAdjustmentsResolverTest extends VertxTest {
     @Test
     public void resolveShouldPickAndApplyRulesByWildcardDealId() {
         // given
-        final BidAdjustments givenBidAdjustments = BidAdjustments.of(Map.of(
-                "*|*|dealId", List.of(givenMultiplier("15"), givenCpm("15", "EUR")),
-                "*|*|*", List.of(givenMultiplier("25"), givenCpm("25", "UAH"))));
         final BidRequest givenBidRequest = BidRequest.builder().build();
+        given(bidAdjustmentsRulesResolver.resolve(givenBidRequest, banner, "bidderName", "anotherDealId"))
+                .willReturn(List.of(givenMultiplier("25"), givenCpm("25", "UAH")));
 
         // when
         final Price actual = target.resolve(
                 Price.of("USD", BigDecimal.ONE),
                 givenBidRequest,
-                givenBidAdjustments,
-                ImpMediaType.banner,
+                banner,
                 "bidderName",
                 "anotherDealId");
 
@@ -178,17 +171,15 @@ public class BidAdjustmentsResolverTest extends VertxTest {
     @Test
     public void resolveShouldPickAndApplyRulesByWildcardDealIdWhenDealIdIsNull() {
         // given
-        final BidAdjustments givenBidAdjustments = BidAdjustments.of(Map.of(
-                "*|*|dealId", List.of(givenCpm("15", "EUR"), givenCpm("15", "JPY")),
-                "*|*|*", List.of(givenCpm("25", "UAH"), givenCpm("25", "JPY"))));
         final BidRequest givenBidRequest = BidRequest.builder().build();
+        given(bidAdjustmentsRulesResolver.resolve(givenBidRequest, banner, "bidderName", null))
+                .willReturn(List.of(givenCpm("25", "UAH"), givenCpm("25", "JPY")));
 
         // when
         final Price actual = target.resolve(
                 Price.of("USD", BigDecimal.ONE),
                 givenBidRequest,
-                givenBidAdjustments,
-                ImpMediaType.banner,
+                banner,
                 "bidderName",
                 null);
 
@@ -201,15 +192,15 @@ public class BidAdjustmentsResolverTest extends VertxTest {
     @Test
     public void resolveShouldReturnEmptyListWhenNoMatchFound() {
         // given
-        final BidAdjustments givenBidAdjustments = BidAdjustments.of(Map.of(
-                "*|*|dealId", List.of(givenStatic("15", "EUR"))));
+        final BidRequest givenBidRequest = BidRequest.builder().build();
+        given(bidAdjustmentsRulesResolver.resolve(givenBidRequest, banner, "bidderName", null))
+                .willReturn(Collections.emptyList());
 
         // when
         final Price actual = target.resolve(
                 Price.of("USD", BigDecimal.ONE),
                 BidRequest.builder().build(),
-                givenBidAdjustments,
-                ImpMediaType.banner,
+                banner,
                 "bidderName",
                 null);
 
@@ -218,24 +209,24 @@ public class BidAdjustmentsResolverTest extends VertxTest {
         verifyNoInteractions(currencyService);
     }
 
-    private static ExtRequestBidAdjustmentsRule givenStatic(String value, String currency) {
-        return ExtRequestBidAdjustmentsRule.builder()
+    private static BidAdjustmentsRule givenStatic(String value, String currency) {
+        return BidAdjustmentsRule.builder()
                 .adjType(STATIC)
                 .currency(currency)
                 .value(new BigDecimal(value))
                 .build();
     }
 
-    private static ExtRequestBidAdjustmentsRule givenCpm(String value, String currency) {
-        return ExtRequestBidAdjustmentsRule.builder()
+    private static BidAdjustmentsRule givenCpm(String value, String currency) {
+        return BidAdjustmentsRule.builder()
                 .adjType(CPM)
                 .currency(currency)
                 .value(new BigDecimal(value))
                 .build();
     }
 
-    private static ExtRequestBidAdjustmentsRule givenMultiplier(String value) {
-        return ExtRequestBidAdjustmentsRule.builder()
+    private static BidAdjustmentsRule givenMultiplier(String value) {
+        return BidAdjustmentsRule.builder()
                 .adjType(MULTIPLIER)
                 .value(new BigDecimal(value))
                 .build();
