@@ -1,5 +1,6 @@
 package org.prebid.server.bidadjustments;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.DecimalNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -20,18 +21,22 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidAdjustmentFactors;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidMeta;
 import org.prebid.server.util.PbsUtil;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class BidAdjustmentsProcessor {
 
     private static final String ORIGINAL_BID_CPM = "origbidcpm";
     private static final String ORIGINAL_BID_CURRENCY = "origbidcur";
+    private static final String PREBID_EXT = "prebid";
 
     private final CurrencyConversionService currencyService;
     private final BidAdjustmentFactorResolver bidAdjustmentFactorResolver;
@@ -94,7 +99,8 @@ public class BidAdjustmentsProcessor {
 
             final Price priceWithFactorsApplied = applyBidAdjustmentFactors(
                     originalPrice,
-                    bidder,
+                    getAdapterCode(bidderBid.getBid()),
+                    bidderBid.getSeat(),
                     bidRequest,
                     mediaType);
 
@@ -108,6 +114,23 @@ public class BidAdjustmentsProcessor {
             return updateBid(originalPrice, priceWithAdjustmentsApplied, bidderBid, bidRequest);
         } catch (PreBidException e) {
             errors.add(BidderError.generic(e.getMessage()));
+            return null;
+        }
+    }
+
+    private String getAdapterCode(Bid bid) {
+        return Optional.ofNullable(bid.getExt())
+                .filter(ext -> ext.hasNonNull(PREBID_EXT))
+                .map(this::convertValue)
+                .map(ExtBidPrebid::getMeta)
+                .map(ExtBidPrebidMeta::getAdapterCode)
+                .orElse(null);
+    }
+
+    private ExtBidPrebid convertValue(JsonNode jsonNode) {
+        try {
+            return mapper.convertValue(jsonNode.get(PREBID_EXT), ExtBidPrebid.class);
+        } catch (IllegalArgumentException ignored) {
             return null;
         }
     }
@@ -150,23 +173,28 @@ public class BidAdjustmentsProcessor {
 
     private Price applyBidAdjustmentFactors(Price bidPrice,
                                             String bidder,
+                                            String seat,
                                             BidRequest bidRequest,
                                             ImpMediaType mediaType) {
 
         final String bidCurrency = bidPrice.getCurrency();
         final BigDecimal price = bidPrice.getValue();
 
-        final BigDecimal priceAdjustmentFactor = bidAdjustmentForBidder(bidder, bidRequest, mediaType);
+        final BigDecimal priceAdjustmentFactor = bidAdjustmentForBidder(bidder, seat, bidRequest, mediaType);
         final BigDecimal adjustedPrice = adjustPrice(priceAdjustmentFactor, price);
 
         return Price.of(bidCurrency, adjustedPrice.compareTo(price) != 0 ? adjustedPrice : price);
     }
 
-    private BigDecimal bidAdjustmentForBidder(String bidder, BidRequest bidRequest, ImpMediaType mediaType) {
+    private BigDecimal bidAdjustmentForBidder(String bidder,
+                                              String seat,
+                                              BidRequest bidRequest,
+                                              ImpMediaType mediaType) {
+
         final ExtRequestBidAdjustmentFactors adjustmentFactors = extBidAdjustmentFactors(bidRequest);
         return adjustmentFactors == null
                 ? null
-                : bidAdjustmentFactorResolver.resolve(mediaType, adjustmentFactors, bidder);
+                : bidAdjustmentFactorResolver.resolve(mediaType, adjustmentFactors, bidder, seat);
     }
 
     private static ExtRequestBidAdjustmentFactors extBidAdjustmentFactors(BidRequest bidRequest) {

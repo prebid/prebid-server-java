@@ -1187,10 +1187,8 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    SkippedAuctionService skipAuctionService(StoredResponseProcessor storedResponseProcessor,
-                                             BidResponseCreator bidResponseCreator) {
-
-        return new SkippedAuctionService(storedResponseProcessor, bidResponseCreator);
+    SkippedAuctionService skipAuctionService(StoredResponseProcessor storedResponseProcessor) {
+        return new SkippedAuctionService(storedResponseProcessor);
     }
 
     @Bean
