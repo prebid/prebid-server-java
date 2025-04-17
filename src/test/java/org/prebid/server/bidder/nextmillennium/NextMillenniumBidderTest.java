@@ -422,8 +422,7 @@ public class NextMillenniumBidderTest extends VertxTest {
                 "http://localhost:8080",
                 1,
                 "dc-test",
-                "/openrtb2/auction"
-        );
+                "/openrtb2/auction");
 
         final ExtRequest extRequest = ExtRequest.of(ExtRequestPrebid.builder()
                 .server(extRequestPrebidServer)
@@ -444,9 +443,12 @@ public class NextMillenniumBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         final BidRequest resultingBidRequest = result.getValue().get(0).getPayload();
 
-        assertThat(resultingBidRequest.getExt()).isNotNull();
-        assertThat(resultingBidRequest.getExt().getPrebid()).isNotNull();
-        assertThat(resultingBidRequest.getExt().getPrebid().getServer()).isEqualTo(extRequestPrebidServer);
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getServer)
+                .containsExactly(extRequestPrebidServer);
     }
 
     @Test
