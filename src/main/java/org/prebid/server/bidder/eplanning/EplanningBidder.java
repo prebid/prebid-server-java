@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.eplanning;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -8,6 +9,9 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.Source;
+import com.iab.openrtb.request.SupplyChain;
+import com.iab.openrtb.request.SupplyChainNode;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.MultiMap;
@@ -15,6 +19,7 @@ import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.logging.log4j.util.Strings;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.eplanning.model.CleanStepName;
 import org.prebid.server.bidder.eplanning.model.HbResponse;
@@ -269,7 +274,18 @@ public class EplanningBidder implements Bidder<Void> {
             uriBuilder.addParameter("app", REQUEST_TARGET_INVENTORY);
         }
 
-        return uriBuilder.toString();
+        final Source source = request.getSource();
+        if (source != null && source.getExt() != null && source.getExt().getSchain() != null) {
+            final SupplyChain supplyChain = source.getExt().getSchain();
+            if (supplyChain.getNodes() != null && supplyChain.getNodes().size() <= 2) {
+                final String schValue = makeSupplyChain(supplyChain);
+                if (StringUtils.isNotEmpty(schValue)) {
+                    uriBuilder.addParameter("sch", schValue);
+                }
+            }
+        }
+
+        return uriBuilder.toString().replace("+", "%20");
     }
 
     private static URL parseUrl(String url) {
@@ -278,6 +294,56 @@ public class EplanningBidder implements Bidder<Void> {
         } catch (MalformedURLException e) {
             throw new PreBidException("Invalid url: " + url, e);
         }
+    }
+
+    private String makeSupplyChain(SupplyChain supplyChain) {
+        if (supplyChain.getNodes() == null || supplyChain.getNodes().isEmpty()) {
+            return Strings.EMPTY;
+        }
+
+        final StringBuilder sb = new StringBuilder();
+        sb.append(supplyChain.getVer())
+                .append(",")
+                .append(supplyChain.getComplete() != null ? supplyChain.getComplete() : 0);
+
+        for (SupplyChainNode node : supplyChain.getNodes()) {
+            sb.append("!")
+                    .append(formatNodeValue(node.getAsi()))
+                    .append(",")
+                    .append(formatNodeValue(node.getSid()))
+                    .append(",")
+                    .append(formatNodeValue(node.getHp()))
+                    .append(",")
+                    .append(formatNodeValue(node.getRid()))
+                    .append(",")
+                    .append(formatNodeValue(node.getName()))
+                    .append(",")
+                    .append(formatNodeValue(node.getDomain()))
+                    .append(",")
+                    .append(formatNodeValue(node.getExt()));
+        }
+
+        return sb.toString();
+    }
+
+    private String formatNodeValue(Object value) {
+        if (value == null) {
+            return Strings.EMPTY;
+        }
+
+        if (value instanceof String) {
+            return (String) value;
+        }
+
+        if (value instanceof Number) {
+            return value.toString();
+        }
+
+        if (value instanceof ObjectNode) {
+            return value.toString();
+        }
+
+        return Strings.EMPTY;
     }
 
     /**
