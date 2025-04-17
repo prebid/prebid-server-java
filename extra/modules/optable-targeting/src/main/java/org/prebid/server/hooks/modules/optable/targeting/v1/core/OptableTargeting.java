@@ -77,6 +77,8 @@ public class OptableTargeting {
                                                         long timeout) {
 
         return apiClient.getTargeting(apiKey, tenant, origin, query, ips, timeout)
-                .compose(result -> cache.put(cachingKey.toString(), result, ttlSeconds).map(result));
+                .compose(result -> cache.put(cachingKey.toString(), result, ttlSeconds)
+                        .recover(throwable -> Future.succeededFuture())
+                        .map(result));
     }
 }
