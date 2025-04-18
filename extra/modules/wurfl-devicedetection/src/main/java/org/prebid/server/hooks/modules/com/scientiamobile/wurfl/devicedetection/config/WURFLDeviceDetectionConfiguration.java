@@ -65,7 +65,7 @@ public class WURFLDeviceDetectionConfiguration {
         fileSyncerProperties.setRetryIntervalMs(configProperties.getRetryIntervalMs());
         fileSyncerProperties.setHttpClient(httpProperties);
         int updateFreqInHours = configProperties.getUpdateFrequencyInHours();
-        if (updateFreqInHours == 0) {
+        if (updateFreqInHours <= 0) {
             updateFreqInHours = DEFAULT_UPDATE_FREQ_IN_HOURS;
         }
         final long syncIntervalMillis = updateFreqInHours * HOUR_IN_MILLIS;

@@ -85,6 +85,6 @@ hooks:
       # replace with your wurfl file snapshot URL when using a licensed version of wurfl
       file-snapshot-url: https://httpstat.us/200
       cache-size: 200000
-      run-updater: true
+      update-frequency-in-hours: 24
       allowed-publisher-ids: 1
       ext-caps: true
