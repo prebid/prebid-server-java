@@ -13,7 +13,10 @@
           "crid": "24080",
           "ext": {
             "prebid": {
-              "type": "banner"
+              "type": "banner",
+              "meta": {
+                "adaptercode": "admaticde"
+              }
             },
             "origbidcpm": 0.01
           }

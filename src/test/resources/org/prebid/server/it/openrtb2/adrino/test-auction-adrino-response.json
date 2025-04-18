@@ -15,7 +15,10 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "native"
+              "type": "native",
+              "meta": {
+                "adaptercode": "adrino"
+              }
             },
             "origbidcpm": 3.33
           }
