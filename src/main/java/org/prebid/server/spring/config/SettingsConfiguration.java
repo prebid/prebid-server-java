@@ -318,7 +318,7 @@ public class SettingsConfiguration {
             } catch (SdkClientException e) {
                 logger.error("Failed to resolve AWS credentials", e);
             }
-            
+
             return credentialsProvider;
         }
 
