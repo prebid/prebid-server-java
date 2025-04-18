@@ -295,32 +295,31 @@ public class SettingsConfiguration {
 
         @Bean
         S3AsyncClient s3AsyncClient(S3ConfigurationProperties s3ConfigurationProperties) throws URISyntaxException {
-
             final Region awsRegion = Optional.ofNullable(s3ConfigurationProperties.getRegion())
                     .map(Region::of)
                     .orElse(Region.AWS_GLOBAL);
 
-            final S3AsyncClientBuilder clientBuilder = S3AsyncClient.builder()
+            return S3AsyncClient.builder()
+                    .credentialsProvider(awsCredentialsProvider(s3ConfigurationProperties))
                     .endpointOverride(new URI(s3ConfigurationProperties.getEndpoint()))
                     .forcePathStyle(s3ConfigurationProperties.getForcePathStyle())
-                    .region(awsRegion);
-            final AwsCredentialsProvider credentialsProvider;
-            if (s3ConfigurationProperties.useStaticCredentials()) {
-                final AwsBasicCredentials basicCredentials = AwsBasicCredentials.create(
-                        s3ConfigurationProperties.getAccessKeyId(),
-                        s3ConfigurationProperties.getSecretAccessKey());
-                credentialsProvider = StaticCredentialsProvider.create(basicCredentials);
-            } else {
-                credentialsProvider = DefaultCredentialsProvider.create();
-            }
+                    .region(awsRegion)
+                    .build();
+        }
+
+        private static AwsCredentialsProvider awsCredentialsProvider(S3ConfigurationProperties config) {
+            final AwsCredentialsProvider credentialsProvider = config.useStaticCredentials()
+                    ? StaticCredentialsProvider.create(
+                            AwsBasicCredentials.create(config.getAccessKeyId(), config.getSecretAccessKey()))
+                    : DefaultCredentialsProvider.create();
+
             try {
                 credentialsProvider.resolveCredentials();
             } catch (SdkClientException e) {
                 logger.error("Failed to resolve AWS credentials", e);
             }
-            clientBuilder.credentialsProvider(credentialsProvider);
-
-            return clientBuilder.build();
+            
+            return credentialsProvider;
         }
 
         @Bean
