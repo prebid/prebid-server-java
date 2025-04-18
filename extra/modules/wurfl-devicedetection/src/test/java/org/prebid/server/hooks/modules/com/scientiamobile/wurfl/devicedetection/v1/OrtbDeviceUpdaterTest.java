@@ -13,6 +13,7 @@ import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.mock.WURFLDeviceMock.WURFLDeviceMockFactory.mockConnectedTv;
@@ -28,15 +29,15 @@ import static org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedet
 class OrtbDeviceUpdaterTest {
 
     private OrtbDeviceUpdater target;
-    private List<String> staticCaps;
-    private List<String> virtualCaps;
+    private Set<String> staticCaps;
+    private Set<String> virtualCaps;
 
     @BeforeEach
     void setUp() {
         target = new OrtbDeviceUpdater();
-        staticCaps = Arrays.asList("ajax_support_javascript", "brand_name", "density_class",
+        staticCaps = Set.of("ajax_support_javascript", "brand_name", "density_class",
                 "is_connected_tv", "is_ott", "is_tablet", "model_name", "resolution_height", "resolution_width");
-        virtualCaps = Arrays.asList("advertised_device_os", "advertised_device_os_version",
+        virtualCaps = Set.of("advertised_device_os", "advertised_device_os_version",
                 "is_full_desktop", "pixel_density");
     }
 
@@ -224,8 +225,8 @@ class OrtbDeviceUpdaterTest {
                 .build();
 
         final var wurflDevice = WURFLDeviceMock.WURFLDeviceMockFactory.mockIPhone();
-        final List<String> staticCaps = List.of("brand_name");
-        final List<String> virtualCaps = List.of("advertised_device_os");
+        final Set<String> staticCaps = Set.of("brand_name");
+        final Set<String> virtualCaps = Set.of("advertised_device_os");
 
         final OrtbDeviceUpdater updater = new OrtbDeviceUpdater();
 

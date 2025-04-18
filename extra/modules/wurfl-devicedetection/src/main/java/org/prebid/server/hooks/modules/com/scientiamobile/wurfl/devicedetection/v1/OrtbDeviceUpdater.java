@@ -9,9 +9,8 @@ import org.prebid.server.model.UpdateResult;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.Set;
 
 @Slf4j
 public class OrtbDeviceUpdater {
@@ -30,7 +29,7 @@ public class OrtbDeviceUpdater {
     );
 
     public Device update(Device ortbDevice, com.scientiamobile.wurfl.core.Device wurflDevice,
-                         List<String> staticCaps, List<String> virtualCaps, boolean addExtCaps) {
+                         Set<String> staticCaps, Set<String> virtualCaps, boolean addExtCaps) {
 
         final Device.DeviceBuilder deviceBuilder = ortbDevice.toBuilder();
 
@@ -114,7 +113,7 @@ public class OrtbDeviceUpdater {
         final ExtDevice updatedExt = ExtDevice.empty();
         final ExtDevice ortbDeviceExt = ortbDevice.getExt();
 
-        if (Objects.nonNull(ortbDeviceExt)) {
+        if (ortbDeviceExt != null) {
             updatedExt.addProperties(ortbDeviceExt.getProperties());
             if (!ortbDeviceExt.containsProperty(WURFL_PROPERTY)) {
                 updatedExt.addProperty("wurfl", extMapper.mapExtProperties());
@@ -137,7 +136,7 @@ public class OrtbDeviceUpdater {
                 ? wurflDevice.getVirtualCapability(capName)
                 : wurflDevice.getCapability(capName);
 
-        if (Objects.nonNull(fromWurfl)) {
+        if (fromWurfl != null) {
             return UpdateResult.updated(fromWurfl);
         }
 
@@ -147,7 +146,7 @@ public class OrtbDeviceUpdater {
     private UpdateResult<Integer> tryUpdateIntegerField(Integer fromOrtbDevice,
                                                         com.scientiamobile.wurfl.core.Device wurflDevice,
                                                         String capName, boolean convertFromBool) {
-        if (Objects.nonNull(fromOrtbDevice)) {
+        if (fromOrtbDevice != null) {
             return UpdateResult.unaltered(fromOrtbDevice);
         }
 
@@ -172,7 +171,7 @@ public class OrtbDeviceUpdater {
                                                               com.scientiamobile.wurfl.core.Device wurflDevice,
                                                               String capName) {
 
-        if (Objects.nonNull(fromOrtbDevice)) {
+        if (fromOrtbDevice != null) {
             return UpdateResult.unaltered(fromOrtbDevice);
         }
 
@@ -180,7 +179,7 @@ public class OrtbDeviceUpdater {
                 ? wurflDevice.getVirtualCapability(capName)
                 : wurflDevice.getCapability(capName);
 
-        if (Objects.nonNull(fromWurfl)) {
+        if (fromWurfl != null) {
 
             BigDecimal pxRatio = null;
             try {
@@ -199,12 +198,12 @@ public class OrtbDeviceUpdater {
     }
 
     private UpdateResult<Integer> tryUpdateDeviceTypeField(Integer fromOrtbDevice, Integer fromWurfl) {
-        final boolean isNotNullAndPositive = Objects.nonNull(fromOrtbDevice) && fromOrtbDevice > 0;
+        final boolean isNotNullAndPositive = fromOrtbDevice != null && fromOrtbDevice > 0;
         if (isNotNullAndPositive) {
             return UpdateResult.unaltered(fromOrtbDevice);
         }
 
-        if (Objects.nonNull(fromWurfl)) {
+        if (fromWurfl != null) {
             return UpdateResult.updated(fromWurfl);
         }
 

@@ -8,8 +8,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Arrays;
-import java.util.List;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
@@ -24,13 +23,13 @@ public class ExtWURFLMapperTest {
     private Device device;
 
     private ExtWURFLMapper target;
-    private List<String> staticCaps;
-    private List<String> virtualCaps;
+    private Set<String> staticCaps;
+    private Set<String> virtualCaps;
 
     @BeforeEach
     public void setUp() {
-        staticCaps = Arrays.asList("brand_name", "model_name");
-        virtualCaps = Arrays.asList("is_mobile", "form_factor");
+        staticCaps = Set.of("brand_name", "model_name");
+        virtualCaps = Set.of("is_mobile", "form_factor");
 
         target = ExtWURFLMapper.builder()
                 .staticCaps(staticCaps)

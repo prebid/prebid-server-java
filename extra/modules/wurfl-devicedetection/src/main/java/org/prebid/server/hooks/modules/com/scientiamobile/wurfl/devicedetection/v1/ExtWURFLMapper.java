@@ -7,16 +7,16 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 @Builder
 @Slf4j
 public class ExtWURFLMapper {
 
-    private final List<String> staticCaps;
-    private final List<String> virtualCaps;
+    private final Set<String> staticCaps;
+    private final Set<String> virtualCaps;
     private boolean addExtCaps;
     private final com.scientiamobile.wurfl.core.Device wurflDevice;
     private static final String NULL_VALUE_TOKEN = "$null$";
@@ -41,7 +41,7 @@ public class ExtWURFLMapper {
                                 return Map.entry(sc, NULL_VALUE_TOKEN);
                             }
                         })
-                        .filter(entry -> Objects.nonNull(entry.getValue())
+                        .filter(entry -> entry.getValue() != null
                                 && !NULL_VALUE_TOKEN.equals(entry.getValue()))
                         .forEach(entry -> wurflNode.put(entry.getKey(), entry.getValue()));
 
@@ -51,7 +51,7 @@ public class ExtWURFLMapper {
                                 return Map.entry(vc, wurflDevice.getVirtualCapability(vc));
                             } catch (Exception e) {
 
-                                log.warn("Could not fetch virtual capability " + vc);
+                                log.warn("Could not fetch virtual capability {}", vc);
                                 return null;
                             }
                         })

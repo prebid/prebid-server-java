@@ -16,13 +16,17 @@ import java.util.Optional;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mock.Strictness.LENIENT;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.doReturn;
+
+
+
 
 @ExtendWith(MockitoExtension.class)
 public class WURFLServiceTest {
@@ -46,31 +50,40 @@ public class WURFLServiceTest {
         final String dataFilePath = "test-data-path";
         final String wurflSnapshotUrl = "http://example.com/wurfl-snapshot.zip";
         final String wurflFileDirPath = System.getProperty("java.io.tmpdir");
-        final String fileName = "wurfl-snapshot.zip";
 
-        given(configProperties.getWurflSnapshotUrl()).willReturn(wurflSnapshotUrl);
-        given(configProperties.getWurflFileDirPath()).willReturn(wurflFileDirPath);
+        given(configProperties.getFileSnapshotUrl()).willReturn(wurflSnapshotUrl);
+        given(configProperties.getFileDirPath()).willReturn(wurflFileDirPath);
 
-        // Simplified test that doesn't actually test the internal file operations
+        WURFLService spyWurflService = spy(wurflService);
+
+        // Mock the createEngine method to return our mock engine
+        doReturn(wurflEngine).when(spyWurflService).createEngine(dataFilePath);
+
         // when
-        final Future<?> future = wurflService.setDataPath(dataFilePath);
+        final Future<?> future = spyWurflService.setDataPath(dataFilePath);
 
         // then
-        assertThat(future.succeeded()).isFalse(); // Will fail due to file operations in a unit test
+        assertThat(future).isNotNull();
+        assertThat(future.succeeded()).isTrue();
     }
 
+
     @Test
-    public void setDataPathShouldReturnFailedFutureWhenExceptionOccurs() throws Exception {
+    public void setDataPathShouldReturnFailedFutureWhenExceptionOccurs() {
         // given
         final String dataFilePath = "test-data-path";
-
-        doThrow(new RuntimeException("Test exception")).when(wurflEngine).reload(anyString());
+        WURFLService spyWurflService = spy(wurflService);
+        doThrow(new RuntimeException("Simulated load() failure"))
+                .when(spyWurflService).createEngine(dataFilePath);
 
         // when
-        final Future<?> future = wurflService.setDataPath(dataFilePath);
+        final Future<?> result = spyWurflService.setDataPath(dataFilePath);
 
         // then
-        assertThat(future.failed()).isTrue();
+        assertThat(result).isNotNull();
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause()).isInstanceOf(RuntimeException.class)
+                .hasMessage("Simulated load() failure");
     }
 
     @Test
