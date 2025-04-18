@@ -383,7 +383,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
 
     private static SeatNonBid toSeatNonBid(String bidder, BidRejectionTracker bidRejectionTracker) {
         final List<NonBid> nonBids = bidRejectionTracker.getRejectedImps().entrySet().stream()
-                .map(entry -> NonBid.of(entry.getKey(), entry.getValue()))
+                .map(entry -> NonBid.of(entry.getKey(), entry.getValue().getRight()))
                 .toList();
 
         return SeatNonBid.of(bidder, nonBids);

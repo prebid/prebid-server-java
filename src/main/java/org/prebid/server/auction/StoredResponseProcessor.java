@@ -428,7 +428,7 @@ public class StoredResponseProcessor {
                 : DEFAULT_BID_CURRENCY;
         final List<BidderBid> bidderBids = seatBid != null
                 ? seatBid.getBid().stream()
-                .map(bid -> makeBidderBid(bid, bidCurrency, impIdToBidType))
+                .map(bid -> makeBidderBid(bid, bidCurrency, seatBid.getSeat(), impIdToBidType))
                 .collect(Collectors.toCollection(ArrayList::new))
                 : new ArrayList<>();
         if (nonNullBidderSeatBid) {
@@ -439,8 +439,8 @@ public class StoredResponseProcessor {
                 : BidderSeatBid.of(bidderBids);
     }
 
-    private BidderBid makeBidderBid(Bid bid, String bidCurrency, Map<String, BidType> impIdToBidType) {
-        return BidderBid.of(bid, getBidType(bid.getExt(), impIdToBidType.get(bid.getImpid())), bidCurrency);
+    private BidderBid makeBidderBid(Bid bid, String bidCurrency, String seat, Map<String, BidType> impIdToBidType) {
+        return BidderBid.of(bid, getBidType(bid.getExt(), impIdToBidType.get(bid.getImpid())), seat, bidCurrency);
     }
 
     private BidType getBidType(ObjectNode bidExt, BidType bidType) {

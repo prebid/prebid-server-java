@@ -14,7 +14,10 @@
           "h": 600,
           "ext": {
             "prebid": {
-              "type": "banner"
+              "type": "banner",
+              "meta": {
+                "adaptercode": "conversant"
+              }
             },
             "origbidcpm": 5.0
           }

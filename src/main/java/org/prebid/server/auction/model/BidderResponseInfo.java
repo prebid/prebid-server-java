@@ -10,11 +10,15 @@ public class BidderResponseInfo {
 
     String bidder;
 
+    String seat;
+
+    String adapterCode;
+
     BidderSeatBidInfo seatBid;
 
     int responseTime;
 
     public BidderResponseInfo with(BidderSeatBidInfo seatBid) {
-        return of(this.bidder, seatBid, this.responseTime);
+        return of(this.bidder, this.seat, this.adapterCode, seatBid, this.responseTime);
     }
 }
