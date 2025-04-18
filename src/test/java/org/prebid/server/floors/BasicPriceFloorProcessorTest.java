@@ -20,6 +20,8 @@ import org.prebid.server.floors.model.PriceFloorRules;
 import org.prebid.server.floors.model.PriceFloorSchema;
 import org.prebid.server.floors.proto.FetchResult;
 import org.prebid.server.floors.proto.FetchStatus;
+import org.prebid.server.metric.MetricName;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebidFloors;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -51,12 +53,14 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
     private PriceFloorFetcher priceFloorFetcher;
     @Mock
     private PriceFloorResolver floorResolver;
+    @Mock
+    private Metrics metrics;
 
     private BasicPriceFloorProcessor target;
 
     @BeforeEach
     public void setUp() {
-        target = new BasicPriceFloorProcessor(priceFloorFetcher, floorResolver, jacksonMapper);
+        target = new BasicPriceFloorProcessor(priceFloorFetcher, floorResolver, metrics, jacksonMapper, 0.0d);
     }
 
     @Test
@@ -70,7 +74,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                 new ArrayList<>());
 
         // then
-        verifyNoInteractions(priceFloorFetcher);
+        verifyNoInteractions(priceFloorFetcher, metrics);
         assertThat(result).isEqualTo(givenBidRequest(identity(), PriceFloorRules.builder().enabled(false).build()));
     }
 
@@ -85,7 +89,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                 new ArrayList<>());
 
         // then
-        verifyNoInteractions(priceFloorFetcher);
+        verifyNoInteractions(priceFloorFetcher, metrics);
 
         assertThat(result)
                 .extracting(BidRequest::getExt)
@@ -99,7 +103,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
     public void shouldUseFloorsDataFromProviderIfPresent() {
         // given
         final PriceFloorData providerFloorsData = givenFloorData(floors -> floors.floorProvider("provider.com"));
-        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloorsData, FetchStatus.success));
+        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloorsData, FetchStatus.success, null));
 
         // when
         final BidRequest result = target.enrichWithPriceFloors(
@@ -118,6 +122,8 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                         .data(providerFloorsData)
                         .fetchStatus(FetchStatus.success)
                         .location(PriceFloorLocation.fetch)));
+        verifyNoInteractions(metrics);
+
     }
 
     @Test
@@ -127,7 +133,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                 .floorProvider("provider.com")
                 .useFetchDataRate(null));
 
-        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloorsData, FetchStatus.success));
+        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloorsData, FetchStatus.success, null));
 
         // when
         final BidRequest result = target.enrichWithPriceFloors(
@@ -145,6 +151,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                         .data(providerFloorsData)
                         .fetchStatus(FetchStatus.success)
                         .location(PriceFloorLocation.fetch)));
+        verifyNoInteractions(metrics);
     }
 
     @Test
@@ -154,7 +161,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                 .floorProvider("provider.com")
                 .useFetchDataRate(100));
 
-        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloorsData, FetchStatus.success));
+        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloorsData, FetchStatus.success, null));
 
         // when
         final BidRequest result = target.enrichWithPriceFloors(
@@ -172,6 +179,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                 .data(providerFloorsData)
                 .fetchStatus(FetchStatus.success)
                 .location(PriceFloorLocation.fetch)));
+        verifyNoInteractions(metrics);
     }
 
     @Test
@@ -181,7 +189,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                 .floorProvider("provider.com")
                 .useFetchDataRate(0));
 
-        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloorsData, FetchStatus.success));
+        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloorsData, FetchStatus.success, null));
 
         // when
         final BidRequest result = target.enrichWithPriceFloors(
@@ -199,6 +207,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
         assertThat(actualRules)
                 .extracting(PriceFloorRules::getLocation)
                 .isEqualTo(PriceFloorLocation.noData);
+        verifyNoInteractions(metrics);
     }
 
     @Test
@@ -207,7 +216,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
         final PriceFloorData providerFloorsData = givenFloorData(floors -> floors
                 .floorProvider("provider.com")
                 .useFetchDataRate(null));
-        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloorsData, FetchStatus.success));
+        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloorsData, FetchStatus.success, null));
 
         // when
         final BidRequest result = target.enrichWithPriceFloors(
@@ -226,23 +235,24 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                         .floorMin(BigDecimal.ONE)
                         .fetchStatus(FetchStatus.success)
                         .location(PriceFloorLocation.fetch)));
+        verifyNoInteractions(metrics);
     }
 
     @Test
-    public void shouldNotUseFloorsFromProviderIfUseDynamicDataIsFalseAndUseFetchDataRateIsAbsent() {
+    public void shouldNotUseFloorsFromProviderIfUseDynamicDataIsFalse() {
         // given
         final PriceFloorData providerFloorsData = givenFloorData(floors -> floors
-                .floorProvider("provider.com")
-                .useFetchDataRate(null));
-        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloorsData, FetchStatus.success));
+                .floorProvider("provider.com"));
+        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloorsData, FetchStatus.success, null));
 
         // when
+        final ArrayList<String> warnings = new ArrayList<>();
         final BidRequest result = target.enrichWithPriceFloors(
                 givenBidRequest(identity(), null),
                 givenAccount(floorsConfig -> floorsConfig.useDynamicData(false)),
                 "bidder",
                 new ArrayList<>(),
-                new ArrayList<>());
+                warnings);
 
         // then
         final PriceFloorRules actualRules = extractFloors(result);
@@ -252,39 +262,210 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
         assertThat(actualRules)
                 .extracting(PriceFloorRules::getLocation)
                 .isEqualTo(PriceFloorLocation.noData);
+        verify(metrics).updateAlertsMetrics(MetricName.general);
+        assertThat(warnings).containsExactly("Using dynamic data is not allowed for account accountId");
     }
 
     @Test
-    public void shouldNotUseFloorsFromProviderIfUseDynamicDataIsFalseAndUseFetchDataRateIs100() {
+    public void shouldUseFloorsFromRequestIfUseDynamicDataIsFalse() {
         // given
         final PriceFloorData providerFloorsData = givenFloorData(floors -> floors
-                .floorProvider("provider.com")
-                .useFetchDataRate(100));
-        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloorsData, FetchStatus.success));
+                .floorProvider("provider.com"));
+        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloorsData, FetchStatus.success, null));
 
         // when
+        final ArrayList<String> warnings = new ArrayList<>();
         final BidRequest result = target.enrichWithPriceFloors(
-                givenBidRequest(identity(), null),
+                givenBidRequest(identity(), givenFloors(floors -> floors.floorMin(BigDecimal.ONE))),
                 givenAccount(floorsConfig -> floorsConfig.useDynamicData(false)),
                 "bidder",
                 new ArrayList<>(),
-                new ArrayList<>());
+                warnings);
+
+        // then
+        assertThat(extractFloors(result)).isEqualTo(givenFloors(floors -> floors
+                .enabled(true)
+                .skipped(false)
+                .fetchStatus(FetchStatus.success)
+                .floorMin(BigDecimal.ONE)
+                .location(PriceFloorLocation.request)));
+        verifyNoInteractions(metrics);
+        assertThat(warnings).isEmpty();
+    }
+
+    @Test
+    public void shouldNotUseFloorsWhenProviderFetchingIsDisabled() {
+        // given
+        final PriceFloorData providerFloorsData = givenFloorData(floors -> floors
+                .floorProvider("provider.com"));
+        given(priceFloorFetcher.fetch(any()))
+                .willReturn(FetchResult.of(providerFloorsData, FetchStatus.none, "errorMessage"));
+
+        // when
+        final ArrayList<String> warnings = new ArrayList<>();
+        final BidRequest result = target.enrichWithPriceFloors(
+                givenBidRequest(identity(), null),
+                givenAccount(identity()),
+                "bidder",
+                new ArrayList<>(),
+                warnings);
 
         // then
         final PriceFloorRules actualRules = extractFloors(result);
         assertThat(actualRules)
                 .extracting(PriceFloorRules::getFetchStatus)
-                .isEqualTo(FetchStatus.success);
+                .isEqualTo(FetchStatus.none);
         assertThat(actualRules)
                 .extracting(PriceFloorRules::getLocation)
                 .isEqualTo(PriceFloorLocation.noData);
+        verify(metrics).updateAlertsMetrics(MetricName.general);
+        assertThat(warnings).containsExactly("errorMessage");
+    }
+
+    @Test
+    public void shouldNotUseFloorsWhenProviderFetchingIsFailed() {
+        // given
+        final PriceFloorData providerFloorsData = givenFloorData(floors -> floors
+                .floorProvider("provider.com"));
+        given(priceFloorFetcher.fetch(any()))
+                .willReturn(FetchResult.of(providerFloorsData, FetchStatus.error, "errorMessage"));
+
+        // when
+        final ArrayList<String> warnings = new ArrayList<>();
+        final BidRequest result = target.enrichWithPriceFloors(
+                givenBidRequest(identity(), null),
+                givenAccount(identity()),
+                "bidder",
+                new ArrayList<>(),
+                warnings);
+
+        // then
+        final PriceFloorRules actualRules = extractFloors(result);
+        assertThat(actualRules)
+                .extracting(PriceFloorRules::getFetchStatus)
+                .isEqualTo(FetchStatus.error);
+        assertThat(actualRules)
+                .extracting(PriceFloorRules::getLocation)
+                .isEqualTo(PriceFloorLocation.noData);
+        verify(metrics).updateAlertsMetrics(MetricName.general);
+        assertThat(warnings).containsExactly("errorMessage");
+    }
+
+    @Test
+    public void shouldNotUseFloorsWhenProviderFetchingIsFailedWithTimeout() {
+        // given
+        final PriceFloorData providerFloorsData = givenFloorData(floors -> floors
+                .floorProvider("provider.com"));
+        given(priceFloorFetcher.fetch(any()))
+                .willReturn(FetchResult.of(providerFloorsData, FetchStatus.timeout, "errorMessage"));
+
+        // when
+        final ArrayList<String> warnings = new ArrayList<>();
+        final BidRequest result = target.enrichWithPriceFloors(
+                givenBidRequest(identity(), null),
+                givenAccount(identity()),
+                "bidder",
+                new ArrayList<>(),
+                warnings);
+
+        // then
+        final PriceFloorRules actualRules = extractFloors(result);
+        assertThat(actualRules)
+                .extracting(PriceFloorRules::getFetchStatus)
+                .isEqualTo(FetchStatus.timeout);
+        assertThat(actualRules)
+                .extracting(PriceFloorRules::getLocation)
+                .isEqualTo(PriceFloorLocation.noData);
+        verify(metrics).updateAlertsMetrics(MetricName.general);
+        assertThat(warnings).containsExactly("errorMessage");
+    }
+
+    @Test
+    public void shouldUseFloorsFromRequestIfFetchingIsDisabled() {
+        // given
+        final PriceFloorData providerFloorsData = givenFloorData(floors -> floors
+                .floorProvider("provider.com"));
+        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloorsData, FetchStatus.none, null));
+
+        // when
+        final ArrayList<String> warnings = new ArrayList<>();
+        final BidRequest result = target.enrichWithPriceFloors(
+                givenBidRequest(identity(), givenFloors(floors -> floors.floorMin(BigDecimal.ONE))),
+                givenAccount(identity()),
+                "bidder",
+                new ArrayList<>(),
+                warnings);
+
+        // then
+        assertThat(extractFloors(result)).isEqualTo(givenFloors(floors -> floors
+                .enabled(true)
+                .skipped(false)
+                .fetchStatus(FetchStatus.none)
+                .floorMin(BigDecimal.ONE)
+                .location(PriceFloorLocation.request)));
+        verifyNoInteractions(metrics);
+        assertThat(warnings).isEmpty();
+    }
+
+    @Test
+    public void shouldUseFloorsFromRequestIfFetchingIsFailed() {
+        // given
+        final PriceFloorData providerFloorsData = givenFloorData(floors -> floors
+                .floorProvider("provider.com"));
+        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloorsData, FetchStatus.error, null));
+
+        // when
+        final ArrayList<String> warnings = new ArrayList<>();
+        final BidRequest result = target.enrichWithPriceFloors(
+                givenBidRequest(identity(), givenFloors(floors -> floors.floorMin(BigDecimal.ONE))),
+                givenAccount(identity()),
+                "bidder",
+                new ArrayList<>(),
+                warnings);
+
+        // then
+        assertThat(extractFloors(result)).isEqualTo(givenFloors(floors -> floors
+                .enabled(true)
+                .skipped(false)
+                .fetchStatus(FetchStatus.error)
+                .floorMin(BigDecimal.ONE)
+                .location(PriceFloorLocation.request)));
+        verifyNoInteractions(metrics);
+        assertThat(warnings).isEmpty();
+    }
+
+    @Test
+    public void shouldUseFloorsFromRequestIfFetchingIsFailedWithTimeout() {
+        // given
+        final PriceFloorData providerFloorsData = givenFloorData(floors -> floors
+                .floorProvider("provider.com"));
+        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloorsData, FetchStatus.timeout, null));
+
+        // when
+        final ArrayList<String> warnings = new ArrayList<>();
+        final BidRequest result = target.enrichWithPriceFloors(
+                givenBidRequest(identity(), givenFloors(floors -> floors.floorMin(BigDecimal.ONE))),
+                givenAccount(identity()),
+                "bidder",
+                new ArrayList<>(),
+                warnings);
+
+        // then
+        assertThat(extractFloors(result)).isEqualTo(givenFloors(floors -> floors
+                .enabled(true)
+                .skipped(false)
+                .fetchStatus(FetchStatus.timeout)
+                .floorMin(BigDecimal.ONE)
+                .location(PriceFloorLocation.request)));
+        verifyNoInteractions(metrics);
+        assertThat(warnings).isEmpty();
     }
 
     @Test
     public void shouldMergeProviderWithRequestFloors() {
         // given
         final PriceFloorData providerFloorsData = givenFloorData(floors -> floors.floorProvider("provider.com"));
-        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloorsData, FetchStatus.success));
+        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloorsData, FetchStatus.success, null));
 
         // when
         final BidRequest result = target.enrichWithPriceFloors(
@@ -316,7 +497,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
     public void shouldReturnProviderFloorsWhenNotEnabledByRequestAndEnforceRateAndFloorPriceAreAbsent() {
         // given
         final PriceFloorData providerFloorsData = givenFloorData(floors -> floors.floorProvider("provider.com"));
-        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloorsData, FetchStatus.success));
+        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloorsData, FetchStatus.success, null));
 
         // when
         final BidRequest result = target.enrichWithPriceFloors(
@@ -349,7 +530,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                 .data(givenFloorData(floorsDataConfig -> floorsDataConfig.currency("USD"))));
 
         final PriceFloorData providerFloorsData = givenFloorData(floors -> floors.floorProvider("provider.com"));
-        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloorsData, FetchStatus.success));
+        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloorsData, FetchStatus.success, null));
 
         // when
         final BidRequest result = target.enrichWithPriceFloors(
@@ -368,7 +549,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
     @Test
     public void shouldUseFloorsFromRequestIfProviderFloorsMissing() {
         // given
-        given(priceFloorFetcher.fetch(any())).willReturn(null);
+        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.none("errorMessage"));
 
         // when
         final BidRequest result = target.enrichWithPriceFloors(
@@ -380,17 +561,19 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
 
         // then
         assertThat(extractFloors(result)).isEqualTo(givenFloors(floors -> floors
-                        .enabled(true)
-                        .skipped(false)
-                        .floorMin(BigDecimal.ONE)
-                        .location(PriceFloorLocation.request)));
+                .fetchStatus(FetchStatus.none)
+                .enabled(true)
+                .skipped(false)
+                .floorMin(BigDecimal.ONE)
+                .location(PriceFloorLocation.request)));
+        verifyNoInteractions(metrics);
     }
 
     @Test
     public void shouldTolerateUsingFloorsFromRequestWhenRulesNumberMoreThanMaxRulesNumber() {
         // given
-        given(priceFloorFetcher.fetch(any())).willReturn(null);
-        final ArrayList<String> errors = new ArrayList<>();
+        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.none("errorMessage"));
+        final ArrayList<String> warnings = new ArrayList<>();
 
         // when
         final BidRequest result = target.enrichWithPriceFloors(
@@ -404,25 +587,26 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                 )),
                 givenAccount(floorConfigBuilder -> floorConfigBuilder.maxRules(1L)),
                 "bidder",
-                errors,
-                new ArrayList<>());
+                new ArrayList<>(),
+                warnings);
 
         // then
         assertThat(extractFloors(result)).isEqualTo(PriceFloorRules.builder()
+                .fetchStatus(FetchStatus.none)
                 .enabled(true)
                 .skipped(false)
                 .location(PriceFloorLocation.noData)
                 .build());
 
-        assertThat(errors).containsOnly("Failed to parse price floors from request, with a reason: "
+        assertThat(warnings).containsOnly("Failed to parse price floors from request, with a reason: "
                 + "Price floor rules number 2 exceeded its maximum number 1");
     }
 
     @Test
     public void shouldTolerateUsingFloorsFromRequestWhenDimensionsNumberMoreThanMaxDimensionsNumber() {
         // given
-        given(priceFloorFetcher.fetch(any())).willReturn(null);
-        final ArrayList<String> errors = new ArrayList<>();
+        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.none("errorMessage"));
+        final ArrayList<String> warnings = new ArrayList<>();
 
         // when
         final BidRequest result = target.enrichWithPriceFloors(
@@ -436,24 +620,25 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                 )),
                 givenAccount(floorConfigBuilder -> floorConfigBuilder.maxSchemaDims(1L)),
                 "bidder",
-                errors,
-                new ArrayList<>());
+                new ArrayList<>(),
+                warnings);
 
         // then
         assertThat(extractFloors(result)).isEqualTo(PriceFloorRules.builder()
+                .fetchStatus(FetchStatus.none)
                 .enabled(true)
                 .skipped(false)
                 .location(PriceFloorLocation.noData)
                 .build());
 
-        assertThat(errors).containsOnly("Failed to parse price floors from request, with a reason: "
+        assertThat(warnings).containsOnly("Failed to parse price floors from request, with a reason: "
                 + "Price floor schema dimensions 2 exceeded its maximum number 1");
     }
 
     @Test
     public void shouldTolerateMissingRequestAndProviderFloors() {
         // given
-        given(priceFloorFetcher.fetch(any())).willReturn(null);
+        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.none("errorMessage"));
 
         // when
         final BidRequest result = target.enrichWithPriceFloors(
@@ -475,6 +660,9 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
 
     @Test
     public void shouldNotSkipFloorsIfRootSkipRateIsOff() {
+        // given
+        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.none("errorMessage"));
+
         // when
         final BidRequest result = target.enrichWithPriceFloors(
                 givenBidRequest(identity(), givenFloors(floors -> floors.skipRate(0))),
@@ -486,6 +674,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
         // then
         assertThat(extractFloors(result))
                 .isEqualTo(givenFloors(floors -> floors
+                        .fetchStatus(FetchStatus.none)
                         .enabled(true)
                         .skipped(false)
                         .skipRate(0)
@@ -494,6 +683,9 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
 
     @Test
     public void shouldSkipFloorsIfRootSkipRateIsOn() {
+        // given
+        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.none("errorMessage"));
+
         // when
         final BidRequest result = target.enrichWithPriceFloors(
                 givenBidRequest(identity(), givenFloors(floors -> floors.skipRate(100))),
@@ -504,16 +696,18 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
 
         // then
         assertThat(extractFloors(result)).isEqualTo(givenFloors(floors -> floors
-                        .skipRate(100)
-                        .enabled(true)
-                        .skipped(true)
-                        .location(PriceFloorLocation.request)));
+                .fetchStatus(FetchStatus.none)
+                .skipRate(100)
+                .enabled(true)
+                .skipped(true)
+                .location(PriceFloorLocation.request)));
     }
 
     @Test
     public void shouldSkipFloorsIfDataSkipRateIsOn() {
         // given
         final PriceFloorData priceFloorData = givenFloorData(floorData -> floorData.skipRate(100));
+        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.none("errorMessage"));
 
         // when
         final BidRequest result = target.enrichWithPriceFloors(
@@ -525,11 +719,12 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
 
         // then
         assertThat(extractFloors(result)).isEqualTo(givenFloors(floors -> floors
-                        .enabled(true)
-                        .skipRate(100)
-                        .data(priceFloorData)
-                        .skipped(true)
-                        .location(PriceFloorLocation.request)));
+                .fetchStatus(FetchStatus.none)
+                .enabled(true)
+                .skipRate(100)
+                .data(priceFloorData)
+                .skipped(true)
+                .location(PriceFloorLocation.request)));
     }
 
     @Test
@@ -538,6 +733,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
         final PriceFloorData priceFloorData = givenFloorData(floorData -> floorData
                 .skipRate(0)
                 .modelGroups(singletonList(givenModelGroup(group -> group.skipRate(100)))));
+        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.none("errorMessage"));
 
         // when
         final BidRequest result = target.enrichWithPriceFloors(
@@ -549,11 +745,12 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
 
         // then
         assertThat(extractFloors(result)).isEqualTo(givenFloors(floors -> floors
-                        .data(priceFloorData)
-                        .skipRate(100)
-                        .enabled(true)
-                        .skipped(true)
-                        .location(PriceFloorLocation.request)));
+                .fetchStatus(FetchStatus.none)
+                .data(priceFloorData)
+                .skipRate(100)
+                .enabled(true)
+                .skipped(true)
+                .location(PriceFloorLocation.request)));
     }
 
     @Test
@@ -562,6 +759,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
         final List<Imp> imps = singletonList(givenImp(identity()));
         final PriceFloorRules requestFloors = givenFloors(floors -> floors
                 .data(givenFloorData(floorData -> floorData.modelGroups(null))));
+        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.none("errorMessage"));
 
         // when
         final BidRequest result = target.enrichWithPriceFloors(
@@ -582,6 +780,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
         final PriceFloorModelGroup modelGroup = givenModelGroup(identity());
         final PriceFloorRules requestFloors = givenFloors(floors -> floors
                 .data(givenFloorData(floorData -> floorData.modelGroups(singletonList(modelGroup)))));
+        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.none("errorMessage"));
 
         // when
         target.enrichWithPriceFloors(
@@ -604,7 +803,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
     public void shouldCopyFloorProviderValueFromDataLevel() {
         // given
         final PriceFloorData providerFloorsData = givenFloorData(floors -> floors.floorProvider("provider.com"));
-        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloorsData, FetchStatus.success));
+        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloorsData, FetchStatus.success, null));
 
         // when
         final BidRequest result = target.enrichWithPriceFloors(
@@ -630,6 +829,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                 .data(givenFloorData(floorData -> floorData
                         .modelGroups(singletonList(givenModelGroup(identity()))))));
 
+        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.none("errorMessage"));
         given(floorResolver.resolve(any(), any(), any(), eq("bidder"), any())).willReturn(null);
 
         // when
@@ -660,6 +860,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
 
         final List<Imp> imps = singletonList(givenImp(impBuilder -> impBuilder.ext(givenImpExt)));
 
+        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.none("errorMessage"));
         given(floorResolver.resolve(any(), any(), any(), eq("bidder"), any()))
                 .willReturn(PriceFloorResult.of("rule", BigDecimal.ONE, BigDecimal.TEN, "USD"));
 
@@ -692,6 +893,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
         final PriceFloorRules requestFloors = givenFloors(floors -> floors
                 .data(givenFloorData(floorData -> floorData.modelGroups(singletonList(givenModelGroup(identity()))))));
 
+        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.none("errorMessage"));
         given(floorResolver.resolve(any(), any(), any(), eq("bidder"), any()))
                 .willThrow(new IllegalStateException("error"));
 
@@ -712,6 +914,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
             UnaryOperator<AccountPriceFloorsConfig.AccountPriceFloorsConfigBuilder> floorsConfigCustomizer) {
 
         return Account.builder()
+                .id("accountId")
                 .auction(AccountAuctionConfig.builder()
                         .priceFloors(floorsConfigCustomizer.apply(AccountPriceFloorsConfig.builder()).build())
                         .build())
