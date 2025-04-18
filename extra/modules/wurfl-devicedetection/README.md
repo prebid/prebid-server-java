@@ -108,21 +108,21 @@ hooks:
       wurfl-file-dir-path: </path/to/wurfl_snapshot_dir>
       wurfl-snapshot-url: https://data.scientiamobile.com/<your_wurfl_snapshot_url>/wurfl.zip
       cache-size: 200000
-      wurfl-run-updater: true
+      update-frequency-in-hours: 24
       allowed-publisher-ids: 1
       ext-caps: false
 ```
 
 ### Configuration Options
 
-| Parameter                 | Requirement | Description                                                                                           |
-|---------------------------|-------------|-------------------------------------------------------------------------------------------------------|
-| **`wurfl-file-dir-path`** | Mandatory   | Path to the directory where the WURFL file is downloaded. Directory must exist and be writable.       |
-| **`wurfl-snapshot-url`**  | Mandatory   | URL of the licensed WURFL snapshot file to be downloaded when Prebid Server Java starts.             |
-| **`cache-size`**          | Optional    | Maximum number of devices stored in the WURFL cache. Defaults to the WURFL cache's standard size.    |
-| **`ext-caps`**            | Optional    | If `true`, the module adds all licensed capabilities to the `device.ext` object.                     |
-| **`wurfl-run-updater`**   | Optional    | Enables the WURFL updater. Defaults to no updates.                                                   |
-| **`allowed-publisher-ids`** | Optional  | List of publisher IDs permitted to use the module. Defaults to all publishers.                       |
+| Parameter                       | Requirement | Description                                                                                       |
+|---------------------------------|-------------|---------------------------------------------------------------------------------------------------|
+| **`wurfl-file-dir-path`**       | Mandatory   | Path to the directory where the WURFL file is downloaded. Directory must exist and be writable.   |
+| **`wurfl-snapshot-url`**        | Mandatory   | URL of the licensed WURFL snapshot file to be downloaded when Prebid Server Java starts.          |
+| **`cache-size`**                | Optional    | Maximum number of devices stored in the WURFL cache. Defaults to the WURFL cache's standard size. |
+| **`ext-caps`**                  | Optional    | If `true`, the module adds all licensed capabilities to the `device.ext` object.                  |
+| **`update-frequency-in-hours`** | Optional    | Check interval (hours) for downloading updated wurfl file if modified. Defaults to 24 hours       |
+| **`allowed-publisher-ids`**     | Optional    | List of publisher IDs permitted to use the module. Defaults to all publishers.                    |
 
 
 A valid WURFL license must include all the required capabilities for device enrichment.
