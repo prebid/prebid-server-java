@@ -39,13 +39,13 @@ import java.util.function.Consumer;
 public class ResponseBidValidator {
 
     private static final Logger logger = LoggerFactory.getLogger(ResponseBidValidator.class);
-    private static final ConditionalLogger UNRELATED_BID_LOGGER =
+    private static final ConditionalLogger unrelatedBidLogger =
             new ConditionalLogger("not_matched_bid", logger);
-    private static final ConditionalLogger SECURE_CREATIVE_LOGGER =
+    private static final ConditionalLogger secureCreativeLogger =
             new ConditionalLogger("secure_creatives_validation", logger);
-    private static final ConditionalLogger CREATIVE_SIZE_LOGGER =
+    private static final ConditionalLogger creativeSizeLogger =
             new ConditionalLogger("creative_size_validation", logger);
-    private static final ConditionalLogger ALTERNATE_BIDDER_CODE_LOGGER =
+    private static final ConditionalLogger alternateBidderCodeLogger =
             new ConditionalLogger("alternate_bidder_code_validation", logger);
 
     private static final String[] INSECURE_MARKUP_MARKERS = {"http:", "http%3A"};
@@ -167,7 +167,7 @@ public class ResponseBidValidator {
                     .formatted(bid.getSeat(), bidder, account.getId());
             bidRejectionTracker.rejectBid(bid, BidRejectionReason.RESPONSE_REJECTED_GENERAL);
             metrics.updateSeatValidationMetrics(bidder);
-            ALTERNATE_BIDDER_CODE_LOGGER.warn(message, logSamplingRate);
+            alternateBidderCodeLogger.warn(message, logSamplingRate);
             throw new ValidationException(message);
         }
     }
@@ -181,7 +181,7 @@ public class ResponseBidValidator {
     }
 
     private ValidationException exceptionAndLogOnePercent(String message) {
-        UNRELATED_BID_LOGGER.warn(message, logSamplingRate);
+        unrelatedBidLogger.warn(message, logSamplingRate);
         return new ValidationException(message);
     }
 
@@ -217,7 +217,7 @@ public class ResponseBidValidator {
                         bannerMaxSizeEnforcement,
                         metricName -> metrics.updateSizeValidationMetrics(
                                 aliases.resolveBidder(bidder), accountId, metricName),
-                        CREATIVE_SIZE_LOGGER,
+                        creativeSizeLogger,
                         message,
                         bidRejectionTracker,
                         bidderBid,
@@ -287,7 +287,7 @@ public class ResponseBidValidator {
                     secureMarkupEnforcement,
                     metricName -> metrics.updateSecureValidationMetrics(
                             aliases.resolveBidder(bidder), accountId, metricName),
-                    SECURE_CREATIVE_LOGGER,
+                    secureCreativeLogger,
                     message,
                     bidRejectionTracker,
                     bidderBid,

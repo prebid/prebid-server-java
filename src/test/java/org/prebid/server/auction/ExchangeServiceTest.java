@@ -30,6 +30,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
 import org.apache.commons.collections4.MapUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,7 +47,6 @@ import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessingResult;
 import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessor;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionParticipation;
-import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.BidRequestCacheInfo;
 import org.prebid.server.auction.model.BidderPrivacyResult;
@@ -204,6 +204,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.prebid.server.auction.model.BidRejectionReason.REQUEST_BLOCKED_UNACCEPTABLE_CURRENCY;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
@@ -1556,9 +1557,9 @@ public class ExchangeServiceTest extends VertxTest {
                 .impid("impId3")
                 .price(BigDecimal.valueOf(7.89))
                 .ext(mapper.createObjectNode().set("prebid", mapper.valueToTree(ExtBidPrebid.builder()
-                                .meta(ExtBidPrebidMeta.builder()
-                                        .adapterCode("bidder2")
-                                        .build())
+                        .meta(ExtBidPrebidMeta.builder()
+                                .adapterCode("bidder2")
+                                .build())
                         .build())))
                 .build();
         final List<AuctionParticipation> auctionParticipations =
@@ -3980,7 +3981,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .extracting(AuctionContext::getBidRejectionTrackers)
                 .extracting(rejectionTrackers -> rejectionTrackers.get("bidder1"))
                 .extracting(BidRejectionTracker::getRejectedImps)
-                .isEqualTo(Map.of("impId1", BidRejectionReason.REQUEST_BLOCKED_UNACCEPTABLE_CURRENCY));
+                .isEqualTo(Map.of("impId1", Pair.of("bidder1", REQUEST_BLOCKED_UNACCEPTABLE_CURRENCY)));
 
     }
 
