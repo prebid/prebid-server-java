@@ -34,7 +34,7 @@ jobs:
         id: build
         run: |
           mvn -B package --file extra/pom.xml | tee build_output.txt
-          echo "exit_code=1" >> "$GITHUB_OUTPUT"
+          echo "exit_code=$result" >> "$GITHUB_OUTPUT"
 
       - name: Format build output for PR comment
         if: steps.build.outputs.exit_code != '0'
