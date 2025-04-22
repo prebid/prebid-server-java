@@ -1,31 +1,20 @@
 {
-  "id": "12345",
+  "id": "request_id",
   "imp": [
     {
-      "id": "001",
+      "id": "imp_id",
       "banner": {
-        "h": 300,
-        "w": 250
+        "w": 300,
+        "h": 250
       },
       "ext": {
         "resetdigital": {
-          "placement_id": "placement-id-1"
+          "pubId": "lb.ads",
+          "zoneId": "publisherTestID"
         }
       }
     }
   ],
-  "site": {
-    "domain": "https://test.com",
-    "page": "https://test.com/2016/06/12"
-  },
-  "cur": [
-    "USD"
-  ],
-  "device": {
-    "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.36",
-    "ip": "127.0.0.1",
-    "language": "EN"
-  },
   "tmax": 5000,
   "regs": {
     "ext": {

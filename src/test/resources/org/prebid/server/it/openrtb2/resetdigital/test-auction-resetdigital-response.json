@@ -1,18 +1,19 @@
 {
-  "id": "12345",
+  "id": "request_id",
   "seatbid": [
     {
       "bid": [
         {
-          "adm": "test markup",
-          "cid": "1002088",
-          "crid": "1000763-1002088",
-          "id": "01",
-          "impid": "001",
-          "price": 1.00,
+          "id": "bid_id",
+          "impid": "imp_id",
+          "exp": 300,
+          "price": 3.33,
+          "adm": "adm001",
+          "adid": "adid001",
+          "cid": "cid001",
+          "crid": "crid001",
           "w": 300,
           "h": 250,
-          "exp": 300,
           "ext": {
             "prebid": {
               "type": "banner",
@@ -20,7 +21,7 @@
                 "adaptercode": "resetdigital"
               }
             },
-            "origbidcpm": 1.00,
+            "origbidcpm": 3.33,
             "origbidcur": "USD"
           }
         }
