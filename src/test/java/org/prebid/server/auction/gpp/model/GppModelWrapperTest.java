@@ -5,6 +5,7 @@ import com.iab.gpp.encoder.error.DecodingException;
 import com.iab.gpp.encoder.error.EncodingException;
 import com.iab.gpp.encoder.section.HeaderV1;
 import com.iab.gpp.encoder.section.TcfEuV2;
+import com.iab.gpp.encoder.section.UsNat;
 import com.iab.gpp.encoder.section.UspV1;
 import org.junit.jupiter.api.Test;
 
@@ -73,6 +74,49 @@ public class GppModelWrapperTest {
             assertThatNoException()
                     .isThrownBy(() -> wrappedGpp.getUsNatSection().getMspaCoveredTransaction());
         }
+    }
+
+    @Test
+    public void wrapperShouldNotModifyValidBase64SubsectionsWithPadChars() {
+        // given
+        final String gpp = "DBABLA~BVVVQAAARlA=.QA==";
+
+        // when
+        final GppModel wrappedGpp = new GppModelWrapper(gpp);
+
+        // then
+        assertThat(wrappedGpp.encodeSection(UsNat.ID)).isEqualTo("BVVVQAAARlA=.QA==");
+    }
+
+    @Test
+    public void wrapperShouldNotModifyValidBase64SubsectionsWithoutPadChars() {
+        // given
+        final String gpp = "DBABLA~CqqqgAAAAIJo.YA==";
+
+        // when
+        final GppModel wrappedGpp = new GppModelWrapper(gpp);
+
+        // then
+        assertThat(wrappedGpp.encodeSection(UsNat.ID)).isEqualTo("CqqqgAAAAIJo.YA==");
+        assertThatNoException()
+                .isThrownBy(() -> wrappedGpp.getUsNatSection().getMspaCoveredTransaction());
+    }
+
+    @Test
+    public void wrapperShouldPadSubsections() {
+        // given
+        final String gpp = "DBABLA~BVVVQAAARl.Q";
+
+        // when
+        final GppModel originalGpp = new GppModel(gpp);
+        final GppModel wrappedGpp = new GppModelWrapper(gpp);
+
+        // then
+        assertThat(wrappedGpp.encodeSection(UsNat.ID)).isEqualTo("BVVVQAAARlA.QA");
+        assertThatExceptionOfType(DecodingException.class)
+                .isThrownBy(() -> originalGpp.getUsNatSection().getMspaCoveredTransaction());
+        assertThatNoException()
+                .isThrownBy(() -> wrappedGpp.getUsNatSection().getMspaCoveredTransaction());
     }
 
     public static String normalizeEncodedTcfEuV2Section(String encodedSection) {
