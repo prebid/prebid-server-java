@@ -4,5 +4,5 @@ import com.iab.openrtb.request.BidRequest;
 
 public interface RequestRule {
 
-    RequestRuleResult process(BidRequest bidRequest, boolean validation);
+    RequestRuleResult process(BidRequest bidRequest);
 }

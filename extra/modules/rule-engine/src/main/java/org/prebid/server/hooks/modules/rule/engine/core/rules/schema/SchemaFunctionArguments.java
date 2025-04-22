@@ -13,7 +13,5 @@ public class SchemaFunctionArguments<T> {
 
     List<JsonNode> args;
 
-    boolean validation;
-
     Imp imp;
 }

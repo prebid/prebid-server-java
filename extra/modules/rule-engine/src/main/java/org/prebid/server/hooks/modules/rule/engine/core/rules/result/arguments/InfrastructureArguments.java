@@ -14,6 +14,4 @@ public class InfrastructureArguments {
     String ruleFired;
 
     String modelVersion;
-
-    boolean validation;
 }

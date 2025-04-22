@@ -42,8 +42,7 @@ public class BasicRequestRule implements RequestRule {
         for (Imp imp : imps) {
             final List<String> matchers = schemaFunctionHolders.stream()
                     .map(holder -> holder.getSchemaFunction().extract(
-                            SchemaFunctionArguments.of(
-                                    bidRequest, holder.getArguments(), false, imp)))
+                            SchemaFunctionArguments.of(bidRequest, holder.getArguments(), imp)))
                     .toList();
 
             final RuleResult<Imp> ruleResult = ruleTree.getValue(matchers);

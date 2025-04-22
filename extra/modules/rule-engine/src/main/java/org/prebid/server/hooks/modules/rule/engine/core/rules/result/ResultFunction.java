@@ -8,4 +8,6 @@ public interface ResultFunction<T> {
     ResultFunctionResult<T> apply(ResultFunctionArguments arguments,
                                   InfrastructureArguments infrastructureArguments,
                                   T operand);
+
+    void validateArguments(ResultFunctionArguments arguments);
 }

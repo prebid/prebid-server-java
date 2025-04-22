@@ -8,9 +8,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class RuleFactory {
+public class RuleTreeFactory {
 
-    public static RuleTree<RuleResult> buildTree(Map<String, RuleResult> rules) {
+    public static <T> RuleTree<RuleResult<T>> buildTree(Map<String, RuleResult<T>> rules) {
         return new RuleTree<>(parseRuleNode(toParsingContexts(rules)));
     }
 
@@ -39,9 +39,7 @@ public class RuleFactory {
                         Collectors.mapping(ParsingContext::next, Collectors.toList())));
 
         final Map<String, RuleNode<T>> parsedSubrules = subrules.entrySet().stream()
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        entry -> parseRuleNode(entry.getValue())));
+                .collect(Collectors.toMap(Map.Entry::getKey, entry -> parseRuleNode(entry.getValue())));
 
         return new RuleNode.IntermediateNode<>(parsedSubrules);
     }

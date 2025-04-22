@@ -2,7 +2,7 @@ package org.prebid.server.hooks.modules.rule.engine.v1;
 
 import io.vertx.core.Future;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
-import org.prebid.server.hooks.modules.rule.engine.core.RuleParser;
+import org.prebid.server.hooks.modules.rule.engine.core.rules.request.RequestRuleParser;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.request.RequestRule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.request.RequestRuleResult;
 import org.prebid.server.hooks.v1.InvocationResult;
@@ -16,9 +16,9 @@ public class RuleEngineProcessedAuctionRequestHook implements ProcessedAuctionRe
 
     private static final String CODE = "rule-engine-processed-auction-request";
 
-    private final RuleParser ruleParser;
+    private final RequestRuleParser ruleParser;
 
-    public RuleEngineProcessedAuctionRequestHook(RuleParser ruleParser) {
+    public RuleEngineProcessedAuctionRequestHook(RequestRuleParser ruleParser) {
         this.ruleParser = Objects.requireNonNull(ruleParser);
     }
 
@@ -27,7 +27,7 @@ public class RuleEngineProcessedAuctionRequestHook implements ProcessedAuctionRe
                                                                 AuctionInvocationContext invocationContext) {
 
         final RequestRule rule = ruleParser.parse(invocationContext.accountConfig());
-        final RequestRuleResult result = rule.process(auctionRequestPayload.bidRequest(), false);
+        final RequestRuleResult result = rule.process(auctionRequestPayload.bidRequest());
 
         return Future.succeededFuture(succeeded(payload ->
                 AuctionRequestPayloadImpl.of(payload.bidRequest().toBuilder()
