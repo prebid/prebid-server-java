@@ -322,10 +322,12 @@ public class ExchangeServiceTest extends VertxTest {
 
         given(privacyEnforcementService.mask(any(), argThat(MapUtils::isNotEmpty), any()))
                 .willAnswer(inv ->
-                        Future.succeededFuture(((Map<String, User>) inv.getArgument(1)).entrySet().stream()
+                        Future.succeededFuture(((Map<String, Pair<User, Device>>) inv.getArgument(1)).entrySet()
+                                .stream()
                                 .map(bidderAndUser -> BidderPrivacyResult.builder()
                                         .requestBidder(bidderAndUser.getKey())
-                                        .user(bidderAndUser.getValue())
+                                        .user(bidderAndUser.getValue().getLeft())
+                                        .device(bidderAndUser.getValue().getRight())
                                         .build())
                                 .toList()));
 

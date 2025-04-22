@@ -98,6 +98,7 @@ import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ListUtil;
 import org.prebid.server.util.PbsUtil;
 import org.prebid.server.util.StreamUtil;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -503,10 +504,10 @@ public class ExchangeService {
         final ExtRequestPrebid prebid = requestExt == null ? null : requestExt.getPrebid();
         final Map<String, ExtBidderConfigOrtb> biddersToConfigs = getBiddersToConfigs(prebid);
         final Map<String, List<String>> eidPermissions = getEidPermissions(prebid);
-        final Map<String, User> bidderToUser =
-                prepareUsers(bidders, context, aliases, biddersToConfigs, eidPermissions);
+        final Map<String, Pair<User, Device>> bidderToUserAndDevice =
+                prepareUsersAndDevices(bidders, context, aliases, biddersToConfigs, eidPermissions);
 
-        return privacyEnforcementService.mask(context, bidderToUser, aliases)
+        return privacyEnforcementService.mask(context, bidderToUserAndDevice, aliases)
                 .map(bidderToPrivacyResult -> getAuctionParticipation(
                         bidderToPrivacyResult,
                         bidRequest,
@@ -558,7 +559,7 @@ public class ExchangeService {
         return data == null ? null : data.getBidders();
     }
 
-    private Map<String, User> prepareUsers(List<String> bidders,
+    private Map<String, Pair<User, Device>> prepareUsersAndDevices(List<String> bidders,
                                            AuctionContext context,
                                            BidderAliases aliases,
                                            Map<String, ExtBidderConfigOrtb> biddersToConfigs,
@@ -567,7 +568,7 @@ public class ExchangeService {
         final BidRequest bidRequest = context.getBidRequest();
         final List<String> firstPartyDataBidders = firstPartyDataBidders(bidRequest.getExt());
 
-        final Map<String, User> bidderToUser = new HashMap<>();
+        final Map<String, Pair<User, Device>> bidderToUserAndDevice = new HashMap<>();
         for (String bidder : bidders) {
             final ExtBidderConfigOrtb fpdConfig = ObjectUtils.defaultIfNull(biddersToConfigs.get(bidder),
                     biddersToConfigs.get(ALL_BIDDERS_CONFIG));
@@ -575,9 +576,12 @@ public class ExchangeService {
                     .anyMatch(fpdBidder -> StringUtils.equalsIgnoreCase(fpdBidder, bidder));
             final User preparedUser = prepareUser(
                     bidder, context, aliases, useFirstPartyData, fpdConfig, eidPermissions);
-            bidderToUser.put(bidder, preparedUser);
+            final Device preparedDevice = prepareDevice(bidRequest.getDevice(), fpdConfig,
+                    useFirstPartyData);
+            final Pair<User, Device> userAndDevice = Pair.of(preparedUser, preparedDevice);
+            bidderToUserAndDevice.put(bidder, userAndDevice);
         }
-        return bidderToUser;
+        return bidderToUserAndDevice;
     }
 
     private User prepareUser(String bidder,
@@ -782,15 +786,12 @@ public class ExchangeService {
         final App app = bidRequest.getApp();
         final Site site = bidRequest.getSite();
         final Dooh dooh = bidRequest.getDooh();
-        final Device device = bidRequest.getDevice();
         final ObjectNode fpdSite = fpdConfig != null ? fpdConfig.getSite() : null;
         final ObjectNode fpdApp = fpdConfig != null ? fpdConfig.getApp() : null;
         final ObjectNode fpdDooh = fpdConfig != null ? fpdConfig.getDooh() : null;
-        final ObjectNode fpdDevice = fpdConfig != null ? fpdConfig.getDevice() : null;
         final App preparedApp = prepareApp(app, fpdApp, useFirstPartyData);
         final Site preparedSite = prepareSite(site, fpdSite, useFirstPartyData);
         final Dooh preparedDooh = prepareDooh(dooh, fpdDooh, useFirstPartyData);
-        final Device preparedDevice = prepareDevice(device, fpdDevice, useFirstPartyData);
 
         final List<String> distributionChannels = new ArrayList<>();
         Optional.ofNullable(preparedApp).ifPresent(ignored -> distributionChannels.add("app"));
@@ -817,8 +818,6 @@ public class ExchangeService {
         final boolean isApp = preparedApp != null;
         final boolean isDooh = !isApp && preparedDooh != null;
         final boolean isSite = !isApp && !isDooh && preparedSite != null;
-        final boolean preparedDeviceNotNull = preparedDevice != null;
-
         final List<Imp> preparedImps = prepareImps(
                 bidder,
                 bidRequest,
@@ -831,7 +830,7 @@ public class ExchangeService {
         return bidRequest.toBuilder()
                 // User was already prepared above
                 .user(bidderPrivacyResult.getUser())
-                .device(preparedDeviceNotNull ? preparedDevice : bidderPrivacyResult.getDevice())
+                .device(bidderPrivacyResult.getDevice())
                 .imp(preparedImps)
                 .app(isApp ? preparedApp : null)
                 .dooh(isDooh ? preparedDooh : null)
@@ -950,8 +949,11 @@ public class ExchangeService {
         return useFirstPartyData ? fpdResolver.resolveApp(maskedApp, fpdApp) : maskedApp;
     }
 
-    private Device prepareDevice(Device device, ObjectNode fpdDevice, boolean useFirstPartyData) {
-        return useFirstPartyData ? fpdResolver.resolveDevice(device, fpdDevice) : device;
+    private Device prepareDevice(Device device, ExtBidderConfigOrtb fpdConfig, boolean useFirstPartyData) {
+        if (fpdConfig == null) {
+            return device;
+        }
+        return useFirstPartyData ? fpdResolver.resolveDevice(device, fpdConfig.getDevice()) : device;
     }
 
     private static ExtApp maskExtApp(ExtApp appExt) {
