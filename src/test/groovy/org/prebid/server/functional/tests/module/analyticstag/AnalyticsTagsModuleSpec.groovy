@@ -21,7 +21,6 @@ import org.prebid.server.functional.util.PBSUtils
 
 import static org.prebid.server.functional.model.ModuleName.ORTB2_BLOCKING
 import static org.prebid.server.functional.model.ModuleName.PB_RICHMEDIA_FILTER
-import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.config.Endpoint.OPENRTB2_AUCTION
 import static org.prebid.server.functional.model.config.Stage.ALL_PROCESSED_BID_RESPONSES
@@ -65,9 +64,9 @@ class AnalyticsTagsModuleSpec extends ModuleBaseSpec {
 
         and: "Should include appliedTo information in analytics tags results"
         verifyAll(analyticResult.results.first) {
-            it.status == FetchStatus.TIMEOUT
-            it.appliedTo.bidders == [APPNEXUS.value]
-            it.appliedTo.impIds == [bidRequest.accountId]
+            it.status == FetchStatus.SUCCESS_ALLOW
+            it.appliedTo.bidders == [GENERIC.value]
+            it.appliedTo.impIds == bidRequest.imp.id
         }
     }
 

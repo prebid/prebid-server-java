@@ -56,7 +56,7 @@ class AliasSpec extends BaseSpec {
 
         and: "Bidder request should contain request per-alies"
         def bidderRequests = bidder.getBidderRequests(bidRequest.id)
-        assert bidderRequests.size() == 0
+        assert bidderRequests.size() == 2
     }
 
     def "PBS shouldn't apply aliases for bidder when aliases didn't provide proper config"() {
@@ -109,7 +109,8 @@ class AliasSpec extends BaseSpec {
 
         then: "Request should fail with error"
         def exception = thrown(PrebidServerException)
-        assert exception.responseBody.contains("Invalid request format")
+        assert exception.responseBody.contains("Invalid request format: request.ext.prebid.aliasgvlids. " +
+                "vendorId ${validId} refers to unknown bidder alias: ${bidderName}")
     }
 
     def "PBS should return an error when GVL ID alias value is lower that one"() {
