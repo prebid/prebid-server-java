@@ -110,7 +110,7 @@ class AliasSpec extends BaseSpec {
         then: "Request should fail with error"
         def exception = thrown(PrebidServerException)
         assert exception.responseBody.contains("Invalid request format: request.ext.prebid.aliasgvlids. " +
-                "vendorId ${validId} refers to unknown bidder alias: ${bidderName}")
+                "vendorId ${validId} refers to unknown bidder alias: ${bidderName.toLowerCase()}")
     }
 
     def "PBS should return an error when GVL ID alias value is lower that one"() {
