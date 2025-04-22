@@ -11,9 +11,6 @@ import java.util.List;
 
 public class GppModelWrapper extends GppModel {
 
-    private static final String SECTIONS_DELIMITER = "~";
-    private static final String BASE64_PADDING_CHAR = "A";
-
     private static final int TCF_EU_V2_ID = 2;
     private static final int USP_V1_ID = 6;
 
@@ -23,25 +20,30 @@ public class GppModelWrapper extends GppModel {
         super(padSections(encodedString));
     }
 
-    private static String padSections(String encodedString) {
-        final String[] sections = sections(encodedString);
+    private static String padSections(String gpp) {
+        final StringBuilder gppBuilder = new StringBuilder(gpp);
 
-        boolean modified = false;
-        for (int i = 1; i < sections.length; i++) {
-            final String currentSection = sections[i];
-            if (currentSection.length() % 4 > 0 && !currentSection.endsWith("=")) {
-                sections[i] = currentSection + BASE64_PADDING_CHAR;
-                modified = true;
+        int subsectionStart = 0;
+        int offset = 0;
+        for (int i = 1; i < gpp.length(); i++) {
+            final char currentChar = gpp.charAt(i);
+
+            if (currentChar == '~' || currentChar == '.') {
+                if ((i - subsectionStart) % 4 != 0 && gpp.charAt(i - 1) != '=') {
+                    gppBuilder.insert(i + offset, "A");
+                    offset++;
+                }
+
+                subsectionStart = i + 1;
             }
         }
 
-        return modified
-                ? String.join(SECTIONS_DELIMITER, sections)
-                : encodedString;
-    }
+        final int lastSubsectionLength = gpp.length() - subsectionStart;
+        if (lastSubsectionLength > 0 && lastSubsectionLength % 4 != 0 && !gpp.endsWith("=")) {
+            gppBuilder.append("A");
+        }
 
-    private static String[] sections(String encodedString) {
-        return encodedString.split(SECTIONS_DELIMITER);
+        return gppBuilder.toString();
     }
 
     private void init() {
@@ -56,7 +58,7 @@ public class GppModelWrapper extends GppModel {
         super.decode(str);
         init();
 
-        final String[] encodedSections = sections(str);
+        final String[] encodedSections = str.split("~");
         final List<Integer> sectionIds = ((HeaderV1) getSection(HeaderV1.NAME)).getSectionsIds();
 
         for (int i = 0; i < sectionIds.size(); i++) {
