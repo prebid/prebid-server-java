@@ -99,7 +99,7 @@ public class MobilefuseBidder implements Bidder<BidRequest> {
     }
 
     private String makeUrl(ExtImpMobilefuse extImp) {
-        return endpointUrl + Objects.toString(extImp.getPublisherId(), "0");
+        return endpointUrl;
     }
 
     @Override
