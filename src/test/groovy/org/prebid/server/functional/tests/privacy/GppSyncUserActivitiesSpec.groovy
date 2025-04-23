@@ -511,6 +511,9 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
         then: "Response should not contain any URLs for bidders"
         assert !response.bidderStatus.userSync.url
+
+        and: "Response should not contain any warning"
+        assert !response.warnings
     }
 
     def "PBS cookie sync call when request have different gpp consent but match and rejecting should exclude bidders URLs"() {

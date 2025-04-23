@@ -15,16 +15,10 @@ import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.Activity
 import org.prebid.server.functional.model.request.auction.ActivityRule
 import org.prebid.server.functional.model.request.auction.AllowActivities
-import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Condition
-import org.prebid.server.functional.model.request.auction.Data
 import org.prebid.server.functional.model.request.auction.Device
-import org.prebid.server.functional.model.request.auction.Eid
 import org.prebid.server.functional.model.request.auction.Geo
 import org.prebid.server.functional.model.request.auction.RegsExt
-import org.prebid.server.functional.model.request.auction.User
-import org.prebid.server.functional.model.request.auction.UserExt
-import org.prebid.server.functional.model.request.auction.UserExtData
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.gpp.UsCaV1Consent
@@ -1137,7 +1131,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(bidRequest)
+        def response= activityPbsService.sendAuctionRequest(bidRequest)
 
         then: "Generic bidder request should have empty UFPD fields"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -1159,6 +1153,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Generic bidder request should have data in EIDS fields"
         assert bidderRequest.user.eids == bidRequest.user.eids
+
+        and: "Response should not contain any warnings"
+        assert !response.ext.warnings
+
+        and: "Response should not contain any errors"
+        assert !response.ext.errors
     }
 
     def "PBS auction call when request have different gpp consent but match and rejecting should remove UFPD fields in request"() {
@@ -2466,7 +2466,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        activityPbsService.sendAmpRequest(ampRequest)
+        def response = activityPbsService.sendAmpRequest(ampRequest)
 
         then: "Generic bidder request should have empty UFPD fields"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
@@ -2488,6 +2488,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Generic bidder request should have data in EIDS fields"
         assert bidderRequest.user.eids == ampStoredRequest.user.eids
+
+        and: "Response should not contain any warnings"
+        assert !response.ext.warnings
+
+        and: "Response should not contain any errors"
+        assert !response.ext.errors
     }
 
     def "PBS amp call when request have different gpp consent but match and rejecting should remove UFPD fields in request"() {

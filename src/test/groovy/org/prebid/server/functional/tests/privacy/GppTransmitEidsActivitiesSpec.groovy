@@ -78,6 +78,7 @@ import static org.prebid.server.functional.model.request.auction.PrivacyModule.I
 import static org.prebid.server.functional.model.request.auction.PrivacyModule.IAB_US_CUSTOM_LOGIC
 import static org.prebid.server.functional.model.request.auction.PrivacyModule.IAB_US_GENERAL
 import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
+import static org.prebid.server.functional.model.response.auction.ErrorType.GENERIC
 import static org.prebid.server.functional.util.privacy.model.State.ALABAMA
 import static org.prebid.server.functional.util.privacy.model.State.ONTARIO
 
@@ -866,7 +867,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(bidRequest)
+        def response = activityPbsService.sendAuctionRequest(bidRequest)
 
         then: "Generic bidder request should have empty EIDS fields"
         def genericBidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -874,6 +875,12 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
             !genericBidderRequest.user.eids
             !genericBidderRequest.user?.ext?.eids
         }
+
+        and: "Response should not contain any warnings"
+        assert !response.ext.warnings
+
+        and: "Response should not contain any errors"
+        assert !response.ext.errors
     }
 
     def "PBS auction call when request have different gpp consent but match and rejecting should remove EIDS fields in request"() {
@@ -1896,7 +1903,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        activityPbsService.sendAmpRequest(ampRequest)
+        def response = activityPbsService.sendAmpRequest(ampRequest)
 
         then: "Generic bidder request should have empty EIDS fields"
         def genericBidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
@@ -1904,6 +1911,13 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
             !genericBidderRequest.user.eids
             !genericBidderRequest.user?.ext?.eids
         }
+
+        and: "Response should not contain any warnings"
+        assert !response.ext.warnings
+
+        and: "Response should contain amp error"
+        assert response.ext?.errors[GENERIC]*.code == [999]
+        assert response.ext?.errors[GENERIC]*.message == ["Amp request parameter consent_string has invalid format: $INVALID_GPP_STRING"]
     }
 
     def "PBS amp call when request have different gpp consent but match and rejecting should remove EIDS fields in request"() {
