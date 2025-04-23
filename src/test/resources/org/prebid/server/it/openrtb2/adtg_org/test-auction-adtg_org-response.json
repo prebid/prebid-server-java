@@ -12,7 +12,10 @@
           "ext": {
             "origbidcpm": 3.33,
             "prebid": {
-              "type": "banner"
+              "type": "banner",
+              "meta": {
+                "adaptercode": "adtg_org"
+              }
             }
           }
         }
