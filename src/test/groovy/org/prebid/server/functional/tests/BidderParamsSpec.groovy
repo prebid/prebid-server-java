@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests
 
+import org.prebid.server.functional.model.bidder.AppNexus
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.db.Account
@@ -23,6 +24,7 @@ import org.prebid.server.functional.model.request.auction.Native
 import org.prebid.server.functional.model.request.auction.PrebidOptions
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
 import org.prebid.server.functional.model.request.auction.Site
+import org.prebid.server.functional.model.request.auction.Source
 import org.prebid.server.functional.model.request.auction.Targeting
 import org.prebid.server.functional.model.request.vtrack.VtrackRequest
 import org.prebid.server.functional.model.request.vtrack.xml.Vast
@@ -37,7 +39,6 @@ import static org.prebid.server.functional.model.Currency.CHF
 import static org.prebid.server.functional.model.Currency.EUR
 import static org.prebid.server.functional.model.Currency.JPY
 import static org.prebid.server.functional.model.Currency.USD
-import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS_UPPER_CASE
 import static org.prebid.server.functional.model.bidder.BidderName.AMX
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
@@ -1736,6 +1737,55 @@ class BidderParamsSpec extends BaseSpec {
 
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
+    }
+
+    def "PBS should merger stored imp when appnexus bidder requested with reserve field"() {
+        given: "Pbs default config with appnexus"
+        def pbsConfig = ["adapters.${APPNEXUS.value}.enabled" : "true",
+                         "adapters.${APPNEXUS.value}.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
+        def defaultPbsService = pbsServiceFactory.getService(pbsConfig)
+
+        and: "Default stored request with specified stored imps and request"
+        def storedRequestId = PBSUtils.randomString
+        def bidRequest = BidRequest.getDefaultBidRequest().tap {
+            imp[0].ext.prebid.bidder.generic = null
+            imp[0].ext.prebid.bidder.appNexus = AppNexus.getDefault().tap {
+                reserve = PBSUtils.getRandomDecimal() as Double
+            }
+            imp[0].ext.prebid.storedRequest = new PrebidStoredRequest(id: PBSUtils.randomString)
+            ext.prebid.storedRequest = new PrebidStoredRequest(id: storedRequestId)
+        }
+
+        and: "Save storedImp into DB"
+        def storedImp = StoredImp.getStoredImp(bidRequest).tap {
+            impData = Imp.defaultImpression
+        }
+        storedImpDao.save(storedImp)
+
+        and: "Save stored request with source.tid and cur"
+        def storedBidRequest = new BidRequest(cur: [USD], source: new Source(tid: PBSUtils.randomString))
+        def storedRequest = StoredRequest.getStoredRequest(storedRequestId, storedBidRequest)
+        storedRequestDao.save(storedRequest)
+
+        and: "Default basic bid with bid.ext"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest, APPNEXUS).tap {
+            seatbid[0].bid[0].ext = new BidExt()
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bid response should contain appnexus and generic bidder"
+        assert response.seatbid.size() == 2
+        assert response.seatbid.seat.sort() == [APPNEXUS, GENERIC].sort()
+
+        and: "Bidder request"
+        def bidderRequests = bidder.getBidderRequests(bidRequest.id)
+        assert bidderRequests.size() == 2
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsConfig)
