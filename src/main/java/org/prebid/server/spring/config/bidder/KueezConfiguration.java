@@ -22,7 +22,7 @@ public class KueezConfiguration {
     private static final String BIDDER_NAME = "kueezrtb";
 
     @Bean("kueezrtbConfigurationProperties")
-    @ConfigurationProperties("adapters.kueez")
+    @ConfigurationProperties("adapters.kueezrtb")
     BidderConfigurationProperties configurationProperties() {
         return new BidderConfigurationProperties();
     }
