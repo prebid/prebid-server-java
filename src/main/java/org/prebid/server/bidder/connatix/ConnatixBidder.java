@@ -103,6 +103,7 @@ public class ConnatixBidder implements Bidder<BidRequest> {
 
         return Result.of(httpRequests, errors);
     }
+
     private String getOptimalEndpointUrl(BidRequest request) {
         final Optional<String> dataCenterCode = getUserId(request).map(ConnatixBidder::getDataCenterCode);
 
