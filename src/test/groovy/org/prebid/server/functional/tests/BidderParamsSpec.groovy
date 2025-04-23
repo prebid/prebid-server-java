@@ -1742,7 +1742,7 @@ class BidderParamsSpec extends BaseSpec {
         pbsServiceFactory.removeContainer(pbsConfig)
     }
 
-    def "PBS should merger stored imp when appnexus bidder requested with reserve field"() {
+    def 'PBS should merge stored imp when appnexus bidder requested with reserve field'() {
         given: "Pbs default config with appnexus"
         def pbsConfig = ["adapters.${APPNEXUS.value}.enabled" : "true",
                          "adapters.${APPNEXUS.value}.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
