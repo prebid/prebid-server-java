@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.eplanning;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -17,9 +16,9 @@ import com.iab.openrtb.response.Bid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
-import org.apache.logging.log4j.util.Strings;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.eplanning.model.CleanStepName;
 import org.prebid.server.bidder.eplanning.model.HbResponse;
@@ -34,6 +33,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.eplanning.ExtImpEplanning;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -50,6 +50,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -274,15 +275,9 @@ public class EplanningBidder implements Bidder<Void> {
             uriBuilder.addParameter("app", REQUEST_TARGET_INVENTORY);
         }
 
-        final Source source = request.getSource();
-        if (source != null && source.getExt() != null && source.getExt().getSchain() != null) {
-            final SupplyChain supplyChain = source.getExt().getSchain();
-            if (supplyChain.getNodes() != null && supplyChain.getNodes().size() <= 2) {
-                final String schValue = makeSupplyChain(supplyChain);
-                if (StringUtils.isNotEmpty(schValue)) {
-                    uriBuilder.addParameter("sch", schValue);
-                }
-            }
+        final String schain = getSchainParameter(request.getSource());
+        if (schain != null) {
+            uriBuilder.addParameter("sch", schain);
         }
 
         return uriBuilder.toString().replace("+", "%20");
@@ -296,54 +291,51 @@ public class EplanningBidder implements Bidder<Void> {
         }
     }
 
-    private String makeSupplyChain(SupplyChain supplyChain) {
-        if (supplyChain.getNodes() == null || supplyChain.getNodes().isEmpty()) {
-            return Strings.EMPTY;
-        }
-
-        final StringBuilder sb = new StringBuilder();
-        sb.append(supplyChain.getVer())
-                .append(",")
-                .append(supplyChain.getComplete() != null ? supplyChain.getComplete() : 0);
-
-        for (SupplyChainNode node : supplyChain.getNodes()) {
-            sb.append("!")
-                    .append(formatNodeValue(node.getAsi()))
-                    .append(",")
-                    .append(formatNodeValue(node.getSid()))
-                    .append(",")
-                    .append(formatNodeValue(node.getHp()))
-                    .append(",")
-                    .append(formatNodeValue(node.getRid()))
-                    .append(",")
-                    .append(formatNodeValue(node.getName()))
-                    .append(",")
-                    .append(formatNodeValue(node.getDomain()))
-                    .append(",")
-                    .append(formatNodeValue(node.getExt()));
-        }
-
-        return sb.toString();
+    private String getSchainParameter(Source source) {
+        return Optional.ofNullable(source)
+                .map(Source::getExt)
+                .map(ExtSource::getSchain)
+                .map(this::resolveSupplyChain)
+                .orElse(null);
     }
 
-    private String formatNodeValue(Object value) {
-        if (value == null) {
-            return Strings.EMPTY;
+    private String resolveSupplyChain(SupplyChain schain) {
+        final List<SupplyChainNode> nodes = schain.getNodes();
+        if (CollectionUtils.isEmpty(nodes) || nodes.size() > 2) {
+            return null;
         }
 
-        if (value instanceof String) {
-            return (String) value;
+        final StringBuilder schainBuilder = new StringBuilder();
+
+        schainBuilder.append(schain.getVer());
+        schainBuilder.append(",");
+        schainBuilder.append(ObjectUtils.defaultIfNull(schain.getComplete(), 0));
+        for (SupplyChainNode node : schain.getNodes()) {
+            schainBuilder.append("!");
+            schainBuilder.append(node.getAsi() != null ? node.getAsi() : "");
+            schainBuilder.append(",");
+
+            schainBuilder.append(node.getSid() != null ? node.getSid() : "");
+            schainBuilder.append(",");
+
+            schainBuilder.append(node.getHp() == null ? StringUtils.EMPTY : node.getHp());
+            schainBuilder.append(",");
+
+            schainBuilder.append(node.getRid() != null ? node.getRid() : "");
+            schainBuilder.append(",");
+
+            schainBuilder.append(node.getName() != null ? node.getName() : "");
+            schainBuilder.append(",");
+
+            schainBuilder.append(node.getDomain() != null ? node.getDomain() : "");
+            schainBuilder.append(",");
+
+            schainBuilder.append(node.getExt() == null
+                    ? StringUtils.EMPTY
+                    : mapper.encodeToString(node.getExt()));
         }
 
-        if (value instanceof Number) {
-            return value.toString();
-        }
-
-        if (value instanceof ObjectNode) {
-            return value.toString();
-        }
-
-        return Strings.EMPTY;
+        return schainBuilder.toString();
     }
 
     /**
