@@ -19,7 +19,7 @@ public class AdtgorgTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromTheAdtgorgBidder() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/adtg_org-exchange/test.host/123456"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/adtg_org-exchange/"))
                 .withRequestBody(equalToJson(
                         jsonFrom("openrtb2/adtg_org/test-adtg_org-bid-request.json")))
                 .willReturn(aResponse().withBody(
