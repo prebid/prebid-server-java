@@ -103,14 +103,16 @@ public class ConnatixBidder implements Bidder<BidRequest> {
 
         return Result.of(httpRequests, errors);
     }
-
     private String getOptimalEndpointUrl(BidRequest request) {
+        final Optional<String> dataCenterCode = getUserId(request).map(ConnatixBidder::getDataCenterCode);
+
+        if (dataCenterCode.isEmpty()) {
+            return endpointUrl;
+        }
+
         try {
-            final URIBuilder uriBuilder = new URIBuilder(endpointUrl);
-            return getUserId(request)
-                    .map(userId -> getDataCenterCode(userId))
-                    .map(dataCenterCode -> uriBuilder.addParameter("dc", dataCenterCode))
-                    .orElse(uriBuilder)
+            return new URIBuilder(endpointUrl)
+                    .addParameter("dc", dataCenterCode.get())
                     .build()
                     .toString();
         } catch (URISyntaxException e) {
