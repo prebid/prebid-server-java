@@ -26,7 +26,6 @@ import org.prebid.server.functional.util.privacy.gpp.UsVaV1Consent
 import org.prebid.server.functional.util.privacy.gpp.data.UsCaliforniaSensitiveData
 import org.prebid.server.functional.util.privacy.gpp.data.UsNationalSensitiveData
 import org.prebid.server.functional.util.privacy.gpp.data.UsUtahSensitiveData
-import spock.lang.IgnoreRest
 
 import java.time.Instant
 
@@ -78,7 +77,7 @@ import static org.prebid.server.functional.model.request.auction.PrivacyModule.I
 import static org.prebid.server.functional.model.request.auction.PrivacyModule.IAB_US_CUSTOM_LOGIC
 import static org.prebid.server.functional.model.request.auction.PrivacyModule.IAB_US_GENERAL
 import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
-import static org.prebid.server.functional.model.response.auction.ErrorType.GENERIC
+import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 import static org.prebid.server.functional.util.privacy.model.State.ALABAMA
 import static org.prebid.server.functional.util.privacy.model.State.ONTARIO
 
@@ -1916,8 +1915,8 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         assert !response.ext.warnings
 
         and: "Response should contain amp error"
-        assert response.ext?.errors[GENERIC]*.code == [999]
-        assert response.ext?.errors[GENERIC]*.message == ["Amp request parameter consent_string has invalid format: $INVALID_GPP_STRING"]
+        assert response.ext?.errors[PREBID]*.code == [999]
+        assert response.ext?.errors[PREBID]*.message == ["Amp request parameter consent_string has invalid format: $INVALID_GPP_STRING"]
     }
 
     def "PBS amp call when request have different gpp consent but match and rejecting should remove EIDS fields in request"() {

@@ -81,6 +81,8 @@ import static org.prebid.server.functional.model.request.auction.PrivacyModule.I
 import static org.prebid.server.functional.model.request.auction.PrivacyModule.IAB_US_CUSTOM_LOGIC
 import static org.prebid.server.functional.model.request.auction.PrivacyModule.IAB_US_GENERAL
 import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
+import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
+import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 import static org.prebid.server.functional.util.privacy.model.State.ALABAMA
 import static org.prebid.server.functional.util.privacy.model.State.ONTARIO
 
@@ -2492,8 +2494,9 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         and: "Response should not contain any warnings"
         assert !response.ext.warnings
 
-        and: "Response should not contain any errors"
-        assert !response.ext.errors
+        and: "Response should contain amp error"
+        assert response.ext?.errors[PREBID]*.code == [999]
+        assert response.ext?.errors[PREBID]*.message == ["Amp request parameter consent_string has invalid format: $INVALID_GPP_STRING"]
     }
 
     def "PBS amp call when request have different gpp consent but match and rejecting should remove UFPD fields in request"() {
