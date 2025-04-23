@@ -1783,7 +1783,7 @@ class BidderParamsSpec extends BaseSpec {
         assert response.seatbid.size() == 2
         assert response.seatbid.seat.sort() == [APPNEXUS, GENERIC].sort()
 
-        and: "Bidder request"
+        and: "Bidder requests should perform two bidder call"
         def bidderRequests = bidder.getBidderRequests(bidRequest.id)
         assert bidderRequests.size() == 2
 
