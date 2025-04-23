@@ -18,7 +18,7 @@ public class VeloniumTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromTheVeloniumBidder() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/velonium-exchange/test.host/123456"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/velonium-exchange/"))
                 .withRequestBody(equalToJson(
                         jsonFrom("openrtb2/velonium/test-velonium-bid-request.json")))
                 .willReturn(aResponse().withBody(
