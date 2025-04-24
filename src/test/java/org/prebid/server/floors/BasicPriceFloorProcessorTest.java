@@ -102,7 +102,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
     @Test
     public void shouldUseFloorsDataFromProviderIfPresent() {
         // given
-        final PriceFloorData providerFloorsData = givenFloorData(floors -> floors.floorProvider("provider.com"));
+        final PriceFloorData providerFloorsData = givenFloorData(identity());
         given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloorsData, FetchStatus.success, null));
 
         // when
@@ -129,9 +129,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
     @Test
     public void shouldUseFloorsFromProviderIfUseDynamicDataAndUseFetchDataRateAreAbsent() {
         // given
-        final PriceFloorData providerFloorsData = givenFloorData(floors -> floors
-                .floorProvider("provider.com")
-                .useFetchDataRate(null));
+        final PriceFloorData providerFloorsData = givenFloorData(floors -> floors.useFetchDataRate(null));
 
         given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloorsData, FetchStatus.success, null));
 
@@ -157,9 +155,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
     @Test
     public void shouldUseFloorsFromProviderIfUseDynamicDataIsAbsentAndUseFetchDataRateIs100() {
         // given
-        final PriceFloorData providerFloorsData = givenFloorData(floors -> floors
-                .floorProvider("provider.com")
-                .useFetchDataRate(100));
+        final PriceFloorData providerFloorsData = givenFloorData(floors -> floors.useFetchDataRate(100));
 
         given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloorsData, FetchStatus.success, null));
 
@@ -185,9 +181,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
     @Test
     public void shouldNotUseFloorsFromProviderIfUseDynamicDataIsAbsentAndUseFetchDataRateIs0() {
         // given
-        final PriceFloorData providerFloorsData = givenFloorData(floors -> floors
-                .floorProvider("provider.com")
-                .useFetchDataRate(0));
+        final PriceFloorData providerFloorsData = givenFloorData(floors -> floors.useFetchDataRate(0));
 
         given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloorsData, FetchStatus.success, null));
 
@@ -213,9 +207,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
     @Test
     public void shouldUseFloorsFromProviderIfUseDynamicDataIsTrueAndUseFetchDataRateIsAbsent() {
         // given
-        final PriceFloorData providerFloorsData = givenFloorData(floors -> floors
-                .floorProvider("provider.com")
-                .useFetchDataRate(null));
+        final PriceFloorData providerFloorsData = givenFloorData(floors -> floors.useFetchDataRate(null));
         given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloorsData, FetchStatus.success, null));
 
         // when
@@ -241,8 +233,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
     @Test
     public void shouldNotUseFloorsFromProviderIfUseDynamicDataIsFalse() {
         // given
-        final PriceFloorData providerFloorsData = givenFloorData(floors -> floors
-                .floorProvider("provider.com"));
+        final PriceFloorData providerFloorsData = givenFloorData(identity());
         given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloorsData, FetchStatus.success, null));
 
         // when
@@ -269,8 +260,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
     @Test
     public void shouldUseFloorsFromRequestIfUseDynamicDataIsFalse() {
         // given
-        final PriceFloorData providerFloorsData = givenFloorData(floors -> floors
-                .floorProvider("provider.com"));
+        final PriceFloorData providerFloorsData = givenFloorData(identity());
         given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloorsData, FetchStatus.success, null));
 
         // when
@@ -296,8 +286,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
     @Test
     public void shouldNotUseFloorsWhenProviderFetchingIsDisabled() {
         // given
-        final PriceFloorData providerFloorsData = givenFloorData(floors -> floors
-                .floorProvider("provider.com"));
+        final PriceFloorData providerFloorsData = givenFloorData(identity());
         given(priceFloorFetcher.fetch(any()))
                 .willReturn(FetchResult.of(providerFloorsData, FetchStatus.none, "errorMessage"));
 
@@ -325,8 +314,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
     @Test
     public void shouldNotUseFloorsWhenProviderFetchingIsFailed() {
         // given
-        final PriceFloorData providerFloorsData = givenFloorData(floors -> floors
-                .floorProvider("provider.com"));
+        final PriceFloorData providerFloorsData = givenFloorData(identity());
         given(priceFloorFetcher.fetch(any()))
                 .willReturn(FetchResult.of(providerFloorsData, FetchStatus.error, "errorMessage"));
 
@@ -354,8 +342,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
     @Test
     public void shouldNotUseFloorsWhenProviderFetchingIsFailedWithTimeout() {
         // given
-        final PriceFloorData providerFloorsData = givenFloorData(floors -> floors
-                .floorProvider("provider.com"));
+        final PriceFloorData providerFloorsData = givenFloorData(identity());
         given(priceFloorFetcher.fetch(any()))
                 .willReturn(FetchResult.of(providerFloorsData, FetchStatus.timeout, "errorMessage"));
 
@@ -383,8 +370,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
     @Test
     public void shouldUseFloorsFromRequestIfFetchingIsDisabled() {
         // given
-        final PriceFloorData providerFloorsData = givenFloorData(floors -> floors
-                .floorProvider("provider.com"));
+        final PriceFloorData providerFloorsData = givenFloorData(identity());
         given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloorsData, FetchStatus.none, null));
 
         // when
@@ -410,8 +396,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
     @Test
     public void shouldUseFloorsFromRequestIfFetchingIsFailed() {
         // given
-        final PriceFloorData providerFloorsData = givenFloorData(floors -> floors
-                .floorProvider("provider.com"));
+        final PriceFloorData providerFloorsData = givenFloorData(identity());
         given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloorsData, FetchStatus.error, null));
 
         // when
@@ -437,8 +422,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
     @Test
     public void shouldUseFloorsFromRequestIfFetchingIsFailedWithTimeout() {
         // given
-        final PriceFloorData providerFloorsData = givenFloorData(floors -> floors
-                .floorProvider("provider.com"));
+        final PriceFloorData providerFloorsData = givenFloorData(identity());
         given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloorsData, FetchStatus.timeout, null));
 
         // when
@@ -464,7 +448,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
     @Test
     public void shouldMergeProviderWithRequestFloors() {
         // given
-        final PriceFloorData providerFloorsData = givenFloorData(floors -> floors.floorProvider("provider.com"));
+        final PriceFloorData providerFloorsData = givenFloorData(identity());
         given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloorsData, FetchStatus.success, null));
 
         // when
@@ -496,7 +480,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
     @Test
     public void shouldReturnProviderFloorsWhenNotEnabledByRequestAndEnforceRateAndFloorPriceAreAbsent() {
         // given
-        final PriceFloorData providerFloorsData = givenFloorData(floors -> floors.floorProvider("provider.com"));
+        final PriceFloorData providerFloorsData = givenFloorData(identity());
         given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloorsData, FetchStatus.success, null));
 
         // when
@@ -529,7 +513,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                 .floorMin(BigDecimal.ONE)
                 .data(givenFloorData(floorsDataConfig -> floorsDataConfig.currency("USD"))));
 
-        final PriceFloorData providerFloorsData = givenFloorData(floors -> floors.floorProvider("provider.com"));
+        final PriceFloorData providerFloorsData = givenFloorData(identity());
         given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloorsData, FetchStatus.success, null));
 
         // when
@@ -722,6 +706,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                 .fetchStatus(FetchStatus.none)
                 .enabled(true)
                 .skipRate(100)
+                .floorProvider("provider.com")
                 .data(priceFloorData)
                 .skipped(true)
                 .location(PriceFloorLocation.request)));
@@ -748,6 +733,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                 .fetchStatus(FetchStatus.none)
                 .data(priceFloorData)
                 .skipRate(100)
+                .floorProvider("provider.com")
                 .enabled(true)
                 .skipped(true)
                 .location(PriceFloorLocation.request)));
@@ -802,7 +788,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
     @Test
     public void shouldCopyFloorProviderValueFromDataLevel() {
         // given
-        final PriceFloorData providerFloorsData = givenFloorData(floors -> floors.floorProvider("provider.com"));
+        final PriceFloorData providerFloorsData = givenFloorData(identity());
         given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloorsData, FetchStatus.success, null));
 
         // when
@@ -953,6 +939,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
             UnaryOperator<PriceFloorData.PriceFloorDataBuilder> floorDataCustomizer) {
 
         return floorDataCustomizer.apply(PriceFloorData.builder()
+                .floorProvider("provider.com")
                 .modelGroups(singletonList(PriceFloorModelGroup.builder()
                         .value("someKey", BigDecimal.ONE)
                         .schema(PriceFloorSchema.of("|", List.of(size)))
