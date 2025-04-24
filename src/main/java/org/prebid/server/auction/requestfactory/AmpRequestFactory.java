@@ -415,6 +415,7 @@ public class AmpRequestFactory {
                 .map(bidRequest -> paramsResolver.resolve(bidRequest, auctionContext, ENDPOINT, true))
                 .map(bidRequest -> ortb2RequestFactory.removeEmptyEids(bidRequest, auctionContext.getDebugWarnings()))
                 .compose(resolvedBidRequest -> ortb2RequestFactory.validateRequest(
+                        account,
                         resolvedBidRequest,
                         auctionContext.getHttpRequest(),
                         auctionContext.getDebugContext(),

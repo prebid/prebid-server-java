@@ -336,6 +336,22 @@ public class Metrics extends UpdatableMetrics {
         forAdapter(bidder).request().incCounter(errorMetric);
     }
 
+    public void updateDisabledBidderMetric(Account account) {
+        incCounter(MetricName.disabled_bidder);
+        if (accountMetricsVerbosityResolver.forAccount(account)
+                .isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
+            forAccount(account.getId()).requests().incCounter(MetricName.disabled_bidder);
+        }
+    }
+
+    public void updateUnknownBidderMetric(Account account) {
+        incCounter(MetricName.unknown_bidder);
+        if (accountMetricsVerbosityResolver.forAccount(account)
+                .isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
+            forAccount(account.getId()).requests().incCounter(MetricName.unknown_bidder);
+        }
+    }
+
     public void updateAnalyticEventMetric(String analyticCode, MetricName eventType, MetricName result) {
         forAnalyticReporter(analyticCode).forEventType(eventType).incCounter(result);
     }
@@ -364,6 +380,10 @@ public class Metrics extends UpdatableMetrics {
     public void updateSecureValidationMetrics(String bidder, String accountId, MetricName type) {
         forAdapter(bidder).response().validation().secure().incCounter(type);
         forAccount(accountId).response().validation().secure().incCounter(type);
+    }
+
+    public void updateSeatValidationMetrics(String bidder) {
+        forAdapter(bidder).response().validation().incCounter(MetricName.seat);
     }
 
     public void updateUserSyncOptoutMetric() {
@@ -676,6 +696,11 @@ public class Metrics extends UpdatableMetrics {
         if (accountMetricsVerbosityResolver.forAccount(account).isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
             forAccount(account.getId()).hooks().module(moduleCode).updateTimer(MetricName.duration, executionTime);
         }
+    }
+
+    public void updateCacheCreativeTtl(String accountId, Integer creativeTtl, MetricName creativeType) {
+        cache().creativeTtl().updateHistogram(creativeType, creativeTtl);
+        forAccount(accountId).cache().creativeTtl().updateHistogram(creativeType, creativeTtl);
     }
 
     private static class HookMetricMapper {

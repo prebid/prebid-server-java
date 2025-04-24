@@ -3,6 +3,9 @@ package org.prebid.server.activity.infrastructure.debug;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
+import org.prebid.server.activity.infrastructure.privacy.SkippedPrivacyModule;
+import org.prebid.server.activity.infrastructure.privacy.PrivacyModuleQualifier;
+import org.prebid.server.activity.infrastructure.rule.AndRule;
 import org.prebid.server.activity.infrastructure.rule.Rule;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
@@ -15,14 +18,17 @@ import org.prebid.server.proto.openrtb.ext.response.ExtTraceActivityRule;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 public class ActivityInfrastructureDebug {
 
     private final String accountId;
     private final TraceLevel traceLevel;
     private final List<ExtTraceActivityInfrastructure> traceLog;
+    private final Set<PrivacyModuleQualifier> skippedPrivacyModules;
     private final Metrics metrics;
     private final JacksonMapper jacksonMapper;
 
@@ -34,6 +40,7 @@ public class ActivityInfrastructureDebug {
         this.accountId = accountId;
         this.traceLevel = traceLevel;
         this.traceLog = new ArrayList<>();
+        this.skippedPrivacyModules = EnumSet.noneOf(PrivacyModuleQualifier.class);
         this.metrics = Objects.requireNonNull(metrics);
         this.jacksonMapper = Objects.requireNonNull(jacksonMapper);
     }
@@ -56,6 +63,8 @@ public class ActivityInfrastructureDebug {
     }
 
     public void emitProcessedRule(Rule rule, Rule.Result result) {
+        collectSkippedPrivacyModules(rule);
+
         if (atLeast(TraceLevel.basic)) {
             traceLog.add(ExtTraceActivityRule.of(
                     "Processing rule.",
@@ -66,6 +75,17 @@ public class ActivityInfrastructureDebug {
         metrics.updateRequestsActivityProcessedRulesCount();
         if (atLeast(TraceLevel.verbose)) {
             metrics.updateAccountActivityProcessedRulesCount(accountId);
+        }
+    }
+
+    private void collectSkippedPrivacyModules(Rule rule) {
+        if (rule instanceof SkippedPrivacyModule module) {
+            skippedPrivacyModules.add(module.skippedModule());
+        } else if (rule instanceof AndRule andRule) {
+            andRule.rules().stream()
+                    .filter(SkippedPrivacyModule.class::isInstance)
+                    .map(SkippedPrivacyModule.class::cast)
+                    .forEach(module -> skippedPrivacyModules.add(module.skippedModule()));
         }
     }
 
@@ -100,6 +120,10 @@ public class ActivityInfrastructureDebug {
 
     public List<ExtTraceActivityInfrastructure> trace() {
         return Collections.unmodifiableList(traceLog);
+    }
+
+    public Set<PrivacyModuleQualifier> skippedPrivacyModules() {
+        return Collections.unmodifiableSet(skippedPrivacyModules);
     }
 
     private boolean atLeast(TraceLevel minTraceLevel) {
