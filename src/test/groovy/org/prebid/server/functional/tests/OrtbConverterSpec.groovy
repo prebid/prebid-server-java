@@ -22,11 +22,13 @@ import org.prebid.server.functional.model.request.auction.Source
 import org.prebid.server.functional.model.request.auction.SourceType
 import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.model.request.auction.UserAgent
+import org.prebid.server.functional.model.request.auction.UserExt
 import org.prebid.server.functional.model.request.auction.Video
 import org.prebid.server.functional.model.request.auction.VideoPlcmtSubtype
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.IgnoreRest
 import spock.lang.Shared
 
 import static org.prebid.server.functional.model.request.auction.Content.Channel
@@ -1288,6 +1290,88 @@ class OrtbConverterSpec extends BaseSpec {
             it.apis == apis
             it.cattax == cattax
             it.cat == cat
+        }
+    }
+
+    def "PBS should merge user.eids.ext to user.eids when adapter does support ortb 2.6"() {
+        given: "Default bid request with user.eids"
+        def firstEids = [Eid.defaultEid]
+        def secondEids = [Eid.defaultEid]
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            user = User.defaultUser.tap {
+                eids = firstEids
+                ext = new UserExt(eids: secondEids)
+            }
+        }
+
+        when: "Requesting PBS auction with ortb 2.6"
+        prebidServerServiceWithNewOrtb.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain user.eids"
+        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
+            user.eids == [firstEids, secondEids]
+            !user.ext.eids
+        }
+    }
+
+    def "PBS shouldn't merge user.eids.ext to user.eids when adapter does support ortb 2.6 and eids the same"() {
+        given: "Default bid request with user.eids"
+        def defaultEids = [Eid.defaultEid]
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            user = User.defaultUser.tap {
+                eids = defaultEids
+                ext = new UserExt(eids: defaultEids)
+            }
+        }
+
+        when: "Requesting PBS auction with ortb 2.6"
+        prebidServerServiceWithNewOrtb.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain user.eids"
+        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
+            user.eids == defaultEids
+            !user.ext.eids
+        }
+    }
+
+    def "PBS should merge user.eids to user.eids.ext  when adapter does support ortb 2.5"() {
+        given: "Default bid request with user.eids"
+        def firstEids = [Eid.defaultEid]
+        def secondEids = [Eid.defaultEid]
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            user = User.defaultUser.tap {
+                eids = firstEids
+                ext = new UserExt(eids: secondEids)
+            }
+        }
+
+        when: "Requesting PBS auction with ortb 2.5"
+        prebidServerServiceWithElderOrtb.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain user.ext.eids"
+        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
+            user.ext.eids == [firstEids, secondEids]
+            !user.eids
+        }
+    }
+
+    def "PBS shouldn't merge user.eids to user.eids.ext  when adapter does support ortb 2.5 and eids the same"() {
+        given: "Default bid request with user.eids"
+        def defaultEids = [Eid.defaultEid]
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            user = User.defaultUser.tap {
+                eids = defaultEids
+                ext = new UserExt(eids: defaultEids)
+            }
+        }
+
+        when: "Requesting PBS auction with ortb 2.5"
+        prebidServerServiceWithElderOrtb.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain user.ext.eids"
+        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
+            user.ext.eids == defaultEids
+            !user.eids
         }
     }
 }
