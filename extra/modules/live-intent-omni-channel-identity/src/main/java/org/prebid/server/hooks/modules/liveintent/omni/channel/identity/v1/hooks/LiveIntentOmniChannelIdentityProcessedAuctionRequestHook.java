@@ -24,7 +24,7 @@ import java.util.Objects;
 
 public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements ProcessedAuctionRequestHook {
 
-    private static final String CODE = "liveintent-enrichment-hook";
+    private static final String CODE = "liveintent-omni-channel-identity-enrichment-hook";
 
     private final ModuleConfig config;
     private final JacksonMapper mapper;
