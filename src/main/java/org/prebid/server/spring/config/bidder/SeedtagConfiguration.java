@@ -30,14 +30,15 @@ public class SeedtagConfiguration {
 
     @Bean
     BidderDeps seedtagBidderDeps(BidderConfigurationProperties seedtagConfigurationProperties,
-                                   @NotBlank @Value("${external-url}") String externalUrl,
-                                   CurrencyConversionService currencyConversionService,
-                                   JacksonMapper mapper) {
+                                 @NotBlank @Value("${external-url}") String externalUrl,
+                                 CurrencyConversionService currencyConversionService,
+                                 JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(seedtagConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new SeedtagBidder(config.getEndpoint(),
+                .bidderCreator(config -> new SeedtagBidder(
+                        config.getEndpoint(),
                         currencyConversionService,
                         mapper))
                 .assemble();

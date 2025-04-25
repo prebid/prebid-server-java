@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.seedtag;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
@@ -21,17 +20,14 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.seedtag.ExtImpSeedtag;
 
 import java.math.BigDecimal;
-import java.util.Arrays;
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
-import static java.util.function.Function.identity;
+import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
@@ -58,9 +54,11 @@ public class SeedtagBidderTest extends VertxTest {
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new SeedtagBidder("invalid_url",
-                currencyConversionService,
-                jacksonMapper));
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> new SeedtagBidder(
+                        "invalid_url",
+                        currencyConversionService,
+                        jacksonMapper));
     }
 
     @Test
@@ -68,7 +66,7 @@ public class SeedtagBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
-                requestBuilder -> requestBuilder.imp(Arrays.asList(
+                requestBuilder -> requestBuilder.imp(asList(
                         givenImp(identity()),
                         givenImp(identity()))));
 
@@ -90,7 +88,7 @@ public class SeedtagBidderTest extends VertxTest {
                 .willReturn(BigDecimal.TEN);
 
         final BidRequest bidRequest = givenBidRequest(imp -> imp
-                .bidfloor(BigDecimal.TEN)
+                .bidfloor(BigDecimal.TWO)
                 .bidfloorcur("EUR"));
 
         // when
@@ -106,25 +104,25 @@ public class SeedtagBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldMakeOneRequesWithAllCurrencyConvertedImps() {
+    public void makeHttpRequestsShouldSkipImpsWithCurrencyThatCanNotBeConverted() {
         // given
         given(currencyConversionService.convertCurrency(any(), any(), anyString(), anyString()))
                 .willThrow(PreBidException.class);
 
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
-                requestBuilder -> requestBuilder.imp(Arrays.asList(
+                requestBuilder -> requestBuilder.imp(asList(
                         givenImp(identity()),
                         givenImp(impBuilder -> impBuilder
                                 .bidfloor(BigDecimal.TEN)
-                                .bidfloorcur("EUR")
-                        ))));
+                                .bidfloorcur("EUR"))
+                        )));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
@@ -132,72 +130,9 @@ public class SeedtagBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorMessageOnFailedConvertCurrencyForAllImps() {
-        // given
-        given(currencyConversionService.convertCurrency(any(), any(), anyString(), anyString()))
-                .willThrow(PreBidException.class);
-
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
-                .bidfloor(BigDecimal.TEN)
-                .bidfloorcur("EUR"));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).allSatisfy(bidderError -> {
-            assertThat(bidderError.getType())
-                    .isEqualTo(BidderError.Type.bad_input);
-            assertThat(bidderError.getMessage())
-                    .isEqualTo("Unable to convert provided bid floor currency from EUR to USD for imp `123`");
-        });
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnErrorIfImpExtCanNotBeParsed() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(asList(Imp.builder()
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
-                                .build()))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
-                    assertThat(error.getMessage()).startsWith("Cannot deserialize value");
-                });
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnEveryOccurredErrorWithNoValue() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(asList(Imp.builder()
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
-                                .build(),
-                        Imp.builder()
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
-                                .build()))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(2);
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(null));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -210,8 +145,7 @@ public class SeedtagBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
-                mapper.writeValueAsString(BidResponse.builder().build()));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -224,7 +158,7 @@ public class SeedtagBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<BidRequest> httpCall = givenHttpCall("invalid");
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -242,9 +176,6 @@ public class SeedtagBidderTest extends VertxTest {
     public void makeBidsShouldReturnBannerBidIfMediaTypeBanner() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").build()))
-                        .build(),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123").mtype(1))));
 
         // when
@@ -260,9 +191,6 @@ public class SeedtagBidderTest extends VertxTest {
     public void makeBidsShouldReturnVideoBidIfMediaTypeVideo() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").build()))
-                        .build(),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123").mtype(2))));
 
         // when
@@ -278,9 +206,6 @@ public class SeedtagBidderTest extends VertxTest {
     public void makeBidsShouldReturnErrorIfMediaTypeInvalid() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").build()))
-                        .build(),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123").mtype(4).id("456"))));
 
         // when
@@ -296,28 +221,22 @@ public class SeedtagBidderTest extends VertxTest {
     }
 
     private static BidRequest givenBidRequest(
-            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
-            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> requestCustomizer) {
+            UnaryOperator<Imp.ImpBuilder> impCustomizer,
+            UnaryOperator<BidRequest.BidRequestBuilder> requestCustomizer) {
         return requestCustomizer.apply(BidRequest.builder()
                         .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
 
-    private static BidRequest givenBidRequest(
-            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+    private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
         return givenBidRequest(impCustomizer, identity());
     }
 
-    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
-        return impCustomizer.apply(Imp.builder()
-                        .id("123"))
-                .banner(Banner.builder().build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpSeedtag.of("adUnitId"))))
-                .build();
+    private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
+        return impCustomizer.apply(Imp.builder().id("123")).build();
     }
 
-    private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
+    private static BidResponse givenBidResponse(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
                 .cur("USD")
                 .seatbid(singletonList(SeatBid.builder()
@@ -326,8 +245,7 @@ public class SeedtagBidderTest extends VertxTest {
                 .build();
     }
 
-    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return BidderCall.succeededHttp(HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
-                HttpResponse.of(200, null, body), null);
+    private static BidderCall<BidRequest> givenHttpCall(String responseBody) {
+        return BidderCall.succeededHttp(null, HttpResponse.of(200, null, responseBody), null);
     }
 }
