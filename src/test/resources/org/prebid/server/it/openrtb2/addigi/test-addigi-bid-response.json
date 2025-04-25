@@ -12,10 +12,12 @@
           "cid": "cid001",
           "adm": "adm001",
           "h": 250,
-          "w": 300
+          "w": 300,
+          "ext": {
+            "mediaType": "video"
+          }
         }
       ]
     }
-  ],
-  "cur": "USD"
+  ]
 }

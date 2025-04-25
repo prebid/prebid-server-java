@@ -8,9 +8,9 @@
         "h": 250
       },
       "ext": {
-        "resetdigital": {
-          "pubId": "lb.ads",
-          "zoneId": "publisherTestID"
+        "adtg_org": {
+          "host": "test.host",
+          "publisherId": "123456"
         }
       }
     }

@@ -8,32 +8,26 @@
           "impid": "imp_id",
           "exp": 300,
           "price": 3.33,
-          "adm": "adm001",
-          "adid": "adid001",
-          "cid": "cid001",
-          "crid": "crid001",
-          "w": 300,
-          "h": 250,
+          "crid": "creativeId",
           "ext": {
+            "origbidcpm": 3.33,
             "prebid": {
               "type": "banner",
               "meta": {
-                "adaptercode": "resetdigital"
+                "adaptercode": "adtg_org"
               }
-            },
-            "origbidcpm": 3.33,
-            "origbidcur": "USD"
+            }
           }
         }
       ],
-      "seat": "resetdigital",
+      "seat": "adtg_org",
       "group": 0
     }
   ],
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "resetdigital": "{{ resetdigital.response_time_ms }}"
+      "adtg_org": "{{ adtg_org.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 0

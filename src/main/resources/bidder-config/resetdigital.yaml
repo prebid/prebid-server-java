@@ -4,6 +4,9 @@ adapters:
     meta-info:
       maintainer-email: biddersupport@resetdigital.co
       app-media-types:
+        - banner
+        - video
+        - audio
       site-media-types:
         - banner
         - video
@@ -13,6 +16,6 @@ adapters:
     usersync:
       cookie-family-name: resetdigital
       redirect:
-        url:  https://sync.resetdigital.co/csync?redir={{redirect_url}}
+        url: https://sync.resetdigital.co/csync?pid=rubicon&redir={{redirect_url}}
         support-cors: false
         uid-macro: '$USER_ID'

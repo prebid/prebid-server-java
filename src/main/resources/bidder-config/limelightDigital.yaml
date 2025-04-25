@@ -52,6 +52,9 @@ adapters:
       velonium:
         enabled: false
         endpoint: http://ads-pbs.adxvel.com/openrtb/{{PublisherID}}?host={{Host}}
+      adtg_org:
+        enabled: false
+        endpoint: http://ads-pbs.rtb.adtarget.org/openrtb/{{PublisherID}}?host={{Host}}
     meta-info:
       maintainer-email: engineering@project-limelight.com
       app-media-types:

@@ -8,9 +8,10 @@
         "h": 250
       },
       "ext": {
-        "resetdigital": {
-          "pubId": "lb.ads",
-          "zoneId": "publisherTestID"
+        "addigi": {
+          "partnerName": "someUniquePartnerName",
+          "seat": "someSeat",
+          "token": "someToken"
         }
       }
     }

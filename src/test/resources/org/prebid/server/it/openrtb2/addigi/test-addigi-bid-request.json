@@ -11,8 +11,9 @@
       "ext": {
         "tid": "${json-unit.any-string}",
         "bidder": {
-          "pubId": "lb.ads",
-          "zoneId": "publisherTestID"
+          "partnerName": "someUniquePartnerName",
+          "seat": "someSeat",
+          "token": "someToken"
         }
       }
     }

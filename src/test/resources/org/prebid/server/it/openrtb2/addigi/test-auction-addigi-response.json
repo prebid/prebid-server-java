@@ -6,7 +6,7 @@
         {
           "id": "bid_id",
           "impid": "imp_id",
-          "exp": 300,
+          "exp": 1500,
           "price": 3.33,
           "adm": "adm001",
           "adid": "adid001",
@@ -15,25 +15,22 @@
           "w": 300,
           "h": 250,
           "ext": {
-            "prebid": {
-              "type": "banner",
-              "meta": {
-                "adaptercode": "resetdigital"
-              }
-            },
+            "mediaType": "video",
             "origbidcpm": 3.33,
-            "origbidcur": "USD"
+            "prebid": {
+              "type": "video"
+            }
           }
         }
       ],
-      "seat": "resetdigital",
+      "seat": "addigi",
       "group": 0
     }
   ],
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "resetdigital": "{{ resetdigital.response_time_ms }}"
+      "addigi": "{{ addigi.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 0
