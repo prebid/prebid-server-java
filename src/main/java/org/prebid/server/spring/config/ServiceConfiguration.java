@@ -824,6 +824,7 @@ public class ServiceConfiguration {
             HookStageExecutor hookStageExecutor,
             CategoryMappingService categoryMappingService,
             @Value("${settings.targeting.truncate-attr-chars}") int truncateAttrChars,
+            @Value("${auction.enforce-random-bid-id:false}") boolean enforceRandomBidId,
             Clock clock,
             JacksonMapper mapper,
             Metrics metrics,
@@ -840,9 +841,11 @@ public class ServiceConfiguration {
                 storedRequestProcessor,
                 winningBidComparatorFactory,
                 bidIdGenerator,
+                new UUIDIdGenerator(),
                 hookStageExecutor,
                 categoryMappingService,
                 truncateAttrChars,
+                enforceRandomBidId,
                 clock,
                 mapper,
                 metrics,
@@ -1182,10 +1185,8 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    SkippedAuctionService skipAuctionService(StoredResponseProcessor storedResponseProcessor,
-                                             BidResponseCreator bidResponseCreator) {
-
-        return new SkippedAuctionService(storedResponseProcessor, bidResponseCreator);
+    SkippedAuctionService skipAuctionService(StoredResponseProcessor storedResponseProcessor) {
+        return new SkippedAuctionService(storedResponseProcessor);
     }
 
     @Bean

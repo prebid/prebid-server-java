@@ -4,7 +4,7 @@
 
     <groupId>org.prebid</groupId>
     <artifactId>prebid-server-aggregator</artifactId>
-    <version>3.23.0-SNAPSHOT</version>
+    <version>3.25.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <scm>
@@ -49,7 +49,7 @@
         <metrics-influxdb.version>1.2.2</metrics-influxdb.version>
         <vertx.prometheus.version>0.16.0</vertx.prometheus.version>
         <iabtcf.version>2.0.10</iabtcf.version>
-        <gpp-encoder.version>3.2.0</gpp-encoder.version>
+        <gpp-encoder.version>3.2.3</gpp-encoder.version>
         <maxmind-client.version>2.17.0</maxmind-client.version>
         <protobuf.version>3.25.5</protobuf.version>
         <protoc.version>${protobuf.version}</protoc.version>

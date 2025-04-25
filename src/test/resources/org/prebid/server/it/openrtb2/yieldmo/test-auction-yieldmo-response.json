@@ -16,7 +16,10 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner"
+              "type": "banner",
+              "meta": {
+                "adaptercode": "yieldmo"
+              }
             },
             "origbidcpm": 3.33,
             "mediatype": "banner"
