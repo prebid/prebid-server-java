@@ -221,7 +221,7 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         assert response.seatbid.bid.ext.prebid.type.flatten() == [mediaType]
 
         and: "Response shouldn't contain media type for prebid meta"
-        assert !response?.seatbid?.bid?.ext?.prebid?.meta?.mediaType?.flatten()?.size()
+        assert !response?.seatbid?.first?.bid?.first?.ext?.prebid?.meta?.mediaType
 
         and: "Response shouldn't contain errors"
         assert !response.ext.errors
@@ -504,7 +504,7 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         assert response.seatbid.bid.ext.prebid.type.flatten() == [VIDEO]
 
         and: "Response shouldn't contain media type for prebid meta"
-        assert !response?.seatbid?.bid?.ext?.prebid?.meta?.mediaType?.flatten()?.size()
+        assert !response?.seatbid?.first?.bid?.first?.ext?.prebid?.meta?.mediaType
 
         and: "Response shouldn't contain errors"
         assert !response.ext.errors

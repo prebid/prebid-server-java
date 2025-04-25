@@ -14,7 +14,10 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner"
+              "type": "banner",
+              "meta": {
+                "adaptercode": "thirtythreeacross"
+              }
             },
             "origbidcpm": 1.25
           }
