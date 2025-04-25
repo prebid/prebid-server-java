@@ -4,6 +4,6 @@ import lombok.Data;
 
 @Data
 public final class ModuleConfig {
-    Long requestTimeout;
-    String idResUrl;
+    long requestTimeoutMs;
+    String identityResolutionEndpoint;
 }

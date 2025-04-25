@@ -39,7 +39,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
         this.httpClient = Objects.requireNonNull(httpClient);
     }
 
-    // TODO: Error handling
+    // TODO: Caching
     @Override
     public Future<InvocationResult<AuctionRequestPayload>> call(AuctionRequestPayload auctionRequestPayload, AuctionInvocationContext invocationContext) {
         return requestEnrichment(auctionRequestPayload)
@@ -74,9 +74,9 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
     private Future<IdResResponse> requestEnrichment(AuctionRequestPayload auctionRequestPayload) {
         String bidRequestJson = mapper.encodeToString(auctionRequestPayload.bidRequest());
         return httpClient.post(
-                        config.getIdResUrl(),
+                        config.getIdentityResolutionEndpoint(),
                         bidRequestJson,
-                        config.getRequestTimeout())
+                        config.getRequestTimeoutMs())
                 .map(this::processResponse);
     }
 
