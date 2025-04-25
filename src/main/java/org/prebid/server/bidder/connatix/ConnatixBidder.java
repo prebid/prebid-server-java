@@ -7,6 +7,7 @@ import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
@@ -16,6 +17,7 @@ import io.vertx.core.MultiMap;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -35,6 +37,7 @@ import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -74,6 +77,13 @@ public class ConnatixBidder implements Bidder<BidRequest> {
             return Result.withError(BidderError.badInput("Device IP is required"));
         }
 
+        final String optimalEndpointUrl;
+        try {
+            optimalEndpointUrl = getOptimalEndpointUrl(request);
+        } catch (PreBidException e) {
+            return Result.withError(BidderError.badInput(e.getMessage()));
+        }
+
         final String displayManagerVer = buildDisplayManagerVersion(request);
         final MultiMap headers = resolveHeaders(device);
 
@@ -85,13 +95,49 @@ public class ConnatixBidder implements Bidder<BidRequest> {
                 final ExtImpConnatix extImpConnatix = parseExtImp(imp);
                 final Imp modifiedImp = modifyImp(imp, extImpConnatix, displayManagerVer, request);
 
-                httpRequests.add(makeHttpRequest(request, modifiedImp, headers));
+                httpRequests.add(makeHttpRequest(request, modifiedImp, headers, optimalEndpointUrl));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
         }
 
         return Result.of(httpRequests, errors);
+    }
+
+    private String getOptimalEndpointUrl(BidRequest request) {
+        final Optional<String> dataCenterCode = getUserId(request).map(ConnatixBidder::getDataCenterCode);
+
+        if (dataCenterCode.isEmpty()) {
+            return endpointUrl;
+        }
+
+        try {
+            return new URIBuilder(endpointUrl)
+                    .addParameter("dc", dataCenterCode.get())
+                    .build()
+                    .toString();
+        } catch (URISyntaxException e) {
+            throw new PreBidException(e.getMessage());
+        }
+    }
+
+    private static Optional<String> getUserId(BidRequest request) {
+        return Optional.ofNullable(request.getUser())
+                .map(User::getBuyeruid)
+                .filter(StringUtils::isNotBlank)
+                .map(String::trim);
+    }
+
+    private static String getDataCenterCode(String usedId) {
+        if (usedId.startsWith("1-")) {
+            return "us-east-2";
+        } else if (usedId.startsWith("2-")) {
+            return "us-west-2";
+        } else if (usedId.startsWith("3-")) {
+            return "eu-west-1";
+        }
+
+        return null;
     }
 
     private static String buildDisplayManagerVersion(BidRequest request) {
@@ -171,12 +217,13 @@ public class ConnatixBidder implements Bidder<BidRequest> {
         return banner;
     }
 
-    private HttpRequest<BidRequest> makeHttpRequest(BidRequest request, Imp imp, MultiMap headers) {
-        final BidRequest outgoingRequest = request.toBuilder()
-                .imp(List.of(imp))
-                .build();
+    private HttpRequest<BidRequest> makeHttpRequest(BidRequest request,
+                                                    Imp imp,
+                                                    MultiMap headers,
+                                                    String optimalEndpointUrl) {
 
-        return BidderUtil.defaultRequest(outgoingRequest, headers, endpointUrl, mapper);
+        final BidRequest outgoingRequest = request.toBuilder().imp(List.of(imp)).build();
+        return BidderUtil.defaultRequest(outgoingRequest, headers, optimalEndpointUrl, mapper);
     }
 
     @Override
