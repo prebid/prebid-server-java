@@ -37,7 +37,6 @@ public class SmartyAdsBidder implements Bidder<BidRequest> {
     private static final String URL_HOST_MACRO = "{{Host}}";
     private static final String URL_SOURCE_ID_MACRO = "{{SourceId}}";
     private static final String URL_ACCOUNT_ID_MACRO = "{{AccountID}}";
-    private static final int FIRST_SEAT_BID_INDEX = 0;
 
     private final String endpointUrl;
     private final JacksonMapper mapper;

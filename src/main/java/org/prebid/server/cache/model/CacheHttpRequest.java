@@ -1,13 +1,11 @@
 package org.prebid.server.cache.model;
 
-import lombok.AllArgsConstructor;
 import lombok.Value;
 
 /**
  * Holds HTTP request info.
  */
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class CacheHttpRequest {
 
     String uri;

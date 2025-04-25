@@ -164,9 +164,16 @@ public class UnicornBidderTest extends VertxTest {
     public void makeHttpRequestsShouldSetTagIdAndUpdateBidderPlacementIdPropertyWithStoredRequestProperty() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder ->
-                impBuilder.ext(mapper.valueToTree(ExtPrebid.of(ExtImpPrebid.builder()
-                        .storedrequest(ExtStoredRequest.of("storedRequestId"))
-                        .build(), ExtImpUnicorn.of("", "123", "mediaId", 456)))));
+                impBuilder.ext(mapper.valueToTree(ExtPrebid.of(
+                        ExtImpPrebid.builder()
+                                .storedrequest(ExtStoredRequest.of("storedRequestId"))
+                                .build(),
+                        ExtImpUnicorn.builder()
+                                .placementId("")
+                                .publisherId("123")
+                                .mediaId("mediaId")
+                                .accountId(456)
+                                .build()))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -231,7 +238,12 @@ public class UnicornBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorForNotFoundStoredRequestId() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder ->
-                impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpUnicorn.of("", "123", "mediaId", 456)))));
+                impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpUnicorn.builder()
+                        .placementId("")
+                        .publisherId("123")
+                        .mediaId("mediaId")
+                        .accountId(456)
+                        .build()))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -349,7 +361,12 @@ public class UnicornBidderTest extends VertxTest {
                         .id("123")
                         .ext(mapper.valueToTree(ExtPrebid.of(
                                 null,
-                                ExtImpUnicorn.of("placementId", "123", "mediaId", 456)))))
+                                ExtImpUnicorn.builder()
+                                        .placementId("placementId")
+                                        .publisherId("123")
+                                        .mediaId("mediaId")
+                                        .accountId(456)
+                                        .build()))))
                 .build();
     }
 

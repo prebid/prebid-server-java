@@ -44,7 +44,7 @@ public class Request {
     /** Set to '0' in case if supply source / impression supports returning an assets url. */
     Integer aurlsupport;
 
-    /** Set to '0' in case if supply source / impression supports returning an dco url. */
+    /** Set to '0' in case if supply source / impression supports returning a dco url. */
     Integer durlsupport;
 
     /** Specifies types of events supported by tracking. */
