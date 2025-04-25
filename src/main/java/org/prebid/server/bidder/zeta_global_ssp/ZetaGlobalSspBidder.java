@@ -1,13 +1,11 @@
 package org.prebid.server.bidder.zeta_global_ssp;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -33,10 +31,11 @@ import java.util.Optional;
 
 public class ZetaGlobalSspBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpZetaGlobalSSP>> TYPE_REFERENCE = new TypeReference<>() {
-    };
+    private static final TypeReference<ExtPrebid<?, ExtImpZetaGlobalSSP>> ZETA_GLOBAL_EXT_TYPE_REFERENCE =
+            new TypeReference<>() {
+            };
 
-    private static final TypeReference<ExtPrebid<ExtBidPrebid, ObjectNode>> EXT_PREBID_TYPE_REFERENCE =
+    private static final TypeReference<ExtPrebid<ExtBidPrebid, ?>> EXT_BID_TYPE_REFERENCE =
             new TypeReference<>() {
             };
     private static final String SID_MACRO = "{{AccountID}}";
@@ -60,17 +59,17 @@ public class ZetaGlobalSspBidder implements Bidder<BidRequest> {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
-        final BidRequest cleanedRequest = removeImpsExt(request);
+        final HttpRequest<BidRequest> httpRequest = BidderUtil.defaultRequest(
+                removeImpsExt(request),
+                resolveEndpoint(extImp),
+                mapper);
 
-        final HttpRequest<BidRequest> httpRequest =
-                BidderUtil.defaultRequest(cleanedRequest, resolveEndpoint(extImp), mapper);
-
-        return Result.of(Collections.singletonList(httpRequest), Collections.emptyList());
+        return Result.withValues(Collections.singletonList(httpRequest));
     }
 
     private ExtImpZetaGlobalSSP parseImpExt(Imp imp) {
         try {
-            return mapper.mapper().convertValue(imp.getExt(), TYPE_REFERENCE).getBidder();
+            return mapper.mapper().convertValue(imp.getExt(), ZETA_GLOBAL_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException("Missing bidder ext in impression with id: " + imp.getId());
         }
@@ -78,7 +77,7 @@ public class ZetaGlobalSspBidder implements Bidder<BidRequest> {
 
     private String resolveEndpoint(ExtImpZetaGlobalSSP extImpZetaGlobalSSP) {
         return endpointUrl
-                .replace(SID_MACRO, StringUtils.defaultString(String.valueOf(extImpZetaGlobalSSP.getSid())));
+                .replace(SID_MACRO, Objects.toString(extImpZetaGlobalSSP.getSid(), "0"));
     }
 
     private BidRequest removeImpsExt(BidRequest request) {
@@ -115,6 +114,7 @@ public class ZetaGlobalSspBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
                 .map(bid -> makeBid(bid, bidResponse.getCur(), errors))
                 .filter(Objects::nonNull)
                 .toList();
@@ -128,7 +128,7 @@ public class ZetaGlobalSspBidder implements Bidder<BidRequest> {
     private BidType getMediaType(Bid bid, List<BidderError> errors) {
         try {
             return Optional.ofNullable(bid.getExt())
-                    .map(ext -> mapper.mapper().convertValue(ext, EXT_PREBID_TYPE_REFERENCE))
+                    .map(ext -> mapper.mapper().convertValue(ext, EXT_BID_TYPE_REFERENCE))
                     .map(ExtPrebid::getPrebid)
                     .map(ExtBidPrebid::getType)
                     .orElseThrow(IllegalArgumentException::new);

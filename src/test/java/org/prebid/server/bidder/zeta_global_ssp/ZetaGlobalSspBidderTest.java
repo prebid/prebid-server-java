@@ -20,7 +20,6 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.zeta_global_ssp.ExtImpZetaGlobalSSP;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
@@ -48,12 +47,10 @@ public class ZetaGlobalSspBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorIfImpExtMissing() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(List.of(Imp.builder()
-                        .id("imp1")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
-                        .build()))
-                .build();
+        final BidRequest bidRequest = givenBidRequest(Imp.builder()
+                .id("imp1")
+                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
+                .build());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -72,7 +69,7 @@ public class ZetaGlobalSspBidderTest extends VertxTest {
         // given
         final Imp imp1 = givenImp(imp -> imp.id("imp1").ext(givenImpExt(11)));
         final Imp imp2 = givenImp(imp -> imp.id("imp2").ext(givenImpExt(44)));
-        final BidRequest bidRequest = BidRequest.builder().imp(List.of(imp1, imp2)).build();
+        final BidRequest bidRequest = givenBidRequest(imp1, imp2);
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -83,18 +80,18 @@ public class ZetaGlobalSspBidderTest extends VertxTest {
 
         assertThat(httpRequest.getUri()).isEqualTo("https://test-url.com/11");
 
-        final BidRequest payload = httpRequest.getPayload();
-        assertThat(payload.getImp())
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
                 .containsExactly(null, givenImpExt(44));
         assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnExpectedHeaders2() {
+    public void makeHttpRequestsShouldReturnExpectedHeaders() {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity()).toBuilder()
-                .build();
+        final BidRequest bidRequest = givenBidRequest(givenImp(identity()));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -102,11 +99,25 @@ public class ZetaGlobalSspBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).hasSize(1).first()
                 .extracting(HttpRequest::getHeaders)
-                .satisfies(headers -> assertThat(headers.get(CONTENT_TYPE_HEADER))
-                        .isEqualTo(APPLICATION_JSON_CONTENT_TYPE))
-                .satisfies(headers -> assertThat(headers.get(ACCEPT_HEADER))
-                        .isEqualTo(APPLICATION_JSON_VALUE));
+                .satisfies(headers -> {
+                    assertThat(headers.get(CONTENT_TYPE_HEADER)).isEqualTo(APPLICATION_JSON_CONTENT_TYPE);
+                    assertThat(headers.get(ACCEPT_HEADER)).isEqualTo(APPLICATION_JSON_VALUE);
+                });
         assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void shouldResolveMacroInEndpointUrl() {
+        // given
+        final Imp imp1 = givenImp(imp -> imp.id("imp1").ext(givenImpExt(11)));
+        final BidRequest bidRequest = givenBidRequest(imp1);
+
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+        final HttpRequest<BidRequest> httpRequest = result.getValue().getFirst();
+
+        // then
+        assertThat(result.getValue()).hasSize(1);
+        assertThat(httpRequest.getUri()).isEqualTo("https://test-url.com/11");
     }
 
     @Test
@@ -166,13 +177,9 @@ public class ZetaGlobalSspBidderTest extends VertxTest {
         // given
         final ObjectNode extWithPrebidType = mapper.createObjectNode();
         extWithPrebidType.putObject("prebid").put("type", "banner");
-        final Bid validBid = Bid.builder().impid("imp1").ext(extWithPrebidType).build();
+        final Bid validBid = givenBid("imp1", extWithPrebidType);
 
-        final BidResponse bidResponse = BidResponse.builder()
-                .cur("USD")
-                .seatbid(List.of(SeatBid.builder().bid(List.of(validBid)).build()))
-                .build();
-
+        final BidResponse bidResponse = givenBidResponse(List.of(validBid));
         final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(bidResponse));
 
         // when
@@ -187,10 +194,8 @@ public class ZetaGlobalSspBidderTest extends VertxTest {
         assertThat(bidderBid.getBidCurrency()).isEqualTo("USD");
     }
 
-    private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder>... impCustomizers) {
-        return BidRequest.builder()
-                .imp(Arrays.stream(impCustomizers).map(ZetaGlobalSspBidderTest::givenImp).toList())
-                .build();
+    private static BidRequest givenBidRequest(Imp... imps) {
+        return BidRequest.builder().imp(List.of(imps)).build();
     }
 
     private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
@@ -206,6 +211,17 @@ public class ZetaGlobalSspBidderTest extends VertxTest {
                 HttpRequest.<BidRequest>builder().payload(null).build(),
                 HttpResponse.of(200, null, body),
                 null);
+    }
+
+    private static Bid givenBid(String impId, ObjectNode ext) {
+        return Bid.builder().impid(impId).ext(ext).build();
+    }
+
+    private static BidResponse givenBidResponse(List<Bid> bids) {
+        return BidResponse.builder()
+                .cur("USD")
+                .seatbid(singletonList(SeatBid.builder().bid(bids).build()))
+                .build();
     }
 
 }
