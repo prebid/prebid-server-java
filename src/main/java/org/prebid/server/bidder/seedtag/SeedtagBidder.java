@@ -6,9 +6,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -45,8 +43,8 @@ public class SeedtagBidder implements Bidder<BidRequest> {
     private final CurrencyConversionService currencyConversionService;
 
     public SeedtagBidder(String endpointUrl,
-                           CurrencyConversionService currencyConversionService,
-                           JacksonMapper mapper) {
+                         CurrencyConversionService currencyConversionService,
+                         JacksonMapper mapper) {
 
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
@@ -55,13 +53,11 @@ public class SeedtagBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-
         final List<Imp> modifiedImps = new ArrayList<>();
         final List<BidderError> errors = new ArrayList<>();
 
         for (Imp imp : request.getImp()) {
             try {
-                parseImpExt(imp);
                 final Price bidFloorPrice = resolveBidFloor(imp, request);
 
                 modifiedImps.add(modifyImp(imp, bidFloorPrice));
@@ -75,18 +71,11 @@ public class SeedtagBidder implements Bidder<BidRequest> {
         }
 
         final BidRequest modifiedBidRequest = request.toBuilder()
-                .cur(Collections.singletonList(BIDDER_CURRENCY))
                 .imp(modifiedImps)
                 .build();
-
-        return Result.withValue(HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(endpointUrl)
-                .headers(HttpUtil.headers())
-                .payload(modifiedBidRequest)
-                .body(mapper.encodeToBytes(modifiedBidRequest))
-                .impIds(BidderUtil.impIds(modifiedBidRequest))
-                .build());
+        return Result.of(
+                Collections.singletonList(BidderUtil.defaultRequest(modifiedBidRequest, endpointUrl, mapper)),
+                errors);
     }
 
     private static Imp modifyImp(Imp imp, Price bidFloorPrice) {
@@ -98,32 +87,19 @@ public class SeedtagBidder implements Bidder<BidRequest> {
 
     private Price resolveBidFloor(Imp imp, BidRequest bidRequest) {
         final Price initialBidFloorPrice = Price.of(imp.getBidfloorcur(), imp.getBidfloor());
-        return BidderUtil.isValidPrice(initialBidFloorPrice)
-                && !StringUtils.equalsIgnoreCase(initialBidFloorPrice.getCurrency(), BIDDER_CURRENCY)
+        return BidderUtil.shouldConvertBidFloor(initialBidFloorPrice, BIDDER_CURRENCY)
                 ? convertBidFloor(initialBidFloorPrice, imp.getId(), bidRequest)
                 : initialBidFloorPrice;
     }
 
     private Price convertBidFloor(Price bidFloorPrice, String impId, BidRequest bidRequest) {
-        final String bidFloorCur = bidFloorPrice.getCurrency();
-        try {
-            final BigDecimal convertedPrice = currencyConversionService
-                    .convertCurrency(bidFloorPrice.getValue(), bidRequest, bidFloorCur, BIDDER_CURRENCY);
+        final BigDecimal convertedPrice = currencyConversionService.convertCurrency(
+                bidFloorPrice.getValue(),
+                bidRequest,
+                bidFloorPrice.getCurrency(),
+                BIDDER_CURRENCY);
 
-            return Price.of(BIDDER_CURRENCY, convertedPrice);
-        } catch (PreBidException e) {
-            throw new PreBidException(
-                    "Unable to convert provided bid floor currency from %s to %s for imp `%s`"
-                            .formatted(bidFloorCur, BIDDER_CURRENCY, impId));
-        }
-    }
-
-    private ExtImpSeedtag parseImpExt(Imp imp) {
-        try {
-            return mapper.mapper().convertValue(imp.getExt(), SEEDTAG_EXT_TYPE_REFERENCE).getBidder();
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage());
-        }
+        return Price.of(BIDDER_CURRENCY, convertedPrice);
     }
 
     @Override
@@ -148,6 +124,7 @@ public class SeedtagBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
                 .map(bid -> makeBidderBid(bid, errors))
                 .filter(Objects::nonNull)
                 .toList();
@@ -169,9 +146,7 @@ public class SeedtagBidder implements Bidder<BidRequest> {
         return switch (bid.getMtype()) {
             case 1 -> BidType.banner;
             case 2 -> BidType.video;
-            default -> throw new PreBidException(
-                "Invalid bid.mtype for bid.id: '%s'"
-                .formatted(bid.getId()));
+            default -> throw new PreBidException("Invalid bid.mtype for bid.id: '%s'".formatted(bid.getId()));
         };
     }
 }
