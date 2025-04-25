@@ -47,10 +47,9 @@ public class ZetaGlobalSspBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorIfImpExtMissing() {
         // given
-        final BidRequest bidRequest = givenBidRequest(Imp.builder()
-                .id("imp1")
-                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
-                .build());
+        final BidRequest bidRequest = givenBidRequest(
+                givenImp(imp -> imp.id("imp1")
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -73,13 +72,11 @@ public class ZetaGlobalSspBidderTest extends VertxTest {
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+        final HttpRequest<BidRequest> httpRequest = result.getValue().getFirst();
 
         // then
         assertThat(result.getValue()).hasSize(1);
-        final HttpRequest<BidRequest> httpRequest = result.getValue().getFirst();
-
         assertThat(httpRequest.getUri()).isEqualTo("https://test-url.com/11");
-
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
@@ -107,11 +104,12 @@ public class ZetaGlobalSspBidderTest extends VertxTest {
     }
 
     @Test
-    public void shouldResolveMacroInEndpointUrl() {
+    public void makeHttpRequestsShouldResolveMacroInEndpointUrl() {
         // given
         final Imp imp1 = givenImp(imp -> imp.id("imp1").ext(givenImpExt(11)));
         final BidRequest bidRequest = givenBidRequest(imp1);
 
+        // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
         final HttpRequest<BidRequest> httpRequest = result.getValue().getFirst();
 
@@ -154,11 +152,9 @@ public class ZetaGlobalSspBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfCannotResolveBidType() throws JsonProcessingException {
         // given
-        final Bid bid = Bid.builder().impid("imp1").ext(mapper.createObjectNode()).build();
-        final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder()
-                .cur("USD")
-                .seatbid(singletonList(SeatBid.builder().bid(List.of(bid)).build()))
-                .build()));
+        final Bid bid = givenBid("imp1", mapper.createObjectNode());
+        final BidderCall<BidRequest> httpCall =
+                givenHttpCall(mapper.writeValueAsString(givenBidResponse(List.of(bid))));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
