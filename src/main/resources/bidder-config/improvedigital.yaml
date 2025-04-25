@@ -26,7 +26,3 @@ adapters:
         url: https://ad.360yield.com/server_match?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&r={{redirect_url}}
         support-cors: false
         uid-macro: '{PUB_USER_ID}'
-      iframe:
-        url: https://ad.360yield.com/user_sync?rt=html&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&r={{redirect_url}}
-        support-cors: false
-        uid-macro: '{PUB_USER_ID}'
