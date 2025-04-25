@@ -581,11 +581,11 @@ public class EplanningBidderTest extends VertxTest {
 
         assertThat(uri).contains("&sch=");
         assertThat(uri).contains("1.0%2C0");
-        assertThat(uri).contains("%21a%20si");
+        assertThat(uri).contains("%21a%2520si");
         assertThat(uri).contains("s%2Fid");
         assertThat(uri).contains("r%3Aid");
-        assertThat(uri).contains("na%20me");
-        assertThat(uri).contains("%7B%22k%22%3A%22v%20val%22%7D");
+        assertThat(uri).contains("na%2520me");
+        assertThat(uri).contains("%7B%22k%22%3A%22v%2520val%22%7D");
     }
 
     @Test

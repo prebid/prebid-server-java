@@ -275,12 +275,13 @@ public class EplanningBidder implements Bidder<Void> {
             uriBuilder.addParameter("app", REQUEST_TARGET_INVENTORY);
         }
 
-        final String schain = getSchainParameter(request.getSource());
+        String schain = getSchainParameter(request.getSource());
         if (schain != null) {
+            schain = schain.replace(" ", "%20");
             uriBuilder.addParameter("sch", schain);
         }
 
-        return uriBuilder.toString().replace("+", "%20");
+        return uriBuilder.toString();
     }
 
     private static URL parseUrl(String url) {
@@ -312,22 +313,22 @@ public class EplanningBidder implements Bidder<Void> {
         schainBuilder.append(ObjectUtils.defaultIfNull(schain.getComplete(), 0));
         for (SupplyChainNode node : schain.getNodes()) {
             schainBuilder.append("!");
-            schainBuilder.append(node.getAsi() != null ? node.getAsi() : "");
+            schainBuilder.append(StringUtils.defaultString(node.getAsi()));
             schainBuilder.append(",");
 
-            schainBuilder.append(node.getSid() != null ? node.getSid() : "");
+            schainBuilder.append(StringUtils.defaultString(node.getSid()));
             schainBuilder.append(",");
 
-            schainBuilder.append(node.getHp() == null ? StringUtils.EMPTY : node.getHp());
+            schainBuilder.append(node.getHp() != null ? node.getHp() : StringUtils.EMPTY);
             schainBuilder.append(",");
 
-            schainBuilder.append(node.getRid() != null ? node.getRid() : "");
+            schainBuilder.append(StringUtils.defaultString(node.getRid()));
             schainBuilder.append(",");
 
-            schainBuilder.append(node.getName() != null ? node.getName() : "");
+            schainBuilder.append(StringUtils.defaultString(node.getName()));
             schainBuilder.append(",");
 
-            schainBuilder.append(node.getDomain() != null ? node.getDomain() : "");
+            schainBuilder.append(StringUtils.defaultString(node.getDomain()));
             schainBuilder.append(",");
 
             schainBuilder.append(node.getExt() == null
