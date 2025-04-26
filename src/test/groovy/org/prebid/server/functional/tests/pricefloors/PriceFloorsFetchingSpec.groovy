@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests.pricefloors
 
+import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.config.PriceFloorsFetch
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.pricefloors.ModelGroup
@@ -545,7 +546,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.accountId, floorsResponse)
 
         and: "PBS fetch rules from floors provider"
-        cacheFloorsProviderRules(bidRequest, floorsPbsService)
+        cacheFloorsProviderRules(bidRequest, floorsPbsService, BidderName.GENERIC, NONE)
 
         when: "PBS processes auction request"
         def response = floorsPbsService.sendAuctionRequest(bidRequest)
@@ -554,7 +555,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
         assert metrics[FETCH_FAILURE_METRIC] == 1
 
-        then: "PBS should fetch data"
+        and: "PBS should fetch data"
         assert floorsProvider.getRequestCount(bidRequest.accountId) == 1
 
         and: "PBS log should contain error"
@@ -645,7 +646,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(accountId, BAD_REQUEST_400)
 
         and: "PBS fetch rules from floors provider"
-        cacheFloorsProviderRules(bidRequest, floorsPbsService)
+        cacheFloorsProviderRules(bidRequest, floorsPbsService, BidderName.GENERIC, NONE)
 
         when: "PBS processes auction request"
         def response = floorsPbsService.sendAuctionRequest(bidRequest)
@@ -687,6 +688,9 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def invalidJson = "{{}}"
         floorsProvider.setResponse(accountId, invalidJson)
 
+        and: "PBS fetch rules from floors provider"
+        cacheFloorsProviderRules(bidRequest, floorsPbsService, BidderName.GENERIC, NONE)
+
         when: "PBS processes auction request"
         def response = floorsPbsService.sendAuctionRequest(bidRequest)
 
@@ -725,6 +729,9 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "Set Floors Provider response with invalid json"
         floorsProvider.setResponse(accountId, "")
+
+        and: "PBS fetch rules from floors provider"
+        cacheFloorsProviderRules(bidRequest, floorsPbsService, BidderName.GENERIC, NONE)
 
         when: "PBS processes auction request"
         def response = floorsPbsService.sendAuctionRequest(bidRequest)
@@ -768,6 +775,9 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         }
         floorsProvider.setResponse(accountId, floorsResponse)
 
+        and: "PBS fetch rules from floors provider"
+        cacheFloorsProviderRules(bidRequest, floorsPbsService, BidderName.GENERIC, NONE)
+
         when: "PBS processes auction request"
         def response = floorsPbsService.sendAuctionRequest(bidRequest)
 
@@ -809,6 +819,9 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
             modelGroups[0].values = null
         }
         floorsProvider.setResponse(accountId, floorsResponse)
+
+        and: "PBS fetch rules from floors provider"
+        cacheFloorsProviderRules(bidRequest, floorsPbsService, BidderName.GENERIC, NONE)
 
         when: "PBS processes auction request"
         def response = floorsPbsService.sendAuctionRequest(bidRequest)
@@ -854,6 +867,9 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
             modelGroups[0].values.put(new Rule(mediaType: BANNER, country: MULTIPLE).rule, 0.7)
         }
         floorsProvider.setResponse(accountId, floorsResponse)
+
+        and: "PBS fetch rules from floors provider"
+        cacheFloorsProviderRules(bidRequest, floorsPbsService, BidderName.GENERIC, NONE)
 
         when: "PBS processes auction request"
         def response = floorsPbsService.sendAuctionRequest(bidRequest)
@@ -901,6 +917,9 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         and: "Set Floors Provider response with timeout"
         floorsProvider.setResponseWithTimeout(accountId)
 
+        and: "PBS fetch rules from floors provider"
+        cacheFloorsProviderRules(bidRequest, pbsService, BidderName.GENERIC, NONE)
+
         when: "PBS processes auction request"
         def response = pbsService.sendAuctionRequest(bidRequest)
 
@@ -943,6 +962,9 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def floorsResponse = PriceFloorData.priceFloorData
         def responseSize = convertKilobyteSizeToByte(maxSize) + 75
         floorsProvider.setResponse(accountId, floorsResponse, ["Content-Length": responseSize as String])
+
+        and: "PBS fetch rules from floors provider"
+        cacheFloorsProviderRules(bidRequest, floorsPbsService, BidderName.GENERIC, NONE)
 
         when: "PBS processes auction request"
         def response = floorsPbsService.sendAuctionRequest(bidRequest)
@@ -1284,9 +1306,9 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         assert bidderRequest.imp[0].bidFloor == floorValue
 
-        and: "Response should contain error"
-        assert response.ext?.errors[PREBID]*.code == [999]
-        assert response.ext?.errors[PREBID]*.message ==
+        and: "Response should contain warning"
+        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.message ==
                 ["Failed to parse price floors from request, with a reason: Price floor floorMin " +
                          "must be positive float, but was $invalidFloorMin"]
     }
@@ -1312,9 +1334,9 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         assert bidderRequest.imp[0].bidFloor == floorValue
 
-        and: "Response should contain error"
-        assert response.ext?.errors[PREBID]*.code == [999]
-        assert response.ext?.errors[PREBID]*.message ==
+        and: "Response should contain warning"
+        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.message ==
                 ["Failed to parse price floors from request, with a reason: Price floor rules " +
                          "should contain at least one model group"]
     }
@@ -1340,9 +1362,9 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         assert bidderRequest.imp[0].bidFloor == floorValue
 
-        and: "Response should contain error"
-        assert response.ext?.errors[PREBID]*.code == [999]
-        assert response.ext?.errors[PREBID]*.message ==
+        and: "Response should contain warning"
+        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.message ==
                 ["Failed to parse price floors from request, with a reason: Price floor rules values " +
                          "can't be null or empty, but were null"]
     }
@@ -1372,9 +1394,9 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp[0].bidFloor == floorValue
 
-        and: "Response should contain error"
-        assert response.ext?.errors[PREBID]*.code == [999]
-        assert response.ext?.errors[PREBID]*.message ==
+        and: "Response should contain warning"
+        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.message ==
                 ["Failed to parse price floors from request, with a reason: Price floor modelGroup modelWeight " +
                          "must be in range(1-100), but was $invalidModelWeight"]
         where:
@@ -1411,9 +1433,9 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def bidderRequest = bidder.getBidderRequests(ampStoredRequest.id).last()
         assert bidderRequest.imp[0].bidFloor == floorValue
 
-        and: "Response should contain error"
-        assert response.ext?.errors[PREBID]*.code == [999]
-        assert response.ext?.errors[PREBID]*.message ==
+        and: "Response should contain warning"
+        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.message ==
                 ["Failed to parse price floors from request, with a reason: Price floor modelGroup modelWeight " +
                          "must be in range(1-100), but was $invalidModelWeight"]
 
@@ -1451,9 +1473,9 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         assert bidderRequest.imp[0].bidFloor == floorValue
 
-        and: "Response should contain error"
-        assert response.ext?.errors[PREBID]*.code == [999]
-        assert response.ext?.errors[PREBID]*.message ==
+        and: "Response should contain warning"
+        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.message ==
                 ["Failed to parse price floors from request, with a reason: Price floor root skipRate " +
                          "must be in range(0-100), but was $invalidSkipRate"]
 
@@ -1491,9 +1513,9 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         assert bidderRequest.imp[0].bidFloor == floorValue
 
-        and: "Response should contain error"
-        assert response.ext?.errors[PREBID]*.code == [999]
-        assert response.ext?.errors[PREBID]*.message ==
+        and: "Response should contain warning"
+        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.message ==
                 ["Failed to parse price floors from request, with a reason: Price floor data skipRate " +
                          "must be in range(0-100), but was $invalidSkipRate"]
 
@@ -1531,9 +1553,9 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         assert bidderRequest.imp[0].bidFloor == floorValue
 
-        and: "Response should contain error"
-        assert response.ext?.errors[PREBID]*.code == [999]
-        assert response.ext?.errors[PREBID]*.message ==
+        and: "Response should contain warning"
+        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.message ==
                 ["Failed to parse price floors from request, with a reason: Price floor modelGroup skipRate " +
                          "must be in range(0-100), but was $invalidSkipRate"]
 
@@ -1567,9 +1589,9 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         assert bidderRequest.imp[0].bidFloor == floorValue
 
-        and: "Response should contain error"
-        assert response.ext?.errors[PREBID]*.code == [999]
-        assert response.ext?.errors[PREBID]*.message ==
+        and: "Response should contain warning"
+        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.message ==
                 ["Failed to parse price floors from request, with a reason: Price floor modelGroup default " +
                          "must be positive float, but was $invalidDefaultFloorValue"]
     }
@@ -1651,7 +1673,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(accountId, floorsResponse)
 
         and: "PBS fetch rules from floors provider"
-        cacheFloorsProviderRules(bidRequest)
+        cacheFloorsProviderRules(bidRequest, floorsPbsService, BidderName.GENERIC, NONE)
 
         when: "PBS processes auction request"
         def response = floorsPbsService.sendAuctionRequest(bidRequest)
@@ -1669,7 +1691,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "PBS log should contain error"
         def logs = floorsPbsService.getLogsByTime(startTime)
-        def floorsLogs = getLogsByText(logs, BASIC_FETCH_URL)
+        def floorsLogs = getLogsByText(logs, "$BASIC_FETCH_URL$accountId")
         assert floorsLogs.size() == 1
         assert floorsLogs[0].contains("Failed to fetch price floor from provider for fetch.url: " +
                 "'$BASIC_FETCH_URL$accountId', account = $accountId with a reason : Price floor modelGroup modelWeight" +
@@ -1710,7 +1732,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(accountId, floorsResponse)
 
         and: "PBS fetch rules from floors provider"
-        cacheFloorsProviderRules(bidRequest)
+        cacheFloorsProviderRules(bidRequest, floorsPbsService, BidderName.GENERIC, NONE)
 
         when: "PBS processes auction request"
         def response = floorsPbsService.sendAuctionRequest(bidRequest)
@@ -1769,7 +1791,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(accountId, floorsResponse)
 
         and: "PBS fetch rules from floors provider"
-        cacheFloorsProviderRules(bidRequest)
+        cacheFloorsProviderRules(bidRequest, floorsPbsService, BidderName.GENERIC, NONE)
 
         when: "PBS processes auction request"
         def response = floorsPbsService.sendAuctionRequest(bidRequest)
@@ -1828,7 +1850,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(accountId, floorsResponse)
 
         and: "PBS fetch rules from floors provider"
-        cacheFloorsProviderRules(bidRequest)
+        cacheFloorsProviderRules(bidRequest, floorsPbsService, BidderName.GENERIC, NONE)
 
         when: "PBS processes auction request"
         def response = floorsPbsService.sendAuctionRequest(bidRequest)

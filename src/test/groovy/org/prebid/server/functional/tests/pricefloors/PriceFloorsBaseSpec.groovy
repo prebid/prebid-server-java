@@ -15,6 +15,7 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.BidRequestExt
 import org.prebid.server.functional.model.request.auction.DistributionChannel
 import org.prebid.server.functional.model.request.auction.ExtPrebidFloors
+import org.prebid.server.functional.model.request.auction.FetchStatus
 import org.prebid.server.functional.model.request.auction.Prebid
 import org.prebid.server.functional.model.request.auction.Video
 import org.prebid.server.functional.model.response.currencyrates.CurrencyRatesResponse
@@ -120,8 +121,9 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
 
     protected void cacheFloorsProviderRules(BidRequest bidRequest,
                                             PrebidServerService pbsService = floorsPbsService,
-                                            BidderName bidderName = BidderName.GENERIC) {
-        PBSUtils.waitUntil({ getRequests(pbsService.sendAuctionRequest(bidRequest))[bidderName.value]?.first?.ext?.prebid?.floors?.fetchStatus != INPROGRESS },
+                                            BidderName bidderName = BidderName.GENERIC,
+                                            FetchStatus fetchStatus = INPROGRESS) {
+        PBSUtils.waitUntil({ getRequests(pbsService.sendAuctionRequest(bidRequest))[bidderName.value]?.first?.ext?.prebid?.floors?.fetchStatus != fetchStatus },
                 5000,
                 1000)
     }
