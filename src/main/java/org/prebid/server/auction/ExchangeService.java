@@ -28,6 +28,8 @@ import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
 import org.prebid.server.activity.infrastructure.payload.impl.ActivityInvocationPayloadImpl;
 import org.prebid.server.activity.infrastructure.payload.impl.BidRequestActivityInvocationPayload;
+import org.prebid.server.auction.aliases.AlternateBidderCodesConfig;
+import org.prebid.server.auction.aliases.BidderAliases;
 import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessingResult;
 import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessor;
 import org.prebid.server.auction.model.AuctionContext;
@@ -79,6 +81,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigOrtb;
 import org.prebid.server.proto.openrtb.ext.request.ExtDooh;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAlternateBidderCodes;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidBidderConfig;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
@@ -88,7 +91,9 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchain;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidMeta;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ListUtil;
 import org.prebid.server.util.PbsUtil;
@@ -115,6 +120,7 @@ public class ExchangeService {
     private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
 
     private static final String PREBID_EXT = "prebid";
+    private static final String PREBID_META_EXT = "meta";
     private static final String BIDDER_EXT = "bidder";
     private static final String TID_EXT = "tid";
     private static final String ALL_BIDDERS_CONFIG = "*";
@@ -233,7 +239,7 @@ public class ExchangeService {
         final MetricName requestTypeMetric = receivedContext.getRequestTypeMetric();
 
         final List<SeatBid> storedAuctionResponses = new ArrayList<>();
-        final BidderAliases aliases = aliases(bidRequest);
+        final BidderAliases aliases = aliases(bidRequest, account);
         final BidRequestCacheInfo cacheInfo = bidRequestCacheInfo(bidRequest);
         final Map<String, MultiBidConfig> bidderToMultiBid = bidderToMultiBids(bidRequest, debugWarnings);
         receivedContext.getBidRejectionTrackers().putAll(makeBidRejectionTrackers(bidRequest, aliases));
@@ -273,7 +279,7 @@ public class ExchangeService {
                         .map(auctionParticipations -> updateResponsesMetrics(auctionParticipations, account, aliases))
                         .map(context::with))
                 // produce response from bidder results
-                .compose(context -> bidResponseCreator.create(context, cacheInfo, aliases, bidderToMultiBid)
+                .compose(context -> bidResponseCreator.create(context, cacheInfo, bidderToMultiBid)
                         .map(bidResponse -> criteriaLogManager.traceResponse(
                                 logger,
                                 bidResponse,
@@ -284,11 +290,19 @@ public class ExchangeService {
                         .map(context::with));
     }
 
-    private BidderAliases aliases(BidRequest bidRequest) {
+    private BidderAliases aliases(BidRequest bidRequest, Account account) {
         final ExtRequestPrebid prebid = PbsUtil.extRequestPrebid(bidRequest);
         final Map<String, String> aliases = prebid != null ? prebid.getAliases() : null;
         final Map<String, Integer> aliasgvlids = prebid != null ? prebid.getAliasgvlids() : null;
-        return BidderAliases.of(aliases, aliasgvlids, bidderCatalog);
+        final ExtRequestPrebidAlternateBidderCodes alternateBidderCodes = prebid != null
+                ? prebid.getAlternateBidderCodes()
+                : null;
+
+        final AlternateBidderCodesConfig alternateBidderCodesConfig = ObjectUtils.defaultIfNull(
+                alternateBidderCodes,
+                account.getAlternateBidderCodes());
+
+        return BidderAliases.of(aliases, aliasgvlids, bidderCatalog, alternateBidderCodesConfig);
     }
 
     private static ExtRequestTargeting targeting(BidRequest bidRequest) {
@@ -713,20 +727,34 @@ public class ExchangeService {
         final String storedBidResponse = impBidderToStoredBidResponse.size() == 1
                 ? impBidderToStoredBidResponse.get(imps.getFirst().getId()).get(bidder)
                 : null;
+
+        final BidRequest enrichedWithPriceFloors = priceFloorProcessor.enrichWithPriceFloors(
+                context.getBidRequest().toBuilder().imp(imps).build(),
+                context.getAccount(),
+                bidder,
+                context.getPrebidErrors(),
+                context.getDebugWarnings());
+
         final BidRequest preparedBidRequest = prepareBidRequest(
                 bidderPrivacyResult,
-                imps,
+                enrichedWithPriceFloors,
                 bidderToMultiBid,
                 biddersToConfigs,
                 bidderToPrebidBidders,
                 bidderAliases,
                 context);
 
+        final Map<String, Price> originalPriceFloors = enrichedWithPriceFloors.getImp().stream()
+                .filter(imp -> BidderUtil.isValidPrice(imp.getBidfloor())
+                        && StringUtils.isNotBlank(imp.getBidfloorcur()))
+                .collect(Collectors.toMap(Imp::getId, imp -> Price.of(imp.getBidfloorcur(), imp.getBidfloor())));
+
         final BidderRequest bidderRequest = BidderRequest.builder()
                 .bidder(bidder)
                 .ortbVersion(ortbVersion)
                 .storedResponse(storedBidResponse)
                 .bidRequest(preparedBidRequest)
+                .originalPriceFloors(originalPriceFloors)
                 .build();
 
         return AuctionParticipation.builder()
@@ -742,7 +770,7 @@ public class ExchangeService {
     }
 
     private BidRequest prepareBidRequest(BidderPrivacyResult bidderPrivacyResult,
-                                         List<Imp> imps,
+                                         BidRequest bidRequest,
                                          Map<String, MultiBidConfig> bidderToMultiBid,
                                          Map<String, ExtBidderConfigOrtb> biddersToConfigs,
                                          Map<String, JsonNode> bidderToPrebidBidders,
@@ -750,12 +778,6 @@ public class ExchangeService {
                                          AuctionContext context) {
 
         final String bidder = bidderPrivacyResult.getRequestBidder();
-        final BidRequest bidRequest = priceFloorProcessor.enrichWithPriceFloors(
-                context.getBidRequest().toBuilder().imp(imps).build(),
-                context.getAccount(),
-                bidder,
-                context.getPrebidErrors(),
-                context.getDebugWarnings());
         final boolean transmitTid = transmitTransactionId(bidder, context);
         final List<String> firstPartyDataBidders = firstPartyDataBidders(bidRequest.getExt());
         final boolean useFirstPartyData = firstPartyDataBidders == null || firstPartyDataBidders.stream()
@@ -1225,7 +1247,41 @@ public class ExchangeService {
                         requestHeaders,
                         aliases,
                         debugResolver.resolveDebugForBidder(auctionContext, resolvedBidderName)))
+                .map(seatBid -> populateBidderCode(seatBid, bidderName, resolvedBidderName))
                 .map(seatBid -> BidderResponse.of(bidderName, seatBid, responseTime(bidderRequestStartTime)));
+    }
+
+    private BidderSeatBid populateBidderCode(BidderSeatBid seatBid, String bidderName, String resolvedBidderName) {
+        return seatBid.with(seatBid.getBids().stream()
+                .map(bidderBid -> bidderBid.toBuilder()
+                        .seat(ObjectUtils.defaultIfNull(bidderBid.getSeat(), bidderName))
+                        .bid(bidderBid.getBid().toBuilder()
+                                .ext(prepareBidExt(
+                                        bidderBid.getBid().getExt(),
+                                        bidderCatalog.configuredName(resolvedBidderName)))
+                                .build())
+                        .build())
+                .toList());
+    }
+
+    private ObjectNode prepareBidExt(ObjectNode bidExt, String bidderName) {
+        final ObjectNode updatedBidExt = bidExt != null ? bidExt : mapper.mapper().createObjectNode();
+
+        final ObjectNode extPrebid = objectNodeFromOrNew(updatedBidExt, PREBID_EXT);
+        final ObjectNode extPrebidMeta = objectNodeFromOrNew(extPrebid, PREBID_META_EXT);
+
+        final ObjectNode newData = mapper.mapper().valueToTree(
+                ExtBidPrebidMeta.builder().adapterCode(bidderName).build());
+        extPrebidMeta.setAll(newData);
+
+        return updatedBidExt;
+    }
+
+    private ObjectNode objectNodeFromOrNew(ObjectNode parent, String key) {
+        final JsonNode childNode = parent.get(key);
+        return childNode == null || !childNode.isObject()
+                ? parent.putObject(key)
+                : (ObjectNode) childNode;
     }
 
     private BidRequest adjustTmax(BidRequest bidRequest,
