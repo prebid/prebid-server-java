@@ -6,14 +6,12 @@ import com.iab.openrtb.request.BidRequest;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidadjustments.model.BidAdjustmentsRule;
-import org.prebid.server.bidadjustments.model.BidAdjustmentsRules;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.prebid.server.bidadjustments.model.BidAdjustmentType.CPM;
@@ -113,10 +111,6 @@ public class BidAdjustmentsRulesResolverTest extends VertxTest {
     @Test
     public void resolveShouldPickAndApplyRulesBySpecificBidder() throws JsonProcessingException {
         // given
-        final BidAdjustmentsRules givenBidAdjustments = BidAdjustmentsRules.of(Map.of(
-                "*|bidderName|*", List.of(expectedMultiplier("15")),
-                "*|*|*", List.of(expectedMultiplier("25"))));
-
         final String givenAdjustments = """
                 {
                   "mediatype": {
