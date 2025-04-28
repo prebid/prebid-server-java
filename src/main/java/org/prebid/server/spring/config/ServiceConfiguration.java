@@ -627,7 +627,7 @@ public class ServiceConfiguration {
                 .setIdleTimeoutUnit(TimeUnit.MILLISECONDS)
                 .setIdleTimeout(httpClientProperties.getIdleTimeoutMs())
                 .setPoolCleanerPeriod(httpClientProperties.getPoolCleanerPeriodMs())
-                .setTryUseCompression(httpClientProperties.getUseCompression())
+                .setDecompressionSupported(httpClientProperties.getUseCompression())
                 .setConnectTimeout(httpClientProperties.getConnectTimeoutMs())
                 // Vert.x's HttpClientRequest needs this value to be 2 for redirections to be followed once,
                 // 3 for twice, and so on
@@ -640,7 +640,7 @@ public class ServiceConfiguration {
 
             options
                     .setSsl(true)
-                    .setKeyStoreOptions(jksOptions);
+                    .setKeyCertOptions(jksOptions);
         }
 
         return new BasicHttpClient(vertx, vertx.createHttpClient(options));

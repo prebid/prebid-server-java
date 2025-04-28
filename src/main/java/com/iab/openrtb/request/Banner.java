@@ -11,7 +11,7 @@ import java.util.List;
  * “banner” may have very specific meaning in other contexts, here it can be
  * many things including a simple static image, an expandable ad unit, or even
  * in-banner video (refer to the {@link Video} object in Section 3.2.7 for the
- * more generalized and full featured video ad units). An array of
+ * more generalized and full-featured video ad units). An array of
  * {@link Banner} objects can also appear within the {@link Video} to describe
  * optional companion ads defined in the VAST specification.
  * <p>The presence of a {@link Banner} as a subordinate of the {@link Imp}

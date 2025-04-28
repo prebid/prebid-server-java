@@ -59,4 +59,3 @@ public class RandomAnyWeightedEntrySupplier<E> implements RandomWeightedEntrySup
         throw new AssertionError();
     }
 }
-

@@ -1,14 +1,12 @@
 package org.prebid.server.proto.openrtb.ext.request.tappx;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import lombok.AllArgsConstructor;
 import lombok.Value;
 
 import java.math.BigDecimal;
 import java.util.List;
 
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class ExtImpTappx {
 
     String host;
@@ -27,4 +25,3 @@ public class ExtImpTappx {
 
     List<String> bcrid;
 }
-
