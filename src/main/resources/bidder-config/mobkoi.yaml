@@ -1,0 +1,10 @@
+adapters:
+  mobkoi:
+    endpoint: "https://pbs.maximus.mobkoi.com/bid"
+    meta-info:
+      maintainer-email: platformteam@mobkoi.com
+      app-media-types:
+      site-media-types:
+        - banner
+      supported-vendors:
+      vendor-id: 898
