@@ -21,6 +21,7 @@ import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements ProcessedAuctionRequestHook {
 
@@ -58,11 +59,11 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
     }
 
     private AuctionRequestPayload updatedPayload(AuctionRequestPayload requestPayload, IdResResponse idResResponse) {
-        BidRequest bidRequest = requestPayload.bidRequest();
-        User user = bidRequest.getUser();
+        BidRequest bidRequest = Optional.ofNullable(requestPayload.bidRequest()).orElse(BidRequest.builder().build());
+        User user = Optional.ofNullable(bidRequest.getUser()).orElse(User.builder().build());
 
         List<Eid> allEids = new ArrayList<>();
-        allEids.addAll(user.getEids());
+        allEids.addAll(Optional.ofNullable(user.getEids()).orElse(List.of()));
         allEids.addAll(idResResponse.getEids());
 
         User updatedUser = user.toBuilder().eids(allEids).build();
