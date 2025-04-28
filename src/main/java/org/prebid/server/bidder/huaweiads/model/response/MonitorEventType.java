@@ -45,4 +45,3 @@ public enum MonitorEventType {
                 Map.entry("win", WIN));
     }
 }
-

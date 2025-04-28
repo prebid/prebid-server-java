@@ -31,4 +31,3 @@ public class Purpose07Strategy extends PurposeStrategy {
     }
 
 }
-

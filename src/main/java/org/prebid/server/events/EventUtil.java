@@ -67,7 +67,7 @@ public class EventUtil {
 
     public static void validateFormat(RoutingContext routingContext) {
         final String format = routingContext.request().params().get(FORMAT_PARAMETER);
-        if (StringUtils.isNotEmpty(format) && !format.equals(BLANK_FORMAT) && !format.equals(IMAGE_FORMAT)) {
+        if (StringUtils.isNotEmpty(format) && !BLANK_FORMAT.equals(format) && !IMAGE_FORMAT.equals(format)) {
             throw new IllegalArgumentException(
                     "Format '%s' query parameter is invalid. Possible values are %s and %s, but was %s"
                             .formatted(FORMAT_PARAMETER, BLANK_FORMAT, IMAGE_FORMAT, format));
@@ -76,8 +76,8 @@ public class EventUtil {
 
     public static void validateAnalytics(RoutingContext routingContext) {
         final String analytics = routingContext.request().params().get(ANALYTICS_PARAMETER);
-        if (StringUtils.isNotEmpty(analytics) && !analytics.equals(ENABLED_ANALYTICS)
-                && !analytics.equals(DISABLED_ANALYTICS)) {
+        if (StringUtils.isNotEmpty(analytics) && !ENABLED_ANALYTICS.equals(analytics)
+                && !DISABLED_ANALYTICS.equals(analytics)) {
             throw new IllegalArgumentException(
                     "Analytics '%s' query parameter is invalid. Possible values are %s and %s, but was %s"
                             .formatted(ANALYTICS_PARAMETER, ENABLED_ANALYTICS, DISABLED_ANALYTICS, analytics));
@@ -116,7 +116,7 @@ public class EventUtil {
         final MultiMap queryParams = routingContext.request().params();
 
         final String typeAsString = queryParams.get(TYPE_PARAMETER);
-        final EventRequest.Type type = typeAsString.equals(WIN_TYPE) ? EventRequest.Type.win : EventRequest.Type.imp;
+        final EventRequest.Type type = WIN_TYPE.equals(typeAsString) ? EventRequest.Type.win : EventRequest.Type.imp;
 
         final EventRequest.Format format = Objects.equals(queryParams.get(FORMAT_PARAMETER), IMAGE_FORMAT)
                 ? EventRequest.Format.image : EventRequest.Format.blank;

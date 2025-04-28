@@ -5,6 +5,7 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.RequestBody;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,6 +40,8 @@ public class SettingsCacheNotificationHandlerTest extends VertxTest {
     private HttpServerRequest httpRequest;
     @Mock
     private HttpServerResponse httpResponse;
+    @Mock(strictness = LENIENT)
+    private RequestBody requestBody;
 
     @BeforeEach
     public void setUp() {
@@ -46,6 +49,7 @@ public class SettingsCacheNotificationHandlerTest extends VertxTest {
 
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);
+        given(routingContext.body()).willReturn(requestBody);
         given(routingContext.response().setStatusCode(anyInt())).willReturn(httpResponse);
     }
 
@@ -53,7 +57,7 @@ public class SettingsCacheNotificationHandlerTest extends VertxTest {
     public void shouldReturnBadRequestForUpdateCacheIfRequestHasNoBody() {
         // given
         given(routingContext.request().method()).willReturn(HttpMethod.POST);
-        given(routingContext.getBody()).willReturn(null);
+        given(requestBody.buffer()).willReturn(null);
 
         // when
         handler.handle(routingContext);
@@ -67,7 +71,7 @@ public class SettingsCacheNotificationHandlerTest extends VertxTest {
     public void shouldReturnBadRequestForUpdateCacheIfRequestBodyCannotBeParsed() {
         // given
         given(routingContext.request().method()).willReturn(HttpMethod.POST);
-        given(routingContext.getBody()).willReturn(Buffer.buffer());
+        given(requestBody.buffer()).willReturn(Buffer.buffer());
 
         // when
         handler.handle(routingContext);
@@ -84,7 +88,7 @@ public class SettingsCacheNotificationHandlerTest extends VertxTest {
 
         final UpdateSettingsCacheRequest cacheRequest = UpdateSettingsCacheRequest.of(
                 singletonMap("reqId1", "reqValue1"), singletonMap("impId1", "impValue1"));
-        given(routingContext.getBody()).willReturn(Buffer.buffer(mapper.writeValueAsBytes(cacheRequest)));
+        given(requestBody.buffer()).willReturn(Buffer.buffer(mapper.writeValueAsBytes(cacheRequest)));
 
         // when
         handler.handle(routingContext);
@@ -98,7 +102,7 @@ public class SettingsCacheNotificationHandlerTest extends VertxTest {
     public void shouldReturnBadRequestForInvalidateCacheIfRequestHasNoBody() {
         // given
         given(routingContext.request().method()).willReturn(HttpMethod.DELETE);
-        given(routingContext.getBody()).willReturn(null);
+        given(requestBody.buffer()).willReturn(null);
 
         // when
         handler.handle(routingContext);
@@ -112,7 +116,7 @@ public class SettingsCacheNotificationHandlerTest extends VertxTest {
     public void shouldReturnBadRequestForInvalidateCacheIfRequestBodyCannotBeParsed() {
         // given
         given(routingContext.request().method()).willReturn(HttpMethod.DELETE);
-        given(routingContext.getBody()).willReturn(Buffer.buffer());
+        given(requestBody.buffer()).willReturn(Buffer.buffer());
 
         // when
         handler.handle(routingContext);
@@ -129,7 +133,7 @@ public class SettingsCacheNotificationHandlerTest extends VertxTest {
 
         final InvalidateSettingsCacheRequest cacheRequest = InvalidateSettingsCacheRequest.of(
                 singletonList("reqId1"), singletonList("impId1"));
-        given(routingContext.getBody()).willReturn(Buffer.buffer(mapper.writeValueAsBytes(cacheRequest)));
+        given(requestBody.buffer()).willReturn(Buffer.buffer(mapper.writeValueAsBytes(cacheRequest)));
 
         // when
         handler.handle(routingContext);
@@ -143,7 +147,7 @@ public class SettingsCacheNotificationHandlerTest extends VertxTest {
     public void shouldReturnMethodNotAllowedStatusResponseIfRequestHasNeitherPostOrDeleteMethod() {
         // given
         given(routingContext.request().method()).willReturn(HttpMethod.GET);
-        given(routingContext.getBody()).willReturn(null);
+        given(requestBody.buffer()).willReturn(null);
 
         // when
         handler.handle(routingContext);

@@ -4,4 +4,3 @@ public enum EventType {
 
     amp, auction, cookiesync, notification, setuid, video
 }
-
