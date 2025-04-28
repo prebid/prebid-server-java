@@ -77,7 +77,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         prometheusRequestSpecification = buildAndGetRequestSpecification(pbsContainer.prometheusRootUri, authenticationScheme)
     }
 
-    BidResponse  sendAuctionRequest(BidRequest bidRequest, Map<String, ?> headers = [:]) {
+    BidResponse sendAuctionRequest(BidRequest bidRequest, Map<String, ?> headers = [:]) {
         def response = postAuction(bidRequest, headers)
 
         checkResponseStatusCode(response)

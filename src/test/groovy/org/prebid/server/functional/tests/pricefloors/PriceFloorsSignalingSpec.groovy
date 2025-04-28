@@ -723,20 +723,22 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
-        floorsPbsService.sendAuctionRequest(bidRequest)
+        def response = floorsPbsService.sendAuctionRequest(bidRequest)
 
-        then: "PBS shouldn't log a errors"
+        then: "Response should includer error warning"
+        def message = "Price floor schema dimensions ${getSchemaSize(bidRequest)} exceeded its maximum number ${MAX_SCHEMA_DIMENSIONS_SIZE}"
+        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE(message)]
+
+        and: "PBS shouldn't log a errors"
         def logs = floorsPbsService.getLogsByTime(startTime)
-        def floorsLogs = getLogsByText(logs, BASIC_FETCH_URL + accountId)
+        def floorsLogs = getLogsByText(logs, ERROR_LOG(bidResponse, message))
         assert floorsLogs.size() == 1
-        assert floorsLogs[0].contains("Failed to fetch price floor from provider for fetch.url: " +
-                "'$BASIC_FETCH_URL$accountId', account = $accountId with a reason : Price floor schema dimensions ${getSchemaSize(bidRequest)} " +
-                "exceeded its maximum number ${MAX_SCHEMA_DIMENSIONS_SIZE}")
 
         and: "Metric alerts.account_config.ACCOUNT.price-floors should be update"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
         assert metrics[INVALID_CONFIG_METRIC(bidRequest.accountId) as String] == 1
-        assert metrics[ALERT_GENERAL] == 1
+        assert !metrics[ALERT_GENERAL]
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsFloorConfig)
@@ -936,7 +938,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         assert !metrics[ALERT_GENERAL]
     }
 
-    def "PBS shouldn't emit error in log and response when data is invalid and floors status is in progress"() {
+    def "PBS shouldn't emit error in log and response when data is invalid and floors status not in progress"() {
         given: "Default BidRequest with empty floors.data"
         def bidRequest = bidRequestWithFloors.tap {
             ext.prebid.floors.data = null
@@ -973,7 +975,8 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
         and: "PBS request status shouldn't be in progress"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id)
-        assert bidderRequest.first.ext.prebid.floors.fetchStatus == NONE
+        assert getRequests(bidResponse)[GENERIC]?.first?.ext?.prebid?.floors?.fetchStatus == NONE
+        assert bidderRequest.ext.prebid.floors.fetchStatus.sort() == [NONE, INPROGRESS].sort()
 
         and: "Alerts.general metrics shouldn't be populated"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
@@ -1139,10 +1142,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
     }
 
     def "PBS should use default floors config when original account config is invalid"() {
-        given: "Test start time"
-        def startTime = Instant.now()
-
-        and: "Bid request with floors"
+        given: "Bid request with empty floors"
         def bidRequest = bidRequestWithFloors.tap {
             ext.prebid.floors = null
         }
