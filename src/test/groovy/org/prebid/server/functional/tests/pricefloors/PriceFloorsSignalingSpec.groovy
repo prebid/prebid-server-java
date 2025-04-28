@@ -900,7 +900,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         null           | MAX_RULES_SIZE
     }
 
-    def "PBS should emit error in log and response when data is invalid and floors status is in progress"() {
+    def "PBS shouldn't emit error in log and response when data is invalid and floors status is in progress"() {
         given: "Default BidRequest with empty floors.data"
         def bidRequest = bidRequestWithFloors.tap {
             ext.prebid.floors.data = null
@@ -938,7 +938,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         assert !metrics[ALERT_GENERAL]
     }
 
-    def "PBS shouldn't emit error in log and response when data is invalid and floors status not in progress"() {
+    def "PBS should emit error in log and response when data is invalid and floors status not in progress"() {
         given: "Default BidRequest with empty floors.data"
         def bidRequest = bidRequestWithFloors.tap {
             ext.prebid.floors.data = null
