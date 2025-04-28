@@ -1,5 +1,6 @@
 package org.prebid.server.bidadjustments.model;
 
+import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -38,7 +39,7 @@ public class BidAdjustmentsRulesTest {
         final BidAdjustmentsRules actual = BidAdjustmentsRules.of(givenBidAdjustments);
 
         // then
-        final BidAdjustmentsRules expected = BidAdjustmentsRules.of(Map.of(
+        final BidAdjustmentsRules expected = BidAdjustmentsRules.of(new CaseInsensitiveMap<>(Map.of(
                 "audio|bidderName|dealId", givenRules,
                 "native|bidderName|dealId", givenRules,
                 "video-instream|bidderName|dealId", givenRules,
@@ -46,10 +47,9 @@ public class BidAdjustmentsRulesTest {
                 "banner|bidderName|dealId", givenRules,
                 "*|*|*", givenRules,
                 "*|bidderName|*", givenRules,
-                "*|bidderName|dealId", givenRules));
+                "*|bidderName|dealId", givenRules)));
 
         assertThat(actual).isEqualTo(expected);
-
     }
 
     private static BidAdjustmentsRule givenRule(String value) {

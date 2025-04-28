@@ -2,11 +2,11 @@ package org.prebid.server.bidadjustments.model;
 
 import lombok.Value;
 import org.apache.commons.collections4.MapUtils;
+import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.prebid.server.bidadjustments.BidAdjustmentRulesValidator;
 import org.prebid.server.bidadjustments.BidAdjustmentsRulesResolver;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -23,7 +23,7 @@ public class BidAdjustmentsRules {
             return BidAdjustmentsRules.of(Collections.emptyMap());
         }
 
-        final Map<String, List<BidAdjustmentsRule>> rules = new HashMap<>();
+        final Map<String, List<BidAdjustmentsRule>> rules = new CaseInsensitiveMap<>();
 
         final Map<String, Map<String, Map<String, List<BidAdjustmentsRule>>>> mediatypes =
                 bidAdjustments.getRules();

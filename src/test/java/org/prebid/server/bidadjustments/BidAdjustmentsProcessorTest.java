@@ -76,7 +76,7 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
     public void before() {
         given(currencyService.convertCurrency(any(), any(), any(), any()))
                 .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
-        given(bidAdjustmentsResolver.resolve(any(), any(), any(), any(), any()))
+        given(bidAdjustmentsResolver.resolve(any(), any(), any(), any(), any(), any()))
                 .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
 
         target = new BidAdjustmentsProcessor(
@@ -100,7 +100,7 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
         final AuctionParticipation auctionParticipation = givenAuctionParticipation(bidderResponse, bidRequest);
 
         final Price adjustedPrice = Price.of("EUR", BigDecimal.valueOf(5.0));
-        given(bidAdjustmentsResolver.resolve(any(), any(), any(), any(), any()))
+        given(bidAdjustmentsResolver.resolve(any(), any(), any(), any(), any(), any()))
                 .willReturn(adjustedPrice);
 
         final BigDecimal expectedPrice = new BigDecimal("123.5");
@@ -118,6 +118,7 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
                 eq(Price.of("USD", BigDecimal.valueOf(2.0))),
                 eq(bidRequest),
                 eq(ImpMediaType.banner),
+                eq("seat"),
                 eq("bidder"),
                 eq("dealId"));
     }
@@ -137,7 +138,7 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
 
         given(currencyService.convertCurrency(any(), any(), any(), any()))
                 .willAnswer(invocation -> invocation.getArgument(0));
-        given(bidAdjustmentsResolver.resolve(any(), any(), any(), any(), any()))
+        given(bidAdjustmentsResolver.resolve(any(), any(), any(), any(), any(), any()))
                 .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
 
         // when
@@ -191,7 +192,7 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
 
         given(currencyService.convertCurrency(any(), any(), any(), any()))
                 .willAnswer(invocation -> invocation.getArgument(0));
-        given(bidAdjustmentsResolver.resolve(any(), any(), any(), any(), any()))
+        given(bidAdjustmentsResolver.resolve(any(), any(), any(), any(), any(), any()))
                 .willThrow(new PreBidException("Unable to convert bid currency CUR to desired ad server currency USD"));
 
         // when
@@ -233,7 +234,7 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
         given(bidAdjustmentFactorResolver.resolve(ImpMediaType.banner, givenAdjustments, "adapter", "seat"))
                 .willReturn(BigDecimal.TEN);
         final Price adjustedPrice = Price.of("EUR", BigDecimal.valueOf(5.0));
-        given(bidAdjustmentsResolver.resolve(any(), any(), any(), any(), any()))
+        given(bidAdjustmentsResolver.resolve(any(), any(), any(), any(), any(), any()))
                 .willReturn(adjustedPrice);
         final BigDecimal expectedPrice = new BigDecimal("123.5");
         given(currencyService.convertCurrency(any(), any(), eq("EUR"), eq("UAH"))).willReturn(expectedPrice);
@@ -252,6 +253,7 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
                 eq(Price.of("USD", BigDecimal.valueOf(20.0))),
                 eq(bidRequest),
                 eq(ImpMediaType.banner),
+                eq("seat"),
                 eq("bidder"),
                 eq("dealId"));
     }
@@ -395,7 +397,7 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
                 .extracting(Bid::getPrice)
                 .containsOnly(bidder3Price, updatedPrice, updatedPrice);
 
-        verify(bidAdjustmentsResolver, times(3)).resolve(any(), any(), any(), any(), any());
+        verify(bidAdjustmentsResolver, times(3)).resolve(any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -439,6 +441,7 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
                 eq(Price.of("USD", BigDecimal.valueOf(4.936))),
                 eq(bidRequest),
                 eq(ImpMediaType.banner),
+                eq("seat"),
                 eq("bidder"),
                 eq("dealId"));
     }
@@ -489,6 +492,7 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
                 eq(Price.of("USD", BigDecimal.valueOf(6.912))),
                 eq(bidRequest),
                 eq(ImpMediaType.video_instream),
+                eq("seat"),
                 eq("bidder"),
                 eq("dealId"));
     }
@@ -539,6 +543,7 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
                 eq(Price.of("USD", BigDecimal.valueOf(6.912))),
                 eq(bidRequest),
                 eq(ImpMediaType.video_instream),
+                eq("seat"),
                 eq("bidder"),
                 eq("dealId"));
     }
@@ -591,6 +596,7 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
                 eq(Price.of("USD", BigDecimal.valueOf(6.912))),
                 eq(bidRequest),
                 eq(ImpMediaType.video_outstream),
+                eq("seat"),
                 eq("bidder"),
                 eq("dealId"));
     }
@@ -640,6 +646,7 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
                 eq(Price.of("USD", BigDecimal.valueOf(2))),
                 eq(bidRequest),
                 eq(ImpMediaType.video_outstream),
+                eq("seat"),
                 eq("bidder"),
                 eq("dealId"));
     }
@@ -689,6 +696,7 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
                 eq(Price.of("USD", BigDecimal.valueOf(2))),
                 eq(bidRequest),
                 eq(ImpMediaType.video_outstream),
+                eq("seat"),
                 eq("bidder"),
                 eq("dealId"));
     }
@@ -732,7 +740,7 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
                 .extracting(Bid::getPrice)
                 .containsExactly(BigDecimal.valueOf(6.912), BigDecimal.valueOf(1), BigDecimal.valueOf(1));
 
-        verify(bidAdjustmentsResolver, times(3)).resolve(any(), any(), any(), any(), any());
+        verify(bidAdjustmentsResolver, times(3)).resolve(any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -784,6 +792,7 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
                 eq(Price.of("USD", BigDecimal.valueOf(6.912))),
                 eq(bidRequest),
                 eq(ImpMediaType.banner),
+                eq("seat"),
                 eq("bidder"),
                 eq("dealId"));
     }
@@ -831,6 +840,7 @@ public class BidAdjustmentsProcessorTest extends VertxTest {
                 eq(Price.of("USD", BigDecimal.ONE)),
                 eq(bidRequest),
                 eq(ImpMediaType.banner),
+                eq("seat"),
                 eq("bidder"),
                 eq("dealId"));
     }
