@@ -1,9 +1,8 @@
-package org.prebid.server.adtgorg;
+package org.prebid.server.it;
 
 import io.restassured.response.Response;
 import org.json.JSONException;
 import org.junit.jupiter.api.Test;
-import org.prebid.server.it.IntegrationTest;
 import org.prebid.server.model.Endpoint;
 
 import java.io.IOException;

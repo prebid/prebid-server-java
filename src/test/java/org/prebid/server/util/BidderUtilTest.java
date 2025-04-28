@@ -55,8 +55,8 @@ public class BidderUtilTest {
         assertThat(BidderUtil.shouldConvertBidFloor(Price.of("USD", BigDecimal.ONE), "EUR")).isTrue();
     }
 
-        @Test
-    public void shouldConvertBidFloorShouldReturnFalseIfCurrenciesAreSame() {
+    @Test
+    public void shouldConvertBidFloorShouldReturnFalseIfCurrenciesAreSameIgnoringCase() {
         // when and then
         assertThat(BidderUtil.shouldConvertBidFloor(Price.of("uSd", BigDecimal.ONE), "UsD")).isFalse();
     }
