@@ -27,11 +27,12 @@ public class BidAdjustmentsResolver {
     public Price resolve(Price initialPrice,
                          BidRequest bidRequest,
                          ImpMediaType targetMediaType,
+                         String targetSeat,
                          String targetBidder,
                          String targetDealId) {
 
         final List<BidAdjustmentsRule> rules = bidAdjustmentsRulesResolver.resolve(
-                bidRequest, targetMediaType, targetBidder, targetDealId);
+                bidRequest, targetMediaType, targetSeat, targetBidder, targetDealId);
 
         return adjustPrice(initialPrice, rules, bidRequest);
     }
