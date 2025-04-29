@@ -5,7 +5,7 @@ import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.auction.model.AuctionContext;
 
-@Value(staticConstructor = "of")
+@Value
 @Builder(toBuilder = true)
 public class RawResponseContext {
 
@@ -14,5 +14,4 @@ public class RawResponseContext {
     String responseBody;
 
     MultiMap responseHeaders;
-
 }

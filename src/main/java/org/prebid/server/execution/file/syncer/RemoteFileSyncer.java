@@ -26,7 +26,7 @@ import org.prebid.server.util.HttpUtil;
 import java.util.Objects;
 import java.util.function.Function;
 
-@Deprecated
+@Deprecated(forRemoval = true)
 public class RemoteFileSyncer {
 
     private static final Logger logger = LoggerFactory.getLogger(RemoteFileSyncer.class);
@@ -168,7 +168,7 @@ public class RemoteFileSyncer {
 
     private Future<Boolean> isLengthChanged(HttpClientResponse response) {
         final String contentLengthParameter = response.getHeader(HttpHeaders.CONTENT_LENGTH);
-        return StringUtils.isNumeric(contentLengthParameter) && !contentLengthParameter.equals("0")
+        return StringUtils.isNumeric(contentLengthParameter) && !"0".equals(contentLengthParameter)
                 ? fileSystem.props(saveFilePath).map(props -> props.size() != Long.parseLong(contentLengthParameter))
                 : Future.failedFuture("ContentLength is invalid: " + contentLengthParameter);
     }

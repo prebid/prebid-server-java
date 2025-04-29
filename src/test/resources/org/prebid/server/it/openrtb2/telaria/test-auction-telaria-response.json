@@ -13,7 +13,10 @@
           "exp": 120,
           "ext": {
             "prebid": {
-              "type": "video"
+              "type": "video",
+              "meta": {
+                "adaptercode": "telaria"
+              }
             },
             "origbidcpm": 0.01,
             "format": "VIDEO"

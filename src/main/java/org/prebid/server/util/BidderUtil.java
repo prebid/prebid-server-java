@@ -63,7 +63,7 @@ public class BidderUtil {
 
     public static boolean shouldConvertBidFloor(Price price, String bidderCurrency) {
         return isValidPrice(price)
-                && !StringUtils.equals(price.getCurrency(), bidderCurrency);
+                && !StringUtils.equalsIgnoreCase(price.getCurrency(), bidderCurrency);
     }
 
     public static PriceFloorInfo resolvePriceFloor(Bid bid, BidRequest bidRequest) {

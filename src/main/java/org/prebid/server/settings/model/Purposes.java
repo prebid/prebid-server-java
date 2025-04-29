@@ -31,4 +31,3 @@ public class Purposes {
 
     Purpose p10;
 }
-

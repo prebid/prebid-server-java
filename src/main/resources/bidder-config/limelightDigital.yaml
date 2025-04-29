@@ -7,6 +7,8 @@ adapters:
       iionads:
         enabled: false
         endpoint: http://ads-pbs.iionads.com/openrtb/{{PublisherID}}?host={{Host}}
+        meta-info:
+          vendor-id: 1358
       evtech:
         enabled: false
         endpoint: http://ads-pbs.direct.e-volution.ai/openrtb/{{PublisherID}}?host={{Host}}
@@ -47,6 +49,12 @@ adapters:
       orangeclickmedia:
         enabled: false
         endpoint: http://ads-pbs.scotty.orangeclickmedia.com/openrtb/{{PublisherID}}?host={{Host}}
+      velonium:
+        enabled: false
+        endpoint: http://ads-pbs.adxvel.com/openrtb/{{PublisherID}}?host={{Host}}
+      adtg_org:
+        enabled: false
+        endpoint: http://ads-pbs.rtb.adtarget.org/openrtb/{{PublisherID}}?host={{Host}}
     meta-info:
       maintainer-email: engineering@project-limelight.com
       app-media-types:

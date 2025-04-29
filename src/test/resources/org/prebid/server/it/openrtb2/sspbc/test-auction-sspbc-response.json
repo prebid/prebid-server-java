@@ -21,7 +21,10 @@
             "slotid": "005",
             "tagid": "slot",
             "prebid": {
-              "type": "banner"
+              "type": "banner",
+              "meta": {
+                "adaptercode": "sspbc"
+              }
             },
             "origbidcpm": 3.33
           }
