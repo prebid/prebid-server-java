@@ -152,29 +152,31 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
             return createFloorsFrom(mergedFloors, fetchStatus, PriceFloorLocation.fetch);
         }
 
-        final String fetchErrorMessage = resolveFetchErrorMessage(account, fetchResult, isUsingDynamicDataAllowed);
+        final String fetchErrorMessage = resolveFetchErrorMessage(fetchResult, isUsingDynamicDataAllowed);
         return requestFloors == null
-                ? noPriceFloorData(fetchStatus, fetchErrorMessage, warnings)
+                ? noPriceFloorData(fetchStatus, bidRequest.getId(), account.getId(), fetchErrorMessage, warnings)
                 : getPriceFloorRules(bidRequest, account, requestFloors, fetchStatus, fetchErrorMessage, warnings);
     }
 
-    private static String resolveFetchErrorMessage(Account account,
-                                                   FetchResult fetchResult,
-                                                   boolean isUsingDynamicDataAllowed) {
+    private static String resolveFetchErrorMessage(FetchResult fetchResult, boolean isUsingDynamicDataAllowed) {
 
         return switch (fetchResult.getFetchStatus()) {
             case inprogress -> null;
             case error, timeout, none -> fetchResult.getErrorMessage();
-            default -> isUsingDynamicDataAllowed
-                    ? null
-                    : "Using dynamic data is not allowed for account %s".formatted(account.getId());
+            case success -> isUsingDynamicDataAllowed ? null : "Using dynamic data is not allowed";
         };
     }
 
-    private PriceFloorRules noPriceFloorData(FetchStatus fetchStatus, String errorMessage, List<String> warnings) {
+    private PriceFloorRules noPriceFloorData(FetchStatus fetchStatus,
+                                             String accountId,
+                                             String requestId,
+                                             String errorMessage,
+                                             List<String> warnings) {
+
         if (errorMessage != null) {
             warnings.add(errorMessage);
-            conditionalLogger.error(errorMessage, logSamplingRate);
+            conditionalLogger.error("No price floor data for account %s and request %s, reason: %s"
+                    .formatted(accountId, requestId, errorMessage), logSamplingRate);
             metrics.updateAlertsMetrics(MetricName.general);
         }
 
@@ -206,9 +208,9 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         } catch (PreBidException e) {
             final String errorMessage = fetchErrorMessage == null
                     ? null
-                    : "%s. Failed to parse price floors from request with id: '%s', with a reason: %s"
-                    .formatted(fetchErrorMessage, bidRequest.getId(), e.getMessage());
-            return noPriceFloorData(fetchStatus, errorMessage, warnings);
+                    : "%s. Following parsing of request price floors is failed: %s"
+                    .formatted(fetchErrorMessage, e.getMessage());
+            return noPriceFloorData(fetchStatus, bidRequest.getId(), account.getId(), errorMessage, warnings);
         }
     }
 
