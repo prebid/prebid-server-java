@@ -3225,7 +3225,7 @@ public class BidResponseCreatorTest extends VertxTest {
 
         // then
         verify(coreCacheService).cacheBidsOpenrtb(anyList(), any(), any(),
-                argThat(eventsContext -> eventsContext.getIntegration().equals("integration")));
+                argThat(eventsContext -> "integration".equals(eventsContext.getIntegration())));
 
         assertThat(result.result().getSeatbid())
                 .flatExtracting(SeatBid::getBid).hasSize(1)

@@ -1,7 +1,6 @@
 package org.prebid.server.util;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.Logger;
@@ -48,8 +47,7 @@ public class VersionInfo {
         return versionMatcher.lookingAt() ? versionMatcher.group() : null;
     }
 
-    @AllArgsConstructor(staticName = "of")
-    @Value
+    @Value(staticConstructor = "of")
     private static class Revision {
 
         @JsonProperty("git.commit.id")

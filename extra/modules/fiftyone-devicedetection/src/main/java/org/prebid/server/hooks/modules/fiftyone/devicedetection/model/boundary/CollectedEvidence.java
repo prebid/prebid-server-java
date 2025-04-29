@@ -9,6 +9,5 @@ import java.util.Map;
 public record CollectedEvidence(
         Collection<Map.Entry<String, String>> rawHeaders,
         String deviceUA,
-        Map<String, String> secureHeaders
-) {
+        Map<String, String> secureHeaders) {
 }
