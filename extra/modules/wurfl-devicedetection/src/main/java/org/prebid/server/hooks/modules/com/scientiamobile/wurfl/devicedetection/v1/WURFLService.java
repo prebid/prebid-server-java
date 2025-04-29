@@ -1,17 +1,17 @@
 package org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.v1;
 
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
-
 import com.scientiamobile.wurfl.core.Device;
-import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.model.WURFLEngineInitializer;
 import com.scientiamobile.wurfl.core.WURFLEngine;
 import io.vertx.core.Future;
 import lombok.extern.slf4j.Slf4j;
 import org.prebid.server.execution.file.FileProcessor;
 import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.config.WURFLDeviceDetectionConfigProperties;
+import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.model.WURFLEngineInitializer;
+
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
 public class WURFLService implements FileProcessor {

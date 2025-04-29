@@ -41,7 +41,6 @@ class WURFLDeviceDetectionConfigPropertiesTest {
         properties.setUpdateRetries(1);
         properties.setRetryIntervalMs(100L);
 
-
         // then
         assertThat(properties.getCacheSize()).isEqualTo(1000);
         assertThat(properties.getFileDirPath()).isEqualTo("/path/to/file");

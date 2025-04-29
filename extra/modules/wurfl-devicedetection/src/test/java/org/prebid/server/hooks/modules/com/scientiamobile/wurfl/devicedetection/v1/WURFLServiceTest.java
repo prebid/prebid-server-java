@@ -25,9 +25,6 @@ import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.doReturn;
 
-
-
-
 @ExtendWith(MockitoExtension.class)
 public class WURFLServiceTest {
 
@@ -54,7 +51,7 @@ public class WURFLServiceTest {
         given(configProperties.getFileSnapshotUrl()).willReturn(wurflSnapshotUrl);
         given(configProperties.getFileDirPath()).willReturn(wurflFileDirPath);
 
-        WURFLService spyWurflService = spy(wurflService);
+        final WURFLService spyWurflService = spy(wurflService);
 
         // Mock the createEngine method to return our mock engine
         doReturn(wurflEngine).when(spyWurflService).createEngine(dataFilePath);
@@ -67,12 +64,11 @@ public class WURFLServiceTest {
         assertThat(future.succeeded()).isTrue();
     }
 
-
     @Test
     public void setDataPathShouldReturnFailedFutureWhenExceptionOccurs() {
         // given
         final String dataFilePath = "test-data-path";
-        WURFLService spyWurflService = spy(wurflService);
+        final WURFLService spyWurflService = spy(wurflService);
         doThrow(new RuntimeException("Simulated load() failure"))
                 .when(spyWurflService).createEngine(dataFilePath);
 
