@@ -6,9 +6,11 @@ import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Uid;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
+import io.vertx.core.MultiMap;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatcher;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.hooks.execution.v1.auction.AuctionInvocationContextImpl;
@@ -21,14 +23,19 @@ import org.prebid.server.hooks.v1.InvocationStatus;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.assertArg;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -39,7 +46,6 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
     private LiveIntentOmniChannelIdentityProcessedAuctionRequestHook target;
     private JacksonMapper jacksonMapper;
 
-
     @BeforeEach
     public void setUp() {
         ObjectMapper mapper = new ObjectMapper();
@@ -48,6 +54,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
         moduleConfig = new ModuleConfig();
         moduleConfig.setRequestTimeoutMs(5);
         moduleConfig.setIdentityResolutionEndpoint("https://test.com/idres");
+        moduleConfig.setAuthToken("secret_auth_token");
 
         target = new LiveIntentOmniChannelIdentityProcessedAuctionRequestHook(moduleConfig, jacksonMapper, httpClient);
     }
@@ -69,10 +76,21 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
         AuctionInvocationContext auctionInvocationContext = AuctionInvocationContextImpl.of(null, null, false, null, null);
 
         HttpClientResponse mockResponse = mock(HttpClientResponse.class);
-        when(mockResponse.getBody()).thenReturn("{\"eids\": [ { \"source\": \""+ enrichedEid.getSource() + "\", \"uids\": [ { \"atype\": " + enrichedUid.getAtype() + ", \"id\" : \"" + enrichedUid.getId() + "\" } ] } ] }");
+        when(mockResponse.getBody()).thenReturn("{\"eids\": [ { \"source\": \"" + enrichedEid.getSource() + "\", \"uids\": [ { \"atype\": " + enrichedUid.getAtype() + ", \"id\" : \"" + enrichedUid.getId() + "\" } ] } ] }");
 
-        when(httpClient.post(moduleConfig.getIdentityResolutionEndpoint(), jacksonMapper.encodeToString(bidRequest), moduleConfig.getRequestTimeoutMs()))
-                .thenReturn(Future.succeededFuture(mockResponse));
+        when(
+                httpClient.post(
+                        eq(moduleConfig.getIdentityResolutionEndpoint()),
+                        argThat(new ArgumentMatcher<MultiMap>() {
+                            @Override
+                            public boolean matches(MultiMap entries) {
+                                return entries.contains("Authorization", "Bearer " + moduleConfig.getAuthToken(), true);
+                            }
+                        }),
+                        eq(jacksonMapper.encodeToString(bidRequest)),
+                        eq(moduleConfig.getRequestTimeoutMs())
+                )
+        ).thenReturn(Future.succeededFuture(mockResponse));
 
         Future<InvocationResult<AuctionRequestPayload>> future = target.call(AuctionRequestPayloadImpl.of(bidRequest), auctionInvocationContext);
         InvocationResult<AuctionRequestPayload> result = future.result();
@@ -95,10 +113,21 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
         AuctionInvocationContext auctionInvocationContext = AuctionInvocationContextImpl.of(null, null, false, null, null);
 
         HttpClientResponse mockResponse = mock(HttpClientResponse.class);
-        when(mockResponse.getBody()).thenReturn("{\"eids\": [{ \"source\": \""+ enrichedEid.getSource() + "\", \"uids\": [{ \"atype\": " + enrichedUid.getAtype() + ", \"id\" : \"" + enrichedUid.getId() + "\" }]}]}");
+        when(mockResponse.getBody()).thenReturn("{\"eids\": [{ \"source\": \"" + enrichedEid.getSource() + "\", \"uids\": [{ \"atype\": " + enrichedUid.getAtype() + ", \"id\" : \"" + enrichedUid.getId() + "\" }]}]}");
 
-        when(httpClient.post(moduleConfig.getIdentityResolutionEndpoint(), jacksonMapper.encodeToString(bidRequest), moduleConfig.getRequestTimeoutMs()))
-                .thenReturn(Future.succeededFuture(mockResponse));
+        when(
+                httpClient.post(
+                        eq(moduleConfig.getIdentityResolutionEndpoint()),
+                        argThat(new ArgumentMatcher<MultiMap>() {
+                            @Override
+                            public boolean matches(MultiMap entries) {
+                                return entries.contains("Authorization", "Bearer " + moduleConfig.getAuthToken(), true);
+                            }
+                        }),
+                        eq(jacksonMapper.encodeToString(bidRequest)),
+                        eq(moduleConfig.getRequestTimeoutMs())
+                )
+        ).thenReturn(Future.succeededFuture(mockResponse));
 
         Future<InvocationResult<AuctionRequestPayload>> future = target.call(AuctionRequestPayloadImpl.of(bidRequest), auctionInvocationContext);
         InvocationResult<AuctionRequestPayload> result = future.result();

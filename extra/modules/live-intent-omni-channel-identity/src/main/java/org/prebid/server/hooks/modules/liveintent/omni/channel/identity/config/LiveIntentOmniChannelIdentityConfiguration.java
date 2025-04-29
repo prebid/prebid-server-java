@@ -20,9 +20,7 @@ import java.util.Set;
 public class LiveIntentOmniChannelIdentityConfiguration {
     @Bean
     @ConfigurationProperties(prefix = "hooks.modules." + LiveIntentOmniChannelIdentityModule.CODE)
-    ModuleConfig moduleConfig() {
-        return new ModuleConfig();
-    }
+    ModuleConfig moduleConfig() {return new ModuleConfig();}
 
     @Bean
     Module liveIntentOmniChannelIdentityModule(ModuleConfig config, JacksonMapper mapper, HttpClient httpClient) {

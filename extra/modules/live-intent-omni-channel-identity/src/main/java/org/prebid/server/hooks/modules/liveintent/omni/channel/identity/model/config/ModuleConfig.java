@@ -6,4 +6,5 @@ import lombok.Data;
 public final class ModuleConfig {
     long requestTimeoutMs;
     String identityResolutionEndpoint;
+    String authToken;
 }

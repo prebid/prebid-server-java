@@ -3,7 +3,9 @@ package org.prebid.server.hooks.modules.liveintent.omni.channel.identity.v1.hook
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.User;
+import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.Future;
+import io.vertx.core.MultiMap;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.liveintent.omni.channel.identity.model.IdResResponse;
@@ -15,6 +17,7 @@ import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.ProcessedAuctionRequestHook;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
@@ -76,6 +79,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
         String bidRequestJson = mapper.encodeToString(auctionRequestPayload.bidRequest());
         return httpClient.post(
                         config.getIdentityResolutionEndpoint(),
+                        headers(),
                         bidRequestJson,
                         config.getRequestTimeoutMs())
                 .map(this::processResponse);
@@ -83,5 +87,10 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
 
     private IdResResponse processResponse(HttpClientResponse response) {
         return mapper.decodeValue(response.getBody(), IdResResponse.class);
+    }
+
+    private MultiMap headers() {
+        return MultiMap.caseInsensitiveMultiMap()
+                .add(HttpUtil.AUTHORIZATION_HEADER, "Bearer " + config.getAuthToken());
     }
 }

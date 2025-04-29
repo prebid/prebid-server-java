@@ -18,4 +18,11 @@ public class ModuleConfigTest {
         moduleConfig.setIdentityResolutionEndpoint("https://test.com/idres");
         assertThat(moduleConfig.getIdentityResolutionEndpoint()).isEqualTo("https://test.com/idres");
     }
+
+    @Test
+    public void shouldReturnAuthToken() {
+        ModuleConfig moduleConfig = new ModuleConfig();
+        moduleConfig.setAuthToken("secret_token");
+        assertThat(moduleConfig.getAuthToken()).isEqualTo("secret_token");
+    }
 }
