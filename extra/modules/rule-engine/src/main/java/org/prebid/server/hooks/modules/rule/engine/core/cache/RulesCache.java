@@ -2,7 +2,6 @@ package org.prebid.server.hooks.modules.rule.engine.core.cache;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.iab.openrtb.request.Imp;
-import org.prebid.server.hooks.modules.rule.engine.core.rules.Rule;
 
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;

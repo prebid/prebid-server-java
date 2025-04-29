@@ -4,7 +4,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Geo;
+import com.iab.openrtb.request.Imp;
 import org.apache.commons.collections4.CollectionUtils;
+import org.prebid.server.hooks.modules.rule.engine.core.rules.result.ResultFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunctionArguments;
 
@@ -24,6 +26,14 @@ public class RequestSchema {
     private static final Map<String, SchemaFunction<BidRequest>> SCHEMA_FUNCTIONS = Map.of(
             AD_UNIT_CODE_FUNCTION, RequestSchema::deviceCountryExtractor);
 
+    public static SchemaFunction<BidRequest> schemaFunctionByName(String function) {
+        return SCHEMA_FUNCTIONS.get(function);
+    }
+
+    public static ResultFunction<BidRequest> resultFunctionByName(String function) {
+        return null;
+    }
+
     public static String deviceCountryExtractor(SchemaFunctionArguments<BidRequest> arguments) {
         final BidRequest bidRequest = arguments.getOperand();
         final List<JsonNode> args = arguments.getArgs();
@@ -36,5 +46,4 @@ public class RequestSchema {
 
         return "true";
     }
-
 }

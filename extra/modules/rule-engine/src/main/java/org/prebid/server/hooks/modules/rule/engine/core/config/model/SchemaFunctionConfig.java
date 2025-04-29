@@ -6,7 +6,7 @@ import lombok.Value;
 import java.util.List;
 
 @Value(staticConstructor = "of")
-public class RuleFunctionConfig {
+public class SchemaFunctionConfig {
 
     String function;
 

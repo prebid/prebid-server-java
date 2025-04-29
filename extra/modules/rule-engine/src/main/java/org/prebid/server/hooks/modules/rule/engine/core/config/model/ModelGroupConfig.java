@@ -15,6 +15,8 @@ public class ModelGroupConfig {
 
     String version;
 
+    List<SchemaFunctionConfig> schema;
+
     @JsonProperty("default")
     RuleFunctionConfig defaultAction;
 

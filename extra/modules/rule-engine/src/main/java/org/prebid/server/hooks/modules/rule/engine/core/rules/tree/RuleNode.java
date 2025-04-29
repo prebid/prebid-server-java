@@ -1,7 +1,6 @@
-package org.prebid.server.hooks.modules.rule.engine.core.rules;
+package org.prebid.server.hooks.modules.rule.engine.core.rules.tree;
 
 import java.util.Map;
-import java.util.function.Function;
 
 public sealed interface RuleNode<T> {
 

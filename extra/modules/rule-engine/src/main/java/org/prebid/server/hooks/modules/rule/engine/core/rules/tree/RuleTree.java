@@ -1,10 +1,9 @@
-package org.prebid.server.hooks.modules.rule.engine.core.rules;
+package org.prebid.server.hooks.modules.rule.engine.core.rules.tree;
 
 import org.apache.commons.lang3.ObjectUtils;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Function;
 
 public class RuleTree<T> {
 

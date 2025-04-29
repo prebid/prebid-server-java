@@ -1,7 +1,7 @@
-package org.prebid.server.hooks.modules.rule.engine.core.rules;
+package org.prebid.server.hooks.modules.rule.engine.core.rules.tree;
 
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.hooks.modules.rule.engine.core.rules.result.RuleResult;
+import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleConfig;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,7 +10,7 @@ import java.util.stream.Collectors;
 
 public class RuleTreeFactory {
 
-    public static <T> RuleTree<RuleResult<T>> buildTree(Map<String, RuleResult<T>> rules) {
+    public static <T> RuleTree<RuleConfig<T>> buildTree(Map<String, RuleConfig<T>> rules) {
         return new RuleTree<>(parseRuleNode(toParsingContexts(rules)));
     }
 
