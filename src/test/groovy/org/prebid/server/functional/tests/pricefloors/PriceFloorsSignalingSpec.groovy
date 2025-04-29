@@ -35,14 +35,21 @@ import static org.prebid.server.functional.model.pricefloors.PriceFloorField.SIT
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.request.auction.FetchStatus.INPROGRESS
 import static org.prebid.server.functional.model.request.auction.FetchStatus.NONE
+import static org.prebid.server.functional.model.request.auction.FetchStatus.SUCCESS
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 
 class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
+    // Required: Sync no longer logs "in progress"—only "none" or "error" statuses are recorded
+    private static final String FETCHING_DISABLED_ERROR = 'Fetching is disabled'
     private static final Closure<String> INVALID_CONFIG_METRIC = { account -> "alerts.account_config.${account}.price-floors" }
-    private static final Closure<String> WARNING_MESSAGE = { message -> "Failed to parse price floors from request, with a reason: $message" }
-    private static final Closure<String> ERROR_LOG = { bidRequest, message -> "Failed to parse price floors from request with id: " +
-            "'${bidRequest.id}', with a reason: $message" }
+    private static final Closure<String> WARNING_MESSAGE = { message ->
+        "$FETCHING_DISABLED_ERROR. Following parsing of request price floors is failed: $message"
+    }
+    private static final Closure<String> ERROR_LOG = { bidRequest, message ->
+        "No price floor data for account ${bidRequest.accountId} and " +
+                "request ${bidRequest.id}, reason: ${WARNING_MESSAGE(message)}"
+    }
     private static final int MAX_SCHEMA_DIMENSIONS_SIZE = 1
     private static final int MAX_RULES_SIZE = 1
     private static Instant startTime
@@ -556,6 +563,10 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         then: "PBS should not add warning or errors"
         assert !response.ext.warnings
         assert !response.ext.errors
+
+        and: "Alerts.general metrics shouldn't be populated"
+        def metrics = floorsPbsService.sendCollectedMetricsRequest()
+        assert !metrics[ALERT_GENERAL]
     }
 
     def "PBS should emit warning when request has more rules than price-floor.max-rules"() {
@@ -570,6 +581,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         and: "Account with maxRules in the DB"
         def accountId = bidRequest.site.publisher.id
         def account = getAccountWithEnabledFetch(accountId).tap {
+            config.auction.priceFloors.fetch.enabled = false
             config.auction.priceFloors.maxRules = maxRules
             config.auction.priceFloors.maxRulesSnakeCase = maxRulesSnakeCase
         }
@@ -587,14 +599,13 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         def response = floorsPbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS should log a warning"
+        def message = "Price floor rules number ${getRuleSize(bidRequest)} exceeded its maximum number ${MAX_RULES_SIZE}"
         assert response.ext?.warnings[PREBID]*.code == [999]
-        assert response.ext?.warnings[PREBID]*.message ==
-                ["Failed to parse price floors from request, with a reason: " +
-                         "Price floor rules number ${getRuleSize(bidRequest)} exceeded its maximum number ${MAX_RULES_SIZE}"]
+        assert response.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE(message)]
 
         and: "Alerts.general metrics should be populated"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
-        assert !metrics[ALERT_GENERAL]
+        assert metrics[ALERT_GENERAL] == 1
 
         where:
         maxRules       | maxRulesSnakeCase
@@ -609,10 +620,14 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         and: "Account with maxSchemaDims in the DB"
         def accountId = bidRequest.site.publisher.id
         def account = getAccountWithEnabledFetch(accountId).tap {
+            config.auction.priceFloors.fetch.enabled = false
             config.auction.priceFloors.maxSchemaDims = maxSchemaDims
             config.auction.priceFloors.maxSchemaDimsSnakeCase = maxSchemaDimsSnakeCase
         }
         accountDao.save(account)
+
+        and: "PBS fetch rules from floors provider"
+        cacheFloorsProviderRules(bidRequest, floorsPbsService)
 
         and: "Set bidder response"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
@@ -625,14 +640,13 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         def response = floorsPbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS should log a warning"
+        def message = "Price floor schema dimensions ${getSchemaSize(bidRequest)} exceeded its maximum number ${MAX_SCHEMA_DIMENSIONS_SIZE}"
         assert response.ext?.warnings[PREBID]*.code == [999]
-        assert response.ext?.warnings[PREBID]*.message ==
-                ["Failed to parse price floors from request, with a reason: " +
-                         "Price floor schema dimensions ${getSchemaSize(bidRequest)} exceeded its maximum number ${MAX_SCHEMA_DIMENSIONS_SIZE}"]
+        assert response.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE(message)]
 
         and: "Alerts.general metrics should be populated"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
-        assert !metrics[ALERT_GENERAL]
+        assert metrics[ALERT_GENERAL] == 1
 
         where:
         maxSchemaDims              | maxSchemaDimsSnakeCase
@@ -657,6 +671,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         and: "Account with maxSchemaDims in the DB"
         def accountId = bidRequest.site.publisher.id
         def account = getAccountWithEnabledFetch(accountId).tap {
+
             config.auction.priceFloors.maxSchemaDims = PBSUtils.randomNegativeNumber
         }
         accountDao.save(account)
@@ -680,12 +695,11 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         def logs = floorsPbsService.getLogsByTime(startTime)
         def floorsLogs = getLogsByText(logs, ERROR_LOG(bidRequest, message))
         assert floorsLogs.size() == 1
-        assert floorsLogs[0].contains(message)
 
-        and: "Metric alerts.account_config.ACCOUNT.price-floors should be update"
+        and: "Metrics should be updated"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
         assert metrics[INVALID_CONFIG_METRIC(bidRequest.accountId) as String] == 1
-        assert !metrics[ALERT_GENERAL]
+        assert metrics[ALERT_GENERAL] == 1
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsFloorConfig)
@@ -697,7 +711,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
         and: "Floor config with default account"
         def accountConfig = getDefaultAccountConfigSettings().tap {
-            auction.priceFloors.fetch.enabled = true
+            auction.priceFloors.fetch.enabled = false
             auction.priceFloors.fetch.url = BASIC_FETCH_URL + bidRequest.site.publisher.id
             auction.priceFloors.fetch.maxSchemaDims = MAX_SCHEMA_DIMENSIONS_SIZE
             auction.priceFloors.maxSchemaDims = MAX_SCHEMA_DIMENSIONS_SIZE
@@ -732,13 +746,13 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
         and: "PBS shouldn't log a errors"
         def logs = floorsPbsService.getLogsByTime(startTime)
-        def floorsLogs = getLogsByText(logs, ERROR_LOG(bidResponse, message))
+        def floorsLogs = getLogsByText(logs, ERROR_LOG(bidRequest, message))
         assert floorsLogs.size() == 1
 
-        and: "Metric alerts.account_config.ACCOUNT.price-floors should be update"
+        and: "Metrics should be updated"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
         assert metrics[INVALID_CONFIG_METRIC(bidRequest.accountId) as String] == 1
-        assert !metrics[ALERT_GENERAL]
+        assert metrics[ALERT_GENERAL] == 1
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsFloorConfig)
@@ -750,6 +764,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
         and: "Account with disabled fetch in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.accountId).tap {
+            config.auction.priceFloors.fetch.enabled = false
             config.auction.priceFloors.maxSchemaDims = maxSchemaDims
             config.auction.priceFloors.maxSchemaDimsSnakeCase = maxSchemaDimsSnakeCase
         }
@@ -770,11 +785,10 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         def logs = floorsPbsService.getLogsByTime(startTime)
         def floorsLogs = getLogsByText(logs, ERROR_LOG(bidRequest, message))
         assert floorsLogs.size() == 1
-        assert floorsLogs[0].contains(message)
 
-        and: "Alerts.general metrics shouldn't be populated"
+        and: "Alerts.general metrics should be populated"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
-        assert !metrics[ALERT_GENERAL]
+        assert metrics[ALERT_GENERAL] == 1
 
         where:
         maxSchemaDims              | maxSchemaDimsSnakeCase
@@ -790,6 +804,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         def accountId = bidRequest.site.publisher.id
         def floorSchemaFilesSize = getSchemaSize(bidRequest)
         def account = getAccountWithEnabledFetch(accountId).tap {
+            config.auction.priceFloors.fetch.enabled = false
             config.auction.priceFloors.maxSchemaDims = MAX_SCHEMA_DIMENSIONS_SIZE
             config.auction.priceFloors.fetch.maxSchemaDims = floorSchemaFilesSize
         }
@@ -815,11 +830,10 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         def logs = floorsPbsService.getLogsByTime(startTime)
         def floorsLogs = getLogsByText(logs, ERROR_LOG(bidRequest, message))
         assert floorsLogs.size() == 1
-        assert floorsLogs[0].contains(message)
 
-        and: "Alerts.general metrics shouldn't be populated"
+        and: "Alerts.general metrics should be populated"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
-        assert !metrics[ALERT_GENERAL]
+        assert metrics[ALERT_GENERAL] == 1
     }
 
     def "PBS shouldn't fail with error and maxSchemaDims take precede over fetch.maxSchemaDims when requested both"() {
@@ -845,6 +859,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         assert !response.ext?.warnings
     }
 
+//    @IgnoreRest
     def "PBS should emit warning when stored request has more rules than price-floor.max-rules for amp request"() {
         given: "Default AmpRequest"
         def ampRequest = AmpRequest.defaultAmpRequest
@@ -862,6 +877,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
         and: "Account with maxRules in the DB"
         def account = getAccountWithEnabledFetch(ampRequest.account as String).tap {
+            config.auction.priceFloors.fetch.enabled = false
             config.auction.priceFloors.maxRules = maxRules
             config.auction.priceFloors.maxRulesSnakeCase = maxRulesSnakeCase
         }
@@ -886,13 +902,13 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
         and: "PBS should log a errors"
         def logs = floorsPbsService.getLogsByTime(startTime)
-        def floorsLogs = getLogsByText(logs, ERROR_LOG(ampStoredRequest, message))
+        def floorsLogs = getLogsByText(logs, "No price floor data for account $ampRequest.account and " +
+                "request $ampStoredRequest.id, reason: ${WARNING_MESSAGE(message)}")
         assert floorsLogs.size() == 1
-        assert floorsLogs[0].contains(message)
 
-        and: "Alerts.general metrics shouldn't be populated"
+        and: "Alerts.general metrics should be populated"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
-        assert !metrics[ALERT_GENERAL]
+        assert metrics[ALERT_GENERAL] == 1
 
         where:
         maxRules       | maxRulesSnakeCase
@@ -908,7 +924,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
         and: "Account with invalid floors config"
         def account = getAccountWithEnabledFetch(bidRequest.accountId).tap {
-            config.auction.priceFloors.enabled = true
+            config.auction.priceFloors.fetch.enabled = true
         }
         accountDao.save(account)
 
@@ -918,18 +934,19 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         when: "PBS processes auction request"
         def bidResponse = floorsPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Response should includer error warning"
-        def message = 'Price floor rules data must be present'
-        assert bidResponse.ext?.warnings[PREBID]*.code == [999]
-        assert bidResponse.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE(message)]
+        then: "Response shouldn't includer error warning"
+        assert !bidResponse.ext?.warnings
 
         and: "PBS shouldn't log a errors"
+        def message = 'Price floor rules data must be present'
         def logs = floorsPbsService.getLogsByTime(startTime)
-        def floorsLogs = getLogsByText(logs, ERROR_LOG(bidResponse, message))
+        def floorsLogs = getLogsByText(logs, ERROR_LOG(bidRequest, message))
         assert !floorsLogs.size()
 
-        and: "PBS request status should be in progress"
-        assert getRequests(bidResponse)[GENERIC]?.first?.ext?.prebid?.floors?.fetchStatus == INPROGRESS
+        and: "PBS request on response object status should be in progress"
+        assert getRequests(bidResponse)[GENERIC.value]?.first?.ext?.prebid?.floors?.fetchStatus == INPROGRESS
+
+        and: "PBS bidderRequest status should be in progress"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id)
         assert bidderRequest.ext.prebid.floors.fetchStatus == [INPROGRESS]
 
@@ -944,20 +961,14 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
             ext.prebid.floors.data = null
         }
 
-        and: "PBS fetch rules from floors provider"
-        cacheFloorsProviderRules(bidRequest, floorsPbsService)
+        and: "Flush metrics"
+        flushMetrics(floorsPbsService)
 
         and: "Account with invalid floors config"
         def account = getAccountWithEnabledFetch(bidRequest.accountId).tap {
-            config.auction.priceFloors.enabled = true
+            config.auction.priceFloors.fetch.enabled = false
         }
         accountDao.save(account)
-
-        and: "Start time"
-        def startTime = Instant.now()
-
-        and: "Flush metrics"
-        flushMetrics(floorsPbsService)
 
         when: "PBS processes auction request"
         def bidResponse = floorsPbsService.sendAuctionRequest(bidRequest)
@@ -971,16 +982,15 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         def logs = floorsPbsService.getLogsByTime(startTime)
         def floorsLogs = getLogsByText(logs, ERROR_LOG(bidRequest, message))
         assert floorsLogs.size() == 1
-        assert floorsLogs[0].contains(message)
 
         and: "PBS request status shouldn't be in progress"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id)
-        assert getRequests(bidResponse)[GENERIC]?.first?.ext?.prebid?.floors?.fetchStatus == NONE
-        assert bidderRequest.ext.prebid.floors.fetchStatus.sort() == [NONE, INPROGRESS].sort()
+        assert getRequests(bidResponse)[GENERIC.value]?.first?.ext?.prebid?.floors?.fetchStatus == NONE
+        assert bidderRequest.ext.prebid.floors.fetchStatus == [NONE]
 
-        and: "Alerts.general metrics shouldn't be populated"
+        and: "Alerts.general metrics should be populated"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
-        assert !metrics[ALERT_GENERAL]
+        assert metrics[ALERT_GENERAL] == 1
     }
 
     def "PBS should emit error in log and response when floors skipRate is out of range"() {
@@ -1004,11 +1014,10 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         def logs = floorsPbsService.getLogsByTime(startTime)
         def floorsLogs = getLogsByText(logs, ERROR_LOG(bidRequest, message))
         assert floorsLogs.size() == 1
-        assert floorsLogs[0].contains(message)
 
-        and: "Alerts.general metrics shouldn't be populated"
+        and: "Alerts.general metrics should be populated"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
-        assert !metrics[ALERT_GENERAL]
+        assert metrics[ALERT_GENERAL] == 1
 
         where:
         requestSkipRate << [PBSUtils.randomNegativeNumber, PBSUtils.getRandomNumber(100)]
@@ -1035,11 +1044,10 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         def logs = floorsPbsService.getLogsByTime(startTime)
         def floorsLogs = getLogsByText(logs, ERROR_LOG(bidRequest, message))
         assert floorsLogs.size() == 1
-        assert floorsLogs[0].contains(message)
 
-        and: "Alerts.general metrics shouldn't be populated"
+        and: "Alerts.general metrics should be populated"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
-        assert !metrics[ALERT_GENERAL]
+        assert metrics[ALERT_GENERAL] == 1
 
         where:
         requestModelGroups << [null, []]
@@ -1068,11 +1076,10 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         def logs = floorsPbsService.getLogsByTime(startTime)
         def floorsLogs = getLogsByText(logs, ERROR_LOG(bidRequest, message))
         assert floorsLogs.size() == 1
-        assert floorsLogs[0].contains(message)
 
-        and: "Alerts.general metrics shouldn't be populated"
+        and: "Alerts.general metrics should be populated"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
-        assert !metrics[ALERT_GENERAL]
+        assert metrics[ALERT_GENERAL] == 1
 
         where:
         requestModelWeight << [PBSUtils.randomNegativeNumber, PBSUtils.getRandomNumber(100)]
@@ -1098,15 +1105,14 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         assert bidResponse.ext?.warnings[PREBID]*.code == [999]
         assert bidResponse.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE(message)]
 
-        and: "PBS should log a errors"
+        and: "PBS should log an errors"
         def logs = floorsPbsService.getLogsByTime(startTime)
         def floorsLogs = getLogsByText(logs, ERROR_LOG(bidRequest, message))
         assert floorsLogs.size() == 1
-        assert floorsLogs[0].contains(message)
 
-        and: "Alerts.general metrics shouldn't be populated"
+        and: "Alerts.general metrics should be populated"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
-        assert !metrics[ALERT_GENERAL]
+        assert metrics[ALERT_GENERAL] == 1
     }
 
     def "PBS should emit error in log and response when modelGroup defaultFloor is negative"() {
@@ -1134,11 +1140,10 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         def logs = floorsPbsService.getLogsByTime(startTime)
         def floorsLogs = getLogsByText(logs, ERROR_LOG(bidRequest, message))
         assert floorsLogs.size() == 1
-        assert floorsLogs[0].contains(message)
 
-        and: "Alerts.general metrics shouldn't be populated"
+        and: "Alerts.general metrics should be populated"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
-        assert !metrics[ALERT_GENERAL]
+        assert metrics[ALERT_GENERAL] == 1
     }
 
     def "PBS should use default floors config when original account config is invalid"() {
@@ -1175,17 +1180,13 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
     }
 
     def "PBS should emit error in log and response when account have disabled dynamic data config"() {
-        given: "Test start time"
-        def startTime = Instant.now()
-
-        and: "Bid request with floors"
+        given: "Bid request without floors"
         def bidRequest = bidRequestWithFloors.tap {
             ext.prebid.floors = null
         }
 
         and: "Account with invalid floors config"
         def account = getAccountWithEnabledFetch(bidRequest.accountId).tap {
-            config.auction.priceFloors.enabled = true
             config.auction.priceFloors.useDynamicData = false
         }
         accountDao.save(account)
@@ -1194,6 +1195,9 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
         bidder.setResponse(bidRequest.id, bidResponse)
 
+        and: "PBS fetch rules from floors provider"
+        cacheFloorsProviderRules(bidRequest, floorsPbsService, GENERIC, SUCCESS)
+
         and: "Flush metrics"
         flushMetrics(floorsPbsService)
 
@@ -1201,15 +1205,15 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         def response = floorsPbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS should log a warning"
-        def message = "Using dynamic data is not allowed for account ${account.uuid}".toString()
+        def message = "Using dynamic data is not allowed"
         assert response.ext?.warnings[PREBID]*.code == [999]
         assert response.ext?.warnings[PREBID]*.message == [message]
 
         and: "PBS should log a errors"
         def logs = floorsPbsService.getLogsByTime(startTime)
-        def floorsLogs = getLogsByText(logs, message)
+        def floorsLogs = getLogsByText(logs, "No price floor data for account ${bidRequest.accountId} " +
+                "and request ${bidRequest.id}, reason: Using dynamic data is not allowed")
         assert floorsLogs.size() == 1
-        assert floorsLogs[0].contains(message)
 
         and: "Alerts.general metrics should be populated"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()

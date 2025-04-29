@@ -154,7 +154,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
 
         final String fetchErrorMessage = resolveFetchErrorMessage(fetchResult, isUsingDynamicDataAllowed);
         return requestFloors == null
-                ? noPriceFloorData(fetchStatus, bidRequest.getId(), account.getId(), fetchErrorMessage, warnings)
+                ? noPriceFloorData(fetchStatus, account.getId(), bidRequest.getId(), fetchErrorMessage, warnings)
                 : getPriceFloorRules(bidRequest, account, requestFloors, fetchStatus, fetchErrorMessage, warnings);
     }
 
@@ -210,7 +210,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
                     ? null
                     : "%s. Following parsing of request price floors is failed: %s"
                     .formatted(fetchErrorMessage, e.getMessage());
-            return noPriceFloorData(fetchStatus, bidRequest.getId(), account.getId(), errorMessage, warnings);
+            return noPriceFloorData(fetchStatus, account.getId(), bidRequest.getId(), errorMessage, warnings);
         }
     }
 
