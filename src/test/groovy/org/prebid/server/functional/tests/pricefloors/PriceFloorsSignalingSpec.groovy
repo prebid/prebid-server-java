@@ -553,10 +553,6 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         def account = getAccountWithEnabledFetch(accountId)
         accountDao.save(account)
 
-        and: "Set bidder response"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        bidder.setResponse(bidRequest.id, bidResponse)
-
         when: "PBS processes auction request"
         def response = floorsPbsService.sendAuctionRequest(bidRequest)
 
@@ -629,10 +625,6 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         and: "PBS fetch rules from floors provider"
         cacheFloorsProviderRules(bidRequest, floorsPbsService)
 
-        and: "Set bidder response"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        bidder.setResponse(bidRequest.id, bidResponse)
-
         and: "Flush metrics"
         flushMetrics(floorsPbsService)
 
@@ -675,10 +667,6 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
             config.auction.priceFloors.maxSchemaDims = PBSUtils.randomNegativeNumber
         }
         accountDao.save(account)
-
-        and: "Set bidder response"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Flush metrics"
         flushMetrics(floorsPbsService)
@@ -731,10 +719,6 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
             config.auction.priceFloors.fetch.maxSchemaDims = PBSUtils.randomNegativeNumber
         }
         accountDao.save(account)
-
-        and: "Set bidder response"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
         def response = floorsPbsService.sendAuctionRequest(bidRequest)
@@ -810,10 +794,6 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         }
         accountDao.save(account)
 
-        and: "Set bidder response"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        bidder.setResponse(bidRequest.id, bidResponse)
-
         and: "Flush metrics"
         flushMetrics(floorsPbsService)
 
@@ -847,10 +827,6 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
             config.auction.priceFloors.fetch.maxSchemaDims = getSchemaSize(bidRequest) - 1
         }
         accountDao.save(account)
-
-        and: "Set bidder response"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
         def response = floorsPbsService.sendAuctionRequest(bidRequest)
@@ -922,9 +898,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         }
 
         and: "Account with enabled fetching"
-        def account = getAccountWithEnabledFetch(bidRequest.accountId).tap {
-            config.auction.priceFloors.fetch.enabled = true
-        }
+        def account = getAccountWithEnabledFetch(bidRequest.accountId)
         accountDao.save(account)
 
         and: "Flush metrics"
@@ -982,10 +956,13 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         def floorsLogs = getLogsByText(logs, ERROR_LOG(bidRequest, message))
         assert floorsLogs.size() == 1
 
+        and: "PBS request on response object status should be none"
+        assert getRequests(bidResponse)[GENERIC.value]?.first?.ext?.prebid?.floors?.fetchStatus == NONE
+
         and: "PBS request status shouldn't be in progress"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id)
-        assert getRequests(bidResponse)[GENERIC.value]?.first?.ext?.prebid?.floors?.fetchStatus == NONE
         assert bidderRequest.ext.prebid.floors.fetchStatus == [NONE]
+
 
         and: "Alerts.general metrics should be populated"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
@@ -1147,18 +1124,12 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
     def "PBS should use default floors config when original account config is invalid"() {
         given: "Bid request with empty floors"
-        def bidRequest = bidRequestWithFloors.tap {
-            ext.prebid.floors = null
-        }
+        def bidRequest = BidRequest.defaultBidRequest
 
         and: "Account with disabled price floors"
         def accountConfig = new AccountConfig(auction: new AccountAuctionConfig(priceFloors: new AccountPriceFloorsConfig(enabled: false)))
         def account = new Account(uuid: bidRequest.accountId, config: accountConfig)
         accountDao.save(account)
-
-        and: "Set bidder response"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Flush metrics"
         flushMetrics(floorsPbsService)
@@ -1180,19 +1151,13 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
     def "PBS should emit error in log and response when account have disabled dynamic data config"() {
         given: "Bid request without floors"
-        def bidRequest = bidRequestWithFloors.tap {
-            ext.prebid.floors = null
-        }
+        def bidRequest = BidRequest.defaultBidRequest
 
         and: "Account with disabled dynamic data"
         def account = getAccountWithEnabledFetch(bidRequest.accountId).tap {
             config.auction.priceFloors.useDynamicData = false
         }
         accountDao.save(account)
-
-        and: "Set bidder response"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "PBS fetch rules from floors provider"
         cacheFloorsProviderRules(bidRequest, floorsPbsService, GENERIC, SUCCESS)
