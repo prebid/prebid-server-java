@@ -9,7 +9,7 @@ import java.util.List;
 
 /**
  * This object describes the content in which the impression will appear, which
- * may be syndicated or non- syndicated content. This object may be useful when
+ * may be syndicated or non-syndicated content. This object may be useful when
  * syndicated content contains impressions and does not necessarily match the
  * publisher’s general content. The exchange might or might not have knowledge
  * of the page where the content is running, because of the syndication
@@ -60,7 +60,7 @@ public class Content {
     String artist;
 
     /**
-     * Genre that best describes the content (e.g., rock, pop, etc).
+     * Genre that best describes the content (e.g., rock, pop, etc.).
      */
     String genre;
 
@@ -161,7 +161,7 @@ public class Content {
     String langb;
 
     /**
-     * Indicator of whether or not the content is embeddable (e.g., an
+     * Indicator of whether the content is embeddable (e.g., an
      * embeddable video player), where 0 = no, 1 = yes.
      */
     Integer embeddable;

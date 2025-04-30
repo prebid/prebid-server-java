@@ -37,7 +37,6 @@ import static org.prebid.server.functional.model.Currency.CHF
 import static org.prebid.server.functional.model.Currency.EUR
 import static org.prebid.server.functional.model.Currency.JPY
 import static org.prebid.server.functional.model.Currency.USD
-import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS_UPPER_CASE
 import static org.prebid.server.functional.model.bidder.BidderName.AMX
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
@@ -906,16 +905,16 @@ class BidderParamsSpec extends BaseSpec {
         and: "Bidder request should contain same field as requested"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         verifyAll(bidderRequest.imp[0].ext) {
-            bidder == impExt.generic
-            auctionEnvironment == impExt.auctionEnvironment
-            all == impExt.all
-            context == impExt.context
-            data == impExt.data
-            general == impExt.general
-            gpid == impExt.gpid
-            skadn == impExt.skadn
-            tid == impExt.tid
-            prebid.adUnitCode == impExt.prebid.adUnitCode
+            it.bidder == impExt.generic
+            it.auctionEnvironment == impExt.auctionEnvironment
+            it.all == impExt.all
+            it.context == impExt.context
+            it.data == impExt.data
+            it.general == impExt.general
+            it.gpid == impExt.gpid
+            it.skadn == impExt.skadn
+            it.tid == impExt.tid
+            it.prebid.adUnitCode == impExt.prebid.adUnitCode
         }
     }
 

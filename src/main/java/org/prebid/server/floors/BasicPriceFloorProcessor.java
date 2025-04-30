@@ -191,7 +191,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
                                                List<String> warnings) {
 
         try {
-            final Optional<AccountPriceFloorsConfig> priceFloorsConfig = Optional.ofNullable(account.getAuction())
+            final Optional<AccountPriceFloorsConfig> priceFloorsConfig = Optional.of(account.getAuction())
                     .map(AccountAuctionConfig::getPriceFloors);
 
             final Long maxRules = priceFloorsConfig.map(AccountPriceFloorsConfig::getMaxRules)
