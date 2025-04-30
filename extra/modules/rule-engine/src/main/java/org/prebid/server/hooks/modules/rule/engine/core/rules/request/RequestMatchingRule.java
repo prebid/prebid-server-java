@@ -30,7 +30,7 @@ public class RequestMatchingRule implements Rule<BidRequest> {
 
     @Override
     public RuleResult<BidRequest> process(BidRequest bidRequest) {
-        return SetUtils.intersection(schema.getNames(), RequestSchema.PER_IMP_SCHEMA_FUNCTIONS).isEmpty()
+        return SetUtils.intersection(schema.getNames(), RequestSpecification.PER_IMP_SCHEMA_FUNCTIONS).isEmpty()
                 ? processRule(bidRequest, null)
                 : processPerImpRule(bidRequest);
     }

@@ -1,5 +1,7 @@
 package org.prebid.server.hooks.modules.rule.engine.v1;
 
+import org.prebid.server.hooks.modules.rule.engine.core.cache.RuleRegistry;
+import org.prebid.server.hooks.modules.rule.engine.core.config.AccountConfigParser;
 import org.prebid.server.hooks.v1.Hook;
 import org.prebid.server.hooks.v1.InvocationContext;
 import org.prebid.server.hooks.v1.Module;
@@ -13,9 +15,9 @@ public class RuleEngineModule implements Module {
 
     private final Collection<? extends Hook<?, ? extends InvocationContext>> hooks;
 
-    public RuleEngineModule() {
+    public RuleEngineModule(RuleRegistry ruleRegistry) {
         this.hooks = Collections.singleton(
-                new RuleEngineProcessedAuctionRequestHook());
+                new RuleEngineProcessedAuctionRequestHook(ruleRegistry));
     }
 
     @Override
