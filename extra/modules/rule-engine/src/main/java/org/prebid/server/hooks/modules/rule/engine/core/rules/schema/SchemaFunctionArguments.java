@@ -12,6 +12,4 @@ public class SchemaFunctionArguments<T> {
     T operand;
 
     List<JsonNode> args;
-
-    Imp imp;
 }

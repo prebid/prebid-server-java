@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Geo;
-import com.iab.openrtb.request.Imp;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.result.ResultFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunction;
@@ -23,10 +22,10 @@ public class RequestSchema {
     public static final String AD_UNIT_CODE_FUNCTION = "adUnitCode";
     public static final String MEDIA_TYPE_FUNCTION = "mediaType";
 
-    private static final Map<String, SchemaFunction<BidRequest>> SCHEMA_FUNCTIONS = Map.of(
+    private static final Map<String, SchemaFunction<RequestPayload>> SCHEMA_FUNCTIONS = Map.of(
             AD_UNIT_CODE_FUNCTION, RequestSchema::deviceCountryExtractor);
 
-    public static SchemaFunction<BidRequest> schemaFunctionByName(String function) {
+    public static SchemaFunction<RequestPayload> schemaFunctionByName(String function) {
         return SCHEMA_FUNCTIONS.get(function);
     }
 

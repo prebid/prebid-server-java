@@ -8,8 +8,6 @@ import java.util.List;
 @Value(staticConstructor = "of")
 public class SchemaFunctionHolder<T> {
 
-    String name;
-
     SchemaFunction<T> schemaFunction;
 
     List<JsonNode> arguments;
