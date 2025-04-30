@@ -159,7 +159,6 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
     }
 
     private static String resolveFetchErrorMessage(FetchResult fetchResult, boolean isUsingDynamicDataAllowed) {
-
         return switch (fetchResult.getFetchStatus()) {
             case inprogress -> null;
             case error, timeout, none -> fetchResult.getErrorMessage();
