@@ -578,7 +578,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
                      (new Rule(mediaType: BANNER, country: Country.MULTIPLE).rule): requestFloorValue]
         }
 
-        and: "Account with maxRules in the DB"
+        and: "Account with maxRules and disabled fetching in the DB"
         def accountId = bidRequest.site.publisher.id
         def account = getAccountWithEnabledFetch(accountId).tap {
             config.auction.priceFloors.fetch.enabled = false
@@ -617,7 +617,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         given: "BidRequest with schema 2 fields"
         def bidRequest = bidRequestWithFloors
 
-        and: "Account with maxSchemaDims in the DB"
+        and: "Account with maxSchemaDims and disabled fetching in the DB"
         def accountId = bidRequest.site.publisher.id
         def account = getAccountWithEnabledFetch(accountId).tap {
             config.auction.priceFloors.fetch.enabled = false
@@ -800,7 +800,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         given: "BidRequest with schema 2 fields"
         def bidRequest = bidRequestWithFloors
 
-        and: "Account with maxSchemaDims in the DB"
+        and: "Account with maxSchemaDims and disabled fetching in the DB"
         def accountId = bidRequest.site.publisher.id
         def floorSchemaFilesSize = getSchemaSize(bidRequest)
         def account = getAccountWithEnabledFetch(accountId).tap {
@@ -859,7 +859,6 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         assert !response.ext?.warnings
     }
 
-//    @IgnoreRest
     def "PBS should emit warning when stored request has more rules than price-floor.max-rules for amp request"() {
         given: "Default AmpRequest"
         def ampRequest = AmpRequest.defaultAmpRequest
@@ -875,7 +874,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
-        and: "Account with maxRules in the DB"
+        and: "Account with maxRules and disabled fetching in the DB"
         def account = getAccountWithEnabledFetch(ampRequest.account as String).tap {
             config.auction.priceFloors.fetch.enabled = false
             config.auction.priceFloors.maxRules = maxRules
@@ -922,7 +921,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
             ext.prebid.floors.data = null
         }
 
-        and: "Account with invalid floors config"
+        and: "Account with enabled fetching"
         def account = getAccountWithEnabledFetch(bidRequest.accountId).tap {
             config.auction.priceFloors.fetch.enabled = true
         }
@@ -964,7 +963,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         and: "Flush metrics"
         flushMetrics(floorsPbsService)
 
-        and: "Account with invalid floors config"
+        and: "Account with disabled fetching"
         def account = getAccountWithEnabledFetch(bidRequest.accountId).tap {
             config.auction.priceFloors.fetch.enabled = false
         }
@@ -1152,7 +1151,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
             ext.prebid.floors = null
         }
 
-        and: "Account with invalid floors config"
+        and: "Account with disabled price floors"
         def accountConfig = new AccountConfig(auction: new AccountAuctionConfig(priceFloors: new AccountPriceFloorsConfig(enabled: false)))
         def account = new Account(uuid: bidRequest.accountId, config: accountConfig)
         accountDao.save(account)
@@ -1185,7 +1184,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
             ext.prebid.floors = null
         }
 
-        and: "Account with invalid floors config"
+        and: "Account with disabled dynamic data"
         def account = getAccountWithEnabledFetch(bidRequest.accountId).tap {
             config.auction.priceFloors.useDynamicData = false
         }
@@ -1205,9 +1204,8 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         def response = floorsPbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS should log a warning"
-        def message = "Using dynamic data is not allowed"
         assert response.ext?.warnings[PREBID]*.code == [999]
-        assert response.ext?.warnings[PREBID]*.message == [message]
+        assert response.ext?.warnings[PREBID]*.message == ['Using dynamic data is not allowed']
 
         and: "PBS should log a errors"
         def logs = floorsPbsService.getLogsByTime(startTime)
