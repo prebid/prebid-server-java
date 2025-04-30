@@ -9,5 +9,5 @@ public interface ResultFunction<T> {
 
     RuleResult<T> apply(ResultFunctionArguments<T> arguments);
 
-    void validateArguments(List<JsonNode> configArguments);
+    void validateConfigArguments(List<JsonNode> configArguments);
 }

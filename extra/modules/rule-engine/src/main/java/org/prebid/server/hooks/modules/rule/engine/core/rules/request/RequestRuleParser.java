@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.random.RandomGenerator;
 import java.util.stream.Collectors;
 
@@ -75,7 +74,7 @@ public class RequestRuleParser {
                 .toList();
         final RuleTree<RuleConfig<BidRequest>> ruleTree = RuleTreeFactory.buildTree(rules);
 
-        return new MatchingRequestRule(schema, ruleTree);
+        return new RequestMatchingRule(schema, ruleTree);
     }
 
     private static Schema<RequestPayload> parseSchema(List<SchemaFunctionConfig> schema) {

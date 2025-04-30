@@ -6,9 +6,9 @@ import org.prebid.server.hooks.execution.v1.analytics.TagsImpl;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.Rule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleConfig;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleResult;
-import org.prebid.server.hooks.modules.rule.engine.core.rules.result.RuleAction;
-import org.prebid.server.hooks.modules.rule.engine.core.rules.result.arguments.InfrastructureArguments;
+import org.prebid.server.hooks.modules.rule.engine.core.rules.result.InfrastructureArguments;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.result.ResultFunctionArguments;
+import org.prebid.server.hooks.modules.rule.engine.core.rules.result.RuleAction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.Schema;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunctionArguments;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.tree.RuleTree;
@@ -18,12 +18,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-public class MatchingRequestRule implements Rule<BidRequest> {
+public class RequestMatchingRule implements Rule<BidRequest> {
 
     private final Schema<RequestPayload> schema;
     private final RuleTree<RuleConfig<BidRequest>> ruleTree;
 
-    public MatchingRequestRule(Schema<RequestPayload> schema, RuleTree<RuleConfig<BidRequest>> ruleTree) {
+    public RequestMatchingRule(Schema<RequestPayload> schema, RuleTree<RuleConfig<BidRequest>> ruleTree) {
         this.schema = Objects.requireNonNull(schema);
         this.ruleTree = Objects.requireNonNull(ruleTree);
     }
@@ -53,19 +53,17 @@ public class MatchingRequestRule implements Rule<BidRequest> {
 
         final RuleConfig<BidRequest> ruleConfig = ruleTree.getValue(matchers);
         RuleResult<BidRequest> result = unalteredResult(bidRequest);
+
         for (RuleAction<BidRequest> action : ruleConfig.getActions()) {
             final InfrastructureArguments infrastructureArguments = InfrastructureArguments.of(
                     null,
                     "analyticsKey",
                     ruleConfig.getCondition(),
                     "modelVersion");
+            final ResultFunctionArguments<BidRequest> arguments = ResultFunctionArguments.of(
+                    result.getUpdateResult().getValue(), action.getConfigArguments(), infrastructureArguments);
 
-            for (ResultFunctionArguments arguments : action.getArguments()) {
-                final RuleResult<BidRequest> updateResult = action.getFunction()
-                        .apply(arguments, infrastructureArguments, result.getUpdateResult().getValue());
-
-                result = result.mergeWith(updateResult);
-            }
+            result = result.mergeWith(action.getFunction().apply(arguments));
         }
 
         return result;

@@ -1,4 +1,4 @@
-package org.prebid.server.hooks.modules.rule.engine.core.rules.result.arguments;
+package org.prebid.server.hooks.modules.rule.engine.core.rules.result;
 
 import lombok.Value;
 

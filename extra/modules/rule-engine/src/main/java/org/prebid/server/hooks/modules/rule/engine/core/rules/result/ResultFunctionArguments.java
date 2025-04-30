@@ -2,7 +2,6 @@ package org.prebid.server.hooks.modules.rule.engine.core.rules.result;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Value;
-import org.prebid.server.hooks.modules.rule.engine.core.rules.result.arguments.InfrastructureArguments;
 
 import java.util.List;
 

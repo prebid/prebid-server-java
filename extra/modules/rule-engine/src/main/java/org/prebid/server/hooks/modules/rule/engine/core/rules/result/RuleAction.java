@@ -10,5 +10,5 @@ public class RuleAction<T> {
 
     ResultFunction<T> function;
 
-    List<JsonNode> arguments;
+    List<JsonNode> configArguments;
 }
