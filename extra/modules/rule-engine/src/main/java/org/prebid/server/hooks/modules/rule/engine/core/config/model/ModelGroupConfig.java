@@ -20,5 +20,5 @@ public class ModelGroupConfig {
     @JsonProperty("default")
     RuleFunctionConfig defaultAction;
 
-    List<RuleConfig> rules;
+    List<AccountRuleConfig> rules;
 }

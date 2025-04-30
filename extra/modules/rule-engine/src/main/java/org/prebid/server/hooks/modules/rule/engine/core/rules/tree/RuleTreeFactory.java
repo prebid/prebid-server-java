@@ -3,29 +3,22 @@ package org.prebid.server.hooks.modules.rule.engine.core.rules.tree;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleConfig;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 public class RuleTreeFactory {
 
-    public static <T> RuleTree<RuleConfig<T>> buildTree(Map<String, RuleConfig<T>> rules) {
+    public static <T> RuleTree<RuleConfig<T>> buildTree(List<RuleConfig<T>> rules) {
         return new RuleTree<>(parseRuleNode(toParsingContexts(rules)));
     }
 
-    private static <T> List<ParsingContext<T>> toParsingContexts(Map<String, T> rules) {
-        final List<ParsingContext<T>> contexts = new ArrayList<>();
-
-        for (Map.Entry<String, T> entry : rules.entrySet()) {
-            final List<String> arguments = List.of(StringUtils.defaultString(entry.getKey()).split("\\|"));
-            final T value = entry.getValue();
-
-
-            contexts.add(new ParsingContext<>(arguments, value));
-        }
-
-        return contexts;
+    private static <T> List<ParsingContext<RuleConfig<T>>> toParsingContexts(List<RuleConfig<T>> rules) {
+        return rules.stream()
+                .map(rule -> new ParsingContext<>(
+                        List.of(StringUtils.defaultString(rule.getCondition()).split("\\|")),
+                        rule))
+                .toList();
     }
 
     private static <T> RuleNode<T> parseRuleNode(List<ParsingContext<T>> parsingContexts) {

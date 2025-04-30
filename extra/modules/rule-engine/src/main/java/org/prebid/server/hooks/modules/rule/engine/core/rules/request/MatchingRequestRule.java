@@ -57,7 +57,7 @@ public class MatchingRequestRule implements Rule<BidRequest> {
             final InfrastructureArguments infrastructureArguments = InfrastructureArguments.of(
                     null,
                     "analyticsKey",
-                    ruleConfig.getRuleFired(),
+                    ruleConfig.getCondition(),
                     "modelVersion");
 
             for (ResultFunctionArguments arguments : action.getArguments()) {

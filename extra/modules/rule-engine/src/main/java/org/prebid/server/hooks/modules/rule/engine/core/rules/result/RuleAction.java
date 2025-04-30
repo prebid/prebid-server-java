@@ -1,7 +1,7 @@
 package org.prebid.server.hooks.modules.rule.engine.core.rules.result;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Value;
-import org.prebid.server.hooks.modules.rule.engine.core.rules.result.arguments.ResultFunctionArguments;
 
 import java.util.List;
 
@@ -10,5 +10,5 @@ public class RuleAction<T> {
 
     ResultFunction<T> function;
 
-    List<ResultFunctionArguments> arguments;
+    List<JsonNode> arguments;
 }

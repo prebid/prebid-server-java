@@ -7,6 +7,7 @@ import com.iab.openrtb.request.BidRequest;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.hooks.execution.model.Stage;
 import org.prebid.server.hooks.modules.rule.engine.core.config.model.AccountConfig;
+import org.prebid.server.hooks.modules.rule.engine.core.config.model.AccountRuleConfig;
 import org.prebid.server.hooks.modules.rule.engine.core.config.model.ModelGroupConfig;
 import org.prebid.server.hooks.modules.rule.engine.core.config.model.RuleSetConfig;
 import org.prebid.server.hooks.modules.rule.engine.core.config.model.SchemaFunctionConfig;
@@ -15,7 +16,6 @@ import org.prebid.server.hooks.modules.rule.engine.core.rules.Rule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleConfig;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.WeightedRule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.result.RuleAction;
-import org.prebid.server.hooks.modules.rule.engine.core.rules.result.arguments.ExcludeBiddersArguments;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.Schema;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunctionHolder;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.tree.RuleTree;
@@ -64,15 +64,15 @@ public class RequestRuleParser {
                 .map(config -> WeightedEntry.of(config.getWeight(), toRule(config)))
                 .toList();
 
-        return new WeightedRule<BidRequest>(randomGenerator, new WeightedList<>(weightedRules));
+        return new WeightedRule<>(randomGenerator, new WeightedList<>(weightedRules));
     }
 
-    private static Rule<BidRequest> toRule(ModelGroupConfig modelGroupConfig) {
-        final Schema<RequestPayload> schema = parseSchema(modelGroupConfig.getSchema());
+    private static Rule<BidRequest> toRule(ModelGroupConfig config) {
+        final Schema<RequestPayload> schema = parseSchema(config.getSchema());
 
-        final Map<String, RuleConfig<BidRequest>> rules = modelGroupConfig.getRules().stream()
-                .map(RequestRuleParser::toRuleResult)
-                .collect(Collectors.toMap(RuleConfig::getRuleFired, Function.identity()));
+        final List<RuleConfig<BidRequest>> rules = config.getRules().stream()
+                .map(RequestRuleParser::toRuleConfig)
+                .toList();
         final RuleTree<RuleConfig<BidRequest>> ruleTree = RuleTreeFactory.buildTree(rules);
 
         return new MatchingRequestRule(schema, ruleTree);
@@ -89,13 +89,11 @@ public class RequestRuleParser {
         return Schema.of(names, schemaFunctions);
     }
 
-    private static RuleConfig<BidRequest> toRuleResult(org.prebid.server.hooks.modules.rule.engine.core.config.model.RuleConfig ruleConfig) {
+    private static RuleConfig<BidRequest> toRuleConfig(AccountRuleConfig ruleConfig) {
         final String ruleFired = String.join("|", ruleConfig.getConditions());
         final List<RuleAction<BidRequest>> actions = ruleConfig.getResults().stream()
-                .map(result -> RuleAction.of(
-                        // TODO: parse result arguments properly
-                        RequestSchema.resultFunctionByName(result.getFunction()),
-                        List.of(ExcludeBiddersArguments.of(List.of(), 203, false, "test"))))
+                .map(config -> RuleAction.of(
+                        RequestSchema.resultFunctionByName(config.getFunction()), config.getArgs()))
                 .toList();
 
         return RuleConfig.of(ruleFired, actions);

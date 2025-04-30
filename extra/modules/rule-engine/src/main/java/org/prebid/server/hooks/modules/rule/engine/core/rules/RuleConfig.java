@@ -8,7 +8,7 @@ import java.util.List;
 @Value(staticConstructor = "of")
 public class RuleConfig<T> {
 
-    String ruleFired;
+    String condition;
 
     List<RuleAction<T>> actions;
 }
