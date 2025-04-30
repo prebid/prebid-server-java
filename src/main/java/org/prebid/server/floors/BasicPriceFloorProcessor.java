@@ -21,6 +21,8 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
+import org.prebid.server.metric.MetricName;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebidFloors;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -52,17 +54,23 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
 
     private final PriceFloorFetcher floorFetcher;
     private final PriceFloorResolver floorResolver;
+    private final Metrics metrics;
     private final JacksonMapper mapper;
+    private final double logSamplingRate;
 
     private final RandomWeightedEntrySupplier<PriceFloorModelGroup> modelPicker;
 
     public BasicPriceFloorProcessor(PriceFloorFetcher floorFetcher,
                                     PriceFloorResolver floorResolver,
-                                    JacksonMapper mapper) {
+                                    Metrics metrics,
+                                    JacksonMapper mapper,
+                                    double logSamplingRate) {
 
         this.floorFetcher = Objects.requireNonNull(floorFetcher);
         this.floorResolver = Objects.requireNonNull(floorResolver);
+        this.metrics = Objects.requireNonNull(metrics);
         this.mapper = Objects.requireNonNull(mapper);
+        this.logSamplingRate = logSamplingRate;
 
         modelPicker = new RandomPositiveWeightedEntrySupplier<>(BasicPriceFloorProcessor::resolveModelGroupWeight);
     }
@@ -82,7 +90,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
             return disableFloorsForRequest(bidRequest);
         }
 
-        final PriceFloorRules floors = resolveFloors(account, bidRequest, errors);
+        final PriceFloorRules floors = resolveFloors(account, bidRequest, warnings);
         return updateBidRequestWithFloors(bidRequest, bidder, floors, errors, warnings);
     }
 
@@ -122,49 +130,13 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         return ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getFloors);
     }
 
-    private PriceFloorRules resolveFloors(Account account, BidRequest bidRequest, List<String> errors) {
+    private PriceFloorRules resolveFloors(Account account, BidRequest bidRequest, List<String> warnings) {
         final PriceFloorRules requestFloors = extractRequestFloors(bidRequest);
 
         final FetchResult fetchResult = floorFetcher.fetch(account);
-        final FetchStatus fetchStatus = ObjectUtil.getIfNotNull(fetchResult, FetchResult::getFetchStatus);
+        final FetchStatus fetchStatus = fetchResult.getFetchStatus();
 
-        if (fetchResult != null && fetchStatus == FetchStatus.success && shouldUseDynamicData(account, fetchResult)) {
-            final PriceFloorRules mergedFloors = mergeFloors(requestFloors, fetchResult.getRulesData());
-            return createFloorsFrom(mergedFloors, fetchStatus, PriceFloorLocation.fetch);
-        }
-
-        if (requestFloors != null) {
-            try {
-                final Optional<AccountPriceFloorsConfig> priceFloorsConfig = Optional.of(account)
-                        .map(Account::getAuction)
-                        .map(AccountAuctionConfig::getPriceFloors);
-
-                final Long maxRules = priceFloorsConfig.map(AccountPriceFloorsConfig::getMaxRules)
-                        .orElse(null);
-                final Long maxDimensions = priceFloorsConfig.map(AccountPriceFloorsConfig::getMaxSchemaDims)
-                        .orElse(null);
-
-                PriceFloorRulesValidator.validateRules(
-                        requestFloors,
-                        PriceFloorsConfigResolver.resolveMaxValue(maxRules),
-                        PriceFloorsConfigResolver.resolveMaxValue(maxDimensions));
-
-                return createFloorsFrom(requestFloors, fetchStatus, PriceFloorLocation.request);
-            } catch (PreBidException e) {
-                errors.add("Failed to parse price floors from request, with a reason: %s".formatted(e.getMessage()));
-                conditionalLogger.error(
-                        "Failed to parse price floors from request with id: '%s', with a reason: %s"
-                                .formatted(bidRequest.getId(), e.getMessage()),
-                        0.01d);
-            }
-        }
-
-        return createFloorsFrom(null, fetchStatus, PriceFloorLocation.noData);
-    }
-
-    private static boolean shouldUseDynamicData(Account account, FetchResult fetchResult) {
-        final boolean isUsingDynamicDataAllowed = Optional.of(account)
-                .map(Account::getAuction)
+        final boolean isUsingDynamicDataAllowed = Optional.ofNullable(account.getAuction())
                 .map(AccountAuctionConfig::getPriceFloors)
                 .map(AccountPriceFloorsConfig::getUseDynamicData)
                 .map(BooleanUtils::isNotFalse)
@@ -175,12 +147,73 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
                 .map(rate -> ThreadLocalRandom.current().nextInt(USE_FETCH_DATA_RATE_MAX) < rate)
                 .orElse(true);
 
-        return isUsingDynamicDataAllowed && shouldUseDynamicData;
+        if (fetchStatus == FetchStatus.success && isUsingDynamicDataAllowed && shouldUseDynamicData) {
+            final PriceFloorRules mergedFloors = mergeFloors(requestFloors, fetchResult.getRulesData());
+            return createFloorsFrom(mergedFloors, fetchStatus, PriceFloorLocation.fetch);
+        }
+
+        final String fetchErrorMessage = resolveFetchErrorMessage(fetchResult, isUsingDynamicDataAllowed);
+        return requestFloors == null
+                ? noPriceFloorData(fetchStatus, account.getId(), bidRequest.getId(), fetchErrorMessage, warnings)
+                : getPriceFloorRules(bidRequest, account, requestFloors, fetchStatus, fetchErrorMessage, warnings);
     }
 
-    private PriceFloorRules mergeFloors(PriceFloorRules requestFloors,
-                                        PriceFloorData providerRulesData) {
+    private static String resolveFetchErrorMessage(FetchResult fetchResult, boolean isUsingDynamicDataAllowed) {
+        return switch (fetchResult.getFetchStatus()) {
+            case inprogress -> null;
+            case error, timeout, none -> fetchResult.getErrorMessage();
+            case success -> isUsingDynamicDataAllowed ? null : "Using dynamic data is not allowed";
+        };
+    }
 
+    private PriceFloorRules noPriceFloorData(FetchStatus fetchStatus,
+                                             String accountId,
+                                             String requestId,
+                                             String errorMessage,
+                                             List<String> warnings) {
+
+        if (errorMessage != null) {
+            warnings.add(errorMessage);
+            conditionalLogger.error("No price floor data for account %s and request %s, reason: %s"
+                    .formatted(accountId, requestId, errorMessage), logSamplingRate);
+            metrics.updateAlertsMetrics(MetricName.general);
+        }
+
+        return createFloorsFrom(null, fetchStatus, PriceFloorLocation.noData);
+    }
+
+    private PriceFloorRules getPriceFloorRules(BidRequest bidRequest,
+                                               Account account,
+                                               PriceFloorRules requestFloors,
+                                               FetchStatus fetchStatus,
+                                               String fetchErrorMessage,
+                                               List<String> warnings) {
+
+        try {
+            final Optional<AccountPriceFloorsConfig> priceFloorsConfig = Optional.of(account.getAuction())
+                    .map(AccountAuctionConfig::getPriceFloors);
+
+            final Long maxRules = priceFloorsConfig.map(AccountPriceFloorsConfig::getMaxRules)
+                    .orElse(null);
+            final Long maxDimensions = priceFloorsConfig.map(AccountPriceFloorsConfig::getMaxSchemaDims)
+                    .orElse(null);
+
+            PriceFloorRulesValidator.validateRules(
+                    requestFloors,
+                    PriceFloorsConfigResolver.resolveMaxValue(maxRules),
+                    PriceFloorsConfigResolver.resolveMaxValue(maxDimensions));
+
+            return createFloorsFrom(requestFloors, fetchStatus, PriceFloorLocation.request);
+        } catch (PreBidException e) {
+            final String errorMessage = fetchErrorMessage == null
+                    ? null
+                    : "%s. Following parsing of request price floors is failed: %s"
+                    .formatted(fetchErrorMessage, e.getMessage());
+            return noPriceFloorData(fetchStatus, account.getId(), bidRequest.getId(), errorMessage, warnings);
+        }
+    }
+
+    private PriceFloorRules mergeFloors(PriceFloorRules requestFloors, PriceFloorData providerRulesData) {
         final Price floorMinPrice = resolveFloorMinPrice(requestFloors);
 
         return (requestFloors != null ? requestFloors.toBuilder() : PriceFloorRules.builder())
