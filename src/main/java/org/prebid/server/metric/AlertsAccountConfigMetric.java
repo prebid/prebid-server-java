@@ -14,4 +14,3 @@ public class AlertsAccountConfigMetric extends UpdatableMetrics {
         return metricName -> "%s.account_config.%s.%s".formatted(prefix, account, metricName);
     }
 }
-

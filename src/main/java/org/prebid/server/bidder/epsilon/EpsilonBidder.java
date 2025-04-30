@@ -104,7 +104,6 @@ public class EpsilonBidder implements Bidder<BidRequest> {
         final String siteId = extImp.getSiteId();
         final Site requestSite = bidRequest.getSite();
         final App requestApp = bidRequest.getApp();
-        final List<String> cur = bidRequest.getCur();
         return bidRequest.toBuilder()
                 .site(updateSite(requestSite, siteId))
                 .app(requestSite == null ? updateApp(requestApp, siteId) : requestApp)
