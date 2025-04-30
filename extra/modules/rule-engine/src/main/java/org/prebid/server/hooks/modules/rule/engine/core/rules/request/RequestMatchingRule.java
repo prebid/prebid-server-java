@@ -1,7 +1,7 @@
 package org.prebid.server.hooks.modules.rule.engine.core.rules.request;
 
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Imp;
+import org.apache.commons.collections4.SetUtils;
 import org.prebid.server.hooks.execution.v1.analytics.TagsImpl;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.Rule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleConfig;
@@ -30,18 +30,17 @@ public class RequestMatchingRule implements Rule<BidRequest> {
 
     @Override
     public RuleResult<BidRequest> process(BidRequest bidRequest) {
-        RuleResult<BidRequest> result = unalteredResult(bidRequest);
-        if (schema.getNames().contains("adUnitCode") || schema.getNames().contains("mediaType")) {
-            for (Imp imp : bidRequest.getImp()) {
-                final RuleResult<BidRequest> updateResult = processRule(
-                        result.getUpdateResult().getValue(), imp.getId());
-                result = result.mergeWith(updateResult);
-            }
-        } else {
-            result = processRule(bidRequest, null);
-        }
+        return SetUtils.intersection(schema.getNames(), RequestSchema.PER_IMP_SCHEMA_FUNCTIONS).isEmpty()
+                ? processRule(bidRequest, null)
+                : processPerImpRule(bidRequest);
+    }
 
-        return result;
+    private RuleResult<BidRequest> processPerImpRule(BidRequest bidRequest) {
+        return bidRequest.getImp().stream().reduce(
+                unalteredResult(bidRequest),
+                (result, imp) ->
+                        result.mergeWith(processRule(result.getUpdateResult().getValue(), imp.getId())),
+                RuleResult::mergeWith);
     }
 
     private RuleResult<BidRequest> processRule(BidRequest bidRequest, String impId) {
