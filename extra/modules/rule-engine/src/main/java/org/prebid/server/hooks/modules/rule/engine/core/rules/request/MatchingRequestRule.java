@@ -8,7 +8,7 @@ import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleConfig;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleResult;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.result.RuleAction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.result.arguments.InfrastructureArguments;
-import org.prebid.server.hooks.modules.rule.engine.core.rules.result.arguments.ResultFunctionArguments;
+import org.prebid.server.hooks.modules.rule.engine.core.rules.result.ResultFunctionArguments;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.Schema;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunctionArguments;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.tree.RuleTree;

@@ -35,7 +35,7 @@ public class RequestSchema {
 
     public static String deviceCountryExtractor(SchemaFunctionArguments<BidRequest> arguments) {
         final BidRequest bidRequest = arguments.getOperand();
-        final List<JsonNode> args = arguments.getArgs();
+        final List<JsonNode> args = arguments.getConfigArguments();
         if (CollectionUtils.isEmpty(args)) {
             return Optional.ofNullable(bidRequest.getDevice())
                     .map(Device::getGeo)

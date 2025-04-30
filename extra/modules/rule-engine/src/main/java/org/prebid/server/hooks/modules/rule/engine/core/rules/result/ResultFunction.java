@@ -1,14 +1,13 @@
 package org.prebid.server.hooks.modules.rule.engine.core.rules.result;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleResult;
-import org.prebid.server.hooks.modules.rule.engine.core.rules.result.arguments.InfrastructureArguments;
-import org.prebid.server.hooks.modules.rule.engine.core.rules.result.arguments.ResultFunctionArguments;
+
+import java.util.List;
 
 public interface ResultFunction<T> {
 
-    RuleResult<T> apply(ResultFunctionArguments arguments,
-                        InfrastructureArguments infrastructureArguments,
-                        T operand);
+    RuleResult<T> apply(ResultFunctionArguments<T> arguments);
 
-    void validateArguments(ResultFunctionArguments arguments);
+    void validateArguments(List<JsonNode> configArguments);
 }
