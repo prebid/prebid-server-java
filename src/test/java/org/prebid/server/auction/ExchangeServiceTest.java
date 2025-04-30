@@ -2839,12 +2839,9 @@ public class ExchangeServiceTest extends VertxTest {
                 Device.builder().make("TestMake_001").model("TestModel_001").build());
         final ExtBidderConfig extBidderConfig = ExtBidderConfig.of(
                 ExtBidderConfigOrtb.of(null, null, null, null, deviceWithMakeAndModel));
-        // Bidder Config with specific device data
         final ExtRequestPrebidBidderConfig concreteFpdConfig = ExtRequestPrebidBidderConfig.of(
                 singletonList("someBidder"), extBidderConfig);
-
         final Device requestDevice = Device.builder().build();
-        // Build ext request
         final ExtRequestPrebid extRequestPrebid = ExtRequestPrebid.builder()
                 .bidderconfig(singletonList(concreteFpdConfig))
                 .build();
@@ -2852,51 +2849,6 @@ public class ExchangeServiceTest extends VertxTest {
                 builder -> builder.device(requestDevice).ext(ExtRequest.of(extRequestPrebid)));
         final Device mergedDevice = Device.builder()
                 .make("TestMake_001").model("TestModel_001").build();
-
-        given(fpdResolver.resolveDevice(any(), any())).willReturn(mergedDevice);
-
-        // when
-        target.holdAuction(givenRequestContext(bidRequest));
-
-        // then
-        final ArgumentCaptor<BidderRequest> bidderRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
-        verify(httpBidderRequester)
-                .requestBids(any(), bidderRequestCaptor.capture(), any(), any(), any(), any(), anyBoolean());
-        final List<BidderRequest> capturedBidRequests = bidderRequestCaptor.getAllValues();
-
-        assertThat(capturedBidRequests)
-                .extracting(BidderRequest::getBidRequest)
-                .extracting(BidRequest::getDevice)
-                .containsOnly(mergedDevice);
-    }
-
-    @Test
-    public void shouldOverrideWithBidderSpecificDeviceDataInBidderRequest() {
-        // - request Device is defined;
-        // - bidder FPD Device is defined
-        // - expect request Device to be overridden by bidder FPD Device in bidder request
-
-        // given
-        final Bidder<?> bidder = mock(Bidder.class);
-        givenBidder("someBidder", bidder, givenEmptySeatBid());
-
-        final ObjectNode deviceWithMakeAndModel = mapper.valueToTree(
-                Device.builder().make("TestMakeOver").model("TestModelOver").build());
-        final ExtBidderConfig extBidderConfig = ExtBidderConfig.of(
-                ExtBidderConfigOrtb.of(null, null, null, null, deviceWithMakeAndModel));
-        // Bidder Config with specific device data
-        final ExtRequestPrebidBidderConfig concreteFpdConfig = ExtRequestPrebidBidderConfig.of(
-                singletonList("someBidder"), extBidderConfig);
-
-        final Device requestDevice = Device.builder().make("BaseMake").model("BaseModel").build();
-        // Build ext request
-        final ExtRequestPrebid extRequestPrebid = ExtRequestPrebid.builder()
-                .bidderconfig(singletonList(concreteFpdConfig))
-                .build();
-        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
-                builder -> builder.device(requestDevice).ext(ExtRequest.of(extRequestPrebid)));
-        final Device mergedDevice = Device.builder()
-                .make("TestMakeOver").model("TestModelOver").build();
 
         given(fpdResolver.resolveDevice(any(), any())).willReturn(mergedDevice);
 

@@ -576,10 +576,9 @@ public class ExchangeService {
                     .anyMatch(fpdBidder -> StringUtils.equalsIgnoreCase(fpdBidder, bidder));
             final User preparedUser = prepareUser(
                     bidder, context, aliases, useFirstPartyData, fpdConfig, eidPermissions);
-            final Device preparedDevice = prepareDevice(bidRequest.getDevice(), fpdConfig,
-                    useFirstPartyData);
-            final Pair<User, Device> userAndDevice = Pair.of(preparedUser, preparedDevice);
-            bidderToUserAndDevice.put(bidder, userAndDevice);
+            final Device preparedDevice = prepareDevice(
+                    bidRequest.getDevice(), fpdConfig, useFirstPartyData);
+            bidderToUserAndDevice.put(bidder, Pair.of(preparedUser, preparedDevice));
         }
         return bidderToUserAndDevice;
     }

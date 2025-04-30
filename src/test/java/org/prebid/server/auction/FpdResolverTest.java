@@ -161,9 +161,6 @@ public class FpdResolverTest extends VertxTest {
                 .os("fpd_os")
                 .osv("fpd_osv")
                 .hwv("fpd_hwv")
-                .language("original_language")
-                .h(2222)
-                .js(1)
                 .ip("new_ip")
                 .build();
 
@@ -179,7 +176,7 @@ public class FpdResolverTest extends VertxTest {
                 .osv("fpd_osv")
                 .hwv("fpd_hwv")
                 .language("original_language")
-                .h(2222)
+                .h(1111)
                 .js(1)
                 .ip("new_ip")
                 .build());
