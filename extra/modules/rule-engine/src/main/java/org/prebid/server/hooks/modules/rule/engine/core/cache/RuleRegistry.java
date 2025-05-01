@@ -35,7 +35,19 @@ public class RuleRegistry {
     }
 
     public Future<PerStageRule> forAccount(String accountId, ObjectNode config) {
+        // TODO: think about adding exponential backoff for account with invalid config,
+        //  since parsing is heavy operation
+
+        // TODO: utilize timestamp for cache invalidation
         return accountIdToRules.computeIfAbsent(
-                accountId, (ignored) -> vertx.executeBlocking(() -> parser.parse(config)));
+                        accountId, (ignored) -> vertx.executeBlocking(() -> parser.parse(config)))
+                .recover(error -> evictCacheAndRethrowError(accountId, error));
+    }
+
+    private Future<PerStageRule> evictCacheAndRethrowError(String accountId, Throwable error) {
+        accountIdToRules.compute(
+                accountId, (ignored, ruleFuture) -> ruleFuture == null || ruleFuture.failed() ? null : ruleFuture);
+
+        return Future.failedFuture(error);
     }
 }

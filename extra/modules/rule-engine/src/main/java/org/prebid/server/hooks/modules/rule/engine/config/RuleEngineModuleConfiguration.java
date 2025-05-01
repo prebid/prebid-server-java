@@ -45,8 +45,8 @@ public class RuleEngineModuleConfiguration {
 
     @Bean
     RuleRegistry ruleRegistry(
-            @Value("{hooks.modules.rule-engine.rule-cache-expire-after-minutes}") long cacheExpireAfterMinutes,
-            @Value("{hooks.modules.rule-engine.rule-cache-max-size}") long cacheMaxSize,
+            @Value("${hooks.rule-engine.rule-cache-expire-after-minutes}") long cacheExpireAfterMinutes,
+            @Value("${hooks.rule-engine.rule-cache-max-size}") long cacheMaxSize,
             AccountConfigParser accountConfigParser,
             Vertx vertx) {
 
