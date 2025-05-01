@@ -2,6 +2,7 @@ package org.prebid.server.hooks.modules.rule.engine.core.rules.tree;
 
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleConfig;
+import org.prebid.server.hooks.modules.rule.engine.core.rules.exception.InvalidMatcherConfiguration;
 
 import java.util.List;
 import java.util.Map;
@@ -10,7 +11,14 @@ import java.util.stream.Collectors;
 public class RuleTreeFactory {
 
     public static <T> RuleTree<RuleConfig<T>> buildTree(List<RuleConfig<T>> rules) {
-        return new RuleTree<>(parseRuleNode(toParsingContexts(rules)));
+        final List<ParsingContext<RuleConfig<T>>> parsingContexts = toParsingContexts(rules);
+        final int depth = getDepth(parsingContexts);
+
+        if (!parsingContexts.stream().allMatch(context -> context.argumentMatchers().size() == depth)) {
+            throw new InvalidMatcherConfiguration("Mismatched arguments count");
+        }
+
+        return new RuleTree<>(parseRuleNode(parsingContexts), depth);
     }
 
     private static <T> List<ParsingContext<RuleConfig<T>>> toParsingContexts(List<RuleConfig<T>> rules) {
@@ -19,6 +27,10 @@ public class RuleTreeFactory {
                         List.of(StringUtils.defaultString(rule.getCondition()).split("\\|")),
                         rule))
                 .toList();
+    }
+
+    private static <T> int getDepth(List<ParsingContext<T>> contexts) {
+        return contexts.isEmpty() ? 0 : contexts.getFirst().argumentMatchers().size();
     }
 
     private static <T> RuleNode<T> parseRuleNode(List<ParsingContext<T>> parsingContexts) {

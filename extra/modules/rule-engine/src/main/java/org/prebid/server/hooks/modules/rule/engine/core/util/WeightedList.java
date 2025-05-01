@@ -24,9 +24,9 @@ public class WeightedList<T> {
         }
 
         final double sum = entries.stream().mapToDouble(WeightedEntry::getWeight).sum();
-        if (Math.abs(sum - WeightedEntry.MAX_WEIGHT) > EPSILON) {
+        if (sum > WeightedEntry.MAX_WEIGHT + EPSILON) {
             throw new IllegalArgumentException(
-                    "Weighted list weights sum must be equal to " + WeightedEntry.MAX_WEIGHT);
+                    "Weighted list weights sum must be less than " + WeightedEntry.MAX_WEIGHT);
         }
     }
 
@@ -44,7 +44,7 @@ public class WeightedList<T> {
 
     public T getForSeed(double seed) {
         if (seed < 0 || seed > WeightedEntry.MAX_WEIGHT) {
-            throw new IllegalArgumentException("Seed number must be between 0 and 100");
+            throw new IllegalArgumentException("Seed number must be between 0 and " + WeightedEntry.MAX_WEIGHT);
         }
 
         for (WeightedEntry<T> entry : entries) {
@@ -53,7 +53,6 @@ public class WeightedList<T> {
             }
         }
 
-        // Should never occur
-        throw new IllegalStateException("No entry found for seed " + seed);
+        throw new NoMatchingValueException("No entry found for seed " + seed);
     }
 }

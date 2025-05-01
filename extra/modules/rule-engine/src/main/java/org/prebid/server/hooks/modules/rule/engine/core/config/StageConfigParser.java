@@ -16,6 +16,7 @@ import org.prebid.server.hooks.modules.rule.engine.core.rules.Rule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleConfig;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.StageSpecification;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.WeightedRule;
+import org.prebid.server.hooks.modules.rule.engine.core.rules.exception.InvalidMatcherConfiguration;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.result.RuleAction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.Schema;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunctionHolder;
@@ -62,7 +63,9 @@ public class StageConfigParser<SCHEMA_PAYLOAD, RULE_PAYLOAD> {
                 .map(config -> WeightedEntry.of(config.getWeight(), parseModelGroupConfig(config)))
                 .toList();
 
-        return new WeightedRule<>(randomGenerator, new WeightedList<>(weightedRules));
+        return new AlternativeActionRule<>(
+                new WeightedRule<>(randomGenerator, new WeightedList<>(weightedRules)),
+                new NoOpRule<>());
     }
 
     private Rule<RULE_PAYLOAD> parseModelGroupConfig(ModelGroupConfig config) {
@@ -86,6 +89,10 @@ public class StageConfigParser<SCHEMA_PAYLOAD, RULE_PAYLOAD> {
                 .map(this::parseRuleConfig)
                 .toList();
         final RuleTree<RuleConfig<RULE_PAYLOAD>> ruleTree = RuleTreeFactory.buildTree(rules);
+
+        if (schemaConfig.size() != ruleTree.getDepth()) {
+            throw new InvalidMatcherConfiguration("Schema functions count and rules matchers count mismatch");
+        }
 
         return matchingRuleFactory.create(schema, ruleTree, config.getAnalyticsKey(), config.getVersion());
     }

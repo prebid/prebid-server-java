@@ -1,5 +1,7 @@
 package org.prebid.server.hooks.modules.rule.engine.core.rules;
 
+import org.prebid.server.hooks.modules.rule.engine.core.rules.exception.NoMatchingRuleException;
+import org.prebid.server.hooks.modules.rule.engine.core.util.NoMatchingValueException;
 import org.prebid.server.hooks.modules.rule.engine.core.util.WeightedList;
 
 import java.util.Objects;
@@ -17,8 +19,10 @@ public class WeightedRule<T> implements Rule<T> {
 
     @Override
     public RuleResult<T> process(T value) {
-        return weightedList.getForSeed(random.nextDouble()).process(value);
-
-        // TODO: catch unmatched rule exception (add it) and try to run default action instead
+        try {
+            return weightedList.getForSeed(random.nextDouble()).process(value);
+        } catch (NoMatchingValueException e) {
+            throw new NoMatchingRuleException();
+        }
     }
 }
