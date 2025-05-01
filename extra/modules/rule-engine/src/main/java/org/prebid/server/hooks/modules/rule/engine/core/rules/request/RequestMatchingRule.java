@@ -2,7 +2,7 @@ package org.prebid.server.hooks.modules.rule.engine.core.rules.request;
 
 import com.iab.openrtb.request.BidRequest;
 import org.apache.commons.collections4.SetUtils;
-import org.prebid.server.hooks.execution.v1.analytics.TagsImpl;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.Rule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleConfig;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleResult;
@@ -11,64 +11,91 @@ import org.prebid.server.hooks.modules.rule.engine.core.rules.result.ResultFunct
 import org.prebid.server.hooks.modules.rule.engine.core.rules.result.RuleAction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.Schema;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunctionArguments;
+import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunctionHolder;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.tree.RuleTree;
-import org.prebid.server.model.UpdateResult;
 
-import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class RequestMatchingRule implements Rule<BidRequest> {
 
     private final Schema<RequestPayload> schema;
+    private final Set<String> schemaFunctionNames;
     private final RuleTree<RuleConfig<BidRequest>> ruleTree;
 
-    public RequestMatchingRule(Schema<RequestPayload> schema, RuleTree<RuleConfig<BidRequest>> ruleTree) {
+    private final String modelVersion;
+    private final String analyticsKey;
+
+    public RequestMatchingRule(Schema<RequestPayload> schema,
+                               RuleTree<RuleConfig<BidRequest>> ruleTree,
+                               String modelVersion,
+                               String analyticsKey) {
+
         this.schema = Objects.requireNonNull(schema);
+        this.schemaFunctionNames = schema.getFunctions().stream()
+                .map(SchemaFunctionHolder::getName)
+                .collect(Collectors.toSet());
+
         this.ruleTree = Objects.requireNonNull(ruleTree);
+        this.modelVersion = StringUtils.defaultString(modelVersion);
+        this.analyticsKey = StringUtils.defaultString(analyticsKey);
     }
 
     @Override
     public RuleResult<BidRequest> process(BidRequest bidRequest) {
-        return SetUtils.intersection(schema.getNames(), RequestSpecification.PER_IMP_SCHEMA_FUNCTIONS).isEmpty()
+        return SetUtils.intersection(schemaFunctionNames, RequestSpecification.PER_IMP_SCHEMA_FUNCTIONS).isEmpty()
                 ? processRule(bidRequest, null)
                 : processPerImpRule(bidRequest);
     }
 
     private RuleResult<BidRequest> processPerImpRule(BidRequest bidRequest) {
         return bidRequest.getImp().stream().reduce(
-                unalteredResult(bidRequest),
+                RuleResult.unaltered(bidRequest),
                 (result, imp) ->
                         result.mergeWith(processRule(result.getUpdateResult().getValue(), imp.getId())),
                 RuleResult::mergeWith);
     }
 
     private RuleResult<BidRequest> processRule(BidRequest bidRequest, String impId) {
-        final RequestPayload payload = RequestPayload.of(bidRequest, impId);
-        final List<String> matchers = schema.getFunctions().stream()
-                .map(holder -> holder.getSchemaFunction()
-                        .extract(SchemaFunctionArguments.of(payload, holder.getArguments())))
+        final List<SchemaFunctionHolder<RequestPayload>> schemaFunctions = schema.getFunctions();
+
+        final List<String> matchers = schemaFunctions.stream()
+                .map(holder -> holder.getSchemaFunction().extract(
+                        SchemaFunctionArguments.of(RequestPayload.of(bidRequest, impId), holder.getArguments())))
                 .toList();
 
+        final Map<String, String> schemaFunctionResults = IntStream.range(0, matchers.size())
+                .boxed()
+                .collect(Collectors.toMap(idx -> schemaFunctions.get(idx).getName(), matchers::get));
+
         final RuleConfig<BidRequest> ruleConfig = ruleTree.getValue(matchers);
-        RuleResult<BidRequest> result = unalteredResult(bidRequest);
 
-        for (RuleAction<BidRequest> action : ruleConfig.getActions()) {
-            final InfrastructureArguments infrastructureArguments = InfrastructureArguments.of(
-                    null,
-                    "analyticsKey",
-                    ruleConfig.getCondition(),
-                    "modelVersion");
-            final ResultFunctionArguments<BidRequest> arguments = ResultFunctionArguments.of(
-                    result.getUpdateResult().getValue(), action.getConfigArguments(), infrastructureArguments);
-
-            result = result.mergeWith(action.getFunction().apply(arguments));
-        }
-
-        return result;
+        return ruleConfig.getActions().stream().reduce(
+                RuleResult.unaltered(bidRequest),
+                (result, action) -> result.mergeWith(
+                        applyAction(
+                                action,
+                                result.getUpdateResult().getValue(),
+                                schemaFunctionResults,
+                                ruleConfig.getCondition())),
+                RuleResult::mergeWith);
     }
 
-    private static RuleResult<BidRequest> unalteredResult(BidRequest bidRequest) {
-        return RuleResult.of(UpdateResult.unaltered(bidRequest), TagsImpl.of(Collections.emptyList()));
+    private RuleResult<BidRequest> applyAction(RuleAction<BidRequest> action,
+                                               BidRequest bidRequest,
+                                               Map<String, String> schemaFunctionResults,
+                                               String condition) {
+
+        final InfrastructureArguments infrastructureArguments = InfrastructureArguments.of(
+                schemaFunctionResults, analyticsKey, condition, modelVersion);
+
+        final ResultFunctionArguments<BidRequest> arguments = ResultFunctionArguments.of(
+                bidRequest, action.getConfigArguments(), infrastructureArguments);
+
+        return action.getFunction().apply(arguments);
     }
 }

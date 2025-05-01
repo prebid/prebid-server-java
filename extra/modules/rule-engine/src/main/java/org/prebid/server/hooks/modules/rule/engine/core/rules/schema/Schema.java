@@ -8,7 +8,5 @@ import java.util.Set;
 @Value(staticConstructor = "of")
 public class Schema<T> {
 
-    Set<String> names;
-
     List<SchemaFunctionHolder<T>> functions;
 }

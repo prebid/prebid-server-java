@@ -18,7 +18,7 @@ public class ModelGroupConfig {
     List<SchemaFunctionConfig> schema;
 
     @JsonProperty("default")
-    RuleFunctionConfig defaultAction;
+    List<RuleFunctionConfig> defaultAction;
 
     List<AccountRuleConfig> rules;
 }

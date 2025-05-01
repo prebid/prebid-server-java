@@ -16,7 +16,7 @@ public class WeightedEntry<T> {
         this.value = value;
 
         if (weight < 0 || weight > MAX_WEIGHT) {
-            throw new IllegalArgumentException("Weight must be between 0 and 100");
+            throw new IllegalArgumentException("Weight must be between 0 and " + MAX_WEIGHT);
         }
     }
 
