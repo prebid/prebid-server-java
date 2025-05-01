@@ -14,7 +14,6 @@ import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunct
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunctionHolder;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.tree.RuleTree;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -23,6 +22,8 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class RequestMatchingRule implements Rule<BidRequest> {
+
+    private static final String NULL_MATCHER = "null";
 
     private final Schema<RequestPayload> schema;
     private final Set<String> schemaFunctionNames;
@@ -67,15 +68,13 @@ public class RequestMatchingRule implements Rule<BidRequest> {
         final List<String> matchers = schemaFunctions.stream()
                 .map(holder -> holder.getSchemaFunction().extract(
                         SchemaFunctionArguments.of(RequestPayload.of(bidRequest, impId), holder.getArguments())))
+                .map(matcher -> StringUtils.defaultIfEmpty(matcher, NULL_MATCHER))
                 .toList();
 
         final Map<String, String> schemaFunctionResults = IntStream.range(0, matchers.size())
                 .boxed()
                 .collect(Collectors.toMap(
-                        idx -> schemaFunctions.get(idx).getName(),
-                        matchers::get,
-                        (left, right) -> left,
-                        HashMap::new));
+                        idx -> schemaFunctions.get(idx).getName(), matchers::get, (left, right) -> left));
 
         final RuleConfig<BidRequest> ruleConfig = ruleTree.getValue(matchers);
 

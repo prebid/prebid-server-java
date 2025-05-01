@@ -102,6 +102,9 @@ public class StageConfigParser<SCHEMA_PAYLOAD, RULE_PAYLOAD> {
                         specification.schemaFunctionByName(config.getFunction()), config.getArgs()))
                 .toList();
 
+        schemaFunctions.forEach(holder ->
+                holder.getSchemaFunction().validateConfigArguments(holder.getArguments()));
+
         return Schema.of(schemaFunctions);
     }
 
@@ -124,10 +127,15 @@ public class StageConfigParser<SCHEMA_PAYLOAD, RULE_PAYLOAD> {
     }
 
     private List<RuleAction<RULE_PAYLOAD>> parseActions(List<RuleFunctionConfig> functionConfigs) {
-        return functionConfigs.stream()
+        final List<RuleAction<RULE_PAYLOAD>> actions = functionConfigs.stream()
                 .map(config -> RuleAction.of(
                         specification.resultFunctionByName(config.getFunction()), config.getArgs()))
                 .toList();
+
+        actions.forEach(action ->
+                action.getFunction().validateConfigArguments(action.getConfigArguments()));
+
+        return actions;
     }
 
     private Rule<RULE_PAYLOAD> combineRules(Rule<RULE_PAYLOAD> left, Rule<RULE_PAYLOAD> right) {

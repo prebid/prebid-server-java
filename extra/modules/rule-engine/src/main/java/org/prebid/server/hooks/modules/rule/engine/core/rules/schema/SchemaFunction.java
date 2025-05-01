@@ -8,5 +8,5 @@ public interface SchemaFunction<T> {
 
     String extract(SchemaFunctionArguments<T> arguments);
 
-    void validate(List<JsonNode> configArguments);
+    void validateConfigArguments(List<JsonNode> configArguments);
 }

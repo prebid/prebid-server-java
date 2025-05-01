@@ -36,7 +36,7 @@ public class DeviceCountryFunction implements SchemaFunction<RequestPayload> {
     }
 
     @Override
-    public void validate(List<JsonNode> configArguments) {
+    public void validateConfigArguments(List<JsonNode> configArguments) {
 
     }
 }
