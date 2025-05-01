@@ -13,20 +13,10 @@ public class AlternativeActionRule<T> implements Rule<T> {
     }
 
     public RuleResult<T> process(T value) {
-        if (delegate == null && alternative == null) {
-            throw new NoMatchingRuleException();
-        } else if (delegate == null) {
-            return alternative.process(value);
-        }
-
         try {
             return delegate.process(value);
         } catch (NoMatchingRuleException e) {
-            if (alternative != null) {
-                return alternative.process(value);
-            }
-
-            throw e;
+            return alternative.process(value);
         }
     }
 }

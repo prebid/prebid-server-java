@@ -11,6 +11,7 @@ import org.prebid.server.hooks.modules.rule.engine.core.rules.AlternativeActionR
 import org.prebid.server.hooks.modules.rule.engine.core.rules.CompositeRule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.DefaultActionRule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.MatchingRuleFactory;
+import org.prebid.server.hooks.modules.rule.engine.core.rules.NoOpRule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.Rule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleConfig;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.StageSpecification;
@@ -22,6 +23,7 @@ import org.prebid.server.hooks.modules.rule.engine.core.rules.tree.RuleTree;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.tree.RuleTreeFactory;
 import org.prebid.server.hooks.modules.rule.engine.core.util.WeightedEntry;
 import org.prebid.server.hooks.modules.rule.engine.core.util.WeightedList;
+import org.springframework.util.CollectionUtils;
 
 import java.util.List;
 import java.util.Objects;
@@ -64,21 +66,28 @@ public class StageConfigParser<SCHEMA_PAYLOAD, RULE_PAYLOAD> {
     }
 
     private Rule<RULE_PAYLOAD> parseModelGroupConfig(ModelGroupConfig config) {
-        final String analyticsKey = config.getAnalyticsKey();
-        final String version = config.getVersion();
+        final Rule<RULE_PAYLOAD> matchingRule = parseMatchingRule(config);
+        final Rule<RULE_PAYLOAD> defaultRule = parseDefaultActionRule(config);
 
-        final Schema<SCHEMA_PAYLOAD> schema = parseSchema(config.getSchema());
+        return combineRules(matchingRule, defaultRule);
+    }
 
-        final List<RuleConfig<RULE_PAYLOAD>> rules = config.getRules().stream()
+    private Rule<RULE_PAYLOAD> parseMatchingRule(ModelGroupConfig config) {
+        final List<SchemaFunctionConfig> schemaConfig = config.getSchema();
+        final List<AccountRuleConfig> rulesConfig = config.getRules();
+
+        if (CollectionUtils.isEmpty(schemaConfig) || CollectionUtils.isEmpty(rulesConfig)) {
+            return null;
+        }
+
+        final Schema<SCHEMA_PAYLOAD> schema = parseSchema(schemaConfig);
+
+        final List<RuleConfig<RULE_PAYLOAD>> rules = rulesConfig.stream()
                 .map(this::parseRuleConfig)
                 .toList();
         final RuleTree<RuleConfig<RULE_PAYLOAD>> ruleTree = RuleTreeFactory.buildTree(rules);
 
-        final Rule<RULE_PAYLOAD> matchingRule = matchingRuleFactory.create(schema, ruleTree, analyticsKey, version);
-        final Rule<RULE_PAYLOAD> defaultRule = new DefaultActionRule<>(
-                parseActions(config.getDefaultAction()), analyticsKey, version);
-
-        return new AlternativeActionRule<>(matchingRule, defaultRule);
+        return matchingRuleFactory.create(schema, ruleTree, config.getAnalyticsKey(), config.getVersion());
     }
 
     private Schema<SCHEMA_PAYLOAD> parseSchema(List<SchemaFunctionConfig> schema) {
@@ -98,10 +107,33 @@ public class StageConfigParser<SCHEMA_PAYLOAD, RULE_PAYLOAD> {
         return RuleConfig.of(ruleFired, actions);
     }
 
+    private Rule<RULE_PAYLOAD> parseDefaultActionRule(ModelGroupConfig config) {
+        final List<RuleFunctionConfig> defaultActionConfig = config.getDefaultAction();
+
+        if (CollectionUtils.isEmpty(config.getDefaultAction())) {
+            return null;
+        }
+
+        return new DefaultActionRule<>(
+                parseActions(defaultActionConfig), config.getAnalyticsKey(), config.getVersion());
+    }
+
     private List<RuleAction<RULE_PAYLOAD>> parseActions(List<RuleFunctionConfig> functionConfigs) {
         return functionConfigs.stream()
                 .map(config -> RuleAction.of(
                         specification.resultFunctionByName(config.getFunction()), config.getArgs()))
                 .toList();
+    }
+
+    private Rule<RULE_PAYLOAD> combineRules(Rule<RULE_PAYLOAD> left, Rule<RULE_PAYLOAD> right) {
+        if (left == null && right == null) {
+            return new NoOpRule<>();
+        } else if (left != null && right != null) {
+            return new AlternativeActionRule<>(left, right);
+        } else if (left != null) {
+            return left;
+        }
+
+        return right;
     }
 }
