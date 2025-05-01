@@ -63,9 +63,7 @@ public class StageConfigParser<SCHEMA_PAYLOAD, RULE_PAYLOAD> {
                 .map(config -> WeightedEntry.of(config.getWeight(), parseModelGroupConfig(config)))
                 .toList();
 
-        return new AlternativeActionRule<>(
-                new WeightedRule<>(randomGenerator, new WeightedList<>(weightedRules)),
-                new NoOpRule<>());
+        return new WeightedRule<>(randomGenerator, new WeightedList<>(weightedRules));
     }
 
     private Rule<RULE_PAYLOAD> parseModelGroupConfig(ModelGroupConfig config) {

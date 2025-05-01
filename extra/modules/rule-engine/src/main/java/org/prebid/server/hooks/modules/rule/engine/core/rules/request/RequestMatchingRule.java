@@ -14,6 +14,7 @@ import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunct
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunctionHolder;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.tree.RuleTree;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -70,7 +71,11 @@ public class RequestMatchingRule implements Rule<BidRequest> {
 
         final Map<String, String> schemaFunctionResults = IntStream.range(0, matchers.size())
                 .boxed()
-                .collect(Collectors.toMap(idx -> schemaFunctions.get(idx).getName(), matchers::get));
+                .collect(Collectors.toMap(
+                        idx -> schemaFunctions.get(idx).getName(),
+                        matchers::get,
+                        (left, right) -> left,
+                        HashMap::new));
 
         final RuleConfig<BidRequest> ruleConfig = ruleTree.getValue(matchers);
 

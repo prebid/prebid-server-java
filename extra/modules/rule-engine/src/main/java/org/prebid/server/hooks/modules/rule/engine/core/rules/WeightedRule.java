@@ -1,6 +1,5 @@
 package org.prebid.server.hooks.modules.rule.engine.core.rules;
 
-import org.prebid.server.hooks.modules.rule.engine.core.rules.exception.NoMatchingRuleException;
 import org.prebid.server.hooks.modules.rule.engine.core.util.NoMatchingValueException;
 import org.prebid.server.hooks.modules.rule.engine.core.util.WeightedList;
 
@@ -22,7 +21,7 @@ public class WeightedRule<T> implements Rule<T> {
         try {
             return weightedList.getForSeed(random.nextDouble()).process(value);
         } catch (NoMatchingValueException e) {
-            throw new NoMatchingRuleException();
+            return RuleResult.unaltered(value);
         }
     }
 }
