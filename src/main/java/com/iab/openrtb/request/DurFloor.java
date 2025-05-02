@@ -28,7 +28,7 @@ public class DurFloor {
     /**
      * Minimum bid for a given impression opportunity,
      * if bidding with a creative in this duration range, expressed in CPM.
-     * For any creatives whose durations are outside of the defined min/max,
+     * For any creatives whose durations are outside the defined min/max,
      * the `bidfloor` at the `Imp` level will serve as the default floor.
      */
     BigDecimal bidfloor;

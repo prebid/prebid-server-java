@@ -561,11 +561,11 @@ public class BidResponseCreator {
     private Future<List<BidderResponse>> invokeProcessedBidderResponseHooks(List<BidderResponse> bidderResponses,
                                                                             AuctionContext auctionContext) {
 
-        return CompositeFuture.join(bidderResponses.stream()
+        return Future.join(bidderResponses.stream()
                         .map(bidderResponse -> hookStageExecutor
                                 .executeProcessedBidderResponseStage(bidderResponse, auctionContext)
                                 .map(stageResult -> rejectBidderResponseOrProceed(stageResult, bidderResponse)))
-                        .collect(Collectors.toCollection(ArrayList::new)))
+                        .toList())
                 .map(CompositeFuture::list);
     }
 

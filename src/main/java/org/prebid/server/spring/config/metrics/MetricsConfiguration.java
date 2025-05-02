@@ -1,12 +1,10 @@
 package org.prebid.server.spring.config.metrics;
 
-import org.prebid.server.auction.HooksMetricsService;
-import org.slf4j.LoggerFactory;
-import com.codahale.metrics.Slf4jReporter;
 import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.ScheduledReporter;
 import com.codahale.metrics.SharedMetricRegistries;
+import com.codahale.metrics.Slf4jReporter;
 import com.codahale.metrics.graphite.Graphite;
 import com.codahale.metrics.graphite.GraphiteReporter;
 import com.codahale.metrics.jvm.GarbageCollectorMetricSet;
@@ -17,11 +15,13 @@ import com.izettle.metrics.influxdb.InfluxDbSender;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.ObjectUtils;
+import org.prebid.server.auction.HooksMetricsService;
 import org.prebid.server.metric.AccountMetricsVerbosityResolver;
 import org.prebid.server.metric.CounterType;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.metric.model.AccountMetricsVerbosityLevel;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;

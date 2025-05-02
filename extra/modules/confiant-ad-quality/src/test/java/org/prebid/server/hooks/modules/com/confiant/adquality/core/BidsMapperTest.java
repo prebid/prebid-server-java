@@ -41,9 +41,10 @@ public class BidsMapperTest {
         assertThat(redisBidResponseData1.getBidresponse().getId()).isEqualTo(bidRequest.getId());
         assertThat(redisBidResponseData1.getBidresponse().getCur()).isEqualTo(bidRequest.getCur().get(0));
         assertThat(redisBidResponseData1.getBidresponse().getSeatbid()).hasSize(1);
-        SeatBid seatBid1 = redisBidResponseData1.getBidresponse().getSeatbid().get(0);
+        final SeatBid seatBid1 = redisBidResponseData1.getBidresponse().getSeatbid().get(0);
         assertThat(seatBid1.getBid()).hasSize(1);
-        assertThat(seatBid1.getBid().get(0).getId()).isEqualTo(bidderResponse1.getSeatBid().getBids().get(0).getBid().getId());
+        assertThat(seatBid1.getBid().getFirst().getId())
+                .isEqualTo(bidderResponse1.getSeatBid().getBids().getFirst().getBid().getId());
 
         final RedisBidResponseData redisBidResponseData2 = result.getBresps().get(1);
         assertThat(redisBidResponseData2.getDspId()).isEqualTo(bidderResponse2.getBidder());
@@ -53,6 +54,7 @@ public class BidsMapperTest {
 
         final SeatBid seatBid2 = redisBidResponseData2.getBidresponse().getSeatbid().get(0);
         assertThat(seatBid2.getBid()).hasSize(1);
-        assertThat(seatBid2.getBid().get(0).getId()).isEqualTo(bidderResponse2.getSeatBid().getBids().get(0).getBid().getId());
+        assertThat(seatBid2.getBid().getFirst().getId())
+                .isEqualTo(bidderResponse2.getSeatBid().getBids().getFirst().getBid().getId());
     }
 }

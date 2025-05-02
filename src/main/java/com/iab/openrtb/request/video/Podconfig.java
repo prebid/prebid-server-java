@@ -18,4 +18,3 @@ public class Podconfig {
 
     List<Pod> pods;
 }
-

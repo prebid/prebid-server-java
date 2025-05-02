@@ -122,7 +122,7 @@ public class DatabaseApplicationSettings implements ApplicationSettings {
     /**
      * Transforms the first row of {@link RowSet<Row>} to required object or returns null.
      * <p>
-     * Note: mapper should never throws exception in case of using
+     * Note: mapper should never throw exception in case of using
      * {@link CircuitBreakerSecuredDatabaseClient}.
      */
     private <T> T mapToModelOrError(RowSet<Row> rowSet, Function<Row, T> mapper) {
