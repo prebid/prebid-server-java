@@ -8,6 +8,7 @@ import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.RequestBody;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -62,17 +63,20 @@ public class VtrackHandlerTest extends VertxTest {
     private TimeoutFactory timeoutFactory;
 
     private VtrackHandler handler;
-    @Mock
+    @Mock(strictness = LENIENT)
     private RoutingContext routingContext;
     @Mock(strictness = LENIENT)
     private HttpServerRequest httpRequest;
     @Mock
     private HttpServerResponse httpResponse;
+    @Mock
+    private RequestBody requestBody;
 
     @BeforeEach
     public void setUp() {
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);
+        given(routingContext.body()).willReturn(requestBody);
         given(httpResponse.putHeader(any(CharSequence.class), any(AsciiString.class))).willReturn(httpResponse);
 
         given(httpRequest.getParam("a")).willReturn("accountId");
@@ -111,7 +115,7 @@ public class VtrackHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithBadRequestWhenBodyIsEmpty() {
         // given
-        given(routingContext.getBody()).willReturn(null);
+        given(requestBody.buffer()).willReturn(null);
 
         // when
         handler.handle(routingContext);
@@ -126,7 +130,7 @@ public class VtrackHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithBadRequestWhenBodyCannotBeParsed() {
         // given
-        given(routingContext.getBody()).willReturn(Buffer.buffer("invalid"));
+        given(requestBody.buffer()).willReturn(Buffer.buffer("invalid"));
 
         // when
         handler.handle(routingContext);
@@ -141,7 +145,7 @@ public class VtrackHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithBadRequestWhenBidIdIsMissing() throws JsonProcessingException {
         // given
-        given(routingContext.getBody())
+        given(requestBody.buffer())
                 .willReturn(givenVtrackRequest(identity()));
 
         // when
@@ -157,7 +161,7 @@ public class VtrackHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithBadRequestWhenBidderIsMissing() throws JsonProcessingException {
         // given
-        given(routingContext.getBody())
+        given(requestBody.buffer())
                 .willReturn(givenVtrackRequest(builder -> builder.bidid("bidId")));
 
         // when
@@ -173,7 +177,7 @@ public class VtrackHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithBadRequestWhenTypeIsNotXML() throws JsonProcessingException {
         // given
-        given(routingContext.getBody())
+        given(requestBody.buffer())
                 .willReturn(givenVtrackRequest(builder -> builder.bidid("bidId").bidder("bidder").type("json")));
 
         // when
@@ -189,7 +193,7 @@ public class VtrackHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithBadRequestWhenValueDoesNotContainVast() throws JsonProcessingException {
         // given
-        given(routingContext.getBody())
+        given(requestBody.buffer())
                 .willReturn(givenVtrackRequest(builder -> builder.bidid("bidId")
                         .bidder("bidder")
                         .type("xml")
@@ -208,7 +212,7 @@ public class VtrackHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithInternalServerErrorWhenFetchingAccountFails() throws JsonProcessingException {
         // given
-        given(routingContext.getBody())
+        given(requestBody.buffer())
                 .willReturn(givenVtrackRequest(builder -> builder
                         .bidder("bidder")
                         .bidid("bidId")
@@ -231,7 +235,7 @@ public class VtrackHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithInternalServerErrorWhenCacheServiceReturnFailure() throws JsonProcessingException {
         // given
-        given(routingContext.getBody())
+        given(requestBody.buffer())
                 .willReturn(givenVtrackRequest(builder -> builder
                         .bidder("bidder")
                         .bidid("bidId")
@@ -264,7 +268,7 @@ public class VtrackHandlerTest extends VertxTest {
                         .bidder("bidder")
                         .type("xml")
                         .value(new TextNode("<vast")).build());
-        given(routingContext.getBody())
+        given(requestBody.buffer())
                 .willReturn(givenVtrackRequest(bidPutObjects));
 
         given(applicationSettings.getAccountById(any(), any()))
@@ -290,7 +294,7 @@ public class VtrackHandlerTest extends VertxTest {
                         .bidder("bidder")
                         .type("xml")
                         .value(new TextNode("<vast")).build());
-        given(routingContext.getBody())
+        given(requestBody.buffer())
                 .willReturn(givenVtrackRequest(bidPutObjects));
 
         given(applicationSettings.getAccountById(any(), any()))
@@ -324,7 +328,7 @@ public class VtrackHandlerTest extends VertxTest {
                         .bidder("updatable_bidder")
                         .type("xml")
                         .value(new TextNode("<vast")).build());
-        given(routingContext.getBody())
+        given(requestBody.buffer())
                 .willReturn(givenVtrackRequest(bidPutObjects));
 
         given(bidderCatalog.isValidName("bidder")).willReturn(true);
@@ -369,7 +373,7 @@ public class VtrackHandlerTest extends VertxTest {
                         .bidder("updatable_bidder")
                         .type("xml")
                         .value(new TextNode("<vast")).build());
-        given(routingContext.getBody())
+        given(requestBody.buffer())
                 .willReturn(givenVtrackRequest(bidPutObjects));
 
         given(bidderCatalog.isValidName(any())).willReturn(true);
@@ -413,7 +417,7 @@ public class VtrackHandlerTest extends VertxTest {
                         .type("xml")
                         .value(new TextNode("<Vast"))
                         .build());
-        given(routingContext.getBody())
+        given(requestBody.buffer())
                 .willReturn(givenVtrackRequest(bidPutObjects));
 
         given(bidderCatalog.isValidName(any())).willReturn(false);
@@ -459,7 +463,7 @@ public class VtrackHandlerTest extends VertxTest {
                         .type("xml")
                         .value(new TextNode("<Vast"))
                         .build());
-        given(routingContext.getBody())
+        given(requestBody.buffer())
                 .willReturn(givenVtrackRequest(bidPutObjects));
 
         given(bidderCatalog.isValidName(any())).willReturn(false);
@@ -498,7 +502,7 @@ public class VtrackHandlerTest extends VertxTest {
                         .type("xml")
                         .value(new TextNode("<Vast"))
                         .build());
-        given(routingContext.getBody())
+        given(requestBody.buffer())
                 .willReturn(givenVtrackRequest(bidPutObjects));
 
         given(bidderCatalog.isValidName(any())).willReturn(false);

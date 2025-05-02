@@ -50,4 +50,3 @@ public class ExternalConversionProperties {
     @NotNull
     JacksonMapper mapper;
 }
-

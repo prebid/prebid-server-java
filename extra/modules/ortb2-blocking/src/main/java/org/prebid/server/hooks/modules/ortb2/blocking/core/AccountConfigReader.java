@@ -103,14 +103,14 @@ public class AccountConfigReader {
         final Result<Integer> cattaxComplement = blockedCattaxComplement(bidRequest);
         final Result<List<String>> bapp =
                 blockedAttribute(BAPP_FIELD, String.class, BLOCKED_APP_FIELD, requestMediaTypes);
-        final Result<Map<String, List<Integer>>> btype =
-                blockedAttributesForImps(BTYPE_FIELD, Integer.class, BLOCKED_BANNER_TYPE_FIELD, BANNER_MEDIA_TYPE, bidRequest);
-        final Result<Map<String, List<Integer>>> bannerBattr =
-                blockedAttributesForImps(BATTR_FIELD, Integer.class, BLOCKED_BANNER_ATTR_FIELD, BANNER_MEDIA_TYPE, bidRequest);
-        final Result<Map<String, List<Integer>>> videoBattr =
-                blockedAttributesForImps(BATTR_FIELD, Integer.class, BLOCKED_VIDEO_ATTR_FIELD, VIDEO_MEDIA_TYPE, bidRequest);
-        final Result<Map<String, List<Integer>>> audioBattr =
-                blockedAttributesForImps(BATTR_FIELD, Integer.class, BLOCKED_AUDIO_ATTR_FIELD, AUDIO_MEDIA_TYPE, bidRequest);
+        final Result<Map<String, List<Integer>>> btype = blockedAttributesForImps(
+                BTYPE_FIELD, Integer.class, BLOCKED_BANNER_TYPE_FIELD, BANNER_MEDIA_TYPE, bidRequest);
+        final Result<Map<String, List<Integer>>> bannerBattr = blockedAttributesForImps(
+                BATTR_FIELD, Integer.class, BLOCKED_BANNER_ATTR_FIELD, BANNER_MEDIA_TYPE, bidRequest);
+        final Result<Map<String, List<Integer>>> videoBattr = blockedAttributesForImps(
+                BATTR_FIELD, Integer.class, BLOCKED_VIDEO_ATTR_FIELD, VIDEO_MEDIA_TYPE, bidRequest);
+        final Result<Map<String, List<Integer>>> audioBattr = blockedAttributesForImps(
+                BATTR_FIELD, Integer.class, BLOCKED_AUDIO_ATTR_FIELD, AUDIO_MEDIA_TYPE, bidRequest);
         final Result<Map<MediaType, Map<String, List<Integer>>>> battr =
                 mergeBlockedAttributes(bannerBattr, videoBattr, audioBattr);
 

@@ -11,6 +11,7 @@ import java.util.Collections;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class FiftyOneDeviceDetectionModuleTest {
+
     @Test
     public void shouldReturnNonBlankCode() {
         // given

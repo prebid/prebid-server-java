@@ -1,11 +1,9 @@
 package com.iab.openrtb.request.video;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
 import lombok.Value;
 
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class Pod {
 
     @JsonProperty("podid")
@@ -17,4 +15,3 @@ public class Pod {
     @JsonProperty("configid")
     String configId;
 }
-

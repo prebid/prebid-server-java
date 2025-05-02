@@ -66,7 +66,8 @@ public class PbRichmediaFilterAllProcessedBidResponsesHookTest {
 
     @BeforeEach
     public void setUp() {
-        target = new PbRichmediaFilterAllProcessedBidResponsesHook(ObjectMapperProvider.mapper(), mraidFilter, configResolver);
+        target = new PbRichmediaFilterAllProcessedBidResponsesHook(
+                ObjectMapperProvider.mapper(), mraidFilter, configResolver);
         when(configResolver.resolve(any())).thenReturn(PbRichMediaFilterProperties.of(true, "pattern"));
         when(auctionInvocationContext.auctionContext())
                 .thenReturn(AuctionContext.builder().bidRejectionTrackers(BID_REJECTION_TRACKERS).build());
