@@ -1317,6 +1317,28 @@ public class PubmaticBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidderResponseShouldNotModifyAdmWhenNativeNodeIsNull() throws JsonProcessingException {
+        // given
+        final ObjectNode admNode = mapper.createObjectNode().put("otherField", "value");
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123")
+                                .adm(admNode.toString())
+                                .ext(mapper.valueToTree(
+                                        PubmaticBidExt.of(2, null, 12, null))))));
+
+        // when
+        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getBids())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getAdm)
+                .containsExactly(admNode.toString());
+    }
+
+    @Test
     public void makeBidsShouldFail() throws JsonProcessingException {
         //given
         final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder().build()));

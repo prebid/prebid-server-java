@@ -438,7 +438,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         final StringBuilder clickEvent = new StringBuilder();
         curls.forEach(url -> clickEvent.append(
                 "fetch(decodeURIComponent('%s'.replace(/\\+/g, ' ')), {cache: 'no-cache'});"
-                                .formatted(HttpUtil.encodeUrl(StringUtils.stripToEmpty(url)))));
+                        .formatted(HttpUtil.encodeUrl(StringUtils.stripToEmpty(url)))));
 
         return "<div style=\"cursor:pointer\" onclick=\"%s\">%s</div>".formatted(clickEvent, adm);
     }

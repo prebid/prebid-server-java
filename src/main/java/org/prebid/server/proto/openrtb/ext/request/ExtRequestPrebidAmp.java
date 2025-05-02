@@ -15,4 +15,3 @@ public class ExtRequestPrebidAmp {
      */
     Map<String, String> data;
 }
-

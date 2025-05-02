@@ -517,7 +517,7 @@ public class CookieSyncServiceTest extends VertxTest {
         given(activityInfrastructure.isAllowed(
                 eq(Activity.SYNC_USER),
                 argThat(argument -> argument.componentType().equals(ComponentType.BIDDER)
-                        && argument.componentName().equals("requested-bidder"))))
+                        && "requested-bidder".equals(argument.componentName()))))
                 .willReturn(false);
 
         final CookieSyncContext cookieSyncContext = givenCookieSyncContext(builder ->

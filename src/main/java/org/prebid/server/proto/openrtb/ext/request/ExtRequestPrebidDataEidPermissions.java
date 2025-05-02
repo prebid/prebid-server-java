@@ -22,4 +22,3 @@ public class ExtRequestPrebidDataEidPermissions {
     @JsonFormat(without = JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
     List<String> bidders;
 }
-

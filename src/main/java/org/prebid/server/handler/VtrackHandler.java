@@ -111,7 +111,7 @@ public class VtrackHandler implements ApplicationResource {
     }
 
     private List<BidPutObject> vtrackPuts(RoutingContext routingContext) {
-        final Buffer body = routingContext.getBody();
+        final Buffer body = routingContext.body().buffer();
         if (body == null || body.length() == 0) {
             throw new IllegalArgumentException("Incoming request has no body");
         }
