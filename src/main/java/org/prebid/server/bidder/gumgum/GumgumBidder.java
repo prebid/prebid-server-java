@@ -13,7 +13,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -36,7 +35,6 @@ import org.prebid.server.util.HttpUtil;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -178,14 +176,6 @@ public class GumgumBidder implements Bidder<BidRequest> {
         return video.toBuilder().ext(videoExt).build();
     }
 
-    private static boolean anyOfNull(Integer... numbers) {
-        return Arrays.stream(ArrayUtils.nullToEmpty(numbers)).anyMatch(GumgumBidder::isNullOrZero);
-    }
-
-    private static boolean isNullOrZero(Integer number) {
-        return number == null || number == 0;
-    }
-
     private static Site modifySite(Site requestSite, String zone, BigInteger pubId) {
         if (requestSite == null) {
             return null;
@@ -251,4 +241,3 @@ public class GumgumBidder implements Bidder<BidRequest> {
         return StringUtils.isNotBlank(bidAdm) ? bidAdm.replace("${AUCTION_PRICE}", String.valueOf(price)) : bidAdm;
     }
 }
-

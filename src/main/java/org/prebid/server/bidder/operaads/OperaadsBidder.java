@@ -243,4 +243,3 @@ public class OperaadsBidder implements Bidder<BidRequest> {
         }
     }
 }
-

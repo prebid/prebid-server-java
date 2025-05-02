@@ -9,7 +9,7 @@ import lombok.Value;
  * {@link Channel} is defined as the entity that curates a content
  * library, or stream within a brand name for viewers. Examples are
  * specific view selectable ‘channels’ within linear and streaming
- * television (MTV, HGTV, CNN, BBC One, etc) or a specific stream of
+ * television (MTV, HGTV, CNN, BBC One, etc.) or a specific stream of
  * audio content commonly called ‘stations.’ Name is a human-readable
  * field while domain and id can be used for reporting and targeting
  * purposes. See 7.6 for further examples.
@@ -25,7 +25,7 @@ public class Channel {
     String id;
 
     /**
-     * Channel the content is on (e.g., a local channel like “WABC-TV")
+     * Channel the content is on (e.g., a local channel like "WABC-TV")
      */
     String name;
 

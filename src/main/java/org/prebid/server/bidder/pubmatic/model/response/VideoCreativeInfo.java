@@ -1,10 +1,8 @@
 package org.prebid.server.bidder.pubmatic.model.response;
 
-import lombok.AllArgsConstructor;
 import lombok.Value;
 
-@Value
-@AllArgsConstructor(staticName = "of")
+@Value(staticConstructor = "of")
 public class VideoCreativeInfo {
 
     Integer duration;

@@ -9,4 +9,3 @@ public class ExtImpStroeerCore {
     @JsonProperty("sid")
     String slotId;
 }
-
