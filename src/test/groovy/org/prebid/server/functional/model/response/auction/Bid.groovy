@@ -60,7 +60,7 @@ class Bid implements ObjectMapperWrapper {
         new Bid().tap {
             id = UUID.randomUUID()
             impid = imp.id
-            price = PBSUtils.getRandomPrice()
+            price = imp.bidFloor != null ? PBSUtils.getRandomPrice(imp.bidFloor) : PBSUtils.getRandomPrice()
             crid = 1
             height = imp.banner && imp.banner.format ? imp.banner.format.first().height : null
             weight = imp.banner && imp.banner.format ? imp.banner.format.first().weight : null

@@ -47,6 +47,26 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
     protected static final FloorsProvider floorsProvider = new FloorsProvider(networkServiceContainer)
     protected final PrebidServerService floorsPbsService = pbsServiceFactory.getService(FLOORS_CONFIG + GENERIC_ALIAS_CONFIG)
 
+    protected static final Closure<String> INVALID_CONFIG_METRIC = { account -> "alerts.account_config.${account}.price-floors" }
+
+    protected static final Closure<String> URL_EMPTY_ERROR = { url -> "Failed to fetch price floor from provider for fetch.url '${url}'" }
+    protected static final Closure<String> URL_EMPTY_WARNING_MESSAGE = { url, message ->
+        "${URL_EMPTY_ERROR(url)}, with a reason: $message"
+    }
+    protected static final Closure<String> URL_EMPTY_ERROR_LOG = { bidRequest, message ->
+        "No price floor data for account ${bidRequest.accountId} and " +
+                "request ${bidRequest.id}, reason: ${URL_EMPTY_WARNING_MESSAGE("$BASIC_FETCH_URL$bidRequest.accountId", message)}"
+    }
+    // Required: Sync no longer logs "in progress"—only "none" or "error" statuses are recorded
+    protected static final String FETCHING_DISABLED_ERROR = 'Fetching is disabled'
+    protected static final Closure<String> FETCHING_DISABLED_WARNING_MESSAGE = { message ->
+        "$FETCHING_DISABLED_ERROR. Following parsing of request price floors is failed: $message"
+    }
+    protected static final Closure<String> FETCHING_DISABLED_ERROR_LOG = { bidRequest, message ->
+        "No price floor data for account ${bidRequest.accountId} and " +
+                "request ${bidRequest.id}, reason: ${FETCHING_DISABLED_WARNING_MESSAGE(message)}"
+    }
+
     def setupSpec() {
         floorsProvider.setResponse()
     }
