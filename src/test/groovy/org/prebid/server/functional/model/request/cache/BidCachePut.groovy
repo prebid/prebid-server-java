@@ -14,4 +14,5 @@ class BidCachePut implements ObjectMapperWrapper {
     String bidder
     Long timestamp
     String aid
+    String key
 }

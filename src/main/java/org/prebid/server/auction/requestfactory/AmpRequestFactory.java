@@ -132,7 +132,7 @@ public class AmpRequestFactory {
      * Creates {@link AuctionContext} based on {@link RoutingContext}.
      */
     public Future<AuctionContext> fromRequest(RoutingContext routingContext, long startTime) {
-        final String body = routingContext.getBodyAsString();
+        final String body = routingContext.body().asString();
 
         final AuctionContext initialAuctionContext = ortb2RequestFactory.createAuctionContext(
                 Endpoint.openrtb2_amp, MetricName.amp);
@@ -415,6 +415,7 @@ public class AmpRequestFactory {
                 .map(bidRequest -> paramsResolver.resolve(bidRequest, auctionContext, ENDPOINT, true))
                 .map(bidRequest -> ortb2RequestFactory.removeEmptyEids(bidRequest, auctionContext.getDebugWarnings()))
                 .compose(resolvedBidRequest -> ortb2RequestFactory.validateRequest(
+                        account,
                         resolvedBidRequest,
                         auctionContext.getHttpRequest(),
                         auctionContext.getDebugContext(),
@@ -730,7 +731,7 @@ public class AmpRequestFactory {
     }
 
     /**
-     * Creates updated with default values bidrequest.ext.targeting {@link ExtRequestTargeting} if at least one of it's
+     * Creates updated with default values bidrequest.ext.targeting {@link ExtRequestTargeting} if at least one of its
      * child properties is missed or entire targeting does not exist.
      */
     private ExtRequestTargeting createTargetingWithDefaults(ExtRequestPrebid prebid, Account account) {

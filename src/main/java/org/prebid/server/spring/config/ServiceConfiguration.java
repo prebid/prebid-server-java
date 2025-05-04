@@ -164,6 +164,8 @@ public class ServiceConfiguration {
             @Value("${auction.cache.expected-request-time-ms}") long expectedCacheTimeMs,
             @Value("${pbc.api.key:#{null}}") String apiKey,
             @Value("${cache.api-key-secured:false}") boolean apiKeySecured,
+            @Value("${cache.append-trace-info-to-cache-id:false}") boolean appendTraceInfoToCacheId,
+            @Value("${datacenter-region:#{null}}") String datacenterRegion,
             VastModifier vastModifier,
             EventsService eventsService,
             HttpClient httpClient,
@@ -178,6 +180,8 @@ public class ServiceConfiguration {
                 expectedCacheTimeMs,
                 apiKey,
                 apiKeySecured,
+                appendTraceInfoToCacheId,
+                datacenterRegion,
                 vastModifier,
                 eventsService,
                 metrics,
@@ -622,7 +626,7 @@ public class ServiceConfiguration {
                 .setIdleTimeoutUnit(TimeUnit.MILLISECONDS)
                 .setIdleTimeout(httpClientProperties.getIdleTimeoutMs())
                 .setPoolCleanerPeriod(httpClientProperties.getPoolCleanerPeriodMs())
-                .setTryUseCompression(httpClientProperties.getUseCompression())
+                .setDecompressionSupported(httpClientProperties.getUseCompression())
                 .setConnectTimeout(httpClientProperties.getConnectTimeoutMs())
                 // Vert.x's HttpClientRequest needs this value to be 2 for redirections to be followed once,
                 // 3 for twice, and so on
@@ -635,7 +639,7 @@ public class ServiceConfiguration {
 
             options
                     .setSsl(true)
-                    .setKeyStoreOptions(jksOptions);
+                    .setKeyCertOptions(jksOptions);
         }
 
         return new BasicHttpClient(vertx, vertx.createHttpClient(options));
@@ -820,6 +824,7 @@ public class ServiceConfiguration {
             HookStageExecutor hookStageExecutor,
             CategoryMappingService categoryMappingService,
             @Value("${settings.targeting.truncate-attr-chars}") int truncateAttrChars,
+            @Value("${auction.enforce-random-bid-id:false}") boolean enforceRandomBidId,
             Clock clock,
             JacksonMapper mapper,
             Metrics metrics,
@@ -836,9 +841,11 @@ public class ServiceConfiguration {
                 storedRequestProcessor,
                 winningBidComparatorFactory,
                 bidIdGenerator,
+                new UUIDIdGenerator(),
                 hookStageExecutor,
                 categoryMappingService,
                 truncateAttrChars,
+                enforceRandomBidId,
                 clock,
                 mapper,
                 metrics,
@@ -1033,7 +1040,9 @@ public class ServiceConfiguration {
             Metrics metrics,
             JacksonMapper mapper,
             @Value("${logging.sampling-rate:0.01}") double logSamplingRate,
-            @Value("${auction.strict-app-site-dooh:false}") boolean enabledStrictAppSiteDoohValidation) {
+            @Value("${auction.strict-app-site-dooh:false}") boolean enabledStrictAppSiteDoohValidation,
+            @Value("${settings.fail-on-disabled-bidders:true}") boolean failOnDisabledBidders,
+            @Value("${settings.fail-on-unknown-bidders:true}") boolean failOnUnknownBidders) {
 
         return new RequestValidator(
                 bidderCatalog,
@@ -1041,7 +1050,9 @@ public class ServiceConfiguration {
                 metrics,
                 mapper,
                 logSamplingRate,
-                enabledStrictAppSiteDoohValidation);
+                enabledStrictAppSiteDoohValidation,
+                failOnDisabledBidders,
+                failOnUnknownBidders);
     }
 
     @Bean
@@ -1174,10 +1185,8 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    SkippedAuctionService skipAuctionService(StoredResponseProcessor storedResponseProcessor,
-                                             BidResponseCreator bidResponseCreator) {
-
-        return new SkippedAuctionService(storedResponseProcessor, bidResponseCreator);
+    SkippedAuctionService skipAuctionService(StoredResponseProcessor storedResponseProcessor) {
+        return new SkippedAuctionService(storedResponseProcessor);
     }
 
     @Bean

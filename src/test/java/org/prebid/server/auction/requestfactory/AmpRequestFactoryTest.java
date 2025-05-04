@@ -16,6 +16,7 @@ import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.net.impl.SocketAddressImpl;
+import io.vertx.ext.web.RequestBody;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -123,9 +124,11 @@ public class AmpRequestFactoryTest extends VertxTest {
     private AmpRequestFactory target;
 
     @Mock(strictness = LENIENT)
-    private HttpServerRequest httpRequest;
-    @Mock(strictness = LENIENT)
     private RoutingContext routingContext;
+    @Mock(strictness = LENIENT)
+    private HttpServerRequest httpRequest;
+    @Mock
+    private RequestBody requestBody;
 
     private BidRequest defaultBidRequest;
 
@@ -141,6 +144,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .willAnswer(invocation -> invocation.getArgument(0));
 
         given(routingContext.request()).willReturn(httpRequest);
+        given(routingContext.body()).willReturn(requestBody);
         given(routingContext.queryParams()).willReturn(
                 MultiMap.caseInsensitiveMultiMap()
                         .add("tag_id", "tagId"));
@@ -1753,8 +1757,8 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         given(ortb2ImplicitParametersResolver.resolve(any(), any(), any(), anyBoolean())).willAnswer(
                 answerWithFirstArgument());
-        given(ortb2RequestFactory.validateRequest(any(), any(), any(), any()))
-                .willAnswer(invocation -> Future.succeededFuture((BidRequest) invocation.getArgument(0)));
+        given(ortb2RequestFactory.validateRequest(any(), any(), any(), any(), any()))
+                .willAnswer(invocation -> Future.succeededFuture((BidRequest) invocation.getArgument(1)));
 
         given(ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(any()))
                 .willAnswer(invocation -> Future.succeededFuture(((AuctionContext) invocation.getArgument(0))

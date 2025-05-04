@@ -89,25 +89,25 @@ LIMIT 1
     }
 
     static Map<String, String> getMySqlConfig(MySQLContainer mysql = Dependencies.mysqlContainer) {
-        ["settings.database.type"          : "mysql",
-         "settings.database.host"          : mysql.getNetworkAliases().get(0),
-         "settings.database.port"          : mysql.exposedPorts.get(0) as String,
-         "settings.database.dbname"        : mysql.databaseName,
-         "settings.database.user"          : mysql.username,
-         "settings.database.password"      : mysql.password,
-         "settings.database.pool-size"     : "2", // setting 2 here to leave some slack for the PBS
+        ["settings.database.type"                   : "mysql",
+         "settings.database.host"                   : mysql.getNetworkAliases().get(0),
+         "settings.database.port"                   : mysql.exposedPorts.get(0) as String,
+         "settings.database.dbname"                 : mysql.databaseName,
+         "settings.database.user"                   : mysql.username,
+         "settings.database.password"               : mysql.password,
+         "settings.database.pool-size"              : "2", // setting 2 here to leave some slack for the PBS
          "settings.database.idle-connection-timeout": "300"
         ].asImmutable()
     }
 
     static Map<String, String> getPostgreSqlConfig(PostgreSQLContainer postgres = Dependencies.postgresqlContainer) {
-        ["settings.database.type"          : "postgres",
-         "settings.database.host"          : postgres.getNetworkAliases().get(0),
-         "settings.database.port"          : postgres.exposedPorts.get(0) as String,
-         "settings.database.dbname"        : postgres.databaseName,
-         "settings.database.user"          : postgres.username,
-         "settings.database.password"      : postgres.password,
-         "settings.database.pool-size"     : "2", // setting 2 here to leave some slack for the PBS
+        ["settings.database.type"                   : "postgres",
+         "settings.database.host"                   : postgres.getNetworkAliases().get(0),
+         "settings.database.port"                   : postgres.exposedPorts.get(0) as String,
+         "settings.database.dbname"                 : postgres.databaseName,
+         "settings.database.user"                   : postgres.username,
+         "settings.database.password"               : postgres.password,
+         "settings.database.pool-size"              : "2", // setting 2 here to leave some slack for the PBS
          "settings.database.idle-connection-timeout": "300"
         ].asImmutable()
     }
@@ -119,6 +119,7 @@ LIMIT 1
     // due to a config validation we'll need to circumvent all future aliases this way
     static Map<String, String> getBidderAliasConfig() {
         ["adapters.generic.aliases.cwire.meta-info.site-media-types"          : "",
+         "adapters.generic.aliases.cwire.meta-info.app-media-types"           : "",
          "adapters.generic.aliases.blue.meta-info.app-media-types"            : "",
          "adapters.generic.aliases.blue.meta-info.site-media-types"           : "",
          "adapters.generic.aliases.adsinteractive.meta-info.app-media-types"  : "",

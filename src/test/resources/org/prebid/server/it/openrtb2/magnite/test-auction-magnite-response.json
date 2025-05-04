@@ -4,7 +4,7 @@
     {
       "bid": [
         {
-          "id": "bid_id",
+          "id": "id",
           "impid": "imp_id",
           "exp": 1500,
           "price": 3.33,
@@ -22,7 +22,8 @@
                   "id1",
                   "id2"
                 ],
-                "networkId": 123
+                "networkId": 123,
+                "adaptercode": "magnite"
               },
               "type": "video"
             },

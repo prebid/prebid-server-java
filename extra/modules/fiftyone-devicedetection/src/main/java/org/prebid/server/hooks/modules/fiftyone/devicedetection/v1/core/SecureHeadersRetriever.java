@@ -5,12 +5,13 @@ import com.iab.openrtb.request.UserAgent;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
+import jakarta.annotation.Nonnull;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import jakarta.annotation.Nonnull;
 
 public class SecureHeadersRetriever {
+
     private SecureHeadersRetriever() {
     }
 

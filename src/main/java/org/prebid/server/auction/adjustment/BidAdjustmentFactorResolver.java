@@ -14,25 +14,41 @@ public class BidAdjustmentFactorResolver {
 
     public BigDecimal resolve(ImpMediaType impMediaType,
                               ExtRequestBidAdjustmentFactors adjustmentFactors,
-                              String bidder) {
+                              String bidder,
+                              String seat) {
 
         final EnumMap<ImpMediaType, Map<String, BigDecimal>> adjustmentFactorsByMediaTypes =
                 adjustmentFactors.getMediatypes();
+        final Map<String, BigDecimal> adjustmentsFactors = adjustmentFactors.getAdjustments();
 
-        final BigDecimal effectiveBidderAdjustmentFactor = Optional.ofNullable(adjustmentFactors.getAdjustments())
-                .map(factors -> factors.get(bidder))
+        return resolveFromMediaTypes(impMediaType, seat, adjustmentFactorsByMediaTypes)
+                .or(() -> resolveFromAdjustments(seat, adjustmentsFactors))
+                .or(() -> resolveFromMediaTypes(impMediaType, bidder, adjustmentFactorsByMediaTypes))
+                .or(() -> resolveFromAdjustments(bidder, adjustmentsFactors))
                 .orElse(BigDecimal.ONE);
+    }
 
-        if (MapUtils.isEmpty(adjustmentFactorsByMediaTypes)) {
-            return effectiveBidderAdjustmentFactor;
+    private static Optional<BigDecimal> resolveFromMediaTypes(
+            ImpMediaType mediaType,
+            String bidderCode,
+            EnumMap<ImpMediaType, Map<String, BigDecimal>> adjustmentFactors) {
+
+        if (MapUtils.isEmpty(adjustmentFactors)) {
+            return Optional.empty();
         }
 
-        return Optional.ofNullable(impMediaType)
-                .map(adjustmentFactorsByMediaTypes::get)
+        return Optional.ofNullable(mediaType)
+                .map(adjustmentFactors::get)
                 .flatMap(factors -> factors.entrySet().stream()
-                        .filter(entry -> StringUtils.equalsIgnoreCase(entry.getKey(), bidder))
+                        .filter(entry -> StringUtils.equalsIgnoreCase(entry.getKey(), bidderCode))
                         .map(Map.Entry::getValue)
-                        .findFirst())
-                .orElse(effectiveBidderAdjustmentFactor);
+                        .findFirst());
+    }
+
+    private static Optional<BigDecimal> resolveFromAdjustments(String bidderCode,
+                                                               Map<String, BigDecimal> adjustmentFactors) {
+
+        return Optional.ofNullable(adjustmentFactors)
+                .map(factors -> factors.get(bidderCode));
     }
 }

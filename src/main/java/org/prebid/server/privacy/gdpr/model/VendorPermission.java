@@ -27,4 +27,3 @@ public class VendorPermission {
         naturallyConsentedPurposes.add(purposeCode);
     }
 }
-

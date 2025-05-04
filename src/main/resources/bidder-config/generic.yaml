@@ -81,6 +81,7 @@ adapters:
         meta-info:
           maintainer-email: devs@cwire.com
           app-media-types:
+            - banner
           site-media-types:
             - banner
           supported-vendors:

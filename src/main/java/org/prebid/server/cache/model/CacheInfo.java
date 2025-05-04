@@ -1,13 +1,11 @@
 package org.prebid.server.cache.model;
 
-import lombok.AllArgsConstructor;
 import lombok.Value;
 
 /**
  * Used to determine cache IDs targeting keywords should be in response
  */
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class CacheInfo {
 
     private static final CacheInfo EMPTY = CacheInfo.of(null, null, null, null);

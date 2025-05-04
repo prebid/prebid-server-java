@@ -1,11 +1,14 @@
 package org.prebid.server.functional.tests
 
+import org.prebid.server.functional.model.bidder.AppNexus
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredImp
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
+import org.prebid.server.functional.model.request.auction.Adrino
+import org.prebid.server.functional.model.request.auction.Amx
 import org.prebid.server.functional.model.request.auction.AuctionEnvironment
 import org.prebid.server.functional.model.request.auction.Banner
 import org.prebid.server.functional.model.request.auction.BidRequest
@@ -21,10 +24,13 @@ import org.prebid.server.functional.model.request.auction.Native
 import org.prebid.server.functional.model.request.auction.PrebidOptions
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
 import org.prebid.server.functional.model.request.auction.Site
+import org.prebid.server.functional.model.request.auction.Source
+import org.prebid.server.functional.model.request.auction.Targeting
 import org.prebid.server.functional.model.request.vtrack.VtrackRequest
 import org.prebid.server.functional.model.request.vtrack.xml.Vast
 import org.prebid.server.functional.model.response.auction.Adm
 import org.prebid.server.functional.model.response.auction.Bid
+import org.prebid.server.functional.model.response.auction.BidExt
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.CcpaConsent
@@ -33,7 +39,11 @@ import static org.prebid.server.functional.model.Currency.CHF
 import static org.prebid.server.functional.model.Currency.EUR
 import static org.prebid.server.functional.model.Currency.JPY
 import static org.prebid.server.functional.model.Currency.USD
+import static org.prebid.server.functional.model.bidder.BidderName.ALIAS_UPPER_CASE
+import static org.prebid.server.functional.model.bidder.BidderName.AMX
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
+import static org.prebid.server.functional.model.bidder.BidderName.GENERIC_CAMEL_CASE
+import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.bidder.CompressionType.GZIP
 import static org.prebid.server.functional.model.bidder.CompressionType.NONE
 import static org.prebid.server.functional.model.request.auction.Asset.titleAsset
@@ -897,16 +907,16 @@ class BidderParamsSpec extends BaseSpec {
         and: "Bidder request should contain same field as requested"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         verifyAll(bidderRequest.imp[0].ext) {
-            bidder == impExt.generic
-            auctionEnvironment == impExt.auctionEnvironment
-            all == impExt.all
-            context == impExt.context
-            data == impExt.data
-            general == impExt.general
-            gpid == impExt.gpid
-            skadn == impExt.skadn
-            tid == impExt.tid
-            prebid.adUnitCode == impExt.prebid.adUnitCode
+            it.bidder == impExt.generic
+            it.auctionEnvironment == impExt.auctionEnvironment
+            it.all == impExt.all
+            it.context == impExt.context
+            it.data == impExt.data
+            it.general == impExt.general
+            it.gpid == impExt.gpid
+            it.skadn == impExt.skadn
+            it.tid == impExt.tid
+            it.prebid.adUnitCode == impExt.prebid.adUnitCode
         }
     }
 
@@ -1025,9 +1035,10 @@ class BidderParamsSpec extends BaseSpec {
 
     def "PBS should send request to bidder when adapters.bidder.aliases.bidder.meta-info.currency-accepted not specified"() {
         given: "PBS with adapter configuration"
-        def pbsConfig = ["adapters.generic.aliases.alias.enabled"                    : "true",
-                         "adapters.generic.aliases.alias.endpoint"                   : "$networkServiceContainer.rootUri/auction".toString(),
-                         "adapters.generic.aliases.alias.meta-info.currency-accepted": ""]
+        def pbsConfig = [
+                "adapters.generic.aliases.alias.enabled"                    : "true",
+                "adapters.generic.aliases.alias.endpoint"                   : "$networkServiceContainer.rootUri/auction".toString(),
+                "adapters.generic.aliases.alias.meta-info.currency-accepted": ""]
         def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request with alias bidder"
@@ -1144,9 +1155,10 @@ class BidderParamsSpec extends BaseSpec {
 
     def "PBS should send request to bidder when adapters.bidder.aliases.bidder.meta-info.currency-accepted intersect with requested currency"() {
         given: "PBS with adapter configuration"
-        def pbsConfig = ["adapters.generic.aliases.alias.enabled"                    : "true",
-                         "adapters.generic.aliases.alias.endpoint"                   : "$networkServiceContainer.rootUri/auction".toString(),
-                         "adapters.generic.aliases.alias.meta-info.currency-accepted": "${USD},${EUR}".toString()]
+        def pbsConfig = [
+                "adapters.generic.aliases.alias.enabled"                    : "true",
+                "adapters.generic.aliases.alias.endpoint"                   : "$networkServiceContainer.rootUri/auction".toString(),
+                "adapters.generic.aliases.alias.meta-info.currency-accepted": "${USD},${EUR}".toString()]
         def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default basic BidRequest with alias bidder"
@@ -1188,9 +1200,10 @@ class BidderParamsSpec extends BaseSpec {
 
     def "PBS shouldn't send request to bidder and emit warning when adapters.bidder.aliases.bidder.meta-info.currency-accepted not intersect with requested currency"() {
         given: "PBS with adapter configuration"
-        def pbsConfig = ["adapters.generic.aliases.alias.enabled"                    : "true",
-                         "adapters.generic.aliases.alias.endpoint"                   : "$networkServiceContainer.rootUri/auction".toString(),
-                         "adapters.generic.aliases.alias.meta-info.currency-accepted": "${JPY},${CHF}".toString()]
+        def pbsConfig = [
+                "adapters.generic.aliases.alias.enabled"                    : "true",
+                "adapters.generic.aliases.alias.endpoint"                   : "$networkServiceContainer.rootUri/auction".toString(),
+                "adapters.generic.aliases.alias.meta-info.currency-accepted": "${JPY},${CHF}".toString()]
         def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default basic BidRequest with alias bidder"
@@ -1297,5 +1310,484 @@ class BidderParamsSpec extends BaseSpec {
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp[0].ext.auctionEnvironment == extAuctionEnv
         assert bidderRequest.imp[0].ext.interestGroupAuctionSupports.auctionEnvironment == extIgsAuctionEnv
+    }
+
+    def "PBS should reject alias bidders when bidder params from request doesn't satisfy own json-schema"() {
+        given: "Default bid request"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.prebid.bidder.tap {
+                it.generic.exampleProperty = PBSUtils.randomNumber
+                //Adrino hard coded bidder alias in generic.yaml
+                it.adrino = new Adrino(hash: PBSUtils.randomNumber)
+            }
+        }
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder should be dropped"
+        assert response.ext?.warnings[PREBID]*.code == [999, 999, 999]
+        assert response.ext?.warnings[PREBID]*.message ==
+                ["WARNING: request.imp[0].ext.prebid.bidder.generic was dropped with a reason: " +
+                         "request.imp[0].ext.prebid.bidder.generic failed validation.\n" +
+                         "\$.exampleProperty: integer found, string expected",
+                 "WARNING: request.imp[0].ext.prebid.bidder.adrino was dropped with a reason: " +
+                         "request.imp[0].ext.prebid.bidder.adrino failed validation.\n" +
+                         "\$.hash: integer found, string expected",
+                 "WARNING: request.imp[0].ext must contain at least one valid bidder"]
+
+        and: "PBS should not call bidder"
+        assert bidder.getRequestCount(bidRequest.id) == 0
+
+        and: "targeting should be empty"
+        assert response.seatbid.isEmpty()
+    }
+
+    def "PBS should reject alias bidders when bidder params from request doesn't satisfy aliased json-schema"() {
+        given: "Default basic generic BidRequest"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.prebid.bidder.tap {
+                it.generic.exampleProperty = PBSUtils.randomNumber
+                //Nativo hard coded bidder alias in generic.yaml
+                it.nativo = new Generic(exampleProperty: PBSUtils.randomNumber)
+            }
+        }
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder should be dropped"
+        assert response.ext?.warnings[PREBID]*.code == [999, 999, 999]
+        assert response.ext?.warnings[PREBID]*.message ==
+                ["WARNING: request.imp[0].ext.prebid.bidder.generic was dropped with a reason: " +
+                         "request.imp[0].ext.prebid.bidder.generic failed validation.\n" +
+                         "\$.exampleProperty: integer found, string expected",
+                 "WARNING: request.imp[0].ext.prebid.bidder.nativo was dropped with a reason: " +
+                         "request.imp[0].ext.prebid.bidder.nativo failed validation.\n" +
+                         "\$.exampleProperty: integer found, string expected",
+                 "WARNING: request.imp[0].ext must contain at least one valid bidder"]
+
+        and: "PBS should not call bidder"
+        assert bidder.getRequestCount(bidRequest.id) == 0
+
+        and: "targeting should be empty"
+        assert response.seatbid.isEmpty()
+    }
+
+    def "PBS should send bidder code from imp[].ext.prebid.bidder to seatbid.bid.ext.prebid.meta.adapterCode"() {
+        given: "Default basic bid request"
+        def bidRequest = BidRequest.defaultBidRequest
+
+        and: "Default bid response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid[0].seat = OPENX
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain adapter code"
+        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [BidderName.GENERIC]
+
+        and: "Bidder request should be valid"
+        assert bidder.getBidderRequest(bidRequest.id)
+    }
+
+    def "PBS should send bidder code from imp[].ext.prebid.bidder to seatbid.bid.ext.prebid.meta.adapterCode when requested soft alias"() {
+        given: "Default bid request with alias"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.prebid.bidder.tap {
+                generic = null
+                alias = new Generic()
+            }
+            ext.prebid.aliases = [(ALIAS.value): BidderName.GENERIC]
+            ext.prebid.targeting = new Targeting()
+        }
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain adapter code"
+        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [BidderName.GENERIC]
+
+        and: "Response should contain seat bid"
+        assert response.seatbid.seat == [BidderName.ALIAS]
+
+        and: "Response should contain bidder targeting"
+        def targeting = response.seatbid[0].bid[0].ext.prebid.targeting
+        assert targeting["hb_pb_${BidderName.ALIAS}"]
+        assert targeting["hb_size_${BidderName.ALIAS}"]
+        assert targeting["hb_bidder"] == BidderName.ALIAS.value
+        assert targeting["hb_bidder_${BidderName.ALIAS}"] == BidderName.ALIAS.value
+
+        and: "Response should contain repose millis with corresponding bidder"
+        assert response.ext.responsetimemillis.containsKey(ALIAS.value)
+
+        and: "Bidder request should be valid"
+        assert bidder.getBidderRequests(bidRequest.id)
+    }
+
+    def "PBS should populate same code for adapter code when make call for generic hard code alias"() {
+        given: "PBS config with bidder"
+        def pbsConfig = ["adapters.generic.aliases.alias.enabled" : "true",
+                         "adapters.generic.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
+        def defaultPbsService = pbsServiceFactory.getService(pbsConfig)
+
+        and: "Default bid request with alias"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.prebid.bidder.tap {
+                generic = null
+                alias = new Generic()
+            }
+            ext.prebid.targeting = new Targeting()
+        }
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain adapter code"
+        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [BidderName.ALIAS]
+
+        and: "Response should contain seat bid"
+        assert response.seatbid.seat == [BidderName.ALIAS]
+
+        and: "Response should contain bidder targeting"
+        def targeting = response.seatbid[0].bid[0].ext.prebid.targeting
+        assert targeting["hb_pb_${BidderName.ALIAS}"]
+        assert targeting["hb_size_${BidderName.ALIAS}"]
+        assert targeting["hb_bidder"] == BidderName.ALIAS.value
+        assert targeting["hb_bidder_${BidderName.ALIAS}"] == BidderName.ALIAS.value
+
+        and: "Response should contain repose millis with corresponding bidder"
+        assert response.ext.responsetimemillis.containsKey(ALIAS.value)
+
+        and: "Bidder request should be valid"
+        assert bidder.getBidderRequests(bidRequest.id)
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
+    }
+
+    def "PBS should make call for alias when hard alias and demandSource specified"() {
+        given: "PBS config with bidder"
+        def pbsConfig = ["adapters.amx.enabled"               : "true",
+                         "adapters.amx.endpoint"              : "$networkServiceContainer.rootUri/auction".toString(),
+                         "adapters.amx.aliases.alias.enabled" : "true",
+                         "adapters.amx.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
+        def defaultPbsService = pbsServiceFactory.getService(pbsConfig)
+
+        and: "Default bid Request with generic and openx bidder within separate imps"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.prebid.bidder.tap {
+                generic = null
+                alias = new Generic()
+            }
+            ext.prebid.targeting = new Targeting()
+        }
+
+        and: "Bid response with bidder code"
+        def demandSource = PBSUtils.randomString
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest, BidderName.ALIAS).tap {
+            it.seatbid[0].bid[0].ext = new BidExt(demandSource: demandSource)
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain demand source"
+        assert response.seatbid.bid.ext.prebid.meta.demandSource.flatten() == [demandSource]
+
+        and: "Response should contain adapter code"
+        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [BidderName.ALIAS]
+
+        and: "Response should contain seat bid"
+        assert response.seatbid.seat == [BidderName.ALIAS]
+
+        and: "Response should contain bidder targeting"
+        def targeting = response.seatbid[0].bid[0].ext.prebid.targeting
+        assert targeting["hb_pb_${BidderName.ALIAS}"]
+        assert targeting["hb_size_${BidderName.ALIAS}"]
+        assert targeting["hb_bidder"] == BidderName.ALIAS.value
+        assert targeting["hb_bidder_${BidderName.ALIAS}"] == BidderName.ALIAS.value
+
+        and: "Response should contain repose millis with corresponding bidder"
+        assert response.ext.responsetimemillis.containsKey(ALIAS.value)
+
+        and: "Bidder request should be valid"
+        assert bidder.getBidderRequests(bidRequest.id)
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
+    }
+
+    def "PBS should send bidder code from imp[].ext.prebid.bidder to seatbid.bid.ext.prebid.meta.adapterCode when requested soft alias with upper case"() {
+        given: "Default bid request with alias"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.aliases = [(ALIAS.value): BidderName.GENERIC]
+            ext.prebid.targeting = new Targeting()
+            imp[0].ext.prebid.bidder.tap {
+                generic = null
+                aliasUpperCase = new Generic()
+            }
+        }
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain adapter code"
+        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [BidderName.GENERIC]
+
+        and: "Response should contain seat bid"
+        assert response.seatbid.seat == [ALIAS_UPPER_CASE]
+
+        and: "Response should contain bidder targeting"
+        def targeting = response.seatbid[0].bid[0].ext.prebid.targeting
+        assert targeting["hb_pb_${ALIAS_UPPER_CASE}"]
+        assert targeting["hb_size_${ALIAS_UPPER_CASE}"]
+        assert targeting["hb_bidder"] == ALIAS_UPPER_CASE.value
+        assert targeting["hb_bidder_${ALIAS_UPPER_CASE}"] == ALIAS_UPPER_CASE.value
+
+        and: "Response should contain repose millis with corresponding bidder"
+        assert response.ext.responsetimemillis.containsKey(ALIAS_UPPER_CASE.value)
+
+        and: "Bidder request should be valid"
+        assert bidder.getBidderRequests(bidRequest.id)
+    }
+
+    def "PBS should populate targeting with bidder in camel case when bidder with camel case was requested"() {
+        given: "Default bid request"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.prebid.bidder.generic = null
+            imp[0].ext.prebid.bidder.genericCamelCase = new Generic()
+            it.ext.prebid.targeting = new Targeting()
+        }
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain bidder targeting"
+        def targeting = response.seatbid[0].bid[0].ext.prebid.targeting
+        assert targeting["hb_pb_${GENERIC_CAMEL_CASE}"]
+        assert targeting["hb_size_${GENERIC_CAMEL_CASE}"]
+        assert targeting["hb_bidder"] == GENERIC_CAMEL_CASE.value
+        assert targeting["hb_bidder_${GENERIC_CAMEL_CASE}"] == GENERIC_CAMEL_CASE.value
+
+        and: "Bid response should contain seat"
+        assert response.seatbid.seat == [GENERIC_CAMEL_CASE]
+
+        and: "Response should contain repose millis with corresponding bidder"
+        assert response.ext.responsetimemillis.containsKey(GENERIC_CAMEL_CASE.value)
+
+        and: "Response should contain adapter code"
+        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [BidderName.GENERIC]
+    }
+
+    def "PBS should make call for alias in upper case when soft alias specified with same name in upper case strategy"() {
+        given: "Default bid request with soft alias and targeting"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.aliases = [(ALIAS.value): BidderName.GENERIC]
+            imp[0].ext.prebid.bidder.aliasUpperCase = new Generic()
+            imp[0].ext.prebid.bidder.generic = null
+            it.ext.prebid.targeting = new Targeting()
+        }
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain adapter code"
+        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [BidderName.GENERIC]
+
+        and: "Response should contain seat bid"
+        assert response.seatbid.seat == [ALIAS_UPPER_CASE]
+
+        and: "Response should contain bidder targeting"
+        def targeting = response.seatbid[0].bid[0].ext.prebid.targeting
+        assert targeting["hb_pb_${ALIAS_UPPER_CASE}"]
+        assert targeting["hb_size_${ALIAS_UPPER_CASE}"]
+        assert targeting["hb_bidder"] == ALIAS_UPPER_CASE.value
+        assert targeting["hb_bidder_${ALIAS_UPPER_CASE}"] == ALIAS_UPPER_CASE.value
+
+        and: "Response should contain repose millis with corresponding bidder"
+        assert response.ext.responsetimemillis.containsKey(ALIAS_UPPER_CASE.value)
+
+        and: "Bidder request should be valid"
+        assert bidder.getBidderRequests(bidRequest.id)
+    }
+
+    def "PBS should populate adapter code with requested bidder when conflict with soft and hard alias"() {
+        given: "PBS config with bidder"
+        def pbsConfig = ["adapters.amx.enabled"               : "true",
+                         "adapters.amx.endpoint"              : "$networkServiceContainer.rootUri/auction".toString(),
+                         "adapters.amx.aliases.alias.enabled" : "true",
+                         "adapters.amx.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
+        def defaultPbsService = pbsServiceFactory.getService(pbsConfig)
+
+        and: "Bid request with amx bidder and targeting"
+        def bidRequest = BidRequest.getDefaultBidRequest().tap {
+            imp[0].ext.prebid.bidder.alias = new Generic()
+            imp[0].ext.prebid.bidder.amx = null
+            imp[0].ext.prebid.bidder.generic = null
+            it.ext.prebid.aliases = [(ALIAS.value): BidderName.GENERIC]
+            it.ext.prebid.targeting = new Targeting()
+        }
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain adapter code"
+        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [BidderName.ALIAS]
+
+        and: "Response should contain seat bid"
+        assert response.seatbid.seat == [BidderName.ALIAS]
+
+        and: "Response should contain bidder targeting"
+        def targeting = response.seatbid[0].bid[0].ext.prebid.targeting
+        assert targeting["hb_pb_${BidderName.ALIAS}"]
+        assert targeting["hb_size_${BidderName.ALIAS}"]
+        assert targeting["hb_bidder"] == BidderName.ALIAS.value
+        assert targeting["hb_bidder_${BidderName.ALIAS}"] == BidderName.ALIAS.value
+
+        and: "Response should contain repose millis with corresponding bidder"
+        assert response.ext.responsetimemillis.containsKey(ALIAS.value)
+
+        and: "Bidder request should be valid"
+        assert bidder.getBidderRequests(bidRequest.id)
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
+    }
+
+    def "PBS should populate adapter code with requested bidder when conflict with soft and generic hard alias"() {
+        given: "PBS config with bidders"
+        def pbsConfig = ["adapters.amx.enabled"                   : "true",
+                         "adapters.amx.endpoint"                  : "$networkServiceContainer.rootUri/auction".toString(),
+                         "adapters.generic.aliases.alias.enabled" : "true",
+                         "adapters.generic.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
+        def defaultPbsService = pbsServiceFactory.getService(pbsConfig)
+
+        and: "Bid request with amx bidder and targeting"
+        def bidRequest = BidRequest.getDefaultBidRequest().tap {
+            imp[0].ext.prebid.bidder.alias = new Generic()
+            imp[0].ext.prebid.bidder.amx = null
+            imp[0].ext.prebid.bidder.generic = null
+            it.ext.prebid.aliases = [(ALIAS.value): AMX]
+            it.ext.prebid.targeting = new Targeting()
+        }
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain adapter code"
+        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [BidderName.ALIAS]
+
+        and: "Response should contain seat bid"
+        assert response.seatbid.seat == [BidderName.ALIAS]
+
+        and: "Response should contain bidder targeting"
+        def targeting = response.seatbid[0].bid[0].ext.prebid.targeting
+        assert targeting["hb_pb_${BidderName.ALIAS}"]
+        assert targeting["hb_size_${BidderName.ALIAS}"]
+        assert targeting["hb_bidder"] == BidderName.ALIAS.value
+        assert targeting["hb_bidder_${BidderName.ALIAS}"] == BidderName.ALIAS.value
+
+        and: "Response should contain repose millis with corresponding bidder"
+        assert response.ext.responsetimemillis.containsKey(ALIAS.value)
+
+        and: "Bidder request should be valid"
+        assert bidder.getBidderRequests(bidRequest.id)
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
+    }
+
+    def "PBS should properly populate bidder code when soft alias ignore standalone adapter"() {
+        given: "PBS config with amx bidder"
+        def pbsConfig = ["adapters.amx.enabled" : "true",
+                         "adapters.amx.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
+        def defaultPbsService = pbsServiceFactory.getService(pbsConfig)
+
+        and: "Default bid request with soft alias and targeting"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.prebid.bidder.amx = new Amx()
+            imp[0].ext.prebid.bidder.generic = null
+            ext.prebid.targeting = new Targeting()
+            ext.prebid.aliases = [(AMX.value): BidderName.GENERIC]
+        }
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain adapter code"
+        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [AMX]
+
+        and: "Response should contain seat"
+        assert response.seatbid.seat == [AMX]
+
+        and: "Response should contain bidder targeting"
+        def targeting = response.seatbid[0].bid[0].ext.prebid.targeting
+        assert targeting["hb_pb_${AMX}"]
+        assert targeting["hb_size_${AMX}"]
+        assert targeting["hb_bidder"] == AMX.value
+        assert targeting["hb_bidder_${AMX}"] == AMX.value
+
+        and: "Response should contain repose millis with corresponding bidder"
+        assert response.ext.responsetimemillis.containsKey(AMX.value)
+
+        and: "Bidder request should be valid"
+        assert bidder.getBidderRequests(bidRequest.id)
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
+    }
+
+    def "PBS should merge stored imp with appnexus bidder requested when reserve field specified"() {
+        given: "Pbs default config with appnexus"
+        def pbsConfig = ["adapters.${APPNEXUS.value}.enabled" : "true",
+                         "adapters.${APPNEXUS.value}.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
+        def defaultPbsService = pbsServiceFactory.getService(pbsConfig)
+
+        and: "Default stored request with specified stored imps and request"
+        def storedRequestId = PBSUtils.randomString
+        def bidRequest = BidRequest.getDefaultBidRequest().tap {
+            imp[0].ext.prebid.bidder.generic = null
+            imp[0].ext.prebid.bidder.appNexus = AppNexus.getDefault().tap {
+                reserve = PBSUtils.getRandomDecimal() as Double
+            }
+            imp[0].ext.prebid.storedRequest = new PrebidStoredRequest(id: PBSUtils.randomString)
+            ext.prebid.storedRequest = new PrebidStoredRequest(id: storedRequestId)
+        }
+
+        and: "Save storedImp into DB"
+        def storedImp = StoredImp.getStoredImp(bidRequest).tap {
+            impData = Imp.defaultImpression
+        }
+        storedImpDao.save(storedImp)
+
+        and: "Save stored request with source.tid and cur"
+        def storedBidRequest = new BidRequest(cur: [USD], source: new Source(tid: PBSUtils.randomString))
+        def storedRequest = StoredRequest.getStoredRequest(storedRequestId, storedBidRequest)
+        storedRequestDao.save(storedRequest)
+
+        and: "Default basic bid with bid.ext"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest, APPNEXUS).tap {
+            seatbid[0].bid[0].ext = new BidExt()
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bid response should contain appnexus and generic bidder"
+        assert response.seatbid.size() == 2
+        assert response.seatbid.seat.sort() == [APPNEXUS, BidderName.GENERIC].sort()
+
+        and: "Bidder requests should perform two bidder call"
+        def bidderRequests = bidder.getBidderRequests(bidRequest.id)
+        assert bidderRequests.size() == 2
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
     }
 }

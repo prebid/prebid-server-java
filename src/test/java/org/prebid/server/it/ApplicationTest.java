@@ -451,7 +451,7 @@ public class ApplicationTest extends IntegrationTest {
         final Map<String, JsonNode> expectedMap = CollectionUtils.union(bidders, aliases.keySet()).stream()
                 .collect(Collectors.toMap(
                         Function.identity(),
-                        bidderName -> jsonSchemaToJsonNode(aliases.getOrDefault(bidderName, bidderName))));
+                        bidderName -> jsonSchemaToJsonNode(bidderName, aliases)));
 
         assertThat(responseAsMap.keySet()).hasSameElementsAs(expectedMap.keySet());
         assertThat(responseAsMap).containsAllEntriesOf(expectedMap);
@@ -691,6 +691,14 @@ public class ApplicationTest extends IntegrationTest {
             return aliases;
         }
         return Collections.emptyMap();
+    }
+
+    private static JsonNode jsonSchemaToJsonNode(String bidderName, Map<String, String> aliases) {
+        try {
+            return jsonSchemaToJsonNode(bidderName);
+        } catch (IllegalArgumentException e) {
+            return jsonSchemaToJsonNode(aliases.getOrDefault(bidderName, bidderName));
+        }
     }
 
     private static JsonNode jsonSchemaToJsonNode(String bidderName) {
