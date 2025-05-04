@@ -99,7 +99,8 @@ public class StageConfigParser<SCHEMA_PAYLOAD, RULE_PAYLOAD> {
         final List<SchemaFunctionHolder<SCHEMA_PAYLOAD>> schemaFunctions = schema.stream()
                 .map(config -> SchemaFunctionHolder.of(
                         config.getFunction(),
-                        specification.schemaFunctionByName(config.getFunction()), config.getArgs()))
+                        specification.schemaFunctionByName(config.getFunction()),
+                        config.getArgs()))
                 .toList();
 
         schemaFunctions.forEach(holder ->

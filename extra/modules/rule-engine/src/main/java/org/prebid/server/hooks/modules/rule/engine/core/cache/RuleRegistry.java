@@ -16,7 +16,6 @@ public class RuleRegistry {
     private final AccountConfigParser parser;
     private final Vertx vertx;
 
-
     private final ConcurrentMap<String, Future<PerStageRule>> accountIdToRules;
 
     public RuleRegistry(long cacheExpireAfterMinutes,
