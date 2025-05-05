@@ -444,7 +444,7 @@ class OpenxSpec extends BaseSpec {
 
         and: "Alert.general metric should be updated"
         def metrics = pbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics["alerts.general" as String] == 1
     }
 
     def "PBS shouldn't populate fledge or igi config when bidder respond with igb"() {
