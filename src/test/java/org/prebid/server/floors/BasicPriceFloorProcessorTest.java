@@ -282,8 +282,8 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                 .skipped(false)
                 .location(PriceFloorLocation.noData)
                 .build());
-        verify(metrics).updateAlertsMetrics(MetricName.general);
-        assertThat(warnings).containsExactly("Using dynamic data is not allowed");
+        verifyNoInteractions(metrics);
+        assertThat(warnings).isEmpty();
     }
 
     @Test
@@ -366,8 +366,8 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                 .skipped(false)
                 .location(PriceFloorLocation.noData)
                 .build());
-        verify(metrics).updateAlertsMetrics(MetricName.general);
-        assertThat(warnings).containsExactly("errorMessage");
+        verifyNoInteractions(metrics);
+        assertThat(warnings).isEmpty();
     }
 
     @Test
@@ -417,8 +417,8 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                 .skipped(false)
                 .location(PriceFloorLocation.noData)
                 .build());
-        verify(metrics).updateAlertsMetrics(MetricName.general);
-        assertThat(warnings).containsExactly("errorMessage");
+        verifyNoInteractions(metrics);
+        assertThat(warnings).isEmpty();
     }
 
     @Test
@@ -469,8 +469,8 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                 .skipped(false)
                 .location(PriceFloorLocation.noData)
                 .build());
-        verify(metrics).updateAlertsMetrics(MetricName.general);
-        assertThat(warnings).containsExactly("errorMessage");
+        verifyNoInteractions(metrics);
+        assertThat(warnings).isEmpty();
     }
 
     @Test
@@ -1086,6 +1086,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
             UnaryOperator<PriceFloorRules.PriceFloorRulesBuilder> floorsCustomizer) {
 
         return floorsCustomizer.apply(PriceFloorRules.builder()
+                .enabled(true)
                 .data(PriceFloorData.builder()
                         .modelGroups(singletonList(PriceFloorModelGroup.builder()
                                 .value("someKey", BigDecimal.ONE)
