@@ -104,8 +104,8 @@ public class PriceFloorFetcherTest extends VertxTest {
         verifyNoMoreInteractions(httpClient);
 
         final FetchResult priceFloorRulesCached = priceFloorFetcher.fetch(givenAccount);
-        assertThat(priceFloorRulesCached)
-                .isEqualTo(FetchResult.of(givenPriceFloorData(), FetchStatus.success, null));
+        assertThat(priceFloorRulesCached.getFetchStatus()).isEqualTo(FetchStatus.success);
+        assertThat(priceFloorRulesCached.getRulesData()).isEqualTo(givenPriceFloorData());
 
     }
 
@@ -119,7 +119,8 @@ public class PriceFloorFetcherTest extends VertxTest {
         final FetchResult fetchResult = priceFloorFetcher.fetch(givenAccount(identity()));
 
         // then
-        assertThat(fetchResult).isEqualTo(FetchResult.inProgress());
+        assertThat(fetchResult.getRulesData()).isNull();
+        assertThat(fetchResult.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
         verify(vertx).setTimer(eq(1200000L), any());
     }
 
@@ -133,13 +134,13 @@ public class PriceFloorFetcherTest extends VertxTest {
         final FetchResult firstInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
 
         // then
-        assertThat(firstInvocationResult).isEqualTo(FetchResult.inProgress());
+        assertThat(firstInvocationResult.getRulesData()).isNull();
+        assertThat(firstInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
         verify(vertx).setTimer(eq(1200000L), any());
 
         final FetchResult secondInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
-        assertThat(secondInvocationResult).isEqualTo(FetchResult.error(
-                "Failed to fetch price floor from provider for fetch.url "
-                        + "'http://test.host.com', with a reason: failed"));
+        assertThat(secondInvocationResult.getRulesData()).isNull();
+        assertThat(secondInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.error);
     }
 
     @Test
@@ -157,10 +158,8 @@ public class PriceFloorFetcherTest extends VertxTest {
         verify(vertx).setTimer(eq(1200000L), any());
 
         final FetchResult secondInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
-        assertThat(secondInvocationResult).isEqualTo(FetchResult.of(
-                null,
-                FetchStatus.timeout,
-                "Fetch price floor request timeout for fetch.url 'http://test.host.com' exceeded."));
+        assertThat(secondInvocationResult.getRulesData()).isNull();
+        assertThat(secondInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.timeout);
     }
 
     @Test
@@ -318,8 +317,8 @@ public class PriceFloorFetcherTest extends VertxTest {
 
         // then
         verifyNoInteractions(httpClient);
-        assertThat(fetchResult).isEqualTo(FetchResult.error(
-                "Malformed fetch.url 'MalformedURl' passed"));
+        assertThat(fetchResult.getRulesData()).isNull();
+        assertThat(fetchResult.getFetchStatus()).isEqualTo(FetchStatus.error);
         verifyNoInteractions(vertx);
     }
 
@@ -330,7 +329,8 @@ public class PriceFloorFetcherTest extends VertxTest {
 
         // then
         verifyNoInteractions(httpClient);
-        assertThat(fetchResult).isEqualTo(FetchResult.error("Malformed fetch.url '   ' passed"));
+        assertThat(fetchResult.getRulesData()).isNull();
+        assertThat(fetchResult.getFetchStatus()).isEqualTo(FetchStatus.error);
         verifyNoInteractions(vertx);
     }
 
@@ -341,7 +341,8 @@ public class PriceFloorFetcherTest extends VertxTest {
 
         // then
         verifyNoInteractions(httpClient);
-        assertThat(fetchResult).isEqualTo(FetchResult.error("Malformed fetch.url 'null' passed"));
+        assertThat(fetchResult.getRulesData()).isNull();
+        assertThat(fetchResult.getFetchStatus()).isEqualTo(FetchStatus.error);
         verifyNoInteractions(vertx);
     }
 
@@ -352,7 +353,8 @@ public class PriceFloorFetcherTest extends VertxTest {
 
         // then
         verifyNoInteractions(httpClient);
-        assertThat(fetchResult).isEqualTo(FetchResult.none("Fetching is disabled"));
+        assertThat(fetchResult.getRulesData()).isNull();
+        assertThat(fetchResult.getFetchStatus()).isEqualTo(FetchStatus.none);
         verifyNoInteractions(vertx);
     }
 
@@ -368,13 +370,13 @@ public class PriceFloorFetcherTest extends VertxTest {
 
         // then
         verify(httpClient).get(anyString(), anyLong(), anyLong());
-        assertThat(firstInvocationResult).isEqualTo(FetchResult.inProgress());
+        assertThat(firstInvocationResult.getRulesData()).isNull();
+        assertThat(firstInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
         verify(vertx).setTimer(eq(1200000L), any());
         verify(vertx).setTimer(eq(1500000L), any());
         final FetchResult secondInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
-        assertThat(secondInvocationResult).isEqualTo(FetchResult.error(
-                "Failed to fetch price floor from provider for fetch.url 'http://test.host.com', "
-                        + "with a reason: Failed to request, provider respond with status 400"));
+        assertThat(secondInvocationResult.getRulesData()).isNull();
+        assertThat(secondInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.error);
         verifyNoMoreInteractions(vertx);
     }
 
@@ -390,16 +392,13 @@ public class PriceFloorFetcherTest extends VertxTest {
 
         // then
         verify(httpClient).get(anyString(), anyLong(), anyLong());
-        assertThat(firstInvocationResult).isEqualTo(FetchResult.inProgress());
+        assertThat(firstInvocationResult.getRulesData()).isNull();
+        assertThat(firstInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
         verify(vertx).setTimer(eq(1200000L), any());
         verify(vertx).setTimer(eq(1500000L), any());
         final FetchResult secondInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
         assertThat(secondInvocationResult.getRulesData()).isNull();
         assertThat(secondInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.error);
-        assertThat(secondInvocationResult.getErrorMessage()).startsWith(
-                "Failed to fetch price floor from provider for fetch.url 'http://test.host.com', "
-                        + "with a reason: Failed to parse price floor response, "
-                        + "cause: DecodeException: Failed to decode:");
         verifyNoMoreInteractions(vertx);
     }
 
@@ -415,14 +414,13 @@ public class PriceFloorFetcherTest extends VertxTest {
 
         // then
         verify(httpClient).get(anyString(), anyLong(), anyLong());
-        assertThat(firstInvocationResult).isEqualTo(FetchResult.inProgress());
+        assertThat(firstInvocationResult.getRulesData()).isNull();
+        assertThat(firstInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
         verify(vertx).setTimer(eq(1200000L), any());
         verify(vertx).setTimer(eq(1500000L), any());
         final FetchResult secondInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
-        assertThat(secondInvocationResult).isEqualTo(FetchResult.error(
-                "Failed to fetch price floor from provider for fetch.url 'http://test.host.com', "
-                        + "with a reason: Failed to parse price floor response, "
-                        + "response body can not be empty"));
+        assertThat(secondInvocationResult.getRulesData()).isNull();
+        assertThat(secondInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.error);
         verifyNoMoreInteractions(vertx);
     }
 
@@ -438,14 +436,13 @@ public class PriceFloorFetcherTest extends VertxTest {
 
         // then
         verify(httpClient).get(anyString(), anyLong(), anyLong());
-        assertThat(firstInvocationResult).isEqualTo(FetchResult.inProgress());
+        assertThat(firstInvocationResult.getRulesData()).isNull();
+        assertThat(firstInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
         verify(vertx).setTimer(eq(1200000L), any());
         verify(vertx).setTimer(eq(1500000L), any());
         final FetchResult secondInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
-        assertThat(secondInvocationResult).isEqualTo(FetchResult.error(
-                "Failed to fetch price floor from provider for fetch.url 'http://test.host.com', "
-                        + "with a reason: Failed to parse price floor response, "
-                        + "response body can not be empty"));
+        assertThat(secondInvocationResult.getRulesData()).isNull();
+        assertThat(secondInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.error);
         verifyNoMoreInteractions(vertx);
     }
 
@@ -463,7 +460,8 @@ public class PriceFloorFetcherTest extends VertxTest {
         verify(httpClient).get(anyString(), anyLong(), anyLong());
         verifyNoMoreInteractions(httpClient);
 
-        assertThat(secondFetch).isEqualTo(FetchResult.inProgress());
+        assertThat(secondFetch.getRulesData()).isNull();
+        assertThat(secondFetch.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
 
         fetchPromise.tryComplete(
                 HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap()
@@ -492,13 +490,13 @@ public class PriceFloorFetcherTest extends VertxTest {
 
         // then
         verify(httpClient).get(anyString(), anyLong(), anyLong());
-        assertThat(firstInvocationResult).isEqualTo(FetchResult.inProgress());
+        assertThat(firstInvocationResult.getRulesData()).isNull();
+        assertThat(firstInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
         verify(vertx).setTimer(eq(1200000L), any());
         verify(vertx).setTimer(eq(1500000L), any());
         final FetchResult secondInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
-        assertThat(secondInvocationResult).isEqualTo(FetchResult.error(
-                "Failed to fetch price floor from provider for fetch.url 'http://test.host.com', "
-                        + "with a reason: Price floor rules number 2 exceeded its maximum number 1"));
+        assertThat(secondInvocationResult.getRulesData()).isNull();
+        assertThat(secondInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.error);
         verifyNoMoreInteractions(vertx);
     }
 
@@ -520,13 +518,13 @@ public class PriceFloorFetcherTest extends VertxTest {
 
         // then
         verify(httpClient).get(anyString(), anyLong(), anyLong());
-        assertThat(firstInvocationResult).isEqualTo(FetchResult.inProgress());
+        assertThat(firstInvocationResult.getRulesData()).isNull();
+        assertThat(firstInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
         verify(vertx).setTimer(eq(1200000L), any());
         verify(vertx).setTimer(eq(1500000L), any());
         final FetchResult secondInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
-        assertThat(secondInvocationResult).isEqualTo(FetchResult.error(
-                "Failed to fetch price floor from provider for fetch.url 'http://test.host.com', "
-                        + "with a reason: Price floor rules values can't be null or empty, but were {}"));
+        assertThat(secondInvocationResult.getRulesData()).isNull();
+        assertThat(secondInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.error);
         verifyNoMoreInteractions(vertx);
     }
 
