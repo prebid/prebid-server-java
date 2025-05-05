@@ -6,7 +6,7 @@ import org.prebid.server.functional.model.config.AccountPriceFloorsConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.pricefloors.Country
-import org.prebid.server.functional.model.pricefloors.ModelGroup
+import org.prebid.server.functional.model.pricefloors.FloorModelGroup
 import org.prebid.server.functional.model.pricefloors.PriceFloorData
 import org.prebid.server.functional.model.pricefloors.PriceFloorSchema
 import org.prebid.server.functional.model.pricefloors.Rule
@@ -495,7 +495,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         and: "Set Floors Provider response"
         def floorValue = PBSUtils.randomFloorValue
         def floorsResponse = PriceFloorData.priceFloorData.tap {
-            modelGroups << ModelGroup.modelGroup
+            modelGroups << FloorModelGroup.modelGroup
             modelGroups.first().values = [(rule): floorValue + 0.1]
             modelGroups.last().schema = new PriceFloorSchema(fields: [SITE_DOMAIN])
             modelGroups.last().values = [(new Rule(siteDomain: domain).rule): floorValue]
@@ -1033,7 +1033,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         given: "BidRequest with invalid modelWeight"
         def bidRequest = bidRequestWithFloors.tap {
             ext.prebid.floors.data.modelGroups = [
-                    new ModelGroup(modelWeight: requestModelWeight)
+                    new FloorModelGroup(modelWeight: requestModelWeight)
             ]
         }
 
@@ -1066,7 +1066,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         def requestModelGroupsSkipRate = PBSUtils.getRandomNumber(100)
         def bidRequest = bidRequestWithFloors.tap {
             ext.prebid.floors.data.modelGroups = [
-                    new ModelGroup(skipRate: requestModelGroupsSkipRate)
+                    new FloorModelGroup(skipRate: requestModelGroupsSkipRate)
             ]
         }
 
@@ -1097,7 +1097,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
         def bidRequest = bidRequestWithFloors.tap {
             ext.prebid.floors.data.modelGroups = [
-                    new ModelGroup(defaultFloor: requestModelGroupsSkipRate)
+                    new FloorModelGroup(defaultFloor: requestModelGroupsSkipRate)
             ]
         }
 
