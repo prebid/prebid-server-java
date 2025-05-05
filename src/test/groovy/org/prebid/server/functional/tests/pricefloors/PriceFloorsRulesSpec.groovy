@@ -61,6 +61,7 @@ import static org.prebid.server.functional.model.request.auction.FetchStatus.ERR
 import static org.prebid.server.functional.model.request.auction.Location.NO_DATA
 import static org.prebid.server.functional.model.request.auction.Prebid.Channel
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.RESPONSE_REJECTED_DUE_TO_PRICE_FLOOR
+import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 
 class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
@@ -217,9 +218,14 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         assert bidderRequest.ext?.prebid?.floors?.location == NO_DATA
         assert bidderRequest.ext?.prebid?.floors?.fetchStatus == ERROR
 
-        and: "PBS should not contain errors, warnings"
-        assert !response.ext?.warnings
+        and: "PBS should not contain errors"
         assert !response.ext?.errors
+
+        and: "PBS should log a warning"
+        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.message.first.contains("Cannot deserialize value of type " +
+                "`org.prebid.server.floors.model.PriceFloorField` " +
+                "from String \"bogus\": not one of the values accepted for Enum class")
 
         and: "PBS should not reject the entire auction"
         assert !response.seatbid.isEmpty()
