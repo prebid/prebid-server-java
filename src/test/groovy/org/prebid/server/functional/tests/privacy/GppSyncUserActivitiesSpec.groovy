@@ -59,6 +59,7 @@ import static org.prebid.server.functional.model.config.UsNationalPrivacySection
 import static org.prebid.server.functional.model.pricefloors.Country.CAN
 import static org.prebid.server.functional.model.pricefloors.Country.USA
 import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ADAPTER_DISALLOWED_COUNT
+import static org.prebid.server.functional.model.privacy.Metric.ALERT_GENERAL
 import static org.prebid.server.functional.model.privacy.Metric.PROCESSED_ACTIVITY_RULES_COUNT
 import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_REQUEST_DISALLOWED_COUNT
 import static org.prebid.server.functional.model.request.GppSectionId.USP_V1
@@ -656,7 +657,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[ALERT_GENERAL.getValue()] == 1
     }
 
     def "PBS cookie sync call when privacy module contain invalid code should include proper responded with bidders URLs"() {
@@ -816,7 +817,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[ALERT_GENERAL.getValue()] == 1
     }
 
     def "PBS cookie sync when custom privacy regulation with normalizing should exclude bidders URLs"() {
@@ -1549,7 +1550,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[ALERT_GENERAL.getValue()] == 1
     }
 
     def "PBS setuid request call when privacy module contain invalid code should respond with valid bidders UIDs cookies"() {
@@ -1724,7 +1725,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[ALERT_GENERAL.getValue()] == 1
     }
 
     def "PBS setuid call when custom privacy regulation with normalizing should reject bidders with status code invalidStatusCode"() {
