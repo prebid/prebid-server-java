@@ -111,10 +111,6 @@ class PBSUtils implements ObjectMapperWrapper {
         getRandomDecimal(min, max).setScale(scale, HALF_UP)
     }
 
-    static BigDecimal getRandomPrice(BigDecimal min, BigDecimal max = 10, int scale = 3) {
-        getRandomDecimal(min, max).setScale(scale, HALF_UP)
-    }
-
     static <T extends Enum<T>> T getRandomEnum(Class<T> anEnum, List<T> exclude = []) {
         def values = anEnum.enumConstants.findAll { !exclude.contains(it) } as T[]
         values[getRandomNumber(0, values.size() - 1)]

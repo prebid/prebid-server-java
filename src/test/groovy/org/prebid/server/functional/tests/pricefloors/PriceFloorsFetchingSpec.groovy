@@ -1,10 +1,6 @@
 package org.prebid.server.functional.tests.pricefloors
 
-import org.prebid.server.functional.model.config.AccountAuctionConfig
-import org.prebid.server.functional.model.config.AccountConfig
-import org.prebid.server.functional.model.config.AccountPriceFloorsConfig
 import org.prebid.server.functional.model.config.PriceFloorsFetch
-import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.pricefloors.ModelGroup
 import org.prebid.server.functional.model.pricefloors.PriceFloorData
@@ -1627,19 +1623,19 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
     }
 
     def "PBS shouldn't emit error in log and response when floors is not in request and floors fetching disabled for account"() {
-        given:  "Account with disabled fetching"
-        def priceFloors = new AccountPriceFloorsConfig(enabled: true, fetch: new PriceFloorsFetch(enabled: false))
-        def accountAuctionConfig = new AccountAuctionConfig(priceFloors: priceFloors)
-        def accountConfig = new AccountConfig(auction: accountAuctionConfig)
-        def account = new Account(uuid: bidRequest.accountId, config: accountConfig)
+        given: "Account with disabled fetching"
+        def account = getAccountWithEnabledFetch(bidRequest.accountId).tap {
+            config.auction.priceFloors.fetch.enabled = false
+            config.auction.priceFloors.fetch.url = null
+        }
         accountDao.save(account)
-
-        and: "Flush metrics"
-        flushMetrics(floorsPbsService)
 
         and: "Default bid response"
         def response = BidResponse.getDefaultBidResponse(bidRequest)
         bidder.setResponse(bidRequest.id, response)
+
+        and: "Flush metrics"
+        flushMetrics(floorsPbsService)
 
         when: "PBS processes auction request"
         def bidResponse = floorsPbsService.sendAuctionRequest(bidRequest)
@@ -1669,15 +1665,12 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         bidRequest << [BidRequest.getDefaultBidRequest(), getBidRequestWithFloors().tap { it.ext.prebid.floors = null }]
     }
 
-    def "PBS should emit error in log and response when data is invalid and floors fetching disabled for account and enabled for request"() {
+    def  "PBS should emit error in log and response when floor data is empty and floors fetching disabled for account and enabled for request"() {
         given: "Default BidRequest with empty floors.data"
         def bidRequest = bidRequestWithFloors.tap {
             ext.prebid.floors.enabled = true
             ext.prebid.floors.data = null
         }
-
-        and: "Flush metrics"
-        flushMetrics(floorsPbsService)
 
         and: "Account with disabled fetching"
         def account = getAccountWithEnabledFetch(bidRequest.accountId).tap {
@@ -1688,6 +1681,9 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         and: "Default bid response"
         def response = BidResponse.getDefaultBidResponse(bidRequest)
         bidder.setResponse(bidRequest.id, response)
+
+        and: "Flush metrics"
+        flushMetrics(floorsPbsService)
 
         when: "PBS processes auction request"
         def bidResponse = floorsPbsService.sendAuctionRequest(bidRequest)
@@ -1717,15 +1713,12 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         assert metrics[ALERT_GENERAL] == 1
     }
 
-    def "PBS shouldn't emit error in log and response when data is invalid and floors fetching disabled for account and #requestFloors for request"() {
+    def "PBS shouldn't emit error in log and response when floor data is empty and floors fetching disabled for account and #requestFloors for request"() {
         given: "Default BidRequest with empty floors.data"
         def bidRequest = bidRequestWithFloors.tap {
             ext.prebid.floors.enabled = requestFloors
             ext.prebid.floors.data = null
         }
-
-        and: "Flush metrics"
-        flushMetrics(floorsPbsService)
 
         and: "Account with disabled fetching"
         def account = getAccountWithEnabledFetch(bidRequest.accountId).tap {
@@ -1736,6 +1729,9 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         and: "Default bid response"
         def response = BidResponse.getDefaultBidResponse(bidRequest)
         bidder.setResponse(bidRequest.id, response)
+
+        and: "Flush metrics"
+        flushMetrics(floorsPbsService)
 
         when: "PBS processes auction request"
         def bidResponse = floorsPbsService.sendAuctionRequest(bidRequest)
@@ -1772,12 +1768,12 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         }
         accountDao.save(account)
 
-        and: "Flush metrics"
-        flushMetrics(floorsPbsService)
-
         and: "Default bid response"
         def response = BidResponse.getDefaultBidResponse(bidRequest)
         bidder.setResponse(bidRequest.id, response)
+
+        and: "Flush metrics"
+        flushMetrics(floorsPbsService)
 
         when: "PBS processes auction request"
         def bidResponse = floorsPbsService.sendAuctionRequest(bidRequest)
@@ -1814,9 +1810,6 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
             ext.prebid.floors.data = null
         }
 
-        and: "Flush metrics"
-        flushMetrics(floorsPbsService)
-
         and: "Account with disabled fetching"
         def account = getAccountWithEnabledFetch(bidRequest.accountId).tap {
             config.auction.priceFloors.enabled = false
@@ -1830,6 +1823,9 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         and: "Default bid response"
         def response = BidResponse.getDefaultBidResponse(bidRequest)
         bidder.setResponse(bidRequest.id, response)
+
+        and: "Flush metrics"
+        flushMetrics(floorsPbsService)
 
         when: "PBS processes auction request"
         def bidResponse = floorsPbsService.sendAuctionRequest(bidRequest)

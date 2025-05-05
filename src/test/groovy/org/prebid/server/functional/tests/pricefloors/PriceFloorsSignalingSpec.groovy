@@ -1135,14 +1135,6 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         assert metrics[ALERT_GENERAL] == 1
     }
 
-    def "PBS shouldn't emit error or warning when floors for account configured correctly"() {
-        given: "Bid request without floors"
-        def bidRequest = BidRequest.defaultBidRequest
-
-        and: "PBS fetch rules from floors provider"
-        cacheFloorsProviderRules(bidRequest, floorsPbsService, GENERIC, SUCCESS)
-    }
-
     private static int getSchemaSize(BidRequest bidRequest) {
         bidRequest?.ext?.prebid?.floors?.data?.modelGroups[0].schema.fields.size()
     }

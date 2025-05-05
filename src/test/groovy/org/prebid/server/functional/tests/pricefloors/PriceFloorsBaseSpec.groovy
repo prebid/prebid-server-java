@@ -57,8 +57,7 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
         "No price floor data for account ${bidRequest.accountId} and " +
                 "request ${bidRequest.id}, reason: ${URL_EMPTY_WARNING_MESSAGE("$BASIC_FETCH_URL$bidRequest.accountId", message)}"
     }
-    // Required: Sync no longer logs "in progress"—only "none" or "error" statuses are recorded
-    protected static final String FETCHING_DISABLED_ERROR = 'Fetching is disabled'
+    protected static final String FETCHING_DISABLED_ERROR = "Fetching is disabled"
     protected static final Closure<String> FETCHING_DISABLED_WARNING_MESSAGE = { message ->
         "$FETCHING_DISABLED_ERROR. Following parsing of request price floors is failed: $message"
     }
