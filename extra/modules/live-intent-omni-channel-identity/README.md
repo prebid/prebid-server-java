@@ -16,7 +16,7 @@ hooks:
       "endpoints": {
         "/openrtb2/auction": {
           "stages": {
-            "all-processed-bid-responses": {
+            "processed-auction-request": {
               "groups": [
                 {
                   "timeout": 100,
