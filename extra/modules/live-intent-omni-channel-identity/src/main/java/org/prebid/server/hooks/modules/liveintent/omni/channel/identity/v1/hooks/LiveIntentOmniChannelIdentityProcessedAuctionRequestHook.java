@@ -3,7 +3,6 @@ package org.prebid.server.hooks.modules.liveintent.omni.channel.identity.v1.hook
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.User;
-import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
@@ -43,7 +42,6 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
         this.httpClient = Objects.requireNonNull(httpClient);
     }
 
-    // TODO: Caching
     @Override
     public Future<InvocationResult<AuctionRequestPayload>> call(AuctionRequestPayload auctionRequestPayload, AuctionInvocationContext invocationContext) {
         return requestEnrichment(auctionRequestPayload)
