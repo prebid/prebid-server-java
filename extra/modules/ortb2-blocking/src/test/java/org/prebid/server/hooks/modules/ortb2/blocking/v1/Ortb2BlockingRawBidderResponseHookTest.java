@@ -48,7 +48,7 @@ import static org.assertj.core.api.SoftAssertions.assertSoftly;
 @ExtendWith(MockitoExtension.class)
 public class Ortb2BlockingRawBidderResponseHookTest {
 
-    private static final ObjectMapper mapper = new ObjectMapper()
+    private static final ObjectMapper MAPPER = new ObjectMapper()
             .setPropertyNamingStrategy(PropertyNamingStrategies.KEBAB_CASE)
             .setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
@@ -87,7 +87,7 @@ public class Ortb2BlockingRawBidderResponseHookTest {
     @Test
     public void shouldReturnResultWithNoActionAndErrorWhenInvalidAccountConfig() {
         // given
-        final ObjectNode accountConfig = mapper.createObjectNode()
+        final ObjectNode accountConfig = MAPPER.createObjectNode()
                 .put("attributes", 1);
 
         // when
@@ -108,7 +108,7 @@ public class Ortb2BlockingRawBidderResponseHookTest {
     @Test
     public void shouldReturnResultWithNoActionAndNoErrorWhenInvalidAccountConfigAndDebugDisabled() {
         // given
-        final ObjectNode accountConfig = mapper.createObjectNode()
+        final ObjectNode accountConfig = MAPPER.createObjectNode()
                 .put("attributes", 1);
 
         // when
@@ -176,9 +176,9 @@ public class Ortb2BlockingRawBidderResponseHookTest {
                 asList(
                         ResultImpl.of(
                                 "success-blocked",
-                                mapper.createObjectNode()
-                                        .<ObjectNode>set("adomain", mapper.createArrayNode())
-                                        .set("attributes", mapper.createArrayNode()
+                                MAPPER.createObjectNode()
+                                        .<ObjectNode>set("adomain", MAPPER.createArrayNode())
+                                        .set("attributes", MAPPER.createArrayNode()
                                                 .add("badv")),
                                 AppliedToImpl.builder()
                                         .bidders(singletonList("bidder1"))
@@ -193,10 +193,10 @@ public class Ortb2BlockingRawBidderResponseHookTest {
                                         .build()),
                         ResultImpl.of(
                                 "success-blocked",
-                                mapper.createObjectNode()
-                                        .<ObjectNode>set("adomain", mapper.createArrayNode()
+                                MAPPER.createObjectNode()
+                                        .<ObjectNode>set("adomain", MAPPER.createArrayNode()
                                                 .add("domain2.com"))
-                                        .set("attributes", mapper.createArrayNode()
+                                        .set("attributes", MAPPER.createArrayNode()
                                                 .add("badv")),
                                 AppliedToImpl.builder()
                                         .bidders(singletonList("bidder1"))
@@ -334,6 +334,6 @@ public class Ortb2BlockingRawBidderResponseHookTest {
     }
 
     private static ObjectNode toObjectNode(ModuleConfig config) {
-        return mapper.valueToTree(config);
+        return MAPPER.valueToTree(config);
     }
 }

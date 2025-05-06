@@ -12,4 +12,3 @@ public class Meta {
     List<String> adDomains;
 
 }
-

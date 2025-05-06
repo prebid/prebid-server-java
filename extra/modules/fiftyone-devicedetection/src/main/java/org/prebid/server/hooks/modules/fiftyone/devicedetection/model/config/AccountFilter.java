@@ -6,5 +6,6 @@ import java.util.List;
 
 @Data
 public final class AccountFilter {
+
     List<String> allowList;
 }

@@ -59,7 +59,8 @@ public class ResponseCorrectionAllProcessedBidResponsesHookTest {
         given(invocationContext.accountConfig()).willReturn(MAPPER.valueToTree(Map.of("enabled", emptyList())));
 
         // when
-        final Future<InvocationResult<AllProcessedBidResponsesPayload>> result = target.call(payload, invocationContext);
+        final Future<InvocationResult<AllProcessedBidResponsesPayload>> result =
+                target.call(payload, invocationContext);
 
         //then
         assertThat(result.result()).satisfies(invocationResult -> {
@@ -75,7 +76,8 @@ public class ResponseCorrectionAllProcessedBidResponsesHookTest {
         given(invocationContext.accountConfig()).willReturn(MAPPER.valueToTree(Config.of(false, null)));
 
         // when
-        final Future<InvocationResult<AllProcessedBidResponsesPayload>> result = target.call(payload, invocationContext);
+        final Future<InvocationResult<AllProcessedBidResponsesPayload>> result =
+                target.call(payload, invocationContext);
 
         //then
         assertThat(result.result()).satisfies(invocationResult -> {
@@ -90,7 +92,8 @@ public class ResponseCorrectionAllProcessedBidResponsesHookTest {
         given(responseCorrectionProvider.corrections(any(), any())).willReturn(emptyList());
 
         // when
-        final Future<InvocationResult<AllProcessedBidResponsesPayload>> result = target.call(payload, invocationContext);
+        final Future<InvocationResult<AllProcessedBidResponsesPayload>> result =
+                target.call(payload, invocationContext);
 
         //then
         assertThat(result.result()).satisfies(invocationResult -> {
@@ -106,7 +109,8 @@ public class ResponseCorrectionAllProcessedBidResponsesHookTest {
         given(responseCorrectionProvider.corrections(any(), any())).willReturn(singletonList(correction));
 
         // when
-        final Future<InvocationResult<AllProcessedBidResponsesPayload>> result = target.call(payload, invocationContext);
+        final Future<InvocationResult<AllProcessedBidResponsesPayload>> result =
+                target.call(payload, invocationContext);
 
         //then
         assertThat(result.result()).satisfies(invocationResult -> {

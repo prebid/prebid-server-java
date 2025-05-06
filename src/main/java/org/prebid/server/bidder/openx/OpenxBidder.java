@@ -314,7 +314,12 @@ public class OpenxBidder implements Bidder<BidRequest> {
     }
 
     private static BidType getBidType(Bid bid, Map<String, BidType> impIdToBidType) {
-        return impIdToBidType.getOrDefault(bid.getImpid(), BidType.banner);
+        return switch (bid.getMtype()) {
+            case 1 -> BidType.banner;
+            case 2 -> BidType.video;
+            case 4 -> BidType.xNative;
+            case null, default -> impIdToBidType.getOrDefault(bid.getImpid(), BidType.banner);
+        };
     }
 
     private static List<ExtIgi> extractIgi(OpenxBidResponse bidResponse) {

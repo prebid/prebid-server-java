@@ -3,7 +3,7 @@ package org.prebid.server.auction.mediatypeprocessor;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import org.apache.commons.collections4.SetUtils;
-import org.prebid.server.auction.BidderAliases;
+import org.prebid.server.auction.aliases.BidderAliases;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderInfo;
 import org.prebid.server.bidder.model.BidderError;
