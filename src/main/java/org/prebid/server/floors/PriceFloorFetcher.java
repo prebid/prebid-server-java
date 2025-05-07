@@ -288,7 +288,7 @@ public class PriceFloorFetcher {
                     .formatted(fetchUrl, throwable.getMessage());
         }
 
-        logger.error("Price floor fetching failed for account %s: %s", accountId, errorMessage);
+        logger.error("Price floor fetching failed for account %s: %s".formatted(accountId, errorMessage));
         return Future.succeededFuture(ResponseCacheInfo.withError(fetchStatus, errorMessage));
     }
 
