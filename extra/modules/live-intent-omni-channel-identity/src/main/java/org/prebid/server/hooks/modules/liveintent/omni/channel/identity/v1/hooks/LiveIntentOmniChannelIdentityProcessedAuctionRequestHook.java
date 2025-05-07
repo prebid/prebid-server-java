@@ -23,6 +23,7 @@ import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -40,6 +41,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
             ModuleConfig config,
             JacksonMapper mapper,
             HttpClient httpClient) {
+
         this.config = Objects.requireNonNull(config);
         this.mapper = Objects.requireNonNull(mapper);
         this.httpClient = Objects.requireNonNull(httpClient);
@@ -47,7 +49,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
 
     @Override
     public Future<InvocationResult<AuctionRequestPayload>> call(AuctionRequestPayload auctionRequestPayload, AuctionInvocationContext invocationContext) {
-        Future<InvocationResult<AuctionRequestPayload>> update = requestEnrichment(auctionRequestPayload)
+        final Future<InvocationResult<AuctionRequestPayload>> update = requestEnrichment(auctionRequestPayload)
                 .map(resolutionResult ->
                         InvocationResultImpl.<AuctionRequestPayload>builder()
                                 .status(InvocationStatus.success)
@@ -65,21 +67,21 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
     }
 
     private AuctionRequestPayload updatedPayload(AuctionRequestPayload requestPayload, IdResResponse idResResponse) {
-        BidRequest bidRequest = Optional.ofNullable(requestPayload.bidRequest()).orElse(BidRequest.builder().build());
-        User user = Optional.ofNullable(bidRequest.getUser()).orElse(User.builder().build());
+        final BidRequest bidRequest = Optional.ofNullable(requestPayload.bidRequest()).orElse(BidRequest.builder().build());
+        final User user = Optional.ofNullable(bidRequest.getUser()).orElse(User.builder().build());
 
-        List<Eid> allEids = new ArrayList<>();
-        allEids.addAll(Optional.ofNullable(user.getEids()).orElse(List.of()));
+        final List<Eid> allEids = new ArrayList<>();
+        allEids.addAll(Optional.ofNullable(user.getEids()).orElse(Collections.emptyList()));
         allEids.addAll(idResResponse.getEids());
 
-        User updatedUser = user.toBuilder().eids(allEids).build();
-        BidRequest updatedBidRequest = requestPayload.bidRequest().toBuilder().user(updatedUser).build();
+        final User updatedUser = user.toBuilder().eids(allEids).build();
+        final BidRequest updatedBidRequest = requestPayload.bidRequest().toBuilder().user(updatedUser).build();
 
         return AuctionRequestPayloadImpl.of(updatedBidRequest);
     }
 
     private Future<IdResResponse> requestEnrichment(AuctionRequestPayload auctionRequestPayload) {
-        String bidRequestJson = mapper.encodeToString(auctionRequestPayload.bidRequest());
+        final String bidRequestJson = mapper.encodeToString(auctionRequestPayload.bidRequest());
         return httpClient.post(
                         config.getIdentityResolutionEndpoint(),
                         headers(),

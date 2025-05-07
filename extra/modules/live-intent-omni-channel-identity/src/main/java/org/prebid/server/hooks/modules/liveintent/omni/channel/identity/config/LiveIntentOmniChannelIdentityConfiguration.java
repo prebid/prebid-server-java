@@ -27,8 +27,7 @@ public class LiveIntentOmniChannelIdentityConfiguration {
     @Bean
     Module liveIntentOmniChannelIdentityModule(ModuleConfig config, JacksonMapper mapper, HttpClient httpClient) {
         final Set<? extends Hook<?, ? extends InvocationContext>> hooks = Set.of(
-                new LiveIntentOmniChannelIdentityProcessedAuctionRequestHook(config, mapper, httpClient)
-        );
+                new LiveIntentOmniChannelIdentityProcessedAuctionRequestHook(config, mapper, httpClient));
         return new LiveIntentOmniChannelIdentityModule(hooks);
     }
 }

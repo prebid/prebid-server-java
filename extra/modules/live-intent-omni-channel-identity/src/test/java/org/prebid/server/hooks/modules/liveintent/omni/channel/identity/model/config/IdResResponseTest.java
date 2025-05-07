@@ -19,7 +19,9 @@ public class IdResResponseTest {
 
     @Test
     public void shouldDecodeFromString() {
+        // given
         IdResResponse result = jacksonMapper.decodeValue("{\"eids\": [ { \"source\": \"liveintent.com\", \"uids\": [ { \"atype\": 3, \"id\" : \"some_id\" } ] } ] }", IdResResponse.class);
+        // when and then
         assertThat(result.getEids()).hasSize(1);
         assertThat(result.getEids().getFirst().getSource()).isEqualTo("liveintent.com");
         assertThat(result.getEids().getFirst().getUids()).hasSize(1);

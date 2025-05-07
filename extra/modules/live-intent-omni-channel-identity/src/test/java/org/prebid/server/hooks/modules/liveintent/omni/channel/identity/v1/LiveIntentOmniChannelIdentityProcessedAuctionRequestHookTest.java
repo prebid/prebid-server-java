@@ -7,6 +7,7 @@ import com.iab.openrtb.request.Uid;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
+import org.assertj.core.api.ListAssert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,6 +28,7 @@ import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -64,20 +66,22 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
 
     @Test
     public void shouldAddResolvedEids() {
-        Uid providedUid = Uid.builder().id("id1").atype(2).build();
-        Eid providedEid = Eid.builder().source("some.source.com").uids(List.of(providedUid)).build();
+        // given
+        final Uid providedUid = Uid.builder().id("id1").atype(2).build();
+        final Eid providedEid = Eid.builder().source("some.source.com").uids(Collections.singletonList(providedUid)).build();
 
-        Uid enrichedUid = Uid.builder().id("id2").atype(3).build();
-        Eid enrichedEid = Eid.builder().source("liveintent.com").uids(List.of(enrichedUid)).build();
+        final Uid enrichedUid = Uid.builder().id("id2").atype(3).build();
+        final Eid enrichedEid = Eid.builder().source("liveintent.com").uids(Collections.singletonList(enrichedUid)).build();
 
-        User user = User.builder().eids(List.of(providedEid)).build();
-        BidRequest bidRequest = BidRequest.builder().id("request").user(user).build();
+        final User user = User.builder().eids(Collections.singletonList(providedEid)).build();
+        final BidRequest bidRequest = BidRequest.builder().id("request").user(user).build();
 
-        AuctionInvocationContext auctionInvocationContext = AuctionInvocationContextImpl.of(null, null, false, null, null);
+        final AuctionInvocationContext auctionInvocationContext = AuctionInvocationContextImpl.of(null, null, false, null, null);
 
-        HttpClientResponse mockResponse = mock(HttpClientResponse.class);
+        final HttpClientResponse mockResponse = mock(HttpClientResponse.class);
         when(mockResponse.getBody()).thenReturn("{\"eids\": [ { \"source\": \"" + enrichedEid.getSource() + "\", \"uids\": [ { \"atype\": " + enrichedUid.getAtype() + ", \"id\" : \"" + enrichedUid.getId() + "\" } ] } ] }");
 
+        // when
         when(
                 httpClient.post(
                         eq(moduleConfig.getIdentityResolutionEndpoint()),
@@ -92,27 +96,30 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
                 )
         ).thenReturn(Future.succeededFuture(mockResponse));
 
-        Future<InvocationResult<AuctionRequestPayload>> future = target.call(AuctionRequestPayloadImpl.of(bidRequest), auctionInvocationContext);
-        InvocationResult<AuctionRequestPayload> result = future.result();
+        final Future<InvocationResult<AuctionRequestPayload>> future = target.call(AuctionRequestPayloadImpl.of(bidRequest), auctionInvocationContext);
+        final InvocationResult<AuctionRequestPayload> result = future.result();
 
+        // then
         assertThat(future).isNotNull();
         assertThat(future.succeeded()).isTrue();
         assertThat(result).isNotNull();
         assertThat(result.status()).isEqualTo(InvocationStatus.success);
         assertThat(result.action()).isEqualTo(InvocationAction.update);
-        assertThat(result.payloadUpdate().apply(AuctionRequestPayloadImpl.of(bidRequest)).bidRequest().getUser().getEids()).isEqualTo(List.of(providedEid, enrichedEid));
+        assertThat(result.payloadUpdate().apply(AuctionRequestPayloadImpl.of(bidRequest)).bidRequest().getUser().getEids()).isEqualTo(Collections.singletonList(providedEid).add(enrichedEid));
     }
 
     @Test
     public void shouldCreateUserWhenNotPresent() {
-        Uid enrichedUid = Uid.builder().id("id2").atype(3).build();
-        Eid enrichedEid = Eid.builder().source("liveintent.com").uids(List.of(enrichedUid)).build();
+        // given
+        final Uid enrichedUid = Uid.builder().id("id2").atype(3).build();
+        final Eid enrichedEid = Eid.builder().source("liveintent.com").uids(Collections.singletonList(enrichedUid)).build();
 
-        BidRequest bidRequest = BidRequest.builder().id("request").build();
+        final BidRequest bidRequest = BidRequest.builder().id("request").build();
 
-        AuctionInvocationContext auctionInvocationContext = AuctionInvocationContextImpl.of(null, null, false, null, null);
+        final AuctionInvocationContext auctionInvocationContext = AuctionInvocationContextImpl.of(null, null, false, null, null);
 
-        HttpClientResponse mockResponse = mock(HttpClientResponse.class);
+        // when
+        final HttpClientResponse mockResponse = mock(HttpClientResponse.class);
         when(mockResponse.getBody()).thenReturn("{\"eids\": [{ \"source\": \"" + enrichedEid.getSource() + "\", \"uids\": [{ \"atype\": " + enrichedUid.getAtype() + ", \"id\" : \"" + enrichedUid.getId() + "\" }]}]}");
 
         when(
@@ -129,14 +136,15 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
                 )
         ).thenReturn(Future.succeededFuture(mockResponse));
 
-        Future<InvocationResult<AuctionRequestPayload>> future = target.call(AuctionRequestPayloadImpl.of(bidRequest), auctionInvocationContext);
-        InvocationResult<AuctionRequestPayload> result = future.result();
+        final Future<InvocationResult<AuctionRequestPayload>> future = target.call(AuctionRequestPayloadImpl.of(bidRequest), auctionInvocationContext);
+        final InvocationResult<AuctionRequestPayload> result = future.result();
 
+        // then
         assertThat(future).isNotNull();
         assertThat(future.succeeded()).isTrue();
         assertThat(result).isNotNull();
         assertThat(result.status()).isEqualTo(InvocationStatus.success);
         assertThat(result.action()).isEqualTo(InvocationAction.update);
-        assertThat(result.payloadUpdate().apply(AuctionRequestPayloadImpl.of(bidRequest)).bidRequest().getUser().getEids()).isEqualTo(List.of(enrichedEid));
+        assertThat(result.payloadUpdate().apply(AuctionRequestPayloadImpl.of(bidRequest)).bidRequest().getUser().getEids()).isEqualTo(Collections.singletonList(enrichedEid));
     }
 }
