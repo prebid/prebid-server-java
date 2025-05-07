@@ -261,10 +261,12 @@ public class EpsilonBidder implements Bidder<BidRequest> {
     private static BidType getType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
-                if (imp.getVideo() != null) {
-                    return BidType.video;
-                } else if (imp.getAudio() != null) {
+                if (imp.getAudio() != null) {
                     return BidType.audio;
+                } else if (imp.getXNative() != null) {
+                    return BidType.xNative;
+                } else if (imp.getVideo() != null) {
+                    return BidType.video;
                 } else {
                     return BidType.banner;
                 }
