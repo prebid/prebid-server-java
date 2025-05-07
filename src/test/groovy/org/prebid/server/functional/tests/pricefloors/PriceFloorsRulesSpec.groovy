@@ -9,7 +9,7 @@ import org.prebid.server.functional.model.config.BidderConfig
 import org.prebid.server.functional.model.db.StoredImp
 import org.prebid.server.functional.model.pricefloors.Country
 import org.prebid.server.functional.model.pricefloors.MediaType
-import org.prebid.server.functional.model.pricefloors.ModelGroup
+import org.prebid.server.functional.model.pricefloors.FloorModelGroup
 import org.prebid.server.functional.model.pricefloors.PriceFloorData
 import org.prebid.server.functional.model.pricefloors.PriceFloorSchema
 import org.prebid.server.functional.model.pricefloors.Rule
@@ -191,7 +191,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         and: "Set Floors Provider response"
         def floorValue = PBSUtils.randomFloorValue
         def floorsResponse = PriceFloorData.priceFloorData.tap {
-            modelGroups << ModelGroup.modelGroup
+            modelGroups << FloorModelGroup.modelGroup
             modelGroups[0].schema = new PriceFloorSchema(fields: [BOGUS])
             modelGroups[0].values = [(new Rule(domain: domain).rule): floorValue + 0.1]
             modelGroups[1].schema = new PriceFloorSchema(fields: [DOMAIN])

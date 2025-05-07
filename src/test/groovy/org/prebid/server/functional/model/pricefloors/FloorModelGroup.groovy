@@ -9,7 +9,7 @@ import org.prebid.server.functional.util.PBSUtils
 
 @EqualsAndHashCode
 @ToString(includeNames = true, ignoreNulls = true)
-class ModelGroup {
+class FloorModelGroup {
 
     Currency currency
     Integer skipRate
@@ -21,8 +21,8 @@ class ModelGroup {
     BigDecimal defaultFloor
     List<BidderName> noFloorSignalBidders
 
-    static ModelGroup getModelGroup() {
-        new ModelGroup(
+    static FloorModelGroup getModelGroup() {
+        new FloorModelGroup(
                 currency: Currency.USD,
                 schema: PriceFloorSchema.priceFloorSchema,
                 values: [(new Rule(mediaType: MediaType.MULTIPLE, country: Country.MULTIPLE)
