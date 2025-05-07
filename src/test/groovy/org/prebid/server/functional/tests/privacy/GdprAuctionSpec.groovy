@@ -267,11 +267,11 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         assert seatNonBids.size() == 1
 
         def seatNonBid = seatNonBids[0]
-        assert seatNonBid.seat == GENERIC.value
+        assert seatNonBid.seat == GENERIC
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == REQUEST_BLOCKED_PRIVACY
 
-        and: "seatbid should be empty"
+        and: "Seat bid should be empty"
         assert response.seatbid.isEmpty()
     }
 
