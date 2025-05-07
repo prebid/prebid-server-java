@@ -33,4 +33,49 @@ jobs:
         run: mvn package -DskipUnitTests=true --file extra/pom.xml
 
       - name: Run module tests
-        run: mvn -B verify -DskipUnitTests=true -DskipFunctionalTests=true -DskipModuleFunctionalTests=false -Dtests.max-container-count=5 -DdockerfileName=Dockerfile-modules --file extra/pom.xml
+        id: build
+        run: |
+          set +e
+          mvn -B verify \
+          -DskipUnitTests=true \
+          -DskipFunctionalTests=true \
+          -DskipModuleFunctionalTests=false \
+          -Dtests.max-container-count=5 \
+          -DdockerfileName=Dockerfile-modules \
+          --file extra/pom.xml | tee build_output.txt
+          result=${PIPESTATUS[0]}
+          echo "exit_code=$result" >> "$GITHUB_OUTPUT"
+
+      - name: Extract Failsafe Failures
+        if: steps.build.outputs.exit_code != '0'
+        run: |
+          echo "Looking for failed functional tests..."
+          mkdir -p failsafe-failures
+          find . -type f -path "*/failsafe-reports/*.txt" -exec cp {} failsafe-failures/ \;
+          grep -E "Tests run: [0-9]+, Failures: [1-9][0-9]*" failsafe-failures/* > test_failures.txt || echo "No obvious test failures found."
+          cat test_failures.txt
+
+      - name: Read test failures into output
+        id: test-results
+        if: steps.build.outputs.exit_code != '0'
+        run: |
+          content=$(cat test_failures.txt)
+          echo "content<<EOF" >> $GITHUB_OUTPUT
+          echo "$content" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Comment test failures on PR
+        if: steps.build.outputs.exit_code != '0'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            ❌ **Functional module tests CI Failed**
+            
+            ```
+            ${{ steps.test-results.outputs.content }}
+            ```
+
+      - name: Fail if error is found in logs
+        if: steps.build.outputs.exit_code != '0'
+        run: exit 1
