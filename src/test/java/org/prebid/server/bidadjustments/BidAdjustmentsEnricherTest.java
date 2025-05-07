@@ -1,6 +1,7 @@
 package org.prebid.server.bidadjustments;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import org.junit.jupiter.api.BeforeEach;
@@ -8,49 +9,47 @@ import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.debug.DebugContext;
-import org.prebid.server.bidadjustments.model.BidAdjustments;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidAdjustmentsRule;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.prebid.server.bidadjustments.model.BidAdjustmentType.CPM;
-import static org.prebid.server.bidadjustments.model.BidAdjustmentType.STATIC;
 
-public class BidAdjustmentsRetrieverTest extends VertxTest {
+public class BidAdjustmentsEnricherTest extends VertxTest {
 
-    private BidAdjustmentsRetriever target;
+    private BidAdjustmentsEnricher target;
 
     @BeforeEach
     public void before() {
-        target = new BidAdjustmentsRetriever(jacksonMapper, new JsonMerger(jacksonMapper), 0.0d);
+        target = new BidAdjustmentsEnricher(jacksonMapper, new JsonMerger(jacksonMapper), 0.0d);
     }
 
     @Test
-    public void retrieveShouldReturnEmptyBidAdjustmentsWhenRequestAndAccountAdjustmentsAreAbsent() {
+    public void enrichBidRequestShouldReturnEmptyAdjustmentsWhenRequestAndAccountAdjustmentsAreAbsent() {
         // given
         final List<String> debugMessages = new ArrayList<>();
 
         // when
-        final BidAdjustments actual = target.retrieve(givenAuctionContext(
+        final BidRequest actual = target.enrichBidRequest(givenAuctionContext(
                 null, null, debugMessages, true));
 
         // then
-        assertThat(actual).isEqualTo(BidAdjustments.of(Collections.emptyMap()));
+        assertThat(actual)
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getBidadjustments)
+                .isNull();
         assertThat(debugMessages).isEmpty();
     }
 
     @Test
-    public void retrieveShouldReturnEmptyBidAdjustmentsWhenRequestIsInvalidAndAccountAdjustmentsAreAbsent()
+    public void enrichBidRequestShouldReturnEmptyBidAdjustmentsWhenRequestIsInvalidAndAccountRequestAreAbsent()
             throws JsonProcessingException {
 
         // given
@@ -63,7 +62,7 @@ public class BidAdjustmentsRetrieverTest extends VertxTest {
                         "invalid": [
                           {
                             "adjtype": "invalid",
-                            "value": 0.1,
+                            "value": "0.1",
                             "currency": "USD"
                           }
                         ]
@@ -76,18 +75,22 @@ public class BidAdjustmentsRetrieverTest extends VertxTest {
         final ObjectNode givenRequestAdjustments = (ObjectNode) mapper.readTree(requestAdjustments);
 
         // when
-        final BidAdjustments actual = target.retrieve(givenAuctionContext(
+        final BidRequest actual = target.enrichBidRequest(givenAuctionContext(
                 givenRequestAdjustments, null, debugMessages, true));
 
         // then
-        assertThat(actual).isEqualTo(BidAdjustments.of(Collections.emptyMap()));
+        assertThat(actual)
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getBidadjustments)
+                .isNull();
         assertThat(debugMessages)
                 .containsOnly("bid adjustment from request was invalid: the found rule "
                         + "[adjtype=UNKNOWN, value=0.1, currency=USD] in banner.invalid.invalid is invalid");
     }
 
     @Test
-    public void retrieveShouldReturnRequestBidAdjustmentsWhenAccountAdjustmentsAreAbsent()
+    public void enrichBidRequestShouldReturnRequestBidAdjustmentsWhenAccountRequestAreAbsent()
             throws JsonProcessingException {
 
         // given
@@ -100,7 +103,7 @@ public class BidAdjustmentsRetrieverTest extends VertxTest {
                         "*": [
                           {
                             "adjtype": "cpm",
-                            "value": 0.1,
+                            "value": "0.1",
                             "currency": "USD"
                           }
                         ]
@@ -113,24 +116,22 @@ public class BidAdjustmentsRetrieverTest extends VertxTest {
         final ObjectNode givenRequestAdjustments = (ObjectNode) mapper.readTree(requestAdjustments);
 
         // when
-        final BidAdjustments actual = target.retrieve(givenAuctionContext(
+        final BidRequest actual = target.enrichBidRequest(givenAuctionContext(
                 givenRequestAdjustments, null, debugMessages, true));
 
         // then
-        final BidAdjustments expected = BidAdjustments.of(Map.of(
-                "banner|*|*",
-                List.of(ExtRequestBidAdjustmentsRule.builder()
-                        .adjType(CPM)
-                        .currency("USD")
-                        .value(new BigDecimal("0.1"))
-                        .build())));
+        final JsonNode expected = givenRule("banner", "*", "*", "cpm", "0.1", "USD");
 
-        assertThat(actual).isEqualTo(expected);
+        assertThat(actual)
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getBidadjustments)
+                .isEqualTo(expected);
         assertThat(debugMessages).isEmpty();
     }
 
     @Test
-    public void retrieveShouldReturnAccountBidAdjustmentsWhenRequestAdjustmentsAreAbsent()
+    public void enrichBidRequestShouldReturnAccountBidAdjustmentsWhenRequestRequestAreAbsent()
             throws JsonProcessingException {
 
         // given
@@ -143,7 +144,7 @@ public class BidAdjustmentsRetrieverTest extends VertxTest {
                         "*": [
                           {
                             "adjtype": "invalid",
-                            "value": 0.1,
+                            "value": "0.1",
                             "currency": "USD"
                           }
                         ]
@@ -161,7 +162,7 @@ public class BidAdjustmentsRetrieverTest extends VertxTest {
                         "*": [
                           {
                             "adjtype": "static",
-                            "value": 0.1,
+                            "value": "0.1",
                             "currency": "USD"
                           }
                         ]
@@ -175,26 +176,24 @@ public class BidAdjustmentsRetrieverTest extends VertxTest {
         final ObjectNode givenAccountAdjustments = (ObjectNode) mapper.readTree(accountAdjustments);
 
         // when
-        final BidAdjustments actual = target.retrieve(givenAuctionContext(
+        final BidRequest actual = target.enrichBidRequest(givenAuctionContext(
                 givenRequestAdjustments, givenAccountAdjustments, debugMessages, true));
 
         // then
-        final BidAdjustments expected = BidAdjustments.of(Map.of(
-                "audio|bidder|*",
-                List.of(ExtRequestBidAdjustmentsRule.builder()
-                        .adjType(STATIC)
-                        .currency("USD")
-                        .value(new BigDecimal("0.1"))
-                        .build())));
+        final JsonNode expected = givenRule("audio", "bidder", "*", "static", "0.1", "USD");
 
-        assertThat(actual).isEqualTo(expected);
+        assertThat(actual)
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getBidadjustments)
+                .isEqualTo(expected);
         assertThat(debugMessages)
                 .containsOnly("bid adjustment from request was invalid: the found rule "
                         + "[adjtype=UNKNOWN, value=0.1, currency=USD] in banner.*.* is invalid");
     }
 
     @Test
-    public void retrieveShouldReturnEmptyBidAdjustmentsWhenAccountAndRequestAdjustmentsAreInvalid()
+    public void enrichBidRequestShouldReturnEmptyBidAdjustmentsWhenAccountAndRequestRequestAreInvalid()
             throws JsonProcessingException {
 
         // given
@@ -207,7 +206,7 @@ public class BidAdjustmentsRetrieverTest extends VertxTest {
                         "*": [
                           {
                             "adjtype": "invalid",
-                            "value": 0.1,
+                            "value": "0.1",
                             "currency": "USD"
                           }
                         ]
@@ -225,7 +224,7 @@ public class BidAdjustmentsRetrieverTest extends VertxTest {
                         "*": [
                           {
                             "adjtype": "invalid",
-                            "value": 0.1,
+                            "value": "0.1",
                             "currency": "USD"
                           }
                         ]
@@ -239,20 +238,24 @@ public class BidAdjustmentsRetrieverTest extends VertxTest {
         final ObjectNode givenAccountAdjustments = (ObjectNode) mapper.readTree(accountAdjustments);
 
         // when
-        final BidAdjustments actual = target.retrieve(givenAuctionContext(
+        final BidRequest actual = target.enrichBidRequest(givenAuctionContext(
                 givenRequestAdjustments, givenAccountAdjustments, debugMessages, true));
 
         // then
-        assertThat(actual).isEqualTo(BidAdjustments.of(Collections.emptyMap()));
+        assertThat(actual)
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getBidadjustments)
+                .isNull();
         assertThat(debugMessages).containsExactlyInAnyOrder(
-                        "bid adjustment from request was invalid: the found rule "
-                                + "[adjtype=UNKNOWN, value=0.1, currency=USD] in audio.bidder.* is invalid",
-                        "bid adjustment from account was invalid: the found rule "
-                                + "[adjtype=UNKNOWN, value=0.1, currency=USD] in audio.bidder.* is invalid");
+                "bid adjustment from request was invalid: the found rule "
+                        + "[adjtype=UNKNOWN, value=0.1, currency=USD] in audio.bidder.* is invalid",
+                "bid adjustment from account was invalid: the found rule "
+                        + "[adjtype=UNKNOWN, value=0.1, currency=USD] in audio.bidder.* is invalid");
     }
 
     @Test
-    public void retrieveShouldSkipAddingDebugMessagesWhenDebugIsDisabled() throws JsonProcessingException {
+    public void enrichBidRequestShouldSkipAddingDebugMessagesWhenDebugIsDisabled() throws JsonProcessingException {
         // given
         final List<String> debugMessages = new ArrayList<>();
         final String requestAdjustments = """
@@ -263,7 +266,7 @@ public class BidAdjustmentsRetrieverTest extends VertxTest {
                         "*": [
                           {
                             "adjtype": "invalid",
-                            "value": 0.1,
+                            "value": "0.1",
                             "currency": "USD"
                           }
                         ]
@@ -281,7 +284,7 @@ public class BidAdjustmentsRetrieverTest extends VertxTest {
                         "*": [
                           {
                             "adjtype": "invalid",
-                            "value": 0.1,
+                            "value": "0.1",
                             "currency": "USD"
                           }
                         ]
@@ -295,16 +298,20 @@ public class BidAdjustmentsRetrieverTest extends VertxTest {
         final ObjectNode givenAccountAdjustments = (ObjectNode) mapper.readTree(accountAdjustments);
 
         // when
-        final BidAdjustments actual = target.retrieve(givenAuctionContext(
+        final BidRequest actual = target.enrichBidRequest(givenAuctionContext(
                 givenRequestAdjustments, givenAccountAdjustments, debugMessages, false));
 
         // then
-        assertThat(actual).isEqualTo(BidAdjustments.of(Collections.emptyMap()));
+        assertThat(actual)
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getBidadjustments)
+                .isNull();
         assertThat(debugMessages).isEmpty();
     }
 
     @Test
-    public void retrieveShouldReturnMergedAccountIntoRequestAdjustments() throws JsonProcessingException {
+    public void enrichBidRequestShouldReturnMergedAccountIntoRequestRequest() throws JsonProcessingException {
         // given
         final List<String> debugMessages = new ArrayList<>();
         final String requestAdjustments = """
@@ -315,7 +322,7 @@ public class BidAdjustmentsRetrieverTest extends VertxTest {
                         "*": [
                           {
                             "adjtype": "cpm",
-                            "value": 0.1,
+                            "value": "0.1",
                             "currency": "USD"
                           }
                         ]
@@ -333,14 +340,14 @@ public class BidAdjustmentsRetrieverTest extends VertxTest {
                         "dealId": [
                           {
                             "adjtype": "cpm",
-                            "value": 0.3,
+                            "value": "0.3",
                             "currency": "USD"
                           }
                         ],
                         "*": [
                           {
                             "adjtype": "static",
-                            "value": 0.2,
+                            "value": "0.2",
                             "currency": "USD"
                           }
                         ]
@@ -354,25 +361,22 @@ public class BidAdjustmentsRetrieverTest extends VertxTest {
         final ObjectNode givenAccountAdjustments = (ObjectNode) mapper.readTree(accountAdjustments);
 
         // when
-        final BidAdjustments actual = target.retrieve(givenAuctionContext(
+        final BidRequest actual = target.enrichBidRequest(givenAuctionContext(
                 givenRequestAdjustments, givenAccountAdjustments, debugMessages, true));
 
         // then
-        final BidAdjustments expected = BidAdjustments.of(Map.of(
-                "banner|*|dealId",
-                List.of(ExtRequestBidAdjustmentsRule.builder()
-                        .adjType(CPM)
-                        .currency("USD")
-                        .value(new BigDecimal("0.3"))
-                        .build()),
-                "banner|*|*",
-                List.of(ExtRequestBidAdjustmentsRule.builder()
-                        .adjType(CPM)
-                        .currency("USD")
-                        .value(new BigDecimal("0.1"))
-                        .build())));
+        final JsonNode expected = mapper.valueToTree(
+                Map.of("mediatype", Map.of("banner", Map.of("*", Map.of(
+                        "*", mapper.createArrayNode().add(mapper.createObjectNode()
+                                .put("adjtype", "cpm").put("value", "0.1").put("currency", "USD")),
+                        "dealId", mapper.createArrayNode().add(mapper.createObjectNode()
+                                .put("adjtype", "cpm").put("value", "0.3").put("currency", "USD")))))));
 
-        assertThat(actual).isEqualTo(expected);
+        assertThat(actual)
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getBidadjustments)
+                .isEqualTo(expected);
         assertThat(debugMessages).isEmpty();
     }
 
@@ -391,6 +395,21 @@ public class BidAdjustmentsRetrieverTest extends VertxTest {
                         .build())
                 .debugWarnings(debugWarnings)
                 .build();
+    }
+
+    private static JsonNode givenRule(String mediaType,
+                                      String bidder,
+                                      String dealId,
+                                      String adjtype,
+                                      String value,
+                                      String currency) {
+
+        return mapper.valueToTree(
+                Map.of("mediatype", Map.of(mediaType, Map.of(bidder, Map.of(dealId, mapper.createArrayNode()
+                        .add(mapper.createObjectNode()
+                                .put("adjtype", adjtype)
+                                .put("value", value)
+                                .put("currency", currency)))))));
     }
 
 }

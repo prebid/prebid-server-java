@@ -3,8 +3,10 @@ package org.prebid.server.floors;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import org.apache.commons.lang3.ObjectUtils;
-import org.prebid.server.auction.adjustment.FloorAdjustmentFactorResolver;
+import org.prebid.server.bidadjustments.FloorAdjustmentFactorResolver;
+import org.prebid.server.bidadjustments.FloorAdjustmentsResolver;
 import org.prebid.server.bidder.model.Price;
+import org.prebid.server.exception.PreBidException;
 import org.prebid.server.floors.model.PriceFloorEnforcement;
 import org.prebid.server.floors.model.PriceFloorRules;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
@@ -22,6 +24,7 @@ import java.math.RoundingMode;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
 
@@ -30,12 +33,15 @@ public class BasicPriceFloorAdjuster implements PriceFloorAdjuster {
     private static final int ADJUSTMENT_SCALE = 4;
     private static final BiFunction<BigDecimal, BigDecimal, BigDecimal> DIVIDE_FUNCTION =
             (priceFloor, factor) -> priceFloor.divide(factor, ADJUSTMENT_SCALE, RoundingMode.HALF_EVEN);
-    private static final BiFunction<BigDecimal, BigDecimal, BigDecimal> MULTIPLY_FUNCTION = BigDecimal::multiply;
 
     private final FloorAdjustmentFactorResolver floorAdjustmentFactorResolver;
+    private final FloorAdjustmentsResolver floorAdjustmentsResolver;
 
-    public BasicPriceFloorAdjuster(FloorAdjustmentFactorResolver floorAdjustmentFactorResolver) {
+    public BasicPriceFloorAdjuster(FloorAdjustmentFactorResolver floorAdjustmentFactorResolver,
+                                   FloorAdjustmentsResolver floorAdjustmentsResolver) {
+
         this.floorAdjustmentFactorResolver = Objects.requireNonNull(floorAdjustmentFactorResolver);
+        this.floorAdjustmentsResolver = Objects.requireNonNull(floorAdjustmentsResolver);
     }
 
     @Override
@@ -45,36 +51,38 @@ public class BasicPriceFloorAdjuster implements PriceFloorAdjuster {
                               Account account,
                               List<String> debugWarnings) {
 
-        return adjust(imp, bidder, bidRequest, account, DIVIDE_FUNCTION);
-    }
-
-    @Override
-    public Price revertAdjustmentForImp(Imp imp, String bidder, BidRequest bidRequest, Account account) {
-        return adjust(imp, bidder, bidRequest, account, MULTIPLY_FUNCTION);
-    }
-
-    private Price adjust(Imp imp,
-                         String bidder,
-                         BidRequest bidRequest,
-                         Account account,
-                         BiFunction<BigDecimal, BigDecimal, BigDecimal> function) {
-
-        final ExtRequestBidAdjustmentFactors extractBidAdjustmentFactors = extractBidAdjustmentFactors(bidRequest);
+        final ExtRequestBidAdjustmentFactors bidAdjustmentFactors = extractBidAdjustmentFactors(bidRequest);
         final BigDecimal impBidFloor = imp.getBidfloor();
 
-        if (!shouldAdjustBidFloor(bidRequest, account) || impBidFloor == null || extractBidAdjustmentFactors == null) {
+        if (!shouldAdjustBidFloor(bidRequest, account) || impBidFloor == null) {
             return Price.of(imp.getBidfloorcur(), impBidFloor);
         }
 
-        final Set<ImpMediaType> impMediaTypes = retrieveImpMediaTypes(imp);
-        final BigDecimal factor = floorAdjustmentFactorResolver.resolve(
-                impMediaTypes, extractBidAdjustmentFactors, bidder);
+        final Set<ImpMediaType> mediaTypes = retrieveImpMediaTypes(imp);
 
-        final BigDecimal adjustedBidFloor = factor != null && factor.compareTo(BigDecimal.ONE) != 0
-                ? BidderUtil.roundFloor(function.apply(impBidFloor, factor))
-                : impBidFloor;
+        Price adjustedBidFloor = Price.of(imp.getBidfloorcur(), impBidFloor);
+        if (bidAdjustmentFactors != null) {
+            final BigDecimal factor = floorAdjustmentFactorResolver.resolve(mediaTypes, bidAdjustmentFactors, bidder);
 
-        return Price.of(imp.getBidfloorcur(), adjustedBidFloor);
+            final BigDecimal adjustedBidFloorValue = factor != null && factor.compareTo(BigDecimal.ONE) != 0
+                    ? BidderUtil.roundFloor(DIVIDE_FUNCTION.apply(impBidFloor, factor))
+                    : impBidFloor;
+
+            adjustedBidFloor = Price.of(imp.getBidfloorcur(), adjustedBidFloorValue);
+        }
+
+        try {
+            return floorAdjustmentsResolver.resolve(adjustedBidFloor, bidRequest, mediaTypes, bidder);
+        } catch (PreBidException e) {
+            return adjustedBidFloor;
+        }
+    }
+
+    private static ExtRequestBidAdjustmentFactors extractBidAdjustmentFactors(BidRequest bidRequest) {
+        return Optional.ofNullable(bidRequest.getExt())
+                .map(ExtRequest::getPrebid)
+                .map(ExtRequestPrebid::getBidadjustmentfactors)
+                .orElse(null);
     }
 
     private static boolean shouldAdjustBidFloor(BidRequest bidRequest, Account account) {
@@ -95,7 +103,7 @@ public class BasicPriceFloorAdjuster implements PriceFloorAdjuster {
         if (imp.getVideo() != null) {
             final Integer placement = imp.getVideo().getPlacement();
             if (placement == null || Objects.equals(placement, 1)) {
-                availableMediaTypes.add(ImpMediaType.video);
+                availableMediaTypes.add(ImpMediaType.video_instream);
             } else {
                 availableMediaTypes.add(ImpMediaType.video_outstream);
             }
@@ -125,12 +133,5 @@ public class BasicPriceFloorAdjuster implements PriceFloorAdjuster {
                 ObjectUtil.getIfNotNull(auctionConfig, AccountAuctionConfig::getPriceFloors);
 
         return ObjectUtil.getIfNotNull(floorsConfig, AccountPriceFloorsConfig::getAdjustForBidAdjustment);
-    }
-
-    private static ExtRequestBidAdjustmentFactors extractBidAdjustmentFactors(BidRequest bidRequest) {
-        final ExtRequest extRequest = bidRequest.getExt();
-        final ExtRequestPrebid extPrebid = ObjectUtil.getIfNotNull(extRequest, ExtRequest::getPrebid);
-
-        return ObjectUtil.getIfNotNull(extPrebid, ExtRequestPrebid::getBidadjustmentfactors);
     }
 }
