@@ -1,10 +1,12 @@
 # Overview
 
-This module enriches bid requests with user IDs that it adds to the user EIDs. 
+This module enriches bid requests with user IDs that it adds to the user EIDs.
 
-The user IDs to be enriched are configured on LiveIntent's side. The set of user IDs accessible by a partner are determined by the auth token provided in the settings.
+The user IDs to be enriched are configured on LiveIntent's side. The set of user IDs accessible by a partner are
+determined by the auth token provided in the settings.
 
 ## Configuration
+
 To start using the LiveIntent Omni Channel Identity module you have to enable it and add configuration:
 
 ```yaml
