@@ -1,0 +1,48 @@
+{
+  "id": "123456789",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "0213b3e3-c59a-4129-aba5-458ad77b2d30",
+          "impid": "123456789",
+          "price": 0.6018685301576561,
+          "nurl": "https://adwin.startappservice.com/adwin/api/v1.0/adwin?d=dparam",
+          "lurl": "https://img.image.com/product/image.jpg",
+          "adm": "<VAST version=\"4.0\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns=\"http://www.iab.com/VAST\">\n  <Ad id=\"20008\" sequence=\"1\" conditionalAd=\"false\">\n    <InLine>\n      <AdSystem version=\"4.0\">iabtechlab</AdSystem>\n      <Error>http://example.com/error</Error>\n      <Extensions>\n        <Extension type=\"iab-Count\">\n          <total_available>\n            <![CDATA[ 2 ]]>\n          </total_available>\n        </Extension>\n      </Extensions>\n      <Impression id=\"Impression-ID\">http://example.com/track/impression</Impression>\n      <Pricing model=\"cpm\" currency=\"USD\">\n        <![CDATA[ 0.00 ]]>\n      </Pricing>\n      <AdTitle>iabtechlab video ad</AdTitle>\n      <Category authority=\"http://www.iabtechlab.com/categoryauthority\">AD CONTENT description category</Category>\n      <Creatives>\n        <Creative id=\"5480\" sequence=\"1\" adId=\"2447226\">\n          <UniversalAdId idRegistry=\"Ad-ID\" idValue=\"8465\">8465</UniversalAdId>\n          <Linear>\n            <TrackingEvents>\n              <Tracking event=\"start\">http://example.com/tracking/start</Tracking>\n              <Tracking event=\"firstQuartile\">http://example.com/tracking/firstQuartile</Tracking>\n              <Tracking event=\"midpoint\">http://example.com/tracking/midpoint</Tracking>\n              <Tracking event=\"thirdQuartile\">http://example.com/tracking/thirdQuartile</Tracking>\n              <Tracking event=\"complete\">http://example.com/tracking/complete</Tracking>\n              <Tracking event=\"progress\" offset=\"00:00:10\">http://example.com/tracking/progress-10</Tracking>\n            </TrackingEvents>\n            <Duration>00:00:16</Duration>\n            <MediaFiles>\n              <MediaFile id=\"5241\" delivery=\"progressive\" type=\"video/mp4\" bitrate=\"2000\" width=\"1280\" height=\"720\" minBitrate=\"1500\" maxBitrate=\"2500\" scalable=\"1\" maintainAspectRatio=\"1\" codec=\"H.264\">\n                <![CDATA[https://iab-publicfiles.s3.amazonaws.com/vast/VAST-4.0-Short-Intro.mp4]]>\n              </MediaFile>\n              <MediaFile id=\"5244\" delivery=\"progressive\" type=\"video/mp4\" bitrate=\"1000\" width=\"854\" height=\"480\" minBitrate=\"700\" maxBitrate=\"1500\" scalable=\"1\" maintainAspectRatio=\"1\" codec=\"H.264\">\n                <![CDATA[https://iab-publicfiles.s3.amazonaws.com/vast/VAST-4.0-Short-Intro-mid-resolution.mp4]]>\n              </MediaFile>\n              <MediaFile id=\"5246\" delivery=\"progressive\" type=\"video/mp4\" bitrate=\"600\" width=\"640\" height=\"360\" minBitrate=\"500\" maxBitrate=\"700\" scalable=\"1\" maintainAspectRatio=\"1\" codec=\"H.264\">\n                <![CDATA[https://iab-publicfiles.s3.amazonaws.com/vast/VAST-4.0-Short-Intro-low-resolution.mp4]]>\n              </MediaFile>\n            </MediaFiles>\n            <VideoClicks>\n              <ClickThrough id=\"blog\">\n                <![CDATA[https://iabtechlab.com]]>\n              </ClickThrough>\n            </VideoClicks>\n          </Linear>\n        </Creative>\n      </Creatives>\n    </InLine>\n  </Ad>\n</VAST>\n",
+          "adomain": [
+            "start.io"
+          ],
+          "iurl": "https://adimpression.startappservice.com/adimpression/api/v1.0/adimp?d=dparam",
+          "cid": "9147870261277510647",
+          "crid": "4176712578365726823",
+          "cat": [
+            "IAB0"
+          ],
+          "w": 480,
+          "h": 320,
+          "exp": 1500,
+          "ext": {
+            "origbidcpm": 0.6018685301576561,
+            "origbidcur": "USD",
+            "prebid": {
+              "type": "video"
+            }
+          }
+        }
+      ],
+      "seat": "startio",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "startio": "{{ startio.response_time_ms }}"
+    },
+    "tmaxrequest": 485,
+    "prebid": {
+      "auctiontimestamp": 0
+    }
+  }
+}
