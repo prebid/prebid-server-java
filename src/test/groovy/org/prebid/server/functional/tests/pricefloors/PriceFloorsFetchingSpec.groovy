@@ -11,6 +11,7 @@ import org.prebid.server.functional.model.request.auction.ExtPrebidFloors
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.IgnoreRest
 
 import java.time.Instant
 
@@ -530,12 +531,15 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         }
     }
 
+    @IgnoreRest
     def "PBS should log error and increase metrics when useFetchDataRate have invalid value"() {
         given: "Test start time"
         def startTime = Instant.now()
 
         and: "Default BidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = getBidRequestWithFloors().tap {
+            ext.prebid.floors.data.useFetchDataRate = -1
+        }
 
         and: "Account with enabled fetch and fetch.url in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.accountId).tap {

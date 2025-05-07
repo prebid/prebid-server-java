@@ -17,6 +17,7 @@ import org.prebid.server.functional.model.request.auction.Video
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.MediaType
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.IgnoreRest
 
 import java.time.Instant
 
@@ -910,7 +911,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
         and: "PBS should log a errors"
         def logs = floorsPbsService.getLogsByTime(startTime)
-        def floorsLogs = getLogsByText(logs, "No price floor data for account $ampRequest.account and " +
+        def floorsLogs = getLogsByText(logs, "Price Floors can't be resolved for account $ampRequest.account and " +
                 "request $ampStoredRequest.id, reason: ${FETCHING_DISABLED_WARNING_MESSAGE(message)}")
         assert floorsLogs.size() == 1
 
@@ -1097,9 +1098,18 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         assert metrics[ALERT_GENERAL] == 1
     }
 
+//    @IgnoreRest
     def "PBS should emit error in log and response when account have disabled dynamic data config"() {
         given: "Bid request without floors"
-        def bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = getBidRequestWithFloors().tap {
+            ext.prebid.floors.data = null
+        }
+
+        def floorValue = PBSUtils.randomFloorValue
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].values = [(rule): floorValue]
+            useFetchDataRate = -100
+        }
 
         and: "Account with disabled dynamic data"
         def account = getAccountWithEnabledFetch(bidRequest.accountId).tap {

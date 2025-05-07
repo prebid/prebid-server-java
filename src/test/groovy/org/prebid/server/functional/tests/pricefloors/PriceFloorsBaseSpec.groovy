@@ -37,34 +37,40 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
     public static final BigDecimal FLOOR_MAX = 2
     public static final Map<String, String> FLOORS_CONFIG = ["price-floors.enabled": "true"]
 
+    protected static final FloorsProvider floorsProvider = new FloorsProvider(networkServiceContainer)
+
     protected static final String BASIC_FETCH_URL = networkServiceContainer.rootUri + FloorsProvider.FLOORS_ENDPOINT
     protected static final int MAX_MODEL_WEIGHT = 100
+    protected static final Closure<String> INVALID_CONFIG_METRIC = { account -> "alerts.account_config.${account}.price-floors" }
+
+    protected static final Closure<String> URL_EMPTY_ERROR = { url ->
+        "Failed to fetch price floor from provider for fetch.url '${url}'"
+    }
+    protected static final Closure<String> URL_EMPTY_WARNING_MESSAGE = { url, message ->
+        PRICE_FLOORS_WARNING_MESSAGE(URL_EMPTY_ERROR(url), "Reason: $message")
+    }
+    protected static final Closure<String> URL_EMPTY_ERROR_LOG = { bidRequest, message ->
+        PRICE_FLOORS_ERROR_LOG(bidRequest, URL_EMPTY_WARNING_MESSAGE("$BASIC_FETCH_URL${bidRequest.accountId}", message))
+    }
+    protected static final String FETCHING_DISABLED_ERROR = "Fetching is disabled"
+    protected static final Closure<String> FETCHING_DISABLED_WARNING_MESSAGE = { message ->
+        PRICE_FLOORS_WARNING_MESSAGE(FETCHING_DISABLED_ERROR, "Following parsing of request price floors is failed: $message")
+    }
+    protected static final Closure<String> FETCHING_DISABLED_ERROR_LOG = { bidRequest, message ->
+        PRICE_FLOORS_ERROR_LOG(bidRequest, FETCHING_DISABLED_WARNING_MESSAGE(message))
+    }
+    private static final Closure<String> PRICE_FLOORS_WARNING_MESSAGE = { reason, details ->
+        "Price floors processing failed: $reason. $details"
+    }
+    private static final Closure<String> PRICE_FLOORS_ERROR_LOG = { bidRequest, warningMessage ->
+        "Price Floors can't be resolved for account ${bidRequest.accountId} and request ${bidRequest.id}, reason: $warningMessage"
+    }
 
     private static final int DEFAULT_MODEL_WEIGHT = 1
     private static final int CURRENCY_CONVERSION_PRECISION = 3
     private static final int FLOOR_VALUE_PRECISION = 4
 
-    protected static final FloorsProvider floorsProvider = new FloorsProvider(networkServiceContainer)
     protected final PrebidServerService floorsPbsService = pbsServiceFactory.getService(FLOORS_CONFIG + GENERIC_ALIAS_CONFIG)
-
-    protected static final Closure<String> INVALID_CONFIG_METRIC = { account -> "alerts.account_config.${account}.price-floors" }
-
-    protected static final Closure<String> URL_EMPTY_ERROR = { url -> "Failed to fetch price floor from provider for fetch.url '${url}'" }
-    protected static final Closure<String> URL_EMPTY_WARNING_MESSAGE = { url, message ->
-        "${URL_EMPTY_ERROR(url)}, with a reason: $message"
-    }
-    protected static final Closure<String> URL_EMPTY_ERROR_LOG = { bidRequest, message ->
-        "No price floor data for account ${bidRequest.accountId} and " +
-                "request ${bidRequest.id}, reason: ${URL_EMPTY_WARNING_MESSAGE("$BASIC_FETCH_URL$bidRequest.accountId", message)}"
-    }
-    protected static final String FETCHING_DISABLED_ERROR = "Fetching is disabled"
-    protected static final Closure<String> FETCHING_DISABLED_WARNING_MESSAGE = { message ->
-        "$FETCHING_DISABLED_ERROR. Following parsing of request price floors is failed: $message"
-    }
-    protected static final Closure<String> FETCHING_DISABLED_ERROR_LOG = { bidRequest, message ->
-        "No price floor data for account ${bidRequest.accountId} and " +
-                "request ${bidRequest.id}, reason: ${FETCHING_DISABLED_WARNING_MESSAGE(message)}"
-    }
 
     def setupSpec() {
         floorsProvider.setResponse()
