@@ -17,7 +17,6 @@ import org.prebid.server.functional.model.request.auction.Video
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.MediaType
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.IgnoreRest
 
 import java.time.Instant
 
@@ -80,7 +79,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         and: "PBS shouldn't log a errors"
         def message = 'Price floor rules data must be present'
         def logs = floorsPbsService.getLogsByTime(startTime)
-        def floorsLogs = getLogsByText(logs, FETCHING_DISABLED_ERROR_LOG(bidRequest, message))
+        def floorsLogs = getLogsByText(logs, PRICE_FLOORS_ERROR_LOG(bidRequest, FETCHING_DISABLED_ERROR, message))
         assert !floorsLogs.size()
 
         and: "Alerts.general metrics shouldn't be populated"
@@ -607,7 +606,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         then: "PBS should log a warning"
         def message = "Price floor rules number ${getRuleSize(bidRequest)} exceeded its maximum number ${MAX_RULES_SIZE}"
         assert response.ext?.warnings[PREBID]*.code == [999]
-        assert response.ext?.warnings[PREBID]*.message == [FETCHING_DISABLED_WARNING_MESSAGE(message)]
+        assert response.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE(message)]
 
         and: "Alerts.general metrics should be populated"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
@@ -648,7 +647,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         then: "PBS should log a warning"
         def message = "Price floor schema dimensions ${getSchemaSize(bidRequest)} exceeded its maximum number ${MAX_SCHEMA_DIMENSIONS_SIZE}"
         assert response.ext?.warnings[PREBID]*.code == [999]
-        assert response.ext?.warnings[PREBID]*.message == [FETCHING_DISABLED_WARNING_MESSAGE(message)]
+        assert response.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE(message)]
 
         and: "Alerts.general metrics should be populated"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
@@ -695,11 +694,11 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         then: "PBS should log a warning"
         def message = "Price floor schema dimensions ${getSchemaSize(bidRequest)} exceeded its maximum number ${MAX_SCHEMA_DIMENSIONS_SIZE}"
         assert response.ext?.warnings[PREBID]*.code == [999]
-        assert response.ext?.warnings[PREBID]*.message == [FETCHING_DISABLED_WARNING_MESSAGE(message)]
+        assert response.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE(message)]
 
         and: "PBS should log a errors"
         def logs = floorsPbsService.getLogsByTime(startTime)
-        def floorsLogs = getLogsByText(logs, FETCHING_DISABLED_ERROR_LOG(bidRequest, message))
+        def floorsLogs = getLogsByText(logs, PRICE_FLOORS_ERROR_LOG(bidRequest, FETCHING_DISABLED_ERROR, message))
         assert floorsLogs.size() == 1
 
         and: "Metrics should be updated"
@@ -748,11 +747,11 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         then: "Response should includer error warning"
         def message = "Price floor schema dimensions ${getSchemaSize(bidRequest)} exceeded its maximum number ${MAX_SCHEMA_DIMENSIONS_SIZE}"
         assert response.ext?.warnings[PREBID]*.code == [999]
-        assert response.ext?.warnings[PREBID]*.message == [FETCHING_DISABLED_WARNING_MESSAGE(message)]
+        assert response.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE(message)]
 
         and: "PBS shouldn't log a errors"
         def logs = floorsPbsService.getLogsByTime(startTime)
-        def floorsLogs = getLogsByText(logs, FETCHING_DISABLED_ERROR_LOG(bidRequest, message))
+        def floorsLogs = getLogsByText(logs, PRICE_FLOORS_ERROR_LOG(bidRequest, FETCHING_DISABLED_ERROR, message))
         assert floorsLogs.size() == 1
 
         and: "Metrics should be updated"
@@ -789,11 +788,11 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         then: "PBS should log a warning"
         def message = "Price floor schema dimensions ${getSchemaSize(bidRequest)} exceeded its maximum number ${MAX_SCHEMA_DIMENSIONS_SIZE}"
         assert response.ext?.warnings[PREBID]*.code == [999]
-        assert response.ext?.warnings[PREBID]*.message == [FETCHING_DISABLED_WARNING_MESSAGE(message)]
+        assert response.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE(message)]
 
         and: "PBS should log a errors"
         def logs = floorsPbsService.getLogsByTime(startTime)
-        def floorsLogs = getLogsByText(logs, FETCHING_DISABLED_ERROR_LOG(bidRequest, message))
+        def floorsLogs = getLogsByText(logs, PRICE_FLOORS_ERROR_LOG(bidRequest, FETCHING_DISABLED_ERROR, message))
         assert floorsLogs.size() == 1
 
         and: "Alerts.general metrics should be populated"
@@ -834,11 +833,11 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         def message = "Price floor schema dimensions ${floorSchemaFilesSize} " +
                 "exceeded its maximum number ${MAX_SCHEMA_DIMENSIONS_SIZE}"
         assert response.ext?.warnings[PREBID]*.code == [999]
-        assert response.ext?.warnings[PREBID]*.message == [FETCHING_DISABLED_WARNING_MESSAGE(message)]
+        assert response.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE(message)]
 
         and: "PBS should log a errors"
         def logs = floorsPbsService.getLogsByTime(startTime)
-        def floorsLogs = getLogsByText(logs, FETCHING_DISABLED_ERROR_LOG(bidRequest, message))
+        def floorsLogs = getLogsByText(logs, PRICE_FLOORS_ERROR_LOG(bidRequest, FETCHING_DISABLED_ERROR, message))
         assert floorsLogs.size() == 1
 
         and: "Alerts.general metrics should be populated"
@@ -907,12 +906,13 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         def message = "Price floor rules number ${getRuleSize(ampStoredRequest)} " +
                 "exceeded its maximum number ${MAX_RULES_SIZE}"
         assert response.ext?.warnings[PREBID]*.code == [999]
-        assert response.ext?.warnings[PREBID]*.message == [FETCHING_DISABLED_WARNING_MESSAGE(message)]
+        assert response.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE(message)]
 
         and: "PBS should log a errors"
         def logs = floorsPbsService.getLogsByTime(startTime)
         def floorsLogs = getLogsByText(logs, "Price Floors can't be resolved for account $ampRequest.account and " +
-                "request $ampStoredRequest.id, reason: ${FETCHING_DISABLED_WARNING_MESSAGE(message)}")
+                "request $ampStoredRequest.id, reason: Price floors processing failed: Fetching is disabled. " +
+                "Following parsing of request price floors is failed: $message")
         assert floorsLogs.size() == 1
 
         and: "Alerts.general metrics should be populated"
@@ -944,11 +944,11 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         then: "PBS should log a warning"
         def message = "Price floor data skipRate must be in range(0-100), but was $requestSkipRate"
         assert bidResponse.ext?.warnings[PREBID]*.code == [999]
-        assert bidResponse.ext?.warnings[PREBID]*.message == [FETCHING_DISABLED_WARNING_MESSAGE(message)]
+        assert bidResponse.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE(message)]
 
         and: "PBS should log a errors"
         def logs = floorsPbsService.getLogsByTime(startTime)
-        def floorsLogs = getLogsByText(logs, FETCHING_DISABLED_ERROR_LOG(bidRequest, message))
+        def floorsLogs = getLogsByText(logs, PRICE_FLOORS_ERROR_LOG(bidRequest, FETCHING_DISABLED_ERROR, message))
         assert floorsLogs.size() == 1
 
         and: "Alerts.general metrics should be populated"
@@ -978,11 +978,11 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         then: "PBS should log a warning"
         def message = "Price floor rules should contain at least one model group"
         assert bidResponse.ext?.warnings[PREBID]*.code == [999]
-        assert bidResponse.ext?.warnings[PREBID]*.message == [FETCHING_DISABLED_WARNING_MESSAGE(message)]
+        assert bidResponse.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE(message)]
 
         and: "PBS should log a errors"
         def logs = floorsPbsService.getLogsByTime(startTime)
-        def floorsLogs = getLogsByText(logs, FETCHING_DISABLED_ERROR_LOG(bidRequest, message))
+        def floorsLogs = getLogsByText(logs, PRICE_FLOORS_ERROR_LOG(bidRequest, FETCHING_DISABLED_ERROR, message))
         assert floorsLogs.size() == 1
 
         and: "Alerts.general metrics should be populated"
@@ -1014,11 +1014,11 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         then: "PBS should log a warning"
         def message = "Price floor modelGroup modelWeight must be in range(1-100), but was $requestModelWeight"
         assert bidResponse.ext?.warnings[PREBID]*.code == [999]
-        assert bidResponse.ext?.warnings[PREBID]*.message == [FETCHING_DISABLED_WARNING_MESSAGE(message)]
+        assert bidResponse.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE(message)]
 
         and: "PBS should log a errors"
         def logs = floorsPbsService.getLogsByTime(startTime)
-        def floorsLogs = getLogsByText(logs, FETCHING_DISABLED_ERROR_LOG(bidRequest, message))
+        def floorsLogs = getLogsByText(logs, PRICE_FLOORS_ERROR_LOG(bidRequest, FETCHING_DISABLED_ERROR, message))
         assert floorsLogs.size() == 1
 
         and: "Alerts.general metrics should be populated"
@@ -1051,11 +1051,11 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         then: "PBS should log a warning"
         def message = "Price floor modelGroup skipRate must be in range(0-100), but was $requestModelGroupsSkipRate"
         assert bidResponse.ext?.warnings[PREBID]*.code == [999]
-        assert bidResponse.ext?.warnings[PREBID]*.message == [FETCHING_DISABLED_WARNING_MESSAGE(message)]
+        assert bidResponse.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE(message)]
 
         and: "PBS should log an errors"
         def logs = floorsPbsService.getLogsByTime(startTime)
-        def floorsLogs = getLogsByText(logs, FETCHING_DISABLED_ERROR_LOG(bidRequest, message))
+        def floorsLogs = getLogsByText(logs, PRICE_FLOORS_ERROR_LOG(bidRequest, FETCHING_DISABLED_ERROR, message))
         assert floorsLogs.size() == 1
 
         and: "Alerts.general metrics should be populated"
@@ -1086,11 +1086,11 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         then: "PBS should log a warning"
         def message = "Price floor modelGroup default must be positive float, but was $requestModelGroupsSkipRate"
         assert bidResponse.ext?.warnings[PREBID]*.code == [999]
-        assert bidResponse.ext?.warnings[PREBID]*.message == [FETCHING_DISABLED_WARNING_MESSAGE(message)]
+        assert bidResponse.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE(message)]
 
         and: "PBS should log a errors"
         def logs = floorsPbsService.getLogsByTime(startTime)
-        def floorsLogs = getLogsByText(logs, FETCHING_DISABLED_ERROR_LOG(bidRequest, message))
+        def floorsLogs = getLogsByText(logs, PRICE_FLOORS_ERROR_LOG(bidRequest, FETCHING_DISABLED_ERROR, message))
         assert floorsLogs.size() == 1
 
         and: "Alerts.general metrics should be populated"
@@ -1098,17 +1098,10 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         assert metrics[ALERT_GENERAL] == 1
     }
 
-//    @IgnoreRest
     def "PBS should emit error in log and response when account have disabled dynamic data config"() {
         given: "Bid request without floors"
         def bidRequest = getBidRequestWithFloors().tap {
             ext.prebid.floors.data = null
-        }
-
-        def floorValue = PBSUtils.randomFloorValue
-        def floorsResponse = PriceFloorData.priceFloorData.tap {
-            modelGroups[0].values = [(rule): floorValue]
-            useFetchDataRate = -100
         }
 
         and: "Account with disabled dynamic data"
@@ -1131,13 +1124,13 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         def response = floorsPbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS should log a warning"
+        def message = 'Price floor rules data must be present'
         assert response.ext?.warnings[PREBID]*.code == [999]
-        assert response.ext?.warnings[PREBID]*.message == ['Using dynamic data is not allowed']
+        assert response.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE('Price floor rules data must be present')]
 
         and: "PBS should log a errors"
         def logs = floorsPbsService.getLogsByTime(startTime)
-        def floorsLogs = getLogsByText(logs, "No price floor data for account ${bidRequest.accountId} " +
-                "and request ${bidRequest.id}, reason: Using dynamic data is not allowed")
+        def floorsLogs = getLogsByText(logs, PRICE_FLOORS_ERROR_LOG(bidRequest, 'Using dynamic data is not allowed', message))
         assert floorsLogs.size() == 1
 
         and: "Alerts.general metrics should be populated"

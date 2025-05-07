@@ -43,27 +43,20 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
     protected static final int MAX_MODEL_WEIGHT = 100
     protected static final Closure<String> INVALID_CONFIG_METRIC = { account -> "alerts.account_config.${account}.price-floors" }
 
-    protected static final Closure<String> URL_EMPTY_ERROR = { url ->
-        "Failed to fetch price floor from provider for fetch.url '${url}'"
-    }
-    protected static final Closure<String> URL_EMPTY_WARNING_MESSAGE = { url, message ->
-        PRICE_FLOORS_WARNING_MESSAGE(URL_EMPTY_ERROR(url), "Reason: $message")
-    }
-    protected static final Closure<String> URL_EMPTY_ERROR_LOG = { bidRequest, message ->
-        PRICE_FLOORS_ERROR_LOG(bidRequest, URL_EMPTY_WARNING_MESSAGE("$BASIC_FETCH_URL${bidRequest.accountId}", message))
+    protected static final Closure<String> URL_EMPTY_ERROR = { url -> "Failed to fetch price floor from provider for fetch.url '${url}'"
     }
     protected static final String FETCHING_DISABLED_ERROR = "Fetching is disabled"
-    protected static final Closure<String> FETCHING_DISABLED_WARNING_MESSAGE = { message ->
-        PRICE_FLOORS_WARNING_MESSAGE(FETCHING_DISABLED_ERROR, "Following parsing of request price floors is failed: $message")
+    protected static final Closure<String> PRICE_FLOORS_ERROR_LOG = { bidRequest, reason, warningMessage ->
+        "Price Floors can't be resolved for account ${bidRequest.accountId} and request ${bidRequest.id}, reason: ${PRICE_FLOORS_WARNING_MESSAGE(reason, warningMessage)}"
     }
-    protected static final Closure<String> FETCHING_DISABLED_ERROR_LOG = { bidRequest, message ->
-        PRICE_FLOORS_ERROR_LOG(bidRequest, FETCHING_DISABLED_WARNING_MESSAGE(message))
+    protected static final Closure<String> WARNING_MESSAGE = { message ->
+        "Price floors processing failed: parsing of request price floors is failed: $message"
+    }
+    protected static final Closure<String> FETCHING_FLOORS_ERROR_LOG = { bidRequest, warningMessage ->
+        "Price floor fetching failed for account ${bidRequest.accountId}: ${URL_EMPTY_ERROR("$BASIC_FETCH_URL${bidRequest.accountId}")}, with a reason: $warningMessage"
     }
     private static final Closure<String> PRICE_FLOORS_WARNING_MESSAGE = { reason, details ->
-        "Price floors processing failed: $reason. $details"
-    }
-    private static final Closure<String> PRICE_FLOORS_ERROR_LOG = { bidRequest, warningMessage ->
-        "Price Floors can't be resolved for account ${bidRequest.accountId} and request ${bidRequest.id}, reason: $warningMessage"
+        "Price floors processing failed: $reason. Following parsing of request price floors is failed: $details"
     }
 
     private static final int DEFAULT_MODEL_WEIGHT = 1
