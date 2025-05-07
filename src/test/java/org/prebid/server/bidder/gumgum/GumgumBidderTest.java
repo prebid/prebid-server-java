@@ -12,6 +12,7 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -20,13 +21,17 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.gumgum.ExtImpGumgum;
 import org.prebid.server.proto.openrtb.ext.request.gumgum.ExtImpGumgumBanner;
 import org.prebid.server.proto.openrtb.ext.request.gumgum.ExtImpGumgumVideo;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 
@@ -36,6 +41,10 @@ import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
@@ -44,6 +53,169 @@ public class GumgumBidderTest extends VertxTest {
     private static final String ENDPOINT_URL = "https://test.endpoint.com/providers/prbds2s/bid";
 
     private final GumgumBidder target = new GumgumBidder(ENDPOINT_URL, jacksonMapper);
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
+        //given
+        final BidRequest bidRequest = givenBidRequest(impBuilder ->
+                impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+
+        //when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        //then
+        assertThat(result.getErrors()).hasSize(2)
+                .anySatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+                    assertThat(error.getMessage()).startsWith("Cannot deserialize value");
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldModifyImpressionsWhenValidInput() throws IOException {
+        //given
+        final ObjectNode extImp = mapper.valueToTree(ExtPrebid.of(null,
+                ExtImpGumgum.of("zone", BigInteger.TEN, "irisId", null, "product")));
+
+        //add adunitid to the ext field
+        extImp.with("bidder").put("adunitid", "adUnit123");  //setting adunitid within bidder object
+
+        final BidRequest bidRequest = givenBidRequest(impBuilder ->
+                impBuilder.ext(extImp));  //pass the modified extImp with adunitid
+
+        //when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        //deserialize byte[] body into BidRequest
+        byte[] requestBody = result.getValue().get(0).getBody();
+        BidRequest modifiedRequest = mapper.readValue(requestBody, BidRequest.class);
+
+        //then
+        assertThat(modifiedRequest.getImp()).hasSize(1);  //check that the number of impressions is correct
+
+
+        //validate that the tagId is correctly set to adUnitid (which was set to "adUnit123")
+        assertThat(modifiedRequest.getImp())
+                .extracting(Imp::getTagid)
+                .containsExactly("adUnit123");  //validate that tagid is set to "adUnit123"
+    }
+
+    @Test
+    public void testMakeHttpRequestsShouldNotSetTagIdFromZoneWhenAdUnitIdIsMissing() throws IOException {
+        //given:Imp without adUnitId but with zone
+        ObjectNode extImp = mapper.valueToTree(ExtPrebid.of(null,
+                ExtImpGumgum.of("zone123", BigInteger.TEN, "productA", null, "zone123")));
+
+        Imp imp = Imp.builder()
+                .id("imp1")
+                .banner(Banner.builder().w(300).h(250).build())
+                .ext(extImp)
+                .build();
+
+        BidRequest bidRequest = BidRequest.builder()
+                .id("test-bid-request")
+                .imp(Collections.singletonList(imp))
+                .site(Site.builder().id("test-site").build())
+                .build();
+
+        //when: Calling makeHttpRequests
+        Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        //then: Validate the request was modified correctly
+        assertNotNull(result);
+        assertFalse(result.getValue().isEmpty());
+
+        //deserialize byte[] body into BidRequest
+        byte[] requestBody = result.getValue().get(0).getBody();
+        BidRequest modifiedRequest = mapper.readValue(requestBody, BidRequest.class);
+
+        assertFalse(modifiedRequest.getImp().isEmpty());
+
+        Imp modifiedImp = modifiedRequest.getImp().get(0);
+
+        assertNull(modifiedImp.getTagid());
+
+        assertEquals("test-site", modifiedRequest.getSite().getId(), "zone123");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorsWhenNoValidImpressions() {
+        //given
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(mapper.createObjectNode()));
+
+        //when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        //then
+        assertThat(result.getErrors()).hasSize(2)
+                .anySatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+                    assertThat(error.getMessage()).isEqualTo("No valid impressions");
+                });
+    }
+
+    @Test
+    public void createBidRequestShouldReturnModifiedBidRequestWhenValidInput() {
+        //given
+        final ObjectNode extImp = mapper.valueToTree(ExtPrebid.of(null,
+                ExtImpGumgum.of("zone", BigInteger.TEN, "irisId", null, "product")));
+        extImp.with("bidder").put("adunitid", "adUnit123"); // Set adunitid
+
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(extImp));
+
+        final List<BidderError> errors = new ArrayList<>();
+
+        //when
+        final BidRequest result = target.createBidRequest(bidRequest, errors);
+
+        //then
+        assertThat(errors).isEmpty();
+        assertThat(result.getImp()).hasSize(1);
+        assertThat(result.getImp())
+                .extracting(Imp::getTagid)
+                .containsExactly("adUnit123"); // Validate that tagid is set to adUnit123
+    }
+
+    @Test
+    public void createBidRequestShouldThrowExceptionWhenNoValidImpressions() {
+        //given
+        final BidRequest bidRequest = givenBidRequest(impBuilder ->
+                impBuilder.ext(mapper.createObjectNode()));
+
+        final List<BidderError> errors = new ArrayList<>();
+
+        //when & then
+        Assertions.assertThatThrownBy(() -> target.createBidRequest(bidRequest, errors))
+                .isInstanceOf(PreBidException.class)
+                .hasMessage("No valid impressions");
+    }
+
+    @Test
+    public void extractAdUnitIdShouldReturnAdUnitIdWhenPresent() {
+        //given
+        final ObjectNode bidderNode = mapper.createObjectNode().put("adunitid", "adUnit123");
+        final ObjectNode ext = mapper.createObjectNode().set("bidder", bidderNode);
+        final Imp imp = Imp.builder().ext(ext).build();
+
+        //when
+        final String adUnitId = target.extractAdUnitId(imp);
+
+        //then
+        assertThat(adUnitId).isEqualTo("adUnit123");
+    }
+
+    @Test
+    public void extractAdUnitIdShouldReturnNullWhenAdUnitIdNotPresent() {
+        //given
+        final ObjectNode ext = mapper.createObjectNode();
+        final Imp imp = Imp.builder().ext(ext).build();
+
+        //when
+        final String adUnitId = target.extractAdUnitId(imp);
+
+        //then
+        assertThat(adUnitId).isNull();
+    }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -422,4 +594,5 @@ public class GumgumBidderTest extends VertxTest {
                 HttpResponse.of(200, null, body),
                 null);
     }
+
 }
