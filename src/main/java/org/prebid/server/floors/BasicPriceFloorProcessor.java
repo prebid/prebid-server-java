@@ -52,12 +52,15 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
     private static final int MODEL_WEIGHT_MAX_VALUE = 100;
     private static final int MODEL_WEIGHT_MIN_VALUE = 1;
 
-    private static final String INVALID_REQUEST_MSG = "Following parsing of request price floors is failed: %s";
-    private static final String FETCH_ERROR_MSG = "Price floors processing failed: %s. " + INVALID_REQUEST_MSG;
-    private static final String DYNAMIC_DATA_NOT_ALLOWED_MSG =
-            "Price floors processing failed: Using dynamic data is not allowed. " + INVALID_REQUEST_MSG;
-    private static final String ERROR_LOG_MSG = "Price Floors can't be resolved "
-            + "for account %s and request %s, reason: %s";
+    private static final String FETCH_FAILED_ERROR_MESSAGE = "Price floors processing failed: %s. "
+            + "Following parsing of request price floors is failed: %s";
+    private static final String DYNAMIC_DATA_NOT_ALLOWED_MESSAGE =
+            "Price floors processing failed: Using dynamic data is not allowed. "
+                    + "Following parsing of request price floors is failed: %s";
+    private static final String INVALID_REQUEST_WARNING_MESSAGE =
+            "Price floors processing failed: parsing of request price floors is failed: %s";
+    private static final String ERROR_LOG_MESSAGE =
+            "Price Floors can't be resolved for account %s and request %s, reason: %s";
 
     private final PriceFloorFetcher floorFetcher;
     private final PriceFloorResolver floorResolver;
@@ -203,13 +206,14 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         final String validationMessage = requestFloorsValidationException.getMessage();
         final String errorMessage = switch (fetchResult.getFetchStatus()) {
             case inprogress -> null;
-            case error, timeout, none -> FETCH_ERROR_MSG.formatted(fetchResult.getErrorMessage(), validationMessage);
-            case success -> isDynamicDataAllowed ? null : DYNAMIC_DATA_NOT_ALLOWED_MSG.formatted(validationMessage);
+            case error, timeout, none -> FETCH_FAILED_ERROR_MESSAGE.formatted(
+                    fetchResult.getErrorMessage(), validationMessage);
+            case success -> isDynamicDataAllowed ? null : DYNAMIC_DATA_NOT_ALLOWED_MESSAGE.formatted(validationMessage);
         };
 
         if (errorMessage != null) {
-            warnings.add(errorMessage);
-            conditionalLogger.error(ERROR_LOG_MSG.formatted(accountId, requestId, errorMessage), logSamplingRate);
+            warnings.add(INVALID_REQUEST_WARNING_MESSAGE.formatted(validationMessage));
+            conditionalLogger.error(ERROR_LOG_MESSAGE.formatted(accountId, requestId, errorMessage), logSamplingRate);
             metrics.updateAlertsMetrics(MetricName.general);
         }
     }
