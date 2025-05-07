@@ -16,6 +16,8 @@ import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.ProcessedAuctionRequestHook;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
@@ -27,6 +29,7 @@ import java.util.Optional;
 
 public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements ProcessedAuctionRequestHook {
 
+    private static final Logger logger = LoggerFactory.getLogger(LiveIntentOmniChannelIdentityProcessedAuctionRequestHook.class);
     private static final String CODE = "liveintent-omni-channel-identity-enrichment-hook";
 
     private final ModuleConfig config;
@@ -44,14 +47,16 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
 
     @Override
     public Future<InvocationResult<AuctionRequestPayload>> call(AuctionRequestPayload auctionRequestPayload, AuctionInvocationContext invocationContext) {
-        return requestEnrichment(auctionRequestPayload)
+        Future<InvocationResult<AuctionRequestPayload>> update = requestEnrichment(auctionRequestPayload)
                 .map(resolutionResult ->
                         InvocationResultImpl.<AuctionRequestPayload>builder()
-                        .status(InvocationStatus.success)
-                        .action(InvocationAction.update)
-                        .payloadUpdate(requestPayload -> updatedPayload(requestPayload, resolutionResult))
-                        .build()
+                                .status(InvocationStatus.success)
+                                .action(InvocationAction.update)
+                                .payloadUpdate(requestPayload -> updatedPayload(requestPayload, resolutionResult))
+                                .build()
                 );
+
+        return update.onFailure(throwable -> logger.error("Failed enrichment:", throwable));
     }
 
     @Override

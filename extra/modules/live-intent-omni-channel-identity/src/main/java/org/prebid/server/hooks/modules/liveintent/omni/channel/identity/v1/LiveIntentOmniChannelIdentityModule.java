@@ -6,7 +6,8 @@ import org.prebid.server.hooks.v1.Module;
 
 import java.util.Collection;
 
-public record LiveIntentOmniChannelIdentityModule(Collection<? extends Hook<?, ? extends InvocationContext>> hooks) implements Module {
+public record LiveIntentOmniChannelIdentityModule(
+        Collection<? extends Hook<?, ? extends InvocationContext>> hooks) implements Module {
 
     public static final String CODE = "liveintent-omni-channel-identity";
 
