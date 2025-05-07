@@ -105,7 +105,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
         assertThat(result).isNotNull();
         assertThat(result.status()).isEqualTo(InvocationStatus.success);
         assertThat(result.action()).isEqualTo(InvocationAction.update);
-        assertThat(result.payloadUpdate().apply(AuctionRequestPayloadImpl.of(bidRequest)).bidRequest().getUser().getEids()).isEqualTo(Collections.singletonList(providedEid).add(enrichedEid));
+        assertThat(result.payloadUpdate().apply(AuctionRequestPayloadImpl.of(bidRequest)).bidRequest().getUser().getEids()).isEqualTo(List.of(providedEid, enrichedEid));
     }
 
     @Test
