@@ -1,6 +1,5 @@
 package org.prebid.server.hooks.modules.optable.targeting.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.vertx.core.Vertx;
 import org.prebid.server.cache.PbcStorageService;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
@@ -9,8 +8,9 @@ import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingModu
 import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingProcessedAuctionRequestHook;
 import org.prebid.server.hooks.modules.optable.targeting.v1.analytics.AnalyticTagsResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.Cache;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.IdsMapper;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.ExecutionTimeResolver;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.IdsMapper;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableAttributesResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargeting;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.PayloadResolver;
@@ -40,23 +40,18 @@ import java.util.Objects;
 public class OptableTargetingConfig {
 
     @Bean
-    ObjectMapper objectMapper() {
-        return ObjectMapperProvider.mapper();
+    AnalyticTagsResolver analyticTagsResolver() {
+        return new AnalyticTagsResolver(ObjectMapperProvider.mapper());
     }
 
     @Bean
-    AnalyticTagsResolver analyticTagsResolver(ObjectMapper objectMapper) {
-        return new AnalyticTagsResolver(objectMapper);
+    IdsMapper queryParametersExtractor() {
+        return new IdsMapper(ObjectMapperProvider.mapper());
     }
 
     @Bean
-    IdsMapper queryParametersExtractor(ObjectMapper objectMapper) {
-        return new IdsMapper(objectMapper);
-    }
-
-    @Bean
-    PayloadResolver payloadResolver(ObjectMapper mapper) {
-        return new PayloadResolver(mapper);
+    PayloadResolver payloadResolver() {
+        return new PayloadResolver(ObjectMapperProvider.mapper());
     }
 
     @Bean
@@ -109,13 +104,22 @@ public class OptableTargetingConfig {
                                       @Value("${cache.module.enabled:false}")
                                       boolean moduleCacheEnabled) {
 
-        return new OptableTargeting(cache, parametersExtractor, queryBuilder, apiClient,
+        return new OptableTargeting(
+                cache,
+                parametersExtractor,
+                queryBuilder,
+                apiClient,
                 storageEnabled && moduleCacheEnabled);
     }
 
     @Bean
-    ConfigResolver configResolver(ObjectMapper mapper, OptableTargetingProperties globalProperties) {
-        return new ConfigResolver(mapper, globalProperties);
+    ConfigResolver configResolver(OptableTargetingProperties globalProperties) {
+        return new ConfigResolver(ObjectMapperProvider.mapper(), globalProperties);
+    }
+
+    @Bean
+    ExecutionTimeResolver executionTimeResolver() {
+        return new ExecutionTimeResolver();
     }
 
     @Bean
@@ -123,11 +127,13 @@ public class OptableTargetingConfig {
                                                   AnalyticTagsResolver analyticTagsResolver,
                                                   OptableTargeting optableTargeting,
                                                   PayloadResolver payloadResolver,
-                                                  OptableAttributesResolver optableAttributesResolver) {
+                                                  OptableAttributesResolver optableAttributesResolver,
+                                                  ExecutionTimeResolver executionTimeResolver) {
 
         return new OptableTargetingModule(List.of(
-                new OptableTargetingProcessedAuctionRequestHook(configResolver, optableTargeting, payloadResolver,
-                        optableAttributesResolver),
-                new OptableTargetingAuctionResponseHook(analyticTagsResolver, payloadResolver, configResolver)));
+                new OptableTargetingProcessedAuctionRequestHook(
+                        configResolver, optableTargeting, payloadResolver, optableAttributesResolver),
+                new OptableTargetingAuctionResponseHook(
+                        analyticTagsResolver, payloadResolver, configResolver, executionTimeResolver)));
     }
 }

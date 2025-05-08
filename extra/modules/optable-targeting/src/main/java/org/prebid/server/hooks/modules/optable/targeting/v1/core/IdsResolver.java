@@ -59,7 +59,7 @@ public class IdsResolver {
             return null;
         }
 
-        if (deviceOS.contains(os.value.toLowerCase()) && !(deviceLmt != null && deviceLmt.equals(1))) {
+        if (deviceOS.contains(os.getValue().toLowerCase()) && !(deviceLmt != null && deviceLmt.equals(1))) {
             return device.map(Device::getIfa).orElse(null);
         }
 

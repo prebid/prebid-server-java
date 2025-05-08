@@ -10,8 +10,6 @@ import java.util.Objects;
 @Getter
 public class ModuleContext {
 
-    private Metrics metrics;
-
     private List<Audience> targeting;
 
     private EnrichmentStatus enrichRequestStatus;
@@ -20,13 +18,10 @@ public class ModuleContext {
 
     private boolean adserverTargetingEnabled;
 
+    private long optableTargetingExecutionTime;
+
     public static ModuleContext of(AuctionInvocationContext invocationContext) {
         return (ModuleContext) Objects.requireNonNull(invocationContext.moduleContext());
-    }
-
-    public ModuleContext setMetrics(Metrics metrics) {
-        this.metrics = metrics;
-        return this;
     }
 
     public ModuleContext setTargeting(List<Audience> targeting) {
@@ -49,11 +44,8 @@ public class ModuleContext {
         return this;
     }
 
-    public ModuleContext setFinishTime(long timestamp) {
-        setMetrics(getMetrics().toBuilder()
-                .moduleFinishTime(timestamp)
-                .build());
-
+    public ModuleContext setOptableTargetingExecutionTime(long optableTargetingExecutionTime) {
+        this.optableTargetingExecutionTime = optableTargetingExecutionTime;
         return this;
     }
 }

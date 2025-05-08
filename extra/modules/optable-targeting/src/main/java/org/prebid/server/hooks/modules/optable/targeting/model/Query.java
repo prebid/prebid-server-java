@@ -11,7 +11,7 @@ public class Query {
     String attributes;
 
     public String toQueryString() {
-        if (StringUtils.isEmpty(ids) && ! StringUtils.isEmpty(attributes)) {
+        if (StringUtils.isEmpty(ids) && !StringUtils.isEmpty(attributes)) {
             return attributes.substring(1);
         }
 

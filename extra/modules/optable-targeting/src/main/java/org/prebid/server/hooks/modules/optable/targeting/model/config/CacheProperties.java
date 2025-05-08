@@ -1,21 +1,13 @@
 package org.prebid.server.hooks.modules.optable.targeting.model.config;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-@Getter
-@Setter
+@Data
+@NoArgsConstructor
 public class CacheProperties {
 
-    boolean enabled = false;
+    private boolean enabled = false;
 
-    int ttlseconds = 86400;
-
-    public CacheProperties() {
-    }
-
-    public CacheProperties(boolean enabled, int ttlseconds) {
-        this.enabled = enabled;
-        this.ttlseconds = ttlseconds;
-    }
+    private int ttlseconds = 86400;
 }

@@ -12,9 +12,13 @@ public enum OS {
 
     FIRE("fire");
 
-    public final String value;
+    private final String value;
 
     OS(String value) {
         this.value = value;
+    }
+
+    public String getValue() {
+        return value;
     }
 }

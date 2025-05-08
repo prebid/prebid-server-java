@@ -6,6 +6,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.hooks.modules.optable.targeting.v1.analytics.AnalyticTagsResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.ExecutionTimeResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableAttributesResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargeting;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.PayloadResolver;
@@ -36,6 +37,8 @@ public class OptableTargetingModuleTest {
     @Mock
     AnalyticTagsResolver analyticTagsResolver;
 
+    ExecutionTimeResolver executionTimeResolver = new ExecutionTimeResolver();
+
     @Test
     public void shouldReturnNonBlankCode() {
         // given
@@ -60,7 +63,8 @@ public class OptableTargetingModuleTest {
                         new OptableTargetingAuctionResponseHook(
                                 analyticTagsResolver,
                                 payloadResolver,
-                                configResolver));
+                                configResolver,
+                                executionTimeResolver));
 
         final Module module = new OptableTargetingModule(hooks);
 

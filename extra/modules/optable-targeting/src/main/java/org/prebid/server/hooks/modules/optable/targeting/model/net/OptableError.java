@@ -23,7 +23,7 @@ public class OptableError {
 
         private final Integer code;
 
-        Type(final Integer errorCode) {
+        Type(Integer errorCode) {
             this.code = errorCode;
         }
     }

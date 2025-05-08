@@ -15,6 +15,7 @@ import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.AudienceI
 import org.prebid.server.hooks.modules.optable.targeting.v1.analytics.AnalyticTagsResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.AuctionResponseValidator;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.ExecutionTimeResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.PayloadResolver;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
@@ -47,6 +48,8 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
 
     private ConfigResolver configResolver;
 
+    private ExecutionTimeResolver executionTimeResolver = new ExecutionTimeResolver();
+
     @BeforeEach
     public void setUp() {
         when(invocationContext.accountConfig()).thenReturn(givenAccountConfig(true));
@@ -55,7 +58,8 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
         target = new OptableTargetingAuctionResponseHook(
                 new AnalyticTagsResolver(mapper),
                 payloadResolver,
-                configResolver);
+                configResolver,
+                executionTimeResolver);
     }
 
     @Test
@@ -132,7 +136,8 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
         target = new OptableTargetingAuctionResponseHook(
                 new AnalyticTagsResolver(mapper),
                 payloadResolver,
-                configResolver);
+                configResolver,
+                executionTimeResolver);
 
         // when
         final Future<InvocationResult<AuctionResponsePayload>> future = target.call(auctionResponsePayload,

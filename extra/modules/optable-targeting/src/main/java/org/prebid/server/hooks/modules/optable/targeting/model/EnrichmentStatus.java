@@ -1,15 +1,19 @@
 package org.prebid.server.hooks.modules.optable.targeting.model;
 
-import lombok.Builder;
+import lombok.Value;
 
-@Builder(toBuilder = true)
-public record EnrichmentStatus(Status status, Reason reason) {
+@Value(staticConstructor = "of")
+public class EnrichmentStatus {
+
+    private final Status status;
+
+    private final Reason reason;
 
     public static EnrichmentStatus failure() {
-        return EnrichmentStatus.builder().status(Status.FAIL).build();
+        return EnrichmentStatus.of(Status.FAIL, null);
     }
 
     public static EnrichmentStatus success() {
-        return EnrichmentStatus.builder().status(Status.SUCCESS).build();
+        return EnrichmentStatus.of(Status.SUCCESS, null);
     }
 }

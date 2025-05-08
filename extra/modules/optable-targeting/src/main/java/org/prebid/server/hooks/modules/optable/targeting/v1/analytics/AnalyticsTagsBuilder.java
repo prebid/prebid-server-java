@@ -61,7 +61,7 @@ public class AnalyticsTagsBuilder {
     private Activity buildEnrichResponseActivity() {
         final String activityStatus = requestEnrichmentStatus != null ? requestEnrichmentStatus.getValue() : null;
         final String enrichmentStatus = responseEnrichmentStatus != null
-                ? responseEnrichmentStatus.reason().getValue()
+                ? responseEnrichmentStatus.getReason().getValue()
                 : null;
         final Result activityResult = buildResult(STATUS_REASON, enrichmentStatus);
 

@@ -28,10 +28,7 @@ public class AuctionResponseValidator {
             reason = Reason.NOBID;
         }
 
-        return EnrichmentStatus.builder()
-                .status(status)
-                .reason(reason)
-                .build();
+        return EnrichmentStatus.of(status, reason);
     }
 
     private static boolean hasKeywords(List<Audience> targeting) {

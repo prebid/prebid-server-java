@@ -2,7 +2,7 @@ package org.prebid.server.hooks.modules.optable.targeting.v1.core;
 
 import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Future;
-import org.prebid.server.hooks.modules.optable.targeting.model.CachingKey;
+import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.hooks.modules.optable.targeting.model.OptableAttributes;
 import org.prebid.server.hooks.modules.optable.targeting.model.Query;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.CacheProperties;
@@ -10,6 +10,8 @@ import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTar
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
 import org.prebid.server.hooks.modules.optable.targeting.v1.net.APIClient;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -61,24 +63,34 @@ public class OptableTargeting {
                                                                String tenant, String origin,
                                                                Query query, List<String> ips, long timeout) {
 
-        final CachingKey cachingKey = CachingKey.of(tenant, origin, query, ips);
-
-        return cache.get(cachingKey.toEncodedString())
+        final String cachingKey = createCachingKey(tenant, origin, ips, query, true);
+        return cache.get(cachingKey)
                 .recover(err -> Future.succeededFuture(null))
                 .compose(entry -> entry != null
                         ? Future.succeededFuture(entry)
-                        : fetchAndCacheResult(cachingKey, tenant, origin, cacheProperties.getTtlseconds(), apiKey,
+                        : fetchAndCacheResult(tenant, origin, cacheProperties.getTtlseconds(), apiKey,
                         query, ips, timeout));
 
     }
 
-    private Future<TargetingResult> fetchAndCacheResult(CachingKey cachingKey, String tenant, String origin,
+    private Future<TargetingResult> fetchAndCacheResult(String tenant, String origin,
                                                         int ttlSeconds, String apiKey, Query query, List<String> ips,
                                                         long timeout) {
 
+        final String cachingKey = createCachingKey(tenant, origin, ips, query, false);
         return apiClient.getTargeting(apiKey, tenant, origin, query, ips, timeout)
-                .compose(result -> cache.put(cachingKey.toString(), result, ttlSeconds)
+                .compose(result -> cache.put(cachingKey, result, ttlSeconds)
                         .recover(throwable -> Future.succeededFuture())
                         .map(result));
+    }
+
+    private String createCachingKey(String tenant, String origin, List<String> ips, Query query, boolean encodeQuery) {
+        return "%s:%s:%s:%s".formatted(
+                tenant,
+                origin,
+                CollectionUtils.isNotEmpty(ips) ? ips.getFirst() : "none",
+                encodeQuery
+                        ? URLEncoder.encode(query.getIds(), StandardCharsets.UTF_8)
+                        : query.getIds());
     }
 }

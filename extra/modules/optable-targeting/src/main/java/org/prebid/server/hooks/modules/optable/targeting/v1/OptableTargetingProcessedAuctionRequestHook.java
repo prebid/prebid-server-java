@@ -6,7 +6,6 @@ import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.optable.targeting.model.EnrichmentStatus;
-import org.prebid.server.hooks.modules.optable.targeting.model.Metrics;
 import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
 import org.prebid.server.hooks.modules.optable.targeting.model.OptableAttributes;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
@@ -28,7 +27,7 @@ import java.util.function.Function;
 
 public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuctionRequestHook {
 
-    private static final String CODE = "optable-targeting-processed-auction-request-hook";
+    public static final String CODE = "optable-targeting-processed-auction-request-hook";
 
     private static final long DEFAULT_API_CALL_TIMEOUT = 1000L;
 
@@ -56,10 +55,7 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
                                                                 AuctionInvocationContext invocationContext) {
 
         final OptableTargetingProperties properties = configResolver.resolve(invocationContext.accountConfig());
-        final ModuleContext moduleContext = new ModuleContext()
-                .setMetrics(Metrics.builder()
-                .moduleStartTime(System.currentTimeMillis())
-                .build());
+        final ModuleContext moduleContext = new ModuleContext();
 
         final BidRequest bidRequest = getBidRequest(auctionRequestPayload);
         if (bidRequest == null) {
@@ -105,8 +101,6 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
     private Future<InvocationResult<AuctionRequestPayload>> enrichedPayload(TargetingResult targetingResult,
                                                                             ModuleContext moduleContext) {
 
-        moduleContext.setFinishTime(System.currentTimeMillis());
-
         if (targetingResult != null) {
             moduleContext.setTargeting(targetingResult.getAudience())
                     .setEnrichRequestStatus(EnrichmentStatus.success());
@@ -144,8 +138,7 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
 
     private static Future<InvocationResult<AuctionRequestPayload>> failure(ModuleContext moduleContext) {
         return success(moduleContext
-                .setEnrichRequestStatus(EnrichmentStatus.failure())
-                .setFinishTime(System.currentTimeMillis()));
+                .setEnrichRequestStatus(EnrichmentStatus.failure()));
     }
 
     private static Future<InvocationResult<AuctionRequestPayload>> failure(

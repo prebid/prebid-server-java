@@ -20,7 +20,6 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.TimeoutContext;
 import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.hooks.modules.optable.targeting.model.EnrichmentStatus;
-import org.prebid.server.hooks.modules.optable.targeting.model.Metrics;
 import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
 import org.prebid.server.hooks.modules.optable.targeting.model.Query;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.CacheProperties;
@@ -54,9 +53,6 @@ public abstract class BaseOptableTest {
 
     protected ModuleContext givenModuleContext(List<Audience> audiences) {
         final ModuleContext moduleContext = new ModuleContext();
-        moduleContext.setMetrics(Metrics.builder()
-                .moduleStartTime(System.currentTimeMillis())
-                .build());
         moduleContext.setTargeting(audiences);
         moduleContext.setEnrichRequestStatus(EnrichmentStatus.success());
 
@@ -174,15 +170,18 @@ public abstract class BaseOptableTest {
     }
 
     protected OptableTargetingProperties givenOptableTargetingProperties(boolean enableCache) {
-        return new OptableTargetingProperties(
-                "endpoint",
-                "key",
-                Map.of("c", "id"),
-                true,
-                100L,
-                null,
-                new CacheProperties(enableCache, 86400)
-        );
+        final CacheProperties cacheProperties = new CacheProperties();
+        cacheProperties.setEnabled(enableCache);
+
+        final OptableTargetingProperties optableTargetingProperties = new OptableTargetingProperties();
+        optableTargetingProperties.setApiEndpoint("endpoint");
+        optableTargetingProperties.setApiKey("key");
+        optableTargetingProperties.setPpidMapping(Map.of("c", "id"));
+        optableTargetingProperties.setAdserverTargeting(true);
+        optableTargetingProperties.setTimeout(100L);
+        optableTargetingProperties.setCache(cacheProperties);
+
+        return optableTargetingProperties;
     }
 
     protected Query givenQuery() {

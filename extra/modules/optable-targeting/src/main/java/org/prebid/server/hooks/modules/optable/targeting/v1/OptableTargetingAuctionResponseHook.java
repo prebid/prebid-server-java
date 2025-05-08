@@ -12,17 +12,18 @@ import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Audience;
 import org.prebid.server.hooks.modules.optable.targeting.v1.analytics.AnalyticTagsResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.AuctionResponseValidator;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.ExecutionTimeResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.PayloadResolver;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
+import org.prebid.server.hooks.v1.PayloadUpdate;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionResponseHook;
 import org.prebid.server.hooks.v1.auction.AuctionResponsePayload;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Function;
 
 public class OptableTargetingAuctionResponseHook implements AuctionResponseHook {
 
@@ -34,14 +35,18 @@ public class OptableTargetingAuctionResponseHook implements AuctionResponseHook 
 
     private final ConfigResolver configResolver;
 
+    private final ExecutionTimeResolver executionTimeResolver;
+
     public OptableTargetingAuctionResponseHook(
             AnalyticTagsResolver analyticTagsResolver,
             PayloadResolver payloadResolver,
-            ConfigResolver configResolver) {
+            ConfigResolver configResolver,
+            ExecutionTimeResolver executionTimeResolver) {
 
         this.analyticTagsResolver = Objects.requireNonNull(analyticTagsResolver);
         this.payloadResolver = Objects.requireNonNull(payloadResolver);
         this.configResolver = configResolver;
+        this.executionTimeResolver = executionTimeResolver;
     }
 
     @Override
@@ -53,13 +58,15 @@ public class OptableTargetingAuctionResponseHook implements AuctionResponseHook 
 
         final ModuleContext moduleContext = ModuleContext.of(invocationContext);
         moduleContext.setAdserverTargetingEnabled(adserverTargeting);
+        moduleContext.setOptableTargetingExecutionTime(
+                executionTimeResolver.extractOptableTargetingExecutionTime(invocationContext));
 
         if (adserverTargeting) {
             final EnrichmentStatus validationStatus = AuctionResponseValidator.checkEnrichmentPossibility(
                     auctionResponsePayload.bidResponse(), moduleContext.getTargeting());
             moduleContext.setEnrichResponseStatus(validationStatus);
 
-            if (validationStatus.status() == Status.SUCCESS) {
+            if (validationStatus.getStatus() == Status.SUCCESS) {
                 return enrichedPayload(moduleContext);
             }
         }
@@ -80,13 +87,13 @@ public class OptableTargetingAuctionResponseHook implements AuctionResponseHook 
     }
 
     private Future<InvocationResult<AuctionResponsePayload>> update(
-            Function<AuctionResponsePayload, AuctionResponsePayload> func, ModuleContext moduleContext) {
+            PayloadUpdate<AuctionResponsePayload> payloadUpdate, ModuleContext moduleContext) {
 
         return Future.succeededFuture(
                 InvocationResultImpl.<AuctionResponsePayload>builder()
                         .status(InvocationStatus.success)
                         .action(InvocationAction.update)
-                        .payloadUpdate(func::apply)
+                        .payloadUpdate(payloadUpdate)
                         .moduleContext(moduleContext)
                         .analyticsTags(analyticTagsResolver.resolve(moduleContext))
                         .build());

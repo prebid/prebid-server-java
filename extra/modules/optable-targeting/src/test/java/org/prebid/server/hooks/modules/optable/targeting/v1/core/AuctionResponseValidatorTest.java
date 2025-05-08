@@ -28,8 +28,8 @@ public class AuctionResponseValidatorTest {
 
         // then
         assertThat(result).isNotNull()
-                .returns(Status.FAIL, EnrichmentStatus::status)
-                .returns(Reason.NOBID, EnrichmentStatus::reason);
+                .returns(Status.FAIL, EnrichmentStatus::getStatus)
+                .returns(Reason.NOBID, EnrichmentStatus::getReason);
     }
 
     @Test
@@ -44,8 +44,8 @@ public class AuctionResponseValidatorTest {
 
         // then
         assertThat(result).isNotNull()
-                .returns(Status.FAIL, EnrichmentStatus::status)
-                .returns(Reason.NOBID, EnrichmentStatus::reason);
+                .returns(Status.FAIL, EnrichmentStatus::getStatus)
+                .returns(Reason.NOBID, EnrichmentStatus::getReason);
     }
 
     @Test
@@ -64,8 +64,8 @@ public class AuctionResponseValidatorTest {
 
         // then
         assertThat(result).isNotNull()
-                .returns(Status.SUCCESS, EnrichmentStatus::status)
-                .returns(Reason.NONE, EnrichmentStatus::reason);
+                .returns(Status.SUCCESS, EnrichmentStatus::getStatus)
+                .returns(Reason.NONE, EnrichmentStatus::getReason);
     }
 
     protected List<Audience> givenTargeting() {
