@@ -1751,16 +1751,16 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         bidRequest << [BidRequest.getDefaultBidRequest(), getBidRequestWithFloors().tap { it.ext.prebid.floors = null }]
     }
 
-    def "PBS should emit error in log and response when floor data is empty and floors fetching disabled for account and enabled for request"() {
+    def "PBS should emit error in log and response when floor data is empty and floors fetching disabled for account and #requestFloors for request"() {
         given: "Default BidRequest with empty floors.data"
         def bidRequest = bidRequestWithFloors.tap {
-            ext.prebid.floors.enabled = true
-            ext.prebid.floors.data = null
+            it.ext.prebid.floors.enabled = requestFloors
+            it.ext.prebid.floors.data = null
         }
 
         and: "Account with disabled fetching"
         def account = getAccountWithEnabledFetch(bidRequest.accountId).tap {
-            config.auction.priceFloors.fetch.enabled = false
+            it.config.auction.priceFloors.fetch.enabled = false
         }
         accountDao.save(account)
 
@@ -1797,18 +1797,21 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         and: "Alerts.general metrics should be populated"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
         assert metrics[ALERT_GENERAL] == 1
+
+        where:
+        requestFloors << [null, true]
     }
 
-    def "PBS shouldn't emit error in log and response when floor data is empty and floors fetching disabled for account and #requestFloors for request"() {
+    def "PBS shouldn't emit error in log and response when floor data is empty and floors fetching disabled for account and disabled for request"() {
         given: "Default BidRequest with empty floors.data"
         def bidRequest = bidRequestWithFloors.tap {
-            ext.prebid.floors.enabled = requestFloors
-            ext.prebid.floors.data = null
+            it.ext.prebid.floors.enabled = false
+            it.ext.prebid.floors.data = null
         }
 
         and: "Account with disabled fetching"
         def account = getAccountWithEnabledFetch(bidRequest.accountId).tap {
-            config.auction.priceFloors.fetch.enabled = false
+            it.config.auction.priceFloors.fetch.enabled = false
         }
         accountDao.save(account)
 
@@ -1835,9 +1838,6 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         and: "Alerts.general metrics shouldn't be populated"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
         assert !metrics[ALERT_GENERAL]
-
-        where:
-        requestFloors << [null, false]
     }
 
     def "PBS shouldn't emit error in log and response when data is invalid and floors fetching enabled for account"() {
