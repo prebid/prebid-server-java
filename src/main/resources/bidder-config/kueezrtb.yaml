@@ -1,0 +1,21 @@
+adapters:
+  kueezrtb:
+    endpoint: https://prebidsrvr.kueezrtb.com/openrtb/
+    endpoint-compression: gzip
+    ortb-version: "2.6"
+    meta-info:
+      maintainer-email: rtb@kueez.com
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 1165
+    usersync:
+      cookie-family-name: kueezrtb
+      iframe:
+        url: https://sync.kueezrtb.com/api/user/html/62ce79e7dd15099534ae5e04?pbs=true&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}
+        support-cors: false
+        uid-macro: '${userId}'
