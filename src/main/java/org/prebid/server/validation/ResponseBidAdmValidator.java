@@ -39,13 +39,13 @@ public class ResponseBidAdmValidator {
 
         int searchStartIndex = 0;
         while (searchStartIndex < adm.length()) {
-            int httpIndex = adm.indexOf(protocol, searchStartIndex);
+            final int httpIndex = adm.indexOf(protocol, searchStartIndex);
 
             if (httpIndex == -1) {
                 return true;
             }
 
-            int afterHttpPrefixIndex = httpIndex + protocol.length();
+            final int afterHttpPrefixIndex = httpIndex + protocol.length();
             if (afterHttpPrefixIndex + 1 > adm.length()) {
                 return true;
             }
@@ -55,12 +55,12 @@ public class ResponseBidAdmValidator {
                 continue;
             }
 
-            int afterHttpDoubleSlashIndex = afterHttpPrefixIndex + doubleSlash.length();
+            final int afterHttpDoubleSlashIndex = afterHttpPrefixIndex + doubleSlash.length();
             if (afterHttpDoubleSlashIndex + 1 > adm.length()) {
                 return true;
             }
 
-            boolean isAllowedExactPathMatch = allowedPaths.stream()
+            final boolean isAllowedExactPathMatch = allowedPaths.stream()
                     .anyMatch(allowedPattern -> adm.startsWith(allowedPattern, afterHttpDoubleSlashIndex));
 
             if (!isAllowedExactPathMatch) {

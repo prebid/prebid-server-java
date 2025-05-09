@@ -6,7 +6,6 @@ import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.net.JksOptions;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.activity.ActivitiesConfigResolver;
@@ -142,7 +141,6 @@ import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
@@ -1090,7 +1088,7 @@ public class ServiceConfiguration {
 
     @Bean
     ResponseBidAdmValidator responseBidAdmValidator(
-            @Value("${auction.validations.secure-markup-allowed-paths}") Set<String> allowedPaths) {
+            @Value("${auction.validations.secure-markup-allowed-paths:null}") Set<String> allowedPaths) {
 
         return new ResponseBidAdmValidator(allowedPaths);
     }
