@@ -119,7 +119,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
             bidderRequest.user.geo == bidRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == bidRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -297,7 +297,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
             bidderRequest.user.geo == bidRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == bidRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -392,7 +392,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
             bidderRequest.user.geo == bidRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == bidRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -514,7 +514,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
             bidderRequest.user.geo == bidRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == bidRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -644,7 +644,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
             bidderRequest.user.geo == bidRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == bidRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -762,7 +762,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
             bidderRequest.user.geo.zip == bidRequest.user.geo.zip
-            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == bidRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -1259,7 +1259,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
             bidderRequest.user.geo == bidRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == bidRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -1315,7 +1315,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
             bidderRequest.user.geo == bidRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == bidRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -1370,7 +1370,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
             bidderRequest.user.geo == bidRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == bidRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -1456,7 +1456,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
             bidderRequest.user.geo == bidRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == bidRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -1746,7 +1746,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.user.gender == ampStoredRequest.user.gender
             bidderRequest.user.data == ampStoredRequest.user.data
             bidderRequest.user.geo == ampStoredRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == ampStoredRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -1949,7 +1949,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.user.gender == ampStoredRequest.user.gender
             bidderRequest.user.data == ampStoredRequest.user.data
             bidderRequest.user.geo == ampStoredRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == ampStoredRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -2121,7 +2121,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.user.gender == ampStoredRequest.user.gender
             bidderRequest.user.data == ampStoredRequest.user.data
             bidderRequest.user.geo == ampStoredRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == ampStoredRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -2612,7 +2612,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.user.gender == ampStoredRequest.user.gender
             bidderRequest.user.data == ampStoredRequest.user.data
             bidderRequest.user.geo == ampStoredRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == ampStoredRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -2676,7 +2676,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.user.gender == ampStoredRequest.user.gender
             bidderRequest.user.data == ampStoredRequest.user.data
             bidderRequest.user.geo == ampStoredRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == ampStoredRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -2740,7 +2740,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.user.gender == ampStoredRequest.user.gender
             bidderRequest.user.data == ampStoredRequest.user.data
             bidderRequest.user.geo == ampStoredRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == ampStoredRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -2844,7 +2844,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.user.gender == ampStoredRequest.user.gender
             bidderRequest.user.data == ampStoredRequest.user.data
             bidderRequest.user.geo == ampStoredRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == ampStoredRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
