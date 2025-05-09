@@ -7,8 +7,10 @@
         "w": 300,
         "h": 250
       },
+      "tagid" : "999999",
       "secure": 1,
       "ext": {
+        "tid" :"${json-unit.any-string}",
         "bidder": {
           "placementId": "999999"
         }

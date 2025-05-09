@@ -8,3 +8,4 @@ adapters:
         - banner
       supported-vendors:
       vendor-id: 898
+      ortb-version: "2.6"

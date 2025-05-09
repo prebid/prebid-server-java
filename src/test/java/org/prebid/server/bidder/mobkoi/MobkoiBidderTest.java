@@ -3,6 +3,7 @@ package org.prebid.server.bidder.mobkoi;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.BidResponse;
@@ -21,7 +22,6 @@ import org.prebid.server.proto.openrtb.ext.request.mobkoi.ExtImpMobkoi;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
-import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
@@ -30,25 +30,13 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 
 public class MobkoiBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.endpoint.com";
+    private static final String ENDPOINT_URL = "https://test.endpoint.com/bid";
 
     private final MobkoiBidder target = new MobkoiBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException().isThrownBy(() -> new MobkoiBidder("invalid_url", jacksonMapper));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnErrorWhenRequestHasNoImpression() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder().imp(emptyList()).build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).containsExactly(badInput("No impression provided"));
     }
 
     @Test
@@ -70,7 +58,7 @@ public class MobkoiBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorWhenRequestHasMissingPlacementId() {
+    public void makeHttpRequestsShouldReturnErrorWhenRequestHasMissingTagIdAndPlacementId() {
         // given
         final ObjectNode mobkoiExt = impExt(null, null);
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(mobkoiExt));
@@ -79,49 +67,27 @@ public class MobkoiBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).containsExactly(badInput("placementId should not be null"));
+        assertThat(result.getErrors())
+                .containsExactly(
+                        badInput("invalid because it comes with neither "
+                                + "request.imp[0].tagId nor req.imp[0].ext.Bidder.placementId"));
     }
 
     @Test
-    public void makeHttpRequestsShouldUseConstructorEndpointWhenNoCustomEndpointIsDefinedInMobkoiExtension() {
+    public void makeHttpRequestsShouldReturnPlacementIdInTagId() {
         // given
         final ObjectNode mobkoiExt = impExt("pid", null);
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(mobkoiExt));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> results = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(results.getValue()).extracting(HttpRequest::getUri).containsExactly("https://test.endpoint.com");
-        assertThat(results.getErrors()).isEmpty();
-    }
-
-    @Test
-    public void makeHttpRequestsShouldConstructorEndpointWhenTheCustomIsInvalidInMobkoiExtension() {
-        // given
-        final ObjectNode mobkoiExt = impExt("pid", "invalid-URI");
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(mobkoiExt));
-
-        // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).extracting(HttpRequest::getUri).containsExactly("https://test.endpoint.com");
-        assertThat(result.getErrors()).isEmpty();
-    }
-
-    @Test
-    public void makeHttpRequestsShouldUseCustomEndpointWhenDefinedInMobkoiExtension() {
-        // given
-        final ObjectNode mobkoiExt = impExt("pid", "https://custom.endpoint.com");
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(mobkoiExt));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).extracting(HttpRequest::getUri).containsExactly("https://custom.endpoint.com");
-        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(imp -> imp.getTagid())
+                .containsExactly("pid");
     }
 
     @Test
@@ -140,6 +106,66 @@ public class MobkoiBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .extracting(imp -> imp.getExt().get("bidder"))
                 .containsExactly(mapper.valueToTree(ExtImpMobkoi.of("pid", null)));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUseConstructorEndpointWhenNoCustomEndpointIsDefinedInMobkoiExtension() {
+        // given
+        final ObjectNode mobkoiExt = impExt("pid", null);
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(mobkoiExt));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> results = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(results.getValue()).extracting(HttpRequest::getUri).containsExactly("https://test.endpoint.com/bid");
+        assertThat(results.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldConstructorEndpointWhenTheCustomIsInvalidInMobkoiExtension() {
+        // given
+        final ObjectNode mobkoiExt = impExt("pid", "invalid-URI");
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(mobkoiExt));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).extracting(HttpRequest::getUri).containsExactly("https://test.endpoint.com/bid");
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUseCustomEndpointWhenDefinedInMobkoiExtension() {
+        // given
+        final ObjectNode mobkoiExt = impExt("pid", "https://custom.endpoint.com");
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(mobkoiExt));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).extracting(HttpRequest::getUri).containsExactly("https://custom.endpoint.com/bid");
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetUserExtConsent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.user(User.builder().consent("consent").build()),
+                impBuilder -> impBuilder);
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(request -> request.getUser().getExt().getConsent())
+                .containsExactly("consent");
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -186,7 +212,7 @@ public class MobkoiBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBid() throws JsonProcessingException {
+    public void makeBidsShouldReturnBannerBidWithMobkoiSeat() throws JsonProcessingException {
         // given
         final BidResponse bannerBidResponse = givenBidResponse(bidBuilder -> bidBuilder.mtype(1).impid("123"));
         final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(bannerBidResponse));
@@ -197,41 +223,21 @@ public class MobkoiBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().mtype(1).impid("123").build(), banner, "USD"));
-    }
-
-    @Test
-    public void makeBidsShouldThrowErrorWhenMediaTypeIsMissing() throws JsonProcessingException {
-        // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badServerResponse("Missing mediaType for bid: null"));
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldThrowErrorWhenMediaTypeIsUnsupported() throws JsonProcessingException {
-        // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.mtype(2).impid("imp_id"))));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badServerResponse("Unsupported bid mediaType: 2 for impression: imp_id"));
+                .containsExactly(
+                        BidderBid.of(
+                                Bid.builder().mtype(1).impid("123").build(), banner, "mobkoi", "USD"));
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impModifier) {
         return BidRequest.builder()
+                .imp(singletonList(givenImp(impModifier)))
+                .build();
+    }
+
+    private static BidRequest givenBidRequest(
+            UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
+            UnaryOperator<Imp.ImpBuilder> impModifier) {
+        return bidRequestCustomizer.apply(BidRequest.builder())
                 .imp(singletonList(givenImp(impModifier)))
                 .build();
     }
