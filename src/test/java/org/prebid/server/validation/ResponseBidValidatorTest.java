@@ -55,6 +55,9 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Mock
     private BidRejectionTracker bidRejectionTracker;
 
+    @Mock(strictness = LENIENT)
+    private ResponseBidAdmValidator admValidator;
+
     private ResponseBidValidator target;
 
     @Mock(strictness = LENIENT)
@@ -62,10 +65,11 @@ public class ResponseBidValidatorTest extends VertxTest {
 
     @BeforeEach
     public void setUp() {
-        target = new ResponseBidValidator(enforce, enforce, metrics, 0.01);
+        target = new ResponseBidValidator(admValidator, enforce, enforce, metrics, 0.01);
 
         given(bidderAliases.resolveBidder(anyString())).willReturn(BIDDER_NAME);
         given(bidderAliases.isAllowedAlternateBidderCode(anyString(), anyString())).willReturn(true);
+        given(admValidator.isSecure(anyString())).willReturn(true);
     }
 
     @Test
@@ -259,9 +263,12 @@ public class ResponseBidValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldFailIfBidHasInsecureMarkerInCreativeInSecureContext() {
+    public void validateShouldFailIfBidHasNoSecureAdm() {
+        // given
+        given(admValidator.isSecure("adm")).willReturn(false);
+        final BidderBid givenBid = givenBid(builder -> builder.adm("adm"));
+
         // when
-        final BidderBid givenBid = givenBid(builder -> builder.adm("<tag>http://site.com/creative.jpg</tag>"));
         final ValidationResult result = target.validate(
                 givenBid,
                 BIDDER_NAME,
@@ -273,47 +280,7 @@ public class ResponseBidValidatorTest extends VertxTest {
                 .containsOnly("""
                         BidResponse validation `enforce`: bidder `bidder` response triggers \
                         secure creative validation for bid bidId1, account=account, referrer=unknown, \
-                        adm=<tag>http://site.com/creative.jpg</tag>""");
-        verify(bidRejectionTracker)
-                .rejectBid(givenBid, BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_NOT_SECURE);
-    }
-
-    @Test
-    public void validateShouldFailIfBidHasInsecureEncodedMarkerInCreativeInSecureContext() {
-        // when
-        final BidderBid givenBid = givenBid(builder -> builder.adm("<tag>http%3A//site.com/creative.jpg</tag>"));
-        final ValidationResult result = target.validate(
-                givenBid,
-                BIDDER_NAME,
-                givenAuctionContext(givenBidRequest(builder -> builder.secure(1))),
-                bidderAliases);
-
-        // then
-        assertThat(result.getErrors())
-                .containsOnly("""
-                        BidResponse validation `enforce`: bidder `bidder` response triggers \
-                        secure creative validation for bid bidId1, account=account, referrer=unknown, \
-                        adm=<tag>http%3A//site.com/creative.jpg</tag>""");
-        verify(bidRejectionTracker)
-                .rejectBid(givenBid, BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_NOT_SECURE);
-    }
-
-    @Test
-    public void validateShouldFailIfBidHasNoSecureMarkersInCreativeInSecureContext() {
-        // when
-        final BidderBid givenBid = givenBid(builder -> builder.adm("<tag>//site.com/creative.jpg</tag>"));
-        final ValidationResult result = target.validate(
-                givenBid,
-                BIDDER_NAME,
-                givenAuctionContext(givenBidRequest(builder -> builder.secure(1))),
-                bidderAliases);
-
-        // then
-        assertThat(result.getErrors())
-                .containsOnly("""
-                        BidResponse validation `enforce`: bidder `bidder` response triggers \
-                        secure creative validation for bid bidId1, account=account, referrer=unknown, \
-                        adm=<tag>//site.com/creative.jpg</tag>""");
+                        adm=adm""");
         verify(bidRejectionTracker)
                 .rejectBid(givenBid, BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_NOT_SECURE);
     }
@@ -393,7 +360,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnSuccessIfBannerSizeValidationNotEnabled() {
         // given
-        target = new ResponseBidValidator(skip, enforce, metrics, 0.01);
+        target = new ResponseBidValidator(admValidator, skip, enforce, metrics, 0.01);
 
         // when
         final ValidationResult result = target.validate(
@@ -410,7 +377,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnSuccessWithWarningIfBannerSizeEnforcementIsWarn() {
         // given
-        target = new ResponseBidValidator(warn, enforce, metrics, 0.01);
+        target = new ResponseBidValidator(admValidator, warn, enforce, metrics, 0.01);
 
         // when
         final BidderBid givenBid = givenBid(builder -> builder.w(null).h(null));
@@ -433,7 +400,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnSuccessIfSecureMarkupValidationNotEnabled() {
         // given
-        target = new ResponseBidValidator(enforce, skip, metrics, 0.01);
+        target = new ResponseBidValidator(admValidator, enforce, skip, metrics, 0.01);
 
         // when
         final ValidationResult result = target.validate(
@@ -450,10 +417,11 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnSuccessWithWarningIfSecureMarkupEnforcementIsWarn() {
         // given
-        target = new ResponseBidValidator(enforce, warn, metrics, 0.01);
+        target = new ResponseBidValidator(admValidator, enforce, warn, metrics, 0.01);
+        given(admValidator.isSecure("adm")).willReturn(false);
 
         // when
-        final BidderBid givenBid = givenBid(builder -> builder.adm("<tag>http://site.com/creative.jpg</tag>"));
+        final BidderBid givenBid = givenBid(builder -> builder.adm("adm"));
         final ValidationResult result = target.validate(
                 givenBid,
                 BIDDER_NAME,
@@ -466,7 +434,7 @@ public class ResponseBidValidatorTest extends VertxTest {
                 .containsOnly("""
                         BidResponse validation `warn`: bidder `bidder` response triggers \
                         secure creative validation for bid bidId1, account=account, referrer=unknown, \
-                        adm=<tag>http://site.com/creative.jpg</tag>""");
+                        adm=adm""");
         verifyNoInteractions(bidRejectionTracker);
     }
 
@@ -485,7 +453,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldIncrementSizeValidationWarnMetrics() {
         // given
-        target = new ResponseBidValidator(warn, warn, metrics, 0.01);
+        target = new ResponseBidValidator(admValidator, warn, warn, metrics, 0.01);
 
         // when
         final BidderBid givenBid = givenBid(builder -> builder.w(150).h(200));
@@ -498,8 +466,11 @@ public class ResponseBidValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldIncrementSecureValidationErrMetrics() {
+        // given
+        given(admValidator.isSecure("adm")).willReturn(false);
+        final BidderBid givenBid = givenBid(builder -> builder.adm("adm"));
+
         // when
-        final BidderBid givenBid = givenBid(builder -> builder.adm("<tag>http://site.com/creative.jpg</tag>"));
         target.validate(
                 givenBid,
                 BIDDER_NAME,
@@ -515,10 +486,11 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldIncrementSecureValidationWarnMetrics() {
         // given
-        target = new ResponseBidValidator(warn, warn, metrics, 0.01);
+        target = new ResponseBidValidator(admValidator, warn, warn, metrics, 0.01);
+        given(admValidator.isSecure("adm")).willReturn(false);
 
         // when
-        final BidderBid givenBid = givenBid(builder -> builder.adm("<tag>http://site.com/creative.jpg</tag>"));
+        final BidderBid givenBid = givenBid(builder -> builder.adm("adm"));
         target.validate(
                 givenBid,
                 BIDDER_NAME,

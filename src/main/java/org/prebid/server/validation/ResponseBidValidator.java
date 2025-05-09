@@ -48,20 +48,20 @@ public class ResponseBidValidator {
     private static final ConditionalLogger alternateBidderCodeLogger =
             new ConditionalLogger("alternate_bidder_code_validation", logger);
 
-    private static final String[] INSECURE_MARKUP_MARKERS = {"http:", "http%3A"};
-    private static final String[] SECURE_MARKUP_MARKERS = {"https:", "https%3A"};
-
+    private final ResponseBidAdmValidator admValidator;
     private final BidValidationEnforcement bannerMaxSizeEnforcement;
     private final BidValidationEnforcement secureMarkupEnforcement;
     private final Metrics metrics;
 
     private final double logSamplingRate;
 
-    public ResponseBidValidator(BidValidationEnforcement bannerMaxSizeEnforcement,
+    public ResponseBidValidator(ResponseBidAdmValidator admValidator,
+                                BidValidationEnforcement bannerMaxSizeEnforcement,
                                 BidValidationEnforcement secureMarkupEnforcement,
                                 Metrics metrics,
                                 double logSamplingRate) {
 
+        this.admValidator = admValidator;
         this.bannerMaxSizeEnforcement = Objects.requireNonNull(bannerMaxSizeEnforcement);
         this.secureMarkupEnforcement = Objects.requireNonNull(secureMarkupEnforcement);
         this.metrics = Objects.requireNonNull(metrics);
@@ -277,7 +277,7 @@ public class ResponseBidValidator {
         final Bid bid = bidderBid.getBid();
         final String adm = bid.getAdm();
 
-        if (isImpSecure(correspondingImp) && markupIsNotSecure(adm)) {
+        if (isImpSecure(correspondingImp) && !admValidator.isSecure(adm)) {
             final String message = """
                     BidResponse validation `%s`: bidder `%s` response triggers secure \
                     creative validation for bid %s, account=%s, referrer=%s, adm=%s"""
@@ -299,11 +299,6 @@ public class ResponseBidValidator {
 
     private static boolean isImpSecure(Imp imp) {
         return Objects.equals(imp.getSecure(), 1);
-    }
-
-    private static boolean markupIsNotSecure(String adm) {
-        return StringUtils.containsAny(adm, INSECURE_MARKUP_MARKERS)
-                || !StringUtils.containsAny(adm, SECURE_MARKUP_MARKERS);
     }
 
     private List<String> singleWarningOrValidationException(

@@ -6,6 +6,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.net.JksOptions;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.activity.ActivitiesConfigResolver;
@@ -117,6 +118,7 @@ import org.prebid.server.util.system.CpuLoadAverageStats;
 import org.prebid.server.validation.BidderParamValidator;
 import org.prebid.server.validation.ImpValidator;
 import org.prebid.server.validation.RequestValidator;
+import org.prebid.server.validation.ResponseBidAdmValidator;
 import org.prebid.server.validation.ResponseBidValidator;
 import org.prebid.server.validation.VideoRequestValidator;
 import org.prebid.server.vast.VastModifier;
@@ -140,6 +142,7 @@ import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
@@ -1072,15 +1075,24 @@ public class ServiceConfiguration {
 
     @Bean
     ResponseBidValidator responseValidator(
+            ResponseBidAdmValidator responseBidAdmValidator,
             @Value("${auction.validations.banner-creative-max-size}") BidValidationEnforcement bannerMaxSizeEnforcement,
             @Value("${auction.validations.secure-markup}") BidValidationEnforcement secureMarkupEnforcement,
             Metrics metrics) {
 
         return new ResponseBidValidator(
+                responseBidAdmValidator,
                 bannerMaxSizeEnforcement,
                 secureMarkupEnforcement,
                 metrics,
                 logSamplingRate);
+    }
+
+    @Bean
+    ResponseBidAdmValidator responseBidAdmValidator(
+            @Value("${auction.validations.secure-markup-allowed-paths}") Set<String> allowedPaths) {
+
+        return new ResponseBidAdmValidator(allowedPaths);
     }
 
     @Bean
