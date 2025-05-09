@@ -13,5 +13,6 @@
   },
   "required": [
     "cId"
-  ]
+  ],
+  "additionalProperties": false
 }

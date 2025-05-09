@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Value;
 
 @Value(staticConstructor = "of")
-public class KueezImpExt {
+public class KueezRtbImpExt {
 
     @JsonProperty("cId")
     String connectionId;

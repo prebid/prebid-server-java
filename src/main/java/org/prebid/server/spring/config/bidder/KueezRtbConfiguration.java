@@ -1,7 +1,7 @@
 package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.kueezrtb.KueezBidder;
+import org.prebid.server.bidder.kueezrtb.KueezRtbBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -17,7 +17,7 @@ import jakarta.validation.constraints.NotBlank;
 
 @Configuration
 @PropertySource(value = "classpath:/bidder-config/kueezrtb.yaml", factory = YamlPropertySourceFactory.class)
-public class KueezConfiguration {
+public class KueezRtbConfiguration {
 
     private static final String BIDDER_NAME = "kueezrtb";
 
@@ -34,7 +34,7 @@ public class KueezConfiguration {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(kueezrtbConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new KueezBidder(config.getEndpoint(), mapper))
+                .bidderCreator(config -> new KueezRtbBidder(config.getEndpoint(), mapper))
                 .assemble();
     }
 }

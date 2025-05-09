@@ -15,7 +15,7 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.kueezrtb.KueezImpExt;
+import org.prebid.server.proto.openrtb.ext.request.kueezrtb.KueezRtbImpExt;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.util.List;
@@ -30,15 +30,15 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.util.HttpUtil.APPLICATION_JSON_CONTENT_TYPE;
 import static org.prebid.server.util.HttpUtil.CONTENT_TYPE_HEADER;
 
-class KueezBidderTest extends VertxTest {
+class KueezRtbBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.host.com/prebid/bid/";
 
-    private final KueezBidder target = new KueezBidder(ENDPOINT_URL, jacksonMapper);
+    private final KueezRtbBidder target = new KueezRtbBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpoint() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new KueezBidder("invalid_url", jacksonMapper));
+        assertThatIllegalArgumentException().isThrownBy(() -> new KueezRtbBidder("invalid_url", jacksonMapper));
     }
 
     @Test
@@ -153,21 +153,30 @@ class KueezBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorWhenImpTypeIsNotSupported() throws JsonProcessingException {
         // given
-        final Bid bannerBid = Bid.builder().id("bidId1").impid("id1").mtype(1).build();
-        final Bid bidWithoutMtype = Bid.builder().id("bidId2").impid("id2").mtype(null).build();
         final Bid audioBid = Bid.builder().id("bidId3").impid("id3").mtype(3).build();
-        final Bid nativeBid = Bid.builder().id("bidId4").impid("id4").mtype(4).build();
 
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                givenBidResponse(bannerBid, bidWithoutMtype, audioBid, nativeBid));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(audioBid));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
         // then
-        assertThat(result.getErrors()).containsExactlyInAnyOrder(
-                badServerResponse("Missing MType for bid: bidId2"),
-                badServerResponse("Could not define bid type for imp: id3"),
-                badServerResponse("Could not define bid type for imp: id4"));
+        assertThat(result.getErrors()).containsOnly(badServerResponse("Could not define bid type for imp: id3"));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorWhenMTypeIsNotIncluded() throws JsonProcessingException {
+        // given
+        final Bid bannerBid = Bid.builder().id("bidId1").impid("id1").mtype(1).build();
+        final Bid bidWithoutMtype = Bid.builder().id("bidId2").impid("id2").mtype(null).build();
+
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidResponse(bannerBid, bidWithoutMtype));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+        // then
+        assertThat(result.getErrors()).containsOnly(badServerResponse("Could not define bid type for imp: id2"));
         assertThat(result.getValue()).containsOnly(BidderBid.of(bannerBid, banner, "USD"));
     }
 
@@ -185,7 +194,7 @@ class KueezBidderTest extends VertxTest {
     private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                 .id("impId")
-                .ext(mapper.valueToTree(ExtPrebid.of(null, KueezImpExt.of("cid")))))
+                .ext(mapper.valueToTree(ExtPrebid.of(null, KueezRtbImpExt.of("cid")))))
                 .build();
     }
 

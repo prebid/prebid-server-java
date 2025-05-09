@@ -13,7 +13,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 
-public class KueezTest extends IntegrationTest {
+public class KueezRtbTest extends IntegrationTest {
 
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromKueez() throws IOException, JSONException {

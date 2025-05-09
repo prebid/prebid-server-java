@@ -17,7 +17,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.kueezrtb.KueezImpExt;
+import org.prebid.server.proto.openrtb.ext.request.kueezrtb.KueezRtbImpExt;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
@@ -29,14 +29,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-public class KueezBidder implements Bidder<BidRequest> {
+public class KueezRtbBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, KueezImpExt>> TYPE_REFERENCE = new TypeReference<>() { };
+    private static final TypeReference<ExtPrebid<?, KueezRtbImpExt>> TYPE_REFERENCE = new TypeReference<>() { };
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
-    public KueezBidder(String endpointUrl, JacksonMapper mapper) {
+    public KueezRtbBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -48,7 +48,7 @@ public class KueezBidder implements Bidder<BidRequest> {
 
         for (Imp imp : bidRequest.getImp()) {
             try {
-                final KueezImpExt impExt = parseImpExt(imp);
+                final KueezRtbImpExt impExt = parseImpExt(imp);
                 requests.add(makeHttpRequest(bidRequest, imp, impExt));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
@@ -57,7 +57,7 @@ public class KueezBidder implements Bidder<BidRequest> {
         return Result.of(requests, errors);
     }
 
-    private KueezImpExt parseImpExt(Imp imp) throws PreBidException {
+    private KueezRtbImpExt parseImpExt(Imp imp) throws PreBidException {
         try {
             return mapper.mapper().convertValue(imp.getExt(), TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
@@ -65,7 +65,7 @@ public class KueezBidder implements Bidder<BidRequest> {
         }
     }
 
-    private HttpRequest<BidRequest> makeHttpRequest(BidRequest bidRequest, Imp imp, KueezImpExt impExt) {
+    private HttpRequest<BidRequest> makeHttpRequest(BidRequest bidRequest, Imp imp, KueezRtbImpExt impExt) {
         final BidRequest modifiedBidRequest = bidRequest.toBuilder().imp(Collections.singletonList(imp)).build();
         final String uri = endpointUrl + HttpUtil.encodeUrl(StringUtils.defaultString(impExt.getConnectionId()).trim());
 
@@ -109,13 +109,10 @@ public class KueezBidder implements Bidder<BidRequest> {
 
     private static BidType getMediaTypeForBid(Bid bid) {
         final Integer mType = bid.getMtype();
-        if (mType == null) {
-            throw new PreBidException("Missing MType for bid: " + bid.getId());
-        }
         return switch (mType) {
             case 1 -> BidType.banner;
             case 2 -> BidType.video;
-            default -> throw new PreBidException("Could not define bid type for imp: " + bid.getImpid());
+            case null, default -> throw new PreBidException("Could not define bid type for imp: " + bid.getImpid());
         };
     }
 }
