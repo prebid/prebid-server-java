@@ -201,9 +201,12 @@ class BidAdjustmentSpec extends BaseSpec {
     def "PBS should adjust bid price for matching bidder when request has bidAdjustments config"() {
         given: "Default BidRequest with ext.prebid.bidAdjustments"
         def currency = USD
+        def impPrice = PBSUtils.randomPrice
         def rule = new BidAdjustmentRule(generic: [(WILDCARD): [new AdjustmentRule(adjustmentType: adjustmentType, value: ruleValue, currency: currency)]])
         bidRequest.ext.prebid.bidAdjustments = BidAdjustment.getDefaultWithSingleMediaTypeRule(mediaType, rule)
         bidRequest.cur = [currency]
+        bidRequest.imp.first.bidFloor = impPrice
+        bidRequest.imp.first.bidFloorCur = currency
 
         and: "Default bid response"
         def originalPrice = PBSUtils.randomPrice
@@ -226,9 +229,90 @@ class BidAdjustmentSpec extends BaseSpec {
             origbidcur == bidResponse.cur
         }
 
-        and: "Bidder request should contain default currency"
+        and: "Bidder request should contain floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.cur == [currency]
+        assert bidderRequest.imp.bidFloorCur == [currency]
+        assert bidderRequest.imp.bidFloor == [getReverseAdjustedPrice(impPrice, ruleValue as BigDecimal, adjustmentType)]
+
+        where:
+        adjustmentType | ruleValue                                                       | mediaType        | bidRequest
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | BANNER           | BidRequest.defaultBidRequest
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlacement(IN_PLACEMENT_STREAM)
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmt(IN_PLCMT_STREAM)
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(IN_PLCMT_STREAM, IN_PLACEMENT_STREAM)
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM, IN_PLACEMENT_STREAM)
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(IN_PLCMT_STREAM, RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmtAndPlacement(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM, RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmtAndPlacement(null, null)
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlacement(RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmt(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM)
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | AUDIO            | BidRequest.defaultAudioRequest
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | NATIVE           | BidRequest.defaultNativeRequest
+        MULTIPLIER     | getRandomDecimal(MIN_ADJUST_VALUE, MAX_MULTIPLIER_ADJUST_VALUE) | ANY              | BidRequest.defaultBidRequest
+
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | BANNER           | BidRequest.defaultBidRequest
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlacement(IN_PLACEMENT_STREAM)
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmt(IN_PLCMT_STREAM)
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(IN_PLCMT_STREAM, IN_PLACEMENT_STREAM)
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM, IN_PLACEMENT_STREAM)
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(IN_PLCMT_STREAM, RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmtAndPlacement(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM, RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmtAndPlacement(null, null)
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlacement(RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmt(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM)
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | AUDIO            | BidRequest.defaultAudioRequest
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | NATIVE           | BidRequest.defaultNativeRequest
+        CPM            | getRandomDecimal(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)        | ANY              | BidRequest.defaultBidRequest
+
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | BANNER           | BidRequest.defaultBidRequest
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlacement(IN_PLACEMENT_STREAM)
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmt(IN_PLCMT_STREAM)
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(IN_PLCMT_STREAM, IN_PLACEMENT_STREAM)
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM, IN_PLACEMENT_STREAM)
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_IN_STREAM  | getDefaultVideoRequestWithPlcmtAndPlacement(IN_PLCMT_STREAM, RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmtAndPlacement(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM, RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmtAndPlacement(null, null)
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlacement(RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM)
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | VIDEO_OUT_STREAM | getDefaultVideoRequestWithPlcmt(RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM)
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | AUDIO            | BidRequest.defaultAudioRequest
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | NATIVE           | BidRequest.defaultNativeRequest
+        STATIC         | getRandomDecimal(MIN_ADJUST_VALUE, MAX_STATIC_ADJUST_VALUE)     | ANY              | BidRequest.defaultBidRequest
+    }
+
+    def "PBS should adjust bid price for matching bidder and left original bidderRequest with null floors when request has bidAdjustments config"() {
+        given: "Default BidRequest with ext.prebid.bidAdjustments"
+        def currency = USD
+        def rule = new BidAdjustmentRule(generic: [(WILDCARD): [new AdjustmentRule(adjustmentType: adjustmentType, value: ruleValue, currency: currency)]])
+        bidRequest.ext.prebid.bidAdjustments = BidAdjustment.getDefaultWithSingleMediaTypeRule(mediaType, rule)
+        bidRequest.cur = [currency]
+        bidRequest.imp.first.bidFloor = null
+        bidRequest.imp.first.bidFloorCur = currency
+
+        and: "Default bid response"
+        def originalPrice = PBSUtils.randomPrice
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            cur = currency
+            seatbid.first.bid.first.price = originalPrice
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "Final bid price should be adjusted"
+        assert response.seatbid.first.bid.first.price == getAdjustedPrice(originalPrice, ruleValue as BigDecimal, adjustmentType)
+        assert response.cur == bidResponse.cur
+
+        and: "Original bid price and currency should be presented in bid.ext"
+        verifyAll(response.seatbid.first.bid.first.ext) {
+            origbidcpm == originalPrice
+            origbidcur == bidResponse.cur
+        }
+
+        and: "Bidder request should contain floors"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.imp.bidFloorCur == [currency]
+        assert bidderRequest.imp.bidFloor == [null]
 
         where:
         adjustmentType | ruleValue                                                       | mediaType        | bidRequest
@@ -279,10 +363,18 @@ class BidAdjustmentSpec extends BaseSpec {
         given: "Default BidRequest with ext.prebid.bidAdjustments"
         def dealId = PBSUtils.randomString
         def currency = USD
+        def firstImpPrice = PBSUtils.randomPrice
+        def secondImpPrice = PBSUtils.randomPrice
         def rule = new BidAdjustmentRule(generic: [(dealId): [new AdjustmentRule(adjustmentType: adjustmentType, value: ruleValue, currency: currency)]])
         bidRequest.ext.prebid.bidAdjustments = BidAdjustment.getDefaultWithSingleMediaTypeRule(mediaType, rule)
-        bidRequest.imp.add(Imp.defaultImpression)
         bidRequest.cur = [currency]
+        bidRequest.imp.first.bidFloor = firstImpPrice
+        bidRequest.imp.first.bidFloorCur = currency
+        def secondImp = Imp.defaultImpression.tap {
+            bidFloor = secondImpPrice
+            bidFloorCur = currency
+        }
+        bidRequest.imp.add(secondImp)
 
         and: "Default bid response"
         def originalPrice = PBSUtils.randomPrice
@@ -290,14 +382,13 @@ class BidAdjustmentSpec extends BaseSpec {
             cur = currency
             seatbid.first.bid.first.price = originalPrice
             seatbid.first.bid.first.dealid = dealId
-        }
+        } as BidResponse
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
         def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Final bid price should be adjusted for big with dealId"
-        response.seatbid.first.bid.find { it.dealid == dealId }
         assert response.seatbid.first.bid.findAll() { it.dealid == dealId }.price == [getAdjustedPrice(originalPrice, ruleValue as BigDecimal, adjustmentType)]
 
         and: "Price shouldn't be updated for bid with different dealId"
@@ -311,9 +402,10 @@ class BidAdjustmentSpec extends BaseSpec {
         assert response.seatbid.first.bid.ext.first.origbidcur == bidResponse.cur
         assert response.seatbid.first.bid.ext.last.origbidcur == bidResponse.cur
 
-        and: "Bidder request should contain currency from request"
+        and: "Bidder request should contain floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.cur == [currency]
+        assert bidderRequest.imp.bidFloorCur == [currency, currency]
+        assert bidderRequest.imp.bidFloor.sort() == [getReverseAdjustedPrice(firstImpPrice, ruleValue as BigDecimal, adjustmentType), secondImpPrice].sort()
 
         where:
         adjustmentType | ruleValue                                                       | mediaType        | bidRequest
@@ -361,13 +453,18 @@ class BidAdjustmentSpec extends BaseSpec {
     }
 
     def "PBS should adjust bid price for matching bidder when account config has bidAdjustments"() {
-        given: "Default bid response"
-        def originalPrice = PBSUtils.randomPrice
+        given: "BidRequest with floors"
+        def impPrice = PBSUtils.randomPrice
         def currency = USD
+        bidRequest.imp.first.bidFloor = impPrice
+        bidRequest.imp.first.bidFloorCur = currency
+
+        and: "Default bid response"
+        def originalPrice = PBSUtils.randomPrice
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
             cur = currency
             seatbid.first.bid.first.price = originalPrice
-        }
+        } as BidResponse
         bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Account in the DB with bidAdjustments"
@@ -389,9 +486,10 @@ class BidAdjustmentSpec extends BaseSpec {
             origbidcur == bidResponse.cur
         }
 
-        and: "Bidder request should contain currency from request"
+        and: "Bidder request should contain floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.cur == [currency]
+        assert bidderRequest.imp.bidFloorCur == [currency]
+        assert bidderRequest.imp.bidFloor == [getReverseAdjustedPrice(impPrice, ruleValue as BigDecimal, adjustmentType)]
 
         where:
         adjustmentType | ruleValue                                                       | mediaType        | bidRequest
@@ -439,8 +537,13 @@ class BidAdjustmentSpec extends BaseSpec {
     }
 
     def "PBS should prioritize BidAdjustmentRule from request when account and request config bidAdjustments conflict"() {
-        given: "Default BidRequest with ext.prebid.bidAdjustments"
+        given: "BidRequest with floors"
+        def impPrice = PBSUtils.randomPrice
         def currency = USD
+        bidRequest.imp.first.bidFloor = impPrice
+        bidRequest.imp.first.bidFloorCur = currency
+
+        and: "Default BidRequest with ext.prebid.bidAdjustments"
         def rule = new BidAdjustmentRule(generic: [(WILDCARD): [new AdjustmentRule(adjustmentType: adjustmentType, value: ruleValue, currency: currency)]])
         bidRequest.ext.prebid.bidAdjustments = BidAdjustment.getDefaultWithSingleMediaTypeRule(mediaType, rule)
         bidRequest.cur = [currency]
@@ -456,7 +559,7 @@ class BidAdjustmentSpec extends BaseSpec {
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
             cur = currency
             seatbid.first.bid.first.price = originalPrice
-        }
+        } as BidResponse
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
@@ -472,9 +575,10 @@ class BidAdjustmentSpec extends BaseSpec {
             origbidcur == bidResponse.cur
         }
 
-        and: "Bidder request should contain currency from request"
+        and: "Bidder request should contain floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.cur == [currency]
+        assert bidderRequest.imp.bidFloorCur == [currency]
+        assert bidderRequest.imp.bidFloor == [getReverseAdjustedPrice(impPrice, ruleValue as BigDecimal, adjustmentType)]
 
         where:
         adjustmentType | ruleValue                                                       | mediaType        | bidRequest
@@ -524,11 +628,14 @@ class BidAdjustmentSpec extends BaseSpec {
     def "PBS should prioritize exact bid price adjustment for matching bidder when request has exact and general bidAdjustment"() {
         given: "Default BidRequest with ext.prebid.bidAdjustments"
         def exactRulePrice = PBSUtils.randomPrice
+        def impPrice = PBSUtils.randomPrice
         def currency = USD
         def exactRule = new BidAdjustmentRule(generic: [(WILDCARD): [new AdjustmentRule(adjustmentType: STATIC, value: exactRulePrice, currency: currency)]])
         def generalRule = new BidAdjustmentRule(generic: [(WILDCARD): [new AdjustmentRule(adjustmentType: STATIC, value: PBSUtils.randomPrice, currency: currency)]])
         def bidRequest = BidRequest.defaultBidRequest.tap {
             cur = [currency]
+            imp.first.bidFloor = impPrice
+            imp.first.bidFloorCur = currency
             ext.prebid.bidAdjustments = new BidAdjustment(mediaType: [(BANNER): exactRule, (ANY): generalRule])
         }
 
@@ -553,19 +660,23 @@ class BidAdjustmentSpec extends BaseSpec {
             origbidcur == bidResponse.cur
         }
 
-        and: "Bidder request should contain currency from request"
+        and: "Bidder request should contain floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.cur == [currency]
+        assert bidderRequest.imp.bidFloorCur == [currency]
+        assert bidderRequest.imp.bidFloor == [getReverseAdjustedPrice(impPrice, exactRulePrice, STATIC)]
     }
 
     def "PBS should adjust bid price for matching bidder in provided order when bidAdjustments have multiple matching rules"() {
         given: "Default BidRequest with ext.prebid.bidAdjustments"
         def currency = USD
+        def impPrice = PBSUtils.randomPrice
         def firstRule = new AdjustmentRule(adjustmentType: firstRuleType, value: PBSUtils.randomPrice, currency: currency)
         def secondRule = new AdjustmentRule(adjustmentType: secondRuleType, value: PBSUtils.randomPrice, currency: currency)
         def bidAdjustmentMultyRule = new BidAdjustmentRule(generic: [(WILDCARD): [firstRule, secondRule]])
         def bidRequest = BidRequest.defaultBidRequest.tap {
             cur = [currency]
+            imp.first.bidFloor = impPrice
+            imp.first.bidFloorCur = currency
             ext.prebid.bidAdjustments = BidAdjustment.getDefaultWithSingleMediaTypeRule(BANNER, bidAdjustmentMultyRule)
         }
 
@@ -592,9 +703,12 @@ class BidAdjustmentSpec extends BaseSpec {
             origbidcur == bidResponse.cur
         }
 
-        and: "Bidder request should contain currency from request"
+        and: "Bidder request should contain floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.cur == [currency]
+        assert bidderRequest.imp.bidFloorCur == [currency]
+        def rawReverseAdjustedBidPrice = getReverseAdjustedPrice(impPrice, firstRule.value as BigDecimal, firstRule.adjustmentType)
+        def ReversedAdjustBidPrice = getAdjustedPrice(rawReverseAdjustedBidPrice, secondRule.value as BigDecimal, secondRule.adjustmentType)
+        assert bidderRequest.imp.bidFloor == [ReversedAdjustBidPrice]
 
         where:
         firstRuleType | secondRuleType
@@ -613,8 +727,12 @@ class BidAdjustmentSpec extends BaseSpec {
         given: "Default BidRequest with ext.prebid.bidAdjustments"
         def adjustmentRule = new AdjustmentRule(adjustmentType: CPM, value: PBSUtils.randomPrice, currency: GBP)
         def bidAdjustmentMultyRule = new BidAdjustmentRule(generic: [(WILDCARD): [adjustmentRule]])
+        def currency = EUR
+        def impPrice = PBSUtils.randomPrice
         def bidRequest = BidRequest.defaultBidRequest.tap {
             cur = [EUR]
+            imp.first.bidFloor = impPrice
+            imp.first.bidFloorCur = currency
             ext.prebid.bidAdjustments = BidAdjustment.getDefaultWithSingleMediaTypeRule(BANNER, bidAdjustmentMultyRule)
         }
 
@@ -632,7 +750,7 @@ class BidAdjustmentSpec extends BaseSpec {
         then: "Final bid price should be adjusted"
         def convertedAdjustment = convertCurrency(adjustmentRule.value, adjustmentRule.currency, bidResponse.cur)
         def adjustedBidPrice = getAdjustedPrice(originalPrice, convertedAdjustment, adjustmentRule.adjustmentType)
-        assert response.seatbid.first.bid.first.price == convertCurrency(adjustedBidPrice, bidResponse.cur, bidRequest.cur.first)
+        assert response.seatbid.first.bid.first.price == convertCurrency(adjustedBidPrice, bidResponse.cur, currency)
 
         and: "Original bid price and currency should be presented in bid.ext"
         verifyAll(response.seatbid.first.bid.first.ext) {
@@ -640,17 +758,22 @@ class BidAdjustmentSpec extends BaseSpec {
             origbidcur == bidResponse.cur
         }
 
-        and: "Bidder request should contain currency from request"
+        and: "Bidder request should contain floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.cur == bidRequest.cur
+        assert bidderRequest.imp.bidFloorCur == [currency]
+        assert bidderRequest.imp.bidFloor == [getReverseAdjustedPrice(impPrice, convertedAdjustment, adjustmentRule.adjustmentType)]
     }
 
     def "PBS should change original currency when static bidAdjustments and original response have different currencies"() {
         given: "Default BidRequest with ext.prebid.bidAdjustments"
         def adjustmentRule = new AdjustmentRule(adjustmentType: STATIC, value: PBSUtils.randomPrice, currency: GBP)
         def bidAdjustmentMultyRule = new BidAdjustmentRule(generic: [(WILDCARD): [adjustmentRule]])
+        def currency = EUR
+        def impPrice = PBSUtils.randomPrice
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            cur = [EUR]
+            cur = [currency]
+            imp.first.bidFloor = impPrice
+            imp.first.bidFloorCur = currency
             ext.prebid.bidAdjustments = BidAdjustment.getDefaultWithSingleMediaTypeRule(BANNER, bidAdjustmentMultyRule)
         }
 
@@ -666,7 +789,7 @@ class BidAdjustmentSpec extends BaseSpec {
         def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Final bid price should be adjusted and converted to original request cur"
-        assert response.seatbid.first.bid.first.price == convertCurrency(adjustmentRule.value, adjustmentRule.currency, bidRequest.cur.first)
+        assert response.seatbid.first.bid.first.price == convertCurrency(adjustmentRule.value, adjustmentRule.currency, currency)
         assert response.cur == bidRequest.cur.first
 
         and: "Original bid price and currency should be presented in bid.ext"
@@ -675,19 +798,23 @@ class BidAdjustmentSpec extends BaseSpec {
             origbidcur == bidResponse.cur
         }
 
-        and: "Bidder request should contain currency from request"
+        and: "Bidder request should contain floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.cur == bidRequest.cur
+        assert bidderRequest.imp.bidFloorCur == [currency]
+        assert bidderRequest.imp.bidFloor == [impPrice]
     }
 
     def "PBS should apply bidAdjustments after bidAdjustmentFactors when both are present"() {
         given: "Default BidRequest with ext.prebid.bidAdjustments"
         def currency = USD
+        def impPrice = PBSUtils.randomPrice
         def bidAdjustmentFactorsPrice = PBSUtils.randomPrice
         def adjustmentRule = new AdjustmentRule(adjustmentType: adjustmentType, value: PBSUtils.randomPrice, currency: currency)
         def bidAdjustmentMultyRule = new BidAdjustmentRule(generic: [(WILDCARD): [adjustmentRule]])
         def bidRequest = BidRequest.defaultBidRequest.tap {
             cur = [currency]
+            imp.first.bidFloor = impPrice
+            imp.first.bidFloorCur = currency
             ext.prebid.bidAdjustments = BidAdjustment.getDefaultWithSingleMediaTypeRule(BANNER, bidAdjustmentMultyRule)
             ext.prebid.bidAdjustmentFactors = new BidAdjustmentFactors(adjustments: [(GENERIC): bidAdjustmentFactorsPrice])
         }
@@ -714,9 +841,10 @@ class BidAdjustmentSpec extends BaseSpec {
             origbidcur == bidResponse.cur
         }
 
-        and: "Bidder request should contain currency from request"
+        and: "Bidder request should contain floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.cur == [currency]
+        assert bidderRequest.imp.bidFloorCur == [currency]
+        assert bidderRequest.imp.bidFloor == [getReverseAdjustedPrice(impPrice, adjustmentPrice, adjustmentType)]
 
         where:
         adjustmentType << [MULTIPLIER, CPM, STATIC]
@@ -728,16 +856,19 @@ class BidAdjustmentSpec extends BaseSpec {
 
         and: "Default BidRequest with ext.prebid.bidAdjustments"
         def currency = USD
+        def impPrice = PBSUtils.randomPrice
         def rule = new BidAdjustmentRule(generic: [(WILDCARD): [new AdjustmentRule(adjustmentType: adjustmentType, value: ruleValue, currency: currency)]])
         bidRequest.ext.prebid.bidAdjustments = BidAdjustment.getDefaultWithSingleMediaTypeRule(mediaType, rule)
         bidRequest.cur = [currency]
+        bidRequest.imp.first.bidFloor = impPrice
+        bidRequest.imp.first.bidFloorCur = currency
 
         and: "Default bid response"
         def originalPrice = PBSUtils.randomPrice
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
             cur = currency
             seatbid.first.bid.first.price = originalPrice
-        }
+        } as BidResponse
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
@@ -763,9 +894,10 @@ class BidAdjustmentSpec extends BaseSpec {
         def logs = pbsService.getLogsByTime(startTime)
         assert getLogsByText(logs, errorMessage)
 
-        and: "Bidder request should contain currency from request"
+        and: "Bidder request should contain floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.cur == [currency]
+        assert bidderRequest.imp.bidFloorCur == [currency]
+        assert bidderRequest.imp.bidFloor == [impPrice]
 
         where:
         adjustmentType | ruleValue                       | mediaType        | bidRequest
@@ -854,9 +986,12 @@ class BidAdjustmentSpec extends BaseSpec {
     def "PBS shouldn't adjust bid price for matching bidder when request has different bidder name in bidAdjustments config"() {
         given: "Default BidRequest with ext.prebid.bidAdjustments"
         def currency = USD
+        def impPrice = PBSUtils.randomPrice
         def rule = new BidAdjustmentRule(alias: [(WILDCARD): [new AdjustmentRule(adjustmentType: adjustmentType, value: PBSUtils.randomPrice, currency: currency)]])
         def bidRequest = BidRequest.defaultBidRequest.tap {
             cur = [currency]
+            imp.first.bidFloor = impPrice
+            imp.first.bidFloorCur = currency
             ext.prebid.bidAdjustments = BidAdjustment.getDefaultWithSingleMediaTypeRule(BANNER, rule)
         }
 
@@ -884,9 +1019,10 @@ class BidAdjustmentSpec extends BaseSpec {
             origbidcur == bidResponse.cur
         }
 
-        and: "Bidder request should contain currency from request"
+        and: "Bidder request should contain floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.cur == [currency]
+        assert bidderRequest.imp.bidFloorCur == [currency]
+        assert bidderRequest.imp.bidFloor == [impPrice]
 
         where:
         adjustmentType << [MULTIPLIER, CPM, STATIC]
@@ -898,10 +1034,13 @@ class BidAdjustmentSpec extends BaseSpec {
 
         and: "Default BidRequest with ext.prebid.bidAdjustments"
         def currency = USD
+        def impPrice = PBSUtils.randomPrice
         def adjustmentPrice = PBSUtils.randomPrice.toDouble()
         def rule = new BidAdjustmentRule(generic: [(WILDCARD): [new AdjustmentRule(adjustmentType: adjustmentType, value: adjustmentPrice, currency: null)]])
         def bidRequest = BidRequest.defaultBidRequest.tap {
             cur = [currency]
+            imp.first.bidFloor = impPrice
+            imp.first.bidFloorCur = currency
             ext.prebid.bidAdjustments = BidAdjustment.getDefaultWithSingleMediaTypeRule(BANNER, rule)
         }
 
@@ -936,9 +1075,10 @@ class BidAdjustmentSpec extends BaseSpec {
         def logs = pbsService.getLogsByTime(startTime)
         assert getLogsByText(logs, errorMessage)
 
-        and: "Bidder request should contain currency from request"
+        and: "Bidder request should contain floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.cur == [currency]
+        assert bidderRequest.imp.bidFloorCur == [currency]
+        assert bidderRequest.imp.bidFloor == [impPrice]
 
         where:
         adjustmentType << [CPM, STATIC]
@@ -948,9 +1088,12 @@ class BidAdjustmentSpec extends BaseSpec {
         given: "Default BidRequest with ext.prebid.bidAdjustments"
         def adjustmentPrice = PBSUtils.randomPrice
         def currency = USD
+        def impPrice = PBSUtils.randomPrice
         def rule = new BidAdjustmentRule(generic: [(WILDCARD): [new AdjustmentRule(adjustmentType: adjustmentType, value: adjustmentPrice, currency: null)]])
         def bidRequest = BidRequest.defaultBidRequest.tap {
             cur = [currency]
+            imp.first.bidFloor = impPrice
+            imp.first.bidFloorCur = currency
             ext.prebid.bidAdjustments = BidAdjustment.getDefaultWithSingleMediaTypeRule(UNKNOWN, rule)
         }
 
@@ -978,9 +1121,10 @@ class BidAdjustmentSpec extends BaseSpec {
             origbidcur == bidResponse.cur
         }
 
-        and: "Bidder request should contain currency from request"
+        and: "Bidder request should contain floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.cur == [currency]
+        assert bidderRequest.imp.bidFloorCur == [currency]
+        assert bidderRequest.imp.bidFloor == [impPrice]
 
         where:
         adjustmentType << [MULTIPLIER, CPM, STATIC]
@@ -992,10 +1136,13 @@ class BidAdjustmentSpec extends BaseSpec {
 
         and: "Default BidRequest with ext.prebid.bidAdjustments"
         def currency = USD
+        def impPrice = PBSUtils.randomPrice
         def adjustmentPrice = PBSUtils.randomPrice.toDouble()
         def rule = new BidAdjustmentRule(generic: [(WILDCARD): [new AdjustmentRule(adjustmentType: AdjustmentType.UNKNOWN, value: adjustmentPrice, currency: currency)]])
         def bidRequest = BidRequest.defaultBidRequest.tap {
             cur = [currency]
+            imp.first.bidFloor = impPrice
+            imp.first.bidFloorCur = currency
             ext.prebid.bidAdjustments = BidAdjustment.getDefaultWithSingleMediaTypeRule(BANNER, rule)
         }
 
@@ -1039,9 +1186,14 @@ class BidAdjustmentSpec extends BaseSpec {
         given: "Default BidRequest with ext.prebid.bidAdjustments"
         def currency = USD
         def adjustmentPrice = PBSUtils.randomPrice
+        def impPrice = PBSUtils.randomPrice
         def rule = new BidAdjustmentRule(generic: [(WILDCARD): [new AdjustmentRule(adjustmentType: MULTIPLIER, value: adjustmentPrice, currency: null)]])
         def bidRequest = BidRequest.defaultBidRequest.tap {
             cur = [currency]
+            imp.first.tap {
+                bidFloor = impPrice
+                bidFloorCur = currency
+            }
             ext.prebid.bidAdjustments = BidAdjustment.getDefaultWithSingleMediaTypeRule(BANNER, rule)
         }
 
@@ -1075,13 +1227,16 @@ class BidAdjustmentSpec extends BaseSpec {
             origbidcur == bidResponse.cur
         }
 
-        and: "Bidder request should contain currency from request"
+        and: "Bidder request should contain floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.cur == [currency]
+        assert bidderRequest.imp.bidFloorCur == [currency]
+        assert bidderRequest.imp.bidFloor == [getReverseAdjustedPrice(impPrice, adjustmentPrice, MULTIPLIER)]
 
         where:
         adjustmentType << [CPM, STATIC]
     }
+    
+    
 
     def "PBS should adjust bid price for matching bidder and alternate bidder code when request has per-bidder bid adjustment factors"() {
         given: "Default bid request with bid adjustment and amx bidder"
@@ -1244,6 +1399,21 @@ class BidAdjustmentSpec extends BaseSpec {
                 return adjustedValue
             default:
                 return originalPrice
+        }
+    }
+
+    private static BigDecimal getReverseAdjustedPrice(BigDecimal originalPrice,
+                                                      BigDecimal adjustedValue,
+                                                      AdjustmentType adjustmentType) {
+        switch (adjustmentType) {
+            case MULTIPLIER:
+                return PBSUtils.roundDecimal(originalPrice / adjustedValue, BID_ADJUST_PRECISION)
+            case CPM:
+                return PBSUtils.roundDecimal(originalPrice + adjustedValue, BID_ADJUST_PRECISION)
+            case STATIC:
+                return originalPrice
+            default:
+                return adjustedValue
         }
     }
 
