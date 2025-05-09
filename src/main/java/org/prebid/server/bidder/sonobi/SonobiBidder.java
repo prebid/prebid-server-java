@@ -144,7 +144,7 @@ public class SonobiBidder implements Bidder<BidRequest> {
                 if (imp.getBanner() == null && imp.getVideo() != null) {
                     return BidType.video;
                 }
-                if (imp.getBanner() == null && imp.getVideo() == null && imp.getXNative() != null) {
+                if (imp.getBanner() == null && imp.getXNative() != null) {
                     return BidType.xNative;
                 }
                 return BidType.banner;

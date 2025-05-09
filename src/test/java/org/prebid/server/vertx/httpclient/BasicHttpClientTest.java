@@ -4,6 +4,7 @@ import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
@@ -42,7 +43,7 @@ public class BasicHttpClientTest {
     @Mock
     private Vertx vertx;
     @Mock(strictness = LENIENT)
-    private io.vertx.core.http.HttpClient wrappedHttpClient;
+    private HttpClient wrappedHttpClient;
 
     private BasicHttpClient httpClient;
     @Mock(strictness = LENIENT)

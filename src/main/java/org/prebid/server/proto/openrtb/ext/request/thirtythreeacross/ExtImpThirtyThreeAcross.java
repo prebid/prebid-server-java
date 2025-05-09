@@ -1,14 +1,12 @@
 package org.prebid.server.proto.openrtb.ext.request.thirtythreeacross;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
 import lombok.Value;
 
 /**
  * Defines the contract for bidrequest.imp[i].ext.33across
  */
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class ExtImpThirtyThreeAcross {
 
     @JsonProperty("siteId")

@@ -322,7 +322,7 @@ public class CurrencyConversionService implements Initializable {
                 final BigDecimal directCurrencyRateIntermediate = directCurrencyRates.get(sharedCurrency);
                 final BigDecimal reverseCurrencyRateIntermediate = reverseCurrencyRates.get(sharedCurrency);
                 conversionRate = directCurrencyRateIntermediate.divide(reverseCurrencyRateIntermediate,
-                        // chose largest precision among intermediate rates
+                        // chose the largest precision among intermediate rates
                         getRatePrecision(directCurrencyRateIntermediate, reverseCurrencyRateIntermediate),
                         RoundingMode.HALF_EVEN);
             }

@@ -26,7 +26,7 @@ public class StoredItemResolver {
      * <p>
      * - Otherwise, find stored item for this account or report an error if no one account matched.
      * <p>
-     * 2. One stored stored item was found:
+     * 2. One stored item was found:
      * <p>
      * - If account is not specified in stored item or found stored item has the same account - use it.
      * <p>
