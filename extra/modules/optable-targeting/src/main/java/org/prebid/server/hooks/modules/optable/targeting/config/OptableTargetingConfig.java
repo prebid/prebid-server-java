@@ -1,6 +1,7 @@
 package org.prebid.server.hooks.modules.optable.targeting.config;
 
 import io.vertx.core.Vertx;
+import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
 import org.prebid.server.cache.PbcStorageService;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
 import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingAuctionResponseHook;
@@ -128,12 +129,20 @@ public class OptableTargetingConfig {
                                                   OptableTargeting optableTargeting,
                                                   PayloadResolver payloadResolver,
                                                   OptableAttributesResolver optableAttributesResolver,
-                                                  ExecutionTimeResolver executionTimeResolver) {
+                                                  ExecutionTimeResolver executionTimeResolver,
+                                                  UserFpdActivityMask userFpdActivityMask) {
 
         return new OptableTargetingModule(List.of(
                 new OptableTargetingProcessedAuctionRequestHook(
-                        configResolver, optableTargeting, payloadResolver, optableAttributesResolver),
+                        configResolver,
+                        optableTargeting,
+                        payloadResolver,
+                        optableAttributesResolver,
+                        userFpdActivityMask),
                 new OptableTargetingAuctionResponseHook(
-                        analyticTagsResolver, payloadResolver, configResolver, executionTimeResolver)));
+                        analyticTagsResolver,
+                        payloadResolver,
+                        configResolver,
+                        executionTimeResolver)));
     }
 }

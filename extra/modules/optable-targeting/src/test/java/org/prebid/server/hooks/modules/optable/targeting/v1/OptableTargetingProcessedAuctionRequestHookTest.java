@@ -10,6 +10,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
+import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
 import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
@@ -24,6 +26,7 @@ import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
 
@@ -39,6 +42,10 @@ public class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptable
     AuctionInvocationContext invocationContext;
     @Mock
     Timeout timeout;
+    @Mock
+    UserFpdActivityMask userFpdActivityMask;
+    @Mock
+    ActivityInfrastructure activityInfrastructure;
 
     private ConfigResolver configResolver;
 
@@ -50,14 +57,17 @@ public class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptable
 
     @BeforeEach
     public void setUp() {
+        when(activityInfrastructure.isAllowed(any(), any())).thenReturn(true);
+        when(userFpdActivityMask.maskDevice(any(), anyBoolean(), anyBoolean()))
+                .thenAnswer(answer -> answer.getArgument(0));
         when(timeout.remaining()).thenReturn(1000L);
         when(invocationContext.accountConfig()).thenReturn(givenAccountConfig(true));
-        when(invocationContext.auctionContext()).thenReturn(givenAuctionContext(timeout));
+        when(invocationContext.auctionContext()).thenReturn(givenAuctionContext(activityInfrastructure, timeout));
         configResolver = new ConfigResolver(mapper, givenOptableTargetingProperties(false));
         payloadResolver = new PayloadResolver(mapper);
         optableAttributesResolver = new OptableAttributesResolver();
         target = new OptableTargetingProcessedAuctionRequestHook(configResolver, optableTargeting,
-                payloadResolver, optableAttributesResolver);
+                payloadResolver, optableAttributesResolver, userFpdActivityMask);
     }
 
     @Test

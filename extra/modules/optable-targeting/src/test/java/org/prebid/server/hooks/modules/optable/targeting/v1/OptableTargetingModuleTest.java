@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
 import org.prebid.server.hooks.modules.optable.targeting.v1.analytics.AnalyticTagsResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ExecutionTimeResolver;
@@ -18,6 +19,10 @@ import java.util.Collection;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.Mock.Strictness.LENIENT;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class OptableTargetingModuleTest {
@@ -37,6 +42,9 @@ public class OptableTargetingModuleTest {
     @Mock
     AnalyticTagsResolver analyticTagsResolver;
 
+    @Mock(strictness = LENIENT)
+    UserFpdActivityMask userFpdActivityMask;
+
     ExecutionTimeResolver executionTimeResolver = new ExecutionTimeResolver();
 
     @Test
@@ -54,12 +62,15 @@ public class OptableTargetingModuleTest {
     @Test
     public void shouldReturnHooks() {
         // given
+        when(userFpdActivityMask.maskDevice(any(), anyBoolean(), anyBoolean()))
+                .thenAnswer(answer -> answer.getArgument(0));
         final Collection<Hook<?, ? extends InvocationContext>> hooks =
                 List.of(new OptableTargetingProcessedAuctionRequestHook(
                         configResolver,
                         optableTargeting,
                         payloadResolver,
-                        optableAttributesResolver),
+                        optableAttributesResolver,
+                        userFpdActivityMask),
                         new OptableTargetingAuctionResponseHook(
                                 analyticTagsResolver,
                                 payloadResolver,

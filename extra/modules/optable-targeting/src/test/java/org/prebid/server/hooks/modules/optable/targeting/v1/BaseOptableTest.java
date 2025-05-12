@@ -16,6 +16,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.impl.headers.HeadersMultiMap;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpStatus;
+import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.TimeoutContext;
 import org.prebid.server.execution.timeout.Timeout;
@@ -59,9 +60,10 @@ public abstract class BaseOptableTest {
         return moduleContext;
     }
 
-    protected AuctionContext givenAuctionContext(Timeout timeout) {
+    protected AuctionContext givenAuctionContext(ActivityInfrastructure activityInfrastructure, Timeout timeout) {
         return AuctionContext.builder()
                 .bidRequest(givenBidRequest())
+                .activityInfrastructure(activityInfrastructure)
                 .timeoutContext(TimeoutContext.of(0, timeout, 1))
                 .build();
     }
