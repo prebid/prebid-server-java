@@ -7,6 +7,7 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -25,12 +26,11 @@ import org.prebid.server.util.HttpUtil;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
-import java.util.Vector;
 import java.util.stream.Collectors;
 
 public class MobkoiBidder implements Bidder<BidRequest> {
@@ -50,43 +50,21 @@ public class MobkoiBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
 
-        final Imp firstImp = bidRequest.getImp().stream().findFirst()
-                .orElseThrow(() -> new PreBidException("No impression found"));
+        final Imp firstImp = bidRequest.getImp().getFirst();
 
         final ExtImpMobkoi extImpMobkoi;
+        final Imp modifiedFirstImp;
         try {
             extImpMobkoi = parseExtImp(firstImp);
+            modifiedFirstImp = modifyImp(firstImp, extImpMobkoi);
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
-        final Imp validImp;
-        if (firstImp.getTagid() == null) {
-            if (extImpMobkoi.getPlacementId() != null) {
-                validImp = modifyImp(firstImp, extImpMobkoi.getPlacementId());
-            } else {
-                return Result.withError(
-                        BidderError.badInput(
-                                "invalid because it comes with neither request.imp[0].tagId nor "
-                                        + "req.imp[0].ext.Bidder.placementId"));
-            }
-        } else {
-            validImp = firstImp;
-        }
-
-        List<Imp> modifiedImps = bidRequest.getImp();
-        if (validImp != firstImp) {
-            modifiedImps = updateFirstImpWith(bidRequest.getImp(), validImp);
-        }
-
-        final String selectedEndpointUrl = Optional.ofNullable(extImpMobkoi.getAdServerBaseUrl())
-                .flatMap(this::validateAndReplaceUri)
-                .orElse(endpointUrl);
-
-        final User user = modifyUser(bidRequest.getUser());
+        final String selectedEndpointUrl = customOrDefaultEndpoint(extImpMobkoi.getAdServerBaseUrl());
 
         return Result.withValue(BidderUtil.defaultRequest(
-                modifyBidRequest(bidRequest, user, modifiedImps),
+                modifyBidRequest(bidRequest, modifiedFirstImp),
                 selectedEndpointUrl,
                 mapper));
     }
@@ -101,27 +79,38 @@ public class MobkoiBidder implements Bidder<BidRequest> {
         }
     }
 
-    private Optional<String> validateAndReplaceUri(String customUri) {
+    private Imp modifyImp(Imp firstImp, ExtImpMobkoi extImpMobkoi) {
+        String tagId = firstImp.getTagid();
+        if (StringUtils.isBlank(tagId)) {
+            if (StringUtils.isNotBlank(extImpMobkoi.getPlacementId())) {
+                tagId = extImpMobkoi.getPlacementId();
+            } else {
+                throw new PreBidException("invalid because it comes with neither request.imp[0].tagId nor "
+                        + "req.imp[0].ext.Bidder.placementId");
+            }
+
+            return firstImp.toBuilder().tagid(tagId).build();
+        }
+        return firstImp;
+    }
+
+    private String customOrDefaultEndpoint(String customUri) {
         try {
             HttpUtil.validateUrl(customUri);
             final URI uri = new URI(customUri);
-            return Optional.of(uri.resolve("/bid").toString());
+            return uri.resolve("/bid").toString();
         } catch (IllegalArgumentException | URISyntaxException e) {
-            return Optional.empty();
+            return endpointUrl;
         }
     }
 
-    private Imp modifyImp(Imp imp, String tagId) {
-        return imp.toBuilder().tagid(tagId).build();
+    private static List<Imp> updateFirstImpWith(List<Imp> imps, Imp imp) {
+        final List<Imp> modifiedImps = new ArrayList<>(imps);
+        modifiedImps.set(0, imp);
+        return Collections.unmodifiableList(modifiedImps);
     }
 
-    private List<Imp> updateFirstImpWith(List<Imp> imp, Imp validImp) {
-        final List<Imp> imps = new Vector<>(imp);
-        imps.set(0, validImp);
-        return Collections.unmodifiableList(imps);
-    }
-
-    private User modifyUser(User user) {
+    private static User modifyUser(User user) {
         if (user == null || user.getConsent() == null) {
             return user;
         }
@@ -132,7 +121,9 @@ public class MobkoiBidder implements Bidder<BidRequest> {
         return user.toBuilder().ext(userExt).build();
     }
 
-    private static BidRequest modifyBidRequest(BidRequest bidRequest, User user, List<Imp> imps) {
+    private static BidRequest modifyBidRequest(BidRequest bidRequest, Imp modifiedFirstImp) {
+        final User user = modifyUser(bidRequest.getUser());
+        final List<Imp> imps = updateFirstImpWith(bidRequest.getImp(), modifiedFirstImp);
         return bidRequest.toBuilder().user(user).imp(imps).build();
     }
 

@@ -28,9 +28,9 @@ public class MobkoiConfiguration {
     }
 
     @Bean
-            BidderDeps mobkoiBidderDeps(BidderConfigurationProperties mobkoiConfigurationProperties,
-            @NotBlank @Value("${external-url}") String externalUrl,
-            JacksonMapper mapper) {
+    BidderDeps mobkoiBidderDeps(BidderConfigurationProperties mobkoiConfigurationProperties,
+                                @NotBlank @Value("${external-url}") String externalUrl,
+                                JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(mobkoiConfigurationProperties)

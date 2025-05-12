@@ -1,6 +1,7 @@
 adapters:
   mobkoi:
     endpoint: "https://pbs.maximus.mobkoi.com/bid"
+    ortb-version: "2.6"
     meta-info:
       maintainer-email: platformteam@mobkoi.com
       app-media-types:
@@ -8,4 +9,3 @@ adapters:
         - banner
       supported-vendors:
       vendor-id: 898
-      ortb-version: "2.6"
