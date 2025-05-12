@@ -38,6 +38,6 @@ public class RubiconTest extends IntegrationTest {
                 "openrtb2/rubicon/test-auction-rubicon-response.json",
                 response,
                 singletonList("rubicon"),
-                new Customization("seatbid[*].bid[*].id", (o1, o2) -> true));
+                new Customization("seatbid[*].bid[*].id", (o1, o2) -> false));
     }
 }
