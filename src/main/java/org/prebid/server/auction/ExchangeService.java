@@ -93,6 +93,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidMeta;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAuctionConfig;
+import org.prebid.server.settings.model.AccountCacheConfig;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ListUtil;
 import org.prebid.server.util.PbsUtil;
@@ -239,7 +241,7 @@ public class ExchangeService {
 
         final List<SeatBid> storedAuctionResponses = new ArrayList<>();
         final BidderAliases aliases = aliases(bidRequest, account);
-        final BidRequestCacheInfo cacheInfo = bidRequestCacheInfo(bidRequest);
+        final BidRequestCacheInfo cacheInfo = bidRequestCacheInfo(bidRequest, account);
         final Map<String, MultiBidConfig> bidderToMultiBid = bidderToMultiBids(bidRequest, debugWarnings);
         receivedContext.getBidRejectionTrackers().putAll(makeBidRejectionTrackers(bidRequest, aliases));
 
@@ -309,12 +311,18 @@ public class ExchangeService {
         return prebid != null ? prebid.getTargeting() : null;
     }
 
-    private static BidRequestCacheInfo bidRequestCacheInfo(BidRequest bidRequest) {
+    private static BidRequestCacheInfo bidRequestCacheInfo(BidRequest bidRequest, Account account) {
+        final Boolean cachingEnabled = Optional.ofNullable(account)
+                .map(Account::getAuction)
+                .map(AccountAuctionConfig::getCache)
+                .map(AccountCacheConfig::getEnabled)
+                .orElse(true);
+
         final ExtRequestTargeting targeting = targeting(bidRequest);
         final ExtRequestPrebid prebid = PbsUtil.extRequestPrebid(bidRequest);
         final ExtRequestPrebidCache cache = prebid != null ? prebid.getCache() : null;
 
-        if (targeting != null && cache != null) {
+        if (cachingEnabled && targeting != null && cache != null) {
             final boolean shouldCacheBids = cache.getBids() != null;
             final boolean shouldCacheVideoBids = cache.getVastxml() != null;
             final boolean shouldCacheWinningBidsOnly = !targeting.getIncludebidderkeys()
@@ -343,6 +351,7 @@ public class ExchangeService {
                         .build();
             }
         }
+
         return BidRequestCacheInfo.noCache();
     }
 
