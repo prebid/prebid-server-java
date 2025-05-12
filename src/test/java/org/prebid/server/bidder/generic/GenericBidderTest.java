@@ -54,7 +54,7 @@ public class GenericBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(2)
+        assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
                 .containsExactly("https://randomurl.com");
     }
