@@ -145,7 +145,7 @@ public class SeedtagBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder().build()));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(BidResponse.builder().build());
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -176,7 +176,7 @@ public class SeedtagBidderTest extends VertxTest {
     public void makeBidsShouldReturnBannerBidIfMediaTypeBanner() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123").mtype(1))));
+                givenBidResponse(bidBuilder -> bidBuilder.impid("123").mtype(1)));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -191,7 +191,7 @@ public class SeedtagBidderTest extends VertxTest {
     public void makeBidsShouldReturnVideoBidIfMediaTypeVideo() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123").mtype(2))));
+                givenBidResponse(bidBuilder -> bidBuilder.impid("123").mtype(2)));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -206,7 +206,7 @@ public class SeedtagBidderTest extends VertxTest {
     public void makeBidsShouldReturnErrorIfMediaTypeInvalid() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123").mtype(4).id("456"))));
+                givenBidResponse(bidBuilder -> bidBuilder.impid("123").mtype(4).id("456")));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -247,5 +247,12 @@ public class SeedtagBidderTest extends VertxTest {
 
     private static BidderCall<BidRequest> givenHttpCall(String responseBody) {
         return BidderCall.succeededHttp(null, HttpResponse.of(200, null, responseBody), null);
+    }
+
+    private static BidderCall<BidRequest> givenHttpCall(BidResponse bidResponse) throws JsonProcessingException {
+        return BidderCall.succeededHttp(
+                null,
+                HttpResponse.of(200, null, mapper.writeValueAsString(bidResponse)),
+                null);
     }
 }

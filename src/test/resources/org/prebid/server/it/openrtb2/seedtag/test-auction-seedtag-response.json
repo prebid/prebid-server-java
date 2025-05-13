@@ -19,7 +19,10 @@
             "origbidcpm":3.33,
             "origbidcur":"USD",
             "prebid": {
-              "type":"banner"
+              "type":"banner",
+              "meta": {
+                "adaptercode": "seedtag"
+              }
             }
           }
         }
