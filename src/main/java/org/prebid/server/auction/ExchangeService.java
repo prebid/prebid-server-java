@@ -254,7 +254,7 @@ public class ExchangeService {
                                 .map(receivedContext::with))
 
                 .map(context -> updateRequestMetric(context, uidsCookie, aliases, account, requestTypeMetric))
-                .compose(context -> CompositeFuture.join(
+                .compose(context -> Future.join(
                                 context.getAuctionParticipations().stream()
                                         .map(auctionParticipation -> processAndRequestBids(
                                                 context,
@@ -262,7 +262,7 @@ public class ExchangeService {
                                                 timeout,
                                                 aliases)
                                                 .map(auctionParticipation::with))
-                                        .collect(Collectors.toCollection(ArrayList::new)))
+                                        .toList())
                         // send all the requests to the bidders and gathers results
                         .map(CompositeFuture::<AuctionParticipation>list)
                         .map(storedResponseProcessor::updateStoredBidResponse)
@@ -1331,7 +1331,7 @@ public class ExchangeService {
                 if (isDebugEnabled) {
                     debugWarnings.add(
                             "Dropped bid '%s'. Does not contain a positive (or zero if there is a deal) 'price'"
-                            .formatted(bid.getId()));
+                                    .formatted(bid.getId()));
                 }
             } else {
                 validBids.add(bidderBid);

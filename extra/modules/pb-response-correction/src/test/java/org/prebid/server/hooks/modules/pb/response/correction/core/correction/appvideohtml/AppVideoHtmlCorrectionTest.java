@@ -39,10 +39,6 @@ public class AppVideoHtmlCorrectionTest {
         assertThat(actual).isEqualTo(givenResponses);
     }
 
-    private static Config givenConfig(List<String> excludedBidders) {
-        return Config.of(true, AppVideoHtmlConfig.of(true, excludedBidders));
-    }
-
     @Test
     public void applyShouldNotChangeBidResponsesWhenAdmIsNull() {
         // given
@@ -58,15 +54,6 @@ public class AppVideoHtmlCorrectionTest {
 
         // then
         assertThat(actual).isEqualTo(givenResponses);
-    }
-
-    private static BidderBid givenBid(String adm, BidType type) {
-        return givenBid(adm, type, null);
-    }
-
-    private static BidderBid givenBid(String adm, BidType type, ObjectNode bidExt) {
-        final Bid bid = Bid.builder().adm(adm).ext(bidExt).build();
-        return BidderBid.of(bid, type, "USD");
     }
 
     @Test
@@ -130,10 +117,6 @@ public class AppVideoHtmlCorrectionTest {
         assertThat(actual).isEqualTo(expectedResponses);
     }
 
-    private static Config givenConfig() {
-        return Config.of(true, AppVideoHtmlConfig.of(true, null));
-    }
-
     @Test
     public void applyShouldChangeTypeToBannerAndAddMetaTypeVideoWhenAdmIsVastXmlAndTypeIsNotVideo() {
         // given
@@ -194,4 +177,20 @@ public class AppVideoHtmlCorrectionTest {
         assertThat(actual).isEqualTo(expectedResponses);
     }
 
+    private static Config givenConfig() {
+        return Config.of(true, AppVideoHtmlConfig.of(true, null));
+    }
+
+    private static Config givenConfig(List<String> excludedBidders) {
+        return Config.of(true, AppVideoHtmlConfig.of(true, excludedBidders));
+    }
+
+    private static BidderBid givenBid(String adm, BidType type) {
+        return givenBid(adm, type, null);
+    }
+
+    private static BidderBid givenBid(String adm, BidType type, ObjectNode bidExt) {
+        final Bid bid = Bid.builder().adm(adm).ext(bidExt).build();
+        return BidderBid.of(bid, type, "USD");
+    }
 }

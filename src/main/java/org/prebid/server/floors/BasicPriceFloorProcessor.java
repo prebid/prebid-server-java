@@ -135,7 +135,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
 
         if (requestFloors != null) {
             try {
-                final Optional<AccountPriceFloorsConfig> priceFloorsConfig = Optional.ofNullable(account)
+                final Optional<AccountPriceFloorsConfig> priceFloorsConfig = Optional.of(account)
                         .map(Account::getAuction)
                         .map(AccountAuctionConfig::getPriceFloors);
 
@@ -163,7 +163,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
     }
 
     private static boolean shouldUseDynamicData(Account account, FetchResult fetchResult) {
-        final boolean isUsingDynamicDataAllowed = Optional.ofNullable(account)
+        final boolean isUsingDynamicDataAllowed = Optional.of(account)
                 .map(Account::getAuction)
                 .map(AccountAuctionConfig::getPriceFloors)
                 .map(AccountPriceFloorsConfig::getUseDynamicData)
