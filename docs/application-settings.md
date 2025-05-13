@@ -25,6 +25,11 @@ There are two ways to configure application settings: database and file. This do
 - `auction.bidadjustments.mediatype.*.*.*[].value` - value of the bid adjustment
 - `auction.bidadjustments.mediatype.*.*.*[].currency` - currency of the bid adjustment
 - `auction.events.enabled` - enables events for account if true
+- `auction.bid-rounding` - bid rounding options are:
+  - **down** - rounding down to the lower price bucket
+  - **up** - rounding up to the higher price bucket
+  - **timesplit** - 50% of the time rounding down to the lower PB and 50% of the time rounding up to the higher price bucket
+  - **true** - if the price >= 50% of the range, rounding up to the higher price bucket, otherwise rounding down
 - `auction.price-floors.enabled` - enables price floors for account if true. Defaults to true.
 - `auction.price-floors.fetch.enabled`- enables data fetch for price floors for account if true. Defaults to false.
 - `auction.price-floors.fetch.url` - url to fetch price floors data from.
