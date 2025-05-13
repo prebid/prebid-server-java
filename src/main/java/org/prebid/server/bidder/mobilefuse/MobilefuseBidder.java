@@ -45,17 +45,6 @@ public class MobilefuseBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final String endpoint = request.getImp().stream()
-                .map(this::parseImpExt)
-                .filter(Objects::nonNull)
-                .findFirst()
-                .map(this::makeUrl)
-                .orElse(null);
-
-        if (endpoint == null) {
-            return Result.withError(BidderError.badInput("Invalid ExtImpMobilefuse value"));
-        }
-
         final List<Imp> modifiedImps = request.getImp().stream()
                 .map(this::modifyImp)
                 .filter(Objects::nonNull)
@@ -66,7 +55,7 @@ public class MobilefuseBidder implements Bidder<BidRequest> {
         }
 
         final BidRequest modifiedRequest = request.toBuilder().imp(modifiedImps).build();
-        return Result.withValue(BidderUtil.defaultRequest(modifiedRequest, endpoint, mapper));
+        return Result.withValue(BidderUtil.defaultRequest(modifiedRequest, endpointUrl, mapper));
     }
 
     private Imp modifyImp(Imp imp) {
@@ -75,6 +64,10 @@ public class MobilefuseBidder implements Bidder<BidRequest> {
         }
 
         final ExtImpMobilefuse impExt = parseImpExt(imp);
+        if (impExt == null) {
+            return null;
+        }
+
         final ObjectNode skadn = parseSkadn(imp.getExt());
         return imp.toBuilder()
                 .tagid(Objects.toString(impExt.getPlacementId(), "0"))
@@ -96,10 +89,6 @@ public class MobilefuseBidder implements Bidder<BidRequest> {
         } catch (IllegalArgumentException e) {
             return null;
         }
-    }
-
-    private String makeUrl(ExtImpMobilefuse extImp) {
-        return endpointUrl;
     }
 
     @Override

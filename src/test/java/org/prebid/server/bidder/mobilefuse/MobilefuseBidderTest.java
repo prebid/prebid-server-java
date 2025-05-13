@@ -92,7 +92,7 @@ public class MobilefuseBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors())
-                .containsExactly(BidderError.badInput("Invalid ExtImpMobilefuse value"));
+                .containsExactly(BidderError.badInput("No valid imps"));
         assertThat(result.getValue()).isEmpty();
     }
 
