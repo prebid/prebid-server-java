@@ -77,7 +77,6 @@ import static org.prebid.server.functional.model.request.auction.PrivacyModule.I
 import static org.prebid.server.functional.model.request.auction.PrivacyModule.IAB_US_CUSTOM_LOGIC
 import static org.prebid.server.functional.model.request.auction.PrivacyModule.IAB_US_GENERAL
 import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
-import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 import static org.prebid.server.functional.util.privacy.model.State.ALABAMA
 import static org.prebid.server.functional.util.privacy.model.State.ONTARIO
 
@@ -848,7 +847,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             regs.gppSid = [US_NAT_V1.intValue]
-            regs.gpp = INVALID_GPP_STRING
+            regs.gpp = invalidGpp
         }
 
         and: "Activities set for transmitEIDS with rejecting privacy regulation"
@@ -865,21 +864,29 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
         accountDao.save(account)
 
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
         when: "PBS processes auction requests"
         def response = activityPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Generic bidder request should have empty EIDS fields"
+        then: "Generic bidder request should have data in EIDS fields"
         def genericBidderRequest = bidder.getBidderRequest(bidRequest.id)
-        verifyAll {
-            !genericBidderRequest.user.eids
-            !genericBidderRequest.user?.ext?.eids
-        }
+        assert genericBidderRequest.user.eids[0].source == bidRequest.user.eids[0].source
+
+        and: "Metrics processed across activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
+        assert metrics[ACCOUNT_PROCESSED_RULES_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
 
         and: "Response should not contain any warnings"
         assert !response.ext.warnings
 
         and: "Response should not contain any errors"
         assert !response.ext.errors
+
+        where:
+        invalidGpp << [null, "", PBSUtils.randomString, INVALID_GPP_STRING]
     }
 
     def "PBS auction call when request have different gpp consent but match and rejecting should remove EIDS fields in request"() {
@@ -1879,7 +1886,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
             it.gppSid = US_NAT_V1.value
-            it.consentString = INVALID_GPP_STRING
+            it.consentString = invalidGpp
             it.consentType = GPP
         }
 
@@ -1901,22 +1908,28 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
         when: "PBS processes amp request"
         def response = activityPbsService.sendAmpRequest(ampRequest)
 
-        then: "Generic bidder request should have empty EIDS fields"
+        then: "Generic bidder request should have data in EIDS fields"
         def genericBidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
-        verifyAll {
-            !genericBidderRequest.user.eids
-            !genericBidderRequest.user?.ext?.eids
-        }
+        assert genericBidderRequest.user.eids[0].source == ampStoredRequest.user.eids[0].source
+
+        and: "Metrics processed across activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(ampStoredRequest, TRANSMIT_EIDS)] == 1
 
         and: "Response should not contain any warnings"
         assert !response.ext.warnings
 
-        and: "Response should contain amp error"
-        assert response.ext?.errors[PREBID]*.code == [999]
-        assert response.ext?.errors[PREBID]*.message == ["Amp request parameter consent_string has invalid format: $INVALID_GPP_STRING"]
+        and: "Response should not contain any errors"
+        assert !response.ext.errors
+
+        where:
+        invalidGpp << [null, "", PBSUtils.randomString, INVALID_GPP_STRING]
     }
 
     def "PBS amp call when request have different gpp consent but match and rejecting should remove EIDS fields in request"() {
