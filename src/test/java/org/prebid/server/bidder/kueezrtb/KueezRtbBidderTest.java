@@ -134,20 +134,33 @@ class KueezRtbBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBidsWithTypesSuccessfully() throws JsonProcessingException {
+    public void makeBidsShouldReturnBannerBidWithTypeSuccessfully() throws JsonProcessingException {
         // given
         final Bid bannerBid = Bid.builder().impid("imp1").mtype(1).build();
-        final Bid videoBid = Bid.builder().impid("imp2").mtype(2).build();
-        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(bannerBid, videoBid));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(bannerBid));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(2)
-                .containsExactlyInAnyOrder(BidderBid.of(bannerBid, BidType.banner, "USD"),
-                        BidderBid.of(videoBid, BidType.video, "USD"));
+        assertThat(result.getValue()).hasSize(1)
+                .containsOnly(BidderBid.of(bannerBid, BidType.banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnVideoBidWithTypeSuccessfully() throws JsonProcessingException {
+        // given
+        final Bid videoBid = Bid.builder().impid("imp2").mtype(2).build();
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(videoBid));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .containsOnly(BidderBid.of(videoBid, BidType.video, "USD"));
     }
 
     @Test
