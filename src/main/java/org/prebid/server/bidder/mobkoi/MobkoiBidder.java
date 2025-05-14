@@ -103,6 +103,12 @@ public class MobkoiBidder implements Bidder<BidRequest> {
         }
     }
 
+    private static BidRequest modifyBidRequest(BidRequest bidRequest, Imp modifiedFirstImp) {
+        final User user = modifyUser(bidRequest.getUser());
+        final List<Imp> imps = updateFirstImpWith(bidRequest.getImp(), modifiedFirstImp);
+        return bidRequest.toBuilder().user(user).imp(imps).build();
+    }
+
     private static User modifyUser(User user) {
         return Optional.ofNullable(user)
                 .map(User::getConsent)
@@ -115,12 +121,6 @@ public class MobkoiBidder implements Bidder<BidRequest> {
         final List<Imp> modifiedImps = new ArrayList<>(imps);
         modifiedImps.set(0, imp);
         return Collections.unmodifiableList(modifiedImps);
-    }
-
-    private static BidRequest modifyBidRequest(BidRequest bidRequest, Imp modifiedFirstImp) {
-        final User user = modifyUser(bidRequest.getUser());
-        final List<Imp> imps = updateFirstImpWith(bidRequest.getImp(), modifiedFirstImp);
-        return bidRequest.toBuilder().user(user).imp(imps).build();
     }
 
     @Override
