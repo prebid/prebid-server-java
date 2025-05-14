@@ -9,18 +9,22 @@ import org.prebid.server.json.JacksonMapper;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class IdResResponseTest {
+
     private JacksonMapper jacksonMapper;
 
     @BeforeEach
     public void setUp() {
-        ObjectMapper mapper = new ObjectMapper();
+        final ObjectMapper mapper = new ObjectMapper();
         jacksonMapper = new JacksonMapper(mapper);
     }
 
     @Test
     public void shouldDecodeFromString() {
         // given
-        IdResResponse result = jacksonMapper.decodeValue("{\"eids\": [ { \"source\": \"liveintent.com\", \"uids\": [ { \"atype\": 3, \"id\" : \"some_id\" } ] } ] }", IdResResponse.class);
+        final IdResResponse result = jacksonMapper.decodeValue(
+                "{\"eids\": [ { \"source\": \"liveintent.com\", "
+                        + "\"uids\": [ { \"atype\": 3, \"id\" : \"some_id\" } ] } ] }",
+                IdResResponse.class);
         // when and then
         assertThat(result.getEids()).hasSize(1);
         assertThat(result.getEids().getFirst().getSource()).isEqualTo("liveintent.com");

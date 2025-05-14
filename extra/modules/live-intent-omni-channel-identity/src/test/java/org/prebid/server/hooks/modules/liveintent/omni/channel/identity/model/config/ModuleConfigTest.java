@@ -5,9 +5,10 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class ModuleConfigTest {
+
     @Test
     public void shouldReturnRequestTimeoutMs() {
-        ModuleConfig moduleConfig = new ModuleConfig();
+        final ModuleConfig moduleConfig = new ModuleConfig();
         moduleConfig.setRequestTimeoutMs(5);
         assertThat(moduleConfig.getRequestTimeoutMs()).isEqualTo(5);
     }
@@ -15,7 +16,7 @@ public class ModuleConfigTest {
     @Test
     public void shouldReturnIdentityResolutionEndpoint() {
         // given
-        ModuleConfig moduleConfig = new ModuleConfig();
+        final ModuleConfig moduleConfig = new ModuleConfig();
         moduleConfig.setIdentityResolutionEndpoint("https://test.com/idres");
         // when and then
         assertThat(moduleConfig.getIdentityResolutionEndpoint()).isEqualTo("https://test.com/idres");
@@ -24,7 +25,7 @@ public class ModuleConfigTest {
     @Test
     public void shouldReturnAuthToken() {
         // given
-        ModuleConfig moduleConfig = new ModuleConfig();
+        final ModuleConfig moduleConfig = new ModuleConfig();
         moduleConfig.setAuthToken("secret_token");
         // when and then
         assertThat(moduleConfig.getAuthToken()).isEqualTo("secret_token");

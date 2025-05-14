@@ -7,7 +7,6 @@ import com.iab.openrtb.request.Uid;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
-import org.assertj.core.api.ListAssert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,20 +23,15 @@ import org.prebid.server.hooks.v1.InvocationStatus;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.ArgumentMatchers.assertArg;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -50,7 +44,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
 
     @BeforeEach
     public void setUp() {
-        ObjectMapper mapper = new ObjectMapper();
+        final ObjectMapper mapper = new ObjectMapper();
         jacksonMapper = new JacksonMapper(mapper);
 
         moduleConfig = new ModuleConfig();
@@ -68,18 +62,26 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
     public void shouldAddResolvedEids() {
         // given
         final Uid providedUid = Uid.builder().id("id1").atype(2).build();
-        final Eid providedEid = Eid.builder().source("some.source.com").uids(Collections.singletonList(providedUid)).build();
+        final Eid providedEid = Eid.builder().source("some.source.com")
+                .uids(Collections.singletonList(providedUid)).build();
 
         final Uid enrichedUid = Uid.builder().id("id2").atype(3).build();
-        final Eid enrichedEid = Eid.builder().source("liveintent.com").uids(Collections.singletonList(enrichedUid)).build();
+        final Eid enrichedEid = Eid.builder().source("liveintent.com")
+                .uids(Collections.singletonList(enrichedUid)).build();
 
         final User user = User.builder().eids(Collections.singletonList(providedEid)).build();
         final BidRequest bidRequest = BidRequest.builder().id("request").user(user).build();
 
-        final AuctionInvocationContext auctionInvocationContext = AuctionInvocationContextImpl.of(null, null, false, null, null);
+        final AuctionInvocationContext auctionInvocationContext = AuctionInvocationContextImpl.of(
+                null, null, false, null, null);
 
         final HttpClientResponse mockResponse = mock(HttpClientResponse.class);
-        when(mockResponse.getBody()).thenReturn("{\"eids\": [ { \"source\": \"" + enrichedEid.getSource() + "\", \"uids\": [ { \"atype\": " + enrichedUid.getAtype() + ", \"id\" : \"" + enrichedUid.getId() + "\" } ] } ] }");
+        when(mockResponse.getBody())
+                .thenReturn("{\"eids\": [ { \"source\": \"" + enrichedEid.getSource()
+                        + "\", \"uids\": [ { \"atype\": "
+                        + enrichedUid.getAtype()
+                        + ", \"id\" : \""
+                        + enrichedUid.getId() + "\" } ] } ] }");
 
         // when
         when(
@@ -96,7 +98,8 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
                 )
         ).thenReturn(Future.succeededFuture(mockResponse));
 
-        final Future<InvocationResult<AuctionRequestPayload>> future = target.call(AuctionRequestPayloadImpl.of(bidRequest), auctionInvocationContext);
+        final Future<InvocationResult<AuctionRequestPayload>> future =
+                target.call(AuctionRequestPayloadImpl.of(bidRequest), auctionInvocationContext);
         final InvocationResult<AuctionRequestPayload> result = future.result();
 
         // then
@@ -105,22 +108,30 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
         assertThat(result).isNotNull();
         assertThat(result.status()).isEqualTo(InvocationStatus.success);
         assertThat(result.action()).isEqualTo(InvocationAction.update);
-        assertThat(result.payloadUpdate().apply(AuctionRequestPayloadImpl.of(bidRequest)).bidRequest().getUser().getEids()).isEqualTo(List.of(providedEid, enrichedEid));
+        assertThat(result.payloadUpdate().apply(AuctionRequestPayloadImpl.of(bidRequest))
+                .bidRequest().getUser().getEids()).isEqualTo(List.of(providedEid, enrichedEid));
     }
 
     @Test
     public void shouldCreateUserWhenNotPresent() {
         // given
         final Uid enrichedUid = Uid.builder().id("id2").atype(3).build();
-        final Eid enrichedEid = Eid.builder().source("liveintent.com").uids(Collections.singletonList(enrichedUid)).build();
+        final Eid enrichedEid = Eid.builder().source("liveintent.com")
+                .uids(Collections.singletonList(enrichedUid)).build();
 
         final BidRequest bidRequest = BidRequest.builder().id("request").build();
 
-        final AuctionInvocationContext auctionInvocationContext = AuctionInvocationContextImpl.of(null, null, false, null, null);
+        final AuctionInvocationContext auctionInvocationContext = AuctionInvocationContextImpl.of(
+                null, null, false, null, null);
 
         // when
         final HttpClientResponse mockResponse = mock(HttpClientResponse.class);
-        when(mockResponse.getBody()).thenReturn("{\"eids\": [{ \"source\": \"" + enrichedEid.getSource() + "\", \"uids\": [{ \"atype\": " + enrichedUid.getAtype() + ", \"id\" : \"" + enrichedUid.getId() + "\" }]}]}");
+        when(mockResponse.getBody())
+                .thenReturn("{\"eids\": [{ \"source\": \""
+                        + enrichedEid.getSource()
+                        + "\", \"uids\": [{ \"atype\": "
+                        + enrichedUid.getAtype() + ", \"id\" : \""
+                        + enrichedUid.getId() + "\" }]}]}");
 
         when(
                 httpClient.post(

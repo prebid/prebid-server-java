@@ -16,8 +16,11 @@ import org.springframework.context.annotation.Configuration;
 import java.util.Set;
 
 @Configuration
-@ConditionalOnProperty(prefix = "hooks." + LiveIntentOmniChannelIdentityModule.CODE, name = "enabled", havingValue = "true")
+@ConditionalOnProperty(
+    prefix = "hooks." + LiveIntentOmniChannelIdentityModule.CODE, name = "enabled", havingValue = "true"
+)
 public class LiveIntentOmniChannelIdentityConfiguration {
+
     @Bean
     @ConfigurationProperties(prefix = "hooks.modules." + LiveIntentOmniChannelIdentityModule.CODE)
     ModuleConfig moduleConfig() {

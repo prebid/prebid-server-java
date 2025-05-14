@@ -2,7 +2,7 @@
 
 This module enriches bid requests with user EIDs.
 
-The user EIDs to be enriched are configured per partner as part of the LiveIntent HIRO onboarding process. 
+The user EIDs to be enriched are configured per partner as part of the LiveIntent HIRO onboarding process.
 
 ## Configuration
 
@@ -40,5 +40,6 @@ hooks:
       identity-resolution-endpoint: "https://liveintent.com/idx"
       auth-token: "secret-token"
 ```
+
 The partner-specific `auth-token` is provided by LiveIntent as part of the onboarding.
 

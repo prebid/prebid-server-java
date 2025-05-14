@@ -12,6 +12,7 @@ import java.util.List;
 @Data
 @Jacksonized
 public class IdResResponse {
+
     @JsonProperty("eids")
     List<Eid> eids;
 }

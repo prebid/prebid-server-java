@@ -30,7 +30,8 @@ import java.util.Optional;
 
 public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements ProcessedAuctionRequestHook {
 
-    private static final Logger logger = LoggerFactory.getLogger(LiveIntentOmniChannelIdentityProcessedAuctionRequestHook.class);
+    private static final Logger logger =
+            LoggerFactory.getLogger(LiveIntentOmniChannelIdentityProcessedAuctionRequestHook.class);
     private static final String CODE = "liveintent-omni-channel-identity-enrichment-hook";
 
     private final ModuleConfig config;
@@ -48,7 +49,10 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
     }
 
     @Override
-    public Future<InvocationResult<AuctionRequestPayload>> call(AuctionRequestPayload auctionRequestPayload, AuctionInvocationContext invocationContext) {
+    public Future<InvocationResult<AuctionRequestPayload>> call(
+            AuctionRequestPayload auctionRequestPayload,
+            AuctionInvocationContext invocationContext
+    ) {
         final Future<InvocationResult<AuctionRequestPayload>> update = requestEnrichment(auctionRequestPayload)
                 .map(resolutionResult ->
                         InvocationResultImpl.<AuctionRequestPayload>builder()
@@ -67,7 +71,8 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
     }
 
     private AuctionRequestPayload updatedPayload(AuctionRequestPayload requestPayload, IdResResponse idResResponse) {
-        final BidRequest bidRequest = Optional.ofNullable(requestPayload.bidRequest()).orElse(BidRequest.builder().build());
+        final BidRequest bidRequest = Optional.ofNullable(
+                requestPayload.bidRequest()).orElse(BidRequest.builder().build());
         final User user = Optional.ofNullable(bidRequest.getUser()).orElse(User.builder().build());
 
         final List<Eid> allEids = new ArrayList<>();
