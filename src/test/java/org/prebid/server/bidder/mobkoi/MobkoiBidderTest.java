@@ -17,11 +17,13 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.VertxTest;
+import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.mobkoi.ExtImpMobkoi;
 
 import java.util.List;
 import java.util.function.UnaryOperator;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
@@ -74,10 +76,12 @@ public class MobkoiBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnPlacementIdInTagId() {
+    public void makeHttpRequestsShouldAddPlacementIdOnlyInFirstImpressionTagId() {
         // given
         final ObjectNode mobkoiExt = impExt("pid", null);
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(mobkoiExt));
+        final Imp givenImp1 = givenImp(impBuilder -> impBuilder.ext(mobkoiExt));
+        final Imp givenImp2 = givenImp(impBuilder -> impBuilder);
+        final BidRequest bidRequest = BidRequest.builder().imp(asList(givenImp1, givenImp2)).build();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -87,25 +91,7 @@ public class MobkoiBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
                 .extracting(imp -> imp.getTagid())
-                .containsExactly("pid");
-    }
-
-    @Test
-    public void makeHttpRequestsShouldCreateTheMobkoiExtensionCorrectly() throws Exception {
-        // given
-        final ObjectNode mobkoiExt = impExt("pid", null);
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(mobkoiExt));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .flatExtracting(BidRequest::getImp)
-                .extracting(imp -> imp.getExt().get("bidder"))
-                .containsExactly(mapper.valueToTree(ExtImpMobkoi.of("pid", null)));
+                .containsExactly("pid", null);
     }
 
     @Test
@@ -151,10 +137,13 @@ public class MobkoiBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSetUserExtConsent() {
+    public void makeHttpRequestsShouldOverrideUserExtAndSetConsent() {
         // given
+        final ObjectNode originExtUserData = mapper.createObjectNode().put("originAttr", "originValue");
+        final ExtUser extUser = ExtUser.builder().data(originExtUserData).consent("consent-to-be-overridden").build();
+        final User user = User.builder().consent("consent").ext(extUser).build();
         final BidRequest bidRequest = givenBidRequest(
-                bidRequestBuilder -> bidRequestBuilder.user(User.builder().consent("consent").build()),
+                bidRequestBuilder -> bidRequestBuilder.user(user),
                 impBuilder -> impBuilder);
 
         // when
@@ -163,8 +152,10 @@ public class MobkoiBidderTest extends VertxTest {
         // then
         assertThat(result.getValue())
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .extracting(request -> request.getUser().getExt().getConsent())
-                .containsExactly("consent");
+                .extracting(request -> request.getUser().getExt()).hasSize(1).element(0)
+                .isEqualTo(ExtUser.builder()
+                        .consent("consent")
+                        .build());
         assertThat(result.getErrors()).isEmpty();
     }
 

@@ -31,6 +31,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class MobkoiBidder implements Bidder<BidRequest> {
@@ -61,7 +62,7 @@ public class MobkoiBidder implements Bidder<BidRequest> {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
-        final String selectedEndpointUrl = customOrDefaultEndpoint(extImpMobkoi.getAdServerBaseUrl());
+        final String selectedEndpointUrl = resolveEndpoint(extImpMobkoi.getAdServerBaseUrl());
 
         return Result.withValue(BidderUtil.defaultRequest(
                 modifyBidRequest(bidRequest, modifiedFirstImp),
@@ -80,21 +81,19 @@ public class MobkoiBidder implements Bidder<BidRequest> {
     }
 
     private Imp modifyImp(Imp firstImp, ExtImpMobkoi extImpMobkoi) {
-        String tagId = firstImp.getTagid();
-        if (StringUtils.isBlank(tagId)) {
-            if (StringUtils.isNotBlank(extImpMobkoi.getPlacementId())) {
-                tagId = extImpMobkoi.getPlacementId();
-            } else {
-                throw new PreBidException("invalid because it comes with neither request.imp[0].tagId nor "
-                        + "req.imp[0].ext.Bidder.placementId");
-            }
-
-            return firstImp.toBuilder().tagid(tagId).build();
+        if (StringUtils.isNotBlank(firstImp.getTagid())) {
+            return firstImp;
         }
-        return firstImp;
+
+        if (StringUtils.isNotBlank(extImpMobkoi.getPlacementId())) {
+            return firstImp.toBuilder().tagid(extImpMobkoi.getPlacementId()).build();
+        } else {
+            throw new PreBidException("invalid because it comes with neither request.imp[0].tagId nor "
+                    + "req.imp[0].ext.Bidder.placementId");
+        }
     }
 
-    private String customOrDefaultEndpoint(String customUri) {
+    private String resolveEndpoint(String customUri) {
         try {
             HttpUtil.validateUrl(customUri);
             final URI uri = new URI(customUri);
@@ -104,21 +103,18 @@ public class MobkoiBidder implements Bidder<BidRequest> {
         }
     }
 
+    private static User modifyUser(User user) {
+        return Optional.ofNullable(user)
+                .map(User::getConsent)
+                .map(consent -> ExtUser.builder().consent(consent).build())
+                .map(ext -> user.toBuilder().ext(ext).build())
+                .orElse(user);
+    }
+
     private static List<Imp> updateFirstImpWith(List<Imp> imps, Imp imp) {
         final List<Imp> modifiedImps = new ArrayList<>(imps);
         modifiedImps.set(0, imp);
         return Collections.unmodifiableList(modifiedImps);
-    }
-
-    private static User modifyUser(User user) {
-        if (user == null || user.getConsent() == null) {
-            return user;
-        }
-
-        final String consent = user.getConsent();
-        final ExtUser userExt = ExtUser.builder().consent(consent).build();
-
-        return user.toBuilder().ext(userExt).build();
     }
 
     private static BidRequest modifyBidRequest(BidRequest bidRequest, Imp modifiedFirstImp) {
