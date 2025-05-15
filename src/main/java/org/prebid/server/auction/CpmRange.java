@@ -92,7 +92,7 @@ public class CpmRange {
     private static RoundingMode resolveRoundingMode(Account account) {
         final AccountAuctionBidRoundingMode accountRoundingMode = Optional.ofNullable(account)
                 .map(Account::getAuction)
-                .map(AccountAuctionConfig::getBidRoundingMode)
+                .map(AccountAuctionConfig::getBidRounding)
                 .orElse(AccountAuctionBidRoundingMode.DOWN);
 
         return switch (accountRoundingMode) {

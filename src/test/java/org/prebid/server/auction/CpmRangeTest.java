@@ -263,7 +263,7 @@ public class CpmRangeTest {
     }
 
     private static Account givenAccount(AccountAuctionBidRoundingMode mode) {
-        return Account.builder().auction(AccountAuctionConfig.builder().bidRoundingMode(mode).build()).build();
+        return Account.builder().auction(AccountAuctionConfig.builder().bidRounding(mode).build()).build();
     }
 
     private static Account givenAccount() {
