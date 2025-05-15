@@ -63,7 +63,7 @@ public class USCustomLogicModuleCreatorTest extends VertxTest {
                 .willReturn(new USNationalGppReader(null));
         given(jsonLogic.parse(any())).willReturn(JsonLogicBoolean.TRUE);
 
-        target = new USCustomLogicModuleCreator(gppReaderFactory, jsonLogic, null, null, metrics);
+        target = new USCustomLogicModuleCreator(gppReaderFactory, jsonLogic, null, null, metrics, 0);
     }
 
     @Test

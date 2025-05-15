@@ -12,6 +12,7 @@ import org.prebid.server.activity.infrastructure.privacy.PrivacyModuleQualifier;
 import org.prebid.server.activity.infrastructure.privacy.usnat.reader.USNationalGppReader;
 import org.prebid.server.activity.infrastructure.rule.Rule;
 import org.prebid.server.auction.gpp.model.GppContextCreator;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.model.activity.privacy.AccountUSNatModuleConfig;
 
 import java.util.List;
@@ -35,13 +36,16 @@ public class USNatModuleCreatorTest {
     @Mock(strictness = LENIENT)
     private USNatGppReaderFactory gppReaderFactory;
 
+    @Mock(strictness = LENIENT)
+    private Metrics metrics;
+
     private USNatModuleCreator target;
 
     @BeforeEach
     public void setUp() {
         given(gppReaderFactory.forSection(anyInt(), any())).willReturn(new USNationalGppReader(null));
 
-        target = new USNatModuleCreator(gppReaderFactory);
+        target = new USNatModuleCreator(gppReaderFactory, metrics, 0);
     }
 
     @Test
