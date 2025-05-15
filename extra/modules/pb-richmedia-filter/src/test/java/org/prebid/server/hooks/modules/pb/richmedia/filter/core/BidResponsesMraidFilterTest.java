@@ -37,7 +37,8 @@ public class BidResponsesMraidFilterTest {
                 "bidderB", bidRejectionTrackerB);
 
         // when
-        final MraidFilterResult filterResult = target.filterByPattern("mraid.js", List.of(responseA, responseB), givenTrackers);
+        final MraidFilterResult filterResult = target.filterByPattern(
+                "mraid.js", List.of(responseA, responseB), givenTrackers);
 
         // then
         assertThat(filterResult.getFilterResult()).containsExactly(responseA, responseB);
@@ -106,8 +107,9 @@ public class BidResponsesMraidFilterTest {
         verifyNoInteractions(bidRejectionTrackerA);
         verify(bidRejectionTrackerB)
                 .rejectBids(List.of(givenInvalidBid2), BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE);
-        verify(bidRejectionTrackerC)
-                .rejectBids(List.of(givenInvalidBid1, givenInvalidBid2), BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE);
+        verify(bidRejectionTrackerC).rejectBids(
+                List.of(givenInvalidBid1, givenInvalidBid2),
+                BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE);
         verifyNoMoreInteractions(bidRejectionTrackerB, bidRejectionTrackerC);
     }
 

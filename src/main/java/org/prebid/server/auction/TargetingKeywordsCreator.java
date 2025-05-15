@@ -271,7 +271,7 @@ public class TargetingKeywordsCreator {
     /**
      * Helper for targeting keywords.
      * <p>
-     * Brings a convenient way for creating keywords regarding to bidder and winning bid flag.
+     * Brings a convenient way for creating keywords regarding bidder and winning bid flag.
      */
     private static class KeywordMap {
 

@@ -109,7 +109,7 @@ public class GreenbidsInvocationService {
             String greenbidsId,
             Boolean isExploration) {
 
-        final String tid = Optional.ofNullable(imp)
+        final String tid = Optional.of(imp)
                 .map(Imp::getExt)
                 .map(impExt -> impExt.get("tid"))
                 .map(JsonNode::asText)
