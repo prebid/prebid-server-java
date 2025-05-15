@@ -13,6 +13,7 @@ import org.prebid.server.functional.util.PBSUtils
 import static org.prebid.server.functional.model.AccountStatus.ACTIVE
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.request.auction.BidRounding.DOWN
+import static org.prebid.server.functional.model.request.auction.BidRounding.TIME_SPLIT
 import static org.prebid.server.functional.model.request.auction.BidRounding.TRUE
 import static org.prebid.server.functional.model.request.auction.BidRounding.UNKNOWN
 import static org.prebid.server.functional.model.request.auction.BidRounding.UP
@@ -140,8 +141,8 @@ class BidRoundingSpec extends BaseSpec {
                                      getRoundedTargetingValueWithUpPrecision(bidPrice)].sort()
 
         where:
-        accountAuctionConfig << [new AccountAuctionConfig(bidRounding: TIMESPLIT),
-                                 new AccountAuctionConfig(bidRoundingSnakeCase: TIMESPLIT)]
+        accountAuctionConfig << [new AccountAuctionConfig(bidRounding: TIME_SPLIT),
+                                 new AccountAuctionConfig(bidRoundingSnakeCase: TIME_SPLIT)]
     }
 
     private static final Account getAccountWithBidRounding(String accountId, AccountAuctionConfig accountAuctionConfig) {
