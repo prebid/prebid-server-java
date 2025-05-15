@@ -13,20 +13,20 @@ import org.prebid.server.functional.util.PBSUtils
 import static org.prebid.server.functional.model.AccountStatus.ACTIVE
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.request.auction.BidRounding.DOWN
-import static org.prebid.server.functional.model.request.auction.BidRounding.TIMESPLIT
 import static org.prebid.server.functional.model.request.auction.BidRounding.TRUE
+import static org.prebid.server.functional.model.request.auction.BidRounding.UNKNOWN
 import static org.prebid.server.functional.model.request.auction.BidRounding.UP
 
 class BidRoundingSpec extends BaseSpec {
 
-    def "PBS should round bid value to the down when account bid rounding empty"() {
+    def "PBS should round bid value to the down when account bid rounding empty or unknown"() {
         given: "Default bid request"
         def bidRequest = BidRequest.getDefaultBidRequest().tap {
             ext.prebid.targeting = new Targeting()
         }
 
         and: "Account in the DB"
-        def account = getAccountWithBidRounding(bidRequest.accountId, null)
+        def account = getAccountWithBidRounding(bidRequest.accountId, bidRoundingValue)
         accountDao.save(account)
 
         and: "Default bid response"
@@ -42,6 +42,10 @@ class BidRoundingSpec extends BaseSpec {
         then: "Targeting hb_pb should be round"
         def targeting = response.seatbid[0].bid[0].ext.prebid.targeting
         assert targeting["hb_pb"] == getRoundedTargetingValueWithDefaultPrecision(bidPrice)
+
+        where:
+        bidRoundingValue << [new AccountAuctionConfig(bidRounding: null),
+                             new AccountAuctionConfig(bidRounding: UNKNOWN)]
     }
 
     def "PBS should round bid value to the up when account bid rounding UP or TRUE"() {
@@ -70,8 +74,8 @@ class BidRoundingSpec extends BaseSpec {
 
         where:
         accountAuctionConfig << [new AccountAuctionConfig(bidRounding: UP),
-                                 new AccountAuctionConfig(bidRounding: UP),
-                                 new AccountAuctionConfig(bidRoundingSnakeCase: TRUE),
+                                 new AccountAuctionConfig(bidRounding: TRUE),
+                                 new AccountAuctionConfig(bidRoundingSnakeCase: UP),
                                  new AccountAuctionConfig(bidRoundingSnakeCase: TRUE)]
     }
 
@@ -101,8 +105,8 @@ class BidRoundingSpec extends BaseSpec {
 
         where:
         accountAuctionConfig << [new AccountAuctionConfig(bidRounding: DOWN),
-                                 new AccountAuctionConfig(bidRounding: DOWN),
-                                 new AccountAuctionConfig(bidRoundingSnakeCase: TRUE),
+                                 new AccountAuctionConfig(bidRounding: TRUE),
+                                 new AccountAuctionConfig(bidRoundingSnakeCase: DOWN),
                                  new AccountAuctionConfig(bidRoundingSnakeCase: TRUE)]
     }
 
@@ -118,7 +122,7 @@ class BidRoundingSpec extends BaseSpec {
         accountDao.save(account)
 
         and: "Default bid response"
-        def bidPrice = PBSUtils.randomFloorValue
+        def bidPrice = 0.15
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
             seatbid[0].bid[0].price = bidPrice
             seatbid[0].bid.add(Bid.getDefaultBids(bidRequest.imp)[0])
