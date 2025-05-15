@@ -4,13 +4,11 @@ import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.BidRequest
-import org.prebid.server.functional.model.request.auction.MultiBid
 import org.prebid.server.functional.model.request.auction.Targeting
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
 
 import static org.prebid.server.functional.model.AccountStatus.ACTIVE
-import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.request.auction.BidRounding.DOWN
 import static org.prebid.server.functional.model.request.auction.BidRounding.TIME_SPLIT
 import static org.prebid.server.functional.model.request.auction.BidRounding.TRUE
@@ -113,8 +111,7 @@ class BidRoundingSpec extends BaseSpec {
     def "PBS should round bid value to the 50% down and 50% up when account bid rounding time split"() {
         given: "Default bid request"
         def bidRequest = BidRequest.getDefaultBidRequest().tap {
-            ext.prebid.targeting = new Targeting(includeBidderKeys: true)
-            ext.prebid.multibid = [new MultiBid(bidder: GENERIC, maxBids: 2, targetBidderCodePrefix: GENERIC.value)]
+            ext.prebid.targeting = new Targeting()
         }
 
         and: "Account in the DB"
@@ -122,7 +119,7 @@ class BidRoundingSpec extends BaseSpec {
         accountDao.save(account)
 
         and: "Default bid response"
-        def bidPrice = PBSUtils.getRandomFloorValue(0.11, 0.14)
+        def bidPrice = PBSUtils.randomFloorValue
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
             seatbid[0].bid[0].price = bidPrice
         }
