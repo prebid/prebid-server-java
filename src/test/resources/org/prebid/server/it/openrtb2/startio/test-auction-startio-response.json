@@ -26,7 +26,10 @@
             "origbidcpm": 0.6018685301576561,
             "origbidcur": "USD",
             "prebid": {
-              "type": "video"
+              "type": "video",
+              "meta": {
+                "adaptercode": "startio"
+              }
             }
           }
         }

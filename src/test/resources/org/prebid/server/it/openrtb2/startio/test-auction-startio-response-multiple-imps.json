@@ -26,7 +26,10 @@
             "origbidcpm": 0.6018685301576561,
             "origbidcur": "USD",
             "prebid": {
-              "type": "video"
+              "type": "video",
+              "meta": {
+                "adaptercode": "startio"
+              }
             }
           }
         },
@@ -51,7 +54,10 @@
             "origbidcpm": 0.48378391855747593,
             "origbidcur": "USD",
             "prebid": {
-              "type": "banner"
+              "type": "banner",
+              "meta": {
+                "adaptercode": "startio"
+              }
             }
           }
         },
@@ -83,7 +89,10 @@
             "origbidcpm": 0.8160129797250805,
             "origbidcur": "USD",
             "prebid": {
-              "type": "native"
+              "type": "native",
+              "meta": {
+                "adaptercode": "startio"
+              }
             }
           }
         }
