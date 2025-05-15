@@ -6,7 +6,6 @@ import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.MultiBid
 import org.prebid.server.functional.model.request.auction.Targeting
-import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
 
@@ -123,11 +122,9 @@ class BidRoundingSpec extends BaseSpec {
         accountDao.save(account)
 
         and: "Default bid response"
-        def bidPrice = 0.15
+        def bidPrice = PBSUtils.getRandomFloorValue(0.11, 0.14)
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
             seatbid[0].bid[0].price = bidPrice
-            seatbid[0].bid.add(Bid.getDefaultBids(bidRequest.imp)[0])
-            seatbid[0].bid[1].price = bidPrice
         }
         bidder.setResponse(bidRequest.id, bidResponse)
 
@@ -135,10 +132,9 @@ class BidRoundingSpec extends BaseSpec {
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "Targeting hb_pb should be round"
-        def targeting = response.seatbid[0].bid.ext.prebid.targeting
-        assert targeting.collectEntries().findAll { it -> it.key.toString().contains("hb_pb_") }
-                .values().sort() == [getRoundedTargetingValueWithDefaultPrecision(bidPrice),
-                                     getRoundedTargetingValueWithUpPrecision(bidPrice)].sort()
+        def targeting = response.seatbid[0].bid[0].ext.prebid.targeting
+        assert targeting["hb_pb"] == getRoundedTargetingValueWithDefaultPrecision(bidPrice) ||
+                getRoundedTargetingValueWithUpPrecision(bidPrice)
 
         where:
         accountAuctionConfig << [new AccountAuctionConfig(bidRounding: TIME_SPLIT),
