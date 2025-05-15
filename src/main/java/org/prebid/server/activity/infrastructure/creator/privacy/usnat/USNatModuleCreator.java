@@ -87,8 +87,8 @@ public class USNatModuleCreator implements PrivacyModuleCreator {
             return new USNatModule(activity, gppReaderFactory.forSection(sectionId, gppModel), config);
         } catch (Exception e) {
             conditionalLogger.error(
-                    "UsNat privacy module creation failed: %s. Activity: %s. Section: %s. Gpp: %s."
-                            .formatted(e.getMessage(), activity, sectionId, gppModel.encode()),
+                    "UsNat privacy module creation failed: %s. Activity: %s. Section: %s. Gpp: %s.".formatted(
+                            e.getMessage(), activity, sectionId, gppModel != null ? gppModel.encode() : null),
                     samplingRate);
             metrics.updateAlertsMetrics(MetricName.general);
 

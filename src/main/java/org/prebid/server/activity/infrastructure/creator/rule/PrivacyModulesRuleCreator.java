@@ -52,7 +52,6 @@ public class PrivacyModulesRuleCreator extends AbstractRuleCreator<AccountActivi
                 .map(configuredModuleName -> mapToModulesQualifiers(configuredModuleName, creationContext))
                 .flatMap(Collection::stream)
                 .filter(qualifier -> !creationContext.isUsed(qualifier))
-                .peek(creationContext::use)
                 .map(qualifier -> createPrivacyModule(qualifier, creationContext))
                 .filter(Objects::nonNull)
                 .toList();
@@ -93,15 +92,18 @@ public class PrivacyModulesRuleCreator extends AbstractRuleCreator<AccountActivi
                                               ActivityControllerCreationContext creationContext) {
 
         if (creationContext.getSkipPrivacyModules().contains(privacyModuleQualifier)) {
+            creationContext.use(privacyModuleQualifier);
             return new SkippedPrivacyModule(privacyModuleQualifier);
         }
 
         try {
-            return privacyModulesCreators.get(privacyModuleQualifier)
+            final PrivacyModule privacyModule = privacyModulesCreators.get(privacyModuleQualifier)
                     .from(creationContext(privacyModuleQualifier, creationContext));
+            creationContext.use(privacyModuleQualifier);
+
+            return privacyModule;
         } catch (Exception e) {
-            logger.error("PrivacyModule %s creation failed: %s."
-                    .formatted(privacyModuleQualifier, e.getMessage()));
+            logger.error("PrivacyModule %s creation failed: %s.".formatted(privacyModuleQualifier, e.getMessage()));
             metrics.updateAlertsMetrics(MetricName.general);
 
             return null;

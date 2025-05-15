@@ -14,8 +14,6 @@ import org.prebid.server.activity.infrastructure.privacy.PrivacySection;
 import org.prebid.server.activity.infrastructure.privacy.uscustomlogic.USCustomLogicDataSupplier;
 import org.prebid.server.activity.infrastructure.privacy.uscustomlogic.USCustomLogicModule;
 import org.prebid.server.auction.gpp.model.GppContext;
-import org.prebid.server.exception.InvalidAccountConfigException;
-import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JsonLogic;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.Logger;
@@ -151,16 +149,7 @@ public class USCustomLogicModuleCreator implements PrivacyModuleCreator {
     private JsonLogicNode jsonLogicNode(ObjectNode jsonLogicConfig) {
         final String jsonAsString = jsonLogicConfig.toString();
         return jsonLogicNodesCache != null
-                ? jsonLogicNodesCache.computeIfAbsent(jsonAsString, this::parseJsonLogicNode)
-                : parseJsonLogicNode(jsonAsString);
-    }
-
-    private JsonLogicNode parseJsonLogicNode(String jsonLogicConfig) {
-        try {
-            return jsonLogic.parse(jsonLogicConfig);
-        } catch (DecodeException e) {
-            metrics.updateAlertsMetrics(MetricName.general);
-            throw new InvalidAccountConfigException("JsonLogic exception: " + e.getMessage());
-        }
+                ? jsonLogicNodesCache.computeIfAbsent(jsonAsString, jsonLogic::parse)
+                : jsonLogic.parse(jsonAsString);
     }
 }

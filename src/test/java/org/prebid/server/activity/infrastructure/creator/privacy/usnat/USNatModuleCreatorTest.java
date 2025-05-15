@@ -12,6 +12,7 @@ import org.prebid.server.activity.infrastructure.privacy.PrivacyModuleQualifier;
 import org.prebid.server.activity.infrastructure.privacy.usnat.reader.USNationalGppReader;
 import org.prebid.server.activity.infrastructure.rule.Rule;
 import org.prebid.server.auction.gpp.model.GppContextCreator;
+import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.model.activity.privacy.AccountUSNatModuleConfig;
 
@@ -125,11 +126,36 @@ public class USNatModuleCreatorTest {
         verifyNoMoreInteractions(gppReaderFactory);
     }
 
+    @Test
+    public void fromShouldShouldSkipSectionsWithInvalidGppSubstring() {
+        // given
+        given(gppReaderFactory.forSection(eq(7), any()))
+                .willReturn(new USNationalGppReader(null) {
+
+                    @Override
+                    public Integer getMspaServiceProviderMode() {
+                        throw new IllegalStateException();
+                    }
+                });
+
+        final PrivacyModuleCreationContext creationContext = givenCreationContext(singletonList(7), emptyList());
+
+        // when
+        target.from(creationContext);
+
+        // then
+        verify(gppReaderFactory).forSection(eq(7), any());
+        verify(metrics).updateAlertsMetrics(eq(MetricName.general));
+
+        verifyNoMoreInteractions(gppReaderFactory);
+        verifyNoMoreInteractions(metrics);
+    }
+
     private static PrivacyModuleCreationContext givenCreationContext(List<Integer> sectionsIds,
                                                                      List<Integer> skipSectionsIds) {
 
         return PrivacyModuleCreationContext.of(
-                Activity.CALL_BIDDER,
+                Activity.TRANSMIT_UFPD,
                 AccountUSNatModuleConfig.of(true, 0, AccountUSNatModuleConfig.Config.of(skipSectionsIds, false)),
                 GppContextCreator.from(null, sectionsIds).build().getGppContext());
     }

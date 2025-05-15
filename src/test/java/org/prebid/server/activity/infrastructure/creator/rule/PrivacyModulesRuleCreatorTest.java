@@ -196,6 +196,26 @@ public class PrivacyModulesRuleCreatorTest {
         assertThat(rule.proceed(null)).isEqualTo(Rule.Result.ABSTAIN);
     }
 
+    @Test
+    public void fromShouldSkipPrivacyModuleThatFailedCreation() {
+        // given
+        final AccountActivityPrivacyModulesRuleConfig config = AccountActivityPrivacyModulesRuleConfig.of(
+                singletonList(PrivacyModuleQualifier.US_NAT.moduleName()));
+        final AccountPrivacyModuleConfig moduleConfig = AccountUSNatModuleConfig.of(null, 0, null);
+        final ActivityControllerCreationContext creationContext = creationContext(
+                Map.of(PrivacyModuleQualifier.US_NAT, moduleConfig));
+
+        given(privacyModuleCreator.from(eq(PrivacyModuleCreationContext.of(null, moduleConfig, null))))
+                .willThrow(new IllegalArgumentException());
+
+        // when
+        final Rule rule = target.from(config, creationContext);
+
+        // then
+        assertThat(rule.proceed(null)).isEqualTo(Rule.Result.ABSTAIN);
+        assertThat(creationContext.isUsed(PrivacyModuleQualifier.US_NAT)).isFalse();
+    }
+
     private static ActivityControllerCreationContext creationContext(
             Map<PrivacyModuleQualifier, AccountPrivacyModuleConfig> modulesConfigs) {
 
