@@ -75,8 +75,6 @@ public class ZetaGlobalSspBidderTest extends VertxTest {
         final HttpRequest<BidRequest> httpRequest = result.getValue().getFirst();
 
         // then
-        assertThat(result.getValue()).hasSize(1);
-        assertThat(httpRequest.getUri()).isEqualTo("https://test-url.com/11");
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
@@ -111,11 +109,11 @@ public class ZetaGlobalSspBidderTest extends VertxTest {
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-        final HttpRequest<BidRequest> httpRequest = result.getValue().getFirst();
 
         // then
-        assertThat(result.getValue()).hasSize(1);
-        assertThat(httpRequest.getUri()).isEqualTo("https://test-url.com/11");
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://test-url.com/11");
     }
 
     @Test
