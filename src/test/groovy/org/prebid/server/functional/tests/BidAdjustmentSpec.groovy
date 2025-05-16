@@ -229,10 +229,10 @@ class BidAdjustmentSpec extends BaseSpec {
             origbidcur == bidResponse.cur
         }
 
-        and: "Bidder request should contain floors"
+        and: "Bidder request should contain original imp.floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp.bidFloorCur == [currency]
-        assert bidderRequest.imp.bidFloor == [getReverseAdjustedPrice(impPrice, ruleValue as BigDecimal, adjustmentType)]
+        assert bidderRequest.imp.bidFloor == [impPrice]
 
         where:
         adjustmentType | ruleValue                                                       | mediaType        | bidRequest
@@ -309,7 +309,7 @@ class BidAdjustmentSpec extends BaseSpec {
             origbidcur == bidResponse.cur
         }
 
-        and: "Bidder request should contain floors"
+        and: "Bidder request should contain original imp.floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp.bidFloorCur == [currency]
         assert bidderRequest.imp.bidFloor == [null]
@@ -402,10 +402,10 @@ class BidAdjustmentSpec extends BaseSpec {
         assert response.seatbid.first.bid.ext.first.origbidcur == bidResponse.cur
         assert response.seatbid.first.bid.ext.last.origbidcur == bidResponse.cur
 
-        and: "Bidder request should contain floors"
+        and: "Bidder request should contain original imp.floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp.bidFloorCur == [currency, currency]
-        assert bidderRequest.imp.bidFloor.sort() == [getReverseAdjustedPrice(firstImpPrice, ruleValue as BigDecimal, adjustmentType), secondImpPrice].sort()
+        assert bidderRequest.imp.bidFloor.sort() == [firstImpPrice, secondImpPrice].sort()
 
         where:
         adjustmentType | ruleValue                                                       | mediaType        | bidRequest
@@ -486,10 +486,10 @@ class BidAdjustmentSpec extends BaseSpec {
             origbidcur == bidResponse.cur
         }
 
-        and: "Bidder request should contain floors"
+        and: "Bidder request should contain original imp.floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp.bidFloorCur == [currency]
-        assert bidderRequest.imp.bidFloor == [getReverseAdjustedPrice(impPrice, ruleValue as BigDecimal, adjustmentType)]
+        assert bidderRequest.imp.bidFloor == [impPrice]
 
         where:
         adjustmentType | ruleValue                                                       | mediaType        | bidRequest
@@ -575,10 +575,10 @@ class BidAdjustmentSpec extends BaseSpec {
             origbidcur == bidResponse.cur
         }
 
-        and: "Bidder request should contain floors"
+        and: "Bidder request should contain original imp.floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp.bidFloorCur == [currency]
-        assert bidderRequest.imp.bidFloor == [getReverseAdjustedPrice(impPrice, ruleValue as BigDecimal, adjustmentType)]
+        assert bidderRequest.imp.bidFloor == [impPrice]
 
         where:
         adjustmentType | ruleValue                                                       | mediaType        | bidRequest
@@ -660,10 +660,10 @@ class BidAdjustmentSpec extends BaseSpec {
             origbidcur == bidResponse.cur
         }
 
-        and: "Bidder request should contain floors"
+        and: "Bidder request should contain original imp.floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp.bidFloorCur == [currency]
-        assert bidderRequest.imp.bidFloor == [getReverseAdjustedPrice(impPrice, exactRulePrice, STATIC)]
+        assert bidderRequest.imp.bidFloor == [impPrice]
     }
 
     def "PBS should adjust bid price for matching bidder in provided order when bidAdjustments have multiple matching rules"() {
@@ -703,12 +703,10 @@ class BidAdjustmentSpec extends BaseSpec {
             origbidcur == bidResponse.cur
         }
 
-        and: "Bidder request should contain floors"
+        and: "Bidder request should contain original imp.floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp.bidFloorCur == [currency]
-        def rawReverseAdjustedBidPrice = getReverseAdjustedPrice(impPrice, firstRule.value as BigDecimal, firstRule.adjustmentType)
-        def ReversedAdjustBidPrice = getAdjustedPrice(rawReverseAdjustedBidPrice, secondRule.value as BigDecimal, secondRule.adjustmentType)
-        assert bidderRequest.imp.bidFloor == [ReversedAdjustBidPrice]
+        assert bidderRequest.imp.bidFloor == [impPrice]
 
         where:
         firstRuleType | secondRuleType
@@ -758,10 +756,10 @@ class BidAdjustmentSpec extends BaseSpec {
             origbidcur == bidResponse.cur
         }
 
-        and: "Bidder request should contain floors"
+        and: "Bidder request should contain original imp.floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp.bidFloorCur == [currency]
-        assert bidderRequest.imp.bidFloor == [getReverseAdjustedPrice(impPrice, convertedAdjustment, adjustmentRule.adjustmentType)]
+        assert bidderRequest.imp.bidFloor == [impPrice]
     }
 
     def "PBS should change original currency when static bidAdjustments and original response have different currencies"() {
@@ -798,7 +796,7 @@ class BidAdjustmentSpec extends BaseSpec {
             origbidcur == bidResponse.cur
         }
 
-        and: "Bidder request should contain floors"
+        and: "Bidder request should contain original imp.floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp.bidFloorCur == [currency]
         assert bidderRequest.imp.bidFloor == [impPrice]
@@ -841,10 +839,10 @@ class BidAdjustmentSpec extends BaseSpec {
             origbidcur == bidResponse.cur
         }
 
-        and: "Bidder request should contain floors"
+        and: "Bidder request should contain original imp.floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp.bidFloorCur == [currency]
-        assert bidderRequest.imp.bidFloor == [getReverseAdjustedPrice(impPrice, adjustmentPrice, adjustmentType)]
+        assert bidderRequest.imp.bidFloor == [impPrice]
 
         where:
         adjustmentType << [MULTIPLIER, CPM, STATIC]
@@ -894,7 +892,7 @@ class BidAdjustmentSpec extends BaseSpec {
         def logs = pbsService.getLogsByTime(startTime)
         assert getLogsByText(logs, errorMessage)
 
-        and: "Bidder request should contain floors"
+        and: "Bidder request should contain original imp.floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp.bidFloorCur == [currency]
         assert bidderRequest.imp.bidFloor == [impPrice]
@@ -1019,7 +1017,7 @@ class BidAdjustmentSpec extends BaseSpec {
             origbidcur == bidResponse.cur
         }
 
-        and: "Bidder request should contain floors"
+        and: "Bidder request should contain original imp.floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp.bidFloorCur == [currency]
         assert bidderRequest.imp.bidFloor == [impPrice]
@@ -1075,7 +1073,7 @@ class BidAdjustmentSpec extends BaseSpec {
         def logs = pbsService.getLogsByTime(startTime)
         assert getLogsByText(logs, errorMessage)
 
-        and: "Bidder request should contain floors"
+        and: "Bidder request should contain original imp.floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp.bidFloorCur == [currency]
         assert bidderRequest.imp.bidFloor == [impPrice]
@@ -1121,7 +1119,7 @@ class BidAdjustmentSpec extends BaseSpec {
             origbidcur == bidResponse.cur
         }
 
-        and: "Bidder request should contain floors"
+        and: "Bidder request should contain original imp.floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp.bidFloorCur == [currency]
         assert bidderRequest.imp.bidFloor == [impPrice]
@@ -1227,17 +1225,15 @@ class BidAdjustmentSpec extends BaseSpec {
             origbidcur == bidResponse.cur
         }
 
-        and: "Bidder request should contain floors"
+        and: "Bidder request should contain original imp.floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp.bidFloorCur == [currency]
-        assert bidderRequest.imp.bidFloor == [getReverseAdjustedPrice(impPrice, adjustmentPrice, MULTIPLIER)]
+        assert bidderRequest.imp.bidFloor == [impPrice]
 
         where:
         adjustmentType << [CPM, STATIC]
     }
     
-    
-
     def "PBS should adjust bid price for matching bidder and alternate bidder code when request has per-bidder bid adjustment factors"() {
         given: "Default bid request with bid adjustment and amx bidder"
         def bidRequest = BidRequest.getDefaultBidRequest(SITE).tap {
@@ -1399,21 +1395,6 @@ class BidAdjustmentSpec extends BaseSpec {
                 return adjustedValue
             default:
                 return originalPrice
-        }
-    }
-
-    private static BigDecimal getReverseAdjustedPrice(BigDecimal originalPrice,
-                                                      BigDecimal adjustedValue,
-                                                      AdjustmentType adjustmentType) {
-        switch (adjustmentType) {
-            case MULTIPLIER:
-                return PBSUtils.roundDecimal(originalPrice / adjustedValue, BID_ADJUST_PRECISION)
-            case CPM:
-                return PBSUtils.roundDecimal(originalPrice + adjustedValue, BID_ADJUST_PRECISION)
-            case STATIC:
-                return originalPrice
-            default:
-                return adjustedValue
         }
     }
 

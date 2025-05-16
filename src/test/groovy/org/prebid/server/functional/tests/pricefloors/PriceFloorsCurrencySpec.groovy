@@ -1,16 +1,13 @@
 package org.prebid.server.functional.tests.pricefloors
 
-import org.prebid.server.functional.model.Currency
 import org.prebid.server.functional.model.config.AccountPriceFloorsConfig
 import org.prebid.server.functional.model.config.PriceFloorsFetch
-import org.prebid.server.functional.model.mock.services.currencyconversion.CurrencyConversionRatesResponse
 import org.prebid.server.functional.model.pricefloors.PriceFloorData
 import org.prebid.server.functional.model.request.auction.ImpExtPrebidFloors
 import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.service.PrebidServerService
-import org.prebid.server.functional.testcontainers.scaffolding.CurrencyConversion
 import org.prebid.server.functional.util.PBSUtils
 
 import static org.prebid.server.functional.model.Currency.BOGUS
@@ -22,24 +19,11 @@ import static org.prebid.server.functional.model.request.auction.FetchStatus.NON
 import static org.prebid.server.functional.model.request.auction.FetchStatus.SUCCESS
 import static org.prebid.server.functional.model.request.auction.Location.FETCH
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
-import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 
 class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
 
-    private static final Map<Currency, Map<Currency, BigDecimal>> DEFAULT_CURRENCY_RATES = [(USD): [(EUR): 0.9124920156948626,
-                                                                                                    (GBP): 0.793776804452961],
-                                                                                            (GBP): [(USD): 1.2597999770088517,
-                                                                                                    (EUR): 1.1495574203931487],
-                                                                                            (EUR): [(USD): 1.3429368029739777]]
-    private static final CurrencyConversion currencyConversion = new CurrencyConversion(networkServiceContainer).tap {
-        setCurrencyConversionRatesResponse(CurrencyConversionRatesResponse.getDefaultCurrencyConversionRatesResponse(DEFAULT_CURRENCY_RATES))
-    }
     private static final String GENERAL_ERROR_METRIC = "price-floors.general.err"
-    private static final Map<String, String> CURRENCY_CONVERTER_CONFIG = ["auction.ad-server-currency"                          : "USD",
-                                                                          "currency-converter.external-rates.enabled"           : "true",
-                                                                          "currency-converter.external-rates.url"               : "$networkServiceContainer.rootUri/currency".toString(),
-                                                                          "currency-converter.external-rates.default-timeout-ms": "4000",
-                                                                          "currency-converter.external-rates.refresh-period-ms" : "900000"]
+
     private final PrebidServerService currencyFloorsPbsService = pbsServiceFactory.getService(FLOORS_CONFIG +
             CURRENCY_CONVERTER_CONFIG)
 
