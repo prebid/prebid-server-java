@@ -8,6 +8,9 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.Source;
+import com.iab.openrtb.request.SupplyChain;
+import com.iab.openrtb.request.SupplyChainNode;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import io.netty.handler.codec.http.HttpHeaderValues;
@@ -25,6 +28,7 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.eplanning.ExtImpEplanning;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -35,6 +39,7 @@ import java.util.Map;
 import java.util.function.Function;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -411,6 +416,176 @@ public class EplanningBidderTest extends VertxTest {
                 .extracting(HttpRequest::getUri)
                 .containsExactly("https://eplanning.com/clientId/1/FILE/ROS?r=pbs&ncb=1&e=testadun_itco_de%3A1x1&"
                         + "appn=appName&appid=id&ifa=ifa&app=1");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotAppendSchainIfSourceIsNull() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(identity())))
+                .source(null)
+                .build();
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+        final String uri = result.getValue().get(0).getUri();
+        assertThat(uri).doesNotContain("sch=");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotAppendSchainIfExtIsNull() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(identity())))
+                .source(Source.builder().ext(null).build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        final String uri = result.getValue().get(0).getUri();
+        assertThat(uri).doesNotContain("sch=");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotAppendSchainIfSchainIsNull() {
+        // given
+        final Source source = Source.builder()
+                .ext(ExtSource.of(null))
+                .build();
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(identity())))
+                .source(source)
+                .build();
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        final String uri = result.getValue().get(0).getUri();
+        assertThat(uri).doesNotContain("sch=");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotAppendSchainIfNoNodes() {
+        // given
+        final SupplyChain supplyChain = SupplyChain.of(1, emptyList(), "1.0", null);
+        final Source source = Source.builder()
+                .ext(ExtSource.of(supplyChain))
+                .build();
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(identity())))
+                .source(source)
+                .build();
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        final String uri = result.getValue().get(0).getUri();
+        assertThat(uri).doesNotContain("sch=");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotAppendSchainIfNodeCountIsGreaterThan2() {
+        // given
+        final List<SupplyChainNode> nodes = asList(
+                SupplyChainNode.of("asi1", "sid1", "rid1", "name1", "domain1", 1, null),
+                SupplyChainNode.of("asi2", "sid2", "rid2", "name2", "domain2", 1, null),
+                SupplyChainNode.of("asi3", "sid3", "rid3", "name3", "domain3", 1, null)
+        );
+        final SupplyChain supplyChain = SupplyChain.of(1, nodes, "1.0", null);
+        final Source source = Source.builder()
+                .ext(ExtSource.of(supplyChain))
+                .build();
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(identity())))
+                .source(source)
+                .build();
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        final String uri = result.getValue().get(0).getUri();
+        assertThat(uri).doesNotContain("sch=");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldAppendSchainForUpToTwoNodes() {
+        // given
+        final List<SupplyChainNode> nodes = asList(
+                SupplyChainNode.of("asi1", "sid1", "rid1", "name1", "domain1", 1, null),
+                SupplyChainNode.of("asi2", "sid2", null, null, "domain2", 1, null)
+        );
+        final SupplyChain supplyChain = SupplyChain.of(1, nodes, "1.0", null);
+        final Source source = Source.builder()
+                .ext(ExtSource.of(supplyChain))
+                .build();
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(identity())))
+                .source(source)
+                .build();
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        final String uri = result.getValue().get(0).getUri();
+        assertThat(uri)
+                .contains("sch=")
+                .contains("%21asi1%2Csid1%2C1%2Crid1%2Cname1%2Cdomain1%2C")
+                .contains("%21asi2%2Csid2%2C1%2C%2C%2Cdomain2%2C");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUrlEncodeSchainFieldsCorrectly() {
+        // given
+        final List<SupplyChainNode> nodes = singletonList(
+                SupplyChainNode.of(
+                        "a si",
+                        "s/id",
+                        null,
+                        "r:id",
+                        "na me",
+                        1,
+                        jacksonMapper.mapper().createObjectNode().put("k", "v val"))
+        );
+        final SupplyChain supplyChain = SupplyChain.of(0, nodes, "1.0", null);
+        final Source source = Source.builder()
+                .ext(ExtSource.of(supplyChain))
+                .build();
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(identity())))
+                .source(source)
+                .build();
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        final String uri = result.getValue().get(0).getUri();
+
+        assertThat(uri).contains("&sch=");
+        assertThat(uri).contains("1.0%2C0");
+        assertThat(uri).contains("%21a%2520si");
+        assertThat(uri).contains("s%2Fid");
+        assertThat(uri).contains("r%3Aid");
+        assertThat(uri).contains("na%2520me");
+        assertThat(uri).contains("%7B%22k%22%3A%22v%2520val%22%7D");
     }
 
     @Test
