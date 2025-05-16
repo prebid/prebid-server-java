@@ -115,8 +115,7 @@ public class SeedtagBidderTest extends VertxTest {
                         givenImp(identity()),
                         givenImp(impBuilder -> impBuilder
                                 .bidfloor(BigDecimal.TEN)
-                                .bidfloorcur("EUR"))
-                        )));
+                                .bidfloorcur("EUR")))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
