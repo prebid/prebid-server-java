@@ -489,7 +489,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             it.gppSid = US_NAT_V1.value
             it.account = accountId
-            it.gpp = INVALID_GPP_STRING
+            it.gpp = invalidGpp
         }
 
         and: "Activities set for cookie sync with allowing privacy regulation"
@@ -506,14 +506,21 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
         accountDao.save(account)
 
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
         when: "PBS processes cookie sync request"
         def response = activityPbsService.sendCookieSyncRequest(cookieSyncRequest)
 
-        then: "Response should not contain any URLs for bidders"
-        assert !response.bidderStatus.userSync.url
+        then: "Response should contain bidders userSync.urls"
+        assert response.getBidderUserSync(GENERIC).userSync.url
 
-        and: "Response should not contain any warning"
-        assert !response.warnings
+        and: "Metrics processed across activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(cookieSyncRequest, SYNC_USER)] == 1
+
+        where:
+        invalidGpp << [null, "", PBSUtils.randomString, INVALID_GPP_STRING]
     }
 
     def "PBS cookie sync call when request have different gpp consent but match and rejecting should exclude bidders URLs"() {
@@ -1365,7 +1372,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def setuidRequest = SetuidRequest.defaultSetuidRequest.tap {
             it.account = accountId
             it.gppSid = US_NAT_V1.value
-            it.gpp = INVALID_GPP_STRING
+            it.gpp = invalidGpp
         }
 
         and: "UIDS Cookie"
@@ -1385,13 +1392,22 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
         accountDao.save(account)
 
-        when: "PBS processes cookie sync request"
-        activityPbsService.sendSetUidRequest(setuidRequest, uidsCookie)
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
 
-        then: "Request should fail with error"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == INVALID_STATUS_CODE
-        assert exception.responseBody == INVALID_STATUS_MESSAGE
+        when: "PBS processes cookie sync request"
+        def response = activityPbsService.sendSetUidRequest(setuidRequest, uidsCookie)
+
+        then: "Response should contain uids cookie"
+        assert response.uidsCookie
+        assert response.responseBody
+
+        and: "Metrics processed across activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(setuidRequest, SYNC_USER)] == 1
+
+        where:
+        invalidGpp << [null, "", PBSUtils.randomString, INVALID_GPP_STRING]
     }
 
     def "PBS setuid request when request have different gpp consent but match and rejecting should reject bidders with status code invalidStatusCode"() {
