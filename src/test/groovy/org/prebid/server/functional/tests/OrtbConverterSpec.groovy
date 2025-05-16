@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests
 
+import org.prebid.server.functional.model.config.ModuleName
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.auction.Audio
 import org.prebid.server.functional.model.request.auction.BidRequest
@@ -36,11 +37,18 @@ import static org.prebid.server.functional.model.request.auction.DistributionCha
 class OrtbConverterSpec extends BaseSpec {
 
     private final static String ORTB_PROPERTY_VERSION = "adapters.generic.ortb-version"
+    private static final Map<String, String> ORTB_2_6 = [(ORTB_PROPERTY_VERSION): "2.6"]
+    private static final Map<String, String> ORTB_2_5 = [(ORTB_PROPERTY_VERSION): "2.5"]
 
     @Shared
-    PrebidServerService prebidServerServiceWithNewOrtb = pbsServiceFactory.getService([(ORTB_PROPERTY_VERSION): "2.6"])
+    PrebidServerService prebidServerServiceWithNewOrtb = pbsServiceFactory.getService(ORTB_2_6)
     @Shared
-    PrebidServerService prebidServerServiceWithElderOrtb = pbsServiceFactory.getService([(ORTB_PROPERTY_VERSION): "2.5"])
+    PrebidServerService prebidServerServiceWithElderOrtb = pbsServiceFactory.getService(ORTB_2_5)
+
+    def cleanupSpec() {
+        pbsServiceFactory.removeContainer(ORTB_2_5)
+        pbsServiceFactory.removeContainer(ORTB_2_6)
+    }
 
     def "PBS shouldn't move regs.{gdpr,usPrivacy} to regs.ext.{gdpr,usPrivacy} when adapter support ortb 2.6"() {
         given: "Default bid request with regs object"
