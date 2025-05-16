@@ -31,6 +31,7 @@ public class KueezRtbConfiguration {
     BidderDeps kueezrtbBidderDeps(BidderConfigurationProperties kueezrtbConfigurationProperties,
                                   @NotBlank @Value("${external-url}") String externalUrl,
                                   JacksonMapper mapper) {
+
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(kueezrtbConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))

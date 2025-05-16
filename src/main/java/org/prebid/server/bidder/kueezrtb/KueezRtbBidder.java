@@ -92,6 +92,7 @@ public class KueezRtbBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
                 .map(bid -> makeBid(bid, bidResponse.getCur(), errors))
                 .filter(Objects::nonNull)
                 .toList();
