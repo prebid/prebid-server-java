@@ -67,11 +67,6 @@ public class NoSignalBidderPriceFloorAdjuster implements PriceFloorAdjuster {
                 .orElseGet(() -> delegate.adjustForImp(imp, bidder, bidRequest, account, debugWarnings));
     }
 
-    @Override
-    public Price revertAdjustmentForImp(Imp imp, String bidder, BidRequest bidRequest, Account account) {
-        return delegate.revertAdjustmentForImp(imp, bidder, bidRequest, account);
-    }
-
     private static boolean isNoSignalBidder(String bidder, List<String> noSignalBidders) {
         return noSignalBidders.stream().anyMatch(noSignalBidder -> StringUtils.equalsIgnoreCase(noSignalBidder, bidder))
                 || noSignalBidders.contains(ALL_BIDDERS);

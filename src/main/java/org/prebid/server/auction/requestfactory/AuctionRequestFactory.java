@@ -17,7 +17,7 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionStoredResult;
 import org.prebid.server.auction.privacy.contextfactory.AuctionPrivacyContextFactory;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
-import org.prebid.server.bidadjustments.BidAdjustmentsRetriever;
+import org.prebid.server.bidadjustments.BidAdjustmentsEnricher;
 import org.prebid.server.cookie.CookieDeprecationService;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.JacksonMapper;
@@ -51,7 +51,7 @@ public class AuctionRequestFactory {
     private final JacksonMapper mapper;
     private final OrtbTypesResolver ortbTypesResolver;
     private final GeoLocationServiceWrapper geoLocationServiceWrapper;
-    private final BidAdjustmentsRetriever bidAdjustmentsRetriever;
+    private final BidAdjustmentsEnricher bidAdjustmentsEnricher;
 
     private static final String ENDPOINT = Endpoint.openrtb2_auction.value();
 
@@ -69,7 +69,7 @@ public class AuctionRequestFactory {
                                  DebugResolver debugResolver,
                                  JacksonMapper mapper,
                                  GeoLocationServiceWrapper geoLocationServiceWrapper,
-                                 BidAdjustmentsRetriever bidAdjustmentsRetriever) {
+                                 BidAdjustmentsEnricher bidAdjustmentsEnricher) {
 
         this.maxRequestSize = maxRequestSize;
         this.ortb2RequestFactory = Objects.requireNonNull(ortb2RequestFactory);
@@ -85,7 +85,7 @@ public class AuctionRequestFactory {
         this.debugResolver = Objects.requireNonNull(debugResolver);
         this.mapper = Objects.requireNonNull(mapper);
         this.geoLocationServiceWrapper = Objects.requireNonNull(geoLocationServiceWrapper);
-        this.bidAdjustmentsRetriever = Objects.requireNonNull(bidAdjustmentsRetriever);
+        this.bidAdjustmentsEnricher = Objects.requireNonNull(bidAdjustmentsEnricher);
     }
 
     /**
@@ -146,7 +146,7 @@ public class AuctionRequestFactory {
                 .compose(auctionContext -> ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(auctionContext)
                         .map(auctionContext::with))
 
-                .map(auctionContext -> auctionContext.with(bidAdjustmentsRetriever.retrieve(auctionContext)))
+                .map(auctionContext -> auctionContext.with(bidAdjustmentsEnricher.enrichBidRequest(auctionContext)))
 
                 .compose(auctionContext -> ortb2RequestFactory.executeProcessedAuctionRequestHooks(auctionContext)
                         .map(auctionContext::with))
