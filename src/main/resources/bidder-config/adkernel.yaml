@@ -4,6 +4,7 @@ adapters:
     endpoint-compression: gzip
     aliases:
       rxnetwork: ~
+      152media: ~
     meta-info:
       maintainer-email: prebid-dev@adkernel.com
       app-media-types:
