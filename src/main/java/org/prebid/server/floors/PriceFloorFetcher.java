@@ -90,7 +90,10 @@ public class PriceFloorFetcher {
         final AccountFetchContext accountFetchContext = fetchedData.get(account.getId());
 
         return accountFetchContext != null
-                ? FetchResult.of(accountFetchContext.getRulesData(), accountFetchContext.getFetchStatus())
+                ? FetchResult.of(
+                accountFetchContext.getRulesData(),
+                accountFetchContext.getFetchStatus(),
+                accountFetchContext.getErrorMessage())
                 : fetchPriceFloorData(account);
     }
 
@@ -99,20 +102,20 @@ public class PriceFloorFetcher {
         final Boolean fetchEnabled = ObjectUtil.getIfNotNull(fetchConfig, AccountPriceFloorsFetchConfig::getEnabled);
 
         if (BooleanUtils.isFalse(fetchEnabled)) {
-            return FetchResult.of(null, FetchStatus.none);
+            return FetchResult.none("Fetching is disabled");
         }
 
         final String accountId = account.getId();
         final String fetchUrl = ObjectUtil.getIfNotNull(fetchConfig, AccountPriceFloorsFetchConfig::getUrl);
         if (!isUrlValid(fetchUrl)) {
-            logger.error("Malformed fetch.url: '%s', passed for account %s".formatted(fetchUrl, accountId));
-            return FetchResult.of(null, FetchStatus.error);
+            logger.error("Malformed fetch.url: '%s' passed for account %s".formatted(fetchUrl, accountId));
+            return FetchResult.error("Malformed fetch.url '%s' passed".formatted(fetchUrl));
         }
         if (!fetchInProgress.contains(accountId)) {
             fetchPriceFloorDataAsynchronous(fetchConfig, accountId);
         }
 
-        return FetchResult.of(null, FetchStatus.inprogress);
+        return FetchResult.inProgress();
     }
 
     private boolean isUrlValid(String url) {
@@ -148,7 +151,7 @@ public class PriceFloorFetcher {
 
         fetchInProgress.add(accountId);
         httpClient.get(fetchUrl, timeout, resolveMaxFileSize(maxFetchFileSizeKb))
-                .map(httpClientResponse -> parseFloorResponse(httpClientResponse, fetchConfig, accountId))
+                .map(httpClientResponse -> parseFloorResponse(httpClientResponse, fetchConfig))
                 .recover(throwable -> recoverFromFailedFetching(throwable, fetchUrl, accountId))
                 .map(cacheInfo -> updateCache(cacheInfo, fetchConfig, accountId))
                 .map(priceFloorData -> createPeriodicTimerForRulesFetch(priceFloorData, fetchConfig, accountId));
@@ -159,23 +162,20 @@ public class PriceFloorFetcher {
     }
 
     private ResponseCacheInfo parseFloorResponse(HttpClientResponse httpClientResponse,
-                                                 AccountPriceFloorsFetchConfig fetchConfig,
-                                                 String accountId) {
+                                                 AccountPriceFloorsFetchConfig fetchConfig) {
 
         final int statusCode = httpClientResponse.getStatusCode();
         if (statusCode != HttpStatus.SC_OK) {
-            throw new PreBidException("Failed to request for account %s, provider respond with status %s"
-                    .formatted(accountId, statusCode));
+            throw new PreBidException("Failed to request, provider respond with status %s".formatted(statusCode));
         }
         final String body = httpClientResponse.getBody();
 
         if (StringUtils.isBlank(body)) {
-            throw new PreBidException(
-                    "Failed to parse price floor response for account %s, response body can not be empty"
-                            .formatted(accountId));
+            throw new PreBidException("Failed to parse price floor response, response body can not be empty");
         }
 
-        final PriceFloorData priceFloorData = parsePriceFloorData(body, accountId);
+        final PriceFloorData priceFloorData = parsePriceFloorData(body);
+
         PriceFloorRulesValidator.validateRulesData(
                 priceFloorData,
                 PriceFloorsConfigResolver.resolveMaxValue(fetchConfig.getMaxRules()),
@@ -183,16 +183,17 @@ public class PriceFloorFetcher {
 
         return ResponseCacheInfo.of(priceFloorData,
                 FetchStatus.success,
+                null,
                 cacheTtlFromResponse(httpClientResponse, fetchConfig.getUrl()));
     }
 
-    private PriceFloorData parsePriceFloorData(String body, String accountId) {
+    private PriceFloorData parsePriceFloorData(String body) {
         final PriceFloorData priceFloorData;
         try {
             priceFloorData = mapper.decodeValue(body, PriceFloorData.class);
         } catch (DecodeException e) {
-            throw new PreBidException("Failed to parse price floor response for account %s, cause: %s"
-                    .formatted(accountId, ExceptionUtils.getMessage(e)));
+            throw new PreBidException(
+                    "Failed to parse price floor response, cause: %s".formatted(ExceptionUtils.getMessage(e)));
         }
         return priceFloorData;
     }
@@ -220,8 +221,11 @@ public class PriceFloorFetcher {
                                        String accountId) {
 
         final long maxAgeTimerId = createMaxAgeTimer(accountId, resolveCacheTtl(cacheInfo, fetchConfig));
-        final AccountFetchContext fetchContext =
-                AccountFetchContext.of(cacheInfo.getRulesData(), cacheInfo.getFetchStatus(), maxAgeTimerId);
+        final AccountFetchContext fetchContext = AccountFetchContext.of(
+                cacheInfo.getRulesData(),
+                cacheInfo.getFetchStatus(),
+                cacheInfo.getErrorMessage(),
+                maxAgeTimerId);
 
         if (cacheInfo.getFetchStatus() == FetchStatus.success || !fetchedData.containsKey(accountId)) {
             fetchedData.put(accountId, fetchContext);
@@ -274,23 +278,24 @@ public class PriceFloorFetcher {
         metrics.updatePriceFloorFetchMetric(MetricName.failure);
 
         final FetchStatus fetchStatus;
+        final String errorMessage;
         if (throwable instanceof TimeoutException || throwable instanceof ConnectTimeoutException) {
             fetchStatus = FetchStatus.timeout;
-            logger.error("Fetch price floor request timeout for fetch.url: '%s', account %s exceeded."
-                    .formatted(fetchUrl, accountId));
+            errorMessage = "Fetch price floor request timeout for fetch.url '%s' exceeded.".formatted(fetchUrl);
         } else {
             fetchStatus = FetchStatus.error;
-            logger.error(
-                    "Failed to fetch price floor from provider for fetch.url: '%s', account = %s with a reason : %s "
-                            .formatted(fetchUrl, accountId, throwable.getMessage()));
+            errorMessage = "Failed to fetch price floor from provider for fetch.url '%s', with a reason: %s"
+                    .formatted(fetchUrl, throwable.getMessage());
         }
 
-        return Future.succeededFuture(ResponseCacheInfo.withStatus(fetchStatus));
+        logger.error("Price floor fetching failed for account %s: %s".formatted(accountId, errorMessage));
+        return Future.succeededFuture(ResponseCacheInfo.withError(fetchStatus, errorMessage));
     }
 
     private PriceFloorData createPeriodicTimerForRulesFetch(PriceFloorData priceFloorData,
                                                             AccountPriceFloorsFetchConfig fetchConfig,
                                                             String accountId) {
+
         final long accountPeriodicTimeSec =
                 ObjectUtil.getIfNotNull(fetchConfig, AccountPriceFloorsFetchConfig::getPeriodSec);
         final long periodicTimeSec =
@@ -318,6 +323,8 @@ public class PriceFloorFetcher {
 
         FetchStatus fetchStatus;
 
+        String errorMessage;
+
         Long maxAgeTimerId;
     }
 
@@ -328,10 +335,12 @@ public class PriceFloorFetcher {
 
         FetchStatus fetchStatus;
 
+        String errorMessage;
+
         Long cacheTtl;
 
-        public static ResponseCacheInfo withStatus(FetchStatus status) {
-            return ResponseCacheInfo.of(null, status, null);
+        public static ResponseCacheInfo withError(FetchStatus status, String errorMessage) {
+            return ResponseCacheInfo.of(null, status, errorMessage, null);
         }
     }
 }
