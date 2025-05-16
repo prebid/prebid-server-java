@@ -15,9 +15,11 @@
           "h": 250,
           "w": 300,
           "ext": {
+            "rp": {
+              "advid": "1"
+            },
             "prebid": {
               "meta": {
-                "advertiserId": 1,
                 "secondaryCatIds": [
                   "id1",
                   "id2"
