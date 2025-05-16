@@ -50,6 +50,7 @@ Keep in mind following restrictions:
 - `auction.preferredmediatype.<bidder>.<media-type>` - <media-type> that will be left for <bidder> that doesn't support multi-format. Other media types will be removed. Acceptable values: `banner`, `video`, `audio`, `native`.
 - `auction.privacysandbox.cookiedeprecation.enabled` - boolean that turns on setting and reading of the Chrome Privacy Sandbox testing label header. Defaults to false.
 - `auction.privacysandbox.cookiedeprecation.ttlsec` - if the above setting is true, how long to set the receive-cookie-deprecation cookie's expiration
+- `auction.cache.enabled` - enables bids caching for account if true. Defaults to true.
 - `privacy.gdpr.enabled` - enables gdpr verifications if true. Has higher priority than configuration in
   application.yaml.
 - `privacy.gdpr.eea-countries` - overrides the host-level list of 2-letter country codes where TCF processing is applied
