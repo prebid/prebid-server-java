@@ -64,10 +64,6 @@ public class MobilefuseBidder implements Bidder<BidRequest> {
         }
 
         final ExtImpMobilefuse impExt = parseImpExt(imp);
-        if (impExt == null) {
-            return null;
-        }
-
         final ObjectNode skadn = parseSkadn(imp.getExt());
         return imp.toBuilder()
                 .tagid(Objects.toString(impExt.getPlacementId(), "0"))
