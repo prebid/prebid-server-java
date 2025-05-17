@@ -46,35 +46,23 @@ jobs:
           result=${PIPESTATUS[0]}
           echo "exit_code=$result" >> "$GITHUB_OUTPUT"
 
-      - name: Extract Failsafe Failures
+      - name: Format build output for PR comment
         if: steps.build.outputs.exit_code != '0'
         run: |
-          echo "Looking for failed functional tests..."
-          mkdir -p failsafe-failures
-          find . -type f -path "*/failsafe-reports/*.txt" -exec cp {} failsafe-failures/ \;
-          grep -E "Tests run: [0-9]+, Failures: [1-9][0-9]*" failsafe-failures/* > test_failures.txt || echo "No obvious test failures found."
-          cat test_failures.txt
+          sed -n '/\[ERROR\] Failures:/,/\[ERROR\] Tests run:/p' build_output.txt > test_failures.txt
+          echo "❌ **Module Functional Test Failures**" > comment.txt
+          echo '' >> comment.txt
+          echo '```' >> comment.txt
+          cat test_failures.txt >> comment.txt
+          echo '```' >> comment.txt
 
-      - name: Read test failures into output
-        id: test-results
-        if: steps.build.outputs.exit_code != '0'
-        run: |
-          content=$(cat test_failures.txt)
-          echo "content<<EOF" >> $GITHUB_OUTPUT
-          echo "$content" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-      - name: Comment test failures on PR
+      - name: Comment on PR with build failure output
         if: steps.build.outputs.exit_code != '0'
         uses: peter-evans/create-or-update-comment@v4
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           issue-number: ${{ github.event.pull_request.number }}
-          body: |
-            ❌ **Functional module tests CI Failed**
-            
-            ```
-            ${{ steps.test-results.outputs.content }}
-            ```
+          body-path: comment.txt
 
       - name: Fail if error is found in logs
         if: steps.build.outputs.exit_code != '0'
