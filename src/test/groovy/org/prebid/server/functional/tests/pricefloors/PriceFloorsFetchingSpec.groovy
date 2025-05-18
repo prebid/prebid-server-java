@@ -1731,7 +1731,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         assert !bidResponse.ext?.errors
 
         and: "PBS shouldn't log a errors"
-        def message = 'Price floor rules data must be present'
+        def message = "Price floor rules data must be present"
         def logs = floorsPbsService.getLogsByTime(startTime)
         def floorsLogs = getLogsByText(logs, PRICE_FLOORS_ERROR_LOG(bidRequest, FETCHING_DISABLED_ERROR, message))
         assert !floorsLogs.size()
@@ -1751,10 +1751,10 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         bidRequest << [BidRequest.getDefaultBidRequest(), getBidRequestWithFloors().tap { it.ext.prebid.floors = null }]
     }
 
-    def "PBS should emit error in log and response when floor data is empty and floors fetching disabled for account and #requestFloors for request"() {
+    def "PBS should emit error in log and response when floor data is empty and floors fetching disabled for account and #requestFloorEnabled for request"() {
         given: "Default BidRequest with empty floors.data"
         def bidRequest = bidRequestWithFloors.tap {
-            it.ext.prebid.floors.enabled = requestFloors
+            it.ext.prebid.floors.enabled = requestFloorEnabled
             it.ext.prebid.floors.data = null
         }
 
@@ -1775,7 +1775,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def bidResponse = floorsPbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS should log a warning"
-        def message = 'Price floor rules data must be present'
+        def message = "Price floor rules data must be present"
         assert bidResponse.ext?.warnings[PREBID]*.code == [999]
         assert bidResponse.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE(message)]
 
@@ -1799,10 +1799,10 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         assert metrics[ALERT_GENERAL] == 1
 
         where:
-        requestFloors << [null, true]
+        requestFloorEnabled << [null, true]
     }
 
-    def "PBS shouldn't emit error in log and response when floor data is empty and floors fetching disabled for account and disabled for request"() {
+    def "PBS shouldn't emit error in log and response when floor data is empty and floors fetching disabled for account and floors disabled for request"() {
         given: "Default BidRequest with empty floors.data"
         def bidRequest = bidRequestWithFloors.tap {
             it.ext.prebid.floors.enabled = false
@@ -1830,7 +1830,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         assert !bidResponse.ext?.errors
 
         and: "PBS shouldn't log a errors"
-        def message = 'Price floor rules data must be present'
+        def message = "Price floor rules data must be present"
         def logs = floorsPbsService.getLogsByTime(startTime)
         def floorsLogs = getLogsByText(logs, PRICE_FLOORS_ERROR_LOG(bidRequest, FETCHING_DISABLED_ERROR, message))
         assert !floorsLogs.size()
@@ -1843,15 +1843,12 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
     def "PBS shouldn't emit error in log and response when data is invalid and floors fetching enabled for account"() {
         given: "Default BidRequest with empty floors.data"
         def bidRequest = bidRequestWithFloors.tap {
-            ext.prebid.floors.enabled = requestFloors
+            ext.prebid.floors.enabled = requestEnabledFloors
             ext.prebid.floors.data = null
         }
 
         and: "Account with enabled fetching"
-        def account = getAccountWithEnabledFetch(bidRequest.accountId).tap {
-            config.auction.priceFloors.enabled = true
-            config.auction.priceFloors.fetch.enabled = true
-        }
+        def account = getAccountWithEnabledFetch(bidRequest.accountId)
         accountDao.save(account)
 
         and: "Default bid response"
@@ -1869,7 +1866,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         assert !bidResponse.ext?.errors
 
         and: "PBS shouldn't log a errors"
-        def message = 'Price floor rules data must be present'
+        def message = "Price floor rules data must be present"
         def logs = floorsPbsService.getLogsByTime(startTime)
         def floorsLogs = getLogsByText(logs, PRICE_FLOORS_ERROR_LOG(bidRequest, FETCHING_DISABLED_ERROR, message))
         assert !floorsLogs.size()
@@ -1886,13 +1883,12 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         assert !metrics[ALERT_GENERAL]
 
         where:
-        requestFloors << [null, true]
+        requestEnabledFloors << [null, true]
     }
 
-    def "PBS shouldn't emit error in log and response when data is invalid and floors disabled for request"() {
+    def "PBS shouldn't emit error in log and response when data is invalid and floors disabled for account"() {
         given: "Default BidRequest with empty floors.data"
         def bidRequest = bidRequestWithFloors.tap {
-            ext.prebid.floors.enabled = false
             ext.prebid.floors.data = null
         }
 
