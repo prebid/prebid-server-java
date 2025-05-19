@@ -16,7 +16,6 @@ import org.prebid.server.activity.infrastructure.privacy.PrivacyModuleQualifier;
 import org.prebid.server.activity.infrastructure.privacy.usnat.reader.USNationalGppReader;
 import org.prebid.server.activity.infrastructure.rule.Rule;
 import org.prebid.server.auction.gpp.model.GppContextCreator;
-import org.prebid.server.exception.InvalidAccountConfigException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JsonLogic;
 import org.prebid.server.metric.MetricName;
@@ -31,7 +30,6 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -63,7 +61,7 @@ public class USCustomLogicModuleCreatorTest extends VertxTest {
                 .willReturn(new USNationalGppReader(null));
         given(jsonLogic.parse(any())).willReturn(JsonLogicBoolean.TRUE);
 
-        target = new USCustomLogicModuleCreator(gppReaderFactory, jsonLogic, null, null, metrics);
+        target = new USCustomLogicModuleCreator(gppReaderFactory, jsonLogic, null, null, metrics, 0);
     }
 
     @Test
@@ -232,8 +230,11 @@ public class USCustomLogicModuleCreatorTest extends VertxTest {
                 singletonList(7),
                 givenConfig(singleton(7), null, Activity.CALL_BIDDER, mapper.createObjectNode()));
 
-        // when and then
-        assertThatExceptionOfType(InvalidAccountConfigException.class).isThrownBy(() -> target.from(creationContext));
+        // when
+        final PrivacyModule privacyModule = target.from(creationContext);
+
+        // then
+        assertThat(privacyModule.proceed(null)).isEqualTo(Rule.Result.ABSTAIN);
 
         verify(jsonLogic).parse(any());
         verify(metrics).updateAlertsMetrics(eq(MetricName.general));
