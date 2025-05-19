@@ -38,6 +38,7 @@ jobs:
           -DskipModuleFunctionalTests=true \
           -Dtests.max-container-count=5 \
           -DdockerfileName=Dockerfile \
+          -Dcheckstyle.skip \
           --file extra/pom.xml | tee build_output.txt
           result=${PIPESTATUS[0]}
           echo "exit_code=$result" >> "$GITHUB_OUTPUT"
