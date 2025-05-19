@@ -15,10 +15,16 @@ import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.Activity
 import org.prebid.server.functional.model.request.auction.ActivityRule
 import org.prebid.server.functional.model.request.auction.AllowActivities
+import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Condition
+import org.prebid.server.functional.model.request.auction.Data
 import org.prebid.server.functional.model.request.auction.Device
+import org.prebid.server.functional.model.request.auction.Eid
 import org.prebid.server.functional.model.request.auction.Geo
 import org.prebid.server.functional.model.request.auction.RegsExt
+import org.prebid.server.functional.model.request.auction.User
+import org.prebid.server.functional.model.request.auction.UserExt
+import org.prebid.server.functional.model.request.auction.UserExtData
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.gpp.UsCaV1Consent
@@ -62,7 +68,6 @@ import static org.prebid.server.functional.model.pricefloors.Country.USA
 import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ACCOUNT_DISALLOWED_COUNT
 import static org.prebid.server.functional.model.privacy.Metric.ACCOUNT_PROCESSED_RULES_COUNT
 import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ADAPTER_DISALLOWED_COUNT
-import static org.prebid.server.functional.model.privacy.Metric.ALERT_GENERAL
 import static org.prebid.server.functional.model.privacy.Metric.PROCESSED_ACTIVITY_RULES_COUNT
 import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_REQUEST_DISALLOWED_COUNT
 import static org.prebid.server.functional.model.request.GppSectionId.USP_V1
@@ -80,7 +85,6 @@ import static org.prebid.server.functional.model.request.auction.PrivacyModule.I
 import static org.prebid.server.functional.model.request.auction.PrivacyModule.IAB_US_CUSTOM_LOGIC
 import static org.prebid.server.functional.model.request.auction.PrivacyModule.IAB_US_GENERAL
 import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
-import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 import static org.prebid.server.functional.util.privacy.model.State.ALABAMA
 import static org.prebid.server.functional.util.privacy.model.State.ONTARIO
 
@@ -1478,7 +1482,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL.getValue()] == 1
+        assert metrics[ALERT_GENERAL] == 1
     }
 
     def "PBS auction call when privacy module contain invalid property should respond with an error"() {
@@ -1677,7 +1681,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL.getValue()] == 1
+        assert metrics[ALERT_GENERAL] == 1
 
         and: "Generic bidder request should have data in UFPD fields"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -3053,7 +3057,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL.getValue()] == 1
+        assert metrics[ALERT_GENERAL] == 1
     }
 
     def "PBS amp call when privacy module contain invalid property should respond with an error"() {
@@ -3287,7 +3291,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL.getValue()] == 1
+        assert metrics[ALERT_GENERAL] == 1
 
         and: "Generic bidder request should have data in UFPD fields"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
