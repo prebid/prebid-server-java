@@ -39,12 +39,23 @@ jobs:
       - name: Format build output for PR comment
         if: steps.build.outputs.exit_code != '0'
         run: |
-          sed -n '/\[ERROR\] Failures:/,/\[ERROR\] Tests run:/p' build_output.txt > test_failures.txt
-          echo "❌ **Java CI Build Failed - Test Failures**" > comment.txt
-          echo '' >> comment.txt
-          echo '```' >> comment.txt
-          cat test_failures.txt >> comment.txt
-          echo '```' >> comment.txt
+          if grep -q '\[INFO\] --- checkstyle' build_output.txt; then
+            {
+              echo "❌ **Checkstyle Issues Detected**"
+              echo ""
+              echo '```'
+              sed -n '/\[INFO\] --- checkstyle/,/\[INFO\] ---/p' build_output.txt | sed '$d'
+              echo '```'
+            } > comment.txt
+          else
+            {
+              echo "❌ **Java CI Test Failures**"
+              echo ""
+              echo '```'
+              sed -n '/\[ERROR\] Failures:/,/\[ERROR\] Tests run:/p' build_output.txt
+              echo '```'
+            } > comment.txt
+          fi
 
       - name: Comment on PR with build failure output
         if: steps.build.outputs.exit_code != '0'
