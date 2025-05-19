@@ -669,6 +669,9 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
         accountDao.save(account)
 
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
         when: "PBS processes cookie sync request"
         def response = activityPbsService.sendCookieSyncRequest(cookieSyncRequest)
 
@@ -677,6 +680,13 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Response shouldn't contain warnings"
         assert !response.warnings
+
+        and: "Metrics processed across activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(cookieSyncRequest, SYNC_USER)] == 1
+
+        and: "General alert metric shouldn't be updated"
+        !metrics[ALERT_GENERAL.getValue()]
 
         where:
         regsGpp << [null, "", new UsNatV1Consent.Builder().build(), new UsNatV1Consent.Builder().setGpc(false).build()]
@@ -1621,12 +1631,22 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
         accountDao.save(account)
 
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
         when: "PBS processes cookie sync request"
         def response = activityPbsService.sendSetUidRequest(setuidRequest, uidsCookie)
 
         then: "Response should contain uids cookie"
         assert response.uidsCookie
         assert response.responseBody
+
+        and: "Metrics processed across activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(setuidRequest, SYNC_USER)] == 1
+
+        and: "General alert metric shouldn't be updated"
+        !metrics[ALERT_GENERAL.getValue()]
 
         where:
         regsGpp << [null, "", new UsNatV1Consent.Builder().build(), new UsNatV1Consent.Builder().setGpc(false).build()]

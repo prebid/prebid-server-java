@@ -1038,6 +1038,9 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
         accountDao.save(account)
 
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
         when: "PBS processes auction requests"
         def response = activityPbsService.sendAuctionRequest(bidRequest)
 
@@ -1050,6 +1053,14 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Response shouldn't contain warnings"
         assert !response.ext.warnings
+
+        and: "Metrics processed across activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
+        assert metrics[ACCOUNT_PROCESSED_RULES_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
+
+        and: "General alert metric shouldn't be updated"
+        !metrics[ALERT_GENERAL.getValue()]
 
         where:
         regsGpp << [null, "", new UsNatV1Consent.Builder().build(), new UsNatV1Consent.Builder().setGpc(false).build()]
@@ -1381,7 +1392,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
-        and: "amp request with link to account"
+        and: "Default amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
         }
@@ -1417,7 +1428,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
-        and: "amp request with link to account"
+        and: "Default amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
         }
@@ -1458,7 +1469,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
-        and: "amp request with link to account"
+        and: "Default amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
         }
@@ -1495,7 +1506,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
-        and: "amp request with link to account"
+        and: "Default amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
         }
@@ -1533,7 +1544,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
-        and: "amp request with link to account"
+        and: "Default amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
         }
@@ -1567,7 +1578,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
-        and: "amp request with link to account"
+        and: "Default amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
         }
@@ -1606,7 +1617,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
             it.regs.ext = new RegsExt(gpc: null)
         }
 
-        and: "amp request with link to account"
+        and: "Default amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
         }
@@ -1652,7 +1663,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
-        and: "amp request with link to account"
+        and: "Default amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
         }
@@ -1694,7 +1705,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
-        and: "amp request with link to account"
+        and: "Default amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
             it.gppSid = US_NAT_V1.value
@@ -1737,7 +1748,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
-        and: "amp request with link to account"
+        and: "Default amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
             it.gppSid = US_NAT_V1.value
@@ -1902,7 +1913,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
-        and: "amp request with link to account"
+        and: "Default amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
             it.gppSid = US_NAT_V1.value
@@ -1955,7 +1966,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
-        and: "amp request with link to account"
+        and: "Default amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
             it.gppSid = US_NAT_V1.value
@@ -2013,7 +2024,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
-        and: "amp request with link to account"
+        and: "Default amp request with link to account"
         def invalidGpp = PBSUtils.randomString
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
@@ -2048,9 +2059,6 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         then: "Generic bidder request should have data in EIDS fields"
         def genericBidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
-        assert genericBidderRequest.user.eids[0].source == ampStoredRequest.user.eids[0].source
-
-        and: "Generic bidder request should have data in EIDS fields"
         assert genericBidderRequest.user.eids == ampStoredRequest.user.eids
 
         and: "Metrics processed across activities should be updated"
@@ -2070,7 +2078,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
-        and: "amp request with link to account"
+        and: "Default amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
             it.gppSid = gppSid.value
@@ -2121,7 +2129,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
-        and: "amp request with link to account"
+        and: "Default amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
             it.gppSid = US_NAT_V1.value
@@ -2163,7 +2171,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
-        and: "amp request with link to account"
+        and: "Default amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
             it.gppSid = US_NAT_V1.value
@@ -2189,14 +2197,14 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
         when: "PBS processes amp request"
         def response = activityPbsService.sendAmpRequest(ampRequest)
 
         then: "Generic bidder request should have data in EIDS fields"
         def genericBidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
-        assert genericBidderRequest.user.eids[0].source == ampStoredRequest.user.eids[0].source
-
-        and: "Generic bidder request should have data in EIDS fields"
         assert genericBidderRequest.user.eids == ampStoredRequest.user.eids
 
         and: "Response shouldn't contain errors"
@@ -2204,6 +2212,13 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Response shouldn't contain warnings"
         assert !response.ext.warnings
+
+        and: "Metrics processed across activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(ampStoredRequest, TRANSMIT_EIDS)] == 1
+
+        and: "General alert metric shouldn't be updated"
+        !metrics[ALERT_GENERAL.getValue()]
 
         where:
         regsGpp << [null, ""]
@@ -2214,7 +2229,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
-        and: "amp request with link to account"
+        and: "Default amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
             it.gppSid = US_NAT_V1.value
@@ -2245,9 +2260,6 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         then: "Generic bidder request should have data in EIDS fields"
         def genericBidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
-        assert genericBidderRequest.user.eids[0].source == ampStoredRequest.user.eids[0].source
-
-        and: "Generic bidder request should have data in EIDS fields"
         assert genericBidderRequest.user.eids == ampStoredRequest.user.eids
 
         and: "Response shouldn't contain warnings"
@@ -2265,7 +2277,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
-        and: "amp request with link to account"
+        and: "Default amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
             it.gppSid = US_NAT_V1.value
@@ -2311,7 +2323,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
-        and: "amp request with link to account"
+        and: "Default amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
             it.gppSid = US_NAT_V1.value
