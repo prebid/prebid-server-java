@@ -45,6 +45,14 @@ public class MobilefuseBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
+        final boolean hasExt = request.getImp().stream()
+                .map(this::parseImpExt)
+                .anyMatch(Objects::nonNull);
+
+        if (!hasExt) {
+            return Result.withError(BidderError.badInput("Invalid ExtImpMobilefuse value"));
+        }
+
         final List<Imp> modifiedImps = request.getImp().stream()
                 .map(this::modifyImp)
                 .filter(Objects::nonNull)
