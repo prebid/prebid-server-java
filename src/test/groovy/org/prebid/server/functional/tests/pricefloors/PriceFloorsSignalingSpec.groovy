@@ -77,7 +77,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         assert !response.ext.errors
 
         and: "PBS shouldn't log a errors"
-        def message = 'Price floor rules data must be present'
+        def message = "Price floor rules data must be present"
         def logs = floorsPbsService.getLogsByTime(startTime)
         def floorsLogs = getLogsByText(logs, PRICE_FLOORS_ERROR_LOG(bidRequest, FETCHING_DISABLED_ERROR, message))
         assert !floorsLogs.size()
@@ -1124,9 +1124,9 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         def response = floorsPbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS should log a warning"
-        def message = 'Price floor rules data must be present'
+        def message = "Price floor rules data must be present"
         assert response.ext?.warnings[PREBID]*.code == [999]
-        assert response.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE('Price floor rules data must be present')]
+        assert response.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE(message)]
 
         and: "PBS should log a errors"
         def logs = floorsPbsService.getLogsByTime(startTime)
