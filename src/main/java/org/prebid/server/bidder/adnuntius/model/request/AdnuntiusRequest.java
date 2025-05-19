@@ -13,7 +13,7 @@ import java.util.List;
 public class AdnuntiusRequest {
 
     @JsonProperty("adUnits")
-    List<AdnuntiusAdUnit> adUnits;
+    List<AdnuntiusRequestAdUnit> adUnits;
 
     @JsonProperty("metaData")
     @JsonInclude(JsonInclude.Include.NON_EMPTY)

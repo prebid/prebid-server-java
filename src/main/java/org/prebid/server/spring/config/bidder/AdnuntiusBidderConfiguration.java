@@ -1,5 +1,8 @@
 package org.prebid.server.spring.config.bidder;
 
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.adnuntius.AdnuntiusBidder;
 import org.prebid.server.json.JacksonMapper;
@@ -7,6 +10,7 @@ import org.prebid.server.spring.config.bidder.model.BidderConfigurationPropertie
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
+import org.prebid.server.util.ObjectUtil;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -24,20 +28,39 @@ public class AdnuntiusBidderConfiguration {
 
     @Bean("adnuntiusConfigurationProperties")
     @ConfigurationProperties("adapters.adnuntius")
-    BidderConfigurationProperties configurationProperties() {
-        return new BidderConfigurationProperties();
+    AdnuntiusConfigurationProperties configurationProperties() {
+        return new AdnuntiusConfigurationProperties();
     }
 
     @Bean
-    BidderDeps adnuntiusBidderDeps(BidderConfigurationProperties adnuntiusConfigurationProperties,
+    BidderDeps adnuntiusBidderDeps(AdnuntiusConfigurationProperties adnuntiusConfigurationProperties,
                                    @NotBlank @Value("${external-url}") String externalUrl,
                                    Clock clock,
                                    JacksonMapper mapper) {
 
-        return BidderDepsAssembler.forBidder(BIDDER_NAME)
+        return BidderDepsAssembler.<AdnuntiusConfigurationProperties>forBidder(BIDDER_NAME)
                 .withConfig(adnuntiusConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new AdnuntiusBidder(config.getEndpoint(), clock, mapper))
+                .bidderCreator(config -> new AdnuntiusBidder(
+                        config.getEndpoint(),
+                        ObjectUtil.getIfNotNull(config.getExtraInfo(), ExtraInfo::getUrl),
+                        clock,
+                        mapper))
                 .assemble();
+    }
+
+    @Data
+    @EqualsAndHashCode(callSuper = true)
+    @NoArgsConstructor
+    private static class AdnuntiusConfigurationProperties extends BidderConfigurationProperties {
+
+        private ExtraInfo extraInfo = new ExtraInfo();
+    }
+
+    @Data
+    @NoArgsConstructor
+    private static class ExtraInfo {
+
+        String url;
     }
 }
