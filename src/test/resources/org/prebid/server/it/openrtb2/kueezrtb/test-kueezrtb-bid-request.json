@@ -39,7 +39,9 @@
     "tid": "${json-unit.any-string}"
   },
   "regs": {
-    "gdpr": 0
+    "ext": {
+      "gdpr": 0
+    }
   },
   "ext": {
     "prebid": {
