@@ -1,0 +1,24 @@
+adapters:
+  zeta_global_ssp:
+    endpoint: https://ssp.disqus.com/bid/prebid-server?sid={{AccountID}}
+    endpoint-compression: gzip
+    geoscope:
+      - global
+    modifying-vast-xml-allowed: true
+    meta-info:
+      maintainer-email: DL-Zeta-SSP@zetaglobal.com
+      app-media-types:
+        - banner
+        - video
+        - audio
+      site-media-types:
+        - banner
+        - video
+        - audio
+      vendor-id: 833
+    usersync:
+      cookie-family-name: zeta_global_ssp
+      redirect:
+        url: https://ssp.disqus.com/redirectuser?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&r={{redirect_url}}
+        support-cors: false
+        uid-macro: 'BUYERUID'
