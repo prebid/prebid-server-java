@@ -39,12 +39,12 @@ jobs:
       - name: Format build output for PR comment
         if: steps.build.outputs.exit_code != '0'
         run: |
-          if grep -q '\[INFO\] --- checkstyle' build_output.txt; then
+          if grep -q '\[INFO\] Starting audit\.\.\.' build_output.txt; then
             {
               echo "❌ **Checkstyle Issues Detected**"
               echo ""
               echo '```'
-              sed -n '/\[INFO\] --- checkstyle/,/\[INFO\] ---/p' build_output.txt | sed '$d'
+              sed -n '/\[INFO\] Starting audit\.\.\./,/Audit done\./p' build_output.txt
               echo '```'
             } > comment.txt
           else
