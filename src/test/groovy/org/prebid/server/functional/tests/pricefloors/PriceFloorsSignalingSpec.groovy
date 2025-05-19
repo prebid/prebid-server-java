@@ -997,7 +997,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         given: "BidRequest with invalid modelWeight"
         def bidRequest = bidRequestWithFloors.tap {
             ext.prebid.floors.data.modelGroups = [
-                    new ModelGroup(modelWeight: requestModelWeight)
+                    new FloorModelGroup(modelWeight: requestModelWeight)
             ]
         }
 
@@ -1034,7 +1034,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         def requestModelGroupsSkipRate = PBSUtils.getRandomNumber(100)
         def bidRequest = bidRequestWithFloors.tap {
             ext.prebid.floors.data.modelGroups = [
-                    new ModelGroup(skipRate: requestModelGroupsSkipRate)
+                    new FloorModelGroup(skipRate: requestModelGroupsSkipRate)
             ]
         }
 
@@ -1069,7 +1069,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
         def bidRequest = bidRequestWithFloors.tap {
             ext.prebid.floors.data.modelGroups = [
-                    new ModelGroup(defaultFloor: requestModelGroupsSkipRate)
+                    new FloorModelGroup(defaultFloor: requestModelGroupsSkipRate)
             ]
         }
 
