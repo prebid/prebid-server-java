@@ -25,6 +25,7 @@ import java.util.function.UnaryOperator;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
+import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.prebid.server.bidder.model.BidderError.badInput;
@@ -80,7 +81,7 @@ public class MobkoiBidderTest extends VertxTest {
         // given
         final ObjectNode mobkoiExt = impExt("pid", null);
         final Imp givenImp1 = givenImp(impBuilder -> impBuilder.ext(mobkoiExt));
-        final Imp givenImp2 = givenImp(impBuilder -> impBuilder);
+        final Imp givenImp2 = givenImp(identity());
         final BidRequest bidRequest = BidRequest.builder().imp(asList(givenImp1, givenImp2)).build();
 
         // when
@@ -106,20 +107,6 @@ public class MobkoiBidderTest extends VertxTest {
         // then
         assertThat(results.getValue()).extracting(HttpRequest::getUri).containsExactly("https://test.endpoint.com/bid");
         assertThat(results.getErrors()).isEmpty();
-    }
-
-    @Test
-    public void makeHttpRequestsShouldConstructorEndpointWhenTheCustomIsInvalidInMobkoiExtension() {
-        // given
-        final ObjectNode mobkoiExt = impExt("pid", "invalid-URI");
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(mobkoiExt));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).extracting(HttpRequest::getUri).containsExactly("https://test.endpoint.com/bid");
-        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test

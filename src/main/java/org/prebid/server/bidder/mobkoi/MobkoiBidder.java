@@ -32,7 +32,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 public class MobkoiBidder implements Bidder<BidRequest> {
 
@@ -50,7 +49,6 @@ public class MobkoiBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
-
         final Imp firstImp = bidRequest.getImp().getFirst();
 
         final ExtImpMobkoi extImpMobkoi;
@@ -87,15 +85,18 @@ public class MobkoiBidder implements Bidder<BidRequest> {
 
         if (StringUtils.isNotBlank(extImpMobkoi.getPlacementId())) {
             return firstImp.toBuilder().tagid(extImpMobkoi.getPlacementId()).build();
-        } else {
-            throw new PreBidException("invalid because it comes with neither request.imp[0].tagId nor "
-                    + "req.imp[0].ext.Bidder.placementId");
         }
+
+        throw new PreBidException("invalid because it comes with neither request.imp[0].tagId nor "
+                    + "req.imp[0].ext.Bidder.placementId");
     }
 
+    // url is already validated with `bidder-params` json schema
     private String resolveEndpoint(String customUri) {
         try {
-            HttpUtil.validateUrl(customUri);
+            if (customUri == null) {
+                return endpointUrl;
+            }
             final URI uri = new URI(customUri);
             return uri.resolve("/bid").toString();
         } catch (IllegalArgumentException | URISyntaxException e) {
@@ -148,6 +149,6 @@ public class MobkoiBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> BidderBid.of(bid, BidType.banner, "mobkoi", bidResponse.getCur()))
-                .collect(Collectors.toList());
+                .toList();
     }
 }
