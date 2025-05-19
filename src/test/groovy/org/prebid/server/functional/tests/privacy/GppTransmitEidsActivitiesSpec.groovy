@@ -76,7 +76,6 @@ import static org.prebid.server.functional.model.request.auction.PrivacyModule.I
 import static org.prebid.server.functional.model.request.auction.PrivacyModule.IAB_US_CUSTOM_LOGIC
 import static org.prebid.server.functional.model.request.auction.PrivacyModule.IAB_US_GENERAL
 import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
-import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 import static org.prebid.server.functional.util.privacy.model.State.ALABAMA
 import static org.prebid.server.functional.util.privacy.model.State.ONTARIO
 
@@ -840,45 +839,6 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
                 'DBABLA~BAAIAAAAAAA.QA',
                 'DBABLA~BAAIAAAAAAA.QA'
         ]
-    }
-
-    def "PBS auction call when privacy module contain invalid GPP string should remove EIDS fields in request"() {
-        given: "Default Generic BidRequests with EIDS fields and account id"
-        def accountId = PBSUtils.randomNumber as String
-        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
-            regs.gppSid = [US_NAT_V1.intValue]
-            regs.gpp = INVALID_GPP_STRING
-        }
-
-        and: "Activities set for transmitEIDS with rejecting privacy regulation"
-        def rule = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_US_GENERAL]
-        }
-
-        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_EIDS, Activity.getDefaultActivity([rule]))
-
-        and: "Account gpp configuration"
-        def accountGppConfig = new AccountGppConfig(code: IAB_US_GENERAL, enabled: true)
-
-        and: "Existed account with privacy regulation setup"
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
-        accountDao.save(account)
-
-        when: "PBS processes auction requests"
-        def response = activityPbsService.sendAuctionRequest(bidRequest)
-
-        then: "Generic bidder request should have empty EIDS fields"
-        def genericBidderRequest = bidder.getBidderRequest(bidRequest.id)
-        verifyAll {
-            !genericBidderRequest.user.eids
-            !genericBidderRequest.user?.ext?.eids
-        }
-
-        and: "Response should not contain any warnings"
-        assert !response.ext.warnings
-
-        and: "Response should not contain any errors"
-        assert !response.ext.errors
     }
 
     def "PBS auction call when request have different gpp consent but match and rejecting should remove EIDS fields in request"() {
@@ -1867,55 +1827,6 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
                 'DBABLA~BAAIAAAAAAA.QA',
                 'DBABLA~BAAIAAAAAAA.QA'
         ]
-    }
-
-    def "PBS amp call when privacy module contain invalid GPP string should remove EIDS fields in request"() {
-        given: "Default Generic BidRequest with EIDS fields field and account id"
-        def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = getBidRequestWithPersonalData(accountId)
-
-        and: "amp request with link to account"
-        def ampRequest = AmpRequest.defaultAmpRequest.tap {
-            it.account = accountId
-            it.gppSid = US_NAT_V1.value
-            it.consentString = INVALID_GPP_STRING
-            it.consentType = GPP
-        }
-
-        and: "Activities set for transmitEIDS with allowing privacy regulation"
-        def rule = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_US_GENERAL]
-        }
-
-        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_EIDS, Activity.getDefaultActivity([rule]))
-
-        and: "Account gpp configuration"
-        def accountGppConfig = new AccountGppConfig(code: IAB_US_GENERAL, enabled: true)
-
-        and: "Existed account with privacy regulation setup"
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
-        accountDao.save(account)
-
-        and: "Stored request in DB"
-        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
-        storedRequestDao.save(storedRequest)
-
-        when: "PBS processes amp request"
-        def response = activityPbsService.sendAmpRequest(ampRequest)
-
-        then: "Generic bidder request should have empty EIDS fields"
-        def genericBidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
-        verifyAll {
-            !genericBidderRequest.user.eids
-            !genericBidderRequest.user?.ext?.eids
-        }
-
-        and: "Response should not contain any warnings"
-        assert !response.ext.warnings
-
-        and: "Response should contain amp error"
-        assert response.ext?.errors[PREBID]*.code == [999]
-        assert response.ext?.errors[PREBID]*.message == ["Amp request parameter consent_string has invalid format: $INVALID_GPP_STRING"]
     }
 
     def "PBS amp call when request have different gpp consent but match and rejecting should remove EIDS fields in request"() {

@@ -2,7 +2,7 @@ package org.prebid.server.functional.tests.pricefloors
 
 import org.prebid.server.functional.model.config.PriceFloorsFetch
 import org.prebid.server.functional.model.db.StoredRequest
-import org.prebid.server.functional.model.pricefloors.ModelGroup
+import org.prebid.server.functional.model.pricefloors.FloorModelGroup
 import org.prebid.server.functional.model.pricefloors.PriceFloorData
 import org.prebid.server.functional.model.pricefloors.Rule
 import org.prebid.server.functional.model.request.amp.AmpRequest
@@ -1470,7 +1470,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def floorValue = PBSUtils.randomFloorValue
         def bidRequest = bidRequestWithFloors.tap {
             imp[0].bidFloor = floorValue
-            ext.prebid.floors.data.modelGroups << ModelGroup.modelGroup
+            ext.prebid.floors.data.modelGroups << FloorModelGroup.modelGroup
             ext.prebid.floors.data.modelGroups.first().values = [(rule): floorValue + 0.1]
             ext.prebid.floors.data.modelGroups.first().modelWeight = invalidModelWeight
             ext.prebid.floors.data.modelGroups.last().values = [(rule): floorValue + 0.2]
@@ -1510,7 +1510,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def floorValue = PBSUtils.randomFloorValue
         def ampStoredRequest = storedRequestWithFloors.tap {
             imp[0].bidFloor = floorValue
-            ext.prebid.floors.data.modelGroups << ModelGroup.modelGroup
+            ext.prebid.floors.data.modelGroups << FloorModelGroup.modelGroup
             ext.prebid.floors.data.modelGroups.first().values = [(rule): floorValue + 0.1]
             ext.prebid.floors.data.modelGroups.first().modelWeight = invalidModelWeight
             ext.prebid.floors.data.modelGroups.last().values = [(rule): floorValue + 0.2]
@@ -1549,7 +1549,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def floorValue = PBSUtils.randomFloorValue
         def bidRequest = bidRequestWithFloors.tap {
             imp[0].bidFloor = floorValue
-            ext.prebid.floors.data.modelGroups << ModelGroup.modelGroup
+            ext.prebid.floors.data.modelGroups << FloorModelGroup.modelGroup
             ext.prebid.floors.data.modelGroups.first().values = [(rule): floorValue + 0.1]
             ext.prebid.floors.data.modelGroups[0].skipRate = 0
             ext.prebid.floors.data.skipRate = 0
@@ -1592,7 +1592,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def floorValue = PBSUtils.randomFloorValue
         def bidRequest = bidRequestWithFloors.tap {
             imp[0].bidFloor = floorValue
-            ext.prebid.floors.data.modelGroups << ModelGroup.modelGroup
+            ext.prebid.floors.data.modelGroups << FloorModelGroup.modelGroup
             ext.prebid.floors.data.modelGroups.first().values = [(rule): floorValue + 0.1]
             ext.prebid.floors.data.modelGroups[0].skipRate = 0
             ext.prebid.floors.data.skipRate = invalidSkipRate
@@ -1635,7 +1635,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def floorValue = PBSUtils.randomFloorValue
         def bidRequest = bidRequestWithFloors.tap {
             imp[0].bidFloor = floorValue
-            ext.prebid.floors.data.modelGroups << ModelGroup.modelGroup
+            ext.prebid.floors.data.modelGroups << FloorModelGroup.modelGroup
             ext.prebid.floors.data.modelGroups.first().values = [(rule): floorValue + 0.1]
             ext.prebid.floors.data.modelGroups[0].skipRate = invalidSkipRate
             ext.prebid.floors.data.skipRate = 0
@@ -1678,7 +1678,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def invalidDefaultFloorValue = DEFAULT_FLOOR_VALUE_MIN - 1
         def bidRequest = bidRequestWithFloors.tap {
             imp[0].bidFloor = floorValue
-            ext.prebid.floors.data.modelGroups << ModelGroup.modelGroup
+            ext.prebid.floors.data.modelGroups << FloorModelGroup.modelGroup
             ext.prebid.floors.data.modelGroups.first().values = [(rule): floorValue + 0.1]
             ext.prebid.floors.data.modelGroups[0].defaultFloor = invalidDefaultFloorValue
             ext.prebid.floors.data.modelGroups.last().values = [(rule): floorValue + 0.2]
@@ -1996,7 +1996,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         and: "Set Floors Provider response"
         def floorValue = PBSUtils.randomFloorValue
         def floorsResponse = PriceFloorData.priceFloorData.tap {
-            modelGroups << ModelGroup.modelGroup
+            modelGroups << FloorModelGroup.modelGroup
             modelGroups.first().values = [(rule): floorValue + 0.1]
             modelGroups.first().modelWeight = invalidModelWeight
             modelGroups.last().values = [(rule): floorValue]
@@ -2052,7 +2052,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         and: "Set Floors Provider response"
         def floorValue = PBSUtils.randomFloorValue
         def floorsResponse = PriceFloorData.priceFloorData.tap {
-            modelGroups << ModelGroup.modelGroup
+            modelGroups << FloorModelGroup.modelGroup
             modelGroups.first().values = [(rule): floorValue + 0.1]
             modelGroups[0].skipRate = 0
             skipRate = invalidSkipRate
@@ -2110,7 +2110,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         and: "Set Floors Provider response"
         def floorValue = PBSUtils.randomFloorValue
         def floorsResponse = PriceFloorData.priceFloorData.tap {
-            modelGroups << ModelGroup.modelGroup
+            modelGroups << FloorModelGroup.modelGroup
             modelGroups.first().values = [(rule): floorValue + 0.1]
             modelGroups[0].skipRate = invalidSkipRate
             skipRate = 0
@@ -2168,7 +2168,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def floorValue = PBSUtils.randomFloorValue
         def invalidDefaultFloor = DEFAULT_FLOOR_VALUE_MIN - 1
         def floorsResponse = PriceFloorData.priceFloorData.tap {
-            modelGroups << ModelGroup.modelGroup
+            modelGroups << FloorModelGroup.modelGroup
             modelGroups.first().values = [(rule): floorValue + 0.1]
             modelGroups[0].defaultFloor = invalidDefaultFloor
             modelGroups.last().values = [(rule): floorValue]

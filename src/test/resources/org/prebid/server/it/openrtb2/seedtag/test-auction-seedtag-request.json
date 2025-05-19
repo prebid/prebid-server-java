@@ -4,13 +4,12 @@
     {
       "id": "imp_id",
       "banner": {
-        "w": 320,
+        "w": 300,
         "h": 250
       },
       "ext": {
-        "thetradedesk": {
-          "publisherId": "publisherId",
-          "supplySourceId": "somesupplyid"
+        "seedtag": {
+          "adUnitId": "someAdUnitId"
         }
       }
     }

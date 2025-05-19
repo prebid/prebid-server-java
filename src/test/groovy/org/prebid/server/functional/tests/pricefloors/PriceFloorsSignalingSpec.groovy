@@ -2,7 +2,7 @@ package org.prebid.server.functional.tests.pricefloors
 
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.pricefloors.Country
-import org.prebid.server.functional.model.pricefloors.ModelGroup
+import org.prebid.server.functional.model.pricefloors.FloorModelGroup
 import org.prebid.server.functional.model.pricefloors.PriceFloorData
 import org.prebid.server.functional.model.pricefloors.PriceFloorSchema
 import org.prebid.server.functional.model.pricefloors.Rule
@@ -500,7 +500,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         and: "Set Floors Provider response"
         def floorValue = PBSUtils.randomFloorValue
         def floorsResponse = PriceFloorData.priceFloorData.tap {
-            modelGroups << ModelGroup.modelGroup
+            modelGroups << FloorModelGroup.modelGroup
             modelGroups.first().values = [(rule): floorValue + 0.1]
             modelGroups.last().schema = new PriceFloorSchema(fields: [SITE_DOMAIN])
             modelGroups.last().values = [(new Rule(siteDomain: domain).rule): floorValue]
