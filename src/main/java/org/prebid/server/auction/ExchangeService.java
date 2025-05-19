@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Content;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Dooh;
 import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Imp;
@@ -97,6 +98,7 @@ import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ListUtil;
 import org.prebid.server.util.PbsUtil;
 import org.prebid.server.util.StreamUtil;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -254,7 +256,7 @@ public class ExchangeService {
                                 .map(receivedContext::with))
 
                 .map(context -> updateRequestMetric(context, uidsCookie, aliases, account, requestTypeMetric))
-                .compose(context -> CompositeFuture.join(
+                .compose(context -> Future.join(
                                 context.getAuctionParticipations().stream()
                                         .map(auctionParticipation -> processAndRequestBids(
                                                 context,
@@ -262,7 +264,7 @@ public class ExchangeService {
                                                 timeout,
                                                 aliases)
                                                 .map(auctionParticipation::with))
-                                        .collect(Collectors.toCollection(ArrayList::new)))
+                                        .toList())
                         // send all the requests to the bidders and gathers results
                         .map(CompositeFuture::<AuctionParticipation>list)
                         .map(storedResponseProcessor::updateStoredBidResponse)
@@ -502,10 +504,10 @@ public class ExchangeService {
         final ExtRequestPrebid prebid = requestExt == null ? null : requestExt.getPrebid();
         final Map<String, ExtBidderConfigOrtb> biddersToConfigs = getBiddersToConfigs(prebid);
         final Map<String, List<String>> eidPermissions = getEidPermissions(prebid);
-        final Map<String, User> bidderToUser =
-                prepareUsers(bidders, context, aliases, biddersToConfigs, eidPermissions);
+        final Map<String, Pair<User, Device>> bidderToUserAndDevice =
+                prepareUsersAndDevices(bidders, context, aliases, biddersToConfigs, eidPermissions);
 
-        return privacyEnforcementService.mask(context, bidderToUser, aliases)
+        return privacyEnforcementService.mask(context, bidderToUserAndDevice, aliases)
                 .map(bidderToPrivacyResult -> getAuctionParticipation(
                         bidderToPrivacyResult,
                         bidRequest,
@@ -557,7 +559,7 @@ public class ExchangeService {
         return data == null ? null : data.getBidders();
     }
 
-    private Map<String, User> prepareUsers(List<String> bidders,
+    private Map<String, Pair<User, Device>> prepareUsersAndDevices(List<String> bidders,
                                            AuctionContext context,
                                            BidderAliases aliases,
                                            Map<String, ExtBidderConfigOrtb> biddersToConfigs,
@@ -566,7 +568,7 @@ public class ExchangeService {
         final BidRequest bidRequest = context.getBidRequest();
         final List<String> firstPartyDataBidders = firstPartyDataBidders(bidRequest.getExt());
 
-        final Map<String, User> bidderToUser = new HashMap<>();
+        final Map<String, Pair<User, Device>> bidderToUserAndDevice = new HashMap<>();
         for (String bidder : bidders) {
             final ExtBidderConfigOrtb fpdConfig = ObjectUtils.defaultIfNull(biddersToConfigs.get(bidder),
                     biddersToConfigs.get(ALL_BIDDERS_CONFIG));
@@ -574,9 +576,11 @@ public class ExchangeService {
                     .anyMatch(fpdBidder -> StringUtils.equalsIgnoreCase(fpdBidder, bidder));
             final User preparedUser = prepareUser(
                     bidder, context, aliases, useFirstPartyData, fpdConfig, eidPermissions);
-            bidderToUser.put(bidder, preparedUser);
+            final Device preparedDevice = prepareDevice(
+                    bidRequest.getDevice(), fpdConfig, useFirstPartyData);
+            bidderToUserAndDevice.put(bidder, Pair.of(preparedUser, preparedDevice));
         }
-        return bidderToUser;
+        return bidderToUserAndDevice;
     }
 
     private User prepareUser(String bidder,
@@ -813,7 +817,6 @@ public class ExchangeService {
         final boolean isApp = preparedApp != null;
         final boolean isDooh = !isApp && preparedDooh != null;
         final boolean isSite = !isApp && !isDooh && preparedSite != null;
-
         final List<Imp> preparedImps = prepareImps(
                 bidder,
                 bidRequest,
@@ -943,6 +946,13 @@ public class ExchangeService {
                 : app;
 
         return useFirstPartyData ? fpdResolver.resolveApp(maskedApp, fpdApp) : maskedApp;
+    }
+
+    private Device prepareDevice(Device device, ExtBidderConfigOrtb fpdConfig, boolean useFirstPartyData) {
+        if (fpdConfig == null) {
+            return device;
+        }
+        return useFirstPartyData ? fpdResolver.resolveDevice(device, fpdConfig.getDevice()) : device;
     }
 
     private static ExtApp maskExtApp(ExtApp appExt) {
@@ -1331,7 +1341,7 @@ public class ExchangeService {
                 if (isDebugEnabled) {
                     debugWarnings.add(
                             "Dropped bid '%s'. Does not contain a positive (or zero if there is a deal) 'price'"
-                            .formatted(bid.getId()));
+                                    .formatted(bid.getId()));
                 }
             } else {
                 validBids.add(bidderBid);

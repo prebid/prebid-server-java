@@ -36,8 +36,8 @@ public class Source {
     String pchain;
 
     /**
-     * This object represents both the links in the supply chain as
-     * well as an indicator whether or not the supply chain is complete.
+     * This object represents both the links in the supply chain and
+     * an indicator whether the supply chain is complete.
      * Details via the {@link SupplyChain} object (section 3.2.25)
      */
     SupplyChain schain;

@@ -5,11 +5,15 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.activity.infrastructure.creator.ActivityControllerCreationContext;
 import org.prebid.server.activity.infrastructure.creator.PrivacyModuleCreationContext;
 import org.prebid.server.activity.infrastructure.creator.privacy.PrivacyModuleCreator;
-import org.prebid.server.activity.infrastructure.privacy.SkippedPrivacyModule;
 import org.prebid.server.activity.infrastructure.privacy.PrivacyModule;
 import org.prebid.server.activity.infrastructure.privacy.PrivacyModuleQualifier;
+import org.prebid.server.activity.infrastructure.privacy.SkippedPrivacyModule;
 import org.prebid.server.activity.infrastructure.rule.AndRule;
 import org.prebid.server.activity.infrastructure.rule.Rule;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
+import org.prebid.server.metric.MetricName;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.model.activity.privacy.AccountPrivacyModuleConfig;
 import org.prebid.server.settings.model.activity.rule.AccountActivityPrivacyModulesRuleConfig;
 
@@ -23,15 +27,19 @@ import java.util.stream.Collectors;
 
 public class PrivacyModulesRuleCreator extends AbstractRuleCreator<AccountActivityPrivacyModulesRuleConfig> {
 
+    private static final Logger logger = LoggerFactory.getLogger(PrivacyModulesRuleCreator.class);
+
     private static final String WILDCARD = "*";
 
     private final Map<PrivacyModuleQualifier, PrivacyModuleCreator> privacyModulesCreators;
+    private final Metrics metrics;
 
-    public PrivacyModulesRuleCreator(List<PrivacyModuleCreator> privacyModulesCreators) {
+    public PrivacyModulesRuleCreator(List<PrivacyModuleCreator> privacyModulesCreators, Metrics metrics) {
         super(AccountActivityPrivacyModulesRuleConfig.class);
 
         this.privacyModulesCreators = Objects.requireNonNull(privacyModulesCreators).stream()
                 .collect(Collectors.toMap(PrivacyModuleCreator::qualifier, UnaryOperator.identity()));
+        this.metrics = Objects.requireNonNull(metrics);
     }
 
     @Override
@@ -44,8 +52,8 @@ public class PrivacyModulesRuleCreator extends AbstractRuleCreator<AccountActivi
                 .map(configuredModuleName -> mapToModulesQualifiers(configuredModuleName, creationContext))
                 .flatMap(Collection::stream)
                 .filter(qualifier -> !creationContext.isUsed(qualifier))
-                .peek(creationContext::use)
                 .map(qualifier -> createPrivacyModule(qualifier, creationContext))
+                .filter(Objects::nonNull)
                 .toList();
 
         return new AndRule(privacyModules);
@@ -84,11 +92,22 @@ public class PrivacyModulesRuleCreator extends AbstractRuleCreator<AccountActivi
                                               ActivityControllerCreationContext creationContext) {
 
         if (creationContext.getSkipPrivacyModules().contains(privacyModuleQualifier)) {
+            creationContext.use(privacyModuleQualifier);
             return new SkippedPrivacyModule(privacyModuleQualifier);
         }
 
-        return privacyModulesCreators.get(privacyModuleQualifier)
-                .from(creationContext(privacyModuleQualifier, creationContext));
+        try {
+            final PrivacyModule privacyModule = privacyModulesCreators.get(privacyModuleQualifier)
+                    .from(creationContext(privacyModuleQualifier, creationContext));
+            creationContext.use(privacyModuleQualifier);
+
+            return privacyModule;
+        } catch (Exception e) {
+            logger.error("PrivacyModule %s creation failed: %s.".formatted(privacyModuleQualifier, e.getMessage()));
+            metrics.updateAlertsMetrics(MetricName.general);
+
+            return null;
+        }
     }
 
     private static PrivacyModuleCreationContext creationContext(PrivacyModuleQualifier privacyModuleQualifier,

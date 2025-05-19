@@ -36,7 +36,6 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.http.HttpMethod;
-import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.assertj.core.groups.Tuple;
 import org.junit.jupiter.api.BeforeEach;
@@ -1168,7 +1167,8 @@ public class RubiconBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
 
-        final BidRequest capturedBidRequest = mapper.readValue(result.getValue().get(0).getBody(), BidRequest.class);
+        final BidRequest capturedBidRequest = mapper.readValue(
+                result.getValue().getFirst().getBody(), BidRequest.class);
         final JsonNode targetNode = capturedBidRequest.getSite().getExt().getProperty("rp").get("target");
 
         assertThat(targetNode.elements()).toIterable().hasSize(3);
@@ -1255,7 +1255,8 @@ public class RubiconBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
 
-        final BidRequest capturedBidRequest = mapper.readValue(result.getValue().get(0).getBody(), BidRequest.class);
+        final BidRequest capturedBidRequest = mapper.readValue(
+                result.getValue().getFirst().getBody(), BidRequest.class);
         final JsonNode targetNode = capturedBidRequest.getUser().getExt().getProperty("rp").get("target");
 
         assertThat(targetNode.elements()).toIterable().hasSize(6);
@@ -4044,8 +4045,7 @@ public class RubiconBidderTest extends VertxTest {
                 .put("pbs_url", EXTERNAL_URL);
     }
 
-    @AllArgsConstructor(staticName = "of")
-    @Value
+    @Value(staticConstructor = "of")
     private static class Inventory {
 
         List<String> rating;
@@ -4053,8 +4053,7 @@ public class RubiconBidderTest extends VertxTest {
         List<String> prodtype;
     }
 
-    @AllArgsConstructor(staticName = "of")
-    @Value
+    @Value(staticConstructor = "of")
     private static class Visitor {
 
         List<String> ucat;
