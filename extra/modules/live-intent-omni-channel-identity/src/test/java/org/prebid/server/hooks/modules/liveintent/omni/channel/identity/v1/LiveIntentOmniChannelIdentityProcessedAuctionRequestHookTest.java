@@ -28,6 +28,7 @@ import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -42,6 +43,11 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
     private LiveIntentOmniChannelIdentityProcessedAuctionRequestHook target;
     private JacksonMapper jacksonMapper;
 
+    @Mock
+    private HttpClient httpClient;
+    @Mock
+    private Random random;
+
     @BeforeEach
     public void setUp() {
         final ObjectMapper mapper = new ObjectMapper();
@@ -51,12 +57,11 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
         moduleConfig.setRequestTimeoutMs(5);
         moduleConfig.setIdentityResolutionEndpoint("https://test.com/idres");
         moduleConfig.setAuthToken("secret_auth_token");
+        moduleConfig.setTreatmentRate(0.9f);
 
-        target = new LiveIntentOmniChannelIdentityProcessedAuctionRequestHook(moduleConfig, jacksonMapper, httpClient);
+        target = new LiveIntentOmniChannelIdentityProcessedAuctionRequestHook(
+                moduleConfig, jacksonMapper, httpClient, random);
     }
-
-    @Mock
-    private HttpClient httpClient;
 
     @Test
     public void shouldAddResolvedEids() {
@@ -76,6 +81,9 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
                 null, null, false, null, null);
 
         final HttpClientResponse mockResponse = mock(HttpClientResponse.class);
+        // when
+        when(random.nextFloat()).thenReturn(0.89f);
+
         when(mockResponse.getBody())
                 .thenReturn("{\"eids\": [ { \"source\": \"" + enrichedEid.getSource()
                         + "\", \"uids\": [ { \"atype\": "
@@ -83,7 +91,6 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
                         + ", \"id\" : \""
                         + enrichedUid.getId() + "\" } ] } ] }");
 
-        // when
         when(
                 httpClient.post(
                         eq(moduleConfig.getIdentityResolutionEndpoint()),
@@ -113,6 +120,35 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
     }
 
     @Test
+    public void shouldNotAttemptToResolveEids() {
+        // given
+        final Uid providedUid = Uid.builder().id("id1").atype(2).build();
+        final Eid providedEid = Eid.builder().source("some.source.com")
+                .uids(Collections.singletonList(providedUid)).build();
+
+        final User user = User.builder().eids(Collections.singletonList(providedEid)).build();
+        final BidRequest bidRequest = BidRequest.builder().id("request").user(user).build();
+
+        final AuctionInvocationContext auctionInvocationContext = AuctionInvocationContextImpl.of(
+                null, null, false, null, null);
+
+        // when
+        when(random.nextFloat()).thenReturn(0.91f);
+
+        final Future<InvocationResult<AuctionRequestPayload>> future =
+                target.call(AuctionRequestPayloadImpl.of(bidRequest), auctionInvocationContext);
+        final InvocationResult<AuctionRequestPayload> result = future.result();
+
+        // then
+        assertThat(future).isNotNull();
+        assertThat(future.succeeded()).isTrue();
+        assertThat(result).isNotNull();
+        assertThat(result.status()).isEqualTo(InvocationStatus.success);
+        assertThat(result.action()).isEqualTo(InvocationAction.no_action);
+        assertThat(result.payloadUpdate()).isNull();
+    }
+
+    @Test
     public void shouldCreateUserWhenNotPresent() {
         // given
         final Uid enrichedUid = Uid.builder().id("id2").atype(3).build();
@@ -124,8 +160,11 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
         final AuctionInvocationContext auctionInvocationContext = AuctionInvocationContextImpl.of(
                 null, null, false, null, null);
 
-        // when
         final HttpClientResponse mockResponse = mock(HttpClientResponse.class);
+
+        // when
+        when(random.nextFloat()).thenReturn(0.89f);
+
         when(mockResponse.getBody())
                 .thenReturn("{\"eids\": [{ \"source\": \""
                         + enrichedEid.getSource()

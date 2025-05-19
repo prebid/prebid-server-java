@@ -2,7 +2,9 @@
 
 This module enriches bid requests with user EIDs.
 
-The user EIDs to be enriched are configured per partner as part of the LiveIntent HIRO onboarding process.
+The user EIDs to be enriched are configured per partner as part of the LiveIntent HIRO onboarding process. As part of this onboarding process, partners will also be provided with the `identity-resolution-endpoint` URL as well as with the `auth-token`.
+
+`treatment-rate` is a value between 0.0 and 1.0 (including 0.0 and 1.0) and defines the percentage of requests for which identity enrichment should be performed. This value can be freely picked. We recommend a value between 0.9 and 0.95
 
 ## Configuration
 
@@ -39,7 +41,6 @@ hooks:
       request-timeout-ms: 2000
       identity-resolution-endpoint: "https://liveintent.com/idx"
       auth-token: "secret-token"
+      treatment-rate: 0.9
 ```
-
-The partner-specific `auth-token` is provided by LiveIntent as part of the onboarding.
 

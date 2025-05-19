@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Random;
 
 public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements ProcessedAuctionRequestHook {
 
@@ -37,15 +38,26 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
     private final ModuleConfig config;
     private final JacksonMapper mapper;
     private final HttpClient httpClient;
+    private final Random random;
 
     public LiveIntentOmniChannelIdentityProcessedAuctionRequestHook(
             ModuleConfig config,
             JacksonMapper mapper,
             HttpClient httpClient) {
 
+        this(config, mapper, httpClient, new Random());
+    }
+
+    public LiveIntentOmniChannelIdentityProcessedAuctionRequestHook(
+            ModuleConfig config,
+            JacksonMapper mapper,
+            HttpClient httpClient,
+            Random random) {
+
         this.config = Objects.requireNonNull(config);
         this.mapper = Objects.requireNonNull(mapper);
         this.httpClient = Objects.requireNonNull(httpClient);
+        this.random = random;
     }
 
     @Override
@@ -53,16 +65,24 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
             AuctionRequestPayload auctionRequestPayload,
             AuctionInvocationContext invocationContext
     ) {
-        final Future<InvocationResult<AuctionRequestPayload>> update = requestEnrichment(auctionRequestPayload)
-                .map(resolutionResult ->
-                        InvocationResultImpl.<AuctionRequestPayload>builder()
-                                .status(InvocationStatus.success)
-                                .action(InvocationAction.update)
-                                .payloadUpdate(requestPayload -> updatedPayload(requestPayload, resolutionResult))
-                                .build()
-                );
+        if (random.nextFloat() < config.getTreatmentRate()) {
+            final Future<InvocationResult<AuctionRequestPayload>> update = requestEnrichment(auctionRequestPayload)
+                    .map(resolutionResult ->
+                            InvocationResultImpl.<AuctionRequestPayload>builder()
+                                    .status(InvocationStatus.success)
+                                    .action(InvocationAction.update)
+                                    .payloadUpdate(requestPayload -> updatedPayload(requestPayload, resolutionResult))
+                                    .build()
+                    );
 
-        return update.onFailure(throwable -> logger.error("Failed enrichment:", throwable));
+            return update.onFailure(throwable -> logger.error("Failed enrichment:", throwable));
+        } else {
+            return Future.succeededFuture(
+                    InvocationResultImpl.<AuctionRequestPayload>builder()
+                            .status(InvocationStatus.success)
+                            .action(InvocationAction.no_action)
+                            .build());
+        }
     }
 
     @Override
