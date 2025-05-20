@@ -49,7 +49,7 @@ import java.util.stream.Stream;
 
 public class OpenxBidder implements Bidder<BidRequest> {
 
-    private static final String OPENX_CONFIG =                                                                "hb_pbs_1.0.0";
+    private static final String OPENX_CONFIG = "hb_pbs_1.0.0";
     private static final String DEFAULT_BID_CURRENCY = "USD";
     private static final String CUSTOM_PARAMS_KEY = "customParams";
     private static final String BIDDER_EXT = "bidder";
@@ -72,8 +72,6 @@ public class OpenxBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         final Map<OpenxImpType, List<Imp>> differentiatedImps = bidRequest.getImp().stream()
                 .collect(Collectors.groupingBy(OpenxBidder::resolveImpType));
-
-
 
         final List<BidderError> processingErrors = new ArrayList<>();
         final List<BidRequest> outgoingRequests = makeRequests(
