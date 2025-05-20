@@ -1,13 +1,10 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
   "title": "Zeta Global SSP Adapter Params",
-  "description": "A schema which validates params accepted by the Zeta Global SSP adapter",
-
+  "description": "A schema which validates params accepted by the Zeta SSP adapter",
   "type": "object",
-  "properties": {
-    "sid": {
-      "type": "integer",
-      "description": "An ID which identifies the publisher"
-    }
-  }
+
+  "properties": {},
+
+  "required": []
 }
