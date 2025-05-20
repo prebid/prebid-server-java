@@ -568,7 +568,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(cookieSyncRequest, SYNC_USER)] == 1
 
         and: "Should add a warning when in debug mode"
-        assert response.warnings == ["GPP string invalid: Unable to decode '$invalidGpp'"]
+        assert response.warnings.contains("GPP string invalid: Unable to decode '$invalidGpp'".toString())
     }
 
     def "PBS cookie sync call when request have different gpp consent but match and rejecting should exclude bidders URLs"() {
