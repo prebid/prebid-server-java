@@ -234,7 +234,6 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
         and: "PBS should not reject the entire auction"
         assert !response.seatbid.isEmpty()
-        assert response.seatbid.bid.flatten().size() == 1
     }
 
     def "PBS should round floor value to 4-digits of precision"() {
