@@ -41,6 +41,27 @@ adapters:
             - video
           supported-vendors:
           vendor-id: 0
+      zeta_global_ssp:
+        enabled: false
+        endpoint: https://ssp.disqus.com/bid/prebid-server?sid=GET_SID_FROM_ZETA
+        endpoint-compression: gzip
+        meta-info:
+          maintainer-email: DL-Zeta-SSP@zetaglobal.com
+          app-media-types:
+            - banner
+            - video
+          site-media-types:
+            - banner
+            - video
+          supported-vendors:
+          vendor-id: 833
+        usersync:
+          enabled: true
+          cookie-family-name: zeta_global_ssp
+          redirect:
+            url: https://ssp.disqus.com/redirectuser?sid=GET_SID_FROM_ZETA&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&r={{redirect_url}}
+            uid-macro: 'BUYERUID'
+            support-cors: false
       blue:
         enabled: false
         endpoint: https://prebid-us-east-1.getblue.io/?src=prebid
