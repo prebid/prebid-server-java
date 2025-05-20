@@ -59,12 +59,12 @@ class AnalyticsTagsModuleSpec extends ModuleBaseSpec {
 
         and: "Analytics tag should contain results with name and success status"
         def analyticResult = analyticsTagPrebid.analyticsTags.activities.first
-        assert analyticResult.status == null
+        assert analyticResult.status == FetchStatus.SUCCESS
         assert analyticResult.name == ModuleActivityName.ORTB2_BLOCKING
 
         and: "Should include appliedTo information in analytics tags results"
         verifyAll(analyticResult.results.first) {
-            it.status == null
+            it.status == FetchStatus.SUCCESS_ALLOW
             it.appliedTo.bidders == [GENERIC.value]
             it.appliedTo.impIds == bidRequest.imp.id
         }

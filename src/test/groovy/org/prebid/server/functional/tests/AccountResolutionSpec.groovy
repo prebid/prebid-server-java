@@ -32,7 +32,7 @@ class AccountResolutionSpec extends BaseSpec {
 
         then: "Bidder request should contain publisher id from AMP tag id"
         def bidderRequest = bidder.getBidderRequest(storedRequest.id)
-        assert bidderRequest.site.publisher.id == null
+        assert bidderRequest.site.publisher.id == accountId as String
     }
 
     def "PBS should prefer account from publisher id during auction account resolution"() {
@@ -55,7 +55,7 @@ class AccountResolutionSpec extends BaseSpec {
 
         then: "Bidder request should contain publisher id from request publisher id"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.accountId == null
+        assert bidderRequest.accountId == accountId
 
         where:
         distributionChannel << [SITE, APP]
