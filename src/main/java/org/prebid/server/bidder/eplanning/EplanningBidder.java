@@ -8,11 +8,15 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.Source;
+import com.iab.openrtb.request.SupplyChain;
+import com.iab.openrtb.request.SupplyChainNode;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
@@ -29,6 +33,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.eplanning.ExtImpEplanning;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -45,6 +50,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -269,6 +275,12 @@ public class EplanningBidder implements Bidder<Void> {
             uriBuilder.addParameter("app", REQUEST_TARGET_INVENTORY);
         }
 
+        String schain = getSchainParameter(request.getSource());
+        if (schain != null) {
+            schain = schain.replace(" ", "%20");
+            uriBuilder.addParameter("sch", schain);
+        }
+
         return uriBuilder.toString();
     }
 
@@ -278,6 +290,53 @@ public class EplanningBidder implements Bidder<Void> {
         } catch (MalformedURLException e) {
             throw new PreBidException("Invalid url: " + url, e);
         }
+    }
+
+    private String getSchainParameter(Source source) {
+        return Optional.ofNullable(source)
+                .map(Source::getExt)
+                .map(ExtSource::getSchain)
+                .map(this::resolveSupplyChain)
+                .orElse(null);
+    }
+
+    private String resolveSupplyChain(SupplyChain schain) {
+        final List<SupplyChainNode> nodes = schain.getNodes();
+        if (CollectionUtils.isEmpty(nodes) || nodes.size() > 2) {
+            return null;
+        }
+
+        final StringBuilder schainBuilder = new StringBuilder();
+
+        schainBuilder.append(schain.getVer());
+        schainBuilder.append(",");
+        schainBuilder.append(ObjectUtils.defaultIfNull(schain.getComplete(), 0));
+        for (SupplyChainNode node : schain.getNodes()) {
+            schainBuilder.append("!");
+            schainBuilder.append(StringUtils.defaultString(node.getAsi()));
+            schainBuilder.append(",");
+
+            schainBuilder.append(StringUtils.defaultString(node.getSid()));
+            schainBuilder.append(",");
+
+            schainBuilder.append(node.getHp() != null ? node.getHp() : StringUtils.EMPTY);
+            schainBuilder.append(",");
+
+            schainBuilder.append(StringUtils.defaultString(node.getRid()));
+            schainBuilder.append(",");
+
+            schainBuilder.append(StringUtils.defaultString(node.getName()));
+            schainBuilder.append(",");
+
+            schainBuilder.append(StringUtils.defaultString(node.getDomain()));
+            schainBuilder.append(",");
+
+            schainBuilder.append(node.getExt() == null
+                    ? StringUtils.EMPTY
+                    : mapper.encodeToString(node.getExt()));
+        }
+
+        return schainBuilder.toString();
     }
 
     /**
