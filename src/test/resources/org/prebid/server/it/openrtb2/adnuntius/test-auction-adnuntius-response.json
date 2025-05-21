@@ -17,6 +17,7 @@
           "crid": "some_creative_id",
           "dealid": "some_deal_id",
           "w": 140,
+          "mtype": 1,
           "h": 90,
           "ext": {
             "prebid": {

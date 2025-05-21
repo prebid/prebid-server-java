@@ -5,7 +5,9 @@ adapters:
       maintainer-email: hello@adnuntius.com
       app-media-types:
         - banner
+        - native
       site-media-types:
         - banner
+        - native
       supported-vendors:
       vendor-id: 855

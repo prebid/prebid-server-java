@@ -8,7 +8,7 @@ import java.util.List;
 
 @Builder(toBuilder = true)
 @Value
-public class AdnuntiusAdUnit {
+public class AdnuntiusRequestAdUnit {
 
     @JsonProperty("auId")
     String auId;
@@ -20,4 +20,10 @@ public class AdnuntiusAdUnit {
 
     @JsonProperty("maxDeals")
     Integer maxDeals;
+
+    @JsonProperty("nativeRequest")
+    AdnuntiusNativeRequest nativeRequest;
+
+    @JsonProperty("adType")
+    String adType;
 }
