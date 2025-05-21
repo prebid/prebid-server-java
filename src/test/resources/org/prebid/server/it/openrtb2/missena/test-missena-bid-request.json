@@ -1,10 +1,15 @@
 {
-  "request_id": "request_id",
-  "timeout": 2000,
-  "referer": "http://www.example.com",
-  "referer_canonical": "www.example.com",
-  "consent_string": "",
-  "consent_required": false,
-  "placement": "placement",
-  "test": "test"
+  "adunit" : "imp_id",
+  "currency" : "USD",
+  "consent_required" : false,
+  "ik" : "request_id",
+  "referer" : "http://www.example.com",
+  "referer_canonical" : "www.example.com",
+  "request_id" : "request_id",
+  "timeout" : "${json-unit.any-number}",
+  "params" : {
+    "placement" : "placement",
+    "test" : "test"
+  },
+  "version" : "${json-unit.any-string}"
 }

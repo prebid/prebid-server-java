@@ -1,25 +1,59 @@
 package org.prebid.server.bidder.missena;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.iab.openrtb.request.Eid;
+import com.iab.openrtb.request.SupplyChain;
 import lombok.Builder;
 import lombok.Value;
 
-@Builder(toBuilder = true)
+import java.math.BigDecimal;
+import java.util.List;
+
 @Value
+@Builder(toBuilder = true)
 public class MissenaAdRequest {
 
-    String requestId;
+    @JsonProperty("adunit")
+    String adUnit;
 
-    int timeout;
+    @JsonProperty("buyeruid")
+    String buyerUid;
+
+    Integer coppa;
+
+    String currency;
+
+    @JsonProperty("userEids")
+    List<Eid> userEids;
+
+    BigDecimal floor;
+
+    String floorCurrency;
+
+    @JsonProperty("consent_required")
+    Boolean gdpr;
+
+    @JsonProperty("consent_string")
+    String gdprConsent;
+
+    @JsonProperty("ik")
+    String idempotencyKey;
 
     String referer;
 
     String refererCanonical;
 
-    String consentString;
+    String requestId;
 
-    boolean consentRequired;
+    SupplyChain schain;
 
-    String placement;
+    Long timeout;
 
-    String test;
+    String url;
+
+    MissenaUserParams params;
+
+    String usPrivacy;
+
+    String version;
 }
