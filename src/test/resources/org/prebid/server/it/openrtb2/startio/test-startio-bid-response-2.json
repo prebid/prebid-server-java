@@ -1,0 +1,35 @@
+{
+  "id": "12345",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "01b916af-70bd-4032-8fa3-b70ceea87150",
+          "impid": "impId002",
+          "price": 0.48378391855747593,
+          "adm": "<script type='text/javascript'>\nfunction addTrackingPixel() {\n\nvar placeholder = document.createElement('div');\nplaceholder.style = 'position: absolute; left: 0px; top: 0px; visibility: hidden;';\nplaceholder.id = 'ph0-e5f2c9f9-e0bd-45e7-9950-b92e613cb78e';\n\n\nvar pixel0 = document.createElement('img');\npixel0.src = 'https://tracking.example.com/tp=e5f2c9f9-e0bd-45e7-9950-b92e613cb78e';\npixel0.width = '0';\npixel0.height = '0';\nplaceholder.appendChild(pixel0);\n\n\ndocument.body.appendChild(placeholder);\n}\n\nvar placeholderPlaced = false;\n\nfunction isMraid() {\n    if (window.mraid) {\n        window.mraid.addEventListener('viewableChange', function(isVisible) {\n            if (isVisible && !beaconDropped) {\n                placeholderPlaced = true;\n                addTrackingPixel();\n            }\n        });\n        return true;\n    } else {\n        return false;\n    }\n}\n\nif (!isMraid()) {\n    setTimeout(function() {\n        if (!tryUseMraid()) {\n            addTrackingPixel();\n        }\n    }, 1000);\n}\n\n</script>\n",
+          "nurl": "https://adwin.startappservice.com/adwin/api/v1.0/adwin?d=dparam",
+          "lurl": "https://img.image.com/product/image.jpg",
+          "iurl": "https://adimpression.startappservice.com/adimpression/api/v1.0/adimp?d=dparam",
+          "adomain": [
+            "start.io"
+          ],
+          "cid": "608765636039546023",
+          "crid": "6487611316533858701",
+          "w": 480,
+          "h": 320,
+          "cat": [],
+          "ext": {
+            "prebid":{
+              "type": "banner"
+            }
+          }
+        }
+      ],
+      "seat": "start.io",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "bidid": "4d57a59e-3bf3-4792-9fda-95df536608a7"
+}
