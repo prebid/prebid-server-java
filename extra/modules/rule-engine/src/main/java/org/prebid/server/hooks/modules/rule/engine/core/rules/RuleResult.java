@@ -18,7 +18,7 @@ public class RuleResult<T> {
     public RuleResult<T> mergeWith(RuleResult<T> other) {
         final boolean updated = other.updateResult.isUpdated() || updateResult.isUpdated();
         final T value = other.updateResult.getValue();
-        final Tags tags = TagsImpl.of(ListUtil.union(other.analyticsTags.activities(), analyticsTags.activities()));
+        final Tags tags = TagsImpl.of(ListUtil.union(analyticsTags.activities(), other.analyticsTags.activities()));
 
         return RuleResult.of(UpdateResult.of(updated, value), tags);
     }
