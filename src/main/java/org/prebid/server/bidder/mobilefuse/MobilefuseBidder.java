@@ -45,14 +45,11 @@ public class MobilefuseBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final String endpoint = request.getImp().stream()
+        final boolean hasExt = request.getImp().stream()
                 .map(this::parseImpExt)
-                .filter(Objects::nonNull)
-                .findFirst()
-                .map(this::makeUrl)
-                .orElse(null);
+                .anyMatch(Objects::nonNull);
 
-        if (endpoint == null) {
+        if (!hasExt) {
             return Result.withError(BidderError.badInput("Invalid ExtImpMobilefuse value"));
         }
 
@@ -66,7 +63,7 @@ public class MobilefuseBidder implements Bidder<BidRequest> {
         }
 
         final BidRequest modifiedRequest = request.toBuilder().imp(modifiedImps).build();
-        return Result.withValue(BidderUtil.defaultRequest(modifiedRequest, endpoint, mapper));
+        return Result.withValue(BidderUtil.defaultRequest(modifiedRequest, endpointUrl, mapper));
     }
 
     private Imp modifyImp(Imp imp) {
@@ -96,11 +93,6 @@ public class MobilefuseBidder implements Bidder<BidRequest> {
         } catch (IllegalArgumentException e) {
             return null;
         }
-    }
-
-    private String makeUrl(ExtImpMobilefuse extImp) {
-        final String baseUrl = endpointUrl + Objects.toString(extImp.getPublisherId(), "0");
-        return "ext".equals(extImp.getTagidSrc()) ? baseUrl + "&tagid_src=ext" : baseUrl;
     }
 
     @Override
