@@ -25,17 +25,19 @@ public class RequestMatchingRule implements Rule<BidRequest> {
 
     private static final String NULL_MATCHER = "null";
 
-    private final Schema<RequestPayload> schema;
+    private final Schema<RequestContext> schema;
     private final Set<String> schemaFunctionNames;
     private final RuleTree<RuleConfig<BidRequest>> ruleTree;
 
     private final String modelVersion;
     private final String analyticsKey;
+    private final String datacenter;
 
-    public RequestMatchingRule(Schema<RequestPayload> schema,
+    public RequestMatchingRule(Schema<RequestContext> schema,
                                RuleTree<RuleConfig<BidRequest>> ruleTree,
                                String modelVersion,
-                               String analyticsKey) {
+                               String analyticsKey,
+                               String datacenter) {
 
         this.schema = Objects.requireNonNull(schema);
         this.schemaFunctionNames = schema.getFunctions().stream()
@@ -45,6 +47,7 @@ public class RequestMatchingRule implements Rule<BidRequest> {
         this.ruleTree = Objects.requireNonNull(ruleTree);
         this.modelVersion = StringUtils.defaultString(modelVersion);
         this.analyticsKey = StringUtils.defaultString(analyticsKey);
+        this.datacenter = StringUtils.defaultString(datacenter);
     }
 
     @Override
@@ -63,11 +66,12 @@ public class RequestMatchingRule implements Rule<BidRequest> {
     }
 
     private RuleResult<BidRequest> processRule(BidRequest bidRequest, String impId) {
-        final List<SchemaFunctionHolder<RequestPayload>> schemaFunctions = schema.getFunctions();
+        final RequestContext context = RequestContext.of(bidRequest, impId, datacenter);
 
+        final List<SchemaFunctionHolder<RequestContext>> schemaFunctions = schema.getFunctions();
         final List<String> matchers = schemaFunctions.stream()
                 .map(holder -> holder.getSchemaFunction().extract(
-                        SchemaFunctionArguments.of(RequestPayload.of(bidRequest, impId), holder.getArguments())))
+                        SchemaFunctionArguments.of(context, holder.getArguments())))
                 .map(matcher -> StringUtils.defaultIfEmpty(matcher, NULL_MATCHER))
                 .toList();
 

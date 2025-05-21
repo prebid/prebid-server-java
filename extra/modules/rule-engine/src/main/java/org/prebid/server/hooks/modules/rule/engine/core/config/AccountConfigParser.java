@@ -7,17 +7,17 @@ import com.iab.openrtb.request.BidRequest;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.hooks.modules.rule.engine.core.config.model.AccountConfig;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.PerStageRule;
-import org.prebid.server.hooks.modules.rule.engine.core.rules.request.RequestPayload;
+import org.prebid.server.hooks.modules.rule.engine.core.rules.request.RequestContext;
 
 import java.util.Objects;
 
 public class AccountConfigParser {
 
     private final ObjectMapper mapper;
-    private final StageConfigParser<RequestPayload, BidRequest> processedAuctionRequestStageParser;
+    private final StageConfigParser<RequestContext, BidRequest> processedAuctionRequestStageParser;
 
     public AccountConfigParser(ObjectMapper mapper,
-                               StageConfigParser<RequestPayload, BidRequest> processedAuctionRequestStageParser) {
+                               StageConfigParser<RequestContext, BidRequest> processedAuctionRequestStageParser) {
 
         this.mapper = Objects.requireNonNull(mapper);
         this.processedAuctionRequestStageParser = Objects.requireNonNull(processedAuctionRequestStageParser);

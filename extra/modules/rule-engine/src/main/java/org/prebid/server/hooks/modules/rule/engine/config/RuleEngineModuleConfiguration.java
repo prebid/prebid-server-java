@@ -6,8 +6,8 @@ import org.prebid.server.hooks.execution.model.Stage;
 import org.prebid.server.hooks.modules.rule.engine.core.cache.RuleRegistry;
 import org.prebid.server.hooks.modules.rule.engine.core.config.AccountConfigParser;
 import org.prebid.server.hooks.modules.rule.engine.core.config.StageConfigParser;
+import org.prebid.server.hooks.modules.rule.engine.core.rules.request.RequestContext;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.request.RequestMatchingRule;
-import org.prebid.server.hooks.modules.rule.engine.core.rules.request.RequestPayload;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.request.RequestSpecification;
 import org.prebid.server.hooks.modules.rule.engine.v1.RuleEngineModule;
 import org.prebid.server.json.ObjectMapperProvider;
@@ -28,17 +28,20 @@ public class RuleEngineModuleConfiguration {
     }
 
     @Bean
-    StageConfigParser<RequestPayload, BidRequest> processedAuctionRequestStageParser() {
+    StageConfigParser<RequestContext, BidRequest> processedAuctionRequestStageParser(
+            @Value("${datacenter-region:#{null}}") String datacenterRegion) {
+
         return new StageConfigParser<>(
                 () -> ThreadLocalRandom.current().nextLong(),
                 Stage.processed_auction_request,
                 RequestSpecification.INSTANCE,
-                RequestMatchingRule::new);
+                (schema, ruleTree, modelVersion, analyticsKey) ->
+                        new RequestMatchingRule(schema, ruleTree, modelVersion, analyticsKey, datacenterRegion));
     }
 
     @Bean
     AccountConfigParser accountConfigParser(
-            StageConfigParser<RequestPayload, BidRequest> processedAuctionRequestStageParser) {
+            StageConfigParser<RequestContext, BidRequest> processedAuctionRequestStageParser) {
 
         return new AccountConfigParser(ObjectMapperProvider.mapper(), processedAuctionRequestStageParser);
     }

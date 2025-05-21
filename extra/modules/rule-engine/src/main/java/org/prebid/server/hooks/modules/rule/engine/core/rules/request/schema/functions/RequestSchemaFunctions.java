@@ -1,0 +1,72 @@
+package org.prebid.server.hooks.modules.rule.engine.core.rules.request.schema.functions;
+
+import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Geo;
+import com.iab.openrtb.request.User;
+import lombok.experimental.UtilityClass;
+import org.apache.commons.lang3.ObjectUtils;
+import org.prebid.server.hooks.modules.rule.engine.core.rules.request.RequestContext;
+import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.AvailableFunction;
+import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.ExtractingFunction;
+import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.InFunction;
+import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunction;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Predicate;
+
+@UtilityClass
+public class RequestSchemaFunctions {
+
+    public static final String DEVICE_COUNTRY_FUNCTION_NAME = "deviceCountry";
+    public static final String DEVICE_COUNTRY_IN_FUNCTION_NAME = "deviceCountryIn";
+    public static final String DATACENTER_FUNCTION_NAME = "datacenter";
+    public static final String DATACENTER_IN_FUNCTION_NAME = "datacenterIn";
+    public static final String CHANNEL_FUNCTION_NAME = "channel";
+    public static final String EID_AVAILABLE_FUNCTION_NAME = "eidAvailable";
+
+    public static final SchemaFunction<RequestContext> DEVICE_COUNTRY_FUNCTION = ExtractingFunction.of(
+            RequestSchemaFunctions::extractDeviceCountry);
+    public static final SchemaFunction<RequestContext> DEVICE_COUNTRY_IN_FUNCTION = InFunction.of(
+            RequestSchemaFunctions::extractDeviceCountry);
+    public static final SchemaFunction<RequestContext> DATACENTER_FUNCTION = ExtractingFunction.of(
+            RequestSchemaFunctions::extractDataCenter);
+    public static final SchemaFunction<RequestContext> DATACENTER_IN_FUNCTION = InFunction.of(
+            RequestSchemaFunctions::extractDataCenter);
+    public static final SchemaFunction<RequestContext> CHANNEL_FUNCTION = ExtractingFunction.of(
+            RequestSchemaFunctions::extractChannel);
+    public static final SchemaFunction<RequestContext> EID_AVAILABLE_FUNCTION = AvailableFunction.of(
+            RequestSchemaFunctions::isEidAvailable);
+
+    private static String extractDeviceCountry(RequestContext context) {
+        return Optional.ofNullable(context.getBidRequest().getDevice())
+                .map(Device::getGeo)
+                .map(Geo::getCountry)
+                .orElse(SchemaFunction.NULL_RESULT);
+    }
+
+    private static String extractDataCenter(RequestContext context) {
+        return ObjectUtils.defaultIfNull(context.getDatacenter(), SchemaFunction.NULL_RESULT);
+    }
+
+    private static String extractChannel(RequestContext context) {
+        return Optional.of(context.getBidRequest())
+                .map(BidRequest::getExt)
+                .map(ExtRequest::getPrebid)
+                .map(ExtRequestPrebid::getChannel)
+                .map(ExtRequestPrebidChannel::getName)
+                .orElse(SchemaFunction.NULL_RESULT);
+    }
+
+    private static boolean isEidAvailable(RequestContext context) {
+        return Optional.of(context.getBidRequest())
+                .map(BidRequest::getUser)
+                .map(User::getEids)
+                .filter(Predicate.not(List::isEmpty))
+                .isPresent();
+    }
+}

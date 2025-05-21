@@ -4,9 +4,11 @@ import com.iab.openrtb.request.BidRequest;
 import lombok.Value;
 
 @Value(staticConstructor = "of")
-public class RequestPayload {
+public class RequestContext {
 
     BidRequest bidRequest;
 
     String impId;
+
+    String datacenter;
 }

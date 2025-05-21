@@ -6,7 +6,10 @@ import java.util.List;
 
 public interface SchemaFunction<T> {
 
+    String NULL_RESULT = "null";
+
     String extract(SchemaFunctionArguments<T> arguments);
 
-    void validateConfigArguments(List<JsonNode> configArguments);
+    default void validateConfigArguments(List<JsonNode> configArguments) {
+    }
 }
