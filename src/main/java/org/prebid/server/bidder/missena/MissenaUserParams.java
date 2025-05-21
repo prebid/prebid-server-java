@@ -1,18 +1,15 @@
-package org.prebid.server.proto.openrtb.ext.request.missena;
+package org.prebid.server.bidder.missena;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.ObjectNode; // Changed import
 import lombok.Builder;
 import lombok.Value;
 
 import java.util.List;
 
+@Builder
 @Value
-@Builder(toBuilder = true)
-public class ExtImpMissena {
-
-    @JsonProperty("apiKey")
-    String apiKey;
+public class MissenaUserParams {
 
     List<String> formats;
 
@@ -22,4 +19,6 @@ public class ExtImpMissena {
     String testMode;
 
     ObjectNode settings;
+
 }
+
