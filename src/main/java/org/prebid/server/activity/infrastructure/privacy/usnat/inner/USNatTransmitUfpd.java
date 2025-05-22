@@ -30,9 +30,10 @@ import java.util.Set;
 
 public class USNatTransmitUfpd implements PrivacyModule, Loggable {
 
-    private static final Set<Integer> SENSITIVE_DATA_INDICES_SET_1 = Set.of(0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11);
-    private static final Set<Integer> SENSITIVE_DATA_INDICES_SET_2 = Set.of(0, 1, 2, 3, 4, 10);
-    private static final Set<Integer> SENSITIVE_DATA_INDICES_SET_3 = Set.of(5, 6, 8, 9, 11);
+    private static final Set<Integer> SENSITIVE_DATA_INDICES_SET_1 = Set.of(
+            0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15);
+    private static final Set<Integer> SENSITIVE_DATA_INDICES_SET_2 = Set.of(0, 1, 2, 3, 4, 10, 12, 14);
+    private static final Set<Integer> SENSITIVE_DATA_INDICES_SET_3 = Set.of(5, 6, 8, 9, 11, 13, 15);
 
     private final USNatGppReader gppReader;
     private final Result result;
@@ -125,6 +126,7 @@ public class USNatTransmitUfpd implements PrivacyModule, Loggable {
 
         return equalsAtIndex(KnownChildSensitiveDataConsent.NO_CONSENT, knownChildSensitiveDataConsents, 0)
                 || equalsAtIndex(KnownChildSensitiveDataConsent.NO_CONSENT, knownChildSensitiveDataConsents, 1)
+                || equalsAtIndex(KnownChildSensitiveDataConsent.NO_CONSENT, knownChildSensitiveDataConsents, 2)
                 || equalsAtIndex(KnownChildSensitiveDataConsent.CONSENT, knownChildSensitiveDataConsents, 1);
     }
 
