@@ -1595,8 +1595,10 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final Integer networkId = resolveNetworkId(seatBid);
         final String seat = seatBid.getSeat();
         final String rendererUrl = resolveRendererUrl(imp, meta, bidType, hasApexRenderer);
+        final List<String> advertiserDomains = bid.getAdomain();
+        final Integer advertiserId = resolveAdvertiserId(bidExt);
 
-        if (ObjectUtils.allNull(networkId, rendererUrl, seat)) {
+        if (ObjectUtils.allNull(networkId, rendererUrl, seat, advertiserDomains, advertiserId)) {
             return bidExt;
         }
 
@@ -1606,6 +1608,8 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .networkId(networkId)
                 .seat(seat)
                 .rendererUrl(rendererUrl)
+                .advertiserId(advertiserId)
+                .advertiserDomains(advertiserDomains)
                 .build();
 
         final ExtBidPrebid modifiedExtBidPrebid = extBidPrebid != null
@@ -1650,6 +1654,31 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .map(ExtBidPrebidMeta::getMediaType)
                 .map("video"::equalsIgnoreCase)
                 .orElse(false);
+    }
+
+    private static Integer resolveAdvertiserId(ObjectNode bidExt) {
+        return Optional.ofNullable(bidExt)
+                .map(ext -> ext.get("rp"))
+                .filter(JsonNode::isObject)
+                .map(rp -> rp.get("advid"))
+                .map(RubiconBidder::convertToInt)
+                .orElse(null);
+    }
+
+    private static Integer convertToInt(JsonNode jsonNode) {
+        if (jsonNode.canConvertToInt()) {
+            return jsonNode.asInt();
+        }
+
+        if (jsonNode.isTextual()) {
+            try {
+                return Integer.parseInt(jsonNode.asText());
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+
+        return null;
     }
 
     private String resolveBidId(Imp rubiconImp, RubiconBid bid) {
