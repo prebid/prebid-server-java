@@ -113,7 +113,7 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
     }
 
     static String getRule() {
-        new Rule(mediaType: MediaType.MULTIPLE, country: Country.BULGARIA).rule
+        new Rule(mediaType: MediaType.MULTIPLE, country: Country.MULTIPLE).rule
     }
 
     static int getModelWeight() {
