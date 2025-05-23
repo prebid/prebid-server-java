@@ -394,7 +394,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
 
         and: "Alerts.general metrics should be populated"
         def metrics = privacyPbsService.sendCollectedMetricsRequest()
-        assert metrics["alerts.general"] == 1
+        assert metrics[ALERT_GENERAL] == 1
 
         and: "Bidder should be called"
         assert bidder.getBidderRequest(ampStoredRequest.id)
