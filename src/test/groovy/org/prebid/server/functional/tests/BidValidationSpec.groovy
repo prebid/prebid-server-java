@@ -63,7 +63,7 @@ class BidValidationSpec extends BaseSpec {
 
         and: "Bid validation metric value is incremented"
         def metrics = strictPrebidService.sendCollectedMetricsRequest()
-        assert metrics["alerts.general"] == 1
+        assert metrics[ALERT_GENERAL] == 1
 
         where:
         bidRequest << [BidRequest.getDefaultBidRequest(DistributionChannel.APP).tap {
@@ -105,7 +105,7 @@ class BidValidationSpec extends BaseSpec {
 
         and: "Bid validation metric value is incremented"
         def metrics = softPrebidService.sendCollectedMetricsRequest()
-        assert metrics["alerts.general"] == 1
+        assert metrics[ALERT_GENERAL] == 1
 
         and: "PBS log should contain message"
         def logs = softPrebidService.getLogsByTime(startTime)

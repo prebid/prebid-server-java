@@ -11,6 +11,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.auction.aliases.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderPrivacyResult;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.List;
 import java.util.Map;
@@ -55,10 +56,13 @@ public class PrivacyEnforcementServiceTest {
                 .build();
 
         final User user = User.builder().id("originalUser").build();
-        final Map<String, User> bidderToUser = singletonMap("bidder", user);
+        final Device device = Device.builder().build();
+        final Pair<User, Device> userAndDevice = Pair.of(user, device);
+        final Map<String, Pair<User, Device>> bidderToUserAndDevice = singletonMap("bidder", userAndDevice);
 
         // when
-        final Future<List<BidderPrivacyResult>> result = target.mask(auctionContext, bidderToUser, bidderAliases);
+        final Future<List<BidderPrivacyResult>> result = target.mask(
+                auctionContext, bidderToUserAndDevice, bidderAliases);
 
         // then
         assertThat(result)
