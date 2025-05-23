@@ -1,15 +1,14 @@
-package org.prebid.server.proto.openrtb.ext.request;
+package org.prebid.server.bidadjustments.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Value;
-import org.prebid.server.bidadjustments.model.BidAdjustmentType;
 
 import java.math.BigDecimal;
 
 @Builder(toBuilder = true)
 @Value
-public class ExtRequestBidAdjustmentsRule {
+public class BidAdjustmentsRule {
 
     @JsonProperty("adjtype")
     BidAdjustmentType adjType;

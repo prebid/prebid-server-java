@@ -1,7 +1,9 @@
 package org.prebid.server.spring.config;
 
 import io.vertx.core.Vertx;
-import org.prebid.server.auction.adjustment.FloorAdjustmentFactorResolver;
+import org.prebid.server.bidadjustments.BidAdjustmentsRulesResolver;
+import org.prebid.server.bidadjustments.FloorAdjustmentFactorResolver;
+import org.prebid.server.bidadjustments.FloorAdjustmentsResolver;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.floors.BasicPriceFloorAdjuster;
@@ -53,10 +55,8 @@ public class PriceFloorsConfiguration {
 
     @Bean
     @ConditionalOnProperty(prefix = "price-floors", name = "enabled", havingValue = "true")
-    PriceFloorEnforcer basicPriceFloorEnforcer(CurrencyConversionService currencyConversionService,
-                                               PriceFloorAdjuster priceFloorAdjuster,
-                                               Metrics metrics) {
-        return new BasicPriceFloorEnforcer(currencyConversionService, priceFloorAdjuster, metrics);
+    PriceFloorEnforcer basicPriceFloorEnforcer(CurrencyConversionService currencyConversionService, Metrics metrics) {
+        return new BasicPriceFloorEnforcer(currencyConversionService, metrics);
     }
 
     @Bean
@@ -106,8 +106,18 @@ public class PriceFloorsConfiguration {
 
     @Bean
     @ConditionalOnProperty(prefix = "price-floors", name = "enabled", havingValue = "true")
-    BasicPriceFloorAdjuster basicPriceFloorAdjuster(FloorAdjustmentFactorResolver floorAdjustmentFactorResolver) {
-        return new BasicPriceFloorAdjuster(floorAdjustmentFactorResolver);
+    FloorAdjustmentsResolver floorAdjustmentsResolver(BidAdjustmentsRulesResolver bidAdjustmentsRulesResolver,
+                                                      CurrencyConversionService currencyService) {
+
+        return new FloorAdjustmentsResolver(bidAdjustmentsRulesResolver, currencyService);
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "price-floors", name = "enabled", havingValue = "true")
+    BasicPriceFloorAdjuster basicPriceFloorAdjuster(FloorAdjustmentFactorResolver floorAdjustmentFactorResolver,
+                                                    FloorAdjustmentsResolver floorAdjustmentsResolver) {
+
+        return new BasicPriceFloorAdjuster(floorAdjustmentFactorResolver, floorAdjustmentsResolver);
     }
 
     @Bean

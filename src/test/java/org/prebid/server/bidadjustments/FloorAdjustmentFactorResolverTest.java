@@ -1,4 +1,4 @@
-package org.prebid.server.auction.adjustment;
+package org.prebid.server.bidadjustments;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
