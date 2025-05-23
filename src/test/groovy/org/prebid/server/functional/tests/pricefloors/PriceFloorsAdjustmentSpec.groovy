@@ -1,6 +1,6 @@
 package org.prebid.server.functional.tests.pricefloors
 
-
+import org.prebid.server.functional.model.bidder.Openx
 import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.db.Account
@@ -8,7 +8,7 @@ import org.prebid.server.functional.model.pricefloors.PriceFloorField
 import org.prebid.server.functional.model.pricefloors.Rule
 import org.prebid.server.functional.model.request.auction.AdjustmentRule
 import org.prebid.server.functional.model.request.auction.AdjustmentType
-import org.prebid.server.functional.model.request.auction.Audio
+import org.prebid.server.functional.model.request.auction.Banner
 import org.prebid.server.functional.model.request.auction.BidAdjustment
 import org.prebid.server.functional.model.request.auction.BidAdjustmentFactors
 import org.prebid.server.functional.model.request.auction.BidAdjustmentRule
@@ -16,9 +16,13 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.DistributionChannel
 import org.prebid.server.functional.model.request.auction.ExtPrebidFloors
 import org.prebid.server.functional.model.request.auction.Imp
+import org.prebid.server.functional.model.request.auction.MultiBid
 import org.prebid.server.functional.model.request.auction.Native
 import org.prebid.server.functional.model.request.auction.VideoPlacementSubtypes
 import org.prebid.server.functional.model.request.auction.VideoPlcmtSubtype
+import org.prebid.server.functional.model.response.auction.Bid
+import org.prebid.server.functional.model.response.auction.BidExt
+import org.prebid.server.functional.model.response.auction.BidMediaType
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.MediaType
 import org.prebid.server.functional.service.PrebidServerService
@@ -30,13 +34,14 @@ import static org.prebid.server.functional.model.Currency.EUR
 import static org.prebid.server.functional.model.Currency.GBP
 import static org.prebid.server.functional.model.Currency.USD
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.request.auction.AdjustmentType.CPM
 import static org.prebid.server.functional.model.request.auction.AdjustmentType.MULTIPLIER
 import static org.prebid.server.functional.model.request.auction.AdjustmentType.STATIC
 import static org.prebid.server.functional.model.request.auction.BidAdjustmentMediaType.ANY
 import static org.prebid.server.functional.model.request.auction.BidAdjustmentMediaType.AUDIO
-import static org.prebid.server.functional.model.request.auction.BidAdjustmentMediaType.NATIVE
 import static org.prebid.server.functional.model.request.auction.BidAdjustmentMediaType.BANNER
+import static org.prebid.server.functional.model.request.auction.BidAdjustmentMediaType.NATIVE
 import static org.prebid.server.functional.model.request.auction.BidAdjustmentMediaType.UNKNOWN
 import static org.prebid.server.functional.model.request.auction.BidAdjustmentMediaType.VIDEO_IN_STREAM
 import static org.prebid.server.functional.model.request.auction.BidAdjustmentMediaType.VIDEO_OUT_STREAM
@@ -44,6 +49,7 @@ import static org.prebid.server.functional.model.request.auction.DistributionCha
 import static org.prebid.server.functional.model.request.auction.VideoPlacementSubtypes.IN_STREAM as IN_PLACEMENT_STREAM
 import static org.prebid.server.functional.model.request.auction.VideoPlcmtSubtype.IN_STREAM as IN_PLCMT_STREAM
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
+import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 
 class PriceFloorsAdjustmentSpec extends PriceFloorsBaseSpec {
 
@@ -58,6 +64,8 @@ class PriceFloorsAdjustmentSpec extends PriceFloorsBaseSpec {
     private static final Map config = CURRENCY_CONVERTER_CONFIG +
             FLOORS_CONFIG +
             GENERIC_ALIAS_CONFIG +
+            ["adapters.openx.enabled" : "true",
+             "adapters.openx.endpoint": "$networkServiceContainer.rootUri/auction".toString()] +
             ["adapter-defaults.ortb.multiformat-supported": "true"]
     private static final PrebidServerService pbsService = pbsServiceFactory.getService(config)
 
@@ -84,7 +92,7 @@ class PriceFloorsAdjustmentSpec extends PriceFloorsBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
-        def response = floorsPbsService.sendAuctionRequest(bidRequest)
+        def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Final bid price should be adjusted"
         assert response.seatbid.first.bid.first.price == getAdjustedPrice(originalPrice, ruleValue as BigDecimal, adjustmentType)
@@ -155,7 +163,7 @@ class PriceFloorsAdjustmentSpec extends PriceFloorsBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
-        def response = floorsPbsService.sendAuctionRequest(bidRequest)
+        def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Final bid price should be adjusted"
         assert response.seatbid.first.bid.first.price == getAdjustedPrice(originalPrice, ruleValue as BigDecimal, adjustmentType)
@@ -234,7 +242,7 @@ class PriceFloorsAdjustmentSpec extends PriceFloorsBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
-        def response = floorsPbsService.sendAuctionRequest(bidRequest)
+        def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Final bid price should be adjusted for big with dealId"
         assert response.seatbid.first.bid.findAll() { it.impid == bidRequest.imp.first.id }.price == [getAdjustedPrice(originalPrice, ruleValue as BigDecimal, adjustmentType)]
@@ -289,7 +297,7 @@ class PriceFloorsAdjustmentSpec extends PriceFloorsBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
-        def response = floorsPbsService.sendAuctionRequest(bidRequest)
+        def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Final bid price should be adjusted for big with dealId"
         assert response.seatbid.first.bid.findAll() { it.dealid == dealId }.price == [getAdjustedPrice(originalPrice, ruleValue as BigDecimal, adjustmentType)]
@@ -368,7 +376,7 @@ class PriceFloorsAdjustmentSpec extends PriceFloorsBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction request"
-        def response = floorsPbsService.sendAuctionRequest(bidRequest)
+        def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Final bid price should be adjusted"
         assert response.seatbid.first.bid.first.price == getAdjustedPrice(originalPrice, ruleValue as BigDecimal, adjustmentType)
@@ -448,7 +456,7 @@ class PriceFloorsAdjustmentSpec extends PriceFloorsBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
-        def response = floorsPbsService.sendAuctionRequest(bidRequest)
+        def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Final bid price should be adjusted according to request config"
         assert response.seatbid.first.bid.first.price == getAdjustedPrice(originalPrice, ruleValue as BigDecimal, adjustmentType)
@@ -524,7 +532,7 @@ class PriceFloorsAdjustmentSpec extends PriceFloorsBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
-        def response = floorsPbsService.sendAuctionRequest(bidRequest)
+        def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Final bid price should be adjusted according to exact rule"
         assert response.seatbid.first.bid.first.price == getAdjustedPrice(originalPrice, exactRulePrice, STATIC)
@@ -565,7 +573,7 @@ class PriceFloorsAdjustmentSpec extends PriceFloorsBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
-        def response = floorsPbsService.sendAuctionRequest(bidRequest)
+        def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Final bid price should be adjusted"
         def rawAdjustedBidPrice = getAdjustedPrice(originalPrice, firstRule.value as BigDecimal, firstRule.adjustmentType)
@@ -601,30 +609,38 @@ class PriceFloorsAdjustmentSpec extends PriceFloorsBaseSpec {
         given: "Default BidRequest with ext.prebid.bidAdjustments"
         def impPrice = PBSUtils.getRandomPrice(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)
         def currency = USD
-        def exactRule = new BidAdjustmentRule(generic: [(WILDCARD): [new AdjustmentRule(adjustmentType: MULTIPLIER, value: firstRulePrice, currency: currency)]])
-        def generalRule = new BidAdjustmentRule(generic: [(WILDCARD): [new AdjustmentRule(adjustmentType: MULTIPLIER, value: secondRulePrice, currency: currency)]])
-        def bidRequest = getBidRequestWithFloors(MediaType.BANNER).tap {
+        def firstRule = new BidAdjustmentRule(openx: [(WILDCARD): [new AdjustmentRule(adjustmentType: MULTIPLIER, value: firstRulePrice, currency: currency)]])
+        def secondRule = new BidAdjustmentRule(openx: [(WILDCARD): [new AdjustmentRule(adjustmentType: MULTIPLIER, value: secondRulePrice, currency: currency)]])
+        def bidRequest = getDefaultVideoRequestWithPlacement(IN_PLACEMENT_STREAM).tap {
             cur = [currency]
+            imp[0].ext.prebid.bidder.openx = Openx.defaultOpenx
+            imp[0].ext.prebid.bidder.generic = null
             imp.first.bidFloor = impPrice
             imp.first.bidFloorCur = currency
-            imp.first.audio = Audio.defaultAudio
+            imp.first.banner = Banner.getDefaultBanner()
             imp.first.nativeObj = Native.getDefaultNative()
-            ext.prebid.bidAdjustments = new BidAdjustment(mediaType: [(BANNER): exactRule, (additionalType): generalRule])
+            ext.prebid.bidAdjustments = new BidAdjustment(mediaType: [(primaryType): firstRule, (BANNER): secondRule])
+            ext.prebid.multibid = [new MultiBid(bidder: OPENX, maxBids: 3)]
         }
 
         and: "Default bid response"
         def originalPrice = PBSUtils.getRandomPrice(MAX_CPM_ADJUST_VALUE)
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
             cur = currency
-            seatbid.first.bid.first.price = originalPrice
+            seatbid.first.bid = Bid.getDefaultMultyTypesBids(bidRequest.imp.first) {
+                price = originalPrice
+                ext = new BidExt()
+            }
+
         }
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
-        def response = floorsPbsService.sendAuctionRequest(bidRequest)
+        def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Final bid price should be adjusted according to first matched rule"
-        assert response.seatbid.first.bid.first.price == getAdjustedPrice(originalPrice, firstRulePrice, MULTIPLIER)
+        getMediaTypedBids(response, BidMediaType.from(primaryType)).price == [getAdjustedPrice(originalPrice, firstRulePrice, MULTIPLIER)]
+        getMediaTypedBids(response, BidMediaType.BANNER).price == [getAdjustedPrice(originalPrice, secondRulePrice, MULTIPLIER)]
         assert response.cur == bidResponse.cur
 
         and: "Original bid price and currency should be presented in bid.ext"
@@ -639,16 +655,12 @@ class PriceFloorsAdjustmentSpec extends PriceFloorsBaseSpec {
         assert bidderRequest.imp.bidFloor == [getReverseAdjustedPrice(impPrice, [firstRulePrice, secondRulePrice].max(), MULTIPLIER)]
 
         where:
-        additionalType | firstRulePrice                                                  | secondRulePrice
-        BANNER         | PBSUtils.getRandomPrice(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE) | PBSUtils.getRandomPrice(MAX_CPM_ADJUST_VALUE)
-        AUDIO          | PBSUtils.getRandomPrice(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE) | PBSUtils.getRandomPrice(MAX_CPM_ADJUST_VALUE)
-        NATIVE         | PBSUtils.getRandomPrice(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE) | PBSUtils.getRandomPrice(MAX_CPM_ADJUST_VALUE)
-        ANY            | PBSUtils.getRandomPrice(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE) | PBSUtils.getRandomPrice(MAX_CPM_ADJUST_VALUE)
+        primaryType     | firstRulePrice                                                  | secondRulePrice
+        VIDEO_IN_STREAM | PBSUtils.getRandomPrice(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE) | PBSUtils.getRandomPrice(MAX_CPM_ADJUST_VALUE)
+        NATIVE          | PBSUtils.getRandomPrice(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE) | PBSUtils.getRandomPrice(MAX_CPM_ADJUST_VALUE)
 
-        BANNER         | PBSUtils.getRandomPrice(MAX_CPM_ADJUST_VALUE)                   | PBSUtils.getRandomPrice(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)
-        AUDIO          | PBSUtils.getRandomPrice(MAX_CPM_ADJUST_VALUE)                   | PBSUtils.getRandomPrice(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)
-        NATIVE         | PBSUtils.getRandomPrice(MAX_CPM_ADJUST_VALUE)                   | PBSUtils.getRandomPrice(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)
-        ANY            | PBSUtils.getRandomPrice(MAX_CPM_ADJUST_VALUE)                   | PBSUtils.getRandomPrice(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)
+        VIDEO_IN_STREAM | PBSUtils.getRandomPrice(MAX_CPM_ADJUST_VALUE)                   | PBSUtils.getRandomPrice(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)
+        NATIVE          | PBSUtils.getRandomPrice(MAX_CPM_ADJUST_VALUE)                   | PBSUtils.getRandomPrice(MIN_ADJUST_VALUE, MAX_CPM_ADJUST_VALUE)
     }
 
     def "PBS should convert CPM currency before adjustment when it different from original response currency"() {
@@ -764,7 +776,7 @@ class PriceFloorsAdjustmentSpec extends PriceFloorsBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
-        def response = floorsPbsService.sendAuctionRequest(bidRequest)
+        def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Final bid price should be adjusted"
         def bidAdjustedPrice = originalPrice * bidAdjustmentFactorsPrice
@@ -813,7 +825,7 @@ class PriceFloorsAdjustmentSpec extends PriceFloorsBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
-        def response = floorsPbsService.sendAuctionRequest(bidRequest)
+        def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS should ignore bidAdjustments for this request"
         assert response.seatbid.first.bid.first.price == originalPrice
@@ -832,7 +844,7 @@ class PriceFloorsAdjustmentSpec extends PriceFloorsBaseSpec {
         }
 
         and: "PBS log should contain error"
-        def logs = floorsPbsService.getLogsByTime(startTime)
+        def logs = pbsService.getLogsByTime(startTime)
         assert getLogsByText(logs, errorMessage)
 
         and: "Bidder request should contain original imp.floors"
@@ -917,7 +929,7 @@ class PriceFloorsAdjustmentSpec extends PriceFloorsBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
-        def response = floorsPbsService.sendAuctionRequest(bidRequest)
+        def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS should ignore bidAdjustments for this request"
         assert response.seatbid.first.bid.first.price == originalPrice
@@ -966,7 +978,7 @@ class PriceFloorsAdjustmentSpec extends PriceFloorsBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
-        def response = floorsPbsService.sendAuctionRequest(bidRequest)
+        def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS should ignore bidAdjustments for this request"
         assert response.seatbid.first.bid.first.price == originalPrice
@@ -985,7 +997,7 @@ class PriceFloorsAdjustmentSpec extends PriceFloorsBaseSpec {
         }
 
         and: "PBS log should contain error"
-        def logs = floorsPbsService.getLogsByTime(startTime)
+        def logs = pbsService.getLogsByTime(startTime)
         assert getLogsByText(logs, errorMessage)
 
         and: "Bidder request should contain original imp.floors"
@@ -1019,7 +1031,7 @@ class PriceFloorsAdjustmentSpec extends PriceFloorsBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
-        def response = floorsPbsService.sendAuctionRequest(bidRequest)
+        def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS should ignore bidAdjustments for this request"
         assert response.seatbid.first.bid.first.price == originalPrice
@@ -1068,7 +1080,7 @@ class PriceFloorsAdjustmentSpec extends PriceFloorsBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
-        def response = floorsPbsService.sendAuctionRequest(bidRequest)
+        def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS should ignore bidAdjustments for this request"
         assert response.seatbid.first.bid.first.price == originalPrice
@@ -1087,7 +1099,7 @@ class PriceFloorsAdjustmentSpec extends PriceFloorsBaseSpec {
         }
 
         and: "PBS log should contain error"
-        def logs = floorsPbsService.getLogsByTime(startTime)
+        def logs = pbsService.getLogsByTime(startTime)
         assert getLogsByText(logs, errorMessage)
 
         and: "Bidder request should contain currency from request"
@@ -1119,7 +1131,7 @@ class PriceFloorsAdjustmentSpec extends PriceFloorsBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
-        def response = floorsPbsService.sendAuctionRequest(bidRequest)
+        def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Final bid price should be adjusted"
         assert response.seatbid.first.bid.first.price == getAdjustedPrice(originalPrice, adjustmentPrice, MULTIPLIER)
