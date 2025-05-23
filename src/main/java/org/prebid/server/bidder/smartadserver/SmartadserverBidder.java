@@ -134,15 +134,12 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
     }
 
     private static BidType getBidTypeFromMarkupType(Integer markupType) {
-        if (markupType == null) {
-            return BidType.banner;
-        }
         return switch (markupType) {
             case 1 -> BidType.banner;
             case 2 -> BidType.video;
             case 3 -> BidType.audio;
             case 4 -> BidType.xNative;
-            default -> BidType.banner;
+            case null, default -> BidType.banner;
         };
     }
 }
