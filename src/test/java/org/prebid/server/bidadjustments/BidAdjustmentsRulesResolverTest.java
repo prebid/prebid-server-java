@@ -58,6 +58,7 @@ public class BidAdjustmentsRulesResolverTest extends VertxTest {
         final List<BidAdjustmentsRule> actual = target.resolve(
                 givenBidRequest(givenAdjustments),
                 ImpMediaType.banner,
+                "seat",
                 "bidderName",
                 "dealId");
 
@@ -101,6 +102,7 @@ public class BidAdjustmentsRulesResolverTest extends VertxTest {
         final List<BidAdjustmentsRule> actual = target.resolve(
                 givenBidRequest(givenAdjustments),
                 ImpMediaType.video_outstream,
+                "seat",
                 "bidderName",
                 "dealId");
 
@@ -140,6 +142,7 @@ public class BidAdjustmentsRulesResolverTest extends VertxTest {
         final List<BidAdjustmentsRule> actual = target.resolve(
                 givenBidRequest(givenAdjustments),
                 ImpMediaType.banner,
+                "seat",
                 "bidderName",
                 "dealId");
 
@@ -189,6 +192,7 @@ public class BidAdjustmentsRulesResolverTest extends VertxTest {
         final List<BidAdjustmentsRule> actual = target.resolve(
                 givenBidRequest(givenAdjustments),
                 ImpMediaType.banner,
+                "seat",
                 "anotherBidderName",
                 "dealId");
 
@@ -238,6 +242,7 @@ public class BidAdjustmentsRulesResolverTest extends VertxTest {
         final List<BidAdjustmentsRule> actual = target.resolve(
                 givenBidRequest(givenAdjustments),
                 ImpMediaType.banner,
+                "seat",
                 "bidderName",
                 "dealId");
 
@@ -285,6 +290,7 @@ public class BidAdjustmentsRulesResolverTest extends VertxTest {
         final List<BidAdjustmentsRule> actual = target.resolve(
                 givenBidRequest(givenAdjustments),
                 ImpMediaType.banner,
+                "seat",
                 "bidderName",
                 "anotherDealId");
 
@@ -334,6 +340,7 @@ public class BidAdjustmentsRulesResolverTest extends VertxTest {
         final List<BidAdjustmentsRule> actual = target.resolve(
                 givenBidRequest(givenAdjustments),
                 ImpMediaType.banner,
+                "seat",
                 "bidderName",
                 null);
 
@@ -366,11 +373,293 @@ public class BidAdjustmentsRulesResolverTest extends VertxTest {
         final List<BidAdjustmentsRule> actual = target.resolve(
                 givenBidRequest(givenAdjustments),
                 ImpMediaType.banner,
+                "seat",
                 "bidderName",
                 null);
 
         // then
         assertThat(actual).isEmpty();
+    }
+
+    @Test
+    public void resolveShouldPickAndApplyRulesBySpecificSeat() throws JsonProcessingException {
+        // given
+        final String givenAdjustments = """
+                {
+                  "mediatype": {
+                    "*": {
+                      "seat": {
+                        "*": [
+                          {
+                            "adjtype": "multiplier",
+                            "value": "15"
+                          }
+                        ]
+                      },
+                      "*": {
+                        "*": [
+                          {
+                            "adjtype": "multiplier",
+                            "value": "25"
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+                """;
+
+        // when
+        final List<BidAdjustmentsRule> actual = target.resolve(
+                givenBidRequest(givenAdjustments),
+                ImpMediaType.banner,
+                "seat",
+                "bidderName",
+                null);
+
+        // then
+        assertThat(actual).containsExactly(expectedMultiplier("15"));
+    }
+
+    @Test
+    public void resolveShouldPickAndApplyRulesByWildcardSeat() throws JsonProcessingException {
+        // given
+        final String givenAdjustments = """
+                {
+                  "mediatype": {
+                    "*": {
+                      "seat": {
+                        "*": [
+                          {
+                            "adjtype": "static",
+                            "value": "15",
+                            "currency": "EUR"
+                          },
+                          {
+                            "adjtype": "multiplier",
+                            "value": "15"
+                          }
+                        ]
+                      },
+                      "*": {
+                        "*": [
+                          {
+                            "adjtype": "static",
+                            "value": "25",
+                            "currency": "UAH"
+                          },
+                          {
+                            "adjtype": "multiplier",
+                            "value": "25"
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+                """;
+
+        // when
+        final List<BidAdjustmentsRule> actual = target.resolve(
+                givenBidRequest(givenAdjustments),
+                ImpMediaType.banner,
+                "anotherBidderName",
+                "anotherSeat",
+                "dealId");
+
+        // then
+        assertThat(actual).containsExactly(expectedStatic("25", "UAH"), expectedMultiplier("25"));
+    }
+
+    @Test
+    public void resolveShouldPickAndApplyRulesBySpecificBidderOverAbsentSeat() throws JsonProcessingException {
+        // given
+        final String givenAdjustments = """
+                {
+                  "mediatype": {
+                    "*": {
+                      "bidderName": {
+                        "*": [
+                          {
+                            "adjtype": "multiplier",
+                            "value": "15"
+                          }
+                        ]
+                      },
+                      "*": {
+                        "*": [
+                          {
+                            "adjtype": "multiplier",
+                            "value": "25"
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+                """;
+
+        // when
+        final List<BidAdjustmentsRule> actual = target.resolve(
+                givenBidRequest(givenAdjustments),
+                ImpMediaType.banner,
+                "bidderName",
+                "seat",
+                "dealId");
+
+        // then
+        assertThat(actual).containsExactly(expectedMultiplier("15"));
+    }
+
+    @Test
+    public void resolveShouldPickAndApplyRulesBySpecificBidderCaseInsensitive() throws JsonProcessingException {
+        // given
+        final String givenAdjustments = """
+                {
+                  "mediatype": {
+                    "*": {
+                      "BIDDERname": {
+                        "*": [
+                          {
+                            "adjtype": "multiplier",
+                            "value": "15"
+                          }
+                        ]
+                      },
+                      "*": {
+                        "*": [
+                          {
+                            "adjtype": "multiplier",
+                            "value": "25"
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+                """;
+
+        // when
+        final List<BidAdjustmentsRule> actual = target.resolve(
+                givenBidRequest(givenAdjustments),
+                ImpMediaType.banner,
+                "bidderName",
+                "seat",
+                "dealId");
+
+        // then
+        assertThat(actual).containsExactly(expectedMultiplier("15"));
+    }
+
+    @Test
+    public void resolveShouldPickAndApplyRulesBySpecificSeatOverSpecificBidder() throws JsonProcessingException {
+        // given
+        final String givenAdjustments = """
+                {
+                  "mediatype": {
+                    "*": {
+                      "bidderName": {
+                        "*": [
+                          {
+                            "adjtype": "static",
+                            "value": "15",
+                            "currency": "EUR"
+                          },
+                          {
+                            "adjtype": "multiplier",
+                            "value": "15"
+                          }
+                        ]
+                      },
+                      "seat": {
+                        "*": [
+                          {
+                            "adjtype": "static",
+                            "value": "25",
+                            "currency": "UAH"
+                          },
+                          {
+                            "adjtype": "multiplier",
+                            "value": "25"
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+                """;
+
+        // when
+        final List<BidAdjustmentsRule> actual = target.resolve(
+                givenBidRequest(givenAdjustments),
+                ImpMediaType.banner,
+                "seat",
+                "bidderName",
+                "dealId");
+
+        // then
+        assertThat(actual).containsExactly(expectedStatic("25", "UAH"), expectedMultiplier("25"));
+    }
+
+    @Test
+    public void resolveShouldPickAndApplyMoreSpecificRuleOverLessSpecific() throws JsonProcessingException {
+        // given
+        final String givenAdjustments = """
+                {
+                  "mediatype": {
+                    "banner": {
+                      "bidderName": {
+                        "*": [
+                          {
+                            "adjtype": "static",
+                            "value": "15",
+                            "currency": "EUR"
+                          },
+                          {
+                            "adjtype": "multiplier",
+                            "value": "15"
+                          }
+                        ],
+                        "dealId": [
+                          {
+                            "adjtype": "static",
+                            "value": "25",
+                            "currency": "EUR"
+                          },
+                          {
+                            "adjtype": "multiplier",
+                            "value": "25"
+                          }
+                        ]
+                      },
+                      "seat": {
+                        "*": [
+                          {
+                            "adjtype": "static",
+                            "value": "35",
+                            "currency": "UAH"
+                          },
+                          {
+                            "adjtype": "multiplier",
+                            "value": "35"
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+                """;
+
+        // when
+        final List<BidAdjustmentsRule> actual = target.resolve(
+                givenBidRequest(givenAdjustments),
+                ImpMediaType.banner,
+                "bidderName",
+                "seat",
+                "dealId");
+
+        // then
+        assertThat(actual).containsExactly(expectedStatic("25", "EUR"), expectedMultiplier("25"));
     }
 
     private static BidRequest givenBidRequest(String adjustmentsString) throws JsonProcessingException {

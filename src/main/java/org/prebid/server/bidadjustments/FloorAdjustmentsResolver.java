@@ -56,8 +56,7 @@ public class FloorAdjustmentsResolver {
                          String targetBidder) {
 
         final List<BidAdjustmentsRule> rules = bidAdjustmentsRulesResolver.resolve(
-                bidRequest, targetMediaType, targetBidder, null);
-
+                bidRequest, targetMediaType, targetBidder);
         return reversePrice(initialBidFloorPrice, rules, bidRequest);
     }
 

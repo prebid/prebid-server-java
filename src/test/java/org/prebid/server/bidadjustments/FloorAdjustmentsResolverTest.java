@@ -15,10 +15,10 @@ import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
+import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -80,10 +80,8 @@ public class FloorAdjustmentsResolverTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(USD);
         final Set<ImpMediaType> mediaTypes = Set.of(banner, video_outstream);
 
-        given(bidAdjustmentsRulesResolver.resolve(bidRequest, banner, BIDDER_NAME, null))
-                .willReturn(Collections.emptyList());
-        given(bidAdjustmentsRulesResolver.resolve(bidRequest, video_outstream, BIDDER_NAME, null))
-                .willReturn(Collections.emptyList());
+        given(bidAdjustmentsRulesResolver.resolve(bidRequest, banner, BIDDER_NAME)).willReturn(emptyList());
+        given(bidAdjustmentsRulesResolver.resolve(bidRequest, video_outstream, BIDDER_NAME)).willReturn(emptyList());
 
         // when
         final Price actual = target.resolve(initialPrice, bidRequest, mediaTypes, BIDDER_NAME);
@@ -103,7 +101,7 @@ public class FloorAdjustmentsResolverTest extends VertxTest {
 
         final BidAdjustmentsRule multiplierRule = givenMultiplier("2");
 
-        given(bidAdjustmentsRulesResolver.resolve(bidRequest, banner, BIDDER_NAME, null))
+        given(bidAdjustmentsRulesResolver.resolve(bidRequest, banner, BIDDER_NAME))
                 .willReturn(singletonList(multiplierRule));
 
         // when
@@ -125,8 +123,7 @@ public class FloorAdjustmentsResolverTest extends VertxTest {
 
         final BidAdjustmentsRule cpmRule = givenCpm("5", EUR);
 
-        given(bidAdjustmentsRulesResolver.resolve(bidRequest, banner, BIDDER_NAME, null))
-                .willReturn(singletonList(cpmRule));
+        given(bidAdjustmentsRulesResolver.resolve(bidRequest, banner, BIDDER_NAME)).willReturn(singletonList(cpmRule));
 
         // when
         final Price actual = target.resolve(initialPrice, bidRequest, mediaTypes, BIDDER_NAME);
@@ -149,7 +146,7 @@ public class FloorAdjustmentsResolverTest extends VertxTest {
 
         final BidAdjustmentsRule staticRule = givenStatic("5", USD);
 
-        given(bidAdjustmentsRulesResolver.resolve(bidRequest, banner, BIDDER_NAME, null))
+        given(bidAdjustmentsRulesResolver.resolve(bidRequest, banner, BIDDER_NAME))
                 .willReturn(singletonList(staticRule));
 
         // when and then
@@ -170,8 +167,7 @@ public class FloorAdjustmentsResolverTest extends VertxTest {
         final BidAdjustmentsRule rule1 = givenMultiplier("2");
         final BidAdjustmentsRule rule2 = givenCpm("5", EUR);
 
-        given(bidAdjustmentsRulesResolver.resolve(bidRequest, banner, BIDDER_NAME, null))
-                .willReturn(List.of(rule1, rule2));
+        given(bidAdjustmentsRulesResolver.resolve(bidRequest, banner, BIDDER_NAME)).willReturn(List.of(rule1, rule2));
 
         // when
         final Price actual = target.resolve(initialPrice, bidRequest, mediaTypes, BIDDER_NAME);
@@ -192,11 +188,11 @@ public class FloorAdjustmentsResolverTest extends VertxTest {
         final Set<ImpMediaType> mediaTypes = Set.of(banner, video_outstream);
 
         final BidAdjustmentsRule bannerRule = givenMultiplier("4");
-        given(bidAdjustmentsRulesResolver.resolve(bidRequest, banner, BIDDER_NAME, null))
+        given(bidAdjustmentsRulesResolver.resolve(bidRequest, banner, BIDDER_NAME))
                 .willReturn(singletonList(bannerRule));
 
         final BidAdjustmentsRule videoRule = givenCpm("500", UAH);
-        given(bidAdjustmentsRulesResolver.resolve(bidRequest, video_outstream, BIDDER_NAME, null))
+        given(bidAdjustmentsRulesResolver.resolve(bidRequest, video_outstream, BIDDER_NAME))
                 .willReturn(singletonList(videoRule));
 
         // when
