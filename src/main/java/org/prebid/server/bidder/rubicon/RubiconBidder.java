@@ -132,7 +132,7 @@ import java.util.stream.StreamSupport;
 public class RubiconBidder implements Bidder<BidRequest> {
 
     private static final Logger logger = LoggerFactory.getLogger(RubiconBidder.class);
-    private static final ConditionalLogger MISSING_VIDEO_SIZE_LOGGER =
+    private static final ConditionalLogger missingVideoSizeLogger =
             new ConditionalLogger("missing_video_size", logger);
 
     private static final String TK_XINT_QUERY_PARAMETER = "tk_xint";
@@ -165,7 +165,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final String SEGTAX = "segtax";
 
     private static final Set<Integer> USER_SEGTAXES = Set.of(4);
-    private static final Set<Integer> SITE_SEGTAXES = Set.of(1, 2, 5, 6);
+    private static final Set<Integer> SITE_SEGTAXES = Set.of(1, 2, 5, 6, 7);
 
     private static final Set<String> STYPE_TO_REMOVE = new HashSet<>(Arrays.asList(PPUID_STYPE, SHA256EMAIL_STYPE,
             DMP_STYPE));
@@ -1004,7 +1004,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static void validateVideoSizeId(Integer resolvedSizeId, String referer, String impId) {
         // log only 1% of cases to monitor how often video impressions does not have size id
         if (resolvedSizeId == null) {
-            MISSING_VIDEO_SIZE_LOGGER.warn(
+            missingVideoSizeLogger.warn(
                     "RP adapter: video request with no size_id. Referrer URL = %s, impId = %s"
                             .formatted(referer, impId),
                     0.01d);

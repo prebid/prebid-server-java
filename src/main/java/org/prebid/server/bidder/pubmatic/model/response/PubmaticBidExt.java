@@ -2,11 +2,9 @@ package org.prebid.server.bidder.pubmatic.model.response;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
 import lombok.Value;
 
-@Value
-@AllArgsConstructor(staticName = "of")
+@Value(staticConstructor = "of")
 public class PubmaticBidExt {
 
     @JsonProperty("BidType")
@@ -17,4 +15,6 @@ public class PubmaticBidExt {
 
     @JsonProperty("prebiddealpriority")
     Integer prebidDealPriority;
+
+    String marketplace;
 }

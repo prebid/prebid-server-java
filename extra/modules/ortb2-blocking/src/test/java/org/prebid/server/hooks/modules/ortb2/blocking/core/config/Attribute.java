@@ -35,46 +35,46 @@ public class Attribute<T> {
         properties.computeIfAbsent("allowed-" + field + "-for-deals", key -> allowedForDeals);
 
         properties.computeIfAbsent("action-overrides", key -> actionOverrides != null
-            ? actionOverrides.toBuilder()
-            .field(field)
-            .build()
-            : null);
+                ? actionOverrides.toBuilder()
+                .field(field)
+                .build()
+                : null);
 
         return properties;
     }
 
     public static AttributeBuilder<String> badvBuilder() {
         return Attribute.<String>builder()
-            .field("adomain");
+                .field("adomain");
     }
 
     public static AttributeBuilder<String> bcatBuilder() {
         return Attribute.<String>builder()
-            .field("adv-cat");
+                .field("adv-cat");
     }
 
     public static AttributeBuilder<String> bappBuilder() {
         return Attribute.<String>builder()
-            .field("app");
+                .field("app");
     }
 
     public static AttributeBuilder<Integer> btypeBuilder() {
         return Attribute.<Integer>builder()
-            .field("banner-type");
+                .field("banner-type");
     }
 
     public static AttributeBuilder<Integer> bannerBattrBuilder() {
         return Attribute.<Integer>builder()
-            .field("banner-attr");
+                .field("banner-attr");
     }
 
     public static AttributeBuilder<Integer> videoBattrBuilder() {
         return Attribute.<Integer>builder()
-            .field("video-attr");
+                .field("video-attr");
     }
 
     public static AttributeBuilder<Integer> audioBattrBuilder() {
         return Attribute.<Integer>builder()
-            .field("audio-attr");
+                .field("audio-attr");
     }
 }

@@ -47,7 +47,7 @@ public class HttpInteractionLogger {
             logger.info(
                     "Requested URL: \"{}\", request body: \"{}\", response status: \"{}\", response body: \"{}\"",
                     routingContext.request().uri(),
-                    toOneLineString(routingContext.getBodyAsString()),
+                    toOneLineString(routingContext.body().asString()),
                     statusCode,
                     responseBody);
 

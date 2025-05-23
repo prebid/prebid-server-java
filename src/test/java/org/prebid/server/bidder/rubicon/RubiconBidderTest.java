@@ -36,7 +36,6 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.http.HttpMethod;
-import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.assertj.core.groups.Tuple;
 import org.junit.jupiter.api.BeforeEach;
@@ -1155,7 +1154,7 @@ public class RubiconBidderTest extends VertxTest {
                                         givenDataWithSegments(3, "thirdSegmentId_", 3),
                                         givenDataWithSegments(4, "fourthSegmentId_", 2),
                                         givenDataWithSegments(5, "fifthSegmentId_", 1),
-                                        givenDataWithSegments(6, "sixthSegmentId_", 100),
+                                        givenDataWithSegments(6, "sixthSegmentId_", 7),
                                         givenDataWithSegments(7, "seventhSegmentId_", 100)))
                                 .build())
                         .build()),
@@ -1168,7 +1167,8 @@ public class RubiconBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
 
-        final BidRequest capturedBidRequest = mapper.readValue(result.getValue().get(0).getBody(), BidRequest.class);
+        final BidRequest capturedBidRequest = mapper.readValue(
+                result.getValue().getFirst().getBody(), BidRequest.class);
         final JsonNode targetNode = capturedBidRequest.getSite().getExt().getProperty("rp").get("target");
 
         assertThat(targetNode.elements()).toIterable().hasSize(3);
@@ -1177,7 +1177,8 @@ public class RubiconBidderTest extends VertxTest {
                         IntStream.range(1, 6).mapToObj(i -> "firstSegmentId_" + i),
                         IntStream.range(1, 5).mapToObj(i -> "secondSegmentId_" + i),
                         IntStream.range(1, 2).mapToObj(i -> "fifthSegmentId_" + i),
-                        IntStream.range(1, 86).mapToObj(i -> "sixthSegmentId_" + i))
+                        IntStream.range(1, 8).mapToObj(i -> "sixthSegmentId_" + i),
+                        IntStream.range(1, 79).mapToObj(i -> "seventhSegmentId_" + i))
                 .toList();
 
         assertThat(targetNode.get("iab").elements()).toIterable().hasSize(95)
@@ -1254,7 +1255,8 @@ public class RubiconBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
 
-        final BidRequest capturedBidRequest = mapper.readValue(result.getValue().get(0).getBody(), BidRequest.class);
+        final BidRequest capturedBidRequest = mapper.readValue(
+                result.getValue().getFirst().getBody(), BidRequest.class);
         final JsonNode targetNode = capturedBidRequest.getUser().getExt().getProperty("rp").get("target");
 
         assertThat(targetNode.elements()).toIterable().hasSize(6);
@@ -4043,8 +4045,7 @@ public class RubiconBidderTest extends VertxTest {
                 .put("pbs_url", EXTERNAL_URL);
     }
 
-    @AllArgsConstructor(staticName = "of")
-    @Value
+    @Value(staticConstructor = "of")
     private static class Inventory {
 
         List<String> rating;
@@ -4052,8 +4053,7 @@ public class RubiconBidderTest extends VertxTest {
         List<String> prodtype;
     }
 
-    @AllArgsConstructor(staticName = "of")
-    @Value
+    @Value(staticConstructor = "of")
     private static class Visitor {
 
         List<String> ucat;

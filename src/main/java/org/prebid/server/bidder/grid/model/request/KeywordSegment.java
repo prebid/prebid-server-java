@@ -9,4 +9,3 @@ public class KeywordSegment {
 
     String value;
 }
-

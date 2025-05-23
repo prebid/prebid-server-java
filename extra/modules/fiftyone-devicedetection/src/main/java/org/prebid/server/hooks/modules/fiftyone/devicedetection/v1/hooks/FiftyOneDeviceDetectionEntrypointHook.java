@@ -1,17 +1,18 @@
 package org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks;
 
+import io.vertx.core.Future;
+import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.boundary.CollectedEvidence;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.model.ModuleContext;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationContext;
 import org.prebid.server.hooks.v1.InvocationResult;
-import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.v1.InvocationStatus;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointHook;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointPayload;
-import io.vertx.core.Future;
 
 public class FiftyOneDeviceDetectionEntrypointHook implements EntrypointHook {
+
     private static final String CODE = "fiftyone-devicedetection-entrypoint-hook";
 
     @Override
