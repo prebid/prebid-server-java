@@ -95,7 +95,8 @@ abstract class PrivacyBaseSpec extends BaseSpec {
     private static final Map<String, String> GDPR_EEA_COUNTRY = ["gdpr.eea-countries": "$BULGARIA.ISOAlpha2, SK, VK" as String]
 
     protected static final String VENDOR_LIST_PATH = "/app/prebid-server/data/vendorlist-v{VendorVersion}/{VendorVersion}.json"
-    protected static final String INVALID_GPP_STRING = "DBABLA~BVQqAAAAAg.YA" // TODO replace BVQqAAAAAg with ${PBSUtils.getRandomString(7)} when proper fix is ready
+    protected static final String INVALID_GPP_SEGMENT = PBSUtils.getRandomString(7)
+    protected static final String INVALID_GPP_STRING = "DBABLA~${INVALID_GPP_SEGMENT}.YA"
     protected static final String VALID_VALUE_FOR_GPC_HEADER = "1"
     protected static final GppConsent SIMPLE_GPC_DISALLOW_LOGIC = new UsNatV1Consent.Builder().setGpc(true).build()
     protected static final VendorList vendorListResponse = new VendorList(networkServiceContainer)

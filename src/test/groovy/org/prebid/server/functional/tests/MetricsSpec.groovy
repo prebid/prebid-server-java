@@ -151,7 +151,7 @@ class MetricsSpec extends BaseSpec {
         assert metrics["adapter.generic.requests.type.openrtb2-dooh" as String] == 1
 
         and: "alert.general metric should be updated"
-        assert metrics["alerts.general" as String] == 1
+        assert metrics[ALERT_GENERAL] == 1
 
         and: "Other channel types should not be populated"
         assert !metrics["account.${accountId}.requests.type.openrtb2-web" as String]
@@ -180,7 +180,7 @@ class MetricsSpec extends BaseSpec {
         assert metrics["adapter.generic.requests.type.openrtb2-app" as String] == 1
 
         and: "alert.general metric should be updated"
-        assert metrics["alerts.general" as String] == 1
+        assert metrics[ALERT_GENERAL] == 1
 
         and: "Other channel types should not be populated"
         assert !metrics["account.${accountId}.requests.type.openrtb2-dooh" as String]
