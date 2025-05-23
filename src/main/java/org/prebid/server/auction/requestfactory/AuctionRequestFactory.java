@@ -157,7 +157,7 @@ public class AuctionRequestFactory {
     }
 
     private String extractAndValidateBody(RoutingContext routingContext) {
-        final String body = routingContext.getBodyAsString();
+        final String body = routingContext.body().asString();
         if (body == null) {
             throw new InvalidRequestException("Incoming request has no body");
         }
@@ -242,7 +242,7 @@ public class AuctionRequestFactory {
         return storedRequestProcessor.processAuctionRequest(account.getId(), auctionContext.getBidRequest())
                 .compose(auctionStoredResult -> updateBidRequest(auctionStoredResult, auctionContext))
                 .compose(bidRequest -> ortb2RequestFactory.validateRequest(
-                        bidRequest, httpRequest, auctionContext.getDebugContext(), debugWarnings))
+                        account, bidRequest, httpRequest, auctionContext.getDebugContext(), debugWarnings))
                 .map(interstitialProcessor::process);
     }
 

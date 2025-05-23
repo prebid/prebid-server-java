@@ -27,8 +27,7 @@ public class AdmaticTest extends IntegrationTest {
         // when
         final Response response = responseFor(
                 "openrtb2/admatic/test-auction-admatic-request.json",
-                Endpoint.openrtb2_auction
-        );
+                Endpoint.openrtb2_auction);
 
         // then
         assertJsonEquals("openrtb2/admatic/test-auction-admatic-response.json", response, List.of("admatic"));

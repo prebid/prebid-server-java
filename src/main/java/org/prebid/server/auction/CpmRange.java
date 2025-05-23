@@ -29,7 +29,7 @@ public class CpmRange {
     }
 
     /**
-     * Formats {@link BigDecimal} value with a given precision and return it's string representation.
+     * Formats {@link BigDecimal} value with a given precision and return its string representation.
      */
     public static String format(BigDecimal value, Integer precision) {
         return numberFormat(ObjectUtils.defaultIfNull(precision, DEFAULT_PRECISION)).format(value);

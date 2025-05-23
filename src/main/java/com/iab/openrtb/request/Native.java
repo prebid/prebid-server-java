@@ -34,7 +34,7 @@ public class Native {
     /**
      * Request payload complying with the Native Ad Specification. The root node
      * of the payload, “native”, was dropped in the Native Ad Specification 1.1.
-     * <p/> For Native 1.0, this is a JSON-encoded string consisting of a unnamed
+     * <p/> For Native 1.0, this is a JSON-encoded string consisting of an unnamed
      * root object with a single subordinate object named 'native', which is the
      * Native Markup Request object, section 4.1 of OpenRTB Native 1.0 specification.
      * <p/> For Native 1.1 and higher, this is a JSON-encoded string consisting of

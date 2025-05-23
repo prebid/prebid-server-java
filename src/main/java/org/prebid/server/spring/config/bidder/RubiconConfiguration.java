@@ -7,6 +7,7 @@ import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.rubicon.RubiconBidder;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.floors.PriceFloorResolver;
+import org.prebid.server.identity.UUIDIdGenerator;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -55,10 +56,12 @@ public class RubiconConfiguration {
                                 config.getXapi().getUsername(),
                                 config.getXapi().getPassword(),
                                 config.getMetaInfo().getSupportedVendors(),
-                                config.getGenerateBidId(),
+                                config.getGenerateBidId() == null || config.getGenerateBidId(),
+                                config.getApexRendererUrl(),
                                 currencyConversionService,
                                 floorResolver,
                                 versionProvider,
+                                new UUIDIdGenerator(),
                                 mapper))
                 .assemble();
     }
@@ -73,8 +76,10 @@ public class RubiconConfiguration {
         @NotNull
         private XAPI xapi = new XAPI();
 
-        @NotNull
         private Boolean generateBidId;
+
+        @NotNull
+        private String apexRendererUrl;
     }
 
     @Data

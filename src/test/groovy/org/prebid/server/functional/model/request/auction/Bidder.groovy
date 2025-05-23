@@ -12,6 +12,8 @@ import org.prebid.server.functional.model.bidder.Rubicon
 class Bidder {
 
     Generic alias
+    @JsonProperty("ALIAS")
+    Generic aliasUpperCase
     Generic generic
     @JsonProperty("gener_x")
     Generic generX
@@ -24,6 +26,11 @@ class Bidder {
     Ix ix
     @JsonProperty("openxalias")
     Openx openxAlias
+    Adrino adrino
+    Generic nativo
+    Amx amx
+    @JsonProperty("AMX")
+    Amx amxUpperCase
 
     static Bidder getDefaultBidder() {
         new Bidder().tap {
