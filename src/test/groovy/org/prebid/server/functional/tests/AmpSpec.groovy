@@ -86,7 +86,7 @@ class AmpSpec extends BaseSpec {
 
         then: "Response should contain information from stored response"
         def price = storedAuctionResponse.bid[0].price
-        assert response.targeting["hb_pb"] == getRoundedTargetingValueWithDefaultPrecision(price)
+        assert response.targeting["hb_pb"] == getRoundedTargetingValueWithDownPrecision(price)
         assert response.targeting["hb_size"] == "${storedAuctionResponse.bid[0].weight}x${storedAuctionResponse.bid[0].height}"
 
         and: "PBS not send request to bidder"

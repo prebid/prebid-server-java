@@ -6,6 +6,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
+import org.prebid.server.settings.model.Account;
 
 import java.math.BigDecimal;
 import java.util.Map;
@@ -45,7 +46,7 @@ public class TargetingKeywordsCreatorTest {
                         null,
                         null,
                         defaultKeyPrefix)
-                .makeFor(bid, "bidder1", false, null, null, null, null);
+                .makeFor(bid, "bidder1", false, null, null, null, null, Account.empty("accountId"));
 
         // then
         assertThat(keywords).containsOnly(
@@ -76,7 +77,7 @@ public class TargetingKeywordsCreatorTest {
                         null,
                         null,
                         defaultKeyPrefix)
-                .makeFor(bid, "veryververyverylongbidder1", false, null, null, null, null);
+                .makeFor(bid, "veryververyverylongbidder1", false, null, null, null, null, Account.empty("accountId"));
 
         // then
         assertThat(keywords).containsOnly(
@@ -111,7 +112,8 @@ public class TargetingKeywordsCreatorTest {
                         null,
                         null,
                         defaultKeyPrefix)
-                .makeFor(bid, "bidder1", true, "cacheId1", "banner", "videoCacheId1", "categoryDuration");
+                .makeFor(bid, "bidder1", true, "cacheId1", "banner",
+                        "videoCacheId1", "categoryDuration", Account.empty("accountId"));
 
         // then
         assertThat(keywords).containsOnly(
@@ -154,7 +156,7 @@ public class TargetingKeywordsCreatorTest {
                         null,
                         null,
                         defaultKeyPrefix)
-                .makeFor(bid, "", true, null, "banner", null, null);
+                .makeFor(bid, "", true, null, "banner", null, null, Account.empty("accountId"));
 
         // then
         assertThat(keywords).contains(entry("hb_format", "banner"));
@@ -180,7 +182,7 @@ public class TargetingKeywordsCreatorTest {
                         null,
                         null,
                         defaultKeyPrefix)
-                .makeFor(bid, "bidder", true, null, null, null, null);
+                .makeFor(bid, "bidder", true, null, null, null, null, Account.empty("accountId"));
 
         // then
         assertThat(keywords).doesNotContainKeys("hb_cache_id_bidder", "hb_deal_bidder", "hb_size_bidder",
@@ -207,7 +209,7 @@ public class TargetingKeywordsCreatorTest {
                         null,
                         null,
                         defaultKeyPrefix)
-                .makeFor(bid, "bidder", true, null, null, null, null);
+                .makeFor(bid, "bidder", true, null, null, null, null, Account.empty("accountId"));
 
         // then
         assertThat(keywords).contains(
@@ -235,7 +237,7 @@ public class TargetingKeywordsCreatorTest {
                         null,
                         null,
                         defaultKeyPrefix)
-                .makeFor(bid, "bidder1", true, null, null, null, null);
+                .makeFor(bid, "bidder1", true, null, null, null, null, Account.empty("accountId"));
 
         // then
         assertThat(keywords).doesNotContainKeys("hb_bidder", "hb_pb");
@@ -261,7 +263,7 @@ public class TargetingKeywordsCreatorTest {
                         null,
                         null,
                         defaultKeyPrefix)
-                .makeFor(bid, "bidder1", true, null, null, null, null);
+                .makeFor(bid, "bidder1", true, null, null, null, null, Account.empty("accountId"));
 
         // then
         assertThat(keywords).containsKeys("hb_bidder", "hb_pb");
@@ -287,7 +289,7 @@ public class TargetingKeywordsCreatorTest {
                         null,
                         null,
                         defaultKeyPrefix)
-                .makeFor(bid, "bidder1", true, null, null, null, null);
+                .makeFor(bid, "bidder1", true, null, null, null, null, Account.empty("accountId"));
 
         // then
         assertThat(keywords).doesNotContainKeys("hb_bidder_bidder1", "hb_pb_bidder1");
@@ -313,7 +315,7 @@ public class TargetingKeywordsCreatorTest {
                         null,
                         null,
                         defaultKeyPrefix)
-                .makeFor(bid, "bidder1", true, null, null, null, null);
+                .makeFor(bid, "bidder1", true, null, null, null, null, Account.empty("accountId"));
 
         // then
         assertThat(keywords).containsKeys("hb_bidder_bidder1", "hb_pb_bidder1");
@@ -339,7 +341,7 @@ public class TargetingKeywordsCreatorTest {
                         null,
                         null,
                         defaultKeyPrefix)
-                .makeFor(bid, "someVeryLongBidderName", true, null, null, null, null);
+                .makeFor(bid, "someVeryLongBidderName", true, null, null, null, null, Account.empty("accountId"));
 
         // then
         assertThat(keywords).hasSize(2)
@@ -366,7 +368,7 @@ public class TargetingKeywordsCreatorTest {
                         null,
                         null,
                         defaultKeyPrefix)
-                .makeFor(bid, "bidder", true, null, null, null, null);
+                .makeFor(bid, "bidder", true, null, null, null, null, Account.empty("accountId"));
 
         // then
         assertThat(keywords).hasSize(2)
@@ -393,7 +395,7 @@ public class TargetingKeywordsCreatorTest {
                         null,
                         null,
                         defaultKeyPrefix)
-                .makeFor(bid, "bidder", true, null, null, null, null);
+                .makeFor(bid, "bidder", true, null, null, null, null, Account.empty("accountId"));
 
         // then
         // Without truncating: "hb_bidder", "hb_bidder_bidder", "hb_env", "hb_env_bidder", "hb_pb", "hb_pb_bidder"
@@ -421,7 +423,7 @@ public class TargetingKeywordsCreatorTest {
                         null,
                         null,
                         defaultKeyPrefix)
-                .makeFor(bid, "someVeryLongBidderName", true, null, null, null, null);
+                .makeFor(bid, "someVeryLongBidderName", true, null, null, null, null, Account.empty("accountId"));
 
         // then
         assertThat(keywords).hasSize(2)
@@ -454,7 +456,7 @@ public class TargetingKeywordsCreatorTest {
                         null,
                         resolver,
                         defaultKeyPrefix)
-                .makeFor(bid, "bidder1", true, null, null, null, null);
+                .makeFor(bid, "bidder1", true, null, null, null, null, Account.empty("accountId"));
 
         // then
         assertThat(keywords).contains(entry("key_longer_than_twen", "value1"));
@@ -486,7 +488,7 @@ public class TargetingKeywordsCreatorTest {
                         null,
                         resolver,
                         defaultKeyPrefix)
-                .makeFor(bid, "bidder1", true, null, null, null, null);
+                .makeFor(bid, "bidder1", true, null, null, null, null, Account.empty("accountId"));
 
         // then
         assertThat(keywords).contains(entry("keyword1", "value1"));
@@ -512,7 +514,7 @@ public class TargetingKeywordsCreatorTest {
                         null,
                         null,
                         defaultKeyPrefix)
-                .makeFor(bid, "bidder1", false, null, null, null, null);
+                .makeFor(bid, "bidder1", false, null, null, null, null, Account.empty("accountId"));
 
         // then
         assertThat(keywords).containsOnlyKeys("hb_bidder_bidder1", "hb_deal_bidder1", "hb_pb_bidder1");
@@ -538,7 +540,7 @@ public class TargetingKeywordsCreatorTest {
                         null,
                         null,
                         defaultKeyPrefix)
-                .makeFor(bid, "bidder1", false, null, null, null, null);
+                .makeFor(bid, "bidder1", false, null, null, null, null, Account.empty("accountId"));
 
         // then
         assertThat(keywords).doesNotContainKeys("hb_bidder_bidder1", "hb_deal_bidder1", "hb_pb_bidder1");
