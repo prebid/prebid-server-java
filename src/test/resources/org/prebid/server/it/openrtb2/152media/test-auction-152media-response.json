@@ -18,7 +18,10 @@
           "mtype": 1,
           "ext": {
             "prebid": {
-              "type": "banner"
+              "type": "banner",
+              "meta": {
+                "adaptercode": "152media"
+              }
             },
             "origbidcpm": 2.25
           }
