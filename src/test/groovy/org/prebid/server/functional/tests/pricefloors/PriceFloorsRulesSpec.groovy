@@ -8,8 +8,8 @@ import org.prebid.server.functional.model.config.AlternateBidderCodes
 import org.prebid.server.functional.model.config.BidderConfig
 import org.prebid.server.functional.model.db.StoredImp
 import org.prebid.server.functional.model.pricefloors.Country
+import org.prebid.server.functional.model.pricefloors.FloorModelGroup
 import org.prebid.server.functional.model.pricefloors.MediaType
-import org.prebid.server.functional.model.pricefloors.ModelGroup
 import org.prebid.server.functional.model.pricefloors.PriceFloorData
 import org.prebid.server.functional.model.pricefloors.PriceFloorSchema
 import org.prebid.server.functional.model.pricefloors.Rule
@@ -28,6 +28,8 @@ import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
 import org.prebid.server.functional.model.response.auction.BidExt
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
+
+import java.time.Instant
 
 import static org.prebid.server.functional.model.ChannelType.WEB
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
@@ -176,7 +178,10 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
     }
 
     def "PBS should consider rules file invalid when rules file contains an unrecognized dimension in the schema"() {
-        given: "BidRequest with domain"
+        given: "Test start time"
+        def startTime = Instant.now()
+
+        and: "BidRequest with domain"
         def domain = PBSUtils.randomString
         def accountId = PBSUtils.randomString
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -191,7 +196,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         and: "Set Floors Provider response"
         def floorValue = PBSUtils.randomFloorValue
         def floorsResponse = PriceFloorData.priceFloorData.tap {
-            modelGroups << ModelGroup.modelGroup
+            modelGroups << FloorModelGroup.modelGroup
             modelGroups[0].schema = new PriceFloorSchema(fields: [BOGUS])
             modelGroups[0].values = [(new Rule(domain: domain).rule): floorValue + 0.1]
             modelGroups[1].schema = new PriceFloorSchema(fields: [DOMAIN])
@@ -217,9 +222,15 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         assert bidderRequest.ext?.prebid?.floors?.location == NO_DATA
         assert bidderRequest.ext?.prebid?.floors?.fetchStatus == ERROR
 
-        and: "PBS should not contain errors, warnings"
-        assert !response.ext?.warnings
+        and: "PBS should not contain errors or warnings"
         assert !response.ext?.errors
+        assert !response.ext?.warnings
+
+        and: "PBS should log a warning"
+        def logs = floorsPbsService.getLogsByTime(startTime)
+        assert getLogsByText(logs, "Cannot deserialize value of type " +
+                "`org.prebid.server.floors.model.PriceFloorField` " +
+                "from String \"bogus\": not one of the values accepted for Enum class").size() == 1
 
         and: "PBS should not reject the entire auction"
         assert !response.seatbid.isEmpty()

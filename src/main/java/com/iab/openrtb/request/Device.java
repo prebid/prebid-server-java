@@ -10,7 +10,7 @@ import java.math.BigDecimal;
  * This object provides information pertaining to the device through which the
  * user is interacting. {@link Device} information includes its hardware, platform,
  * location, and carrier data. The device can refer to a mobile handset,
- * a desktop computer, set top box, or other digital device.
+ * a desktop computer, set-top box, or other digital device.
  * <p><em>BEST PRACTICE</em>: There are currently no prominent open source lists
  * for device makes, models, operating systems, or carriers. Exchanges typically
  * use commercial products or other proprietary lists for these attributes.
@@ -18,7 +18,7 @@ import java.math.BigDecimal;
  * to publish lists of their device make, model, operating system, and carrier
  * values to bidders.
  * <p><em>BEST PRACTICE</em>: Proper device IP detection in mobile is not
- * straightforward. Typically it involves starting at the left of the
+ * straightforward. Typically, it involves starting at the left of the
  * {@code x-forwarded-for} header, skipping private carrier networks
  * (e.g., 10.x.x.x or 192.x.x.x), and possibly scanning for known carrier IP
  * ranges. Exchanges are urged to research and implement this feature carefully

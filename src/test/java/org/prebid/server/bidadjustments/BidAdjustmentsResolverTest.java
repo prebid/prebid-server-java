@@ -49,7 +49,7 @@ public class BidAdjustmentsResolverTest extends VertxTest {
     }
 
     @Test
-    public void resolveShouldPickAndApplyRulesBySpecificMediaType() {
+    public void resolveShouldApplyStaticRule() {
         // given
         final BidRequest givenBidRequest = BidRequest.builder().build();
         given(bidAdjustmentsRulesResolver.resolve(givenBidRequest, banner, "bidderName", "dealId"))
@@ -69,7 +69,7 @@ public class BidAdjustmentsResolverTest extends VertxTest {
     }
 
     @Test
-    public void resolveShouldPickAndApplyRulesByWildcardMediaType() {
+    public void resolveShouldApplyCpmRule() {
         // given
         final BidRequest givenBidRequest = BidRequest.builder().build();
         given(bidAdjustmentsRulesResolver.resolve(givenBidRequest, video_outstream, "bidderName", "dealId"))
@@ -89,7 +89,7 @@ public class BidAdjustmentsResolverTest extends VertxTest {
     }
 
     @Test
-    public void resolveShouldPickAndApplyRulesBySpecificBidder() {
+    public void resolveShouldApplyMultiplierRule() {
         // given
         final BidRequest givenBidRequest = BidRequest.builder().build();
         given(bidAdjustmentsRulesResolver.resolve(givenBidRequest, banner, "bidderName", "dealId"))
@@ -109,10 +109,10 @@ public class BidAdjustmentsResolverTest extends VertxTest {
     }
 
     @Test
-    public void resolveShouldPickAndApplyRulesByWildcardBidder() {
+    public void resolveShouldApplyStaticAndCpmRules() {
         // given
         final BidRequest givenBidRequest = BidRequest.builder().build();
-        given(bidAdjustmentsRulesResolver.resolve(givenBidRequest, banner, "anotherBidderName", "dealId"))
+        given(bidAdjustmentsRulesResolver.resolve(givenBidRequest, banner, "bidderName", "dealId"))
                 .willReturn(List.of(givenStatic("25", "UAH"), givenMultiplier("25")));
 
         // when
@@ -120,7 +120,7 @@ public class BidAdjustmentsResolverTest extends VertxTest {
                 Price.of("USD", BigDecimal.ONE),
                 BidRequest.builder().build(),
                 banner,
-                "anotherBidderName",
+                "bidderName",
                 "dealId");
 
         // then
@@ -129,7 +129,7 @@ public class BidAdjustmentsResolverTest extends VertxTest {
     }
 
     @Test
-    public void resolveShouldPickAndApplyRulesBySpecificDealId() {
+    public void resolveShouldApplyCpmAndStaticRules() {
         // given
         final BidRequest givenBidRequest = BidRequest.builder().build();
         given(bidAdjustmentsRulesResolver.resolve(givenBidRequest, banner, "bidderName", "dealId"))
@@ -149,10 +149,10 @@ public class BidAdjustmentsResolverTest extends VertxTest {
     }
 
     @Test
-    public void resolveShouldPickAndApplyRulesByWildcardDealId() {
+    public void resolveShouldApplyMultiplierAdnCpmRules() {
         // given
         final BidRequest givenBidRequest = BidRequest.builder().build();
-        given(bidAdjustmentsRulesResolver.resolve(givenBidRequest, banner, "bidderName", "anotherDealId"))
+        given(bidAdjustmentsRulesResolver.resolve(givenBidRequest, banner, "bidderName", "dealId"))
                 .willReturn(List.of(givenMultiplier("25"), givenCpm("25", "UAH")));
 
         // when
@@ -161,7 +161,7 @@ public class BidAdjustmentsResolverTest extends VertxTest {
                 givenBidRequest,
                 banner,
                 "bidderName",
-                "anotherDealId");
+                "dealId");
 
         // then
         assertThat(actual).isEqualTo(Price.of("USD", new BigDecimal("-225")));
@@ -169,7 +169,7 @@ public class BidAdjustmentsResolverTest extends VertxTest {
     }
 
     @Test
-    public void resolveShouldPickAndApplyRulesByWildcardDealIdWhenDealIdIsNull() {
+    public void resolveShouldApplyTwoCpmRules() {
         // given
         final BidRequest givenBidRequest = BidRequest.builder().build();
         given(bidAdjustmentsRulesResolver.resolve(givenBidRequest, banner, "bidderName", null))
@@ -190,7 +190,7 @@ public class BidAdjustmentsResolverTest extends VertxTest {
     }
 
     @Test
-    public void resolveShouldReturnEmptyListWhenNoMatchFound() {
+    public void resolveShouldNotApplyAnyRulesWhenNoMatchFound() {
         // given
         final BidRequest givenBidRequest = BidRequest.builder().build();
         given(bidAdjustmentsRulesResolver.resolve(givenBidRequest, banner, "bidderName", null))

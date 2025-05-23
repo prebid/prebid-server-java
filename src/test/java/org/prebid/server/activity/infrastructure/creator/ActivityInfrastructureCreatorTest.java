@@ -209,4 +209,39 @@ public class ActivityInfrastructureCreatorTest {
         assertThat(controllers.get(Activity.TRANSMIT_UFPD).isAllowed(null)).isEqualTo(false);
         assertThat(controllers.get(Activity.TRANSMIT_EIDS).isAllowed(null)).isEqualTo(false);
     }
+
+    @Test
+    public void parseShouldSkipRuleThatFailedCreation() {
+        // given
+        final Account account = Account.builder()
+                .privacy(AccountPrivacyConfig.builder()
+                        .activities(Map.of(
+                                Activity.SYNC_USER, AccountActivityConfiguration.of(null, null),
+                                Activity.CALL_BIDDER, AccountActivityConfiguration.of(false, null),
+                                Activity.MODIFY_UFDP, AccountActivityConfiguration.of(true, null),
+                                Activity.TRANSMIT_UFPD, AccountActivityConfiguration.of(true, singletonList(
+                                        AccountActivityConditionsRuleConfig.of(null, null)))))
+                        .build())
+                .build();
+        final GppContext gppContext = GppContextCreator.from(null, null).build().getGppContext();
+
+        given(activityRuleFactory.from(
+                same(account.getPrivacy().getActivities().get(Activity.TRANSMIT_UFPD).getRules().getFirst()),
+                argThat(arg -> arg.getGppContext() == gppContext)))
+                .willThrow(new IllegalArgumentException());
+
+        // when
+        final Map<Activity, ActivityController> controllers = creator.parse(account, gppContext, debug);
+
+        // then
+        assertThat(controllers.keySet()).containsExactlyInAnyOrder(Activity.values());
+
+        assertThat(controllers.get(Activity.SYNC_USER).isAllowed(null))
+                .isEqualTo(ActivityInfrastructure.ALLOW_ACTIVITY_BY_DEFAULT);
+        assertThat(controllers.get(Activity.CALL_BIDDER).isAllowed(null)).isEqualTo(false);
+        assertThat(controllers.get(Activity.MODIFY_UFDP).isAllowed(null)).isEqualTo(true);
+        assertThat(controllers.get(Activity.TRANSMIT_UFPD).isAllowed(null)).isEqualTo(true);
+
+        verify(metrics).updateAlertsMetrics(eq(MetricName.general));
+    }
 }

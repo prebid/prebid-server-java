@@ -16,6 +16,7 @@ import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.net.impl.SocketAddressImpl;
+import io.vertx.ext.web.RequestBody;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -116,6 +117,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
     private RoutingContext routingContext;
     @Mock(strictness = LENIENT)
     private HttpServerRequest httpRequest;
+    @Mock(strictness = LENIENT)
+    private RequestBody requestBody;
 
     private Account defaultAccount;
     private BidRequest defaultBidRequest;
@@ -151,6 +154,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .willAnswer(invocation -> invocation.getArgument(0));
 
         given(routingContext.request()).willReturn(httpRequest);
+        given(routingContext.body()).willReturn(requestBody);
         given(routingContext.queryParams()).willReturn(MultiMap.caseInsensitiveMultiMap());
         given(httpRequest.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
         given(httpRequest.remoteAddress()).willReturn(new SocketAddressImpl(1234, "host"));
@@ -218,7 +222,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfRequestBodyIsMissing() {
         // given
-        given(routingContext.getBody()).willReturn(null);
+        given(requestBody.buffer()).willReturn(null);
 
         // when
         final Future<?> future = target.parseRequest(routingContext, 0L);
@@ -250,7 +254,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 geoLocationServiceWrapper,
                 bidAdjustmentsEnricher);
 
-        given(routingContext.getBodyAsString()).willReturn("body");
+        given(requestBody.asString()).willReturn("body");
 
         // when
         final Future<?> future = target.parseRequest(routingContext, 0L);
@@ -265,7 +269,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfRequestBodyCouldNotBeParsed() {
         // given
-        given(routingContext.getBodyAsString()).willReturn("body");
+        given(requestBody.asString()).willReturn("body");
 
         // when
         final Future<?> future = target.parseRequest(routingContext, 0L);
@@ -481,7 +485,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .putObject("data")
                 .set("eidpermissions", eidPermissionNode);
 
-        given(routingContext.getBodyAsString()).willReturn(requestNode.toString());
+        given(requestBody.asString()).willReturn(requestNode.toString());
 
         // when
         final Future<?> result = target.parseRequest(routingContext, 0L);
@@ -517,7 +521,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .putArray("eidpermissions");
         arrayNode.add(eidPermissionNode);
 
-        given(routingContext.getBodyAsString()).willReturn(requestNode.toString());
+        given(requestBody.asString()).willReturn(requestNode.toString());
 
         // when
         final Future<?> result = target.parseRequest(routingContext, 0L);
@@ -800,7 +804,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
     private void givenBidRequest(BidRequest bidRequest) {
         try {
-            given(routingContext.getBodyAsString()).willReturn(mapper.writeValueAsString(bidRequest));
+            given(requestBody.asString()).willReturn(mapper.writeValueAsString(bidRequest));
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }

@@ -1,12 +1,10 @@
 package org.prebid.server.proto.openrtb.ext.request.orbidder;
 
-import lombok.AllArgsConstructor;
 import lombok.Value;
 
 import java.math.BigDecimal;
 
-@Value
-@AllArgsConstructor(staticName = "of")
+@Value(staticConstructor = "of")
 public class ExtImpOrbidder {
 
     String accountId;

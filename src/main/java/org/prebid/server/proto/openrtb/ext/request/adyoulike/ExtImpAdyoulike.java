@@ -1,13 +1,11 @@
 package org.prebid.server.proto.openrtb.ext.request.adyoulike;
 
-import lombok.AllArgsConstructor;
 import lombok.Value;
 
 /**
  * Defines the contract for bidRequest.imp[i].ext.adyoulike
  */
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class ExtImpAdyoulike {
 
     String placement;
