@@ -3,7 +3,8 @@ adapters:
     endpoint: https://ssb-global.smartadserver.com
     endpoint-compression: gzip
     aliases:
-      equativ: ~
+      equativ:
+        enabled: false
     meta-info:
       maintainer-email: supply-partner-integration@equativ.com
       app-media-types:
