@@ -156,7 +156,8 @@ class BidderFormatSpec extends BaseSpec {
 
     def "PBS should emit error and metrics when banner-creative-max-size: warn and bid response W or H is larger that request W or H"() {
         given: "PBS with banner creative max size"
-        def pbsService = pbsServiceFactory.getService(["auction.validations.banner-creative-max-size": configCreativeMaxSize])
+        def pbsConfig = ["auction.validations.banner-creative-max-size": configCreativeMaxSize]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request with banner format"
         def storedResponseId = PBSUtils.randomNumber
@@ -211,6 +212,9 @@ class BidderFormatSpec extends BaseSpec {
         and: "PBs shouldn't perform a bidder request due to stored bid response"
         assert !bidder.getBidderRequests(bidRequest.id)
 
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
+
         where:
         accountCretiveMaxSize | configCreativeMaxSize | responseWeight    | responseHeight
         null                  | WARN.value            | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
@@ -223,7 +227,8 @@ class BidderFormatSpec extends BaseSpec {
 
     def "PBS shouldn't emit error and metrics when banner-creative-max-size: skip and bid response W or H is larger that request W or H"() {
         given: "PBS with banner creative max size"
-        def pbsService = pbsServiceFactory.getService(["auction.validations.banner-creative-max-size": configCreativeMaxSize])
+        def pbsConfig = ["auction.validations.banner-creative-max-size": configCreativeMaxSize]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request with banner format"
         def storedResponseId = PBSUtils.randomNumber
@@ -269,6 +274,9 @@ class BidderFormatSpec extends BaseSpec {
         and: "PBs shouldn't perform a bidder request due to stored bid response"
         assert !bidder.getBidderRequests(bidRequest.id)
 
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
+
         where:
         accountCretiveMaxSizeSnakeCase | accountCretiveMaxSize | configCreativeMaxSize | responseWeight    | responseHeight
         null                           | null                  | SKIP.value            | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
@@ -287,7 +295,8 @@ class BidderFormatSpec extends BaseSpec {
 
     def "PBS should emit error and metrics and remove bid response from consideration when banner-creative-max-size: enforce and bid response W or H is larger that request W or H"() {
         given: "PBS with banner creative max size"
-        def pbsService = pbsServiceFactory.getService(["auction.validations.banner-creative-max-size": configCreativeMaxSize])
+        def pbsConfig = ["auction.validations.banner-creative-max-size": configCreativeMaxSize]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request with banner format"
         def storedResponseId = PBSUtils.randomNumber
@@ -340,6 +349,9 @@ class BidderFormatSpec extends BaseSpec {
         and: "PBs shouldn't perform a bidder request due to stored bid response"
         assert !bidder.getBidderRequests(bidRequest.id)
 
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
+
         where:
         accountCretiveMaxSize | configCreativeMaxSize | responseWeight    | responseHeight
         null                  | ENFORCE.value         | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
@@ -352,7 +364,8 @@ class BidderFormatSpec extends BaseSpec {
 
     def "PBS shouldn't emit error and metrics when banner-creative-max-size #configCreativeMaxSize and bid response W or H is same that request W or H"() {
         given: "PBS with banner creative max size"
-        def pbsService = pbsServiceFactory.getService(["auction.validations.banner-creative-max-size": configCreativeMaxSize])
+        def pbsConfig = ["auction.validations.banner-creative-max-size": configCreativeMaxSize]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request with banner format"
         def storedResponseId = PBSUtils.randomNumber
@@ -396,6 +409,9 @@ class BidderFormatSpec extends BaseSpec {
         and: "PBs shouldn't perform a bidder request due to stored bid response"
         assert !bidder.getBidderRequests(bidRequest.id)
 
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
+
         where:
         accountCretiveMaxSize | configCreativeMaxSize
         null                  | SKIP.value
@@ -408,7 +424,8 @@ class BidderFormatSpec extends BaseSpec {
 
     def "PBS shouldn't emit error and metrics when media type isn't banner and banner-creative-max-size #configCreativeMaxSize and bid response W or H is larger that request W or H"() {
         given: "PBS with banner creative max size"
-        def pbsService = pbsServiceFactory.getService(["auction.validations.banner-creative-max-size": configCreativeMaxSize])
+        def pbsConfig = ["auction.validations.banner-creative-max-size": configCreativeMaxSize]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request with video W and H"
         def storedResponseId = PBSUtils.randomNumber
@@ -450,6 +467,9 @@ class BidderFormatSpec extends BaseSpec {
         and: "PBs shouldn't perform a bidder request due to stored bid response"
         assert !bidder.getBidderRequests(bidRequest.id)
 
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
+
         where:
         accountCretiveMaxSize | configCreativeMaxSize | responseWeight    | responseHeight
         null                  | ENFORCE.value         | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
@@ -474,7 +494,8 @@ class BidderFormatSpec extends BaseSpec {
 
     def "PBS should emit error and metrics and remove bid response from consideration and account value should take precedence over host when banner-creative-max-size enforce and bid response W or H is larger that request W or H"() {
         given: "PBS with banner creative max size"
-        def pbsService = pbsServiceFactory.getService(["auction.validations.banner-creative-max-size": configCreativeMaxSize])
+        def pbsConfig = ["auction.validations.banner-creative-max-size": configCreativeMaxSize]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request with banner format"
         def storedResponseId = PBSUtils.randomNumber
@@ -526,6 +547,9 @@ class BidderFormatSpec extends BaseSpec {
 
         and: "PBs shouldn't perform a bidder request due to stored bid response"
         assert !bidder.getBidderRequests(bidRequest.id)
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
 
         where:
         accountCretiveMaxSize | configCreativeMaxSize | responseWeight    | responseHeight
@@ -593,7 +617,8 @@ class BidderFormatSpec extends BaseSpec {
 
     def "PBS should emit metrics and error when imp[0].secure = 1 and config WARN and bid response adm contain #url"() {
         given: "PBS with secure-markUp: warn"
-        def pbsService = pbsServiceFactory.getService(["auction.validations.secure-markup": WARN.value])
+        def pbsConfig = ["auction.validations.secure-markup": WARN.value]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request with secure and banner or video or nativeObj"
         def storedResponseId = PBSUtils.randomNumber
@@ -636,8 +661,16 @@ class BidderFormatSpec extends BaseSpec {
         and: "Pbs should contain seatBid"
         assert bidResponse.seatbid
 
+        def log = pbsService.getLogsByValue(storedBidId as String)
+        assert log.contains("BidResponse validation `warn`: bidder `${BidderName.GENERIC.value}` response triggers secure creative " +
+                "validation for bid ${storedBidId}, account=${bidRequest.accountId}, referrer=${bidRequest.site.page}," +
+                " adm=${encode(adm)}")
+
         and: "PBs shouldn't perform a bidder request due to stored bid response"
         assert !bidder.getBidderRequests(bidRequest.id)
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
 
         where:
         url       | banner               | video              | nativeObj
@@ -651,7 +684,8 @@ class BidderFormatSpec extends BaseSpec {
 
     def "PBS should emit metrics and error when imp[0].secure = 1, banner and config SKIP and bid response adm contain #url"() {
         given: "PBS with secure-markUp: skip"
-        def pbsService = pbsServiceFactory.getService(["auction.validations.secure-markup": SKIP.value])
+        def pbsConfig = ["auction.validations.secure-markup": SKIP.value]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request with secure and banner or video or nativeObj"
         def storedResponseId = PBSUtils.randomNumber
@@ -689,6 +723,9 @@ class BidderFormatSpec extends BaseSpec {
         and: "PBs shouldn't perform a bidder request due to stored bid response"
         assert !bidder.getBidderRequests(bidRequest.id)
 
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
+
         where:
         url       | banner               | video              | nativeObj
         "http%3A" | Banner.defaultBanner | null               | null
@@ -701,7 +738,8 @@ class BidderFormatSpec extends BaseSpec {
 
     def "PBS should emit metrics and error and remove bid response when imp[0].secure = 1, banner and config ENFORCE and bid response adm contain #url"() {
         given: "PBS with secure-markUp: enforce"
-        def pbsService = pbsServiceFactory.getService(["auction.validations.secure-markup": ENFORCE.value])
+        def pbsConfig = ["auction.validations.secure-markup": ENFORCE.value]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request with secure and banner or video or nativeObj"
         def storedResponseId = PBSUtils.randomNumber
@@ -741,11 +779,19 @@ class BidderFormatSpec extends BaseSpec {
                 "validation for bid ${storedBidId}, account=${bidRequest.accountId}, referrer=${bidRequest.site.page}," +
                 " adm=${encode(adm)}"
 
+        def log = pbsService.getLogsByValue(storedBidId as String)
+        assert log.contains("BidResponse validation `${ENFORCE.value}`: bidder `${GENERIC.value}` response triggers secure creative " +
+                "validation for bid ${storedBidId}, account=${bidRequest.accountId}, referrer=${bidRequest.site.page}, " +
+                "adm=${encode(adm)}")
+
         and: "Pbs shouldn't contain seatBid"
         assert !bidResponse.seatbid
 
         and: "PBs shouldn't perform a bidder request due to stored bid response"
         assert !bidder.getBidderRequests(bidRequest.id)
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
 
         where:
         url       | banner               | video              | nativeObj
@@ -759,8 +805,8 @@ class BidderFormatSpec extends BaseSpec {
 
     def "PBS shouldn't emit errors and metrics when imp[0].secure = #secure and bid response adm contain #url"() {
         given: "PBS with secure-markUp"
-        def pbsService = pbsServiceFactory
-                .getService(["auction.validations.secure-markup": secureMarkup])
+        def pbsConfig = ["auction.validations.secure-markup": secureMarkup]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request with secure"
         def storedResponseId = PBSUtils.randomNumber
@@ -773,7 +819,7 @@ class BidderFormatSpec extends BaseSpec {
 
         and: "Stored bid response in DB with adm"
         def storedBidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            it.seatbid[0].bid[0].adm = new Adm(assets: [Asset.getImgAsset("${url}://secure-assets.${PBSUtils.randomString}.com")])
+            it.seatbid[0].bid[0].adm = new Adm(assets: [Asset.getImgAsset(url)])
         }
         def storedResponse = new StoredResponse(responseId: storedResponseId, storedBidResponse: storedBidResponse)
         storedResponseDao.save(storedResponse)
@@ -797,22 +843,41 @@ class BidderFormatSpec extends BaseSpec {
         and: "PBs shouldn't perform a bidder request due to stored bid response"
         assert !bidder.getBidderRequests(bidRequest.id)
 
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
+
         where:
-        url       | secure     | secureMarkup
-        "http%3A" | NON_SECURE | SKIP.value
-        "http"    | NON_SECURE | SKIP.value
-        "https"   | SECURE     | SKIP.value
-        "http%3A" | NON_SECURE | WARN.value
-        "http"    | NON_SECURE | WARN.value
-        "https"   | SECURE     | WARN.value
-        "http%3A" | NON_SECURE | ENFORCE.value
-        "http"    | NON_SECURE | ENFORCE.value
-        "https"   | SECURE     | ENFORCE.value
+        url                                                    | secure     | secureMarkup
+        "http%3A://secure-assets.${PBSUtils.randomString}.com" | NON_SECURE | SKIP.value
+        "http://secure-assets.${PBSUtils.randomString}.com"    | NON_SECURE | SKIP.value
+
+        "https://secure-assets.${PBSUtils.randomString}.com"   | SECURE     | SKIP.value
+        "http://www.w3.org"                                    | SECURE     | SKIP.value
+        "http%3a://www.quantcast.com/adchoices"                | SECURE     | SKIP.value
+        "http://"                                              | SECURE     | SKIP.value
+
+        "http%3A://secure-assets.${PBSUtils.randomString}.com" | NON_SECURE | WARN.value
+        "http://secure-assets.${PBSUtils.randomString}.com"    | NON_SECURE | WARN.value
+
+        "https://secure-assets.${PBSUtils.randomString}.com"   | SECURE     | WARN.value
+        "http://www.w3.org"                                    | SECURE     | WARN.value
+        "http%3a://www.quantcast.com/adchoices"                | SECURE     | WARN.value
+        "http://"                                              | SECURE     | WARN.value
+
+        "http%3A://secure-assets.${PBSUtils.randomString}.com" | NON_SECURE | ENFORCE.value
+        "http://secure-assets.${PBSUtils.randomString}.com"    | NON_SECURE | ENFORCE.value
+
+        "https://secure-assets.${PBSUtils.randomString}.com"   | SECURE     | ENFORCE.value
+        "http://www.w3.org"                                    | SECURE     | ENFORCE.value
+        "http%3a://www.quantcast.com/adchoices"                | SECURE     | ENFORCE.value
+        "http://"                                              | SECURE     | ENFORCE.value
+
     }
 
     def "PBS should ignore specified secureMarkup #secureMarkup validation when secure is 0"() {
         given: "PBS with secure-markUp"
-        def pbsService = pbsServiceFactory.getService(["auction.validations.secure-markup": secureMarkup])
+        def pbsConfig = ["auction.validations.secure-markup": secureMarkup]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request with stored bid response and secure"
         def storedResponseId = PBSUtils.randomNumber
@@ -847,6 +912,9 @@ class BidderFormatSpec extends BaseSpec {
 
         and: "PBs shouldn't perform a bidder request due to stored bid response"
         assert !bidder.getBidderRequests(bidRequest.id)
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
 
         where:
         secureMarkup  | url
