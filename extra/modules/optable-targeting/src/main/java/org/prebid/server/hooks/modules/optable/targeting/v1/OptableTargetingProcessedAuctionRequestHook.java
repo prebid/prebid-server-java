@@ -6,6 +6,7 @@ import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
+import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
 import org.prebid.server.activity.infrastructure.payload.impl.ActivityInvocationPayloadImpl;
 import org.prebid.server.activity.infrastructure.payload.impl.BidRequestActivityInvocationPayload;
@@ -26,6 +27,7 @@ import org.prebid.server.hooks.modules.optable.targeting.v1.core.PayloadResolver
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
+import org.prebid.server.hooks.v1.PayloadUpdate;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.ProcessedAuctionRequestHook;
@@ -37,17 +39,11 @@ import java.util.function.Function;
 public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuctionRequestHook {
 
     public static final String CODE = "optable-targeting-processed-auction-request-hook";
-
     private static final long DEFAULT_API_CALL_TIMEOUT = 1000L;
-
     private final ConfigResolver configResolver;
-
     private final OptableTargeting optableTargeting;
-
     private final PayloadResolver payloadResolver;
-
     private final OptableAttributesResolver optableAttributesResolver;
-
     private final UserFpdActivityMask userFpdActivityMask;
 
     public OptableTargetingProcessedAuctionRequestHook(ConfigResolver configResolver,
@@ -60,7 +56,7 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
         this.optableTargeting = Objects.requireNonNull(optableTargeting);
         this.payloadResolver = Objects.requireNonNull(payloadResolver);
         this.optableAttributesResolver = Objects.requireNonNull(optableAttributesResolver);
-        this.userFpdActivityMask = userFpdActivityMask;
+        this.userFpdActivityMask = Objects.requireNonNull(userFpdActivityMask);
     }
 
     @Override
@@ -70,11 +66,7 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
         final OptableTargetingProperties properties = configResolver.resolve(invocationContext.accountConfig());
         final ModuleContext moduleContext = new ModuleContext();
 
-        BidRequest bidRequest = auctionRequestPayload.bidRequest();
-        if (bidRequest == null) {
-            return failure(moduleContext);
-        }
-        bidRequest = applyActivityRestrictions(bidRequest, invocationContext);
+        final BidRequest bidRequest = applyActivityRestrictions(auctionRequestPayload.bidRequest(), invocationContext);
 
         final long timeout = getHookRemainingTime(invocationContext);
         final OptableAttributes attributes = optableAttributesResolver.resolveAttributes(
@@ -88,45 +80,51 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
                 timeout);
 
         if (targetingResultFuture == null) {
-            return failure(
-                    this::sanitizePayload,
-                    moduleContext.setEnrichRequestStatus(EnrichmentStatus.failure()));
+            moduleContext.setEnrichRequestStatus(EnrichmentStatus.failure());
+            return failure(this::sanitizePayload, moduleContext);
         }
 
         return targetingResultFuture.compose(targetingResult -> enrichedPayload(targetingResult, moduleContext))
-                .recover(throwable -> failure(
-                        this::sanitizePayload,
-                        moduleContext.setEnrichRequestStatus(EnrichmentStatus.failure())));
+                .recover(throwable -> {
+                    moduleContext.setEnrichRequestStatus(EnrichmentStatus.failure());
+                    return failure(this::sanitizePayload, moduleContext);
+                });
     }
 
     private BidRequest applyActivityRestrictions(BidRequest bidRequest,
                                                  AuctionInvocationContext auctionInvocationContext) {
+        if (bidRequest == null) {
+            return null;
+        }
 
-        final boolean disallowTransmitUfpd = !isTransmitUfpdAllowed(bidRequest, auctionInvocationContext);
+        final AuctionContext auctionContext = auctionInvocationContext.auctionContext();
+        final ActivityInvocationPayload activityInvocationPayload = BidRequestActivityInvocationPayload.of(
+                ActivityInvocationPayloadImpl.of(ComponentType.GENERAL_MODULE, OptableTargetingModule.CODE),
+                bidRequest);
+        final ActivityInfrastructure activityInfrastructure = auctionContext.getActivityInfrastructure();
 
-        return maskUserPersonalInfo(bidRequest, disallowTransmitUfpd);
+        final boolean disallowTransmitUfpd = !activityInfrastructure.isAllowed(Activity.TRANSMIT_UFPD,
+                activityInvocationPayload);
+        final boolean disallowTransmitEids = !activityInfrastructure.isAllowed(Activity.TRANSMIT_EIDS,
+                activityInvocationPayload);
+        final boolean disallowTransmitGeo = !activityInfrastructure.isAllowed(Activity.TRANSMIT_GEO,
+                activityInvocationPayload);
+
+        return maskUserPersonalInfo(bidRequest, disallowTransmitUfpd, disallowTransmitEids, disallowTransmitGeo);
     }
 
-    private BidRequest maskUserPersonalInfo(BidRequest bidRequest, boolean disallowTransmitUfpd) {
+    private BidRequest maskUserPersonalInfo(BidRequest bidRequest, boolean disallowTransmitUfpd,
+                                            boolean disallowTransmitEids, boolean disallowTransmitGeo) {
+
         final User maskedUser = userFpdActivityMask.maskUser(
-                bidRequest.getUser(), disallowTransmitUfpd, false);
+                bidRequest.getUser(), disallowTransmitUfpd, disallowTransmitEids);
         final Device maskedDevice = userFpdActivityMask.maskDevice(
-                bidRequest.getDevice(), disallowTransmitUfpd, false);
+                bidRequest.getDevice(), disallowTransmitUfpd, disallowTransmitGeo);
 
         return bidRequest.toBuilder()
                 .user(maskedUser)
                 .device(maskedDevice)
                 .build();
-    }
-
-    private boolean isTransmitUfpdAllowed(BidRequest bidRequest, AuctionInvocationContext auctionInvocationContext) {
-        final AuctionContext auctionContext = auctionInvocationContext.auctionContext();
-        final ActivityInvocationPayload activityInvocationPayload = BidRequestActivityInvocationPayload.of(
-                ActivityInvocationPayloadImpl.of(ComponentType.GENERAL_MODULE, OptableTargetingModule.CODE),
-                bidRequest);
-
-        return auctionContext.getActivityInfrastructure()
-                .isAllowed(Activity.TRANSMIT_UFPD, activityInvocationPayload);
     }
 
     private long getHookRemainingTime(AuctionInvocationContext invocationContext) {
@@ -140,8 +138,8 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
                                                                             ModuleContext moduleContext) {
 
         if (targetingResult != null) {
-            moduleContext.setTargeting(targetingResult.getAudience())
-                    .setEnrichRequestStatus(EnrichmentStatus.success());
+            moduleContext.setTargeting(targetingResult.getAudience());
+            moduleContext.setEnrichRequestStatus(EnrichmentStatus.success());
 
             return update(payload -> {
                 final AuctionRequestPayload sanitizedPayload = sanitizePayload(payload);
@@ -162,7 +160,7 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
     }
 
     private static Future<InvocationResult<AuctionRequestPayload>> update(
-            Function<AuctionRequestPayload, AuctionRequestPayload> func,
+            PayloadUpdate<AuctionRequestPayload> func,
             ModuleContext moduleContext) {
 
         return Future.succeededFuture(
@@ -175,8 +173,8 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
     }
 
     private static Future<InvocationResult<AuctionRequestPayload>> failure(ModuleContext moduleContext) {
-        return success(moduleContext
-                .setEnrichRequestStatus(EnrichmentStatus.failure()));
+        moduleContext.setEnrichRequestStatus(EnrichmentStatus.failure());
+        return success(moduleContext);
     }
 
     private static Future<InvocationResult<AuctionRequestPayload>> failure(

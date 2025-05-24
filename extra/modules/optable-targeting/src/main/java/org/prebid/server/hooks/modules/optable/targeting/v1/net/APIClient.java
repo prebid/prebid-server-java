@@ -14,7 +14,6 @@ import org.prebid.server.hooks.modules.optable.targeting.model.net.HttpResponse;
 import org.prebid.server.hooks.modules.optable.targeting.model.net.OptableCall;
 import org.prebid.server.hooks.modules.optable.targeting.model.net.OptableError;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.EndpointResolver;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
@@ -29,16 +28,13 @@ import java.util.concurrent.TimeoutException;
 
 public class APIClient {
 
+    private static final String TENANT = "{TENANT}";
+    private static final String ORIGIN = "{ORIGIN}";
     private static final Logger logger = LoggerFactory.getLogger(APIClient.class);
-
     private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
-
     private final String endpoint;
-
     private final HttpClient httpClient;
-
     private final double logSamplingRate;
-
     private final OptableResponseMapper responseMapper;
 
     public APIClient(String endpoint,
@@ -46,7 +42,7 @@ public class APIClient {
                      double logSamplingRate,
                      OptableResponseMapper responseMapper) {
 
-        this.endpoint = Objects.requireNonNull(endpoint);
+        this.endpoint = HttpUtil.validateUrl(Objects.requireNonNull(endpoint));
         this.httpClient = Objects.requireNonNull(httpClient);
         this.logSamplingRate = logSamplingRate;
         this.responseMapper = Objects.requireNonNull(responseMapper);
@@ -69,12 +65,17 @@ public class APIClient {
         }
 
         final HttpRequest request = HttpRequest.builder()
-                .uri(EndpointResolver.resolve(endpoint, tenant, origin))
+                .uri(resolveEndpoint(endpoint, tenant, origin))
                 .query(query.toQueryString())
                 .headers(headers)
                 .build();
 
         return doRequest(request, timeout);
+    }
+
+    private String resolveEndpoint(String endpointTemplate, String tenant, String origin) {
+        return endpointTemplate.replace(TENANT, tenant)
+                .replace(ORIGIN, origin);
     }
 
     private Future<TargetingResult> doRequest(HttpRequest httpRequest, long timeout) {

@@ -5,9 +5,9 @@ import lombok.Value;
 @Value(staticConstructor = "of")
 public class EnrichmentStatus {
 
-    private final Status status;
+    Status status;
 
-    private final Reason reason;
+    Reason reason;
 
     public static EnrichmentStatus failure() {
         return EnrichmentStatus.of(Status.FAIL, null);

@@ -30,7 +30,7 @@ public class Cache {
         return cacheService.retrieveEntry(query, APP_CODE, APPLICATION)
                 .map(ModuleCacheResponse::getValue)
                 .map(it -> it != null ? optableResponseMapper.parse(it) : null)
-                .otherwise(it -> null);
+                .otherwiseEmpty();
     }
 
     public Future<Void> put(String query, TargetingResult value, int ttlSeconds) {
@@ -43,6 +43,7 @@ public class Cache {
                 optableResponseMapper.toJsonString(value),
                 StorageDataType.TEXT,
                 ttlSeconds,
-                APPLICATION, APP_CODE);
+                APPLICATION,
+                APP_CODE);
     }
 }

@@ -9,6 +9,7 @@ import org.prebid.server.hooks.modules.optable.targeting.model.Status;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Audience;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 public class AuctionResponseValidator {
@@ -17,18 +18,13 @@ public class AuctionResponseValidator {
     }
 
     public static EnrichmentStatus checkEnrichmentPossibility(BidResponse bidResponse, List<Audience> targeting) {
-        Status status = Status.SUCCESS;
-        Reason reason = Reason.NONE;
-
         if (!hasKeywords(targeting)) {
-            status = Status.FAIL;
-            reason = Reason.NOKEYWORD;
+            return EnrichmentStatus.of(Status.FAIL, Reason.NOKEYWORD);
         } else if (!hasBids(bidResponse)) {
-            status = Status.FAIL;
-            reason = Reason.NOBID;
+            return EnrichmentStatus.of(Status.FAIL, Reason.NOBID);
         }
 
-        return EnrichmentStatus.of(status, reason);
+        return EnrichmentStatus.of(Status.SUCCESS, Reason.NONE);
     }
 
     private static boolean hasKeywords(List<Audience> targeting) {
@@ -36,11 +32,9 @@ public class AuctionResponseValidator {
             return false;
         }
 
-        final long idsCounter = targeting.stream()
-                .mapToLong(audience -> Optional.ofNullable(audience.getIds()).orElse(List.of()).size())
-                .sum();
-
-        return idsCounter > 0;
+        return targeting.stream()
+                .filter(Objects::nonNull)
+                .anyMatch(audience -> CollectionUtils.isNotEmpty(audience.getIds()));
     }
 
     private static boolean hasBids(BidResponse bidResponse) {
@@ -49,10 +43,8 @@ public class AuctionResponseValidator {
             return false;
         }
 
-        final long bidsCount = seatBids.stream()
-                .mapToLong(seatBid -> Optional.ofNullable(seatBid.getBid()).orElse(List.of()).size())
-                .sum();
-
-        return bidsCount > 0;
+        return seatBids.stream()
+                .filter(Objects::nonNull)
+                .anyMatch(seatBid -> CollectionUtils.isNotEmpty(seatBid.getBid()));
     }
 }

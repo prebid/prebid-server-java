@@ -1,11 +1,11 @@
 package org.prebid.server.hooks.modules.optable.targeting.v1;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
-import org.prebid.server.hooks.modules.optable.targeting.v1.analytics.AnalyticTagsResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ExecutionTimeResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableAttributesResolver;
@@ -14,6 +14,7 @@ import org.prebid.server.hooks.modules.optable.targeting.v1.core.PayloadResolver
 import org.prebid.server.hooks.v1.Hook;
 import org.prebid.server.hooks.v1.InvocationContext;
 import org.prebid.server.hooks.v1.Module;
+import org.prebid.server.json.ObjectMapperProvider;
 
 import java.util.Collection;
 import java.util.List;
@@ -39,13 +40,12 @@ public class OptableTargetingModuleTest {
     @Mock
     OptableAttributesResolver optableAttributesResolver;
 
-    @Mock
-    AnalyticTagsResolver analyticTagsResolver;
-
     @Mock(strictness = LENIENT)
     UserFpdActivityMask userFpdActivityMask;
 
     ExecutionTimeResolver executionTimeResolver = new ExecutionTimeResolver();
+
+    ObjectMapper mapper = ObjectMapperProvider.mapper();
 
     @Test
     public void shouldReturnNonBlankCode() {
@@ -72,10 +72,10 @@ public class OptableTargetingModuleTest {
                         optableAttributesResolver,
                         userFpdActivityMask),
                         new OptableTargetingAuctionResponseHook(
-                                analyticTagsResolver,
                                 payloadResolver,
                                 configResolver,
-                                executionTimeResolver));
+                                executionTimeResolver,
+                                mapper));
 
         final Module module = new OptableTargetingModule(hooks);
 

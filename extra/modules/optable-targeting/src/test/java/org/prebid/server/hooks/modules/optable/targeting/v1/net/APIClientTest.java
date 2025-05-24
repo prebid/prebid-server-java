@@ -48,7 +48,7 @@ public class APIClientTest extends BaseOptableTest {
 
     @BeforeEach
     public void setUp() {
-        target = new APIClient("endpoint",
+        target = new APIClient("http://endpoint.optable.com",
                 httpClient,
                 LOG_SAMPLING_RATE,
                 parser);
@@ -132,7 +132,7 @@ public class APIClientTest extends BaseOptableTest {
     @Test
     public void shouldUseAuthorizationHeaderIfApiKeyIsPresent() {
         //  given
-        target = new APIClient("endpoint",
+        target = new APIClient("http://endpoint.optable.com",
                 httpClient,
                 LOG_SAMPLING_RATE,
                 parser);

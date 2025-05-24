@@ -1,5 +1,6 @@
 package org.prebid.server.hooks.modules.optable.targeting.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.vertx.core.Vertx;
 import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
 import org.prebid.server.cache.PbcStorageService;
@@ -7,7 +8,6 @@ import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTar
 import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingAuctionResponseHook;
 import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingModule;
 import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingProcessedAuctionRequestHook;
-import org.prebid.server.hooks.modules.optable.targeting.v1.analytics.AnalyticTagsResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.Cache;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ExecutionTimeResolver;
@@ -20,29 +20,28 @@ import org.prebid.server.hooks.modules.optable.targeting.v1.net.APIClient;
 import org.prebid.server.hooks.modules.optable.targeting.v1.net.OptableHttpClientWrapper;
 import org.prebid.server.hooks.modules.optable.targeting.v1.net.OptableResponseMapper;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.json.JsonMerger;
 import org.prebid.server.json.ObjectMapperProvider;
 import org.prebid.server.spring.config.VertxContextScope;
 import org.prebid.server.spring.config.model.HttpClientProperties;
-import org.prebid.server.util.HttpUtil;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 import org.springframework.context.annotation.ScopedProxyMode;
 
 import java.util.List;
-import java.util.Objects;
 
 @ConditionalOnProperty(prefix = "hooks." + OptableTargetingModule.CODE, name = "enabled", havingValue = "true")
 @Configuration
-@EnableConfigurationProperties(OptableTargetingProperties.class)
 public class OptableTargetingConfig {
 
     @Bean
-    AnalyticTagsResolver analyticTagsResolver() {
-        return new AnalyticTagsResolver(ObjectMapperProvider.mapper());
+    @ConfigurationProperties(prefix = "hooks.modules." + OptableTargetingModule.CODE)
+    OptableTargetingProperties properties() {
+        return new OptableTargetingProperties();
     }
 
     @Bean
@@ -80,9 +79,11 @@ public class OptableTargetingConfig {
                         OptableTargetingProperties properties,
                         OptableResponseMapper responseParser) {
 
-        final String endpoint = HttpUtil.validateUrl(Objects.requireNonNull(properties.getApiEndpoint()));
-
-        return new APIClient(endpoint, httpClientWrapper.getHttpClient(), logSamplingRate, responseParser);
+        return new APIClient(
+                properties.getApiEndpoint(),
+                httpClientWrapper.getHttpClient(),
+                logSamplingRate,
+                responseParser);
     }
 
     @Bean
@@ -114,8 +115,8 @@ public class OptableTargetingConfig {
     }
 
     @Bean
-    ConfigResolver configResolver(OptableTargetingProperties globalProperties) {
-        return new ConfigResolver(ObjectMapperProvider.mapper(), globalProperties);
+    ConfigResolver configResolver(JsonMerger jsonMerger, OptableTargetingProperties globalProperties) {
+        return new ConfigResolver(ObjectMapperProvider.mapper(), jsonMerger, globalProperties);
     }
 
     @Bean
@@ -125,7 +126,6 @@ public class OptableTargetingConfig {
 
     @Bean
     OptableTargetingModule optableTargetingModule(ConfigResolver configResolver,
-                                                  AnalyticTagsResolver analyticTagsResolver,
                                                   OptableTargeting optableTargeting,
                                                   PayloadResolver payloadResolver,
                                                   OptableAttributesResolver optableAttributesResolver,
@@ -140,9 +140,9 @@ public class OptableTargetingConfig {
                         optableAttributesResolver,
                         userFpdActivityMask),
                 new OptableTargetingAuctionResponseHook(
-                        analyticTagsResolver,
                         payloadResolver,
                         configResolver,
-                        executionTimeResolver)));
+                        executionTimeResolver,
+                        ObjectMapperProvider.mapper())));
     }
 }

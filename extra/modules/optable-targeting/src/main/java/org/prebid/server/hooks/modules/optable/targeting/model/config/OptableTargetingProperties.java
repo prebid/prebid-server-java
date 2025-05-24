@@ -3,12 +3,9 @@ package org.prebid.server.hooks.modules.optable.targeting.model.config;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingModule;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.util.Map;
 
-@ConfigurationProperties(prefix = "hooks.modules." + OptableTargetingModule.CODE)
 @Data
 @NoArgsConstructor
 public final class OptableTargetingProperties {

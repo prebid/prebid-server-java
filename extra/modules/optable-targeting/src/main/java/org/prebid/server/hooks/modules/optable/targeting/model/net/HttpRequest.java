@@ -4,7 +4,7 @@ import io.vertx.core.MultiMap;
 import lombok.Builder;
 import lombok.Value;
 
-@Builder(toBuilder = true)
+@Builder
 @Value
 public class HttpRequest {
 

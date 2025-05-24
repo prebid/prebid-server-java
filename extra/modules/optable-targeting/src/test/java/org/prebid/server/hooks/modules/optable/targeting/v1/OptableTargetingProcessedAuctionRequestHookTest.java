@@ -1,5 +1,6 @@
 package org.prebid.server.hooks.modules.optable.targeting.v1;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Future;
@@ -23,6 +24,8 @@ import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
+import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.json.JsonMerger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -46,13 +49,10 @@ public class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptable
     UserFpdActivityMask userFpdActivityMask;
     @Mock
     ActivityInfrastructure activityInfrastructure;
-
     private ConfigResolver configResolver;
-
     private PayloadResolver payloadResolver;
-
     private OptableAttributesResolver optableAttributesResolver;
-
+    private JsonMerger jsonMerger = new JsonMerger(new JacksonMapper(new ObjectMapper()));
     private OptableTargetingProcessedAuctionRequestHook target;
 
     @BeforeEach
@@ -63,7 +63,7 @@ public class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptable
         when(timeout.remaining()).thenReturn(1000L);
         when(invocationContext.accountConfig()).thenReturn(givenAccountConfig(true));
         when(invocationContext.auctionContext()).thenReturn(givenAuctionContext(activityInfrastructure, timeout));
-        configResolver = new ConfigResolver(mapper, givenOptableTargetingProperties(false));
+        configResolver = new ConfigResolver(mapper, jsonMerger, givenOptableTargetingProperties(false));
         payloadResolver = new PayloadResolver(mapper);
         optableAttributesResolver = new OptableAttributesResolver();
         target = new OptableTargetingProcessedAuctionRequestHook(configResolver, optableTargeting,
@@ -133,28 +133,6 @@ public class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptable
                 .getUser().getExt().getProperty("optable");
 
         assertThat(optable).isNull();
-    }
-
-    @Test
-    public void shouldReturnResultWithoutUpdateActionWhenBidRequestIsNull() {
-        // given
-        when(auctionRequestPayload.bidRequest()).thenReturn(null);
-        when(optableTargeting.getTargeting(any(), any(), any(), anyLong()))
-                .thenReturn(Future.succeededFuture(givenTargetingResult()));
-
-        // when
-        final Future<InvocationResult<AuctionRequestPayload>> future = target.call(auctionRequestPayload,
-                invocationContext);
-
-        // then
-        assertThat(future).isNotNull();
-        assertThat(future.succeeded()).isTrue();
-
-        final InvocationResult<AuctionRequestPayload> result = future.result();
-        assertThat(result).isNotNull();
-        assertThat(result.status()).isEqualTo(InvocationStatus.success);
-        assertThat(result.action()).isEqualTo(InvocationAction.no_action);
-        assertThat(result.errors()).isNull();
     }
 
     @Test
