@@ -1,6 +1,5 @@
 package org.prebid.server.hooks.modules.optable.targeting.v1.net;
 
-import io.netty.channel.ConnectTimeoutException;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
@@ -12,7 +11,6 @@ import org.prebid.server.hooks.modules.optable.targeting.model.Query;
 import org.prebid.server.hooks.modules.optable.targeting.model.net.HttpRequest;
 import org.prebid.server.hooks.modules.optable.targeting.model.net.HttpResponse;
 import org.prebid.server.hooks.modules.optable.targeting.model.net.OptableCall;
-import org.prebid.server.hooks.modules.optable.targeting.model.net.OptableError;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.Logger;
@@ -24,7 +22,6 @@ import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.TimeoutException;
 
 public class APIClient {
 
@@ -122,18 +119,7 @@ public class APIClient {
 
         final int statusCode = response.getStatusCode();
         final HttpResponse httpResponse = HttpResponse.of(statusCode, response.getHeaders(), response.getBody());
-        return Future.succeededFuture(OptableCall.succeededHttp(httpRequest, httpResponse, errorOrNull(statusCode)));
-    }
-
-    private static OptableError errorOrNull(int statusCode) {
-        if (statusCode != HttpResponseStatus.OK.code() && statusCode != HttpResponseStatus.NO_CONTENT.code()) {
-            return OptableError.of(
-                    "Unexpected status code: %s.".formatted(statusCode),
-                    statusCode == HttpResponseStatus.BAD_REQUEST.code()
-                            ? OptableError.Type.BAD_INPUT
-                            : OptableError.Type.BAD_SERVER_RESPONSE);
-        }
-        return null;
+        return Future.succeededFuture(OptableCall.succeededHttp(httpRequest, httpResponse));
     }
 
     private Future<OptableCall> failResponse(Throwable exception, HttpRequest httpRequest) {
@@ -142,13 +128,7 @@ public class APIClient {
         logger.debug("Error occurred while sending HTTP request to the Optable url: {}",
                 exception, httpRequest.getUri());
 
-        final OptableError.Type errorType =
-                exception instanceof TimeoutException || exception instanceof ConnectTimeoutException
-                        ? OptableError.Type.TIMEOUT
-                        : OptableError.Type.GENERIC;
-
-        return Future.succeededFuture(
-                OptableCall.failedHttp(httpRequest, OptableError.of(exception.getMessage(), errorType)));
+        return Future.succeededFuture(OptableCall.failedHttp(httpRequest));
     }
 
     private OptableCall validateResponse(OptableCall response) {

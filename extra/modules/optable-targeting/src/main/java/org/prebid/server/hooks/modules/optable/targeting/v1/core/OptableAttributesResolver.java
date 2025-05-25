@@ -1,12 +1,15 @@
 package org.prebid.server.hooks.modules.optable.targeting.v1.core;
 
 import com.iab.gpp.encoder.GppModel;
+import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
 import org.prebid.server.auction.gpp.model.GppContext;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.hooks.modules.optable.targeting.model.OptableAttributes;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.PrivacyContext;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -15,7 +18,7 @@ import java.util.Set;
 public class OptableAttributesResolver {
 
     public OptableAttributes resolveAttributes(AuctionContext auctionContext, Long timeout) {
-        final List<String> ips = IpResolver.resolveIp(auctionContext);
+        final List<String> ips = resolveIp(auctionContext);
 
         return Optional.ofNullable(getGdprPrivacyAttributes(auctionContext))
                 .or(() -> Optional.ofNullable(getGppPrivacyAttributes(auctionContext)))
@@ -24,6 +27,27 @@ public class OptableAttributesResolver {
                 .ips(ips)
                 .timeout(timeout)
                 .build();
+    }
+
+    public static List<String> resolveIp(AuctionContext auctionContext) {
+        final List<String> result = new ArrayList<>();
+
+        final Optional<AuctionContext> auctionContextOpt = Optional.ofNullable(auctionContext);
+
+        final Optional<Device> deviceOpt = auctionContextOpt
+                .map(AuctionContext::getBidRequest)
+                .map(BidRequest::getDevice);
+
+        deviceOpt.map(Device::getIp).ifPresent(result::add);
+        deviceOpt.map(Device::getIpv6).ifPresent(result::add);
+
+        if (result.isEmpty()) {
+            auctionContextOpt.map(AuctionContext::getPrivacyContext)
+                    .map(PrivacyContext::getIpAddress)
+                    .ifPresent(result::add);
+        }
+
+        return result;
     }
 
     private OptableAttributes getGppPrivacyAttributes(AuctionContext auctionContext) {

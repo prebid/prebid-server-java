@@ -12,11 +12,9 @@ import java.util.Objects;
 public class Cache {
 
     private static final String APP_CODE = "prebid-Java";
-
     private static final String APPLICATION = "optable-targeting";
 
     private final PbcStorageService cacheService;
-
     private final OptableResponseMapper optableResponseMapper;
 
     public Cache(PbcStorageService cacheService,

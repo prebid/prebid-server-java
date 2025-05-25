@@ -38,7 +38,7 @@ public class OptableResponseMapperTest extends BaseOptableTest {
     @Test
     public void shouldNotFailWhenResponseIsNull() {
         // given
-        final OptableCall optableCall = OptableCall.succeededHttp(null, null, null);
+        final OptableCall optableCall = OptableCall.succeededHttp(null, null);
 
         //when
         final TargetingResult result = target.parse(optableCall);
@@ -51,7 +51,7 @@ public class OptableResponseMapperTest extends BaseOptableTest {
     public void shouldNotFailWhenResponseBodyIsWrong() {
         // given
         final HttpResponse response = givenSuccessResponse("{\"field'\": \"value\"}");
-        final OptableCall optableCall = OptableCall.succeededHttp(null, response, null);
+        final OptableCall optableCall = OptableCall.succeededHttp(null, response);
 
         //when
         final TargetingResult result = target.parse(optableCall);
@@ -65,7 +65,7 @@ public class OptableResponseMapperTest extends BaseOptableTest {
     public void shouldParseRightResponse() {
         // given
         final HttpResponse response = givenSuccessResponse(givenBodyFromFile("targeting_response.json"));
-        final OptableCall optableCall = OptableCall.succeededHttp(null, response, null);
+        final OptableCall optableCall = OptableCall.succeededHttp(null, response);
 
         //when
         final TargetingResult result = target.parse(optableCall);
@@ -81,7 +81,7 @@ public class OptableResponseMapperTest extends BaseOptableTest {
     public void shouldFailWhenGotNotJsonString() {
         // given
         final HttpResponse response = givenSuccessResponse("random string");
-        final OptableCall optableCall = OptableCall.succeededHttp(null, response, null);
+        final OptableCall optableCall = OptableCall.succeededHttp(null, response);
 
         //when and then
         assertThrows(

@@ -1,6 +1,5 @@
 package org.prebid.server.hooks.modules.optable.targeting.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.vertx.core.Vertx;
 import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
 import org.prebid.server.cache.PbcStorageService;

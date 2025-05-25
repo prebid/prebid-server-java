@@ -12,13 +12,11 @@ public class OptableCall {
 
     HttpResponse response;
 
-    OptableError error;
-
-    public static OptableCall succeededHttp(HttpRequest request, HttpResponse response, OptableError error) {
-        return new OptableCall(request, response, error);
+    public static OptableCall succeededHttp(HttpRequest request, HttpResponse response) {
+        return new OptableCall(request, response);
     }
 
-    public static OptableCall failedHttp(HttpRequest request, OptableError error) {
-        return new OptableCall(request, null, error);
+    public static OptableCall failedHttp(HttpRequest request) {
+        return new OptableCall(request, null);
     }
 }

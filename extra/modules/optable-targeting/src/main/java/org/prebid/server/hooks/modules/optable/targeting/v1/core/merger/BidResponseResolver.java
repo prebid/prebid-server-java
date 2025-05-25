@@ -20,7 +20,6 @@ import java.util.Optional;
 public class BidResponseResolver {
 
     private BidResponse bidResponse;
-
     private ObjectMapper mapper;
 
     public BidResponse applyTargeting(List<Audience> targeting) {

@@ -24,7 +24,7 @@ public class OptableTargeting {
     public OptableTargeting(Cache cache, IdsMapper idsMapper, QueryBuilder queryBuilder, APIClient apiClient,
                             boolean moduleCacheEnabled) {
 
-        this.cache = cache;
+        this.cache = Objects.requireNonNull(cache);
         this.idsMapper = Objects.requireNonNull(idsMapper);
         this.queryBuilder = Objects.requireNonNull(queryBuilder);
         this.apiClient = Objects.requireNonNull(apiClient);
