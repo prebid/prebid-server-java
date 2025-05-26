@@ -9,7 +9,6 @@ import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingModu
 import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingProcessedAuctionRequestHook;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.Cache;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.ExecutionTimeResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.IdsMapper;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableAttributesResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargeting;
@@ -119,16 +118,10 @@ public class OptableTargetingConfig {
     }
 
     @Bean
-    ExecutionTimeResolver executionTimeResolver() {
-        return new ExecutionTimeResolver();
-    }
-
-    @Bean
     OptableTargetingModule optableTargetingModule(ConfigResolver configResolver,
                                                   OptableTargeting optableTargeting,
                                                   PayloadResolver payloadResolver,
                                                   OptableAttributesResolver optableAttributesResolver,
-                                                  ExecutionTimeResolver executionTimeResolver,
                                                   UserFpdActivityMask userFpdActivityMask) {
 
         return new OptableTargetingModule(List.of(
@@ -141,7 +134,6 @@ public class OptableTargetingConfig {
                 new OptableTargetingAuctionResponseHook(
                         payloadResolver,
                         configResolver,
-                        executionTimeResolver,
                         ObjectMapperProvider.mapper())));
     }
 }

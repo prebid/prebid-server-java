@@ -4,6 +4,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.vertx.core.Future;
 import org.apache.commons.collections4.CollectionUtils;
+import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.hooks.execution.model.GroupExecutionOutcome;
+import org.prebid.server.hooks.execution.model.HookExecutionContext;
+import org.prebid.server.hooks.execution.model.HookExecutionOutcome;
+import org.prebid.server.hooks.execution.model.Stage;
+import org.prebid.server.hooks.execution.model.StageExecutionOutcome;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.execution.v1.analytics.ActivityImpl;
 import org.prebid.server.hooks.execution.v1.analytics.ResultImpl;
@@ -17,7 +23,6 @@ import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTar
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Audience;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.AuctionResponseValidator;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.ExecutionTimeResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.PayloadResolver;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
@@ -31,6 +36,7 @@ import org.prebid.server.hooks.v1.auction.AuctionResponseHook;
 import org.prebid.server.hooks.v1.auction.AuctionResponsePayload;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -46,18 +52,15 @@ public class OptableTargetingAuctionResponseHook implements AuctionResponseHook 
 
     private final PayloadResolver payloadResolver;
     private final ConfigResolver configResolver;
-    private final ExecutionTimeResolver executionTimeResolver;
     private final ObjectMapper objectMapper;
 
     public OptableTargetingAuctionResponseHook(
             PayloadResolver payloadResolver,
             ConfigResolver configResolver,
-            ExecutionTimeResolver executionTimeResolver,
             ObjectMapper objectMapper) {
 
         this.payloadResolver = Objects.requireNonNull(payloadResolver);
         this.configResolver = Objects.requireNonNull(configResolver);
-        this.executionTimeResolver = Objects.requireNonNull(executionTimeResolver);
         this.objectMapper = Objects.requireNonNull(objectMapper);
     }
 
@@ -70,8 +73,7 @@ public class OptableTargetingAuctionResponseHook implements AuctionResponseHook 
 
         final ModuleContext moduleContext = ModuleContext.of(invocationContext);
         moduleContext.setAdserverTargetingEnabled(adserverTargeting);
-        moduleContext.setOptableTargetingExecutionTime(
-                executionTimeResolver.extractOptableTargetingExecutionTime(invocationContext));
+        moduleContext.setOptableTargetingExecutionTime(extractOptableTargetingExecutionTime(invocationContext));
 
         if (adserverTargeting) {
             final EnrichmentStatus validationStatus = AuctionResponseValidator.checkEnrichmentPossibility(
@@ -84,6 +86,26 @@ public class OptableTargetingAuctionResponseHook implements AuctionResponseHook 
         }
 
         return success(moduleContext);
+    }
+
+    private long extractOptableTargetingExecutionTime(AuctionInvocationContext invocationContext) {
+        return Optional.ofNullable(invocationContext.auctionContext())
+                .map(AuctionContext::getHookExecutionContext)
+                .map(HookExecutionContext::getStageOutcomes)
+                .map(stages -> stages.get(Stage.processed_auction_request))
+                .stream()
+                .flatMap(Collection::stream)
+                .filter(stageExecutionOutcome -> "auction-request".equals(stageExecutionOutcome.getEntity()))
+                .map(StageExecutionOutcome::getGroups)
+                .flatMap(Collection::stream)
+                .map(GroupExecutionOutcome::getHooks)
+                .flatMap(Collection::stream)
+                .filter(hook -> OptableTargetingModule.CODE.equals(hook.getHookId().getModuleCode()))
+                .filter(hook ->
+                        OptableTargetingProcessedAuctionRequestHook.CODE.equals(hook.getHookId().getHookImplCode()))
+                .findFirst()
+                .map(HookExecutionOutcome::getExecutionTime)
+                .orElse(0L);
     }
 
     private Future<InvocationResult<AuctionResponsePayload>> enrichedPayload(ModuleContext moduleContext) {

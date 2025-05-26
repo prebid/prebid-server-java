@@ -7,7 +7,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.ExecutionTimeResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableAttributesResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargeting;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.PayloadResolver;
@@ -43,8 +42,6 @@ public class OptableTargetingModuleTest {
     @Mock(strictness = LENIENT)
     UserFpdActivityMask userFpdActivityMask;
 
-    ExecutionTimeResolver executionTimeResolver = new ExecutionTimeResolver();
-
     ObjectMapper mapper = ObjectMapperProvider.mapper();
 
     @Test
@@ -74,7 +71,6 @@ public class OptableTargetingModuleTest {
                         new OptableTargetingAuctionResponseHook(
                                 payloadResolver,
                                 configResolver,
-                                executionTimeResolver,
                                 mapper));
 
         final Module module = new OptableTargetingModule(hooks);

@@ -14,7 +14,6 @@ import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Audience;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.AudienceId;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.AuctionResponseValidator;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.ExecutionTimeResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.PayloadResolver;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
@@ -46,8 +45,6 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
 
     private ConfigResolver configResolver;
 
-    private ExecutionTimeResolver executionTimeResolver = new ExecutionTimeResolver();
-
     @BeforeEach
     public void setUp() {
         when(invocationContext.accountConfig()).thenReturn(givenAccountConfig(true));
@@ -56,7 +53,6 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
         target = new OptableTargetingAuctionResponseHook(
                 payloadResolver,
                 configResolver,
-                executionTimeResolver,
                 mapper);
     }
 
@@ -134,7 +130,6 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
         target = new OptableTargetingAuctionResponseHook(
                 payloadResolver,
                 configResolver,
-                executionTimeResolver,
                 mapper);
 
         // when
