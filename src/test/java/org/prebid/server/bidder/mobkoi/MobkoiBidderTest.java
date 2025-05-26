@@ -110,6 +110,20 @@ public class MobkoiBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldConstructWithDefaultEndpointWhenTheCustomURLIsInvalidInMobkoiExtension() {
+        // given
+        final ObjectNode mobkoiExt = impExt("pid", "invalid URI");
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(mobkoiExt));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).extracting(HttpRequest::getUri).containsExactly("https://test.endpoint.com/bid");
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
     public void makeHttpRequestsShouldUseCustomEndpointWhenDefinedInMobkoiExtension() {
         // given
         final ObjectNode mobkoiExt = impExt("pid", "https://custom.endpoint.com");

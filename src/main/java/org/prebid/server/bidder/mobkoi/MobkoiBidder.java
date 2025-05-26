@@ -93,10 +93,10 @@ public class MobkoiBidder implements Bidder<BidRequest> {
 
     // url is already validated with `bidder-params` json schema
     private String resolveEndpoint(String customUri) {
+        if (customUri == null) {
+            return endpointUrl;
+        }
         try {
-            if (customUri == null) {
-                return endpointUrl;
-            }
             final URI uri = new URI(customUri);
             return uri.resolve("/bid").toString();
         } catch (IllegalArgumentException | URISyntaxException e) {
