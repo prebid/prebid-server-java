@@ -31,4 +31,44 @@ jobs:
           java-version: ${{ matrix.java }}
 
       - name: Build with Maven
-        run: mvn -B package --file extra/pom.xml
+        id: build
+        run: |
+          mvn -B package --file extra/pom.xml | tee build_output.txt
+          echo "exit_code=$result" >> "$GITHUB_OUTPUT"
+      - name: Format build output for PR comment
+        if: steps.build.outputs.exit_code != '0'
+        run: |
+          if grep -q '\[INFO\] Starting audit\.\.\.' build_output.txt; then
+            {
+              echo "❌ **Checkstyle Issues Detected**"
+              echo ""
+              echo '```'
+              sed -n '/\[INFO\] Starting audit\.\.\./,/Audit done\./p' build_output.txt | sed '0,/Audit done\./d'
+              echo '```'
+          } > comment.txt
+          else
+            {
+              echo "❌ **Java CI Test Failures**"
+              echo ""
+              echo '```'
+              sed -n '/\[ERROR\] Failures:/,/\[ERROR\] Tests run:/p' build_output.txt
+              echo '```'
+            } > comment.txt
+          fi
+      - name: Print comment.txt content
+        if: always()  # Ensures this runs even if a previous step failed
+        run: |
+          echo "------ comment.txt content ------"
+          cat comment.txt || echo "comment.txt not found"
+          echo "--------------------------------"
+      - name: Comment on PR with build failure output
+        if: steps.build.outputs.exit_code != '0'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body-path: comment.txt
+
+      - name: Fail if error is found in logs
+        if: steps.build.outputs.exit_code != '0'
+        run: exit 1
