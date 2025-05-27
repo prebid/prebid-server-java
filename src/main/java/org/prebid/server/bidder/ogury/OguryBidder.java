@@ -70,7 +70,12 @@ public class OguryBidder implements Bidder<BidRequest> {
             }
         }
 
-        if (!isValidRequestKeys(bidRequest, impsWithOguryParams)) {
+        if (isAppRequest(bidRequest)) {
+            if (!isValidAppRequestKeys(impsWithOguryParams)) {
+                errors.add(BidderError.badInput("Invalid request. assetKey/adUnitId required"));
+                return Result.withErrors(errors);
+            }
+        } else if (!isValidSiteRequestKeys(bidRequest, impsWithOguryParams)) {
             errors.add(BidderError.badInput(
                     "Invalid request. assetKey/adUnitId or request.site.publisher.id required"));
             return Result.withErrors(errors);
@@ -137,7 +142,15 @@ public class OguryBidder implements Bidder<BidRequest> {
                 && impExtBidderHoist.has(PREBID_FIELD_ADUNIT_ID);
     }
 
-    private boolean isValidRequestKeys(BidRequest request, List<Imp> impsWithOguryParams) {
+    private boolean isAppRequest(BidRequest request) {
+        return Optional.ofNullable(request.getApp()).isPresent();
+    }
+
+    private boolean isValidAppRequestKeys(List<Imp> impsWithOguryParams) {
+        return !CollectionUtils.isEmpty(impsWithOguryParams);
+    }
+
+    private boolean isValidSiteRequestKeys(BidRequest request, List<Imp> impsWithOguryParams) {
         return !CollectionUtils.isEmpty(impsWithOguryParams) || Optional.ofNullable(request.getSite())
                 .map(Site::getPublisher)
                 .map(Publisher::getId)
