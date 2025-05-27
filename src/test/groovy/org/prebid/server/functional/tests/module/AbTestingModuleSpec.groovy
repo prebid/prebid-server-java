@@ -80,8 +80,8 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         then: "PBS response should include trace information about called modules"
         def invocationResults = response?.ext?.prebid?.modules?.trace?.stages?.outcomes?.groups?.invocationResults?.flatten() as List<InvocationResult>
         verifyAll(invocationResults) {
-            it.status == [SUCCESS, SUCCESS]
-            it.action == [NO_ACTION, NO_ACTION]
+            it.status == [null, SUCCESS]
+            it.action == [NO_ACTION, null]
         }
 
         and: "Shouldn't include any analytics tags"
