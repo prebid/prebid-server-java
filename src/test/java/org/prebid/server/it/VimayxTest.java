@@ -34,4 +34,3 @@ public class VimayxTest extends IntegrationTest {
         assertJsonEquals("openrtb2/vimayx/test-auction-vimayx-response.json", response, singletonList("vimayx"));
     }
 }
-

@@ -23,6 +23,7 @@ import org.prebid.server.settings.model.PurposeEid;
 import org.prebid.server.settings.model.Purposes;
 import org.prebid.server.settings.model.activity.AccountActivityConfiguration;
 import org.prebid.server.settings.model.activity.privacy.AccountPrivacyModuleConfig;
+import org.prebid.server.settings.model.activity.rule.AccountActivityRuleConfig;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -171,7 +172,8 @@ public class ActivityInfrastructureCreator {
         final boolean allow = allowFromConfig(activityConfiguration.getAllow());
         final List<Rule> rules = ListUtils.emptyIfNull(activityConfiguration.getRules()).stream()
                 .filter(Objects::nonNull)
-                .map(ruleConfiguration -> activityRuleFactory.from(ruleConfiguration, creationContext))
+                .map(ruleConfiguration -> createRule(ruleConfiguration, creationContext))
+                .filter(Objects::nonNull)
                 .toList();
 
         return ActivityController.of(allow, rules, debug);
@@ -179,6 +181,20 @@ public class ActivityInfrastructureCreator {
 
     private static boolean allowFromConfig(Boolean configValue) {
         return configValue != null ? configValue : ActivityInfrastructure.ALLOW_ACTIVITY_BY_DEFAULT;
+    }
+
+    private Rule createRule(AccountActivityRuleConfig ruleConfiguration,
+                            ActivityControllerCreationContext creationContext) {
+
+        try {
+            return activityRuleFactory.from(ruleConfiguration, creationContext);
+        } catch (Exception e) {
+            logger.error("ActivityInfrastructure rule creation failed: %s. Configuration: %s"
+                    .formatted(e.getMessage(), ruleConfiguration));
+            metrics.updateAlertsMetrics(MetricName.general);
+
+            return null;
+        }
     }
 
     private static Supplier<Map<Activity, ActivityController>> enumMapFactory() {

@@ -14,6 +14,7 @@ import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.net.impl.SocketAddressImpl;
+import io.vertx.ext.web.RequestBody;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -91,6 +92,8 @@ public class VideoRequestFactoryTest extends VertxTest {
     private RoutingContext routingContext;
     @Mock(strictness = LENIENT)
     private HttpServerRequest httpServerRequest;
+    @Mock
+    private RequestBody requestBody;
     @Mock(strictness = LENIENT)
     private DebugResolver debugResolver;
 
@@ -115,6 +118,7 @@ public class VideoRequestFactoryTest extends VertxTest {
                 .willReturn(DebugContext.of(true, true, null));
 
         given(routingContext.request()).willReturn(httpServerRequest);
+        given(routingContext.body()).willReturn(requestBody);
         given(routingContext.queryParams()).willReturn(MultiMap.caseInsensitiveMultiMap());
         given(httpServerRequest.remoteAddress()).willReturn(new SocketAddressImpl(1234, "host"));
         given(httpServerRequest.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
@@ -149,7 +153,7 @@ public class VideoRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfRequestBodyIsMissing() {
         // given
-        given(routingContext.getBodyAsString()).willReturn(null);
+        given(requestBody.asString()).willReturn(null);
 
         // when
         final Future<?> future = target.fromRequest(routingContext, 0L);
@@ -164,7 +168,7 @@ public class VideoRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfStoredRequestIsEnforcedAndIdIsNotProvided() throws JsonProcessingException {
         // given
-        given(routingContext.getBodyAsString())
+        given(requestBody.asString())
                 .willReturn(mapper.writeValueAsString(BidRequestVideo.builder().build()));
         given(routingContext.request().headers()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add(HttpUtil.USER_AGENT_HEADER, "123"));
@@ -207,7 +211,7 @@ public class VideoRequestFactoryTest extends VertxTest {
                 jacksonMapper,
                 geoLocationServiceWrapper);
 
-        given(routingContext.getBodyAsString()).willReturn("body");
+        given(requestBody.asString()).willReturn("body");
 
         // when
         final Future<?> future = target.fromRequest(routingContext, 0L);
@@ -222,7 +226,7 @@ public class VideoRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfRequestBodyCouldNotBeParsed() {
         // given
-        given(routingContext.getBodyAsString()).willReturn("body");
+        given(requestBody.asString()).willReturn("body");
 
         // when
         final Future<?> future = target.fromRequest(routingContext, 0L);
@@ -239,7 +243,7 @@ public class VideoRequestFactoryTest extends VertxTest {
         // given
         final BidRequestVideo requestVideo = BidRequestVideo.builder().build();
         final String body = mapper.writeValueAsString(requestVideo);
-        given(routingContext.getBodyAsString()).willReturn(body);
+        given(requestBody.asString()).willReturn(body);
 
         given(routingContext.request().headers()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add(HttpUtil.USER_AGENT_HEADER, "user-agent-123"));
@@ -274,7 +278,7 @@ public class VideoRequestFactoryTest extends VertxTest {
         // given
         final BidRequestVideo requestVideo = BidRequestVideo.builder().device(
                 Device.builder().ua("123").build()).build();
-        given(routingContext.getBodyAsString()).willReturn(mapper.writeValueAsString(requestVideo));
+        given(requestBody.asString()).willReturn(mapper.writeValueAsString(requestVideo));
         givenBidRequest(BidRequest.builder().build(), emptyList());
 
         // when
@@ -331,7 +335,7 @@ public class VideoRequestFactoryTest extends VertxTest {
 
         final BidRequestVideo requestVideo = BidRequestVideo.builder().device(
                 Device.builder().ua("123").build()).build();
-        given(routingContext.getBodyAsString()).willReturn(mapper.writeValueAsString(requestVideo));
+        given(requestBody.asString()).willReturn(mapper.writeValueAsString(requestVideo));
 
         final List<PodError> podErrors = singletonList(PodError.of(1, 1, singletonList("TEST")));
         givenBidRequest(bidRequest, podErrors);
@@ -340,7 +344,7 @@ public class VideoRequestFactoryTest extends VertxTest {
         final Future<WithPodErrors<AuctionContext>> result = target.fromRequest(routingContext, 0L);
 
         // then
-        verify(routingContext).getBodyAsString();
+        verify(requestBody).asString();
         verify(videoStoredRequestProcessor).processVideoRequest("", null, emptySet(), requestVideo);
         verify(ortb2RequestFactory).createAuctionContext(any(), eq(MetricName.video));
         verify(ortb2RequestFactory).enrichAuctionContext(any(), any(), eq(bidRequest), eq(0L));
@@ -358,7 +362,7 @@ public class VideoRequestFactoryTest extends VertxTest {
     public void shouldReplaceDeviceUaWithUserAgentHeaderIfPresented() throws JsonProcessingException {
         // given
         final BidRequestVideo requestVideo = BidRequestVideo.builder().build();
-        given(routingContext.getBodyAsString()).willReturn(mapper.writeValueAsString(requestVideo));
+        given(requestBody.asString()).willReturn(mapper.writeValueAsString(requestVideo));
         given(routingContext.request().headers()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add(HttpUtil.USER_AGENT_HEADER, "user-agent-123"));
 
@@ -381,7 +385,7 @@ public class VideoRequestFactoryTest extends VertxTest {
     public void shouldReturnErrorIfDeviceUaAndUserAgentHeaderIsEmpty() throws JsonProcessingException {
         // given
         final BidRequestVideo requestVideo = BidRequestVideo.builder().build();
-        given(routingContext.getBodyAsString()).willReturn(mapper.writeValueAsString(requestVideo));
+        given(requestBody.asString()).willReturn(mapper.writeValueAsString(requestVideo));
         given(httpServerRequest.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
 
         // when
@@ -519,7 +523,7 @@ public class VideoRequestFactoryTest extends VertxTest {
     private void prepareMinimumSuccessfulConditions() throws JsonProcessingException {
         final BidRequestVideo requestVideo = BidRequestVideo.builder().device(Device.builder()
                 .ua("123").build()).build();
-        given(routingContext.getBodyAsString()).willReturn(mapper.writeValueAsString(requestVideo));
+        given(requestBody.asString()).willReturn(mapper.writeValueAsString(requestVideo));
         final ExtRequestPrebid ext = ExtRequestPrebid.builder()
                 .targeting(ExtRequestTargeting.builder().build())
                 .build();

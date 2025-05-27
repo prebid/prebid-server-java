@@ -3,7 +3,6 @@ package org.prebid.server.handler;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
@@ -52,8 +51,7 @@ public class GetuidsHandler implements ApplicationResource {
                         uidEntry -> uidEntry.getValue().getUid()));
     }
 
-    @AllArgsConstructor(staticName = "of")
-    @Value
+    @Value(staticConstructor = "of")
     private static class BuyerUids {
 
         @JsonInclude(JsonInclude.Include.NON_EMPTY)

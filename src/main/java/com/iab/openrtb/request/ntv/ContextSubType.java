@@ -14,7 +14,7 @@ public enum ContextSubType {
      */
     GENERAL(10),
     /**
-     * Primarily article content (which of course could include images, etc as part of the article)
+     * Primarily article content (which of course could include images, etc. as part of the article)
      */
     ARTICLE(11),
     /**
