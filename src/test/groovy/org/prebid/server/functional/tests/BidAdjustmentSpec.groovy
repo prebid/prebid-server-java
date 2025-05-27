@@ -79,6 +79,10 @@ class BidAdjustmentSpec extends BaseSpec {
                                            "adapters.amx.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
     private static final PrebidServerService pbsService = pbsServiceFactory.getService(externalCurrencyConverterConfig + AMX_CONFIG)
 
+    def cleanupSpec() {
+        pbsServiceFactory.removeContainer(externalCurrencyConverterConfig + AMX_CONFIG)
+    }
+
     def "PBS should adjust bid price for matching bidder when request has per-bidder bid adjustment factors"() {
         given: "Default bid request with bid adjustment"
         def bidRequest = BidRequest.getDefaultBidRequest(SITE).tap {
@@ -382,7 +386,7 @@ class BidAdjustmentSpec extends BaseSpec {
             cur = currency
             seatbid.first.bid.first.price = originalPrice
             seatbid.first.bid.first.dealid = dealId
-        } as BidResponse
+        }
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
@@ -464,7 +468,7 @@ class BidAdjustmentSpec extends BaseSpec {
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
             cur = currency
             seatbid.first.bid.first.price = originalPrice
-        } as BidResponse
+        }
         bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Account in the DB with bidAdjustments"
@@ -559,7 +563,7 @@ class BidAdjustmentSpec extends BaseSpec {
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
             cur = currency
             seatbid.first.bid.first.price = originalPrice
-        } as BidResponse
+        }
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
@@ -577,6 +581,7 @@ class BidAdjustmentSpec extends BaseSpec {
 
         and: "Bidder request should contain original imp.floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.cur == [currency]
         assert bidderRequest.imp.bidFloorCur == [currency]
         assert bidderRequest.imp.bidFloor == [impPrice]
 
@@ -775,7 +780,7 @@ class BidAdjustmentSpec extends BaseSpec {
             ext.prebid.bidAdjustments = BidAdjustment.getDefaultWithSingleMediaTypeRule(BANNER, bidAdjustmentMultyRule)
         }
 
-        and: "Default bid response with JPY currency"
+        and: "Default bid response with USD currency"
         def originalPrice = PBSUtils.randomPrice
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
             cur = USD
@@ -866,7 +871,7 @@ class BidAdjustmentSpec extends BaseSpec {
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
             cur = currency
             seatbid.first.bid.first.price = originalPrice
-        } as BidResponse
+        }
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
@@ -1399,19 +1404,11 @@ class BidAdjustmentSpec extends BaseSpec {
     }
 
     private static BidRequest getDefaultVideoRequestWithPlacement(VideoPlacementSubtypes videoPlacementSubtypes) {
-        BidRequest.defaultVideoRequest.tap {
-            imp.first.video.tap {
-                placement = videoPlacementSubtypes
-            }
-        }
+        getDefaultVideoRequestWithPlcmtAndPlacement(null, videoPlacementSubtypes)
     }
 
     private static BidRequest getDefaultVideoRequestWithPlcmt(VideoPlcmtSubtype videoPlcmtSubtype) {
-        BidRequest.defaultVideoRequest.tap {
-            imp.first.video.tap {
-                plcmt = videoPlcmtSubtype
-            }
-        }
+        getDefaultVideoRequestWithPlcmtAndPlacement(videoPlcmtSubtype, null)
     }
 
     private static BidRequest getDefaultVideoRequestWithPlcmtAndPlacement(VideoPlcmtSubtype videoPlcmtSubtype,

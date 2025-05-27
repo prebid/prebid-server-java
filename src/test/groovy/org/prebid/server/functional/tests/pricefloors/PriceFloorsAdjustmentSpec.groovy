@@ -61,16 +61,16 @@ class PriceFloorsAdjustmentSpec extends PriceFloorsBaseSpec {
     private static final Integer MAX_STATIC_ADJUST_VALUE = Integer.MAX_VALUE
     private static final String WILDCARD = '*'
 
-    private static final Map config = CURRENCY_CONVERTER_CONFIG +
+    private static final Map PBS_CONFIG = CURRENCY_CONVERTER_CONFIG +
             FLOORS_CONFIG +
             GENERIC_ALIAS_CONFIG +
             ["adapters.openx.enabled" : "true",
              "adapters.openx.endpoint": "$networkServiceContainer.rootUri/auction".toString()] +
             ["adapter-defaults.ortb.multiformat-supported": "true"]
-    private static final PrebidServerService pbsService = pbsServiceFactory.getService(config)
+    private static final PrebidServerService pbsService = pbsServiceFactory.getService(PBS_CONFIG)
 
     def cleanupSpec() {
-        pbsServiceFactory.removeContainer(config)
+        pbsServiceFactory.removeContainer(PBS_CONFIG)
     }
 
     def "PBS should reverse imp.floors for matching bidder when request has bidAdjustments config"() {
@@ -722,7 +722,7 @@ class PriceFloorsAdjustmentSpec extends PriceFloorsBaseSpec {
             ext.prebid.bidAdjustments = BidAdjustment.getDefaultWithSingleMediaTypeRule(BANNER, bidAdjustmentMultyRule)
         }
 
-        and: "Default bid response with JPY currency"
+        and: "Default bid response with USD currency"
         def originalPrice = PBSUtils.randomDecimal
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
             cur = USD
@@ -1162,19 +1162,11 @@ class PriceFloorsAdjustmentSpec extends PriceFloorsBaseSpec {
     }
 
     private static BidRequest getDefaultVideoRequestWithPlacement(VideoPlacementSubtypes videoPlacementSubtypes) {
-        getBidRequestWithFloors(MediaType.VIDEO).tap {
-            imp.first.video.tap {
-                placement = videoPlacementSubtypes
-            }
-        }
+        getDefaultVideoRequestWithPlcmtAndPlacement(null, videoPlacementSubtypes)
     }
 
     private static BidRequest getDefaultVideoRequestWithPlcmt(VideoPlcmtSubtype videoPlcmtSubtype) {
-        getBidRequestWithFloors(MediaType.VIDEO).tap {
-            imp.first.video.tap {
-                plcmt = videoPlcmtSubtype
-            }
-        }
+        getDefaultVideoRequestWithPlcmtAndPlacement(videoPlcmtSubtype, null)
     }
 
     private static BidRequest getDefaultVideoRequestWithPlcmtAndPlacement(VideoPlcmtSubtype videoPlcmtSubtype,
