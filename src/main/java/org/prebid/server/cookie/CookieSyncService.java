@@ -111,6 +111,8 @@ public class CookieSyncService {
                 .map(this::filterDisabledBidders)
                 .map(this::filterBiddersWithoutUsersync)
                 .map(this::filterBiddersWithDisabledUsersync)
+                .map(this::filterBiddersByGdpr)
+                .map(this::filterBiddersByGppSid)
                 .map(this::applyRequestFilterSettings)
                 .compose(this::applyPrivacyFilteringRules)
                 .map(this::filterInSyncBidders);
@@ -200,6 +202,26 @@ public class CookieSyncService {
                 cookieSyncContext,
                 bidder -> !bidderCatalog.usersyncerByName(bidder).orElseThrow().isEnabled(),
                 RejectionReason.DISABLED_USERSYNC);
+    }
+
+    private CookieSyncContext filterBiddersByGdpr(CookieSyncContext cookieSyncContext) {
+        return filterBidders(
+                cookieSyncContext,
+                bidder -> cookieSyncContext.getPrivacyContext().getTcfContext().isInGdprScope()
+                        && bidderCatalog.usersyncerByName(bidder).map(Usersyncer::isSkipWhenInGdprScope).orElse(false),
+                RejectionReason.REJECTED_BY_REGULATION_SCOPE);
+    }
+
+    private CookieSyncContext filterBiddersByGppSid(CookieSyncContext cookieSyncContext) {
+        return filterBidders(
+                cookieSyncContext,
+                bidder -> bidderCatalog.usersyncerByName(bidder)
+                        .map(Usersyncer::getGppSidToSkip)
+                        .map(gppSid -> !Collections.disjoint(
+                                gppSid,
+                                cookieSyncContext.getCookieSyncRequest().getGppSid()))
+                        .orElse(false),
+                RejectionReason.REJECTED_BY_REGULATION_SCOPE);
     }
 
     /**
@@ -469,6 +491,8 @@ public class CookieSyncService {
             case DISABLED_USERSYNC -> builder.conditionalError(requested || coopSync, "Sync disabled by config");
             case REJECTED_BY_FILTER -> builder.conditionalError(requested || coopSync, "Rejected by request filter");
             case ALREADY_IN_SYNC -> builder.conditionalError(requested, "Already in sync");
+            case REJECTED_BY_REGULATION_SCOPE -> builder.conditionalError(
+                    requested || coopSync, "Rejected by regulation scope");
         };
 
         return builder.build();

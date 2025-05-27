@@ -299,7 +299,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(bidderCatalog.isValidName(anyString())).willReturn(true);
         given(bidderCatalog.isActive(anyString())).willReturn(true);
         given(bidderCatalog.usersyncerByName(anyString()))
-                .willReturn(Optional.of(Usersyncer.of("cookieFamily", null, null)));
+                .willReturn(Optional.of(Usersyncer.of("cookieFamily", null, null, false, null)));
         given(bidderCatalog.bidderInfoByName(anyString())).willReturn(BidderInfo.create(
                 true,
                 null,
