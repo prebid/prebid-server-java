@@ -1664,7 +1664,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .id("accountId")
                         .auction(AccountAuctionConfig.builder()
                                 .events(AccountEventsConfig.of(true))
-                                .cache(AccountCacheConfig.builder().enabled(false).build())
+                                .cache(AccountCacheConfig.of(false))
                                 .build())
                         .build()));
 

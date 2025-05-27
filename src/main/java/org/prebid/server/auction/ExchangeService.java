@@ -314,7 +314,7 @@ public class ExchangeService {
     }
 
     private static BidRequestCacheInfo bidRequestCacheInfo(BidRequest bidRequest, Account account) {
-        final Boolean cachingEnabled = Optional.ofNullable(account)
+        final boolean cachingEnabled = Optional.ofNullable(account)
                 .map(Account::getAuction)
                 .map(AccountAuctionConfig::getCache)
                 .map(AccountCacheConfig::getEnabled)
