@@ -524,7 +524,6 @@ class CacheSpec extends BaseSpec {
 
         and: "Account in the DB"
         def accountId = PBSUtils.randomNumber.toString()
-
         def accountAuctionConfig = new AccountAuctionConfig(cache: new AuctionCacheConfig(enabled: false))
         def accountConfig = new AccountConfig(status: ACTIVE, auction: accountAuctionConfig)
         def account = new Account(uuid: accountId, config: accountConfig)
