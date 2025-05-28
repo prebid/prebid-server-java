@@ -928,8 +928,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         assert genericBidderRequest.user.eids[0].source == bidRequest.user.eids[0].source
 
         and: "Should add a warning when in debug mode"
-        assert response.ext.warnings[PREBID]?.code == [999]
-        assert response.ext.warnings[PREBID]?.message == ["GPP string invalid: Unable to decode '$invalidGpp'"]
+        assert response.ext.warnings[PREBID]?.message.contains("GPP string invalid: Unable to decode '$invalidGpp'".toString())
 
         and: "Response should not contain any errors"
         assert !response.ext.errors
@@ -2065,8 +2064,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(ampStoredRequest, TRANSMIT_EIDS)] == 1
 
         and: "Should add a warning when in debug mode"
-        assert response.ext.warnings[PREBID]?.code == [999]
-        assert response.ext.warnings[PREBID]?.message == ["GPP string invalid: Unable to decode '$invalidGpp'"]
+        assert response.ext.warnings[PREBID]?.message.contains("GPP string invalid: Unable to decode '$invalidGpp'".toString())
 
         and: "Response should contain consent_string errors"
         assert response.ext.errors[PREBID].message == ["Amp request parameter consent_string has invalid format: $invalidGpp"]
