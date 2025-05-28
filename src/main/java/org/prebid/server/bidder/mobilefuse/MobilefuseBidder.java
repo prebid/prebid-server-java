@@ -23,6 +23,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -45,18 +46,25 @@ public class MobilefuseBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final boolean hasExt = request.getImp().stream()
-                .map(this::parseImpExt)
-                .anyMatch(Objects::nonNull);
+        final List<Imp> modifiedImps = new ArrayList<>();
+        final List<BidderError> errors = new ArrayList<>();
 
-        if (!hasExt) {
-            return Result.withError(BidderError.badInput("Invalid ExtImpMobilefuse value"));
+        for (Imp imp : request.getImp()) {
+            try {
+                if (!isValidImp(imp)) {
+                    continue;
+                }
+
+                final ExtImpMobilefuse extImp = parseImpExt(imp);
+                modifiedImps.add(modifyImp(imp, extImp));
+            } catch (PreBidException e) {
+                errors.add(BidderError.badInput(e.getMessage()));
+            }
         }
 
-        final List<Imp> modifiedImps = request.getImp().stream()
-                .map(this::modifyImp)
-                .filter(Objects::nonNull)
-                .toList();
+        if (!errors.isEmpty()) {
+            return Result.withErrors(errors);
+        }
 
         if (modifiedImps.isEmpty()) {
             return Result.withError(BidderError.badInput("No valid imps"));
@@ -66,32 +74,31 @@ public class MobilefuseBidder implements Bidder<BidRequest> {
         return Result.withValue(BidderUtil.defaultRequest(modifiedRequest, endpointUrl, mapper));
     }
 
-    private Imp modifyImp(Imp imp) {
-        if (imp.getBanner() == null && imp.getVideo() == null && imp.getXNative() == null) {
-            return null;
-        }
+    private static boolean isValidImp(Imp imp) {
+        return imp.getBanner() != null || imp.getVideo() != null || imp.getXNative() != null;
+    }
 
-        final ExtImpMobilefuse impExt = parseImpExt(imp);
+    private Imp modifyImp(Imp imp, ExtImpMobilefuse extImp) {
         final ObjectNode skadn = parseSkadn(imp.getExt());
         return imp.toBuilder()
-                .tagid(Objects.toString(impExt != null ? impExt.getPlacementId() : null, "0"))
+                .tagid(Objects.toString(extImp.getPlacementId(), "0"))
                 .ext(skadn != null ? mapper.mapper().createObjectNode().set(SKADN_PROPERTY_NAME, skadn) : null)
                 .build();
     }
 
-    private ExtImpMobilefuse parseImpExt(Imp imp) {
+    private ExtImpMobilefuse parseImpExt(Imp imp) throws PreBidException {
         try {
             return mapper.mapper().convertValue(imp.getExt(), MOBILEFUSE_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            return null;
+            throw new PreBidException("Error parsing ExtImpMobilefuse value: %s".formatted(e.getMessage()));
         }
     }
 
-    private ObjectNode parseSkadn(ObjectNode impExt) {
+    private ObjectNode parseSkadn(ObjectNode impExt) throws PreBidException {
         try {
             return mapper.mapper().convertValue(impExt.get(SKADN_PROPERTY_NAME), ObjectNode.class);
         } catch (IllegalArgumentException e) {
-            return null;
+            throw new PreBidException(e.getMessage());
         }
     }
 

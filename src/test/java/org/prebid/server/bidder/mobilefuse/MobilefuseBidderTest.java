@@ -84,15 +84,18 @@ public class MobilefuseBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
                 .id("456")
-                .banner(null)
+                .banner(Banner.builder().build())
                 .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors())
-                .containsExactly(BidderError.badInput("Invalid ExtImpMobilefuse value"));
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getMessage()).startsWith("Error parsing ExtImpMobilefuse value:");
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+                });
         assertThat(result.getValue()).isEmpty();
     }
 
