@@ -10,9 +10,9 @@ class BidAdjustmentRule {
     Map<String, List<AdjustmentRule>> wildcardBidder
     Map<String, List<AdjustmentRule>> generic
     Map<String, List<AdjustmentRule>> alias
-    Map<String, List<AdjustmentRule>> amx
     @JsonProperty("ALIAS")
     Map<String, List<AdjustmentRule>> aliasUpperCase
     @JsonProperty("AlIaS")
     Map<String, List<AdjustmentRule>> aliasCamelCase
+    Map<String, List<AdjustmentRule>> amx
 }
