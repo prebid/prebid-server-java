@@ -71,7 +71,6 @@ public class StartioBidder implements Bidder<BidRequest> {
             requests.add(BidderUtil.defaultRequest(
                     bidRequest.toBuilder().imp(Collections.singletonList(modifiedImp)).build(),
                     endpointUrl, mapper));
-
         }
 
         return Result.of(requests, errors);

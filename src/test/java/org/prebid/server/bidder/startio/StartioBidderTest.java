@@ -151,7 +151,6 @@ public class StartioBidderTest extends VertxTest {
 
     @Test
     public void makeHttpRequestsShouldRemoveAudioFromImpressionIfItContainsMultipleMediaTypes() {
-
         // given
         final Audio audio = Audio.builder().mimes(List.of("audio/mp3")).build();
         final Banner banner = Banner.builder().build();
