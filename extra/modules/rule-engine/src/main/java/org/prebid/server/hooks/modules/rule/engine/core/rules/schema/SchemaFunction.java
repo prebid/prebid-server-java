@@ -1,8 +1,6 @@
 package org.prebid.server.hooks.modules.rule.engine.core.rules.schema;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
-import java.util.List;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public interface SchemaFunction<T> {
 
@@ -10,6 +8,6 @@ public interface SchemaFunction<T> {
 
     String extract(SchemaFunctionArguments<T> arguments);
 
-    default void validateConfigArguments(List<JsonNode> configArguments) {
+    default void validateConfigArguments(ObjectNode args) {
     }
 }

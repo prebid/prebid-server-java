@@ -8,9 +8,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.hooks.modules.rule.engine.core.request.RequestContext;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunctionArguments;
-import org.prebid.server.hooks.modules.rule.engine.core.util.ValidationUtils;
 
-import java.util.List;
 import java.util.Optional;
 
 public class AdUnitCodeFunction implements SchemaFunction<RequestContext> {
@@ -23,18 +21,17 @@ public class AdUnitCodeFunction implements SchemaFunction<RequestContext> {
         final String impId = context.getImpId();
         final BidRequest bidRequest = context.getBidRequest();
 
-        final Optional<Imp> adUnit = ListUtils.emptyIfNull(bidRequest.getImp()).stream()
+        final Imp adUnit = ListUtils.emptyIfNull(bidRequest.getImp()).stream()
                 .filter(imp -> StringUtils.equals(impId, impId))
-                .findFirst();
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException(
+                        "Critical error in rules engine. Imp id of absent imp supplied"));
 
-        if (adUnit.isEmpty()) {
-            return UNDEFINED_RESULT;
-        }
 
-        return adUnit.flatMap(AdUnitCodeFunction::extractGpid)
-                .or(() -> adUnit.map(AdUnitCodeFunction::extractTagId))
-                .or(() -> adUnit.flatMap(AdUnitCodeFunction::extractPbAdSlot))
-                .or(() -> adUnit.flatMap(AdUnitCodeFunction::extractStoredRequestId))
+        return extractGpid(adUnit)
+                .or(() -> extractTagId(adUnit))
+                .or(() -> extractPbAdSlot(adUnit))
+                .or(() -> extractStoredRequestId(adUnit))
                 .orElse(UNDEFINED_RESULT);
     }
 
@@ -45,8 +42,9 @@ public class AdUnitCodeFunction implements SchemaFunction<RequestContext> {
                 .map(JsonNode::asText);
     }
 
-    private static String extractTagId(Imp imp) {
-        return StringUtils.trimToNull(imp.getTagid());
+    private static Optional<String> extractTagId(Imp imp) {
+        return Optional.ofNullable(imp.getTagid())
+                .filter(StringUtils::isNotBlank);
     }
 
     private static Optional<String> extractPbAdSlot(Imp imp) {
@@ -64,10 +62,5 @@ public class AdUnitCodeFunction implements SchemaFunction<RequestContext> {
                 .map(storedRequest -> storedRequest.get("id"))
                 .filter(JsonNode::isTextual)
                 .map(JsonNode::asText);
-    }
-
-    @Override
-    public void validateConfigArguments(List<JsonNode> configArguments) {
-        ValidationUtils.assertNoArgs(configArguments);
     }
 }

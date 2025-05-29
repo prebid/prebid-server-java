@@ -22,26 +22,17 @@ import java.util.function.Predicate;
 @UtilityClass
 public class RequestSchemaFunctions {
 
-    public static final String DEVICE_COUNTRY_FUNCTION_NAME = "deviceCountry";
     public static final String DEVICE_COUNTRY_IN_FUNCTION_NAME = "deviceCountryIn";
-    public static final String DATACENTER_FUNCTION_NAME = "datacenter";
     public static final String DATACENTER_IN_FUNCTION_NAME = "datacenterIn";
-    public static final String CHANNEL_FUNCTION_NAME = "channel";
     public static final String EID_IN_FUNCTION_NAME = "eidIn";
     public static final String EID_AVAILABLE_FUNCTION_NAME = "eidAvailable";
     public static final String AD_UNIT_CODE_FUNCTION_NAME = "adUnitCode";
 
-    public static final SchemaFunction<RequestContext> DEVICE_COUNTRY_FUNCTION = ExtractingFunction.of(
-            RequestSchemaFunctions::extractDeviceCountry);
     public static final SchemaFunction<RequestContext> DEVICE_COUNTRY_IN_FUNCTION = InFunction.of(
             RequestSchemaFunctions::extractDeviceCountry);
-    public static final SchemaFunction<RequestContext> DATACENTER_FUNCTION = ExtractingFunction.of(
-            RequestSchemaFunctions::extractDataCenter);
     public static final SchemaFunction<RequestContext> DATACENTER_IN_FUNCTION = InFunction.of(
             RequestSchemaFunctions::extractDataCenter);
-    public static final SchemaFunction<RequestContext> CHANNEL_FUNCTION = ExtractingFunction.of(
-            RequestSchemaFunctions::extractChannel);
-    public static final SchemaFunction<RequestContext> EID_AVAILABLE_FUNCTION = AvailableFunction.of(
+   public static final SchemaFunction<RequestContext> EID_AVAILABLE_FUNCTION = AvailableFunction.of(
             RequestSchemaFunctions::isEidAvailable);
 
     private static String extractDeviceCountry(RequestContext context) {
@@ -53,15 +44,6 @@ public class RequestSchemaFunctions {
 
     private static String extractDataCenter(RequestContext context) {
         return ObjectUtils.defaultIfNull(context.getDatacenter(), SchemaFunction.UNDEFINED_RESULT);
-    }
-
-    private static String extractChannel(RequestContext context) {
-        return Optional.of(context.getBidRequest())
-                .map(BidRequest::getExt)
-                .map(ExtRequest::getPrebid)
-                .map(ExtRequestPrebid::getChannel)
-                .map(ExtRequestPrebidChannel::getName)
-                .orElse(SchemaFunction.UNDEFINED_RESULT);
     }
 
     private static boolean isEidAvailable(RequestContext context) {

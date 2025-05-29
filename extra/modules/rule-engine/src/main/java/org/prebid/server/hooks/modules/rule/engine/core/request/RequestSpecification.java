@@ -6,7 +6,11 @@ import lombok.NoArgsConstructor;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.hooks.modules.rule.engine.core.request.result.functions.ExcludeBiddersFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.AdUnitCodeFunction;
-import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.RequestSchemaFunctions;
+import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.ChannelFunction;
+import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.DataCenterFunction;
+import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.DeviceCountryFunction;
+import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.DeviceCountryInFunction;
+import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.MediaTypeInFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.StageSpecification;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.exception.InvalidSchemaFunctionException;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.result.ResultFunction;
@@ -24,14 +28,16 @@ public class RequestSpecification implements StageSpecification<RequestContext, 
     public static final Set<String> PER_IMP_SCHEMA_FUNCTIONS = Set.of(AdUnitCodeFunction.NAME);
 
     private static final Map<String, SchemaFunction<RequestContext>> SCHEMA_FUNCTIONS = Map.of(
-            RequestSchemaFunctions.DEVICE_COUNTRY_FUNCTION_NAME, RequestSchemaFunctions.DEVICE_COUNTRY_FUNCTION,
-            RequestSchemaFunctions.DEVICE_COUNTRY_IN_FUNCTION_NAME, RequestSchemaFunctions.DEVICE_COUNTRY_IN_FUNCTION,
+            DeviceCountryFunction.NAME, new DeviceCountryFunction(),
+            DeviceCountryInFunction.NAME, new DeviceCountryInFunction(),
+            MediaTypeInFunction.NAME, new MediaTypeInFunction(),
+            DataCenterFunction.NAME, new DataCenterFunction(),
+            ChannelFunction.NAME, new ChannelFunction(),
             AdUnitCodeFunction.NAME, new AdUnitCodeFunction());
 
     private static final Map<String, ResultFunction<BidRequest, AuctionContext>> RESULT_FUNCTIONS = Map.of(
             "excludeBidders", ExcludeBiddersFunction.of(ObjectMapperProvider.mapper()),
-            "includeBidders", ExcludeBiddersFunction.of(ObjectMapperProvider.mapper())
-    );
+            "includeBidders", ExcludeBiddersFunction.of(ObjectMapperProvider.mapper()));
 
     public SchemaFunction<RequestContext> schemaFunctionByName(String name) {
         final SchemaFunction<RequestContext> function = SCHEMA_FUNCTIONS.get(name);
