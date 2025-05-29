@@ -7,34 +7,41 @@ import org.prebid.server.hooks.modules.rule.engine.core.rules.result.RuleAction;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
-public class DefaultActionRule<T> implements Rule<T> {
+public class DefaultActionRule<T, C> implements Rule<T, C> {
 
     private static final String RULE_NAME = "default";
 
-    private final List<RuleAction<T>> actions;
+    private final List<RuleAction<T, C>> actions;
 
-    private final InfrastructureArguments infrastructureArguments;
+    private final String analyticsKey;
+    private final String modelVersion;
 
-    public DefaultActionRule(List<RuleAction<T>> actions, String analyticsKey, String modelVersion) {
+    public DefaultActionRule(List<RuleAction<T, C>> actions, String analyticsKey, String modelVersion) {
         this.actions = ListUtils.emptyIfNull(actions);
 
-        infrastructureArguments = InfrastructureArguments.of(
-                Collections.emptyMap(), analyticsKey, RULE_NAME, modelVersion);
+        this.analyticsKey = Objects.requireNonNull(analyticsKey);
+        this.modelVersion = Objects.requireNonNull(modelVersion);
     }
 
     @Override
-    public RuleResult<T> process(T value) {
+    public RuleResult<T> process(T value, C context) {
         return actions.stream().reduce(
                 RuleResult.unaltered(value),
-                (result, action) -> result.mergeWith(applyAction(action, result.getUpdateResult().getValue())),
+                (result, action) ->
+                        result.mergeWith(applyAction(action, result.getUpdateResult().getValue(), context)),
                 RuleResult::mergeWith);
     }
 
-    private RuleResult<T> applyAction(RuleAction<T> action, T value) {
-        final ResultFunctionArguments<T> arguments = ResultFunctionArguments.of(
-                value, action.getConfigArguments(), infrastructureArguments);
+    private RuleResult<T> applyAction(RuleAction<T, C> action, T value, C context) {
+        final ResultFunctionArguments<T, C> arguments = ResultFunctionArguments.of(
+                value, action.getConfig(), infrastructureArguments(context));
 
         return action.getFunction().apply(arguments);
+    }
+
+    private InfrastructureArguments<C> infrastructureArguments(C context) {
+        return InfrastructureArguments.of(context, Collections.emptyMap(), analyticsKey, RULE_NAME, modelVersion);
     }
 }

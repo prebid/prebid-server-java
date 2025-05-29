@@ -2,13 +2,14 @@ package org.prebid.server.hooks.modules.rule.engine.config;
 
 import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Vertx;
+import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.hooks.execution.model.Stage;
 import org.prebid.server.hooks.modules.rule.engine.core.cache.RuleRegistry;
 import org.prebid.server.hooks.modules.rule.engine.core.config.AccountConfigParser;
 import org.prebid.server.hooks.modules.rule.engine.core.config.StageConfigParser;
-import org.prebid.server.hooks.modules.rule.engine.core.rules.request.RequestContext;
-import org.prebid.server.hooks.modules.rule.engine.core.rules.request.RequestMatchingRule;
-import org.prebid.server.hooks.modules.rule.engine.core.rules.request.RequestSpecification;
+import org.prebid.server.hooks.modules.rule.engine.core.request.RequestContext;
+import org.prebid.server.hooks.modules.rule.engine.core.request.RequestMatchingRule;
+import org.prebid.server.hooks.modules.rule.engine.core.request.RequestSpecification;
 import org.prebid.server.hooks.modules.rule.engine.v1.RuleEngineModule;
 import org.prebid.server.json.ObjectMapperProvider;
 import org.springframework.beans.factory.annotation.Value;
@@ -28,7 +29,7 @@ public class RuleEngineModuleConfiguration {
     }
 
     @Bean
-    StageConfigParser<RequestContext, BidRequest> processedAuctionRequestStageParser(
+    StageConfigParser<RequestContext, BidRequest, AuctionContext> processedAuctionRequestStageParser(
             @Value("${datacenter-region:#{null}}") String datacenterRegion) {
 
         return new StageConfigParser<>(
@@ -41,7 +42,7 @@ public class RuleEngineModuleConfiguration {
 
     @Bean
     AccountConfigParser accountConfigParser(
-            StageConfigParser<RequestContext, BidRequest> processedAuctionRequestStageParser) {
+            StageConfigParser<RequestContext, BidRequest, AuctionContext> processedAuctionRequestStageParser) {
 
         return new AccountConfigParser(ObjectMapperProvider.mapper(), processedAuctionRequestStageParser);
     }

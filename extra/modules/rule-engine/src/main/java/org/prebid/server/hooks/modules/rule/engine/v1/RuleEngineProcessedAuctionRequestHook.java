@@ -2,6 +2,7 @@ package org.prebid.server.hooks.modules.rule.engine.v1;
 
 import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Future;
+import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.execution.v1.analytics.TagsImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
@@ -34,17 +35,21 @@ public class RuleEngineProcessedAuctionRequestHook implements ProcessedAuctionRe
     public Future<InvocationResult<AuctionRequestPayload>> call(AuctionRequestPayload auctionRequestPayload,
                                                                 AuctionInvocationContext invocationContext) {
 
+        final AuctionContext context = invocationContext.auctionContext();
         final String accountId = invocationContext.auctionContext().getAccount().getId();
         return ruleRegistry.forAccount(accountId, invocationContext.accountConfig())
                 .map(PerStageRule::processedAuctionRequestRule)
-                .map(rule -> executeSafely(rule, auctionRequestPayload.bidRequest()))
+                .map(rule -> executeSafely(rule, auctionRequestPayload.bidRequest(), context))
                 .map(RuleEngineProcessedAuctionRequestHook::succeeded)
                 .recover(RuleEngineProcessedAuctionRequestHook::failure);
     }
 
-    private static RuleResult<BidRequest> executeSafely(Rule<BidRequest> rule, BidRequest bidRequest) {
+    private static RuleResult<BidRequest> executeSafely(Rule<BidRequest, AuctionContext> rule,
+                                                        BidRequest bidRequest,
+                                                        AuctionContext context) {
+
         return rule != null
-                ? rule.process(bidRequest)
+                ? rule.process(bidRequest, context)
                 : RuleResult.of(UpdateResult.unaltered(bidRequest), TagsImpl.of(Collections.emptyList()));
     }
 

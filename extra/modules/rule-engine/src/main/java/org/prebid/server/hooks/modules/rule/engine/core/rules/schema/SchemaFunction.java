@@ -6,7 +6,7 @@ import java.util.List;
 
 public interface SchemaFunction<T> {
 
-    String NULL_RESULT = "null";
+    String UNDEFINED_RESULT = "undefined";
 
     String extract(SchemaFunctionArguments<T> arguments);
 

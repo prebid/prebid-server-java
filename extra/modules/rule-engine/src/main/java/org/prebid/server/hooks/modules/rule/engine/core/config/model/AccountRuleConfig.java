@@ -9,5 +9,5 @@ public class AccountRuleConfig {
 
     List<String> conditions;
 
-    List<RuleFunctionConfig> results;
+    List<ResultFunctionConfig> results;
 }

@@ -1,4 +1,4 @@
-package org.prebid.server.hooks.modules.rule.engine.core.rules.request.schema.functions;
+package org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions;
 
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -6,7 +6,7 @@ import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.User;
 import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.ObjectUtils;
-import org.prebid.server.hooks.modules.rule.engine.core.rules.request.RequestContext;
+import org.prebid.server.hooks.modules.rule.engine.core.request.RequestContext;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.AvailableFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.ExtractingFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.InFunction;
@@ -27,7 +27,9 @@ public class RequestSchemaFunctions {
     public static final String DATACENTER_FUNCTION_NAME = "datacenter";
     public static final String DATACENTER_IN_FUNCTION_NAME = "datacenterIn";
     public static final String CHANNEL_FUNCTION_NAME = "channel";
+    public static final String EID_IN_FUNCTION_NAME = "eidIn";
     public static final String EID_AVAILABLE_FUNCTION_NAME = "eidAvailable";
+    public static final String AD_UNIT_CODE_FUNCTION_NAME = "adUnitCode";
 
     public static final SchemaFunction<RequestContext> DEVICE_COUNTRY_FUNCTION = ExtractingFunction.of(
             RequestSchemaFunctions::extractDeviceCountry);
@@ -46,11 +48,11 @@ public class RequestSchemaFunctions {
         return Optional.ofNullable(context.getBidRequest().getDevice())
                 .map(Device::getGeo)
                 .map(Geo::getCountry)
-                .orElse(SchemaFunction.NULL_RESULT);
+                .orElse(SchemaFunction.UNDEFINED_RESULT);
     }
 
     private static String extractDataCenter(RequestContext context) {
-        return ObjectUtils.defaultIfNull(context.getDatacenter(), SchemaFunction.NULL_RESULT);
+        return ObjectUtils.defaultIfNull(context.getDatacenter(), SchemaFunction.UNDEFINED_RESULT);
     }
 
     private static String extractChannel(RequestContext context) {
@@ -59,7 +61,7 @@ public class RequestSchemaFunctions {
                 .map(ExtRequest::getPrebid)
                 .map(ExtRequestPrebid::getChannel)
                 .map(ExtRequestPrebidChannel::getName)
-                .orElse(SchemaFunction.NULL_RESULT);
+                .orElse(SchemaFunction.UNDEFINED_RESULT);
     }
 
     private static boolean isEidAvailable(RequestContext context) {

@@ -1,8 +1,9 @@
-package org.prebid.server.hooks.modules.rule.engine.core.rules.request;
+package org.prebid.server.hooks.modules.rule.engine.core.request;
 
 import com.iab.openrtb.request.BidRequest;
 import org.apache.commons.collections4.SetUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.Rule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleConfig;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleResult;
@@ -21,20 +22,20 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-public class RequestMatchingRule implements Rule<BidRequest> {
+public class RequestMatchingRule implements Rule<BidRequest, AuctionContext> {
 
     private static final String NULL_MATCHER = "null";
 
     private final Schema<RequestContext> schema;
     private final Set<String> schemaFunctionNames;
-    private final RuleTree<RuleConfig<BidRequest>> ruleTree;
+    private final RuleTree<RuleConfig<BidRequest, AuctionContext>> ruleTree;
 
     private final String modelVersion;
     private final String analyticsKey;
     private final String datacenter;
 
     public RequestMatchingRule(Schema<RequestContext> schema,
-                               RuleTree<RuleConfig<BidRequest>> ruleTree,
+                               RuleTree<RuleConfig<BidRequest, AuctionContext>> ruleTree,
                                String modelVersion,
                                String analyticsKey,
                                String datacenter) {
@@ -51,27 +52,27 @@ public class RequestMatchingRule implements Rule<BidRequest> {
     }
 
     @Override
-    public RuleResult<BidRequest> process(BidRequest bidRequest) {
+    public RuleResult<BidRequest> process(BidRequest bidRequest, AuctionContext context) {
         return SetUtils.intersection(schemaFunctionNames, RequestSpecification.PER_IMP_SCHEMA_FUNCTIONS).isEmpty()
-                ? processRule(bidRequest, null)
-                : processPerImpRule(bidRequest);
+                ? processRule(bidRequest, null, context)
+                : processPerImpRule(bidRequest, context);
     }
 
-    private RuleResult<BidRequest> processPerImpRule(BidRequest bidRequest) {
+    private RuleResult<BidRequest> processPerImpRule(BidRequest bidRequest, AuctionContext context) {
         return bidRequest.getImp().stream().reduce(
                 RuleResult.unaltered(bidRequest),
                 (result, imp) ->
-                        result.mergeWith(processRule(result.getUpdateResult().getValue(), imp.getId())),
+                        result.mergeWith(processRule(result.getUpdateResult().getValue(), imp.getId(), context)),
                 RuleResult::mergeWith);
     }
 
-    private RuleResult<BidRequest> processRule(BidRequest bidRequest, String impId) {
-        final RequestContext context = RequestContext.of(bidRequest, impId, datacenter);
+    private RuleResult<BidRequest> processRule(BidRequest bidRequest, String impId, AuctionContext auctionContext) {
+        final RequestContext requestContext = RequestContext.of(bidRequest, impId, datacenter);
 
         final List<SchemaFunctionHolder<RequestContext>> schemaFunctions = schema.getFunctions();
         final List<String> matchers = schemaFunctions.stream()
                 .map(holder -> holder.getSchemaFunction().extract(
-                        SchemaFunctionArguments.of(context, holder.getArguments())))
+                        SchemaFunctionArguments.of(requestContext, holder.getArguments())))
                 .map(matcher -> StringUtils.defaultIfEmpty(matcher, NULL_MATCHER))
                 .toList();
 
@@ -80,7 +81,7 @@ public class RequestMatchingRule implements Rule<BidRequest> {
                 .collect(Collectors.toMap(
                         idx -> schemaFunctions.get(idx).getName(), matchers::get, (left, right) -> left));
 
-        final RuleConfig<BidRequest> ruleConfig = ruleTree.getValue(matchers);
+        final RuleConfig<BidRequest, AuctionContext> ruleConfig = ruleTree.getValue(matchers);
 
         return ruleConfig.getActions().stream().reduce(
                 RuleResult.unaltered(bidRequest),
@@ -88,21 +89,23 @@ public class RequestMatchingRule implements Rule<BidRequest> {
                         applyAction(
                                 action,
                                 result.getUpdateResult().getValue(),
+                                auctionContext,
                                 schemaFunctionResults,
                                 ruleConfig.getCondition())),
                 RuleResult::mergeWith);
     }
 
-    private RuleResult<BidRequest> applyAction(RuleAction<BidRequest> action,
+    private RuleResult<BidRequest> applyAction(RuleAction<BidRequest, AuctionContext> action,
                                                BidRequest bidRequest,
+                                               AuctionContext context,
                                                Map<String, String> schemaFunctionResults,
                                                String condition) {
 
-        final InfrastructureArguments infrastructureArguments = InfrastructureArguments.of(
-                schemaFunctionResults, analyticsKey, condition, modelVersion);
+        final InfrastructureArguments<AuctionContext> infrastructureArguments = InfrastructureArguments.of(
+                context, schemaFunctionResults, analyticsKey, condition, modelVersion);
 
-        final ResultFunctionArguments<BidRequest> arguments = ResultFunctionArguments.of(
-                bidRequest, action.getConfigArguments(), infrastructureArguments);
+        final ResultFunctionArguments<BidRequest, AuctionContext> arguments = ResultFunctionArguments.of(
+                bidRequest, action.getConfig(), infrastructureArguments);
 
         return action.getFunction().apply(arguments);
     }

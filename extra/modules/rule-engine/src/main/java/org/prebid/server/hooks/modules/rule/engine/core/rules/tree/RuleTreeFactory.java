@@ -10,8 +10,8 @@ import java.util.stream.Collectors;
 
 public class RuleTreeFactory {
 
-    public static <T> RuleTree<RuleConfig<T>> buildTree(List<RuleConfig<T>> rules) {
-        final List<ParsingContext<RuleConfig<T>>> parsingContexts = toParsingContexts(rules);
+    public static <T, C> RuleTree<RuleConfig<T, C>> buildTree(List<RuleConfig<T, C>> rules) {
+        final List<ParsingContext<RuleConfig<T, C>>> parsingContexts = toParsingContexts(rules);
         final int depth = getDepth(parsingContexts);
 
         if (!parsingContexts.stream().allMatch(context -> context.argumentMatchers().size() == depth)) {
@@ -21,7 +21,7 @@ public class RuleTreeFactory {
         return new RuleTree<>(parseRuleNode(parsingContexts), depth);
     }
 
-    private static <T> List<ParsingContext<RuleConfig<T>>> toParsingContexts(List<RuleConfig<T>> rules) {
+    private static <T, C> List<ParsingContext<RuleConfig<T, C>>> toParsingContexts(List<RuleConfig<T, C>> rules) {
         return rules.stream()
                 .map(rule -> new ParsingContext<>(
                         List.of(StringUtils.defaultString(rule.getCondition()).split("\\|")),

@@ -35,7 +35,7 @@ public class DefaultActionRuleTest {
 
         given(firstFunction.apply(any())).willAnswer(prepareResultFunctionAnswer("firstAction"));
         given(firstAction.getFunction()).willReturn(firstFunction);
-        given(firstAction.getConfigArguments()).willReturn(emptyList());
+        given(firstAction.getConfig()).willReturn(emptyList());
 
 
         final RuleAction<Object> secondAction = (RuleAction<Object>) mock(RuleAction.class);
@@ -43,7 +43,7 @@ public class DefaultActionRuleTest {
 
         given(secondFunction.apply(any())).willAnswer(prepareResultFunctionAnswer("secondAction"));
         given(secondAction.getFunction()).willReturn(secondFunction);
-        given(secondAction.getConfigArguments()).willReturn(emptyList());
+        given(secondAction.getConfig()).willReturn(emptyList());
 
         final DefaultActionRule<Object> target = new DefaultActionRule<>(
                 asList(firstAction, secondAction), "analyticsKey", "modelVersion");
