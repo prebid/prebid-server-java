@@ -19,6 +19,5 @@ public class MissenaUserParams {
     String testMode;
 
     ObjectNode settings;
-
 }
 

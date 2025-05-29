@@ -91,7 +91,6 @@ public class MissenaBidder implements Bidder<MissenaAdRequest> {
 
     private HttpRequest<MissenaAdRequest> makeHttpRequest(BidRequest request, Imp imp, ExtImpMissena extImp) {
         final Site site = request.getSite();
-        final String pageUrl = site != null ? site.getPage() : null;
         final User user = request.getUser();
         final Regs regs = request.getRegs();
         final Device device = request.getDevice();
@@ -118,7 +117,7 @@ public class MissenaBidder implements Bidder<MissenaAdRequest> {
                 .gdpr(isGdpr(regs))
                 .gdprConsent(getUserConsent(user))
                 .idempotencyKey(request.getId())
-                .referer(pageUrl)
+                .referer(site != null ? site.getPage() : null)
                 .refererCanonical(site != null ? site.getDomain() : null)
                 .requestId(request.getId())
                 .schain(source != null ? source.getSchain() : null)
@@ -147,10 +146,6 @@ public class MissenaBidder implements Bidder<MissenaAdRequest> {
     private Price convertBidFloor(Price bidFloorPrice, String impId, BidRequest bidRequest, String targetCurrency) {
         final String bidFloorCur = bidFloorPrice.getCurrency();
 
-        if (targetCurrency.equalsIgnoreCase(bidFloorCur)) {
-            return bidFloorPrice;
-        }
-
         try {
             final BigDecimal convertedPrice = currencyConversionService
                     .convertCurrency(bidFloorPrice.getValue(), bidRequest, bidFloorCur, targetCurrency);
@@ -163,19 +158,19 @@ public class MissenaBidder implements Bidder<MissenaAdRequest> {
     }
 
     private String resolveCurrency(List<String> requestCurrencies) {
-        for (String currency : requestCurrencies) {
-            if (USD_CURRENCY.equalsIgnoreCase(currency)) {
+        String currency = USD_CURRENCY;
+
+        for (String requestCurrency : requestCurrencies) {
+            if (USD_CURRENCY.equalsIgnoreCase(requestCurrency)) {
                 return USD_CURRENCY;
             }
-        }
 
-        for (String currency : requestCurrencies) {
-            if (EUR_CURRENCY.equalsIgnoreCase(currency)) {
-                return EUR_CURRENCY;
+            if (EUR_CURRENCY.equalsIgnoreCase(requestCurrency)) {
+                currency = EUR_CURRENCY;
             }
         }
 
-        return USD_CURRENCY;
+        return currency;
     }
 
     private MultiMap makeHeaders(Device device, Site site) {
