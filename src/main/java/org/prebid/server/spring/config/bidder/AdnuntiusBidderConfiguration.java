@@ -10,7 +10,6 @@ import org.prebid.server.spring.config.bidder.model.BidderConfigurationPropertie
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
-import org.prebid.server.util.ObjectUtil;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -43,7 +42,7 @@ public class AdnuntiusBidderConfiguration {
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new AdnuntiusBidder(
                         config.getEndpoint(),
-                        ObjectUtil.getIfNotNull(config.getExtraInfo(), ExtraInfo::getUrl),
+                        config.getEuEndpoint(),
                         clock,
                         mapper))
                 .assemble();
@@ -54,13 +53,6 @@ public class AdnuntiusBidderConfiguration {
     @NoArgsConstructor
     private static class AdnuntiusConfigurationProperties extends BidderConfigurationProperties {
 
-        private ExtraInfo extraInfo = new ExtraInfo();
-    }
-
-    @Data
-    @NoArgsConstructor
-    private static class ExtraInfo {
-
-        String url;
+        private String euEndpoint;
     }
 }

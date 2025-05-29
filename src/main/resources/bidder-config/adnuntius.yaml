@@ -1,6 +1,7 @@
 adapters:
   adnuntius:
     endpoint: https://ads.adnuntius.delivery/i
+    eu-endpoint: https://europe.delivery.adnuntius.com/i
     meta-info:
       maintainer-email: hello@adnuntius.com
       app-media-types:

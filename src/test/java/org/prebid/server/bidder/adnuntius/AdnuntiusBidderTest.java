@@ -65,7 +65,7 @@ import static org.assertj.core.groups.Tuple.tuple;
 public class AdnuntiusBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.domain.dm/uri";
-    private static final String ALTERNATIVE_URL = "https://alternative.domain.dm/uri";
+    private static final String EU_ENDPOINT_URL = "https://alternative.domain.dm/uri";
 
     private AdnuntiusBidder target;
 
@@ -74,7 +74,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Clock clock = Clock.system(ZoneId.of("UTC+05:00"));
         target = new AdnuntiusBidder(
                 ENDPOINT_URL,
-                null,
+                EU_ENDPOINT_URL,
                 clock,
                 jacksonMapper);
     }
@@ -84,6 +84,15 @@ public class AdnuntiusBidderTest extends VertxTest {
         assertThatIllegalArgumentException().isThrownBy(() -> new AdnuntiusBidder(
                 "invalid_url",
                 null,
+                Clock.systemDefaultZone(),
+                jacksonMapper));
+    }
+
+    @Test
+    public void creationShouldFailOnInvalidEuEndpointUrl() {
+        assertThatIllegalArgumentException().isThrownBy(() -> new AdnuntiusBidder(
+                ENDPOINT_URL,
+                "invalid_url",
                 Clock.systemDefaultZone(),
                 jacksonMapper));
     }
@@ -575,7 +584,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        final String expectedUrl = givenExpectedUrl(ENDPOINT_URL, gdpr, consent);
+        final String expectedUrl = givenExpectedUrl(EU_ENDPOINT_URL, gdpr, consent);
 
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
@@ -707,14 +716,8 @@ public class AdnuntiusBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnRequestsWithBasicUriIfGdprAndConsentAreAbsentWhenAlternativeUriProvided() {
+    public void makeHttpRequestsShouldReturnRequestsWithBasicUriIfGdprAndConsentAreAbsent() {
         // given
-        target = new AdnuntiusBidder(
-                ENDPOINT_URL,
-                ALTERNATIVE_URL,
-                Clock.system(ZoneId.of("UTC+05:00")),
-                jacksonMapper);
-
         final BidRequest bidRequest = givenBidRequest(
                 request -> request
                         .regs(Regs.builder().ext(ExtRegs.of(null, null, null, null)).build())
@@ -735,14 +738,8 @@ public class AdnuntiusBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnRequestsWithBasicUriIfGdprIsAbsentWhenAlternativeUriProvided() {
+    public void makeHttpRequestsShouldReturnRequestsWithBasicUriIfGdprIsAbsent() {
         // given
-        target = new AdnuntiusBidder(
-                ENDPOINT_URL,
-                ALTERNATIVE_URL,
-                Clock.system(ZoneId.of("UTC+05:00")),
-                jacksonMapper);
-
         final BidRequest bidRequest = givenBidRequest(
                 request -> request
                         .regs(Regs.builder().ext(ExtRegs.of(null, null, null, null)).build())
@@ -765,12 +762,6 @@ public class AdnuntiusBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnRequestsWithAlternativeUriIfConsentIsAbsentAndGdprIsPresent() {
         // given
-        target = new AdnuntiusBidder(
-                ENDPOINT_URL,
-                ALTERNATIVE_URL,
-                Clock.system(ZoneId.of("UTC+05:00")),
-                jacksonMapper);
-
         final BidRequest bidRequest = givenBidRequest(
                 request -> request
                         .regs(Regs.builder().ext(ExtRegs.of(1, null, null, null)).build())
@@ -782,7 +773,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        final String expectedUrl = buildExpectedUrl(ALTERNATIVE_URL, 1, null, null);
+        final String expectedUrl = buildExpectedUrl(EU_ENDPOINT_URL, 1, null, null);
 
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
@@ -791,38 +782,8 @@ public class AdnuntiusBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldFailWhenGdprIsPresentAndAlternativeUriIsInvalid() {
-        // given
-        target = new AdnuntiusBidder(
-                ENDPOINT_URL,
-                "invalid_url",
-                Clock.system(ZoneId.of("UTC+05:00")),
-                jacksonMapper);
-
-        final BidRequest bidRequest = givenBidRequest(
-                request -> request
-                        .regs(Regs.builder().ext(ExtRegs.of(1, null, null, null)).build())
-                        .user(User.builder().ext(ExtUser.builder().consent(null).build()).build()),
-                givenBannerImp(identity()),
-                givenBannerImp(ExtImpAdnuntius.builder().network("network").build(), identity()));
-
-        // when
-        final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).containsExactly(BidderError.badInput("URL supplied is not valid: invalid_url"));
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
     public void makeHttpRequestsShouldReturnRequestsWithAlternativeUri() {
         // given
-        target = new AdnuntiusBidder(
-                ENDPOINT_URL,
-                ALTERNATIVE_URL,
-                Clock.system(ZoneId.of("UTC+05:00")),
-                jacksonMapper);
-
         final Integer gdpr = 1;
         final String consent = "con sent";
         final BidRequest bidRequest = givenBidRequest(
@@ -836,7 +797,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        final String expectedUrl = givenExpectedUrl(ALTERNATIVE_URL, gdpr, consent);
+        final String expectedUrl = givenExpectedUrl(EU_ENDPOINT_URL, gdpr, consent);
 
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
@@ -847,12 +808,6 @@ public class AdnuntiusBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnRequestsWithAlternativeUriIfExtImpNoCookiesIsNull() {
         // given
-        target = new AdnuntiusBidder(
-                ENDPOINT_URL,
-                ALTERNATIVE_URL,
-                Clock.system(ZoneId.of("UTC+05:00")),
-                jacksonMapper);
-
         final BidRequest bidRequest = givenBidRequest(
                 request -> request.regs(Regs.builder().ext(ExtRegs.of(1, null, null, null)).build()),
                 givenBannerImp(ExtImpAdnuntius.builder().network("network").build(), identity()),
@@ -862,7 +817,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        final String expectedUrl = buildExpectedUrl(ALTERNATIVE_URL, 1, null, null);
+        final String expectedUrl = buildExpectedUrl(EU_ENDPOINT_URL, 1, null, null);
 
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
@@ -873,12 +828,6 @@ public class AdnuntiusBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnRequestsWithAlternativeUriIfExtImpNoCookiesIsFalse() {
         // given
-        target = new AdnuntiusBidder(
-                ENDPOINT_URL,
-                ALTERNATIVE_URL,
-                Clock.system(ZoneId.of("UTC+05:00")),
-                jacksonMapper);
-
         final Boolean noCookies = false;
         final BidRequest bidRequest = givenBidRequest(
                 request -> request.regs(Regs.builder().ext(ExtRegs.of(1, null, null, null)).build()),
@@ -889,7 +838,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        final String expectedUrl = givenExpectedUrl(ALTERNATIVE_URL, 1, noCookies);
+        final String expectedUrl = givenExpectedUrl(EU_ENDPOINT_URL, 1, noCookies);
 
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
@@ -900,12 +849,6 @@ public class AdnuntiusBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnRequestsWithAlternativeUriIfExtImpNoCookiesIsTrue() {
         // given
-        target = new AdnuntiusBidder(
-                ENDPOINT_URL,
-                ALTERNATIVE_URL,
-                Clock.system(ZoneId.of("UTC+05:00")),
-                jacksonMapper);
-
         final Boolean noCookies = true;
         final BidRequest bidRequest = givenBidRequest(
                 request -> request.regs(Regs.builder().ext(ExtRegs.of(1, null, null, null)).build()),
@@ -916,7 +859,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        final String expectedUrl = givenExpectedUrl(ALTERNATIVE_URL, 1, noCookies);
+        final String expectedUrl = givenExpectedUrl(EU_ENDPOINT_URL, 1, noCookies);
 
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
@@ -927,12 +870,6 @@ public class AdnuntiusBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnRequestsWithAlternativeUriAndPopulateExtDeviceWithNoCookies() {
         // given
-        target = new AdnuntiusBidder(
-                ENDPOINT_URL,
-                ALTERNATIVE_URL,
-                Clock.system(ZoneId.of("UTC+05:00")),
-                jacksonMapper);
-
         final BidRequest bidRequest = givenBidRequest(
                 request -> request
                         .regs(Regs.builder().ext(ExtRegs.of(1, null, null, null)).build())
@@ -944,7 +881,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        final String expectedUrl = buildExpectedUrl(ALTERNATIVE_URL, 1, null, null);
+        final String expectedUrl = buildExpectedUrl(EU_ENDPOINT_URL, 1, null, null);
 
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
@@ -955,12 +892,6 @@ public class AdnuntiusBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnRequestsWithAlternativeUriIfExtDeviceImpNoCookiesIsFalse() {
         // given
-        target = new AdnuntiusBidder(
-                ENDPOINT_URL,
-                ALTERNATIVE_URL,
-                Clock.system(ZoneId.of("UTC+05:00")),
-                jacksonMapper);
-
         final Boolean noCookies = false;
         final BidRequest bidRequest = givenBidRequest(
                 request -> request
@@ -973,7 +904,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        final String expectedUrl = givenExpectedUrl(ALTERNATIVE_URL, 1, noCookies);
+        final String expectedUrl = givenExpectedUrl(EU_ENDPOINT_URL, 1, noCookies);
 
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
@@ -984,12 +915,6 @@ public class AdnuntiusBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnRequestsWithAlternativeUriIfExtDeviceImpNoCookiesIsTrue() {
         // given
-        target = new AdnuntiusBidder(
-                ENDPOINT_URL,
-                ALTERNATIVE_URL,
-                Clock.system(ZoneId.of("UTC+05:00")),
-                jacksonMapper);
-
         final Boolean noCookies = true;
         final BidRequest bidRequest = givenBidRequest(
                 request -> request
@@ -1002,7 +927,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        final String expectedUrl = givenExpectedUrl(ALTERNATIVE_URL, 1, noCookies);
+        final String expectedUrl = givenExpectedUrl(EU_ENDPOINT_URL, 1, noCookies);
 
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)

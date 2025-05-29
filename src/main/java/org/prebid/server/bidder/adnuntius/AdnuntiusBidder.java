@@ -69,8 +69,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
 
@@ -85,28 +83,27 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
     private static final int NATIVE_MTYPE = 4;
 
     private final String endpointUrl;
-    private final String alternativeEndpointUrl;
+    private final String euEndpoint;
     private final Clock clock;
     private final JacksonMapper mapper;
 
     public AdnuntiusBidder(String endpointUrl,
-                           String alternativeEndpointUrl,
+                           String euEndpoint,
                            Clock clock,
                            JacksonMapper mapper) {
 
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
-        this.alternativeEndpointUrl = alternativeEndpointUrl;
+        this.euEndpoint = HttpUtil.validateUrl(Objects.requireNonNull(euEndpoint));
         this.clock = Objects.requireNonNull(clock);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
     public Result<List<HttpRequest<AdnuntiusRequest>>> makeHttpRequests(BidRequest request) {
-        final Map<String, List<AdnuntiusRequestAdUnit>> networkToAdUnits = new HashMap<>();
-        boolean noCookies = false;
-
-        for (Imp imp : request.getImp()) {
-            try {
+        try {
+            final Map<String, List<AdnuntiusRequestAdUnit>> networkToAdUnits = new HashMap<>();
+            boolean noCookies = false;
+            for (Imp imp : request.getImp()) {
                 validateImp(imp);
                 final ExtImpAdnuntius extImpAdnuntius = parseImpExt(imp);
                 noCookies = noCookies || resolveIsNoCookies(extImpAdnuntius);
@@ -123,13 +120,8 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
                 if (imp.getXNative() != null) {
                     adUnits.add(makeNativeAdUnit(imp, extImpAdnuntius));
                 }
-
-            } catch (PreBidException e) {
-                return Result.withError(BidderError.badInput(e.getMessage()));
             }
-        }
 
-        try {
             return Result.withValues(createHttpRequests(networkToAdUnits, request, noCookies));
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
@@ -177,10 +169,6 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
 
     private static String targetId(String auId, String impId, String bidType) {
         return "%s-%s:%s".formatted(auId, impId, bidType);
-    }
-
-    private static String targetId(String auId, String impId) {
-        return "%s-%s".formatted(auId, impId);
     }
 
     private static List<List<Integer>> createDimensions(Banner banner) {
@@ -259,34 +247,8 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
         return adnuntiusRequests;
     }
 
-    private String makeEndpoint(BidRequest bidRequest, Boolean noCookies) {
-        try {
-            final String gdpr = extractGdpr(bidRequest.getRegs());
-            final String url = StringUtils.isNotEmpty(gdpr) && alternativeEndpointUrl != null
-                    ? HttpUtil.validateUrl(alternativeEndpointUrl)
-                    : endpointUrl;
-
-            final URIBuilder uriBuilder = new URIBuilder(url)
-                    .addParameter("format", "prebidServer")
-                    .addParameter("tzo", getTimeZoneOffset());
-
-            if (StringUtils.isNotEmpty(gdpr)) {
-                uriBuilder.addParameter("gdpr", gdpr);
-            }
-
-            final String consent = extractConsent(bidRequest.getUser());
-            if (StringUtils.isNotEmpty(consent)) {
-                uriBuilder.addParameter("consentString", consent);
-            }
-
-            if (noCookies || extractNoCookies(bidRequest.getDevice())) {
-                uriBuilder.addParameter("noCookies", "true");
-            }
-
-            return uriBuilder.build().toString();
-        } catch (URISyntaxException | IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage());
-        }
+    private static String targetIdForBids(String auId, String impId) {
+        return "%s-%s".formatted(auId, impId);
     }
 
     private String getTimeZoneOffset() {
@@ -387,24 +349,62 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
         }
     }
 
+    private static Map<String, AdnuntiusAdUnit> parseAdUnits(AdnuntiusResponse adnuntiusResponse) {
+        final Map<String, AdnuntiusAdUnit> targetIdToAdsUnit = new HashMap<>();
+        for (AdnuntiusAdUnit adUnit : adnuntiusResponse.getAdUnits()) {
+            if (isValid(adUnit)) {
+                final String targetId = extractTargetId(adUnit.getTargetId());
+                final AdnuntiusAdUnit existingAdUnit = targetIdToAdsUnit.get(targetId);
+                if (existingAdUnit == null || getBidAmount(adUnit).compareTo(getBidAmount(existingAdUnit)) >= 0) {
+                    targetIdToAdsUnit.put(targetId, adUnit);
+                }
+            }
+        }
+
+        return targetIdToAdsUnit;
+    }
+
+    private String makeEndpoint(BidRequest bidRequest, Boolean noCookies) {
+        try {
+            final String gdpr = extractGdpr(bidRequest.getRegs());
+            final String url = StringUtils.isEmpty(gdpr) ? endpointUrl : euEndpoint;
+
+            final URIBuilder uriBuilder = new URIBuilder(url)
+                    .addParameter("format", "prebidServer")
+                    .addParameter("tzo", getTimeZoneOffset());
+
+            if (StringUtils.isNotEmpty(gdpr)) {
+                uriBuilder.addParameter("gdpr", gdpr);
+            }
+
+            final String consent = extractConsent(bidRequest.getUser());
+            if (StringUtils.isNotEmpty(consent)) {
+                uriBuilder.addParameter("consentString", consent);
+            }
+
+            if (noCookies || extractNoCookies(bidRequest.getDevice())) {
+                uriBuilder.addParameter("noCookies", "true");
+            }
+
+            return uriBuilder.build().toString();
+        } catch (URISyntaxException | IllegalArgumentException e) {
+            throw new PreBidException(e.getMessage());
+        }
+    }
+
     private List<BidderBid> extractBids(BidRequest bidRequest, AdnuntiusResponse adnuntiusResponse) {
         if (adnuntiusResponse == null || CollectionUtils.isEmpty(adnuntiusResponse.getAdUnits())) {
             return Collections.emptyList();
         }
 
-        final Map<String, AdnuntiusAdUnit> targetIdToAdsUnit = adnuntiusResponse.getAdUnits().stream()
-                .filter(AdnuntiusBidder::isValid)
-                .collect(Collectors.toMap(
-                        adUnit -> extractTargetId(adUnit.getTargetId()),
-                        Function.identity(),
-                        (first, second) -> getBidAmount(first).compareTo(getBidAmount(second)) >= 0 ? first : second));
+        final Map<String, AdnuntiusAdUnit> targetIdToAdsUnit = parseAdUnits(adnuntiusResponse);
 
         String currency = null;
         final List<Bid> bids = new ArrayList<>();
 
         for (Imp imp : bidRequest.getImp()) {
             final ExtImpAdnuntius extImpAdnuntius = parseImpExt(imp);
-            final String targetId = targetId(extImpAdnuntius.getAuId(), imp.getId());
+            final String targetId = targetIdForBids(extImpAdnuntius.getAuId(), imp.getId());
 
             final AdnuntiusAdUnit adUnit = targetIdToAdsUnit.get(targetId);
             if (adUnit == null) {
