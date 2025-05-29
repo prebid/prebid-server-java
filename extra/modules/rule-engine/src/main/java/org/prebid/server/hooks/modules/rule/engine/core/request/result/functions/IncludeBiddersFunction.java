@@ -13,9 +13,9 @@ import org.prebid.server.hooks.modules.rule.engine.core.util.ConfigurationValida
 import org.springframework.util.CollectionUtils;
 
 @Value(staticConstructor = "of")
-public class ExcludeBiddersFunction implements ResultFunction<BidRequest, AuctionContext> {
+public class IncludeBiddersFunction implements ResultFunction<BidRequest, AuctionContext> {
 
-    public static final String NAME = "excludeBidders";
+    public static final String NAME = "includeBidders";
 
     ObjectMapper mapper;
 
@@ -44,3 +44,4 @@ public class ExcludeBiddersFunction implements ResultFunction<BidRequest, Auctio
         }
     }
 }
+

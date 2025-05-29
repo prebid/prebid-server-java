@@ -11,6 +11,7 @@ import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunct
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunctionArguments;
 import org.prebid.server.spring.config.bidder.model.MediaType;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -41,6 +42,7 @@ public class MediaTypeInFunction implements SchemaFunction<RequestContext> {
 
     private Set<String> parseMediaTypes(ObjectNode config) {
         // to lower case
+        return Collections.emptySet();
     }
 
     private static Set<String> adUnitMediaTypes(Imp imp) {

@@ -5,6 +5,7 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.hooks.modules.rule.engine.core.request.result.functions.ExcludeBiddersFunction;
+import org.prebid.server.hooks.modules.rule.engine.core.request.result.functions.IncludeBiddersFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.AdUnitCodeFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.ChannelFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.DataCenterFunction;
@@ -36,8 +37,8 @@ public class RequestSpecification implements StageSpecification<RequestContext, 
             AdUnitCodeFunction.NAME, new AdUnitCodeFunction());
 
     private static final Map<String, ResultFunction<BidRequest, AuctionContext>> RESULT_FUNCTIONS = Map.of(
-            "excludeBidders", ExcludeBiddersFunction.of(ObjectMapperProvider.mapper()),
-            "includeBidders", ExcludeBiddersFunction.of(ObjectMapperProvider.mapper()));
+            ExcludeBiddersFunction.NAME, ExcludeBiddersFunction.of(ObjectMapperProvider.mapper()),
+            IncludeBiddersFunction.NAME, IncludeBiddersFunction.of(ObjectMapperProvider.mapper()));
 
     public SchemaFunction<RequestContext> schemaFunctionByName(String name) {
         final SchemaFunction<RequestContext> function = SCHEMA_FUNCTIONS.get(name);

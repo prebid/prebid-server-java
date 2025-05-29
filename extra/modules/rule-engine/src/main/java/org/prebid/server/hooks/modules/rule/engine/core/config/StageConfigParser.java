@@ -104,7 +104,7 @@ public class StageConfigParser<SCHEMA_PAYLOAD, RULE_PAYLOAD, CONTEXT> {
                 .toList();
 
         schemaFunctions.forEach(holder ->
-                holder.getSchemaFunction().validateConfigArguments(holder.getArguments()));
+                holder.getSchemaFunction().validateConfigArguments(holder.getConfig()));
 
         return Schema.of(schemaFunctions);
     }

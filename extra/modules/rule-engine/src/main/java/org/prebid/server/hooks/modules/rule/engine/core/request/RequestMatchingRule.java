@@ -72,7 +72,7 @@ public class RequestMatchingRule implements Rule<BidRequest, AuctionContext> {
         final List<SchemaFunctionHolder<RequestContext>> schemaFunctions = schema.getFunctions();
         final List<String> matchers = schemaFunctions.stream()
                 .map(holder -> holder.getSchemaFunction().extract(
-                        SchemaFunctionArguments.of(requestContext, holder.getArguments())))
+                        SchemaFunctionArguments.of(requestContext, holder.getConfig())))
                 .map(matcher -> StringUtils.defaultIfEmpty(matcher, NULL_MATCHER))
                 .toList();
 
