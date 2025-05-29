@@ -10,6 +10,7 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -30,11 +31,11 @@ import java.util.Objects;
 
 public class StartioBidder implements Bidder<BidRequest> {
 
-    private final String endpointUrl;
-    private final JacksonMapper mapper;
-
     private static final JsonPointer BID_TYPE_POINTER = JsonPointer.valueOf("/prebid/type");
     private static final String BID_CURRENCY = "USD";
+
+    private final String endpointUrl;
+    private final JacksonMapper mapper;
 
     public StartioBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
@@ -43,8 +44,7 @@ public class StartioBidder implements Bidder<BidRequest> {
 
     @Override
     public final Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
-
-        if (hasAppOrSiteId(bidRequest)) {
+        if (hasNoAppOrSiteId(bidRequest)) {
             return Result.withError(BidderError.badInput(
                     "Bidder requires either app.id or site.id to be specified."));
         }
@@ -57,21 +57,35 @@ public class StartioBidder implements Bidder<BidRequest> {
         final List<BidderError> errors = new ArrayList<>();
         final List<Imp> imps = bidRequest.getImp();
         for (int i = 0; i < imps.size(); i++) {
-            Imp imp = imps.get(i);
+            final Imp imp = imps.get(i);
             if (imp.getBanner() == null && imp.getVideo() == null && imp.getXNative() == null) {
                 errors.add(BidderError.badInput(
                         "imp[%d]: Unsupported media type, bidder does not support audio.".formatted(i)));
-            } else {
-                if (imp.getAudio() != null) {
-                    imp = imp.toBuilder().audio(null).build();
-                }
-                requests.add(BidderUtil.defaultRequest(
-                        bidRequest.toBuilder().imp(Collections.singletonList(imp)).build(),
-                        endpointUrl, mapper));
+
+                continue;
             }
+
+            final Imp modifiedImp = imp.getAudio() != null
+                    ? imp.toBuilder().audio(null).build()
+                    : imp;
+            requests.add(BidderUtil.defaultRequest(
+                    bidRequest.toBuilder().imp(Collections.singletonList(modifiedImp)).build(),
+                    endpointUrl, mapper));
+
         }
 
         return Result.of(requests, errors);
+    }
+
+    private static boolean hasNoAppOrSiteId(BidRequest bidRequest) {
+        final App app = bidRequest.getApp();
+        final Site site = bidRequest.getSite();
+        return (app == null || StringUtils.isEmpty(app.getId()))
+                && (site == null || StringUtils.isEmpty(site.getId()));
+    }
+
+    private static boolean isSupportedCurrency(List<String> currencies) {
+        return CollectionUtils.isNotEmpty(currencies) && !currencies.contains(BID_CURRENCY);
     }
 
     @Override
@@ -101,6 +115,7 @@ public class StartioBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
                 .map(bid -> constructBidderBid(bid, bidResponse.getCur(), errors))
                 .filter(Objects::nonNull)
                 .toList();
@@ -119,11 +134,7 @@ public class StartioBidder implements Bidder<BidRequest> {
 
     private static BidType getBidType(Bid bid) {
         final JsonNode ext = bid.getExt();
-        if (ext == null) {
-            return null;
-        }
-
-        final JsonNode bidType = ext.at(BID_TYPE_POINTER);
+        final JsonNode bidType = ext != null ? ext.at(BID_TYPE_POINTER) : null;
         if (bidType == null || !bidType.isTextual()) {
             return null;
         }
@@ -134,17 +145,6 @@ public class StartioBidder implements Bidder<BidRequest> {
             case "native" -> BidType.xNative;
             default -> null;
         };
-    }
-
-    private static boolean isSupportedCurrency(List<String> currencies) {
-        return currencies != null && !currencies.isEmpty() && !currencies.contains(BID_CURRENCY);
-    }
-
-    private static boolean hasAppOrSiteId(BidRequest bidRequest) {
-        final App app = bidRequest.getApp();
-        final Site site = bidRequest.getSite();
-        return (app == null || app.getId() == null || app.getId().isEmpty())
-                && (site == null || site.getId() == null || site.getId().isEmpty());
     }
 
 }

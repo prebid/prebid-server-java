@@ -10,8 +10,6 @@ adapters:
     enabled: true
   rubicon:
     enabled: true
-  startio:
-    enabled: true
 metrics:
   prefix: prebid
 cache:

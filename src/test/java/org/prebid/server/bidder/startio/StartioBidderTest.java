@@ -134,83 +134,7 @@ public class StartioBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
-        // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
-                    assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token");
-                });
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = givenBidRequest(identity());
-        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, mapper.writeValueAsString(null));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = givenBidRequest(identity());
-        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
-                mapper.writeValueAsString(BidResponse.builder().build()));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReportErrorAndSkipBidIfCannotParseBidType() throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = givenBidRequest(identity());
-        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
-                givenBidResponse(
-                        givenBid("001", BidType.banner),
-                        givenBid("002", BidType.video),
-                        givenBid("003", BidType.xNative),
-                        givenBid("004", BidType.audio),
-                        givenBid("005", BidType.banner).toBuilder().ext(null).build(),
-                        givenBid("006", BidType.banner).toBuilder().ext(
-                                mapper.createObjectNode().put("prebid", false)).build(),
-                        givenBid("007", BidType.banner).toBuilder().ext(
-                                mapper.createObjectNode().set("prebid",
-                                        mapper.createObjectNode().put("type", "not a banner"))).build()
-                ));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(4).allSatisfy(
-                error -> assertThat(
-                        error.getMessage()).startsWith("Failed to parse bid media type for impression"));
-        assertThat(result.getValue()).hasSize(3).allSatisfy(
-                bid -> assertThat(bid.getBid().getImpid()).isIn(List.of("001", "002", "003")));
-    }
-
-    @Test
     public void makeHttpRequestsShouldReturnErrorWhenImpressionContainsOnlyAudio() {
-
         // given
         final Audio audio = Audio.builder().mimes(List.of("audio/mp3")).build();
         final BidRequest bidRequest = givenBidRequest(identity(),
@@ -240,7 +164,8 @@ public class StartioBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                .extracting(HttpRequest::getPayload).extracting(BidRequest::getImp).extracting(List::getFirst)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
                 .allSatisfy(impression -> {
                     assertThat(impression.getAudio()).isEqualTo(null);
                     assertThat(impression.getBanner()).isEqualTo(banner);
@@ -265,38 +190,100 @@ public class StartioBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        final List<HttpRequest<BidRequest>> httpRequests = result.getValue();
-        assertThat(httpRequests).hasSize(3);
-
-        // Each resulting request contains single impression
-        assertThat(httpRequests)
+        assertThat(result.getValue()).hasSize(3)
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getImp)
-                .allSatisfy(impressions -> assertThat(impressions).hasSize(1));
-
-        // All impressions are correctly passed in the resulting requests
-        assertThat(httpRequests)
-                .extracting(HttpRequest::getPayload)
-                .extracting(BidRequest::getImp)
+                .allSatisfy(imps -> assertThat(imps).hasSize(1))
                 .extracting(List::getFirst)
                 .satisfiesExactlyInAnyOrder(
                         impression -> assertThat(impression).isEqualTo(imp1),
                         impression -> assertThat(impression).isEqualTo(imp2),
-                        impression -> assertThat(impression).isEqualTo(imp3)
-                );
+                        impression -> assertThat(impression).isEqualTo(imp3));
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token");
+                });
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
+                mapper.writeValueAsString(BidResponse.builder().build()));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReportErrorAndSkipBidIfCannotParseBidType() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
+                givenBidResponse(
+                        givenBid("001", BidType.banner),
+                        givenBid("002", BidType.video),
+                        givenBid("003", BidType.xNative),
+                        givenBid("004", BidType.audio),
+                        givenBid("005", BidType.banner).toBuilder().ext(null).build(),
+                        givenBid("006", BidType.banner).toBuilder().ext(
+                                mapper.createObjectNode().put("prebid", false)).build(),
+                        givenBid("007", BidType.banner).toBuilder().ext(
+                                mapper.createObjectNode().set("prebid",
+                                        mapper.createObjectNode().put("type", "not a banner"))).build()));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).hasSize(4).allSatisfy(
+                error -> assertThat(
+                        error.getMessage()).startsWith("Failed to parse bid media type for impression"));
+        assertThat(result.getValue()).hasSize(3).allSatisfy(
+                bid -> assertThat(bid.getBid().getImpid()).isIn(List.of("001", "002", "003")));
+    }
+
+    private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
+        return givenBidRequest(identity(), impCustomizer);
     }
 
     private static BidRequest givenBidRequest(
             UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
             UnaryOperator<Imp.ImpBuilder> impCustomizer) {
 
-        return bidRequestCustomizer.apply(BidRequest.builder().app(App.builder().id("appId").build())
+        return bidRequestCustomizer.apply(BidRequest.builder()
+                        .app(App.builder().id("appId").build())
                         .imp(singletonList(givenImp(impCustomizer))))
                 .build();
-    }
-
-    private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
-        return givenBidRequest(identity(), impCustomizer);
     }
 
     private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
@@ -321,8 +308,12 @@ public class StartioBidderTest extends VertxTest {
     }
 
     private static Bid givenBid(String impid, BidType bidType) {
-        return Bid.builder().impid(impid).ext(mapper.createObjectNode().set("prebid",
-                mapper.createObjectNode().put("type", bidType.getName()))).build();
+        return Bid.builder()
+                .impid(impid)
+                .ext(mapper.createObjectNode()
+                        .set("prebid", mapper.createObjectNode()
+                                .put("type", bidType.getName())))
+                .build();
     }
 
 }
