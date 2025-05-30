@@ -235,6 +235,7 @@ class BidAdjustmentSpec extends BaseSpec {
 
         and: "Bidder request should contain original imp.floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.cur == [currency]
         assert bidderRequest.imp.bidFloorCur == [currency]
         assert bidderRequest.imp.bidFloor == [impPrice]
 
@@ -315,6 +316,7 @@ class BidAdjustmentSpec extends BaseSpec {
 
         and: "Bidder request should contain original imp.floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.cur == [currency]
         assert bidderRequest.imp.bidFloorCur == [currency]
         assert bidderRequest.imp.bidFloor == [null]
 
@@ -408,6 +410,7 @@ class BidAdjustmentSpec extends BaseSpec {
 
         and: "Bidder request should contain original imp.floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.cur == [currency]
         assert bidderRequest.imp.bidFloorCur == [currency, currency]
         assert bidderRequest.imp.bidFloor.sort() == [firstImpPrice, secondImpPrice].sort()
 
@@ -492,6 +495,7 @@ class BidAdjustmentSpec extends BaseSpec {
 
         and: "Bidder request should contain original imp.floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.cur == [currency]
         assert bidderRequest.imp.bidFloorCur == [currency]
         assert bidderRequest.imp.bidFloor == [impPrice]
 
@@ -667,6 +671,7 @@ class BidAdjustmentSpec extends BaseSpec {
 
         and: "Bidder request should contain original imp.floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.cur == [currency]
         assert bidderRequest.imp.bidFloorCur == [currency]
         assert bidderRequest.imp.bidFloor == [impPrice]
     }
@@ -710,6 +715,7 @@ class BidAdjustmentSpec extends BaseSpec {
 
         and: "Bidder request should contain original imp.floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.cur == [currency]
         assert bidderRequest.imp.bidFloorCur == [currency]
         assert bidderRequest.imp.bidFloor == [impPrice]
 
@@ -763,6 +769,7 @@ class BidAdjustmentSpec extends BaseSpec {
 
         and: "Bidder request should contain original imp.floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.cur == [currency]
         assert bidderRequest.imp.bidFloorCur == [currency]
         assert bidderRequest.imp.bidFloor == [impPrice]
     }
@@ -803,6 +810,7 @@ class BidAdjustmentSpec extends BaseSpec {
 
         and: "Bidder request should contain original imp.floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.cur == [currency]
         assert bidderRequest.imp.bidFloorCur == [currency]
         assert bidderRequest.imp.bidFloor == [impPrice]
     }
@@ -846,6 +854,7 @@ class BidAdjustmentSpec extends BaseSpec {
 
         and: "Bidder request should contain original imp.floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.cur == [currency]
         assert bidderRequest.imp.bidFloorCur == [currency]
         assert bidderRequest.imp.bidFloor == [impPrice]
 
@@ -899,6 +908,7 @@ class BidAdjustmentSpec extends BaseSpec {
 
         and: "Bidder request should contain original imp.floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.cur == [currency]
         assert bidderRequest.imp.bidFloorCur == [currency]
         assert bidderRequest.imp.bidFloor == [impPrice]
 
@@ -1024,6 +1034,7 @@ class BidAdjustmentSpec extends BaseSpec {
 
         and: "Bidder request should contain original imp.floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.cur == [currency]
         assert bidderRequest.imp.bidFloorCur == [currency]
         assert bidderRequest.imp.bidFloor == [impPrice]
 
@@ -1080,6 +1091,7 @@ class BidAdjustmentSpec extends BaseSpec {
 
         and: "Bidder request should contain original imp.floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.cur == [currency]
         assert bidderRequest.imp.bidFloorCur == [currency]
         assert bidderRequest.imp.bidFloor == [impPrice]
 
@@ -1126,6 +1138,7 @@ class BidAdjustmentSpec extends BaseSpec {
 
         and: "Bidder request should contain original imp.floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.cur == [currency]
         assert bidderRequest.imp.bidFloorCur == [currency]
         assert bidderRequest.imp.bidFloor == [impPrice]
 
@@ -1232,6 +1245,7 @@ class BidAdjustmentSpec extends BaseSpec {
 
         and: "Bidder request should contain original imp.floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.cur == [currency]
         assert bidderRequest.imp.bidFloorCur == [currency]
         assert bidderRequest.imp.bidFloor == [impPrice]
 
