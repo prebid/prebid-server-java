@@ -22,6 +22,7 @@ import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.Schema;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunctionHolder;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.tree.RuleTree;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.tree.RuleTreeFactory;
+import org.prebid.server.hooks.modules.rule.engine.core.util.ConfigurationValidationException;
 import org.prebid.server.hooks.modules.rule.engine.core.util.WeightedEntry;
 import org.prebid.server.hooks.modules.rule.engine.core.util.WeightedList;
 import org.springframework.util.CollectionUtils;
@@ -103,10 +104,18 @@ public class StageConfigParser<SCHEMA_PAYLOAD, RULE_PAYLOAD, CONTEXT> {
                         config.getArgs()))
                 .toList();
 
-        schemaFunctions.forEach(holder ->
-                holder.getSchemaFunction().validateConfigArguments(holder.getConfig()));
+        schemaFunctions.forEach(this::validateFunctionConfig);
 
         return Schema.of(schemaFunctions);
+    }
+
+    private void validateFunctionConfig(SchemaFunctionHolder<SCHEMA_PAYLOAD> holder) {
+        try {
+            holder.getSchemaFunction().validateConfig(holder.getConfig());
+        } catch (ConfigurationValidationException exception) {
+            throw new InvalidMatcherConfiguration(
+                    "Function '%s' configuration is invalid: %s".formatted(holder.getName(), exception.getMessage()));
+        }
     }
 
     private RuleConfig<RULE_PAYLOAD, CONTEXT> parseRuleConfig(AccountRuleConfig ruleConfig) {

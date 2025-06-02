@@ -1,31 +1,29 @@
 package org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Device;
-import com.iab.openrtb.request.Geo;
 import org.prebid.server.hooks.modules.rule.engine.core.request.RequestContext;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunctionArguments;
 import org.prebid.server.hooks.modules.rule.engine.core.util.ValidationUtils;
 
-import java.util.Optional;
+public class PrebidKeyFunction implements SchemaFunction<RequestContext> {
 
-public class DeviceCountryFunction implements SchemaFunction<RequestContext> {
+    public static final String NAME = "prebidKey";
 
-    public static final String NAME = "deviceCountry";
+    private static final String KEY_FIELD = "key";
 
     @Override
     public String extract(SchemaFunctionArguments<RequestContext> arguments) {
-        return Optional.of(arguments.getOperand().getBidRequest())
-                .map(BidRequest::getDevice)
-                .map(Device::getGeo)
-                .map(Geo::getCountry)
-                .orElse(UNDEFINED_RESULT);
+//       final String key = arguments.getConfig().get(KEY_FIELD).asText();
+//       return Optional.ofNullable(arguments.getOperand().getBidRequest().getExt())
+//               .map(ext -> ext.getPrebid())
+//               .map(e -> e.get)
+
+        return UNDEFINED_RESULT;
     }
 
     @Override
     public void validateConfig(ObjectNode config) {
-        ValidationUtils.assertNoArgs(config);
+        ValidationUtils.assertString(config, KEY_FIELD);
     }
 }

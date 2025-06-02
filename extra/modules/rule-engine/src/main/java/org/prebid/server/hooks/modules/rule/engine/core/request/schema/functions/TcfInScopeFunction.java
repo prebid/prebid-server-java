@@ -2,8 +2,7 @@ package org.prebid.server.hooks.modules.rule.engine.core.request.schema.function
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Device;
-import com.iab.openrtb.request.Geo;
+import com.iab.openrtb.request.Regs;
 import org.prebid.server.hooks.modules.rule.engine.core.request.RequestContext;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunctionArguments;
@@ -11,17 +10,19 @@ import org.prebid.server.hooks.modules.rule.engine.core.util.ValidationUtils;
 
 import java.util.Optional;
 
-public class DeviceCountryFunction implements SchemaFunction<RequestContext> {
+public class TcfInScopeFunction implements SchemaFunction<RequestContext> {
 
-    public static final String NAME = "deviceCountry";
+    public static final String NAME = "tcfInScope";
 
     @Override
     public String extract(SchemaFunctionArguments<RequestContext> arguments) {
-        return Optional.of(arguments.getOperand().getBidRequest())
-                .map(BidRequest::getDevice)
-                .map(Device::getGeo)
-                .map(Geo::getCountry)
-                .orElse(UNDEFINED_RESULT);
+        final boolean inScope = Optional.of(arguments.getOperand().getBidRequest())
+                .map(BidRequest::getRegs)
+                .map(Regs::getGdpr)
+                .filter(Integer.valueOf(1)::equals)
+                .isPresent();
+
+        return Boolean.toString(inScope);
     }
 
     @Override

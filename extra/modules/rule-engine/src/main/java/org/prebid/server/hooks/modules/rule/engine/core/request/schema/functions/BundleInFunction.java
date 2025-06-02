@@ -2,9 +2,7 @@ package org.prebid.server.hooks.modules.rule.engine.core.request.schema.function
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Device;
-import com.iab.openrtb.request.Geo;
+import com.iab.openrtb.request.App;
 import org.prebid.server.hooks.modules.rule.engine.core.request.RequestContext;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunctionArguments;
@@ -13,28 +11,27 @@ import org.prebid.server.util.StreamUtil;
 
 import java.util.Optional;
 
-public class DeviceCountryInFunction implements SchemaFunction<RequestContext> {
+public class BundleInFunction implements SchemaFunction<RequestContext> {
 
-    public static final String NAME = "deviceCountryIn";
-    private static final String COUNTRIES_FIELD = "countries";
+    public static final String NAME = "bundleIn";
+
+    private static final String BUNDLES_FIELD = "bundles";
 
     @Override
     public String extract(SchemaFunctionArguments<RequestContext> arguments) {
-        final String deviceCountry = Optional.of(arguments.getOperand().getBidRequest())
-                .map(BidRequest::getDevice)
-                .map(Device::getGeo)
-                .map(Geo::getCountry)
+        final String bundle = Optional.ofNullable(arguments.getOperand().getBidRequest().getApp())
+                .map(App::getBundle)
                 .orElse(UNDEFINED_RESULT);
 
-        final boolean matches = StreamUtil.asStream(arguments.getConfig().get(COUNTRIES_FIELD).elements())
+        final boolean matches = StreamUtil.asStream(arguments.getConfig().get(BUNDLES_FIELD).elements())
                 .map(JsonNode::asText)
-                .anyMatch(deviceCountry::equalsIgnoreCase);
+                .anyMatch(bundle::equals);
 
         return Boolean.toString(matches);
     }
 
     @Override
     public void validateConfig(ObjectNode config) {
-        ValidationUtils.assertArrayOfStrings(config, COUNTRIES_FIELD);
+        ValidationUtils.assertArrayOfStrings(config, BUNDLES_FIELD);
     }
 }

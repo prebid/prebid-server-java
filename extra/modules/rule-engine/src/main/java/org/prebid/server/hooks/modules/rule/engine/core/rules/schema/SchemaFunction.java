@@ -8,6 +8,5 @@ public interface SchemaFunction<T> {
 
     String extract(SchemaFunctionArguments<T> arguments);
 
-    default void validateConfigArguments(ObjectNode args) {
-    }
+    void validateConfig(ObjectNode config);
 }
