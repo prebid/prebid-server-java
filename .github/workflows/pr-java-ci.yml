@@ -41,11 +41,22 @@ jobs:
         if: steps.build.outputs.exit_code != '0'
         run: |
           author="@${{ github.event.pull_request.user.login }}"
-          errors=$(awk '
-            /\[INFO\] Starting audit/ { in=1; next }
-            /Audit done/             { in=0 }
-            in && /^Error:/          { print }
-          ' build_output.txt)
+          errors=""
+          in_block=0
+          
+          while IFS= read -r line; do
+            if [[ "$line" == *"[INFO] Starting audit"* ]]; then
+              in_block=1
+              continue
+            fi
+            if [[ "$line" == *"Audit done."* ]]; then
+              in_block=0
+              continue
+            fi
+            if [[ $in_block -eq 1 && "$line" == Error:* ]]; then
+              errors+="$line"$'\n'
+            fi
+          done < build_output.txt
           
           if [ -n "$errors" ]; then
             {
