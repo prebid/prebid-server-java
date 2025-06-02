@@ -41,14 +41,19 @@ jobs:
         if: steps.build.outputs.exit_code != '0'
         run: |
           author="@${{ github.event.pull_request.user.login }}"
-          audit_block=$(sed -n '/\[INFO\] Starting audit\.\.\./,/Audit done\./p' build_output.txt)
-           if echo "$audit_block" | grep -q '^Error:'; then
+          errors=$(awk '
+            /\[INFO\] Starting audit\.\.\./  { in=1; next }
+            /Audit done\./                  { in=0 }
+            in && /^Error:/                 { print }
+          ' build_output.txt)
+          
+          if [ -n "$errors" ]; then
             {
               echo "${author}, some Checkstyle issues were found"
               echo "**❌ Checkstyle Issues Detected**"
               echo ""
               echo '```'
-              echo "$audit_block" | grep '^Error:'
+              echo "$errors"
               echo '```'
             } > comment.txt
           else
