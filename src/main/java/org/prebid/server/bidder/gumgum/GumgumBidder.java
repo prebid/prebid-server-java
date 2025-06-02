@@ -53,10 +53,6 @@ public class GumgumBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private static final TypeReference<ExtPrebid<ExtImpPrebid, ExtImpGumgum>> GUMGUM_EXT_PREBID_TYPE_REFERENCE =
-            new TypeReference<>() {
-            };
-
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
@@ -120,10 +116,11 @@ public class GumgumBidder implements Bidder<BidRequest> {
     }
 
     private String extractAdUnitCode(Imp imp) {
-        final ExtPrebid<ExtImpPrebid, ExtImpGumgum> extPrebid = mapper.mapper()
-                .convertValue(imp.getExt(), GUMGUM_EXT_PREBID_TYPE_REFERENCE);
+        final ExtPrebid<?, ExtImpGumgum> extPrebid = mapper.mapper()
+                .convertValue(imp.getExt(), GUMGUM_EXT_TYPE_REFERENCE);
 
         return Optional.ofNullable(extPrebid.getPrebid())
+                .map(prebid -> mapper.mapper().convertValue(prebid, ExtImpPrebid.class))
                 .map(ExtImpPrebid::getAdUnitCode)
                 .orElse(null);
     }

@@ -82,13 +82,11 @@ public class GumgumBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         //deserialize byte[] body into BidRequest
-        byte[] requestBody = result.getValue().get(0).getBody();
-        BidRequest modifiedRequest = mapper.readValue(requestBody, BidRequest.class);
+        final byte[] requestBody = result.getValue().get(0).getBody();
+        final BidRequest modifiedRequest = mapper.readValue(requestBody, BidRequest.class);
 
         //then
         assertThat(modifiedRequest.getImp()).hasSize(1);
-
-
         assertThat(modifiedRequest.getImp())
                 .extracting(Imp::getTagid)
                 .containsExactly("adUnit123");
@@ -97,38 +95,37 @@ public class GumgumBidderTest extends VertxTest {
     @Test
     public void testMakeHttpRequestsShouldNotSetTagIdFromZoneWhenAdUnitIdIsMissing() throws IOException {
         //given:Imp without adUnitId but with zone
-        ObjectNode extImp = mapper.valueToTree(ExtPrebid.of(null,
+        final ObjectNode extImp = mapper.valueToTree(ExtPrebid.of(null,
                 ExtImpGumgum.of("zone123", BigInteger.TEN, "productA", null, "zone123")));
 
-        Imp imp = Imp.builder()
+        final Imp imp = Imp.builder()
                 .id("imp1")
                 .banner(Banner.builder().w(300).h(250).build())
                 .ext(extImp)
                 .build();
 
-        BidRequest bidRequest = BidRequest.builder()
+        final BidRequest bidRequest = BidRequest.builder()
                 .id("test-bid-request")
                 .imp(Collections.singletonList(imp))
                 .site(Site.builder().id("test-site").build())
                 .build();
 
         //when: Calling makeHttpRequests
-        Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         //then: Validate the request was modified correctly
         assertNotNull(result);
         assertFalse(result.getValue().isEmpty());
 
         //deserialize byte[] body into BidRequest
-        byte[] requestBody = result.getValue().get(0).getBody();
-        BidRequest modifiedRequest = mapper.readValue(requestBody, BidRequest.class);
+        final byte[] requestBody = result.getValue().get(0).getBody();
+        final BidRequest modifiedRequest = mapper.readValue(requestBody, BidRequest.class);
 
         assertFalse(modifiedRequest.getImp().isEmpty());
 
-        Imp modifiedImp = modifiedRequest.getImp().get(0);
+        final Imp modifiedImp = modifiedRequest.getImp().get(0);
 
         assertNull(modifiedImp.getTagid());
-
         assertEquals("test-site", modifiedRequest.getSite().getId(), "zone123");
     }
 
