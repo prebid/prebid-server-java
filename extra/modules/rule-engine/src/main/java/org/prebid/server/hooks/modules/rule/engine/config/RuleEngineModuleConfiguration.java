@@ -35,7 +35,7 @@ public class RuleEngineModuleConfiguration {
         return new StageConfigParser<>(
                 () -> ThreadLocalRandom.current().nextLong(),
                 Stage.processed_auction_request,
-                RequestSpecification.INSTANCE,
+                new RequestSpecification(ObjectMapperProvider.mapper()),
                 (schema, ruleTree, modelVersion, analyticsKey) ->
                         new RequestMatchingRule(schema, ruleTree, modelVersion, analyticsKey, datacenterRegion));
     }

@@ -15,7 +15,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class GppSidIn implements SchemaFunction<RequestContext> {
+public class GppSidInFunction implements SchemaFunction<RequestContext> {
 
     public static final String NAME = "gppSidIn";
 

@@ -1,47 +1,86 @@
 package org.prebid.server.hooks.modules.rule.engine.core.request;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iab.openrtb.request.BidRequest;
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.hooks.modules.rule.engine.core.request.result.functions.ExcludeBiddersFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.request.result.functions.IncludeBiddersFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.AdUnitCodeFunction;
+import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.AdUnitCodeInFunction;
+import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.BundleFunction;
+import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.BundleInFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.ChannelFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.DataCenterFunction;
+import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.DataCenterInFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.DeviceCountryFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.DeviceCountryInFunction;
+import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.DeviceTypeFunction;
+import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.DeviceTypeInFunction;
+import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.DomainFunction;
+import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.EidAvailableFunction;
+import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.EidInFunction;
+import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.FpdAvailableFunction;
+import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.GppSidAvailableFunction;
+import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.GppSidInFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.MediaTypeInFunction;
+import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.PrebidKeyFunction;
+import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.TcfInScopeFunction;
+import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.UserFpdAvailableFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.StageSpecification;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.exception.InvalidSchemaFunctionException;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.result.ResultFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunction;
 import org.prebid.server.json.ObjectMapperProvider;
 
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class RequestSpecification implements StageSpecification<RequestContext, BidRequest, AuctionContext> {
 
-    public static final RequestSpecification INSTANCE = new RequestSpecification();
+    public static final Set<String> PER_IMP_SCHEMA_FUNCTIONS =
+            Set.of(AdUnitCodeFunction.NAME, MediaTypeInFunction.NAME);
 
-    public static final Set<String> PER_IMP_SCHEMA_FUNCTIONS = Set.of(AdUnitCodeFunction.NAME);
+    private final ObjectMapper mapper;
 
-    private static final Map<String, SchemaFunction<RequestContext>> SCHEMA_FUNCTIONS = Map.of(
-            DeviceCountryFunction.NAME, new DeviceCountryFunction(),
-            DeviceCountryInFunction.NAME, new DeviceCountryInFunction(),
-            MediaTypeInFunction.NAME, new MediaTypeInFunction(),
-            DataCenterFunction.NAME, new DataCenterFunction(),
-            ChannelFunction.NAME, new ChannelFunction(),
-            AdUnitCodeFunction.NAME, new AdUnitCodeFunction());
+    private final Map<String, SchemaFunction<RequestContext>> schemaFunctions;
+    private final Map<String, ResultFunction<BidRequest, AuctionContext>> resultFunctions;
 
-    private static final Map<String, ResultFunction<BidRequest, AuctionContext>> RESULT_FUNCTIONS = Map.of(
-            ExcludeBiddersFunction.NAME, ExcludeBiddersFunction.of(ObjectMapperProvider.mapper()),
-            IncludeBiddersFunction.NAME, IncludeBiddersFunction.of(ObjectMapperProvider.mapper()));
+    public RequestSpecification(ObjectMapper mapper) {
+        this.mapper = Objects.requireNonNull(mapper);
+
+        schemaFunctions = new HashMap<>();
+        schemaFunctions.put(AdUnitCodeFunction.NAME, new AdUnitCodeFunction());
+        schemaFunctions.put(AdUnitCodeInFunction.NAME, new AdUnitCodeInFunction());
+        schemaFunctions.put(BundleFunction.NAME, new BundleFunction());
+        schemaFunctions.put(BundleInFunction.NAME, new BundleInFunction());
+        schemaFunctions.put(ChannelFunction.NAME, new ChannelFunction());
+        schemaFunctions.put(DataCenterFunction.NAME, new DataCenterFunction());
+        schemaFunctions.put(DataCenterInFunction.NAME, new DataCenterInFunction());
+        schemaFunctions.put(DeviceCountryFunction.NAME, new DeviceCountryFunction());
+        schemaFunctions.put(DeviceCountryInFunction.NAME, new DeviceCountryInFunction());
+        schemaFunctions.put(DeviceTypeFunction.NAME, new DeviceTypeFunction());
+        schemaFunctions.put(DeviceTypeInFunction.NAME, new DeviceTypeInFunction());
+        schemaFunctions.put(DomainFunction.NAME, new DomainFunction());
+        schemaFunctions.put(EidAvailableFunction.NAME, new EidAvailableFunction());
+        schemaFunctions.put(EidInFunction.NAME, new EidInFunction());
+        schemaFunctions.put(FpdAvailableFunction.NAME, new FpdAvailableFunction());
+        schemaFunctions.put(GppSidAvailableFunction.NAME, new GppSidAvailableFunction());
+        schemaFunctions.put(GppSidInFunction.NAME, new GppSidInFunction());
+        schemaFunctions.put(MediaTypeInFunction.NAME, new MediaTypeInFunction());
+        schemaFunctions.put(PrebidKeyFunction.NAME, new PrebidKeyFunction());
+        schemaFunctions.put(TcfInScopeFunction.NAME, new TcfInScopeFunction());
+        schemaFunctions.put(UserFpdAvailableFunction.NAME, new UserFpdAvailableFunction());
+
+        resultFunctions = Map.of(
+                ExcludeBiddersFunction.NAME, ExcludeBiddersFunction.of(ObjectMapperProvider.mapper()),
+                IncludeBiddersFunction.NAME, IncludeBiddersFunction.of(ObjectMapperProvider.mapper()));
+    }
+
 
     public SchemaFunction<RequestContext> schemaFunctionByName(String name) {
-        final SchemaFunction<RequestContext> function = SCHEMA_FUNCTIONS.get(name);
+        final SchemaFunction<RequestContext> function = schemaFunctions.get(name);
         if (function == null) {
             throw new InvalidSchemaFunctionException(name);
         }
@@ -50,7 +89,7 @@ public class RequestSpecification implements StageSpecification<RequestContext, 
     }
 
     public ResultFunction<BidRequest, AuctionContext> resultFunctionByName(String name) {
-        final ResultFunction<BidRequest, AuctionContext> function = RESULT_FUNCTIONS.get(name);
+        final ResultFunction<BidRequest, AuctionContext> function = resultFunctions.get(name);
         if (function == null) {
             throw new InvalidSchemaFunctionException(name);
         }

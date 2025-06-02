@@ -9,7 +9,7 @@ import org.prebid.server.hooks.modules.rule.engine.core.util.ValidationUtils;
 
 public class DomainFunction implements SchemaFunction<RequestContext> {
 
-    private static final String NAME = "domain";
+    public static final String NAME = "domain";
 
     @Override
     public String extract(SchemaFunctionArguments<RequestContext> arguments) {
