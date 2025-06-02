@@ -53,8 +53,8 @@ jobs:
               in_block=0
               continue
             fi
-            if [[ $in_block -eq 1 && "$line" == Error:* ]]; then
-              errors+="$line"$'\n'
+            if [[ $in_block -eq 1 && "${line#"${line%%[![:space:]]*}"}" == Error:* ]]; then
+              errors+="${line#"${line%%[![:space:]]*}"}"$'\n'
             fi
           done < build_output.txt
           
