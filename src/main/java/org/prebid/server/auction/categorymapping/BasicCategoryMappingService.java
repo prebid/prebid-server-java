@@ -112,9 +112,21 @@ public class BasicCategoryMappingService implements CategoryMappingService {
         final List<RejectedBid> rejectedBids = new ArrayList<>();
 
         return makeBidderToBidCategory(
-                bidderResponses, withCategory, translateCategories, primaryAdServer, publisher, rejectedBids, timeout)
-                .map(categoryBidContexts -> resolveBidsCategoriesDurations(bidderResponses, categoryBidContexts,
-                        account, bidRequest, targeting, withCategory, rejectedBids));
+                bidderResponses,
+                withCategory,
+                translateCategories,
+                primaryAdServer,
+                publisher,
+                rejectedBids,
+                timeout)
+                .map(categoryBidContexts -> resolveBidsCategoriesDurations(
+                        bidderResponses,
+                        categoryBidContexts,
+                        account,
+                        bidRequest,
+                        targeting,
+                        withCategory,
+                        rejectedBids));
     }
 
     private static ExtRequestTargeting targeting(BidRequest bidRequest) {
@@ -345,8 +357,15 @@ public class BasicCategoryMappingService implements CategoryMappingService {
 
         final boolean appendBidderNames = BooleanUtils.toBooleanDefaultIfNull(targeting.getAppendbiddernames(), false);
         final Map<String, Set<CategoryBidContext>> uniqueCatKeysToCategoryBids = categoryBidContexts.stream()
-                .map(categoryBidContext -> enrichCategoryBidContext(categoryBidContext, account, durations,
-                        priceGranularity, withCategory, appendBidderNames, impIdToBiddersDealTear, rejectedBids))
+                .map(categoryBidContext -> enrichCategoryBidContext(
+                        categoryBidContext,
+                        account,
+                        durations,
+                        priceGranularity,
+                        withCategory,
+                        appendBidderNames,
+                        impIdToBiddersDealTear,
+                        rejectedBids))
                 .filter(Objects::nonNull)
                 .collect(Collectors.groupingBy(CategoryBidContext::getCategoryUniqueKey,
                         Collectors.mapping(Function.identity(), Collectors.toSet())));
