@@ -6,6 +6,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.net.JksOptions;
+import lombok.Data;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.activity.ActivitiesConfigResolver;
@@ -157,14 +158,9 @@ public class ServiceConfiguration {
 
     @Bean
     CoreCacheService cacheService(
-            @Value("${cache.scheme}") String scheme,
-            @Value("${cache.host}") String host,
-            @Value("${cache.path}") String path,
-            @Value("${cache.query}") String query,
+            CacheConfigurationProperties cacheConfigurationProperties,
             @Value("${auction.cache.expected-request-time-ms}") long expectedCacheTimeMs,
             @Value("${pbc.api.key:#{null}}") String apiKey,
-            @Value("${cache.api-key-secured:false}") boolean apiKeySecured,
-            @Value("${cache.append-trace-info-to-cache-id:false}") boolean appendTraceInfoToCacheId,
             @Value("${datacenter-region:#{null}}") String datacenterRegion,
             VastModifier vastModifier,
             EventsService eventsService,
@@ -173,14 +169,25 @@ public class ServiceConfiguration {
             Clock clock,
             JacksonMapper mapper) {
 
+        final String scheme = cacheConfigurationProperties.getScheme();
+        final String host = cacheConfigurationProperties.getHost();
+        final String path = cacheConfigurationProperties.getPath();
+        final String query = cacheConfigurationProperties.getQuery();
+        final CacheConfigurationProperties.InternalCacheConfigurationProperties internalProperties =
+                cacheConfigurationProperties.getInternal();
+
         return new CoreCacheService(
                 httpClient,
                 CacheServiceUtil.getCacheEndpointUrl(scheme, host, path),
+                internalProperties == null ? null : CacheServiceUtil.getCacheEndpointUrl(
+                        internalProperties.getScheme(),
+                        internalProperties.getHost(),
+                        internalProperties.getPath()),
                 CacheServiceUtil.getCachedAssetUrlTemplate(scheme, host, path, query),
                 expectedCacheTimeMs,
                 apiKey,
-                apiKeySecured,
-                appendTraceInfoToCacheId,
+                cacheConfigurationProperties.isApiKeySecured(),
+                cacheConfigurationProperties.isAppendTraceInfoToCacheId(),
                 datacenterRegion,
                 vastModifier,
                 eventsService,
@@ -188,6 +195,40 @@ public class ServiceConfiguration {
                 clock,
                 new UUIDIdGenerator(),
                 mapper);
+    }
+
+    @Bean
+    @ConfigurationProperties(prefix = "cache")
+    CacheConfigurationProperties cacheConfigurationProperties() {
+        return new CacheConfigurationProperties();
+    }
+
+    @Data
+    private static class CacheConfigurationProperties {
+
+        private String scheme;
+
+        private String host;
+
+        private String path;
+
+        private String query;
+
+        boolean apiKeySecured;
+
+        boolean appendTraceInfoToCacheId;
+
+        private InternalCacheConfigurationProperties internal;
+
+        @Data
+        private static class InternalCacheConfigurationProperties {
+
+            private String scheme;
+
+            private String host;
+
+            private String path;
+        }
     }
 
     @Bean
