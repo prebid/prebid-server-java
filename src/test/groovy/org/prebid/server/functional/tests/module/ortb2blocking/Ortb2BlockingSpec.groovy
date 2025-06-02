@@ -57,7 +57,7 @@ import static org.prebid.server.functional.testcontainers.Dependencies.getNetwor
 class Ortb2BlockingSpec extends ModuleBaseSpec {
 
     private static final String WILDCARD = '*'
-    private static final Map IX_CONFIG = ["adapters.ix.enabled" : "false",
+    private static final Map IX_CONFIG = ["adapters.ix.enabled" : "true",
                                           "adapters.ix.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
     private static final Map PBS_CONFIG = getOrtb2BlockingSettings() + IX_CONFIG +
             ['adapter-defaults.ortb.multiformat-supported': 'false']
