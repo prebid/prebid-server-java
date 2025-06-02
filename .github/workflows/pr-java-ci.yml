@@ -33,7 +33,7 @@ jobs:
       - name: Build with Maven
         id: build
         run: |
-          mvn -B package --file extra/pom.xml | tee build_output.txt
+          mvn -B package --file extra/pom.xml 2>&1 | tee build_output.txt
           result=${PIPESTATUS[0]}
           echo "exit_code=$result" >> "$GITHUB_OUTPUT"
 
@@ -45,7 +45,7 @@ jobs:
            if echo "$audit_block" | grep -q '^Error:'; then
             {
               echo "${author}, some Checkstyle issues were found"
-              echo "❌ Checkstyle Issues Detected**"
+              echo "**❌ Checkstyle Issues Detected**"
               echo ""
               echo '```'
               echo "$audit_block" | grep '^Error:'
