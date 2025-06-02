@@ -40,8 +40,10 @@ jobs:
       - name: Format build output for PR comment
         if: steps.build.outputs.exit_code != '0'
         run: |
+          author="@${{ github.event.pull_request.user.login }}"
           if grep -q '\[INFO\] Starting audit\.\.\.' build_output.txt; then
             {
+              echo "${author}, some Checkstyle issues were found"
               echo "❌ **Checkstyle Issues Detected**"
               echo ""
               echo '```'
@@ -50,6 +52,7 @@ jobs:
             } > comment.txt
           else
             {
+              echo "${author}, some Java test failures occurred"
               echo "❌ **Java CI Test Failures**"
               echo ""
               echo '```'
