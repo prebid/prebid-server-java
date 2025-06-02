@@ -28,11 +28,11 @@ public class ExcludeBiddersFunction implements ResultFunction<BidRequest, Auctio
     public void validateConfig(JsonNode config) {
         final ExcludeBiddersFunctionConfig parsedConfig = parseConfig(config);
         if (parsedConfig == null) {
-            throw new ConfigurationValidationException("Configuration is required for excludeBidders function");
+            throw new ConfigurationValidationException("Configuration is required, but not provided");
         }
 
         if (CollectionUtils.isEmpty(parsedConfig.getBidders())) {
-            throw new ConfigurationValidationException("bidders field is required for excludeBidders function");
+            throw new ConfigurationValidationException("'bidders' field is required");
         }
     }
 

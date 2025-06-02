@@ -30,7 +30,6 @@ import org.prebid.server.hooks.modules.rule.engine.core.rules.StageSpecification
 import org.prebid.server.hooks.modules.rule.engine.core.rules.exception.InvalidSchemaFunctionException;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.result.ResultFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunction;
-import org.prebid.server.json.ObjectMapperProvider;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -74,8 +73,8 @@ public class RequestSpecification implements StageSpecification<RequestContext, 
         schemaFunctions.put(UserFpdAvailableFunction.NAME, new UserFpdAvailableFunction());
 
         resultFunctions = Map.of(
-                ExcludeBiddersFunction.NAME, ExcludeBiddersFunction.of(ObjectMapperProvider.mapper()),
-                IncludeBiddersFunction.NAME, IncludeBiddersFunction.of(ObjectMapperProvider.mapper()));
+                ExcludeBiddersFunction.NAME, ExcludeBiddersFunction.of(mapper),
+                IncludeBiddersFunction.NAME, IncludeBiddersFunction.of(mapper));
     }
 
 

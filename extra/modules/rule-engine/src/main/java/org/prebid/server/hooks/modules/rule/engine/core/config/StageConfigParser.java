@@ -139,13 +139,23 @@ public class StageConfigParser<SCHEMA_PAYLOAD, RULE_PAYLOAD, CONTEXT> {
     private List<RuleAction<RULE_PAYLOAD, CONTEXT>> parseActions(List<ResultFunctionConfig> functionConfigs) {
         final List<RuleAction<RULE_PAYLOAD, CONTEXT>> actions = functionConfigs.stream()
                 .map(config -> RuleAction.of(
-                        specification.resultFunctionByName(config.getFunction()), config.getConfig()))
+                        config.getFunction(),
+                        specification.resultFunctionByName(config.getFunction()),
+                        config.getConfig()))
                 .toList();
 
-        actions.forEach(action ->
-                action.getFunction().validateConfig(action.getConfig()));
+        actions.forEach(this::validateActionConfig);
 
         return actions;
+    }
+
+    private void validateActionConfig(RuleAction<RULE_PAYLOAD, CONTEXT> action) {
+        try {
+            action.getFunction().validateConfig(action.getConfig());
+        } catch (ConfigurationValidationException exception) {
+            throw new InvalidMatcherConfiguration(
+                    "Function '%s' configuration is invalid: %s".formatted(action.getName(), exception.getMessage()));
+        }
     }
 
     private Rule<RULE_PAYLOAD, CONTEXT> combineRules(

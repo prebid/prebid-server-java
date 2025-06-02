@@ -6,6 +6,8 @@ import lombok.Value;
 @Value(staticConstructor = "of")
 public class RuleAction<T, C> {
 
+    String name;
+
     ResultFunction<T, C> function;
 
     JsonNode config;
