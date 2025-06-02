@@ -1,13 +1,12 @@
 package org.prebid.server.functional.tests
 
-import org.prebid.server.functional.model.Currency
+
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AlternateBidderCodes
 import org.prebid.server.functional.model.config.BidderConfig
 import org.prebid.server.functional.model.db.Account
-import org.prebid.server.functional.model.mock.services.currencyconversion.CurrencyConversionRatesResponse
 import org.prebid.server.functional.model.request.auction.AdjustmentRule
 import org.prebid.server.functional.model.request.auction.AdjustmentType
 import org.prebid.server.functional.model.request.auction.Amx
@@ -22,11 +21,10 @@ import org.prebid.server.functional.model.response.auction.BidExt
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.testcontainers.PbsConfig
 import org.prebid.server.functional.testcontainers.scaffolding.CurrencyConversion
+import org.prebid.server.functional.util.CurrencyUtil
 import org.prebid.server.functional.util.PBSUtils
-
-import java.math.RoundingMode
-import java.time.Instant
 
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
 import static org.prebid.server.functional.model.Currency.EUR
@@ -62,25 +60,21 @@ class BidAdjustmentSpec extends BaseSpec {
     private static final BigDecimal MAX_MULTIPLIER_ADJUST_VALUE = 99
     private static final BigDecimal MAX_CPM_ADJUST_VALUE = Integer.MAX_VALUE
     private static final BigDecimal MAX_STATIC_ADJUST_VALUE = Integer.MAX_VALUE
-    private static final Currency DEFAULT_CURRENCY = USD
     private static final int BID_ADJUST_PRECISION = 4
-    private static final int PRICE_PRECISION = 3
     private static final VideoPlacementSubtypes RANDOM_VIDEO_PLACEMENT_EXCEPT_IN_STREAM = PBSUtils.getRandomEnum(VideoPlacementSubtypes, [IN_PLACEMENT_STREAM])
     private static final VideoPlcmtSubtype RANDOM_VIDEO_PLCMT_EXCEPT_IN_STREAM = PBSUtils.getRandomEnum(VideoPlcmtSubtype, [IN_PLCMT_STREAM])
-    private static final Map<Currency, Map<Currency, BigDecimal>> DEFAULT_CURRENCY_RATES = [(USD): [(EUR): 0.9124920156948626,
-                                                                                                    (GBP): 0.793776804452961],
-                                                                                            (GBP): [(USD): 1.2597999770088517,
-                                                                                                    (EUR): 1.1495574203931487],
-                                                                                            (EUR): [(USD): 1.3429368029739777]]
-    private static final CurrencyConversion currencyConversion = new CurrencyConversion(networkServiceContainer).tap {
-        setCurrencyConversionRatesResponse(CurrencyConversionRatesResponse.getDefaultCurrencyConversionRatesResponse(DEFAULT_CURRENCY_RATES))
-    }
+    private static final CurrencyConversion currencyConversion = new CurrencyConversion(networkServiceContainer)
     private static final Map AMX_CONFIG = ["adapters.amx.enabled" : "true",
                                            "adapters.amx.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
-    private static final PrebidServerService pbsService = pbsServiceFactory.getService(externalCurrencyConverterConfig + AMX_CONFIG)
+    private static PrebidServerService pbsService
+
+    def setupSpec() {
+        currencyConversion.setCurrencyConversionRatesResponse()
+        pbsService = pbsServiceFactory.getService(PbsConfig.currencyConverterConfig + AMX_CONFIG)
+    }
 
     def cleanupSpec() {
-        pbsServiceFactory.removeContainer(externalCurrencyConverterConfig + AMX_CONFIG)
+        pbsServiceFactory.removeContainer(PbsConfig.currencyConverterConfig + AMX_CONFIG)
     }
 
     def "PBS should adjust bid price for matching bidder when request has per-bidder bid adjustment factors"() {
@@ -757,9 +751,9 @@ class BidAdjustmentSpec extends BaseSpec {
         def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Final bid price should be adjusted"
-        def convertedAdjustment = convertCurrency(adjustmentRule.value, adjustmentRule.currency, bidResponse.cur)
+        def convertedAdjustment = CurrencyUtil.convertCurrency(adjustmentRule.value, adjustmentRule.currency, bidResponse.cur)
         def adjustedBidPrice = getAdjustedPrice(originalPrice, convertedAdjustment, adjustmentRule.adjustmentType)
-        assert response.seatbid.first.bid.first.price == convertCurrency(adjustedBidPrice, bidResponse.cur, currency)
+        assert response.seatbid.first.bid.first.price == CurrencyUtil.convertCurrency(adjustedBidPrice, bidResponse.cur, currency)
 
         and: "Original bid price and currency should be presented in bid.ext"
         verifyAll(response.seatbid.first.bid.first.ext) {
@@ -799,7 +793,7 @@ class BidAdjustmentSpec extends BaseSpec {
         def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Final bid price should be adjusted and converted to original request cur"
-        assert response.seatbid.first.bid.first.price == convertCurrency(adjustmentRule.value, adjustmentRule.currency, currency)
+        assert response.seatbid.first.bid.first.price == CurrencyUtil.convertCurrency(adjustmentRule.value, adjustmentRule.currency, currency)
         assert response.cur == bidRequest.cur.first
 
         and: "Original bid price and currency should be presented in bid.ext"
@@ -863,10 +857,7 @@ class BidAdjustmentSpec extends BaseSpec {
     }
 
     def "PBS shouldn't adjust bid price for matching bidder when request has invalid value bidAdjustments config"() {
-        given: "Start time"
-        def startTime = Instant.now()
-
-        and: "Default BidRequest with ext.prebid.bidAdjustments"
+        given: "Default BidRequest with ext.prebid.bidAdjustments"
         def currency = USD
         def impPrice = PBSUtils.randomPrice
         def rule = new BidAdjustmentRule(generic: [(WILDCARD): [new AdjustmentRule(adjustmentType: adjustmentType, value: ruleValue, currency: currency)]])
@@ -903,8 +894,7 @@ class BidAdjustmentSpec extends BaseSpec {
         }
 
         and: "PBS log should contain error"
-        def logs = pbsService.getLogsByTime(startTime)
-        assert getLogsByText(logs, errorMessage)
+        assert pbsService.isContainLogsByValue(errorMessage)
 
         and: "Bidder request should contain original imp.floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -1043,10 +1033,7 @@ class BidAdjustmentSpec extends BaseSpec {
     }
 
     def "PBS shouldn't adjust bid price for matching bidder when cpm or static bidAdjustments doesn't have currency value"() {
-        given: "Start time"
-        def startTime = Instant.now()
-
-        and: "Default BidRequest with ext.prebid.bidAdjustments"
+        given: "Default BidRequest with ext.prebid.bidAdjustments"
         def currency = USD
         def impPrice = PBSUtils.randomPrice
         def adjustmentPrice = PBSUtils.randomPrice.toDouble()
@@ -1086,8 +1073,7 @@ class BidAdjustmentSpec extends BaseSpec {
         }
 
         and: "PBS log should contain error"
-        def logs = pbsService.getLogsByTime(startTime)
-        assert getLogsByText(logs, errorMessage)
+        assert pbsService.isContainLogsByValue(errorMessage)
 
         and: "Bidder request should contain original imp.floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -1147,10 +1133,7 @@ class BidAdjustmentSpec extends BaseSpec {
     }
 
     def "PBS shouldn't adjust bid price for matching bidder when bidAdjustments have unknown adjustmentType"() {
-        given: "Start time"
-        def startTime = Instant.now()
-
-        and: "Default BidRequest with ext.prebid.bidAdjustments"
+        given: "Default BidRequest with ext.prebid.bidAdjustments"
         def currency = USD
         def impPrice = PBSUtils.randomPrice
         def adjustmentPrice = PBSUtils.randomPrice.toDouble()
@@ -1190,8 +1173,7 @@ class BidAdjustmentSpec extends BaseSpec {
         }
 
         and: "PBS log should contain error"
-        def logs = pbsService.getLogsByTime(startTime)
-        assert getLogsByText(logs, errorMessage)
+        assert pbsService.isContainLogsByValue(errorMessage)
 
         and: "Bidder request should contain currency from request"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -1361,45 +1343,6 @@ class BidAdjustmentSpec extends BaseSpec {
 
         where:
         bidAdjustmentFactor << [0.9, 1.1]
-    }
-
-    private static Map<String, String> getExternalCurrencyConverterConfig() {
-        ["auction.ad-server-currency"                          : DEFAULT_CURRENCY as String,
-         "currency-converter.external-rates.enabled"           : "true",
-         "currency-converter.external-rates.url"               : "$networkServiceContainer.rootUri/currency".toString(),
-         "currency-converter.external-rates.default-timeout-ms": "4000",
-         "currency-converter.external-rates.refresh-period-ms" : "900000"]
-    }
-
-    private static BigDecimal convertCurrency(BigDecimal price, Currency fromCurrency, Currency toCurrency) {
-        return (price * getConversionRate(fromCurrency, toCurrency)).setScale(PRICE_PRECISION, RoundingMode.HALF_EVEN)
-    }
-
-    private static BigDecimal getConversionRate(Currency fromCurrency, Currency toCurrency) {
-        def conversionRate
-        if (fromCurrency == toCurrency) {
-            conversionRate = 1
-        } else if (toCurrency in DEFAULT_CURRENCY_RATES?[fromCurrency]) {
-            conversionRate = DEFAULT_CURRENCY_RATES[fromCurrency][toCurrency]
-        } else if (fromCurrency in DEFAULT_CURRENCY_RATES?[toCurrency]) {
-            conversionRate = 1 / DEFAULT_CURRENCY_RATES[toCurrency][fromCurrency]
-        } else {
-            conversionRate = getCrossConversionRate(fromCurrency, toCurrency)
-        }
-        conversionRate
-    }
-
-    private static BigDecimal getCrossConversionRate(Currency fromCurrency, Currency toCurrency) {
-        for (Map<Currency, BigDecimal> rates : DEFAULT_CURRENCY_RATES.values()) {
-            def fromRate = rates?[fromCurrency]
-            def toRate = rates?[toCurrency]
-
-            if (fromRate && toRate) {
-                return toRate / fromRate
-            }
-        }
-
-        null
     }
 
     private static BigDecimal getAdjustedPrice(BigDecimal originalPrice,

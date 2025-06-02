@@ -26,9 +26,9 @@ import org.prebid.server.functional.model.response.auction.BidMediaType
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.MediaType
 import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.testcontainers.PbsConfig
+import org.prebid.server.functional.util.CurrencyUtil
 import org.prebid.server.functional.util.PBSUtils
-
-import java.time.Instant
 
 import static org.prebid.server.functional.model.Currency.EUR
 import static org.prebid.server.functional.model.Currency.GBP
@@ -61,13 +61,17 @@ class PriceFloorsAdjustmentSpec extends PriceFloorsBaseSpec {
     private static final Integer MAX_STATIC_ADJUST_VALUE = Integer.MAX_VALUE
     private static final String WILDCARD = '*'
 
-    private static final Map PBS_CONFIG = CURRENCY_CONVERTER_CONFIG +
+    private static final Map PBS_CONFIG = PbsConfig.currencyConverterConfig +
             FLOORS_CONFIG +
             GENERIC_ALIAS_CONFIG +
             ["adapters.openx.enabled" : "true",
              "adapters.openx.endpoint": "$networkServiceContainer.rootUri/auction".toString()] +
             ["adapter-defaults.ortb.multiformat-supported": "true"]
-    private static final PrebidServerService pbsService = pbsServiceFactory.getService(PBS_CONFIG)
+    private static PrebidServerService pbsService
+
+    def setupSpec() {
+        pbsService = pbsServiceFactory.getService(PBS_CONFIG)
+    }
 
     def cleanupSpec() {
         pbsServiceFactory.removeContainer(PBS_CONFIG)
@@ -629,7 +633,7 @@ class PriceFloorsAdjustmentSpec extends PriceFloorsBaseSpec {
         }
 
         and: "Default bid response"
-        def originalPrice = PBSUtils.getRandomPrice(MAX_CPM_ADJUST_VALUE)
+        def originalPrice = PBSUtils.getRandomDecimal()
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
             cur = currency
             seatbid.first.bid = Bid.getDefaultMultyTypesBids(bidRequest.imp.first) {
@@ -695,9 +699,9 @@ class PriceFloorsAdjustmentSpec extends PriceFloorsBaseSpec {
         def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Final bid price should be adjusted"
-        def convertedAdjustment = getPriceAfterCurrencyConversion(adjustmentRule.value, adjustmentRule.currency, bidResponse.cur, currencyRatesResponse)
+        def convertedAdjustment = CurrencyUtil.getPriceAfterCurrencyConversion(adjustmentRule.value, adjustmentRule.currency, bidResponse.cur, currencyRatesResponse)
         def adjustedBidPrice = getAdjustedPrice(originalPrice, convertedAdjustment, adjustmentRule.adjustmentType)
-        assert response.seatbid.first.bid.first.price == getPriceAfterCurrencyConversion(adjustedBidPrice, bidResponse.cur, currency, currencyRatesResponse)
+        assert response.seatbid.first.bid.first.price == CurrencyUtil.getPriceAfterCurrencyConversion(adjustedBidPrice, bidResponse.cur, currency, currencyRatesResponse)
 
         and: "Original bid price and currency should be presented in bid.ext"
         verifyAll(response.seatbid.first.bid.first.ext) {
@@ -709,7 +713,7 @@ class PriceFloorsAdjustmentSpec extends PriceFloorsBaseSpec {
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.cur == [currency]
         assert bidderRequest.imp.bidFloorCur == [currency]
-        def convertedReverseAdjustment = getPriceAfterCurrencyConversion(adjustmentRule.value, adjustmentRule.currency, currency, currencyRatesResponse)
+        def convertedReverseAdjustment = CurrencyUtil.getPriceAfterCurrencyConversion(adjustmentRule.value, adjustmentRule.currency, currency, currencyRatesResponse)
         def reversedAdjustBidPrice = getReverseAdjustedPrice(impPrice, convertedReverseAdjustment, adjustmentRule.adjustmentType)
         assert bidderRequest.imp.bidFloor == [reversedAdjustBidPrice]
     }
@@ -743,7 +747,7 @@ class PriceFloorsAdjustmentSpec extends PriceFloorsBaseSpec {
 
         then: "Final bid price should be adjusted and converted to original request cur"
         assert response.seatbid.first.bid.first.price ==
-                getPriceAfterCurrencyConversion(adjustmentRule.value, adjustmentRule.currency, currency, currencyRatesResponse)
+                CurrencyUtil.getPriceAfterCurrencyConversion(adjustmentRule.value, adjustmentRule.currency, currency, currencyRatesResponse)
         assert response.cur == bidRequest.cur.first
 
         and: "Original bid price and currency should be presented in bid.ext"
@@ -814,10 +818,7 @@ class PriceFloorsAdjustmentSpec extends PriceFloorsBaseSpec {
     }
 
     def "PBS shouldn't reverse imp.floors for matching bidder when request has invalid value bidAdjustments config"() {
-        given: "Start time"
-        def startTime = Instant.now()
-
-        and: "Default BidRequest with ext.prebid.bidAdjustments"
+        given: "Default BidRequest with ext.prebid.bidAdjustments"
         def currency = USD
         def impPrice = PBSUtils.getRandomPrice(MAX_CPM_ADJUST_VALUE)
         def rule = new BidAdjustmentRule(generic: [(WILDCARD): [new AdjustmentRule(adjustmentType: adjustmentType, value: ruleValue, currency: currency)]])
@@ -854,8 +855,7 @@ class PriceFloorsAdjustmentSpec extends PriceFloorsBaseSpec {
         }
 
         and: "PBS log should contain error"
-        def logs = pbsService.getLogsByTime(startTime)
-        assert getLogsByText(logs, errorMessage)
+        assert pbsService.isContainLogsByValue(errorMessage)
 
         and: "Bidder request should contain original imp.floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -966,10 +966,7 @@ class PriceFloorsAdjustmentSpec extends PriceFloorsBaseSpec {
     }
 
     def "PBS shouldn't reverse imp.floors for matching bidder when cpm or static bidAdjustments doesn't have currency value"() {
-        given: "Start time"
-        def startTime = Instant.now()
-
-        and: "Default BidRequest with ext.prebid.bidAdjustments"
+        given: "Default BidRequest with ext.prebid.bidAdjustments"
         def currency = USD
         def impPrice = PBSUtils.getRandomPrice(MAX_CPM_ADJUST_VALUE)
         def adjustmentPrice = PBSUtils.randomPrice.toDouble()
@@ -1009,8 +1006,7 @@ class PriceFloorsAdjustmentSpec extends PriceFloorsBaseSpec {
         }
 
         and: "PBS log should contain error"
-        def logs = pbsService.getLogsByTime(startTime)
-        assert getLogsByText(logs, errorMessage)
+        pbsService.isContainLogsByValue(errorMessage)
 
         and: "Bidder request should contain original imp.floors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -1070,10 +1066,7 @@ class PriceFloorsAdjustmentSpec extends PriceFloorsBaseSpec {
     }
 
     def "PBS shouldn't reverse imp.floors for matching bidder when bidAdjustments have unknown adjustmentType"() {
-        given: "Start time"
-        def startTime = Instant.now()
-
-        and: "Default BidRequest with ext.prebid.bidAdjustments"
+        given: "Default BidRequest with ext.prebid.bidAdjustments"
         def currency = USD
         def impPrice = PBSUtils.getRandomPrice(MAX_CPM_ADJUST_VALUE)
         def adjustmentPrice = PBSUtils.randomPrice.toDouble()
@@ -1113,8 +1106,7 @@ class PriceFloorsAdjustmentSpec extends PriceFloorsBaseSpec {
         }
 
         and: "PBS log should contain error"
-        def logs = pbsService.getLogsByTime(startTime)
-        assert getLogsByText(logs, errorMessage)
+        pbsService.isContainLogsByValue(errorMessage)
 
         and: "Bidder request should contain currency from request"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
