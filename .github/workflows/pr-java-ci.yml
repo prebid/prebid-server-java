@@ -41,22 +41,7 @@ jobs:
         if: steps.build.outputs.exit_code != '0'
         run: |
           author="@${{ github.event.pull_request.user.login }}"
-          errors=""
-          in_block=0
-          
-          while IFS= read -r line; do
-            if [[ "$line" == *"[INFO] Starting audit"* ]]; then
-              in_block=1
-              continue
-            fi
-            if [[ "$line" == *"Audit done."* ]]; then
-              in_block=0
-              continue
-            fi
-            if [[ $in_block -eq 1 && "${line#"${line%%[![:space:]]*}"}" == Error:* ]]; then
-              errors+="${line#"${line%%[![:space:]]*}"}"$'\n'
-            fi
-          done < build_output.txt
+          errors=$(sed -n '/\[INFO\] Starting audit/,/Audit done/ { /^[[:space:]]*Error:/p }' build_output.txt)
           
           if [ -n "$errors" ]; then
             {
