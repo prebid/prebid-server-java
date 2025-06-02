@@ -41,7 +41,7 @@ jobs:
         if: steps.build.outputs.exit_code != '0'
         run: |
           author="@${{ github.event.pull_request.user.login }}"
-          errors=$(sed -n '/\[INFO\] Starting audit/,/Audit done/ { /^[[:space:]]*Error:/p }' build_output.txt)
+          errors=$(sed -n '/Starting audit/,/Audit done/ { /Error:/p }' build_output.txt)
           
           if [ -n "$errors" ]; then
             {
