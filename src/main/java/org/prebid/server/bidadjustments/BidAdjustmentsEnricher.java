@@ -90,8 +90,10 @@ public class BidAdjustmentsEnricher {
 
     private ExtRequest updateExtRequestWithBidAdjustments(BidRequest bidRequest, JsonNode bidAdjustments) {
         final ExtRequest extRequest = bidRequest.getExt();
-        final ExtRequestPrebid prebid = extRequest != null ? extRequest.getPrebid() : null;
-        final ExtRequestPrebid updatedPrebid = (prebid != null ? prebid.toBuilder() : ExtRequestPrebid.builder())
+        final ExtRequestPrebid updatedPrebid = Optional.ofNullable(extRequest)
+                .map(ExtRequest::getPrebid)
+                .map(ExtRequestPrebid::toBuilder)
+                .orElse(ExtRequestPrebid.builder())
                 .bidadjustments((ObjectNode) bidAdjustments)
                 .build();
 

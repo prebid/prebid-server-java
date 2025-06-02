@@ -59,23 +59,31 @@ public class BasicPriceFloorAdjuster implements PriceFloorAdjuster {
         }
 
         final Set<ImpMediaType> mediaTypes = retrieveImpMediaTypes(imp);
-
-        Price adjustedBidFloor = Price.of(imp.getBidfloorcur(), impBidFloor);
-        if (bidAdjustmentFactors != null) {
-            final BigDecimal factor = floorAdjustmentFactorResolver.resolve(mediaTypes, bidAdjustmentFactors, bidder);
-
-            final BigDecimal adjustedBidFloorValue = factor != null && factor.compareTo(BigDecimal.ONE) != 0
-                    ? BidderUtil.roundFloor(DIVIDE_FUNCTION.apply(impBidFloor, factor))
-                    : impBidFloor;
-
-            adjustedBidFloor = Price.of(imp.getBidfloorcur(), adjustedBidFloorValue);
-        }
+        final Price adjustedBidFloor = adjustPrice(imp, bidder, impBidFloor, bidAdjustmentFactors, mediaTypes);
 
         try {
             return floorAdjustmentsResolver.resolve(adjustedBidFloor, bidRequest, mediaTypes, bidder);
         } catch (PreBidException e) {
             return adjustedBidFloor;
         }
+    }
+
+    private Price adjustPrice(Imp imp,
+                              String bidder,
+                              BigDecimal impBidFloor,
+                              ExtRequestBidAdjustmentFactors bidAdjustmentFactors,
+                              Set<ImpMediaType> mediaTypes) {
+
+        if (bidAdjustmentFactors == null) {
+            return Price.of(imp.getBidfloorcur(), impBidFloor);
+        }
+
+        final BigDecimal factor = floorAdjustmentFactorResolver.resolve(mediaTypes, bidAdjustmentFactors, bidder);
+        final BigDecimal adjustedBidFloorValue = factor != null && factor.compareTo(BigDecimal.ONE) != 0
+                ? BidderUtil.roundFloor(DIVIDE_FUNCTION.apply(impBidFloor, factor))
+                : impBidFloor;
+
+        return Price.of(imp.getBidfloorcur(), adjustedBidFloorValue);
     }
 
     private static ExtRequestBidAdjustmentFactors extractBidAdjustmentFactors(BidRequest bidRequest) {
