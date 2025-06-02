@@ -34,6 +34,7 @@ jobs:
         id: build
         run: |
           mvn -B package --file extra/pom.xml | tee build_output.txt
+          result=${PIPESTATUS[0]}
           echo "exit_code=$result" >> "$GITHUB_OUTPUT"
 
       - name: Format build output for PR comment

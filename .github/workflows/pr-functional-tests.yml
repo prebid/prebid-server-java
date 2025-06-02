@@ -47,11 +47,20 @@ jobs:
         if: steps.build.outputs.exit_code != '0'
         run: |
           sed -n '/\[ERROR\] Failures:/,/\[ERROR\] Tests run:/p' build_output.txt > test_failures.txt
-          echo "❌ **Functional Test Failures**" > comment.txt
-          echo '' >> comment.txt
-          echo '```' >> comment.txt
-          cat test_failures.txt >> comment.txt
-          echo '```' >> comment.txt
+          summary=$(grep 'Tests run:' build_output.txt | tail -1)
+          cat <<EOF > comment.txt
+          ❌ **Functional Test Failures**
+          
+          ${summary}
+          
+          <details>
+          <summary>Show failed tests details</summary>
+          
+          \`\`\`
+          $(cat test_failures.txt)
+          \`\`\`
+          </details>
+          EOF
 
       - name: Comment on PR with build failure output
         if: steps.build.outputs.exit_code != '0'
