@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 import org.prebid.server.functional.model.Currency
+import org.prebid.server.functional.model.response.auction.MediaType
 
 import static org.prebid.server.functional.model.request.auction.DebugCondition.ENABLED
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
@@ -55,6 +56,10 @@ class BidRequest {
 
     static BidRequest getDefaultAudioRequest(DistributionChannel channel = SITE) {
         getDefaultRequest(channel, Imp.getDefaultImpression(AUDIO))
+    }
+
+    static BidRequest getDefaultBidRequest(MediaType mediaType, DistributionChannel channel = SITE) {
+        getDefaultRequest(channel, Imp.getDefaultImpression(mediaType))
     }
 
     static BidRequest getDefaultStoredRequest() {

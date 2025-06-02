@@ -7,6 +7,7 @@ import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountPriceFloorsConfig
 import org.prebid.server.functional.model.config.PriceFloorsFetch
 import org.prebid.server.functional.model.db.Account
+import org.prebid.server.functional.model.mock.services.currencyconversion.CurrencyConversionRatesResponse
 import org.prebid.server.functional.model.pricefloors.Country
 import org.prebid.server.functional.model.pricefloors.MediaType
 import org.prebid.server.functional.model.pricefloors.Rule
@@ -15,16 +16,21 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.BidRequestExt
 import org.prebid.server.functional.model.request.auction.DistributionChannel
 import org.prebid.server.functional.model.request.auction.ExtPrebidFloors
+import org.prebid.server.functional.model.request.auction.FetchStatus
 import org.prebid.server.functional.model.request.auction.Prebid
 import org.prebid.server.functional.model.request.auction.Video
 import org.prebid.server.functional.model.response.currencyrates.CurrencyRatesResponse
 import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.testcontainers.scaffolding.CurrencyConversion
 import org.prebid.server.functional.testcontainers.scaffolding.FloorsProvider
 import org.prebid.server.functional.tests.BaseSpec
 import org.prebid.server.functional.util.PBSUtils
 
 import java.math.RoundingMode
 
+import static org.prebid.server.functional.model.Currency.EUR
+import static org.prebid.server.functional.model.Currency.GBP
+import static org.prebid.server.functional.model.Currency.USD
 import static org.prebid.server.functional.model.request.auction.DebugCondition.ENABLED
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 import static org.prebid.server.functional.model.request.auction.FetchStatus.INPROGRESS
@@ -34,17 +40,48 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
 
     public static final BigDecimal FLOOR_MIN = 0.5
     public static final BigDecimal FLOOR_MAX = 2
-    public static final Map<String, String> FLOORS_CONFIG = ["price-floors.enabled"           : "true",
-                                                             "settings.default-account-config": encode(defaultAccountConfigSettings)]
+    public static final Map<String, String> FLOORS_CONFIG = ["price-floors.enabled": "true"]
+
+    protected static final FloorsProvider floorsProvider = new FloorsProvider(networkServiceContainer)
 
     protected static final String BASIC_FETCH_URL = networkServiceContainer.rootUri + FloorsProvider.FLOORS_ENDPOINT
     protected static final int MAX_MODEL_WEIGHT = 100
+    protected static final Closure<String> INVALID_CONFIG_METRIC = { account -> "alerts.account_config.${account}.price-floors" }
 
+    protected static final Closure<String> URL_EMPTY_ERROR = { url -> "Failed to fetch price floor from provider for fetch.url '${url}'"
+    }
+    protected static final String FETCHING_DISABLED_ERROR = "Fetching is disabled"
+    protected static final Closure<String> PRICE_FLOORS_ERROR_LOG = { bidRequest, reason, warningMessage ->
+        "Price Floors can't be resolved for account ${bidRequest.accountId} and request ${bidRequest.id}, reason: ${PRICE_FLOORS_WARNING_MESSAGE(reason, warningMessage)}"
+    }
+    protected static final Closure<String> WARNING_MESSAGE = { message ->
+        "Price floors processing failed: parsing of request price floors is failed: $message"
+    }
+    protected static final Closure<String> FETCHING_FLOORS_ERROR_LOG = { bidRequest, warningMessage ->
+        "Price floor fetching failed for account ${bidRequest.accountId}: ${URL_EMPTY_ERROR("$BASIC_FETCH_URL${bidRequest.accountId}")}, with a reason: $warningMessage"
+    }
+    private static final Closure<String> PRICE_FLOORS_WARNING_MESSAGE = { reason, details ->
+        "Price floors processing failed: $reason. Following parsing of request price floors is failed: $details"
+    }
+
+    protected static final Map<Currency, Map<Currency, BigDecimal>> DEFAULT_CURRENCY_RATES = [(USD): [(EUR): 0.9124920156948626,
+                                                                                                      (GBP): 0.793776804452961],
+                                                                                              (GBP): [(USD): 1.2597999770088517,
+                                                                                                      (EUR): 1.1495574203931487],
+                                                                                              (EUR): [(USD): 1.3429368029739777]]
+    protected static final CurrencyConversion currencyConversion = new CurrencyConversion(networkServiceContainer).tap {
+        setCurrencyConversionRatesResponse(CurrencyConversionRatesResponse.getDefaultCurrencyConversionRatesResponse(DEFAULT_CURRENCY_RATES))
+    }
+    protected static final Map<String, String> CURRENCY_CONVERTER_CONFIG = ["auction.ad-server-currency"                          : "USD",
+                                                                            "currency-converter.external-rates.enabled"           : "true",
+                                                                            "currency-converter.external-rates.url"               : "$networkServiceContainer.rootUri/currency".toString(),
+                                                                            "currency-converter.external-rates.default-timeout-ms": "4000",
+                                                                            "currency-converter.external-rates.refresh-period-ms" : "900000"]
+
+    protected static final int FLOOR_VALUE_PRECISION = 4
     private static final int DEFAULT_MODEL_WEIGHT = 1
     private static final int CURRENCY_CONVERSION_PRECISION = 3
-    private static final int FLOOR_VALUE_PRECISION = 4
 
-    protected static final FloorsProvider floorsProvider = new FloorsProvider(networkServiceContainer)
     protected final PrebidServerService floorsPbsService = pbsServiceFactory.getService(FLOORS_CONFIG + GENERIC_ALIAS_CONFIG)
 
     def setupSpec() {
@@ -121,8 +158,9 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
 
     protected void cacheFloorsProviderRules(BidRequest bidRequest,
                                             PrebidServerService pbsService = floorsPbsService,
-                                            BidderName bidderName = BidderName.GENERIC) {
-        PBSUtils.waitUntil({ getRequests(pbsService.sendAuctionRequest(bidRequest))[bidderName.value]?.first?.ext?.prebid?.floors?.fetchStatus != INPROGRESS },
+                                            BidderName bidderName = BidderName.GENERIC,
+                                            FetchStatus fetchStatus = INPROGRESS) {
+        PBSUtils.waitUntil({ getRequests(pbsService.sendAuctionRequest(bidRequest))[bidderName.value]?.first?.ext?.prebid?.floors?.fetchStatus != fetchStatus },
                 5000,
                 1000)
     }

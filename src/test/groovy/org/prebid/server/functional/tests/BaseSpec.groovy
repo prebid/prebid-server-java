@@ -2,6 +2,8 @@ package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.model.bidderspecific.BidderRequest
 import org.prebid.server.functional.model.response.amp.AmpResponse
+import org.prebid.server.functional.model.response.auction.Bid
+import org.prebid.server.functional.model.response.auction.BidMediaType
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.BidderCall
 import org.prebid.server.functional.repository.HibernateRepositoryService
@@ -40,6 +42,7 @@ abstract class BaseSpec extends Specification implements ObjectMapperWrapper {
     private static final int MIN_TIMEOUT = DEFAULT_TIMEOUT
     private static final int DEFAULT_TARGETING_PRECISION = 1
     private static final String DEFAULT_CACHE_DIRECTORY = "/app/prebid-server/data"
+    protected static final String ALERT_GENERAL = "alerts.general"
     protected static final Map<String, String> GENERIC_ALIAS_CONFIG = ["adapters.generic.aliases.alias.enabled" : "true",
                                                                        "adapters.generic.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
 
@@ -88,6 +91,10 @@ abstract class BaseSpec extends Specification implements ObjectMapperWrapper {
         bidResponse.ext.debug.bidders.collectEntries { bidderName, bidderCalls ->
             collectRequestByBidderName(bidderName, bidderCalls)
         }
+    }
+
+    protected static List<Bid> getMediaTypedBids(BidResponse bidResponse, BidMediaType mediaType) {
+        bidResponse.seatbid*.bid.collectMany { it }.findAll { it.mediaType == mediaType }
     }
 
     protected static Map<String, List<BidderRequest>> getRequests(AmpResponse ampResponse) {
