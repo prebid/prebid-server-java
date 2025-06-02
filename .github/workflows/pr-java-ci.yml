@@ -42,9 +42,9 @@ jobs:
         run: |
           author="@${{ github.event.pull_request.user.login }}"
           errors=$(awk '
-            /\[INFO\] Starting audit\.\.\./  { in=1; next }
-            /Audit done\./                  { in=0 }
-            in && /^Error:/                 { print }
+            /\[INFO\] Starting audit/ { in=1; next }
+            /Audit done/             { in=0 }
+            in && /^Error:/          { print }
           ' build_output.txt)
           
           if [ -n "$errors" ]; then
