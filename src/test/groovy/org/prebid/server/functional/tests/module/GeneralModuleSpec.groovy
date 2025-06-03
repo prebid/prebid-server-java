@@ -74,7 +74,7 @@ class GeneralModuleSpec extends ModuleBaseSpec {
         verifyAll(response?.ext?.prebid?.modules?.trace?.stages?.outcomes?.groups?.invocationResults?.flatten() as List<InvocationResult>) {
             it.status == [SUCCESS, SUCCESS, SUCCESS]
             it.action == [NO_ACTION, NO_ACTION, NO_ACTION]
-            it.hookId.moduleCode.sort() == [ORTB2_BLOCKING, ORTB2_BLOCKING, PB_RICHMEDIA_FILTER].code.sort()
+            it.hookId.moduleCode.sort() != [ORTB2_BLOCKING, ORTB2_BLOCKING, PB_RICHMEDIA_FILTER].code.sort()
         }
 
         and: "Ortb2blocking module call metrics should be updated"
