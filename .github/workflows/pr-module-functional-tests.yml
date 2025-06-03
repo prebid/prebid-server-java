@@ -49,33 +49,13 @@ jobs:
 
       - name: Format build output for PR comment
         if: steps.build.outputs.exit_code != '0'
-        run: |
-          author="@${{ github.event.pull_request.user.login }}"
-          sed -n '/\[ERROR\] Failures:/,/\[ERROR\] Tests run:/p' build_output.txt > test_failures.txt
-          summary=$(grep 'Tests run:' build_output.txt | tail -1)
-          cat <<EOF > comment.txt
-          ${author}, could you please take a look at the functional test failures?
-          ❌ **Module Test Failures**
-          
-          ${summary}
-          
-          <details>
-          <summary>Show failed tests details</summary>
-          
-          \`\`\`
-          $(cat test_failures.txt)
-          \`\`\`
-          </details>
-          EOF
-
-      - name: Comment on PR with build failure output
-        if: steps.build.outputs.exit_code != '0'
-        uses: peter-evans/create-or-update-comment@v4
+        uses: mikepenz/action-junit-report@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          issue-number: ${{ github.event.pull_request.number }}
-          body-path: comment.txt
+          report_paths: |
+            **/target/failsafe-reports/TEST-*.xml
+          comment: true
+          updateComment: true
 
-      - name: Fail if error is found in logs
+      - name: Fail if functional tests failed
         if: steps.build.outputs.exit_code != '0'
         run: exit 1
