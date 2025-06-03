@@ -55,6 +55,8 @@ jobs:
             **/target/failsafe-reports/TEST-*.xml
           comment: true
           updateComment: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: ${{ github.event.pull_request.number }}
 
       - name: Fail if functional tests failed
         if: steps.build.outputs.exit_code != '0'
