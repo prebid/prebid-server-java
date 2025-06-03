@@ -53,4 +53,6 @@ public class AccountAuctionConfig {
 
     @JsonProperty("paaformat")
     PaaFormat paaFormat;
+
+    AccountBidRankingConfig ranking;
 }

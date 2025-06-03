@@ -92,7 +92,7 @@ public class RedisClient {
         if (retry > (retryConfig.getShortIntervalAttempts() + retryConfig.getLongIntervalAttempts())) {
             logger.info("Confiant Redis connection is not established");
         } else {
-            long backoff = retry < retryConfig.getShortIntervalAttempts()
+            final long backoff = retry < retryConfig.getShortIntervalAttempts()
                     ? retryConfig.getShortInterval()
                     : retryConfig.getLongInterval();
 
