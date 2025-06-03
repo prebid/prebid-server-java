@@ -22,6 +22,7 @@ class AccountAuctionConfig {
     Boolean debugAllow
     AccountBidValidationConfig bidValidations
     AccountEventsConfig events
+    AccountCacheConfig cache
     AccountPriceFloorsConfig priceFloors
     Targeting targeting
     PaaFormat paaformat
