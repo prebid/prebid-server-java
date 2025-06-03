@@ -35,7 +35,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class GenericBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.com";
+    private static final String ENDPOINT_URL = "https://randomurl.com";
 
     private final GenericBidder target = new GenericBidder(ENDPOINT_URL, jacksonMapper);
 
