@@ -15,6 +15,8 @@ import org.prebid.server.functional.model.response.auction.Adm
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
 
+import static org.prebid.server.functional.model.AccountStatus.ACTIVE
+import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.response.auction.MediaType.BANNER
 import static org.prebid.server.functional.model.response.auction.MediaType.VIDEO
 
@@ -500,7 +502,7 @@ class CacheSpec extends BaseSpec {
         "  inline ${PBSUtils.getRandomString()}  "  | "   ImpreSSion    "
     }
 
-    def "PBS should cache bids and add targeting values when account cache config #enabledCacheConcfig"() {
+    def "PBS should cache bids and add targeting values when account cache config #accountAuctionConfig"() {
         given: "Current value of metric prebid_cache.requests.ok"
         def initialValue = getCurrentMetricValue(defaultPbsService, CACHE_REQUEST_OK_GLOBAL_METRIC)
 
@@ -509,13 +511,9 @@ class CacheSpec extends BaseSpec {
             it.enableCache()
         }
 
-        and: "Account with cache config"
-        def account = new Account().tap {
-            it.uuid = bidRequest.accountId
-            it.config = new AccountConfig().tap {
-                it.auction = new AccountAuctionConfig(cache: new AccountCacheConfig(enabled: enabledCacheConcfig))
-            }
-        }
+        and: "Account in the DB"
+        def accountConfig = new AccountConfig(status: ACTIVE, auction: accountAuctionConfig)
+        def account = new Account(uuid: bidRequest.accountId, config: accountConfig)
         accountDao.save(account)
 
         and: "Default bid response"
@@ -531,11 +529,12 @@ class CacheSpec extends BaseSpec {
         then: "PBS should call PBC"
         assert prebidCache.getRequestCount(bidRequest.imp[0].id) == 1
 
-        and: "BidResponse should contain hb_uuid and hb_cache_id targeting values"
-        verifyAll (response.seatbid?.first()?.bid?.last()?.ext?.prebid?.targeting) {
-            it.containsKey('hb_uuid')
-            it.containsKey('hb_cache_id')
-        }
+        and: "PBS response targeting contains bidder specific keys"
+        def targetingKeyMap = response.seatbid?.first()?.bid?.first()?.ext?.prebid?.targeting
+        assert targetingKeyMap.containsKey('hb_cache_id')
+        assert targetingKeyMap.containsKey("hb_cache_id_${GENERIC}".toString())
+        assert targetingKeyMap.containsKey('hb_uuid')
+        assert targetingKeyMap.containsKey("hb_uuid_${GENERIC}".toString())
 
         and: "Metrics should be updated"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
@@ -543,7 +542,12 @@ class CacheSpec extends BaseSpec {
         assert metrics[CACHE_REQUEST_OK_ACCOUNT_METRIC.formatted(bidRequest.accountId)] == 1
 
         where:
-        enabledCacheConcfig << [null, true]
+        accountAuctionConfig << [
+                new AccountAuctionConfig(),
+                new AccountAuctionConfig(cache: new AccountCacheConfig()),
+                new AccountAuctionConfig(cache: new AccountCacheConfig(enabled: null)),
+                new AccountAuctionConfig(cache: new AccountCacheConfig(enabled: true))
+        ]
     }
 
     def "PBS shouldn't cache bids and add targeting values when account cache config disabled"() {
@@ -556,12 +560,9 @@ class CacheSpec extends BaseSpec {
         }
 
         and: "Account with cache config"
-        def account = new Account().tap {
-            it.uuid = bidRequest.accountId
-            it.config = new AccountConfig().tap {
-                it.auction = new AccountAuctionConfig(cache: new AccountCacheConfig(enabled: false))
-            }
-        }
+        def accountAuctionConfig = new AccountAuctionConfig(cache: new AccountCacheConfig(enabled: false))
+        def accountConfig = new AccountConfig(status: ACTIVE, auction: accountAuctionConfig)
+        def account = new Account(uuid: bidRequest.accountId, config: accountConfig)
         accountDao.save(account)
 
         and: "Default bid response"
@@ -577,11 +578,12 @@ class CacheSpec extends BaseSpec {
         then: "PBS should call PBC"
         assert !prebidCache.getRequestCount(bidRequest.imp[0].id)
 
-        and: "BidResponse shouldn't contain hb_uuid and hb_cache_id targeting values"
-        verifyAll (response.seatbid?.first()?.bid?.last()?.ext?.prebid?.targeting) {
-            !it.containsKey('hb_uuid')
-            !it.containsKey('hb_cache_id')
-        }
+        and: "PBS response targeting shouldn't contains bidder specific keys"
+        def targetingKeyMap = response.seatbid?.first()?.bid?.first()?.ext?.prebid?.targeting
+        assert !targetingKeyMap.containsKey('hb_cache_id')
+        assert !targetingKeyMap.containsKey("hb_cache_id_${GENERIC}".toString())
+        assert !targetingKeyMap.containsKey('hb_uuid')
+        assert !targetingKeyMap.containsKey("hb_uuid_${GENERIC}".toString())
 
         and: "Metrics shouldn't be updated"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
