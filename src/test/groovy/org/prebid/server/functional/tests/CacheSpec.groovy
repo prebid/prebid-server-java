@@ -575,7 +575,7 @@ class CacheSpec extends BaseSpec {
         when: "PBS processes auction request"
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "PBS should call PBC"
+        then: "PBS shouldn't call PBC"
         assert !prebidCache.getRequestCount(bidRequest.imp[0].id)
 
         and: "PBS response targeting shouldn't contains bidder specific keys"
