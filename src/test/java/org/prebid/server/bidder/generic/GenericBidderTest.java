@@ -44,27 +44,6 @@ public class GenericBidderTest extends VertxTest {
         assertThatIllegalArgumentException().isThrownBy(() -> new GenericBidder("invalid_url", jacksonMapper));
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     @Test
     public void makeHttpRequestsShouldCreateExpectedUrl() {
         // given
