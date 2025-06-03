@@ -3,7 +3,6 @@ package org.prebid.server.functional.tests
 import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountEventsConfig
-import org.prebid.server.functional.model.config.AuctionCacheConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.Asset
 import org.prebid.server.functional.model.request.auction.BidRequest
@@ -15,7 +14,6 @@ import org.prebid.server.functional.model.response.auction.Adm
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
 
-import static org.prebid.server.functional.model.AccountStatus.ACTIVE
 import static org.prebid.server.functional.model.response.auction.MediaType.BANNER
 import static org.prebid.server.functional.model.response.auction.MediaType.VIDEO
 
@@ -493,60 +491,5 @@ class CacheSpec extends BaseSpec {
         "    inLine    "                            | " ImpreSSion $PBSUtils.randomNumber"
         PBSUtils.getRandomCase(" inline ")          | " ${PBSUtils.getRandomCase(" impression ")} $PBSUtils.randomNumber "
         "  inline ${PBSUtils.getRandomString()}  "  | "   ImpreSSion    "
-    }
-
-    def "PBS should cache bids from auction when account config for auction.cache disabled"() {
-        given: "Default BidRequest with cache, targeting"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            it.enableCache()
-            it.ext.prebid.targeting = Targeting.createWithAllValuesSetTo(true)
-        }
-
-        and: "Account in the DB"
-        def accountAuctionConfig = new AccountAuctionConfig(cache: new AuctionCacheConfig(enabled: false))
-        def accountConfig = new AccountConfig(status: ACTIVE, auction: accountAuctionConfig)
-        def account = new Account(uuid: bidRequest.accountId, config: accountConfig)
-        accountDao.save(account)
-
-        when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
-
-        then: "PBS should call PBC"
-        assert prebidCache.getRequestCount(bidRequest.imp[0].id) == 1
-
-        and: "PBS call shouldn't include api-key"
-        assert !prebidCache.getRequestHeaders(bidRequest.imp[0].id)[PBS_API_HEADER]
-    }
-
-    def "PBS should call still call vtrack endpoint when cache is disabled in account config"() {
-        given: "Current value of metric prebid_cache.requests.ok"
-        def initialValue = getCurrentMetricValue(defaultPbsService, CACHE_REQUEST_OK_GLOBAL_METRIC)
-
-        and: "Account in the DB"
-        def accountId = PBSUtils.randomNumber.toString()
-        def accountAuctionConfig = new AccountAuctionConfig(cache: new AuctionCacheConfig(enabled: false))
-        def accountConfig = new AccountConfig(status: ACTIVE, auction: accountAuctionConfig)
-        def account = new Account(uuid: accountId, config: accountConfig)
-        accountDao.save(account)
-
-        and: "Default VtrackRequest"
-        def creative = encodeXml(Vast.getDefaultVastModel(PBSUtils.randomString))
-        def request = VtrackRequest.getDefaultVtrackRequest(creative)
-
-        when: "PBS processes vtrack request"
-        def cacheResponse = defaultPbsService.sendVtrackRequest(request, accountId)
-
-        then: "vtrack request should be called"
-        assert cacheResponse
-
-        and: "prebid_cache.creative_size.xml metric should be updated"
-        def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        def creativeSize = creative.bytes.length
-        assert metrics[CACHE_REQUEST_OK_GLOBAL_METRIC] == initialValue + 1
-        assert metrics[XML_CREATIVE_SIZE_GLOBAL_METRIC] == creativeSize
-
-        and: "account.<account-id>.prebid_cache.creative_size.xml should be updated"
-        assert metrics[CACHE_REQUEST_OK_ACCOUNT_METRIC.formatted(accountId)] == 1
-        assert metrics[XML_CREATIVE_SIZE_ACCOUNT_METRIC.formatted(accountId)] == creativeSize
     }
 }

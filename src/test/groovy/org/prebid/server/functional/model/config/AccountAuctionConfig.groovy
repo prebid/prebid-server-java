@@ -22,6 +22,7 @@ class AccountAuctionConfig {
     Boolean debugAllow
     AccountBidValidationConfig bidValidations
     AccountEventsConfig events
+    AccountRankingConfig ranking
     AccountPriceFloorsConfig priceFloors
     Targeting targeting
     PaaFormat paaformat
@@ -31,8 +32,6 @@ class AccountAuctionConfig {
     PrivacySandbox privacySandbox
     @JsonProperty("bidadjustments")
     BidAdjustment bidAdjustments
-    AuctionCacheConfig cache
-    AuctionRankingConfig ranking
 
     @JsonProperty("price_granularity")
     PriceGranularityType priceGranularitySnakeCase
