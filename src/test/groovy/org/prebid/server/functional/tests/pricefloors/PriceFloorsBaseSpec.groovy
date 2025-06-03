@@ -1,6 +1,5 @@
 package org.prebid.server.functional.tests.pricefloors
 
-import org.prebid.server.functional.model.Currency
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountConfig
@@ -18,7 +17,6 @@ import org.prebid.server.functional.model.request.auction.ExtPrebidFloors
 import org.prebid.server.functional.model.request.auction.FetchStatus
 import org.prebid.server.functional.model.request.auction.Prebid
 import org.prebid.server.functional.model.request.auction.Video
-import org.prebid.server.functional.model.response.currencyrates.CurrencyRatesResponse
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.scaffolding.CurrencyConversion
 import org.prebid.server.functional.testcontainers.scaffolding.FloorsProvider
@@ -61,11 +59,6 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
     }
 
     protected static final CurrencyConversion currencyConversion = new CurrencyConversion(networkServiceContainer)
-    protected static final Map<String, String> CURRENCY_CONVERTER_CONFIG = ["auction.ad-server-currency"                          : "USD",
-                                                                            "currency-converter.external-rates.enabled"           : "true",
-                                                                            "currency-converter.external-rates.url"               : "$networkServiceContainer.rootUri/currency".toString(),
-                                                                            "currency-converter.external-rates.default-timeout-ms": "4000",
-                                                                            "currency-converter.external-rates.refresh-period-ms" : "900000"]
 
     protected static final int FLOOR_VALUE_PRECISION = 4
     private static final int DEFAULT_MODEL_WEIGHT = 1

@@ -3,6 +3,7 @@ package org.prebid.server.functional.tests
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.testcontainers.PbsConfig
 import org.prebid.server.functional.testcontainers.scaffolding.CurrencyConversion
 import org.prebid.server.functional.util.CurrencyUtil
 
@@ -22,7 +23,7 @@ class CurrencySpec extends BaseSpec {
 
     def setupSpec() {
         currencyConversion.setCurrencyConversionRatesResponse()
-        pbsService = pbsServiceFactory.getService(externalCurrencyConverterConfig)
+        pbsService = pbsServiceFactory.getService(PbsConfig.currencyConverterConfig)
     }
 
     def "PBS should return currency rates"() {

@@ -8,6 +8,7 @@ import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.testcontainers.PbsConfig
 import org.prebid.server.functional.util.CurrencyUtil
 import org.prebid.server.functional.util.PBSUtils
 
@@ -28,11 +29,11 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
     private static PrebidServerService currencyFloorsPbsService
 
     def setupSpec() {
-        currencyFloorsPbsService = pbsServiceFactory.getService(FLOORS_CONFIG + CURRENCY_CONVERTER_CONFIG)
+        currencyFloorsPbsService = pbsServiceFactory.getService(FLOORS_CONFIG + PbsConfig.currencyConverterConfig)
     }
 
     def cleanupSpec() {
-        pbsServiceFactory.removeContainer(FLOORS_CONFIG + CURRENCY_CONVERTER_CONFIG)
+        pbsServiceFactory.removeContainer(FLOORS_CONFIG + PbsConfig.currencyConverterConfig)
     }
 
     def "PBS should update bidFloor, bidFloorCur for signalling when request.cur is specified"() {
