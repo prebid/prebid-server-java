@@ -31,7 +31,7 @@ import static org.prebid.server.functional.model.response.auction.ResponseAction
 
 class GeneralModuleSpec extends ModuleBaseSpec {
 
-    private final static String CALL_METRIC = "modules.test.%s.stage.%s.hook.%s.call"
+    private final static String CALL_METRIC = "modules.module.%s.stage.%s.hook.%s.call"
     private final static String NOOP_METRIC = "modules.module.%s.stage.%s.hook.%s.success.noop"
 
     private final static Map<String, String> DISABLED_INVOKE_CONFIG = ['settings.modules.require-config-to-invoke': 'false']
