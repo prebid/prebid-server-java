@@ -50,6 +50,7 @@ jobs:
       - name: Format build output for PR comment
         if: steps.build.outputs.exit_code != '0'
         run: |
+          author="@${{ github.event.pull_request.user.login }}"
           sed -n '/\[ERROR\] Failures:/,/\[ERROR\] Tests run:/p' build_output.txt > test_failures.txt
           summary=$(grep 'Tests run:' build_output.txt | tail -1)
           cat <<EOF > comment.txt
