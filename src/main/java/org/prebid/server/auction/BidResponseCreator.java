@@ -714,7 +714,7 @@ public class BidResponseCreator {
                                 .toList())));
 
         final Set<BidInfo> winningBids = new HashSet<>();
-        final Map<String, List<BidInfo>> seatToBids = new HashMap<>();
+        final Map<String, Map<String, List<BidInfo>>> seatToBidderToBids = new HashMap<>();
 
         for (final List<BidInfo> bidInfos : impIdToBidInfos.values()) {
             final List<BidInfo> bidsWithRanking = isBidRankingEnabled
@@ -726,7 +726,8 @@ public class BidResponseCreator {
             if (!bidsWithRanking.isEmpty()) {
                 winningBids.add(bidsWithRanking.getFirst());
                 bidsWithRanking.forEach(bidInfo ->
-                        seatToBids.computeIfAbsent(bidInfo.getSeat(), k -> new ArrayList<>()).add(bidInfo));
+                        seatToBidderToBids.computeIfAbsent(bidInfo.getSeat(), k -> new HashMap<>())
+                                .computeIfAbsent(bidInfo.getBidder(), k -> new ArrayList<>()).add(bidInfo));
             }
         }
 
@@ -734,7 +735,8 @@ public class BidResponseCreator {
                 .map(bidderResponseInfo -> injectBidInfoWithTargeting(
                         bidderResponseInfo,
                         bidderToMultiBids,
-                        seatToBids.getOrDefault(bidderResponseInfo.getSeat(), Collections.emptyList()),
+                        seatToBidderToBids.getOrDefault(bidderResponseInfo.getSeat(), Collections.emptyMap())
+                                .getOrDefault(bidderResponseInfo.getBidder(), Collections.emptyList()),
                         winningBids))
                 .toList();
     }
