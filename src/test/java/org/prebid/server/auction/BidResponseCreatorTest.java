@@ -230,7 +230,7 @@ public class BidResponseCreatorTest extends VertxTest {
         given(cacheDefaultProperties.getAudioTtl()).willReturn(null);
         given(cacheDefaultProperties.getNativeTtl()).willReturn(null);
 
-        given(categoryMappingService.createCategoryMapping(any(), any(), any()))
+        given(categoryMappingService.createCategoryMapping(any(), any(), any(), any()))
                 .willAnswer(invocationOnMock -> Future.succeededFuture(
                         CategoryMappingResult.of(emptyMap(), emptyMap(), invocationOnMock.getArgument(0), null)));
 
@@ -1286,7 +1286,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 bidRequest,
                 contextBuilder -> contextBuilder.auctionParticipations(toAuctionParticipant(bidderResponses)));
 
-        given(categoryMappingService.createCategoryMapping(any(), any(), any()))
+        given(categoryMappingService.createCategoryMapping(any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(CategoryMappingResult.of(emptyMap(), emptyMap(),
                         singletonList(BidderResponse.of(
                                 "bidder1",
@@ -1317,7 +1317,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 givenBidRequest(identity(), identity(), givenImp()),
                 contextBuilder -> contextBuilder.auctionParticipations(toAuctionParticipant(bidderResponses)));
 
-        given(categoryMappingService.createCategoryMapping(any(), any(), any()))
+        given(categoryMappingService.createCategoryMapping(any(), any(), any(), any()))
                 .willReturn(Future.failedFuture(new InvalidRequestException("category exception")));
 
         // when
@@ -2640,7 +2640,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 givenBidRequest(Imp.builder().id("i1").build()),
                 contextBuilder -> contextBuilder.auctionParticipations(toAuctionParticipant(bidderResponses)));
 
-        given(categoryMappingService.createCategoryMapping(any(), any(), any()))
+        given(categoryMappingService.createCategoryMapping(any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(CategoryMappingResult.of(emptyMap(),
                         Collections.singletonMap(bid, true),
                         bidderResponses, emptyList())));
