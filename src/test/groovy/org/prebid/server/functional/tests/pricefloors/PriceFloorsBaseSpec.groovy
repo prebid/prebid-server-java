@@ -1,13 +1,11 @@
 package org.prebid.server.functional.tests.pricefloors
 
-import org.prebid.server.functional.model.Currency
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountPriceFloorsConfig
 import org.prebid.server.functional.model.config.PriceFloorsFetch
 import org.prebid.server.functional.model.db.Account
-import org.prebid.server.functional.model.mock.services.currencyconversion.CurrencyConversionRatesResponse
 import org.prebid.server.functional.model.pricefloors.Country
 import org.prebid.server.functional.model.pricefloors.MediaType
 import org.prebid.server.functional.model.pricefloors.Rule
@@ -19,7 +17,6 @@ import org.prebid.server.functional.model.request.auction.ExtPrebidFloors
 import org.prebid.server.functional.model.request.auction.FetchStatus
 import org.prebid.server.functional.model.request.auction.Prebid
 import org.prebid.server.functional.model.request.auction.Video
-import org.prebid.server.functional.model.response.currencyrates.CurrencyRatesResponse
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.scaffolding.CurrencyConversion
 import org.prebid.server.functional.testcontainers.scaffolding.FloorsProvider
@@ -28,9 +25,6 @@ import org.prebid.server.functional.util.PBSUtils
 
 import java.math.RoundingMode
 
-import static org.prebid.server.functional.model.Currency.EUR
-import static org.prebid.server.functional.model.Currency.GBP
-import static org.prebid.server.functional.model.Currency.USD
 import static org.prebid.server.functional.model.request.auction.DebugCondition.ENABLED
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 import static org.prebid.server.functional.model.request.auction.FetchStatus.INPROGRESS
@@ -64,27 +58,15 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
         "Price floors processing failed: $reason. Following parsing of request price floors is failed: $details"
     }
 
-    protected static final Map<Currency, Map<Currency, BigDecimal>> DEFAULT_CURRENCY_RATES = [(USD): [(EUR): 0.9124920156948626,
-                                                                                                      (GBP): 0.793776804452961],
-                                                                                              (GBP): [(USD): 1.2597999770088517,
-                                                                                                      (EUR): 1.1495574203931487],
-                                                                                              (EUR): [(USD): 1.3429368029739777]]
-    protected static final CurrencyConversion currencyConversion = new CurrencyConversion(networkServiceContainer).tap {
-        setCurrencyConversionRatesResponse(CurrencyConversionRatesResponse.getDefaultCurrencyConversionRatesResponse(DEFAULT_CURRENCY_RATES))
-    }
-    protected static final Map<String, String> CURRENCY_CONVERTER_CONFIG = ["auction.ad-server-currency"                          : "USD",
-                                                                            "currency-converter.external-rates.enabled"           : "true",
-                                                                            "currency-converter.external-rates.url"               : "$networkServiceContainer.rootUri/currency".toString(),
-                                                                            "currency-converter.external-rates.default-timeout-ms": "4000",
-                                                                            "currency-converter.external-rates.refresh-period-ms" : "900000"]
+    protected static final CurrencyConversion currencyConversion = new CurrencyConversion(networkServiceContainer)
 
     protected static final int FLOOR_VALUE_PRECISION = 4
     private static final int DEFAULT_MODEL_WEIGHT = 1
-    private static final int CURRENCY_CONVERSION_PRECISION = 3
 
     protected final PrebidServerService floorsPbsService = pbsServiceFactory.getService(FLOORS_CONFIG + GENERIC_ALIAS_CONFIG)
 
     def setupSpec() {
+        currencyConversion.setCurrencyConversionRatesResponse()
         floorsProvider.setResponse()
     }
 
@@ -138,11 +120,6 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
         PBSUtils.getRandomNumber(DEFAULT_MODEL_WEIGHT, MAX_MODEL_WEIGHT)
     }
 
-    static BigDecimal getAdjustedValue(BigDecimal floorValue, BigDecimal bidAdjustment) {
-        def adjustedValue = floorValue / bidAdjustment
-        PBSUtils.roundDecimal(adjustedValue, FLOOR_VALUE_PRECISION)
-    }
-
     static BidRequest getBidRequestWithMultipleMediaTypes() {
         BidRequest.defaultBidRequest.tap { imp[0].video = Video.defaultVideo }
     }
@@ -176,13 +153,5 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
 
     protected BigDecimal getRoundedFloorValue(BigDecimal floorValue) {
         floorValue.setScale(FLOOR_VALUE_PRECISION, RoundingMode.HALF_EVEN)
-    }
-
-    protected BigDecimal getPriceAfterCurrencyConversion(BigDecimal value,
-                                                         Currency currencyFrom, Currency currencyTo,
-                                                         CurrencyRatesResponse currencyRatesResponse) {
-        def currencyRate = currencyRatesResponse.rates[currencyFrom.value][currencyTo.value]
-        def convertedValue = value * currencyRate
-        convertedValue.setScale(CURRENCY_CONVERSION_PRECISION, RoundingMode.HALF_EVEN)
     }
 }
