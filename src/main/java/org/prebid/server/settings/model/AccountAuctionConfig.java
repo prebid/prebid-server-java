@@ -45,6 +45,9 @@ public class AccountAuctionConfig {
 
     AccountTargetingConfig targeting;
 
+    @JsonAlias("bid-rounding")
+    AccountAuctionBidRoundingMode bidRounding;
+
     @JsonProperty("preferredmediatype")
     Map<String, MediaType> preferredMediaTypes;
 
@@ -53,4 +56,6 @@ public class AccountAuctionConfig {
 
     @JsonProperty("paaformat")
     PaaFormat paaFormat;
+
+    AccountCacheConfig cache;
 }
