@@ -14,7 +14,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -44,7 +44,7 @@ public class FloorAdjustmentsResolverTest extends VertxTest {
     private static final String EUR = "EUR";
     private static final String UAH = "UAH";
 
-    @Mock(strictness = LENIENT)
+    @Mock
     private CurrencyConversionService currencyService;
 
     @Mock(strictness = LENIENT)
@@ -55,22 +55,6 @@ public class FloorAdjustmentsResolverTest extends VertxTest {
     @BeforeEach
     public void before() {
         target = new FloorAdjustmentsResolver(bidAdjustmentsRulesResolver, currencyService);
-
-        given(currencyService.convertCurrency(any(), any(), any(), any())).willAnswer(invocation -> {
-            final BigDecimal amount = invocation.getArgument(0);
-            final String fromCurrency = invocation.getArgument(2);
-            final String toCurrency = invocation.getArgument(3);
-
-            if (fromCurrency.equals(toCurrency)) {
-                return amount;
-            } else if (toCurrency.equals(USD)) {
-                return amount.divide(BigDecimal.TEN, 4, RoundingMode.HALF_EVEN);
-            } else if (fromCurrency.equals(USD)) {
-                return amount.multiply(BigDecimal.TEN);
-            } else {
-                return amount;
-            }
-        });
     }
 
     @Test
@@ -82,13 +66,14 @@ public class FloorAdjustmentsResolverTest extends VertxTest {
 
         given(bidAdjustmentsRulesResolver.resolve(bidRequest, banner, BIDDER_NAME)).willReturn(emptyList());
         given(bidAdjustmentsRulesResolver.resolve(bidRequest, video_outstream, BIDDER_NAME)).willReturn(emptyList());
+        given(currencyService.convertCurrency(BigDecimal.TEN, bidRequest, USD, USD)).willReturn(BigDecimal.TEN);
 
         // when
         final Price actual = target.resolve(initialPrice, bidRequest, mediaTypes, BIDDER_NAME);
 
         // then
         assertThat(actual).isEqualTo(initialPrice);
-        verify(currencyService, times(2)).convertCurrency(BigDecimal.TEN, bidRequest, USD, USD);
+        verify(currencyService, times(2)).convertCurrency(any(), any(), any(), any());
         verifyNoMoreInteractions(currencyService);
     }
 
@@ -103,6 +88,8 @@ public class FloorAdjustmentsResolverTest extends VertxTest {
 
         given(bidAdjustmentsRulesResolver.resolve(bidRequest, banner, BIDDER_NAME))
                 .willReturn(singletonList(multiplierRule));
+        given(currencyService.convertCurrency(eq(new BigDecimal("10.0000")), eq(bidRequest), eq(USD), eq(USD)))
+                .willReturn(BigDecimal.valueOf(20));
 
         // when
         final Price actual = target.resolve(initialPrice, bidRequest, mediaTypes, BIDDER_NAME);
@@ -110,7 +97,7 @@ public class FloorAdjustmentsResolverTest extends VertxTest {
         // then
         assertThat(actual).isEqualTo(Price.of(USD, new BigDecimal("10.0000")));
 
-        verify(currencyService).convertCurrency(eq(new BigDecimal("10.0000")), eq(bidRequest), eq(USD), eq(USD));
+        verify(currencyService).convertCurrency(any(), any(), any(), any());
         verifyNoMoreInteractions(currencyService);
     }
 
@@ -124,6 +111,10 @@ public class FloorAdjustmentsResolverTest extends VertxTest {
         final BidAdjustmentsRule cpmRule = givenCpm("5", EUR);
 
         given(bidAdjustmentsRulesResolver.resolve(bidRequest, banner, BIDDER_NAME)).willReturn(singletonList(cpmRule));
+        given(currencyService.convertCurrency(new BigDecimal("5"), bidRequest, EUR, USD))
+                .willReturn(BigDecimal.valueOf(0.5));
+        given(currencyService.convertCurrency(new BigDecimal("50.5"), bidRequest, USD, USD))
+                .willReturn(BigDecimal.valueOf(50));
 
         // when
         final Price actual = target.resolve(initialPrice, bidRequest, mediaTypes, BIDDER_NAME);
@@ -132,8 +123,7 @@ public class FloorAdjustmentsResolverTest extends VertxTest {
         final Price expectedPrice = Price.of(USD, new BigDecimal("50.5"));
         assertThat(actual).isEqualTo(expectedPrice);
 
-        verify(currencyService).convertCurrency(new BigDecimal("5"), bidRequest, EUR, USD);
-        verify(currencyService).convertCurrency(new BigDecimal("50.5"), bidRequest, USD, USD);
+        verify(currencyService, times(2)).convertCurrency(any(), any(), any(), any());
         verifyNoMoreInteractions(currencyService);
     }
 
@@ -168,6 +158,10 @@ public class FloorAdjustmentsResolverTest extends VertxTest {
         final BidAdjustmentsRule rule2 = givenCpm("5", EUR);
 
         given(bidAdjustmentsRulesResolver.resolve(bidRequest, banner, BIDDER_NAME)).willReturn(List.of(rule1, rule2));
+        given(currencyService.convertCurrency(new BigDecimal("5"), bidRequest, EUR, USD))
+                .willReturn(BigDecimal.valueOf(0.5));
+        given(currencyService.convertCurrency(new BigDecimal("50.2500"), bidRequest, USD, USD))
+                .willReturn(BigDecimal.valueOf(100));
 
         // when
         final Price actual = target.resolve(initialPrice, bidRequest, mediaTypes, BIDDER_NAME);
@@ -175,8 +169,7 @@ public class FloorAdjustmentsResolverTest extends VertxTest {
         // then
         assertThat(actual).isEqualTo(Price.of(USD, new BigDecimal("50.2500")));
 
-        verify(currencyService).convertCurrency(new BigDecimal("5"), bidRequest, EUR, USD);
-        verify(currencyService).convertCurrency(new BigDecimal("50.2500"), bidRequest, USD, USD);
+        verify(currencyService, times(2)).convertCurrency(any(), any(), any(), any());
         verifyNoMoreInteractions(currencyService);
     }
 
@@ -195,15 +188,20 @@ public class FloorAdjustmentsResolverTest extends VertxTest {
         given(bidAdjustmentsRulesResolver.resolve(bidRequest, video_outstream, BIDDER_NAME))
                 .willReturn(singletonList(videoRule));
 
+        given(currencyService.convertCurrency(new BigDecimal("25.0000"), bidRequest, USD, EUR))
+                .willReturn(new BigDecimal("250.0000"));
+        given(currencyService.convertCurrency(new BigDecimal("500"), bidRequest, UAH, USD))
+                .willReturn(new BigDecimal("50"));
+        given(currencyService.convertCurrency(new BigDecimal("150"), bidRequest, USD, EUR))
+                .willReturn(new BigDecimal("1500"));
+
         // when
         final Price actual = target.resolve(initialPrice, bidRequest, mediaTypes, BIDDER_NAME);
 
         // then
         assertThat(actual).isEqualTo(Price.of(USD, new BigDecimal("25.0000")));
 
-        verify(currencyService).convertCurrency(new BigDecimal("25.0000"), bidRequest, USD, EUR);
-        verify(currencyService).convertCurrency(new BigDecimal("500"), bidRequest, UAH, USD);
-        verify(currencyService).convertCurrency(new BigDecimal("150"), bidRequest, USD, EUR);
+        verify(currencyService, times(3)).convertCurrency(any(), any(), any(), any());
         verifyNoMoreInteractions(currencyService);
     }
 
