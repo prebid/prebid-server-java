@@ -14,7 +14,6 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 
 import java.math.BigDecimal;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
