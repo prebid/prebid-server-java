@@ -30,6 +30,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
 import static org.prebid.server.functional.model.Currency.EUR
 import static org.prebid.server.functional.model.Currency.GBP
 import static org.prebid.server.functional.model.Currency.USD
+import static org.prebid.server.functional.model.bidder.BidderName.ACUITYADS
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.AMX
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
@@ -73,6 +74,7 @@ class BidAdjustmentSpec extends BaseSpec {
         pbsService = pbsServiceFactory.getService(PbsConfig.currencyConverterConfig + AMX_CONFIG)
     }
 
+    @Override
     def cleanupSpec() {
         pbsServiceFactory.removeContainer(PbsConfig.currencyConverterConfig + AMX_CONFIG)
     }
@@ -1234,7 +1236,7 @@ class BidAdjustmentSpec extends BaseSpec {
         where:
         adjustmentType << [CPM, STATIC]
     }
-    
+
     def "PBS should adjust bid price for matching bidder and alternate bidder code when request has per-bidder bid adjustment factors"() {
         given: "Default bid request with bid adjustment and amx bidder"
         def bidRequest = BidRequest.getDefaultBidRequest(SITE).tap {
@@ -1343,6 +1345,325 @@ class BidAdjustmentSpec extends BaseSpec {
 
         where:
         bidAdjustmentFactor << [0.9, 1.1]
+    }
+
+    def "PBS shouldn't adjust bid price when bid adjustment rule doesn't match with bidder code"() {
+        given: "Bid request with ext.prebid.bidAdjustments and ext.prebid.alternateBidderCode"
+        def exactRulePrice = PBSUtils.randomPrice
+        def currency = USD
+        def adjustmentRule = new AdjustmentRule(adjustmentType: STATIC, value: exactRulePrice, currency: currency)
+        def bidAdjustmentRule = new BidAdjustmentRule((bidAdjustmentRuleBidder): [(WILDCARD): [adjustmentRule]])
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            cur = [currency]
+            imp[0].ext.prebid.bidder.generic = null
+            imp[0].ext.prebid.bidder.amx = new Amx()
+            ext.prebid.tap {
+                bidAdjustments = new BidAdjustment(mediaType: [(BANNER): bidAdjustmentRule])
+                alternateBidderCodes = new AlternateBidderCodes().tap {
+                    enabled = true
+                    bidders = [(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [AMX])]
+                }
+            }
+        }
+
+        and: "Default bid response with price and bidder code"
+        def originalPrice = PBSUtils.randomPrice
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest, AMX).tap {
+            cur = currency
+            seatbid.first.bid.first.price = originalPrice
+            seatbid.first.bid.first.ext = new BidExt(bidderCode: ACUITYADS)
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "Final bid price should be adjusted according to exact rule"
+        assert response.seatbid.first.bid.first.price == originalPrice
+        assert response.cur == bidResponse.cur
+
+        and: "Original bid price and currency should be presented in bid.ext"
+        verifyAll(response.seatbid.first.bid.first.ext) {
+            origbidcpm == originalPrice
+            origbidcur == bidResponse.cur
+        }
+
+        and: "Bidder request should contain currency from request"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.cur == [currency]
+
+        and: "Response should contain adapter code"
+        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [AMX]
+
+        and: "Response should contain seatbid.seat"
+        assert response.seatbid[0].seat == ACUITYADS
+
+        where:
+        bidAdjustmentRuleBidder << ["alias", "aliasUpperCase", "aliasCamelCase"]
+    }
+
+    def "PBS should adjust bid price when two bid adjustment rules are compatible"() {
+        given: "Bid request with ext.prebid.bidAdjustments and ext.prebid.alternateBidderCode"
+        def exactRulePrice = PBSUtils.randomPrice
+        def currency = USD
+        def dealId = PBSUtils.randomString
+        def adjustmentRule = new AdjustmentRule(adjustmentType: STATIC, value: exactRulePrice, currency: currency)
+        def firstBidAdjustmentRule = new BidAdjustmentRule(amx: [(dealId): [adjustmentRule]])
+        def secondBidAdjustmentRule = new BidAdjustmentRule(amx: [(WILDCARD): [adjustmentRule]])
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            cur = [currency]
+            imp[0].ext.prebid.bidder.generic = null
+            imp[0].ext.prebid.bidder.amx = new Amx()
+            ext.prebid.tap {
+                bidAdjustments = new BidAdjustment(mediaType: [(BANNER): firstBidAdjustmentRule,
+                                                               (ANY)   : secondBidAdjustmentRule])
+                alternateBidderCodes = new AlternateBidderCodes().tap {
+                    enabled = true
+                    bidders = [(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [AMX])]
+                }
+            }
+        }
+
+        and: "Default bid response with price and bidder code and dealId"
+        def originalPrice = PBSUtils.randomPrice
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest, AMX).tap {
+            cur = currency
+            seatbid.first.bid.first.price = originalPrice
+            seatbid.first.bid.first.ext = new BidExt(bidderCode: AMX)
+            seatbid.first.bid.first.dealid = dealId
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "Final bid price should be adjusted according to exact rule"
+        assert response.seatbid.first.bid.first.price == getAdjustedPrice(originalPrice, exactRulePrice, STATIC)
+        assert response.cur == bidResponse.cur
+
+        and: "Original bid price and currency should be presented in bid.ext"
+        verifyAll(response.seatbid.first.bid.first.ext) {
+            origbidcpm == originalPrice
+            origbidcur == bidResponse.cur
+        }
+
+        and: "Bidder request should contain currency from request"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.cur == [currency]
+
+        and: "Response should contain adapter code"
+        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [AMX]
+
+        and: "Response should contain seatbid.seat"
+        assert response.seatbid[0].seat == AMX
+    }
+
+    def "PBS should adjust bid price when bid adjustment bidder and bidder code different"() {
+        given: "Bid request with ext.prebid.bidAdjustments and ext.prebid.alternateBidderCode"
+        def exactRulePrice = PBSUtils.randomPrice
+        def currency = USD
+        def adjustmentRule = new AdjustmentRule(adjustmentType: STATIC, value: exactRulePrice, currency: currency)
+        def bidAdjustmentRule = new BidAdjustmentRule((bidAdjustmentRuleBidder): [(WILDCARD): [adjustmentRule]])
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            cur = [currency]
+            imp[0].ext.prebid.bidder.generic = null
+            imp[0].ext.prebid.bidder.amx = new Amx()
+            ext.prebid.tap {
+                bidAdjustments = new BidAdjustment(mediaType: [(BANNER): bidAdjustmentRule])
+                alternateBidderCodes = new AlternateBidderCodes().tap {
+                    enabled = true
+                    bidders = [(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [AMX])]
+                }
+            }
+        }
+
+        and: "Default bid response with price and bidder code"
+        def originalPrice = PBSUtils.randomPrice
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest, AMX).tap {
+            cur = currency
+            seatbid.first.bid.first.price = originalPrice
+            seatbid.first.bid.first.ext = new BidExt(bidderCode: ALIAS)
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "Final bid price should be adjusted according to exact rule"
+        assert response.seatbid.first.bid.first.price == getAdjustedPrice(originalPrice, exactRulePrice, STATIC)
+        assert response.cur == bidResponse.cur
+
+        and: "Original bid price and currency should be presented in bid.ext"
+        verifyAll(response.seatbid.first.bid.first.ext) {
+            origbidcpm == originalPrice
+            origbidcur == bidResponse.cur
+        }
+
+        and: "Bidder request should contain currency from request"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.cur == [currency]
+
+        and: "Response should contain adapter code"
+        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [AMX]
+
+        and: "Response should contain seatbid.seat"
+        assert response.seatbid[0].seat == ALIAS
+
+        where:
+        bidAdjustmentRuleBidder << ["alias", "aliasUpperCase", "aliasCamelCase"]
+    }
+
+    def "PBS should adjust bid price when bid adjustment bidder and bidder code same as requested"() {
+        given: "Bid request with ext.prebid.bidAdjustments and ext.prebid.alternateBidderCode"
+        def exactRulePrice = PBSUtils.randomPrice
+        def currency = USD
+        def exactRule = new BidAdjustmentRule(amx: [(WILDCARD): [new AdjustmentRule(adjustmentType: STATIC, value: exactRulePrice, currency: currency)]])
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            cur = [currency]
+            imp[0].ext.prebid.bidder.generic = null
+            imp[0].ext.prebid.bidder.amx = new Amx()
+            ext.prebid.tap {
+                bidAdjustments = new BidAdjustment(mediaType: [(BANNER): exactRule])
+                alternateBidderCodes = new AlternateBidderCodes().tap {
+                    enabled = true
+                    bidders = [(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [AMX])]
+                }
+            }
+        }
+
+        and: "Default bid response with price and bidder code"
+        def originalPrice = PBSUtils.randomPrice
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest, AMX).tap {
+            cur = currency
+            seatbid.first.bid.first.price = originalPrice
+            seatbid.first.bid.first.ext = new BidExt(bidderCode: AMX)
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "Final bid price should be adjusted according to exact rule"
+        assert response.seatbid.first.bid.first.price == getAdjustedPrice(originalPrice, exactRulePrice, STATIC)
+        assert response.cur == bidResponse.cur
+
+        and: "Original bid price and currency should be presented in bid.ext"
+        verifyAll(response.seatbid.first.bid.first.ext) {
+            origbidcpm == originalPrice
+            origbidcur == bidResponse.cur
+        }
+
+        and: "Bidder request should contain currency from request"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.cur == [currency]
+
+        and: "Response should contain adapter code"
+        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [AMX]
+
+        and: "Response should contain seatbid.seat"
+        assert response.seatbid[0].seat == AMX
+    }
+
+    def "PBS should adjust bid price when bid adjustment bidder is the same as bidder code"() {
+        given: "Bid request with ext.prebid.bidAdjustments and ext.prebid.alternateBidderCode"
+        def exactRulePrice = PBSUtils.randomPrice
+        def currency = USD
+        def exactRule = new BidAdjustmentRule(alias: [(WILDCARD): [new AdjustmentRule(adjustmentType: STATIC, value: exactRulePrice, currency: currency)]])
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            cur = [currency]
+            imp[0].ext.prebid.bidder.generic = null
+            imp[0].ext.prebid.bidder.amx = new Amx()
+            ext.prebid.tap {
+                bidAdjustments = new BidAdjustment(mediaType: [(BANNER): exactRule])
+                alternateBidderCodes = new AlternateBidderCodes().tap {
+                    enabled = true
+                    bidders = [(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [AMX])]
+                }
+            }
+        }
+
+        and: "Default bid response with price and bidder code"
+        def originalPrice = PBSUtils.randomPrice
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest, AMX).tap {
+            cur = currency
+            seatbid.first.bid.first.price = originalPrice
+            seatbid.first.bid.first.ext = new BidExt(bidderCode: ALIAS)
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "Final bid price should be adjusted according to exact rule"
+        assert response.seatbid.first.bid.first.price == getAdjustedPrice(originalPrice, exactRulePrice, STATIC)
+        assert response.cur == bidResponse.cur
+
+        and: "Original bid price and currency should be presented in bid.ext"
+        verifyAll(response.seatbid.first.bid.first.ext) {
+            origbidcpm == originalPrice
+            origbidcur == bidResponse.cur
+        }
+
+        and: "Bidder request should contain currency from request"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.cur == [currency]
+
+        and: "Response should contain adapter code"
+        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [AMX]
+
+        and: "Response should contain seatbid.seat"
+        assert response.seatbid[0].seat == ALIAS
+    }
+
+    def "PBS should adjust bid price when bid adjustment wildcard bidder and bidder code specified"() {
+        given: "Bid request with ext.prebid.bidAdjustments and ext.prebid.alternateBidderCode"
+        def exactRulePrice = PBSUtils.randomPrice
+        def currency = USD
+        def exactRule = new BidAdjustmentRule(wildcardBidder: [(WILDCARD): [new AdjustmentRule(adjustmentType: STATIC, value: exactRulePrice, currency: currency)]])
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            cur = [currency]
+            imp[0].ext.prebid.bidder.generic = null
+            imp[0].ext.prebid.bidder.amx = new Amx()
+            ext.prebid.tap {
+                bidAdjustments = new BidAdjustment(mediaType: [(BANNER): exactRule])
+                alternateBidderCodes = new AlternateBidderCodes().tap {
+                    enabled = true
+                    bidders = [(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [AMX])]
+                }
+            }
+        }
+
+        and: "Default bid response with price and bidder code"
+        def originalPrice = PBSUtils.randomPrice
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest, AMX).tap {
+            cur = currency
+            seatbid.first.bid.first.price = originalPrice
+            seatbid.first.bid.first.ext = new BidExt(bidderCode: ALIAS)
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "Final bid price should be adjusted according to exact rule"
+        assert response.seatbid.first.bid.first.price == getAdjustedPrice(originalPrice, exactRulePrice, STATIC)
+        assert response.cur == bidResponse.cur
+
+        and: "Original bid price and currency should be presented in bid.ext"
+        verifyAll(response.seatbid.first.bid.first.ext) {
+            origbidcpm == originalPrice
+            origbidcur == bidResponse.cur
+        }
+
+        and: "Bidder request should contain currency from request"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.cur == [currency]
+
+        and: "Response should contain adapter code"
+        assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [AMX]
+
+        and: "Response should contain seatbid.seat"
+        assert response.seatbid[0].seat == ALIAS
     }
 
     private static BigDecimal getAdjustedPrice(BigDecimal originalPrice,

@@ -38,13 +38,18 @@ public class BidAdjustmentsRulesResolver {
         this.mapper = Objects.requireNonNull(mapper).mapper();
     }
 
+    public List<BidAdjustmentsRule> resolve(BidRequest bidRequest, ImpMediaType targetMediaType, String targetBidder) {
+        return resolve(bidRequest, targetMediaType, null, targetBidder, null);
+    }
+
     public List<BidAdjustmentsRule> resolve(BidRequest bidRequest,
                                             ImpMediaType targetMediaType,
+                                            String targetSeat,
                                             String targetBidder,
                                             String targetDealId) {
 
         final BidAdjustmentsRules bidAdjustments = BidAdjustmentsRules.of(extractBidAdjustments(bidRequest));
-        return findRules(bidAdjustments, targetMediaType, targetBidder, targetDealId);
+        return findRules(bidAdjustments, targetMediaType, targetSeat, targetBidder, targetDealId);
     }
 
     private BidAdjustments extractBidAdjustments(BidRequest bidRequest) {
@@ -57,22 +62,32 @@ public class BidAdjustmentsRulesResolver {
 
     private List<BidAdjustmentsRule> findRules(BidAdjustmentsRules bidAdjustments,
                                                ImpMediaType targetMediaType,
+                                               String targetSeat,
                                                String targetBidder,
                                                String targetDealId) {
 
         final Map<String, List<BidAdjustmentsRule>> rules = bidAdjustments.getRules();
         final PrebidConfigSource source = SimpleSource.of(WILDCARD, DELIMITER, rules.keySet());
-        final PrebidConfigParameters parameters = createParameters(targetMediaType, targetBidder, targetDealId);
+        final PrebidConfigParameters parameters = createParameters(
+                targetMediaType, targetSeat, targetBidder, targetDealId);
 
         final String rule = matchingStrategy.match(source, parameters);
         return rule == null ? Collections.emptyList() : rules.get(rule);
     }
 
-    private PrebidConfigParameters createParameters(ImpMediaType mediaType, String bidder, String dealId) {
+    private PrebidConfigParameters createParameters(ImpMediaType mediaType,
+                                                    String seat,
+                                                    String bidder,
+                                                    String dealId) {
+
         final List<PrebidConfigParameter> conditionsMatchers = List.of(
                 SimpleDirectParameter.of(mediaType.toString()),
-                SimpleDirectParameter.of(bidder),
-                StringUtils.isNotBlank(dealId) ? SimpleDirectParameter.of(dealId) : PrebidConfigParameter.wildcard());
+                StringUtils.isBlank(seat)
+                        ? SimpleDirectParameter.of(bidder)
+                        : SimpleDirectParameter.of(List.of(seat, bidder)),
+                StringUtils.isBlank(dealId)
+                        ? PrebidConfigParameter.wildcard()
+                        : SimpleDirectParameter.of(dealId));
 
         return SimpleParameters.of(conditionsMatchers);
     }

@@ -52,7 +52,7 @@ public class BidAdjustmentsResolverTest extends VertxTest {
     public void resolveShouldApplyStaticRule() {
         // given
         final BidRequest givenBidRequest = BidRequest.builder().build();
-        given(bidAdjustmentsRulesResolver.resolve(givenBidRequest, banner, "bidderName", "dealId"))
+        given(bidAdjustmentsRulesResolver.resolve(givenBidRequest, banner, "seat", "bidderName", "dealId"))
                 .willReturn(List.of(givenStatic("15", "EUR")));
 
         // when
@@ -60,6 +60,7 @@ public class BidAdjustmentsResolverTest extends VertxTest {
                 Price.of("USD", BigDecimal.ONE),
                 givenBidRequest,
                 banner,
+                "seat",
                 "bidderName",
                 "dealId");
 
@@ -72,7 +73,7 @@ public class BidAdjustmentsResolverTest extends VertxTest {
     public void resolveShouldApplyCpmRule() {
         // given
         final BidRequest givenBidRequest = BidRequest.builder().build();
-        given(bidAdjustmentsRulesResolver.resolve(givenBidRequest, video_outstream, "bidderName", "dealId"))
+        given(bidAdjustmentsRulesResolver.resolve(givenBidRequest, video_outstream, "seat", "bidderName", "dealId"))
                 .willReturn(List.of(givenCpm("25", "UAH")));
 
         // when
@@ -80,6 +81,7 @@ public class BidAdjustmentsResolverTest extends VertxTest {
                 Price.of("USD", BigDecimal.ONE),
                 givenBidRequest,
                 video_outstream,
+                "seat",
                 "bidderName",
                 "dealId");
 
@@ -92,7 +94,7 @@ public class BidAdjustmentsResolverTest extends VertxTest {
     public void resolveShouldApplyMultiplierRule() {
         // given
         final BidRequest givenBidRequest = BidRequest.builder().build();
-        given(bidAdjustmentsRulesResolver.resolve(givenBidRequest, banner, "bidderName", "dealId"))
+        given(bidAdjustmentsRulesResolver.resolve(givenBidRequest, banner, "seat", "bidderName", "dealId"))
                 .willReturn(List.of(givenMultiplier("15")));
 
         // when
@@ -100,6 +102,7 @@ public class BidAdjustmentsResolverTest extends VertxTest {
                 Price.of("USD", BigDecimal.ONE),
                 BidRequest.builder().build(),
                 banner,
+                "seat",
                 "bidderName",
                 "dealId");
 
@@ -112,7 +115,7 @@ public class BidAdjustmentsResolverTest extends VertxTest {
     public void resolveShouldApplyStaticAndCpmRules() {
         // given
         final BidRequest givenBidRequest = BidRequest.builder().build();
-        given(bidAdjustmentsRulesResolver.resolve(givenBidRequest, banner, "bidderName", "dealId"))
+        given(bidAdjustmentsRulesResolver.resolve(givenBidRequest, banner, "seat", "bidderName", "dealId"))
                 .willReturn(List.of(givenStatic("25", "UAH"), givenMultiplier("25")));
 
         // when
@@ -120,6 +123,7 @@ public class BidAdjustmentsResolverTest extends VertxTest {
                 Price.of("USD", BigDecimal.ONE),
                 BidRequest.builder().build(),
                 banner,
+                "seat",
                 "bidderName",
                 "dealId");
 
@@ -132,7 +136,7 @@ public class BidAdjustmentsResolverTest extends VertxTest {
     public void resolveShouldApplyCpmAndStaticRules() {
         // given
         final BidRequest givenBidRequest = BidRequest.builder().build();
-        given(bidAdjustmentsRulesResolver.resolve(givenBidRequest, banner, "bidderName", "dealId"))
+        given(bidAdjustmentsRulesResolver.resolve(givenBidRequest, banner, "seat", "bidderName", "dealId"))
                 .willReturn(List.of(givenCpm("15", "JPY"), givenStatic("15", "EUR")));
 
         // when
@@ -140,6 +144,7 @@ public class BidAdjustmentsResolverTest extends VertxTest {
                 Price.of("USD", BigDecimal.ONE),
                 givenBidRequest,
                 banner,
+                "seat",
                 "bidderName",
                 "dealId");
 
@@ -152,7 +157,7 @@ public class BidAdjustmentsResolverTest extends VertxTest {
     public void resolveShouldApplyMultiplierAdnCpmRules() {
         // given
         final BidRequest givenBidRequest = BidRequest.builder().build();
-        given(bidAdjustmentsRulesResolver.resolve(givenBidRequest, banner, "bidderName", "dealId"))
+        given(bidAdjustmentsRulesResolver.resolve(givenBidRequest, banner, "seat", "bidderName", "dealId"))
                 .willReturn(List.of(givenMultiplier("25"), givenCpm("25", "UAH")));
 
         // when
@@ -160,6 +165,7 @@ public class BidAdjustmentsResolverTest extends VertxTest {
                 Price.of("USD", BigDecimal.ONE),
                 givenBidRequest,
                 banner,
+                "seat",
                 "bidderName",
                 "dealId");
 
@@ -172,7 +178,7 @@ public class BidAdjustmentsResolverTest extends VertxTest {
     public void resolveShouldApplyTwoCpmRules() {
         // given
         final BidRequest givenBidRequest = BidRequest.builder().build();
-        given(bidAdjustmentsRulesResolver.resolve(givenBidRequest, banner, "bidderName", null))
+        given(bidAdjustmentsRulesResolver.resolve(givenBidRequest, banner, "seat", "bidderName", null))
                 .willReturn(List.of(givenCpm("25", "UAH"), givenCpm("25", "JPY")));
 
         // when
@@ -180,6 +186,7 @@ public class BidAdjustmentsResolverTest extends VertxTest {
                 Price.of("USD", BigDecimal.ONE),
                 givenBidRequest,
                 banner,
+                "seat",
                 "bidderName",
                 null);
 
@@ -193,7 +200,7 @@ public class BidAdjustmentsResolverTest extends VertxTest {
     public void resolveShouldNotApplyAnyRulesWhenNoMatchFound() {
         // given
         final BidRequest givenBidRequest = BidRequest.builder().build();
-        given(bidAdjustmentsRulesResolver.resolve(givenBidRequest, banner, "bidderName", null))
+        given(bidAdjustmentsRulesResolver.resolve(givenBidRequest, banner, "seat", "bidderName", null))
                 .willReturn(Collections.emptyList());
 
         // when
@@ -201,6 +208,7 @@ public class BidAdjustmentsResolverTest extends VertxTest {
                 Price.of("USD", BigDecimal.ONE),
                 BidRequest.builder().build(),
                 banner,
+                "seat",
                 "bidderName",
                 null);
 
