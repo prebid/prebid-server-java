@@ -72,7 +72,7 @@ class Bid implements ObjectMapperWrapper {
         }
     }
 
-    static List<Bid> getDefaultMultyTypesBids(Imp imp, @DelegatesTo(Bid) Closure commonInit = null) {
+    static List<Bid> getDefaultMultiTypesBids(Imp imp, @DelegatesTo(Bid) Closure commonInit = null) {
         List<Bid> bids = []
         if (imp.banner) bids << createBid(imp, BidMediaType.BANNER) { adm = null }
         if (imp.video) bids << createBid(imp, BidMediaType.VIDEO)
