@@ -594,6 +594,7 @@ public class BidResponseCreator {
         return categoryMappingService.createCategoryMapping(
                         bidderResponses,
                         auctionContext.getBidRequest(),
+                        auctionContext.getAccount(),
                         auctionContext.getTimeoutContext().getTimeout())
 
                 .map(categoryMappingResult -> addCategoryMappingErrors(categoryMappingResult, auctionContext));
@@ -1561,7 +1562,7 @@ public class BidResponseCreator {
             final String categoryDuration = bidInfo.getCategory();
             targetingKeywords = keywordsCreator != null
                     ? keywordsCreator.makeFor(
-                    bid, seat, isWinningBid, cacheId, bidType.getName(), videoCacheId, categoryDuration)
+                    bid, seat, isWinningBid, cacheId, bidType.getName(), videoCacheId, categoryDuration, account)
                     : null;
         } else {
             targetingKeywords = null;

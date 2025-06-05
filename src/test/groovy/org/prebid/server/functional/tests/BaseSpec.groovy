@@ -19,7 +19,11 @@ import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Specification
 
+import java.math.RoundingMode
+
 import static java.math.RoundingMode.DOWN
+import static java.math.RoundingMode.HALF_UP
+import static java.math.RoundingMode.UP
 import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
 import static org.prebid.server.functional.util.SystemProperties.DEFAULT_TIMEOUT
 
@@ -81,8 +85,16 @@ abstract class BaseSpec extends Specification implements ObjectMapperWrapper {
         logs.findAll { it.contains(text) }
     }
 
-    protected static String getRoundedTargetingValueWithDefaultPrecision(BigDecimal value) {
-        "${value.setScale(DEFAULT_TARGETING_PRECISION, DOWN)}0"
+    protected static String getRoundedTargetingValueWithDownPrecision(BigDecimal value) {
+        roundWithDefaultPrecisionAndRoundingType(value, DOWN)
+    }
+
+    protected static String getRoundedTargetingValueWithHalfUpPrecision(BigDecimal value) {
+        roundWithDefaultPrecisionAndRoundingType(value, HALF_UP)
+    }
+
+    protected static String getRoundedTargetingValueWithUpPrecision(BigDecimal value) {
+        roundWithDefaultPrecisionAndRoundingType(value, UP)
     }
 
     protected static Map<String, List<BidderRequest>> getRequests(BidResponse bidResponse) {
@@ -100,5 +112,9 @@ abstract class BaseSpec extends Specification implements ObjectMapperWrapper {
     private static LinkedHashMap<String, List<BidderRequest>> collectRequestByBidderName(String bidderName,
                                                                                          List<BidderCall> bidderCalls) {
         [(bidderName): bidderCalls.collect { bidderCall -> decode(bidderCall.requestBody as String, BidderRequest) }]
+    }
+
+    private static GString roundWithDefaultPrecisionAndRoundingType(BigDecimal value, RoundingMode roundingMode) {
+        "${value.setScale(DEFAULT_TARGETING_PRECISION, roundingMode)}0"
     }
 }
