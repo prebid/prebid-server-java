@@ -12,10 +12,10 @@ import org.prebid.server.hooks.modules.rule.engine.core.rules.CompositeRule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.DefaultActionRule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.MatchingRuleFactory;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.NoOpRule;
+import org.prebid.server.hooks.modules.rule.engine.core.rules.RandomWeightedRule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.Rule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleConfig;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.StageSpecification;
-import org.prebid.server.hooks.modules.rule.engine.core.rules.WeightedRule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.exception.InvalidMatcherConfiguration;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.result.RuleAction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.Schema;
@@ -64,7 +64,7 @@ public class StageConfigParser<SCHEMA_PAYLOAD, RULE_PAYLOAD, CONTEXT> {
                 .map(config -> WeightedEntry.of(config.getWeight(), parseModelGroupConfig(config)))
                 .toList();
 
-        return new WeightedRule<>(randomGenerator, new WeightedList<>(weightedRules));
+        return new RandomWeightedRule<>(randomGenerator, new WeightedList<>(weightedRules));
     }
 
     private Rule<RULE_PAYLOAD, CONTEXT> parseModelGroupConfig(ModelGroupConfig config) {

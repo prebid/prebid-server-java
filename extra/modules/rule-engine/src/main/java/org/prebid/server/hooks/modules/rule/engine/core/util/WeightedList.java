@@ -1,38 +1,36 @@
 package org.prebid.server.hooks.modules.rule.engine.core.util;
 
+import org.springframework.util.CollectionUtils;
+
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 public class WeightedList<T> {
 
-    private static final double EPSILON = 1e-6;
-
     private final List<WeightedEntry<T>> entries;
+    private final int weightSum;
 
     public WeightedList(List<WeightedEntry<T>> entries) {
         validateEntries(entries);
 
+        this.weightSum = entries.stream().mapToInt(WeightedEntry::getWeight).sum();
         this.entries = prepareEntries(entries);
     }
 
     private void validateEntries(List<WeightedEntry<T>> entries) {
-        Objects.requireNonNull(entries);
-
-        if (entries.isEmpty()) {
+        if (CollectionUtils.isEmpty(entries)) {
             throw new IllegalArgumentException("Weighted list cannot be empty");
         }
 
-        final double sum = entries.stream().mapToDouble(WeightedEntry::getWeight).sum();
-        if (sum > WeightedEntry.MAX_WEIGHT + EPSILON) {
-            throw new IllegalArgumentException(
-                    "Weighted list weights sum must be less than " + WeightedEntry.MAX_WEIGHT);
+        if (entries.stream().anyMatch(weightedEntry -> weightedEntry.getWeight() <= 0)) {
+            throw new IllegalArgumentException("Weighted entry should have weight greater than zero");
         }
     }
 
     private List<WeightedEntry<T>> prepareEntries(List<WeightedEntry<T>> entries) {
         final List<WeightedEntry<T>> result = new ArrayList<>(entries.size());
-        double cumulativeSum = 0;
+
+        int cumulativeSum = 0;
 
         for (WeightedEntry<T> entry : entries) {
             cumulativeSum += entry.getWeight();
@@ -42,9 +40,9 @@ public class WeightedList<T> {
         return result;
     }
 
-    public T getForSeed(double seed) {
-        if (seed < 0 || seed > WeightedEntry.MAX_WEIGHT) {
-            throw new IllegalArgumentException("Seed number must be between 0 and " + WeightedEntry.MAX_WEIGHT);
+    public T getForSeed(int seed) {
+        if (seed < 0 || seed > maxSeed()) {
+            throw new IllegalArgumentException("Seed number must be between 0 and " + weightSum);
         }
 
         for (WeightedEntry<T> entry : entries) {
@@ -54,5 +52,9 @@ public class WeightedList<T> {
         }
 
         throw new NoMatchingValueException("No entry found for seed " + seed);
+    }
+
+    public int maxSeed() {
+        return weightSum;
     }
 }

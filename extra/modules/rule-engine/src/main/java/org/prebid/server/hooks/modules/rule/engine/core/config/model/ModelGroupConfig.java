@@ -8,7 +8,7 @@ import java.util.List;
 @Value(staticConstructor = "of")
 public class ModelGroupConfig {
 
-    double weight;
+    int weight;
 
     @JsonProperty("analyticsKey")
     String analyticsKey;
