@@ -78,6 +78,14 @@ public class MobilefuseBidder implements Bidder<BidRequest> {
         return imp.getBanner() != null || imp.getVideo() != null || imp.getXNative() != null;
     }
 
+    private ExtImpMobilefuse parseImpExt(Imp imp) {
+        try {
+            return mapper.mapper().convertValue(imp.getExt(), MOBILEFUSE_EXT_TYPE_REFERENCE).getBidder();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException("Error parsing ExtImpMobilefuse value: %s".formatted(e.getMessage()));
+        }
+    }
+
     private Imp modifyImp(Imp imp, ExtImpMobilefuse extImp) {
         final ObjectNode skadn = parseSkadn(imp.getExt());
         return imp.toBuilder()
@@ -86,15 +94,7 @@ public class MobilefuseBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private ExtImpMobilefuse parseImpExt(Imp imp) throws PreBidException {
-        try {
-            return mapper.mapper().convertValue(imp.getExt(), MOBILEFUSE_EXT_TYPE_REFERENCE).getBidder();
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException("Error parsing ExtImpMobilefuse value: %s".formatted(e.getMessage()));
-        }
-    }
-
-    private ObjectNode parseSkadn(ObjectNode impExt) throws PreBidException {
+    private ObjectNode parseSkadn(ObjectNode impExt) {
         try {
             return mapper.mapper().convertValue(impExt.get(SKADN_PROPERTY_NAME), ObjectNode.class);
         } catch (IllegalArgumentException e) {
