@@ -29,6 +29,7 @@ import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidExt
 import org.prebid.server.functional.model.response.auction.BidMediaType
 import org.prebid.server.functional.model.response.auction.BidResponse
+import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.model.response.auction.MediaType
 import org.prebid.server.functional.model.response.auction.Prebid
 import org.prebid.server.functional.model.response.auction.SeatBid
@@ -42,6 +43,8 @@ import java.nio.charset.StandardCharsets
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
 import static org.prebid.server.functional.model.AccountStatus.ACTIVE
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.bidder.BidderName.OPENX
+import static org.prebid.server.functional.model.bidder.BidderName.WILDCARD
 import static org.prebid.server.functional.model.config.PriceGranularityType.UNKNOWN
 import static org.prebid.server.functional.model.response.auction.ErrorType.TARGETING
 import static org.prebid.server.functional.model.response.auction.MediaType.VIDEO
@@ -1361,7 +1364,7 @@ class TargetingSpec extends BaseSpec {
     }
 
     def "PBS shouldn't add bid ranked for request when account config for auction.ranking disabled or default"() {
-        given: "Bid request with alwaysIncludeDeals = true"
+        given: "Bid request with enabled preferDeals"
         def bidRequest = BidRequest.getDefaultVideoRequest().tap {
             it.ext.prebid.targeting = Targeting.createWithAllValuesSetTo(true)
             it.ext.prebid.multibid = [new MultiBid(bidder: GENERIC, maxBids: MAX_BIDS_RANKING)]
@@ -1399,8 +1402,8 @@ class TargetingSpec extends BaseSpec {
         ]
     }
 
-    def "PBS should add bid ranked and rank by deals for request without multiBid when auction.ranking and preferDeals are enabled"() {
-        given: "Bid request with alwaysIncludeDeals = true"
+    def "PBS should add bid ranked and rank by deals for default request when auction.ranking and preferDeals are enabled"() {
+        given: "Bid request with enabled preferDeals"
         def bidRequest = BidRequest.getDefaultVideoRequest().tap {
             it.ext.prebid.targeting = Targeting.createWithAllValuesSetTo(true).tap {
                 preferDeals = true
@@ -1437,6 +1440,221 @@ class TargetingSpec extends BaseSpec {
             it.price == [bidWithDeal.price]
             it.ext.prebid.rank == [1]
         }
+    }
+
+    def "PBS should add bid ranked and rank by price for default request when auction.ranking is enabled and preferDeals disabled"() {
+        given: "Bid request with disabled preferDeals"
+        def bidRequest = BidRequest.getDefaultVideoRequest().tap {
+            it.ext.prebid.targeting = Targeting.createWithAllValuesSetTo(true).tap {
+                preferDeals = false
+            }
+            enableCache()
+        }
+
+        and: "Account in the DB"
+        def account = getAccountConfigWithAuctionRanking(bidRequest.accountId)
+        accountDao.save(account)
+
+        and: "Bid response with 2 bids where deal bid has lower price"
+        def bidPrice = PBSUtils.randomPrice
+        def bidBiggerPrice = Bid.getDefaultBid(bidRequest.imp[0]).tap {
+            it.price = bidPrice + 1
+        }
+        def bidBDeal = Bid.getDefaultBid(bidRequest.imp[0]).tap {
+            it.dealid = PBSUtils.randomNumber
+            it.price = bidPrice
+        }
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid[0].bid = [bidBiggerPrice, bidBDeal]
+        }
+
+        and: "Set bidder response"
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS should rank single bid"
+        verifyAll(response.seatbid.first.bid) {
+            it.id == [bidBiggerPrice.id]
+            it.price == [bidBiggerPrice.price]
+            it.ext.prebid.rank == [1]
+        }
+    }
+
+    def "PBS should add bid ranked and rank by price for request with multiBid when auction.ranking is enabled and preferDeals disabled"() {
+        given: "Bid request with disabled preferDeals"
+        def bidRequest = BidRequest.getDefaultVideoRequest().tap {
+            it.ext.prebid.targeting = Targeting.createWithAllValuesSetTo(true).tap {
+                preferDeals = false
+            }
+            it.ext.prebid.multibid = [new MultiBid(bidder: GENERIC, maxBids: MAX_BIDS_RANKING)]
+            enableCache()
+        }
+
+        and: "Account in the DB"
+        def account = getAccountConfigWithAuctionRanking(bidRequest.accountId)
+        accountDao.save(account)
+
+        and: "Bid response with 2 bids where deal bid has lower price"
+        def bidPrice = PBSUtils.randomPrice
+        def bidBiggerPrice = Bid.getDefaultBid(bidRequest.imp[0]).tap {
+            it.price = bidPrice + 1
+        }
+        def bidBDeal = Bid.getDefaultBid(bidRequest.imp[0]).tap {
+            it.dealid = PBSUtils.randomNumber
+            it.price = bidPrice
+        }
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid[0].bid = [bidBiggerPrice, bidBDeal]
+        }
+
+        and: "Set bidder response"
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS should rank bid with higher price as top priority"
+        def bids = response.seatbid.first.bid
+        assert bids.find(it -> it.id == bidBiggerPrice.id).ext.prebid.rank == 1
+        assert bids.find(it -> it.id == bidBDeal.id).ext.prebid.rank == 2
+    }
+
+    def "PBS should add bid ranked and rank by price for multiple media types request when auction.ranking is enabled and preferDeals disabled"() {
+        given: "Bid request with disabled preferDeals"
+        def bidRequest = BidRequest.getDefaultVideoRequest().tap {
+            it.imp.first.banner = Banner.getDefaultBanner()
+            it.imp.first.nativeObj = Native.getDefaultNative()
+            it.ext.prebid.targeting = Targeting.createWithAllValuesSetTo(true).tap {
+                preferDeals = false
+            }
+            it.ext.prebid.multibid = [new MultiBid(bidder: GENERIC, maxBids: MAX_BIDS_RANKING)]
+            enableCache()
+        }
+
+        and: "Account in the DB"
+        def account = getAccountConfigWithAuctionRanking(bidRequest.accountId)
+        accountDao.save(account)
+
+        and: "Bid response with 2 bids where deal bid has lower price"
+        def bidPrice = PBSUtils.randomPrice
+        def bidBiggerPrice = Bid.getDefaultMultiTypesBids(bidRequest.imp.first).first.tap {
+            it.price = bidPrice + 1
+        }
+        def bidBDeal = Bid.getDefaultMultiTypesBids(bidRequest.imp.first).last.tap {
+            it.dealid = PBSUtils.randomNumber
+            it.price = bidPrice
+        }
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid[0].bid = [bidBiggerPrice, bidBDeal]
+        }
+
+        and: "Set bidder response"
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS should rank bid with higher price as top priority"
+        assert !response.ext.warnings
+        def bids = response.seatbid.first.bid
+        assert bids.find(it -> it.id == bidBiggerPrice.id).ext.prebid.rank == 1
+        assert bids.find(it -> it.id == bidBDeal.id).ext.prebid.rank == 2
+    }
+
+    def "PBS should properly rank bids when request with multibid contains some invalid bid"() {
+        given: "Bid request with disabled preferDeals"
+        def bidRequest = BidRequest.getDefaultVideoRequest().tap {
+            it.ext.prebid.targeting = Targeting.createWithAllValuesSetTo(true).tap {
+                preferDeals = false
+            }
+            it.ext.prebid.multibid = [new MultiBid(bidder: GENERIC, maxBids: MAX_BIDS_RANKING)]
+            enableCache()
+        }
+
+        and: "Account in the DB"
+        def account = getAccountConfigWithAuctionRanking(bidRequest.accountId)
+        accountDao.save(account)
+
+        and: "Bid response with multiple bids"
+        def bidPrice = PBSUtils.randomPrice
+        def higherPriceBid = Bid.getDefaultBid(bidRequest.imp.first).tap {
+            price = bidPrice + 2
+        }
+
+        def middlePriceBid = Bid.getDefaultBid(bidRequest.imp.first).tap {
+            price = bidPrice + 1
+            adm = null
+        }
+
+        def lowerPriceBid = Bid.getDefaultBid(bidRequest.imp.first).tap {
+            price = bidPrice
+        }
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid[0].bid = [lowerPriceBid, middlePriceBid, higherPriceBid]
+        }
+
+        and: "Set bidder response"
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS should rank bid with higher price as top priority"
+        def bids = response.seatbid.first.bid
+        assert bids.find(it -> it.id == higherPriceBid.id).ext.prebid.rank == 1
+        assert bids.find(it -> it.id == lowerPriceBid.id).ext.prebid.rank == 2
+
+        and: "PBS should contain error for invalid bid"
+        assert response.ext.errors[ErrorType.GENERIC]?.message?.any { it.contains(middlePriceBid.id) }
+    }
+
+    def "PBS should assign bid ranks across all seatbids combined when the request contains imps with multiple bidders"() {
+        given: "PBS config with openX bidder"
+        def pbsConfig = ["adapters.openx.enabled" : "true",
+                          "adapters.openx.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
+        def prebidServerService = pbsServiceFactory.getService(pbsConfig)
+
+        and: "Bid request with multiple bidders"
+        def bidRequest = BidRequest.getDefaultVideoRequest().tap {
+            imp[0].ext.prebid.bidder.openx = Openx.defaultOpenx
+            it.ext.prebid.targeting = Targeting.createWithAllValuesSetTo(true).tap {
+                preferDeals = true
+            }
+            it.ext.prebid.multibid = [new MultiBid(bidder: WILDCARD, maxBids: MAX_BIDS_RANKING)]
+            enableCache()
+        }
+
+        and: "Account in DB"
+        def account = getAccountConfigWithAuctionRanking(bidRequest.accountId)
+        accountDao.save(account)
+
+        and: "Bid response with multiple bids"
+        def bidPrice = PBSUtils.randomPrice
+        def genericBid = Bid.getDefaultBid(bidRequest.imp[0]).tap {
+            it.price = bidPrice + 1
+        }
+        def openxBid = Bid.getDefaultBid(bidRequest.imp[0]).tap {
+            it.dealid = PBSUtils.randomNumber
+            it.price = bidPrice
+        }
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            it.seatbid = [new SeatBid(bid: [genericBid], seat: GENERIC),
+                          new SeatBid(bid: [openxBid], seat: OPENX)]
+        }
+        and: "Set bidder response"
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = prebidServerService.sendAuctionRequest(bidRequest)
+
+        then: "PBS should rank OpenX bid higher than Generic bid"
+        assert response.seatbid.findAll { it.seat == OPENX }.bid.ext.prebid.rank.flatten() == [1]
+        assert response.seatbid.findAll { it.seat == GENERIC }.bid.ext.prebid.rank.flatten() == [2]
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS should assign bid ranks for each imp separately when request has multiple imps and multiBid is configured"() {
@@ -1492,170 +1710,8 @@ class TargetingSpec extends BaseSpec {
         requestPreferDeals << [null, false, true]
     }
 
-    def "PBS should add bid ranked and rank by deals for multiple media types request when auction.ranking and preferDeals are enabled"() {
-        given: "Bid request with alwaysIncludeDeals = true"
-        def bidRequest = BidRequest.getDefaultVideoRequest().tap {
-            it.imp.first.banner = Banner.getDefaultBanner()
-            it.imp.first.nativeObj = Native.getDefaultNative()
-            it.ext.prebid.targeting = Targeting.createWithAllValuesSetTo(true).tap {
-                preferDeals = true
-            }
-            it.ext.prebid.multibid = [new MultiBid(bidder: GENERIC, maxBids: MAX_BIDS_RANKING)]
-            enableCache()
-        }
-
-        and: "Account in the DB"
-        def account = getAccountConfigWithAuctionRanking(bidRequest.accountId)
-        accountDao.save(account)
-
-        and: "Bid response with 2 bids where deal bid has lower price"
-        def bidPrice = PBSUtils.randomPrice
-        def bidBiggerPrice = Bid.getDefaultMultiTypesBids(bidRequest.imp.first).first.tap {
-            it.price = bidPrice + 1
-        }
-        def bidWithDeal = Bid.getDefaultMultiTypesBids(bidRequest.imp.first).last.tap {
-            it.dealid = PBSUtils.randomNumber
-            it.price = bidPrice
-        }
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            seatbid[0].bid = [bidBiggerPrice, bidWithDeal]
-        }
-
-        and: "Set bidder response"
-        bidder.setResponse(bidRequest.id, bidResponse)
-
-        when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
-
-        then: "PBS should rank bid with deal as top priority"
-        def bids = response.seatbid.first.bid
-        assert bids.find(it -> it.id == bidWithDeal.id).ext.prebid.rank == 1
-        assert bids.find(it -> it.id == bidBiggerPrice.id).ext.prebid.rank == 2
-    }
-
-    def "PBS should add bid ranked and rank by price for request without multiBid when auction.ranking is enabled and preferDeals disabled"() {
-        given: "Bid request with alwaysIncludeDeals = true"
-        def bidRequest = BidRequest.getDefaultVideoRequest().tap {
-            it.ext.prebid.targeting = Targeting.createWithAllValuesSetTo(true).tap {
-                preferDeals = false
-            }
-            enableCache()
-        }
-
-        and: "Account in the DB"
-        def account = getAccountConfigWithAuctionRanking(bidRequest.accountId)
-        accountDao.save(account)
-
-        and: "Bid response with 2 bids where deal bid has lower price"
-        def bidPrice = PBSUtils.randomPrice
-        def bidBiggerPrice = Bid.getDefaultBid(bidRequest.imp[0]).tap {
-            it.price = bidPrice + 1
-        }
-        def bidBDeal = Bid.getDefaultBid(bidRequest.imp[0]).tap {
-            it.dealid = PBSUtils.randomNumber
-            it.price = bidPrice
-        }
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            seatbid[0].bid = [bidBiggerPrice, bidBDeal]
-        }
-
-        and: "Set bidder response"
-        bidder.setResponse(bidRequest.id, bidResponse)
-
-        when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
-
-        then: "PBS should rank single bid"
-        verifyAll(response.seatbid.first.bid) {
-            it.id == [bidBiggerPrice.id]
-            it.price == [bidBiggerPrice.price]
-            it.ext.prebid.rank == [1]
-        }
-    }
-
-    def "PBS should add bid ranked and rank by price for request with multiBid when auction.ranking is enabled and preferDeals disabled"() {
-        given: "Bid request with alwaysIncludeDeals = true"
-        def bidRequest = BidRequest.getDefaultVideoRequest().tap {
-            it.ext.prebid.targeting = Targeting.createWithAllValuesSetTo(true).tap {
-                preferDeals = false
-            }
-            it.ext.prebid.multibid = [new MultiBid(bidder: GENERIC, maxBids: MAX_BIDS_RANKING)]
-            enableCache()
-        }
-
-        and: "Account in the DB"
-        def account = getAccountConfigWithAuctionRanking(bidRequest.accountId)
-        accountDao.save(account)
-
-        and: "Bid response with 2 bids where deal bid has lower price"
-        def bidPrice = PBSUtils.randomPrice
-        def bidBiggerPrice = Bid.getDefaultBid(bidRequest.imp[0]).tap {
-            it.price = bidPrice + 1
-        }
-        def bidBDeal = Bid.getDefaultBid(bidRequest.imp[0]).tap {
-            it.dealid = PBSUtils.randomNumber
-            it.price = bidPrice
-        }
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            seatbid[0].bid = [bidBiggerPrice, bidBDeal]
-        }
-
-        and: "Set bidder response"
-        bidder.setResponse(bidRequest.id, bidResponse)
-
-        when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
-
-        then: "PBS should rank bid with higher price as top priority"
-        def bids = response.seatbid.first.bid
-        assert bids.find(it -> it.id == bidBiggerPrice.id).ext.prebid.rank == 1
-        assert bids.find(it -> it.id == bidBDeal.id).ext.prebid.rank == 2
-    }
-
-    def "PBS should add bid ranked and rank by price for multiple media types request when auction.ranking is enabled and preferDeals disabled"() {
-        given: "Bid request with alwaysIncludeDeals = true"
-        def bidRequest = BidRequest.getDefaultVideoRequest().tap {
-            it.imp.first.banner = Banner.getDefaultBanner()
-            it.imp.first.nativeObj = Native.getDefaultNative()
-            it.ext.prebid.targeting = Targeting.createWithAllValuesSetTo(true).tap {
-                preferDeals = false
-            }
-            it.ext.prebid.multibid = [new MultiBid(bidder: GENERIC, maxBids: MAX_BIDS_RANKING)]
-            enableCache()
-        }
-
-        and: "Account in the DB"
-        def account = getAccountConfigWithAuctionRanking(bidRequest.accountId)
-        accountDao.save(account)
-
-        and: "Bid response with 2 bids where deal bid has lower price"
-        def bidPrice = PBSUtils.randomPrice
-        def bidBiggerPrice = Bid.getDefaultMultiTypesBids(bidRequest.imp.first).first.tap {
-            it.price = bidPrice + 1
-        }
-        def bidBDeal = Bid.getDefaultMultiTypesBids(bidRequest.imp.first).last.tap {
-            it.dealid = PBSUtils.randomNumber
-            it.price = bidPrice
-        }
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            seatbid[0].bid = [bidBiggerPrice, bidBDeal]
-        }
-
-        and: "Set bidder response"
-        bidder.setResponse(bidRequest.id, bidResponse)
-
-        when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
-
-        then: "PBS should rank bid with higher price as top priority"
-        assert !response.ext.warnings
-        def bids = response.seatbid.first.bid
-        assert bids.find(it -> it.id == bidBiggerPrice.id).ext.prebid.rank == 1
-        assert bids.find(it -> it.id == bidBDeal.id).ext.prebid.rank == 2
-    }
-
     def "PBS should ignore bid ranked from original response when auction.ranking enabled"() {
-        given: "Bid request with alwaysIncludeDeals = true"
+        given: "Bid request with disabled preferDeals"
         def bidRequest = BidRequest.getDefaultVideoRequest().tap {
             it.ext.prebid.targeting = Targeting.createWithAllValuesSetTo(true).tap {
                 preferDeals = false
@@ -1696,7 +1752,7 @@ class TargetingSpec extends BaseSpec {
     }
 
     def "PBS should add bid ranked and rank by price for request with stored imp when auction.ranking enabled"() {
-        given: "Bid request with alwaysIncludeDeals = false"
+        given: "Bid request with disabled preferDeals"
         def storedRequestId = PBSUtils.randomNumber
         def bidRequest = BidRequest.getDefaultVideoRequest().tap {
             imp.first.ext.prebid.storedRequest = new PrebidStoredRequest(id: storedRequestId)
@@ -1747,7 +1803,7 @@ class TargetingSpec extends BaseSpec {
     }
 
     def "PBS shouldn't rank bids for request with stored imp when auction.ranking default"() {
-        given: "Bid request with alwaysIncludeDeals = true"
+        given: "Bid request with enabled preferDeals"
         def storedRequestId = PBSUtils.randomNumber
         def bidRequest = BidRequest.getDefaultVideoRequest().tap {
             imp.first.ext.prebid.storedRequest = new PrebidStoredRequest(id: storedRequestId)
@@ -1786,7 +1842,7 @@ class TargetingSpec extends BaseSpec {
     }
 
     def "PBS should copy bid ranked from stored response when auction.ranking #auction"() {
-        given: "Bid request with alwaysIncludeDeals = true"
+        given: "Bid request with enabled preferDeals"
         def storedResponseId = PBSUtils.randomNumber
         def bidRequest = BidRequest.getDefaultVideoRequest().tap {
             it.ext.prebid.targeting = Targeting.createWithAllValuesSetTo(true)
