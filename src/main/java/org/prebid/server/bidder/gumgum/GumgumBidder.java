@@ -25,6 +25,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.gumgum.ExtImpGumgum;
 import org.prebid.server.proto.openrtb.ext.request.gumgum.ExtImpGumgumBanner;
 import org.prebid.server.proto.openrtb.ext.request.gumgum.ExtImpGumgumVideo;
@@ -40,6 +41,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 public class GumgumBidder implements Bidder<BidRequest> {
 
@@ -81,16 +83,21 @@ public class GumgumBidder implements Bidder<BidRequest> {
         for (Imp imp : bidRequest.getImp()) {
             try {
                 final ExtImpGumgum extImp = parseImpExt(imp);
-                modifiedImps.add(modifyImp(imp, extImp));
+
+                final String adUnitCode = extractAdUnitCode(imp);
+
+                modifiedImps.add(modifyImp(imp, extImp, adUnitCode));
 
                 final String extZone = extImp.getZone();
                 if (StringUtils.isNotEmpty(extZone)) {
                     zone = extZone;
                 }
+
                 final BigInteger extPubId = extImp.getPubId();
                 if (extPubId != null && !extPubId.equals(BigInteger.ZERO)) {
                     pubId = extPubId;
                 }
+
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -106,6 +113,16 @@ public class GumgumBidder implements Bidder<BidRequest> {
                 .build();
     }
 
+    private String extractAdUnitCode(Imp imp) {
+        final ExtPrebid<?, ExtImpGumgum> extPrebid = mapper.mapper()
+                .convertValue(imp.getExt(), GUMGUM_EXT_TYPE_REFERENCE);
+
+        return Optional.ofNullable(extPrebid.getPrebid())
+                .map(prebid -> mapper.mapper().convertValue(prebid, ExtImpPrebid.class))
+                .map(ExtImpPrebid::getAdUnitCode)
+                .orElse(null);
+    }
+
     private ExtImpGumgum parseImpExt(Imp imp) {
         try {
             return mapper.mapper().convertValue(imp.getExt(), GUMGUM_EXT_TYPE_REFERENCE).getBidder();
@@ -114,13 +131,17 @@ public class GumgumBidder implements Bidder<BidRequest> {
         }
     }
 
-    private Imp modifyImp(Imp imp, ExtImpGumgum extImp) {
+    private Imp modifyImp(Imp imp, ExtImpGumgum extImp, String adUnitCode) {
         final Imp.ImpBuilder impBuilder = imp.toBuilder();
 
         final String product = extImp.getProduct();
         if (StringUtils.isNotEmpty(product)) {
             final ObjectNode productExt = mapper.mapper().createObjectNode().put(REQUEST_EXT_PRODUCT, product);
             impBuilder.ext(productExt);
+        }
+
+        if (StringUtils.isNotEmpty(adUnitCode)) {
+            impBuilder.tagid(adUnitCode);
         }
 
         final Banner banner = imp.getBanner();
@@ -139,6 +160,7 @@ public class GumgumBidder implements Bidder<BidRequest> {
                 impBuilder.video(resolvedVideo);
             }
         }
+
         return impBuilder.build();
     }
 
