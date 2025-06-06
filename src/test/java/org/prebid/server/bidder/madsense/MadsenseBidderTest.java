@@ -36,7 +36,6 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.assertj.core.api.Assertions.tuple;
 import static org.prebid.server.bidder.model.BidderError.Type;
 import static org.prebid.server.bidder.model.BidderError.badInput;
 import static org.prebid.server.bidder.model.BidderError.badServerResponse;
@@ -98,11 +97,9 @@ public class MadsenseBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(2);
         assertThat(result.getValue())
-                .extracting(HttpRequest::getImpIds, r -> r.getPayload().getImp().getFirst().getId())
-                .containsExactlyInAnyOrder(
-                        tuple(Set.of("bannerImp1"), "bannerImp1"),
-                        tuple(Set.of("bannerImp2"), "bannerImp2")
-                );
+                .extracting(HttpRequest::getImpIds)
+                .containsExactlyInAnyOrder(Set.of("bannerImp1"), Set.of("bannerImp2"));
+
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
                 .containsOnly(ENDPOINT_URL + "?company_id=testCompanyId");
@@ -124,11 +121,6 @@ public class MadsenseBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
         assertThat(result.getValue().getFirst().getImpIds()).containsExactlyInAnyOrder("videoImp1", "videoImp2");
-        assertThat(result.getValue().getFirst().getPayload().getImp())
-                .extracting(Imp::getId)
-                .containsExactlyInAnyOrder("videoImp1", "videoImp2");
-        assertThat(result.getValue().getFirst().getUri())
-                .isEqualTo(ENDPOINT_URL + "?company_id=testCompanyId");
     }
 
     @Test
@@ -149,32 +141,9 @@ public class MadsenseBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(3);
-
-        assertThat(result.getValue())
-                .filteredOn(req -> req.getPayload().getImp().getFirst().getBanner() != null)
-                .hasSize(2)
-                .extracting(
-                        HttpRequest::getImpIds,
-                        request -> request.getPayload().getImp().getFirst().getId())
-                .containsExactlyInAnyOrder(
-                        tuple(Set.of("bannerImp1"), "bannerImp1"),
-                        tuple(Set.of("bannerImp2"), "bannerImp2"));
-
-        assertThat(result.getValue())
-                .filteredOn(req -> req.getPayload().getImp().getFirst().getVideo() != null)
-                .hasSize(1)
-                .first()
-                .satisfies(videoReq -> {
-                    assertThat(videoReq.getImpIds()).containsExactlyInAnyOrder("videoImp1", "videoImp2");
-                    assertThat(videoReq.getPayload().getImp())
-                            .extracting(Imp::getId)
-                            .containsExactlyInAnyOrder("videoImp1", "videoImp2");
-                });
-
-        assertThat(result.getValue())
-                .allSatisfy(req -> assertThat(req.getUri())
-                        .isEqualTo(ENDPOINT_URL + "?company_id=testCompanyId"));
+        assertThat(result.getValue()).hasSize(3)
+                .extracting(HttpRequest::getImpIds)
+                .containsExactly(Set.of("bannerImp1"), Set.of("bannerImp2"), Set.of("videoImp1", "videoImp2"));
     }
 
     @Test

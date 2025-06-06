@@ -90,7 +90,7 @@ public class MadsenseBidder implements Bidder<BidRequest> {
         return BidderUtil.defaultRequest(
                 request.toBuilder().imp(imps).build(),
                 makeHeaders(request),
-                getEndpointUrlInternal(companyId),
+                makeEndpoint(companyId),
                 mapper);
     }
 
@@ -114,7 +114,7 @@ public class MadsenseBidder implements Bidder<BidRequest> {
         return headers;
     }
 
-    private String getEndpointUrlInternal(String companyId) {
+    private String makeEndpoint(String companyId) {
         return endpointUrl + "?company_id=" + HttpUtil.encodeUrl(companyId);
     }
 
@@ -142,6 +142,7 @@ public class MadsenseBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
                 .map(bid -> makeBidderBid(bid, bidResponse.getCur(), errors))
                 .filter(Objects::nonNull)
                 .toList();
