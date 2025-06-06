@@ -1,0 +1,13 @@
+adapters:
+  madsense:
+    endpoint: https://ads.madsense.io/pbs
+    meta-info:
+      maintainer-email: prebid@madsense.io
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 0
