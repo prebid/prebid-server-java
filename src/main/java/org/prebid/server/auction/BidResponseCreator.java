@@ -23,6 +23,7 @@ import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.prebid.server.auction.categorymapping.CategoryMappingService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionParticipation;
@@ -115,9 +116,9 @@ import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -645,11 +646,10 @@ public class BidResponseCreator {
 
         final ExtRequestTargeting targeting = targeting(bidRequest);
 
-        final List<BidderResponseInfo> bidderResponseInfos = injectWithTargetingAndBidRanking(
+        final List<BidderResponseInfo> bidderResponseInfos = toBidderResponseWithTargetingBidInfos(
                 bidderResponses,
                 bidderToMultiBids,
-                preferDeals(targeting),
-                isBidRankingEnabled(auctionContext.getAccount()));
+                preferDeals(targeting));
 
         final Set<BidInfo> bidInfos = bidderResponseInfos.stream()
                 .map(BidderResponseInfo::getSeatBid)
@@ -687,96 +687,86 @@ public class BidResponseCreator {
         return BooleanUtils.toBooleanDefaultIfNull(targeting != null ? targeting.getPreferdeals() : null, false);
     }
 
-    private static boolean isBidRankingEnabled(Account account) {
-        return Optional.ofNullable(account.getAuction())
-                .map(AccountAuctionConfig::getRanking)
-                .map(AccountBidRankingConfig::getEnabled)
-                .orElse(false);
-    }
-
-    private List<BidderResponseInfo> injectWithTargetingAndBidRanking(
+    private List<BidderResponseInfo> toBidderResponseWithTargetingBidInfos(
             List<BidderResponseInfo> bidderResponses,
             Map<String, MultiBidConfig> bidderToMultiBids,
-            boolean preferDeals,
-            boolean isBidRankingEnabled) {
+            boolean preferDeals) {
 
-        final Map<BidderResponseInfo, List<BidInfo>> bidderResponseToReducedBidInfos = bidderResponses.stream()
-                .collect(Collectors.toMap(
-                        Function.identity(),
-                        bidderResponse -> toSortedMultiBidInfo(bidderResponse, bidderToMultiBids, preferDeals)));
+        final Comparator<BidInfo> comparator = winningBidComparatorFactory.create(preferDeals).reversed();
 
-        final Map<String, List<BidInfo>> impIdToBidInfos = bidderResponseToReducedBidInfos.values()
-                .stream()
-                .flatMap(Collection::stream)
-                .collect(Collectors.groupingBy(
-                        bidInfo -> bidInfo.getCorrespondingImp().getId(),
-                        Collectors.collectingAndThen(Collectors.toList(), bidInfos -> bidInfos.stream()
-                                .sorted(winningBidComparatorFactory.create(preferDeals).reversed())
-                                .toList())));
+        final List<List<BidInfo>> bidInfosPerBidder = bidderResponses.stream()
+                .map(bidderResponse -> limitMultiBid(bidderResponse, bidderToMultiBids, comparator))
+                .toList();
+        final List<List<BidInfo>> rankedBidInfos = applyRanking(bidInfosPerBidder, comparator);
 
-        final Set<BidInfo> winningBids = new HashSet<>();
-        final Map<String, Map<String, List<BidInfo>>> seatToBidderToBids = new HashMap<>();
-
-        for (final List<BidInfo> bidInfos : impIdToBidInfos.values()) {
-            final List<BidInfo> bidsWithRanking = isBidRankingEnabled
-                    ? IntStream.range(0, bidInfos.size())
-                    .mapToObj(i -> bidInfos.get(i).toBuilder().rank(i + 1).build())
-                    .toList()
-                    : bidInfos;
-
-            if (!bidsWithRanking.isEmpty()) {
-                winningBids.add(bidsWithRanking.getFirst());
-                bidsWithRanking.forEach(bidInfo ->
-                        seatToBidderToBids.computeIfAbsent(bidInfo.getSeat(), k -> new HashMap<>())
-                                .computeIfAbsent(bidInfo.getBidder(), k -> new ArrayList<>()).add(bidInfo));
-            }
-        }
-
-        return bidderResponseToReducedBidInfos.keySet().stream()
-                .map(bidderResponseInfo -> injectBidInfoWithTargeting(
-                        bidderResponseInfo,
-                        bidderToMultiBids,
-                        seatToBidderToBids.getOrDefault(bidderResponseInfo.getSeat(), Collections.emptyMap())
-                                .getOrDefault(bidderResponseInfo.getBidder(), Collections.emptyList()),
-                        winningBids))
+        return IntStream.range(0, bidderResponses.size())
+                .mapToObj(i -> enrichBidInfoWithTargeting(
+                        bidderResponses.get(i),
+                        rankedBidInfos.get(i),
+                        bidderToMultiBids))
                 .toList();
     }
 
-    private List<BidInfo> toSortedMultiBidInfo(BidderResponseInfo bidderResponse,
+    private static List<BidInfo> limitMultiBid(BidderResponseInfo bidderResponse,
                                                Map<String, MultiBidConfig> bidderToMultiBids,
-                                               boolean preferDeals) {
+                                               Comparator<BidInfo> comparator) {
+
+        final MultiBidConfig multiBid = bidderToMultiBids.get(bidderResponse.getBidder());
+        final Integer bidLimit = multiBid != null ? multiBid.getMaxBids() : DEFAULT_BID_LIMIT_MIN;
 
         final List<BidInfo> bidInfos = bidderResponse.getSeatBid().getBidsInfos();
         final Map<String, List<BidInfo>> impIdToBidInfos = bidInfos.stream()
                 .collect(Collectors.groupingBy(bidInfo -> bidInfo.getCorrespondingImp().getId()));
 
-        final MultiBidConfig multiBid = bidderToMultiBids.get(bidderResponse.getBidder());
-        final Integer bidLimit = multiBid != null ? multiBid.getMaxBids() : DEFAULT_BID_LIMIT_MIN;
-
         return impIdToBidInfos.values().stream()
-                .map(infos -> sortReducedBidInfo(infos, bidLimit, preferDeals))
-                .flatMap(Collection::stream)
+                .flatMap(infos -> infos.stream()
+                        .sorted(comparator)
+                        .limit(bidLimit))
                 .toList();
     }
 
-    private List<BidInfo> sortReducedBidInfo(List<BidInfo> bidInfos, int limit, boolean preferDeals) {
-        return bidInfos.stream()
-                .sorted(winningBidComparatorFactory.create(preferDeals).reversed())
-                .limit(limit)
-                .toList();
+    private static List<List<BidInfo>> applyRanking(List<List<BidInfo>> bidInfosPerBidder,
+                                                    Comparator<BidInfo> comparator) {
+
+        final Map<String, List<Pair<Integer, BidInfo>>> impIdToBidderBidInfo = new HashMap<>();
+        for (int bidderIndex = 0; bidderIndex < bidInfosPerBidder.size(); bidderIndex++) {
+            final List<BidInfo> bidInfos = bidInfosPerBidder.get(bidderIndex);
+
+            for (final BidInfo bidInfo : bidInfos) {
+                impIdToBidderBidInfo
+                        .computeIfAbsent(bidInfo.getCorrespondingImp().getId(), ignore -> new ArrayList<>())
+                        .add(Pair.of(bidderIndex, bidInfo));
+            }
+        }
+
+        for (List<Pair<Integer, BidInfo>> bidderToBidInfo : impIdToBidderBidInfo.values()) {
+            bidderToBidInfo.sort(Comparator.comparing(Pair::getRight, comparator));
+        }
+
+        final List<List<BidInfo>> rankedBidInfosPerBidder = new ArrayList<>();
+        for (int i = 0; i < bidInfosPerBidder.size(); i++) {
+            rankedBidInfosPerBidder.add(new ArrayList<>());
+        }
+
+        for (List<Pair<Integer, BidInfo>> sortedBidderToBidInfo : impIdToBidderBidInfo.values()) {
+            for (int rank = 0; rank < sortedBidderToBidInfo.size(); rank++) {
+                final Pair<Integer, BidInfo> bidderToBidInfo = sortedBidderToBidInfo.get(rank);
+                final BidInfo bidInfo = bidderToBidInfo.getRight();
+
+                rankedBidInfosPerBidder.get(bidderToBidInfo.getLeft())
+                        .add(bidInfo.toBuilder().rank(rank + 1).build());
+            }
+        }
+
+        return rankedBidInfosPerBidder;
     }
 
-    private static BidderResponseInfo injectBidInfoWithTargeting(BidderResponseInfo bidderResponseInfo,
-                                                                 Map<String, MultiBidConfig> bidderToMultiBids,
+    private static BidderResponseInfo enrichBidInfoWithTargeting(BidderResponseInfo bidderResponseInfo,
                                                                  List<BidInfo> bidderBidInfos,
-                                                                 Set<BidInfo> winningBids) {
+                                                                 Map<String, MultiBidConfig> bidderToMultiBids) {
 
         final String bidder = bidderResponseInfo.getBidder();
-        final List<BidInfo> bidInfosWithTargeting = toBidInfoWithTargeting(
-                bidderBidInfos,
-                bidder,
-                bidderToMultiBids,
-                winningBids);
+        final List<BidInfo> bidInfosWithTargeting = toBidInfoWithTargeting(bidderBidInfos, bidder, bidderToMultiBids);
 
         final BidderSeatBidInfo seatBid = bidderResponseInfo.getSeatBid();
         final BidderSeatBidInfo modifiedSeatBid = seatBid.with(bidInfosWithTargeting);
@@ -785,22 +775,20 @@ public class BidResponseCreator {
 
     private static List<BidInfo> toBidInfoWithTargeting(List<BidInfo> bidderBidInfos,
                                                         String bidder,
-                                                        Map<String, MultiBidConfig> bidderToMultiBids,
-                                                        Set<BidInfo> winningBids) {
+                                                        Map<String, MultiBidConfig> bidderToMultiBids) {
 
         final Map<String, List<BidInfo>> impIdToBidInfos = bidderBidInfos.stream()
                 .collect(Collectors.groupingBy(bidInfo -> bidInfo.getCorrespondingImp().getId()));
 
         return impIdToBidInfos.values().stream()
-                .map(bidInfos -> injectTargeting(bidInfos, bidder, bidderToMultiBids, winningBids))
+                .map(bidInfos -> enrichWithTargeting(bidInfos, bidder, bidderToMultiBids))
                 .flatMap(Collection::stream)
                 .toList();
     }
 
-    private static List<BidInfo> injectTargeting(List<BidInfo> bidderImpIdBidInfos,
-                                                 String bidder,
-                                                 Map<String, MultiBidConfig> bidderToMultiBids,
-                                                 Set<BidInfo> winningBids) {
+    private static List<BidInfo> enrichWithTargeting(List<BidInfo> bidderImpIdBidInfos,
+                                                     String bidder,
+                                                     Map<String, MultiBidConfig> bidderToMultiBids) {
 
         final List<BidInfo> result = new ArrayList<>();
 
@@ -815,7 +803,7 @@ public class BidResponseCreator {
 
             final TargetingInfo targetingInfo = TargetingInfo.builder()
                     .isTargetingEnabled(targetingBidderCode != null)
-                    .isWinningBid(winningBids.contains(bidInfo))
+                    .isWinningBid(bidInfo.getRank() == 1)
                     .isAddTargetBidderCode(targetingBidderCode != null && multiBidSize > 1)
                     .bidderCode(targetingBidderCode)
                     .seat(targetingCode(bidInfo.getSeat(), bidderCodePrefix, i))
@@ -829,7 +817,11 @@ public class BidResponseCreator {
     }
 
     private static String targetingCode(String base, String prefix, int i) {
-        return i == 0 ? base : prefix != null ? prefix + (i + 1) : null;
+        if (i == 0) {
+            return base;
+        }
+
+        return prefix != null ? prefix + (i + 1) : null;
     }
 
     private ExtBidResponse toExtBidResponse(List<BidderResponseInfo> bidderResponseInfos,
@@ -1585,6 +1577,8 @@ public class BidResponseCreator {
         final ObjectNode originalBidExt = bid.getExt();
         final Boolean dealsTierSatisfied = bidInfo.getSatisfiedPriority();
 
+        final boolean bidRankingEnabled = isBidRankingEnabled(account);
+
         final ExtBidPrebid updatedExtBidPrebid =
                 getExtPrebid(originalBidExt, ExtBidPrebid.class)
                         .map(ExtBidPrebid::toBuilder)
@@ -1594,7 +1588,7 @@ public class BidResponseCreator {
                         .dealTierSatisfied(dealsTierSatisfied)
                         .cache(cache)
                         .passThrough(extractPassThrough(bidInfo.getCorrespondingImp()))
-                        .rank(bidInfo.getRank())
+                        .rank(bidRankingEnabled ? bidInfo.getRank() : null)
                         .build();
 
         final ObjectNode updatedBidExt =
@@ -1622,6 +1616,13 @@ public class BidResponseCreator {
                 .flatMap(ext -> getExtPrebid(ext, ExtImpPrebid.class))
                 .map(ExtImpPrebid::getPassthrough)
                 .orElse(null);
+    }
+
+    private static boolean isBidRankingEnabled(Account account) {
+        return Optional.ofNullable(account.getAuction())
+                .map(AccountAuctionConfig::getRanking)
+                .map(AccountBidRankingConfig::getEnabled)
+                .orElse(false);
     }
 
     private String createNativeMarkup(String bidAdm, Imp correspondingImp) {

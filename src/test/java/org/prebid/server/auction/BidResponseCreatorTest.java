@@ -88,7 +88,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredRequest;
 import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
-import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.CacheAsset;
 import org.prebid.server.proto.openrtb.ext.response.Events;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
@@ -162,7 +161,6 @@ import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAdservertargetingRule.Source.xStatic;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.audio;
@@ -305,8 +303,22 @@ public class BidResponseCreatorTest extends VertxTest {
                         .put("origbidcur", "test")
                         .set("prebid", mapper.valueToTree(extBidPrebid)))
                 .build();
-        final BidInfo bidInfo = toBidInfo(expectedBid, imp, bidder, "seat", banner, true);
-        verify(coreCacheService).cacheBidsOpenrtb(eq(singletonList(bidInfo)), any(), any(), any());
+        final BidInfo expectedBidInfo = BidInfo.builder()
+                .bid(expectedBid)
+                .correspondingImp(imp)
+                .bidder("bidder1")
+                .seat("seat")
+                .bidType(banner)
+                .targetingInfo(TargetingInfo.builder()
+                        .bidderCode("bidder1")
+                        .seat("seat")
+                        .isTargetingEnabled(true)
+                        .isWinningBid(true)
+                        .isAddTargetBidderCode(false)
+                        .build())
+                .rank(1)
+                .build();
+        verify(coreCacheService).cacheBidsOpenrtb(eq(singletonList(expectedBidInfo)), any(), any(), any());
     }
 
     @Test
@@ -956,7 +968,22 @@ public class BidResponseCreatorTest extends VertxTest {
                 .ext(mapper.createObjectNode().set("prebid", mapper.valueToTree(extBidPrebid)))
                 .build();
 
-        final BidInfo expectedBidInfo = toBidInfo(expectedBid, imp, bidder, "seat", banner, true);
+        final BidInfo expectedBidInfo = BidInfo.builder()
+                .bid(expectedBid)
+                .correspondingImp(imp)
+                .bidder("bidder1")
+                .seat("seat")
+                .bidType(banner)
+                .targetingInfo(TargetingInfo.builder()
+                        .bidderCode("bidder1")
+                        .seat("seat")
+                        .isTargetingEnabled(true)
+                        .isWinningBid(true)
+                        .isAddTargetBidderCode(false)
+                        .build())
+                .rank(1)
+                .build();
+
         verify(coreCacheService).cacheBidsOpenrtb(eq(singletonList(expectedBidInfo)), any(), any(), any());
 
         verify(eventsService).createEvent(eq(generatedBidId), anyString(), anyString(), anyBoolean(), any());
@@ -1831,7 +1858,7 @@ public class BidResponseCreatorTest extends VertxTest {
         target.create(auctionContext, CACHE_INFO, MULTI_BIDS).result();
 
         // then
-        verify(winningBidComparatorFactory, times(2)).create(eq(true));
+        verify(winningBidComparatorFactory).create(eq(true));
     }
 
     @Test
@@ -1851,7 +1878,7 @@ public class BidResponseCreatorTest extends VertxTest {
         target.create(auctionContext, CACHE_INFO, MULTI_BIDS).result();
 
         // then
-        verify(winningBidComparatorFactory, times(2)).create(eq(false));
+        verify(winningBidComparatorFactory).create(eq(false));
     }
 
     @Test
@@ -5638,29 +5665,6 @@ public class BidResponseCreatorTest extends VertxTest {
         return IntStream.range(0, Math.min(bidInfos.size(), cacheInfos.size()))
                 .boxed()
                 .collect(Collectors.toMap(i -> bidInfos.get(i).getBid(), cacheInfos::get));
-    }
-
-    private static BidInfo toBidInfo(Bid bid,
-                                     Imp correspondingImp,
-                                     String bidder,
-                                     String seat,
-                                     BidType bidType,
-                                     boolean isWinningBid) {
-
-        return BidInfo.builder()
-                .bid(bid)
-                .correspondingImp(correspondingImp)
-                .bidder(bidder)
-                .seat(seat)
-                .bidType(bidType)
-                .targetingInfo(TargetingInfo.builder()
-                        .bidderCode(bidder)
-                        .seat(seat)
-                        .isTargetingEnabled(true)
-                        .isWinningBid(isWinningBid)
-                        .isAddTargetBidderCode(false)
-                        .build())
-                .build();
     }
 
     private static Imp givenImp() {
