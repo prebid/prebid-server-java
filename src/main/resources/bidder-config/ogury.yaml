@@ -8,6 +8,8 @@ adapters:
       maintainer-email: deliveryservices@ogury.co
       site-media-types:
         - banner
+      app-media-types:
+        - banner
       vendor-id: 31
     usersync:
       cookie-family-name: ogury
