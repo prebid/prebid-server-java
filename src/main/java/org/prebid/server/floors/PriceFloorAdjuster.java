@@ -12,8 +12,6 @@ public interface PriceFloorAdjuster {
 
     Price adjustForImp(Imp imp, String bidder, BidRequest bidRequest, Account account, List<String> debugWarnings);
 
-    Price revertAdjustmentForImp(Imp imp, String bidder, BidRequest bidRequest, Account account);
-
     static NoOpPriceFloorAdjuster noOp() {
         return new NoOpPriceFloorAdjuster();
     }
@@ -27,11 +25,6 @@ public interface PriceFloorAdjuster {
                                   Account account,
                                   List<String> debugWarnings) {
 
-            return ObjectUtil.getIfNotNull(imp, i -> Price.of(i.getBidfloorcur(), i.getBidfloor()));
-        }
-
-        @Override
-        public Price revertAdjustmentForImp(Imp imp, String bidder, BidRequest bidRequest, Account account) {
             return ObjectUtil.getIfNotNull(imp, i -> Price.of(i.getBidfloorcur(), i.getBidfloor()));
         }
     }

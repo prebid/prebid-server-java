@@ -6,6 +6,7 @@ import org.testcontainers.containers.PostgreSQLContainer
 import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
 import static org.prebid.server.functional.testcontainers.container.PrebidServerContainer.ADMIN_ENDPOINT_PASSWORD
 import static org.prebid.server.functional.testcontainers.container.PrebidServerContainer.ADMIN_ENDPOINT_USERNAME
+import static org.prebid.server.functional.util.CurrencyUtil.DEFAULT_CURRENCY
 
 final class PbsConfig {
 
@@ -29,7 +30,7 @@ LIMIT 1
 
     static final Map<String, String> DEFAULT_ENV = [
             "logging.sampling-rate"                      : "1.0",
-            "auction.ad-server-currency"                 : "USD",
+            "auction.ad-server-currency"                 : DEFAULT_CURRENCY.value,
             "auction.stored-requests-timeout-ms"         : "1000",
             "metrics.prefix"                             : "prebid",
             "status-response"                            : "ok",
@@ -134,6 +135,14 @@ LIMIT 1
          "adapters.generic.aliases.ccx.meta-info.site-media-types"            : "",
          "adapters.generic.aliases.adrino.meta-info.app-media-types"          : "",
          "adapters.generic.aliases.adrino.meta-info.site-media-types"         : ""]
+    }
+
+    static Map<String, String> getCurrencyConverterConfig() {
+        ["auction.ad-server-currency"                          : DEFAULT_CURRENCY.value,
+         "currency-converter.external-rates.enabled"           : "true",
+         "currency-converter.external-rates.url"               : "$networkServiceContainer.rootUri/currency".toString(),
+         "currency-converter.external-rates.default-timeout-ms": "4000",
+         "currency-converter.external-rates.refresh-period-ms" : "900000"]
     }
 
     private PbsConfig() {}
