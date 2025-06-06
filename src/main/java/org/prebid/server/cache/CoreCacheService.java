@@ -68,7 +68,8 @@ public class CoreCacheService {
     private static final int MAX_DATACENTER_REGION_LENGTH = 4;
 
     private final HttpClient httpClient;
-    private final URL endpointUrl;
+    private final URL externalEndpointUrl;
+    private final URL internalEndpointUrl;
     private final String cachedAssetUrlTemplate;
     private final long expectedCacheTimeMs;
     private final VastModifier vastModifier;
@@ -86,7 +87,8 @@ public class CoreCacheService {
 
     public CoreCacheService(
             HttpClient httpClient,
-            URL endpointUrl,
+            URL externalEndpointUrl,
+            URL internalEndpointUrl,
             String cachedAssetUrlTemplate,
             long expectedCacheTimeMs,
             String apiKey,
@@ -101,7 +103,8 @@ public class CoreCacheService {
             JacksonMapper mapper) {
 
         this.httpClient = Objects.requireNonNull(httpClient);
-        this.endpointUrl = Objects.requireNonNull(endpointUrl);
+        this.externalEndpointUrl = Objects.requireNonNull(externalEndpointUrl);
+        this.internalEndpointUrl = internalEndpointUrl;
         this.cachedAssetUrlTemplate = Objects.requireNonNull(cachedAssetUrlTemplate);
         this.expectedCacheTimeMs = expectedCacheTimeMs;
         this.vastModifier = Objects.requireNonNull(vastModifier);
@@ -121,13 +124,13 @@ public class CoreCacheService {
     }
 
     public String getEndpointHost() {
-        final String host = endpointUrl.getHost();
-        final int port = endpointUrl.getPort();
+        final String host = externalEndpointUrl.getHost();
+        final int port = externalEndpointUrl.getPort();
         return port != -1 ? "%s:%d".formatted(host, port) : host;
     }
 
     public String getEndpointPath() {
-        return endpointUrl.getPath();
+        return externalEndpointUrl.getPath();
     }
 
     public String getCachedAssetURLTemplate() {
@@ -142,7 +145,7 @@ public class CoreCacheService {
                 makeDebugCacheCreative(cachedDebugLog, cacheKey, videoCacheTtl));
         final BidCacheRequest bidCacheRequest = toBidCacheRequest(cachedCreatives);
         httpClient.post(
-                endpointUrl.toString(),
+                ObjectUtils.firstNonNull(internalEndpointUrl, externalEndpointUrl).toString(),
                 cacheHeaders,
                 mapper.encodeToString(bidCacheRequest),
                 expectedCacheTimeMs);
@@ -179,7 +182,7 @@ public class CoreCacheService {
 
         final long startTime = clock.millis();
         return httpClient.post(
-                        endpointUrl.toString(),
+                        ObjectUtils.firstNonNull(internalEndpointUrl, externalEndpointUrl).toString(),
                         cacheHeaders,
                         mapper.encodeToString(bidCacheRequest),
                         remainingTimeout)
@@ -308,9 +311,9 @@ public class CoreCacheService {
 
         updateCreativeMetrics(accountId, cachedCreatives);
 
-        final String url = endpointUrl.toString();
+        final String url = ObjectUtils.firstNonNull(internalEndpointUrl, externalEndpointUrl).toString();
         final String body = mapper.encodeToString(bidCacheRequest);
-        final CacheHttpRequest httpRequest = CacheHttpRequest.of(url, body);
+        final CacheHttpRequest httpRequest = CacheHttpRequest.of(externalEndpointUrl.toString(), body);
 
         final long startTime = clock.millis();
         return httpClient.post(url, cacheHeaders, body, remainingTimeout)
@@ -336,7 +339,8 @@ public class CoreCacheService {
 
         final CacheHttpResponse httpResponse = CacheHttpResponse.of(response.getStatusCode(), response.getBody());
         final int responseStatusCode = response.getStatusCode();
-        final DebugHttpCall httpCall = makeDebugHttpCall(endpointUrl.toString(), httpRequest, httpResponse, startTime);
+        final DebugHttpCall httpCall = makeDebugHttpCall(
+                externalEndpointUrl.toString(), httpRequest, httpResponse, startTime);
         final BidCacheResponse bidCacheResponse;
         try {
             bidCacheResponse = toBidCacheResponse(
@@ -359,7 +363,7 @@ public class CoreCacheService {
 
         metrics.updateCacheRequestFailedTime(accountId, clock.millis() - startTime);
 
-        final DebugHttpCall httpCall = makeDebugHttpCall(endpointUrl.toString(), request, null, startTime);
+        final DebugHttpCall httpCall = makeDebugHttpCall(externalEndpointUrl.toString(), request, null, startTime);
         return CacheServiceResult.of(httpCall, exception, Collections.emptyMap());
     }
 
