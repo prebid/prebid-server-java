@@ -79,27 +79,31 @@ public class APIClient {
         return createRequest(httpRequest, timeout)
                 .compose(response -> processResponse(response, httpRequest))
                 .recover(exception -> failResponse(exception, httpRequest))
-                .map(this::validateResponse)
-                .map(it -> parseSilent(it, httpRequest))
+                .compose(this::validateResponse)
+                .compose(it -> parseSilent(it, httpRequest))
                 .recover(exception -> logParsingError(exception, httpRequest));
     }
 
-    private TargetingResult parseSilent(OptableCall optableCall, HttpRequest httpRequest) {
+    private Future<TargetingResult> parseSilent(OptableCall optableCall, HttpRequest httpRequest) {
         try {
-            return responseMapper.parse(optableCall);
+            final TargetingResult result = responseMapper.parse(optableCall);
+            return result != null
+                    ? Future.succeededFuture(result)
+                    : Future.failedFuture("Can't parse Optable response");
         } catch (Exception e) {
             logParsingError(e, httpRequest);
         }
-        return null;
+        return Future.failedFuture("Can't parse Optable response");
     }
 
     private Future<TargetingResult> logParsingError(Throwable exception, HttpRequest httpRequest) {
-        logger.warn("Error occurred while parsing HTTP response from the Optable url: %s with message: %s"
-                .formatted(httpRequest.getUri(), exception.getMessage()), logSamplingRate);
+        final String error = "Error occurred while parsing HTTP response from the Optable url: %s with message: %s"
+                .formatted(httpRequest.getUri(), exception.getMessage());
+        logger.warn(error, logSamplingRate);
         logger.debug("Error occurred while parsing HTTP response from the Optable url: {}",
                 exception, httpRequest.getUri());
 
-        return null;
+        return Future.failedFuture(error);
     }
 
     private Future<HttpClientResponse> createRequest(HttpRequest httpRequest, long remainingTimeout) {
@@ -123,29 +127,31 @@ public class APIClient {
     }
 
     private Future<OptableCall> failResponse(Throwable exception, HttpRequest httpRequest) {
-        conditionalLogger.warn("Error occurred while sending HTTP request to the Optable url: %s with message: %s"
-                .formatted(httpRequest.getUri(), exception.getMessage()), logSamplingRate);
+        final String error = "Error occurred while sending HTTP request to the Optable url: %s with message: %s"
+                .formatted(httpRequest.getUri(), exception.getMessage());
+        conditionalLogger.warn(error, logSamplingRate);
         logger.debug("Error occurred while sending HTTP request to the Optable url: {}",
                 exception, httpRequest.getUri());
 
-        return Future.succeededFuture(OptableCall.failedHttp(httpRequest));
+        return Future.failedFuture(error);
     }
 
-    private OptableCall validateResponse(OptableCall response) {
+    private Future<OptableCall> validateResponse(OptableCall response) {
         return Optional.ofNullable(response)
                 .map(OptableCall::getResponse)
                 .map(resp -> {
                     if (resp.getStatusCode() != HttpResponseStatus.OK.code()) {
-                        conditionalLogger.warn(("Error occurred while sending HTTP request to the "
-                                + "Optable url: %s with message: %s").formatted(response.getRequest().getUri(),
-                                resp.getBody()), logSamplingRate);
+                        final String error = "Error occurred while sending HTTP request to the "
+                                + "Optable url: %s with message: %s".formatted(response.getRequest().getUri(),
+                                resp.getBody());
+                        conditionalLogger.warn(error, logSamplingRate);
                         logger.debug("Error occurred while sending HTTP request to the Optable url: {}");
 
-                        return null;
+                        return Future.<OptableCall>failedFuture(error);
                     }
 
-                    return response;
+                    return Future.succeededFuture(response);
                 })
-                .orElse(null);
+                .orElse(Future.<OptableCall>failedFuture("OptableCall validation error"));
     }
 }

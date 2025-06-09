@@ -70,18 +70,8 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
                 invocationContext.auctionContext(),
                 properties.getTimeout());
 
-        final Future<TargetingResult> targetingResultFuture = optableTargeting.getTargeting(
-                properties,
-                bidRequest,
-                attributes,
-                timeout);
-
-        if (targetingResultFuture == null) {
-            moduleContext.setEnrichRequestStatus(EnrichmentStatus.failure());
-            return failure(this::sanitizePayload, moduleContext);
-        }
-
-        return targetingResultFuture.compose(targetingResult -> enrichedPayload(targetingResult, moduleContext))
+        return optableTargeting.getTargeting(properties, bidRequest, attributes, timeout)
+                .compose(targetingResult -> enrichedPayload(targetingResult, moduleContext))
                 .recover(throwable -> {
                     moduleContext.setEnrichRequestStatus(EnrichmentStatus.failure());
                     return failure(this::sanitizePayload, moduleContext);
@@ -130,15 +120,10 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
     private Future<InvocationResult<AuctionRequestPayload>> enrichedPayload(TargetingResult targetingResult,
                                                                             ModuleContext moduleContext) {
 
-        if (targetingResult != null) {
-            moduleContext.setTargeting(targetingResult.getAudience());
-            moduleContext.setEnrichRequestStatus(EnrichmentStatus.success());
+        moduleContext.setTargeting(targetingResult.getAudience());
+        moduleContext.setEnrichRequestStatus(EnrichmentStatus.success());
 
-            return update(payload -> enrichPayload(sanitizePayload(payload), targetingResult), moduleContext);
-        } else {
-            moduleContext.setEnrichRequestStatus(EnrichmentStatus.failure());
-            return failure(this::sanitizePayload, moduleContext);
-        }
+        return update(payload -> enrichPayload(sanitizePayload(payload), targetingResult), moduleContext);
     }
 
     private AuctionRequestPayload enrichPayload(AuctionRequestPayload payload, TargetingResult targetingResult) {
