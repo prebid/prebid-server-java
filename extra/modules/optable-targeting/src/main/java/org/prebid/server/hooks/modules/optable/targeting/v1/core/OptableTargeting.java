@@ -19,9 +19,15 @@ import java.util.Optional;
 public class OptableTargeting {
 
     private final Cache cache;
-    private boolean moduleCacheEnabled = false;
+    private final boolean moduleCacheEnabled;
+    private final IdsMapper idsMapper;
+    private final QueryBuilder queryBuilder;
+    private final APIClient apiClient;
 
-    public OptableTargeting(Cache cache, IdsMapper idsMapper, QueryBuilder queryBuilder, APIClient apiClient,
+    public OptableTargeting(Cache cache,
+                            IdsMapper idsMapper,
+                            QueryBuilder queryBuilder,
+                            APIClient apiClient,
                             boolean moduleCacheEnabled) {
 
         this.cache = Objects.requireNonNull(cache);
@@ -31,12 +37,10 @@ public class OptableTargeting {
         this.moduleCacheEnabled = moduleCacheEnabled;
     }
 
-    private final IdsMapper idsMapper;
-    private final QueryBuilder queryBuilder;
-    private final APIClient apiClient;
-
-    public Future<TargetingResult> getTargeting(OptableTargetingProperties properties, BidRequest bidRequest,
-                                                OptableAttributes attributes, long timeout) {
+    public Future<TargetingResult> getTargeting(OptableTargetingProperties properties,
+                                                BidRequest bidRequest,
+                                                OptableAttributes attributes,
+                                                long timeout) {
 
         return Optional.ofNullable(bidRequest)
                 .map(it -> idsMapper.toIds(it, properties.getPpidMapping()))
@@ -59,9 +63,13 @@ public class OptableTargeting {
                 .orElse(Future.failedFuture("Can't get targeting"));
     }
 
-    private Future<TargetingResult> getOrFetchTargetingResults(CacheProperties cacheProperties, String apiKey,
-                                                               String tenant, String origin,
-                                                               Query query, List<String> ips, long timeout) {
+    private Future<TargetingResult> getOrFetchTargetingResults(CacheProperties cacheProperties,
+                                                               String apiKey,
+                                                               String tenant,
+                                                               String origin,
+                                                               Query query,
+                                                               List<String> ips,
+                                                               long timeout) {
 
         final String cachingKey = createCachingKey(tenant, origin, ips, query, true);
         return cache.get(cachingKey)

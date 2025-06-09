@@ -14,6 +14,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.hooks.modules.optable.targeting.model.Id;
 import org.prebid.server.hooks.modules.optable.targeting.model.OS;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.ExtUserOptable;
+import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.log.LoggerFactory;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -24,15 +26,20 @@ import java.util.Optional;
 
 public class IdsMapper {
 
+    private static final ConditionalLogger conditionalLogger =
+            new ConditionalLogger(LoggerFactory.getLogger(IdsMapper.class));
+
     private static final Map<String, String> STATIC_PPID_MAPPING = Map.of(
             "id5-sync.com", Id.ID5,
             "utiq.com", Id.UTIQ,
             "netid.de", Id.NET_ID);
 
     private final ObjectMapper objectMapper;
+    private final double logSamplingRate;
 
-    public IdsMapper(ObjectMapper objectMapper) {
+    public IdsMapper(ObjectMapper objectMapper, double logSamplingRate) {
         this.objectMapper = Objects.requireNonNull(objectMapper);
+        this.logSamplingRate = logSamplingRate;
     }
 
     public List<Id> toIds(BidRequest bidRequest, Map<String, String> ppidMapping) {
@@ -65,8 +72,8 @@ public class IdsMapper {
         try {
             return objectMapper.treeToValue(node, ExtUserOptable.class);
         } catch (JsonProcessingException e) {
-            // TODO: you need to handle this exception in some way
-            throw new RuntimeException(e);
+            conditionalLogger.warn("Can't parse $.ext.user.Optable tag", logSamplingRate);
+            return null;
         }
     }
 

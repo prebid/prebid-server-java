@@ -3,6 +3,7 @@ package org.prebid.server.hooks.modules.optable.targeting.v1.core;
 import com.iab.gpp.encoder.GppModel;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
+import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.auction.gpp.model.GppContext;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.hooks.modules.optable.targeting.model.OptableAttributes;
@@ -48,6 +49,10 @@ public class OptableAttributesResolver {
         }
 
         return result;
+    }
+
+    public static String resolveIp(List<String> ips) {
+        return CollectionUtils.isNotEmpty(ips) ? ips.getFirst() : "none";
     }
 
     private OptableAttributes getGppPrivacyAttributes(AuctionContext auctionContext) {

@@ -75,17 +75,17 @@ public class OptableTargetingAuctionResponseHook implements AuctionResponseHook 
         moduleContext.setAdserverTargetingEnabled(adserverTargeting);
         moduleContext.setOptableTargetingExecutionTime(extractOptableTargetingExecutionTime(invocationContext));
 
-        if (adserverTargeting) {
-            final EnrichmentStatus validationStatus = AuctionResponseValidator.checkEnrichmentPossibility(
-                    auctionResponsePayload.bidResponse(), moduleContext.getTargeting());
-            moduleContext.setEnrichResponseStatus(validationStatus);
-
-            if (validationStatus.getStatus() == Status.SUCCESS) {
-                return enrichedPayload(moduleContext);
-            }
+        if (!adserverTargeting) {
+            return success(moduleContext);
         }
 
-        return success(moduleContext);
+        final EnrichmentStatus validationStatus = AuctionResponseValidator.checkEnrichmentPossibility(
+                auctionResponsePayload.bidResponse(), moduleContext.getTargeting());
+        moduleContext.setEnrichResponseStatus(validationStatus);
+
+        return validationStatus.getStatus() == Status.SUCCESS
+                ? enrichedPayload(moduleContext)
+                : success(moduleContext);
     }
 
     private long extractOptableTargetingExecutionTime(AuctionInvocationContext invocationContext) {

@@ -43,8 +43,8 @@ public class OptableTargetingConfig {
     }
 
     @Bean
-    IdsMapper queryParametersExtractor() {
-        return new IdsMapper(ObjectMapperProvider.mapper());
+    IdsMapper queryParametersExtractor(@Value("${logging.sampling-rate:0.01}") double logSamplingRate) {
+        return new IdsMapper(ObjectMapperProvider.mapper(), logSamplingRate);
     }
 
     @Bean

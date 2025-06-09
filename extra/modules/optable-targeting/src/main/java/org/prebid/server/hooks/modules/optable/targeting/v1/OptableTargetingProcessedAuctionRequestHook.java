@@ -12,7 +12,6 @@ import org.prebid.server.activity.infrastructure.payload.impl.ActivityInvocation
 import org.prebid.server.activity.infrastructure.payload.impl.BidRequestActivityInvocationPayload;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
-import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.optable.targeting.model.EnrichmentStatus;
@@ -33,13 +32,11 @@ import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.ProcessedAuctionRequestHook;
 
 import java.util.Objects;
-import java.util.Optional;
-import java.util.function.Function;
 
 public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuctionRequestHook {
 
     public static final String CODE = "optable-targeting-processed-auction-request-hook";
-    private static final long DEFAULT_API_CALL_TIMEOUT = 1000L;
+
     private final ConfigResolver configResolver;
     private final OptableTargeting optableTargeting;
     private final PayloadResolver payloadResolver;
@@ -93,9 +90,6 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
 
     private BidRequest applyActivityRestrictions(BidRequest bidRequest,
                                                  AuctionInvocationContext auctionInvocationContext) {
-        if (bidRequest == null) {
-            return null;
-        }
 
         final AuctionContext auctionContext = auctionInvocationContext.auctionContext();
         final ActivityInvocationPayload activityInvocationPayload = BidRequestActivityInvocationPayload.of(
@@ -103,18 +97,20 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
                 bidRequest);
         final ActivityInfrastructure activityInfrastructure = auctionContext.getActivityInfrastructure();
 
-        final boolean disallowTransmitUfpd = !activityInfrastructure.isAllowed(Activity.TRANSMIT_UFPD,
-                activityInvocationPayload);
-        final boolean disallowTransmitEids = !activityInfrastructure.isAllowed(Activity.TRANSMIT_EIDS,
-                activityInvocationPayload);
-        final boolean disallowTransmitGeo = !activityInfrastructure.isAllowed(Activity.TRANSMIT_GEO,
-                activityInvocationPayload);
+        final boolean disallowTransmitUfpd = !activityInfrastructure.isAllowed(
+                Activity.TRANSMIT_UFPD, activityInvocationPayload);
+        final boolean disallowTransmitEids = !activityInfrastructure.isAllowed(
+                Activity.TRANSMIT_EIDS, activityInvocationPayload);
+        final boolean disallowTransmitGeo = !activityInfrastructure.isAllowed(
+                Activity.TRANSMIT_GEO, activityInvocationPayload);
 
         return maskUserPersonalInfo(bidRequest, disallowTransmitUfpd, disallowTransmitEids, disallowTransmitGeo);
     }
 
-    private BidRequest maskUserPersonalInfo(BidRequest bidRequest, boolean disallowTransmitUfpd,
-                                            boolean disallowTransmitEids, boolean disallowTransmitGeo) {
+    private BidRequest maskUserPersonalInfo(BidRequest bidRequest,
+                                            boolean disallowTransmitUfpd,
+                                            boolean disallowTransmitEids,
+                                            boolean disallowTransmitGeo) {
 
         final User maskedUser = userFpdActivityMask.maskUser(
                 bidRequest.getUser(), disallowTransmitUfpd, disallowTransmitEids);
@@ -128,10 +124,7 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
     }
 
     private long getHookRemainingTime(AuctionInvocationContext invocationContext) {
-        return Optional.ofNullable(invocationContext)
-                .map(AuctionInvocationContext::timeout)
-                .map(Timeout::remaining)
-                .orElse(DEFAULT_API_CALL_TIMEOUT);
+        return invocationContext.timeout().remaining();
     }
 
     private Future<InvocationResult<AuctionRequestPayload>> enrichedPayload(TargetingResult targetingResult,
@@ -141,10 +134,7 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
             moduleContext.setTargeting(targetingResult.getAudience());
             moduleContext.setEnrichRequestStatus(EnrichmentStatus.success());
 
-            return update(payload -> {
-                final AuctionRequestPayload sanitizedPayload = sanitizePayload(payload);
-                return enrichPayload(sanitizedPayload, targetingResult);
-            }, moduleContext);
+            return update(payload -> enrichPayload(sanitizePayload(payload), targetingResult), moduleContext);
         } else {
             moduleContext.setEnrichRequestStatus(EnrichmentStatus.failure());
             return failure(this::sanitizePayload, moduleContext);
@@ -160,43 +150,23 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
     }
 
     private static Future<InvocationResult<AuctionRequestPayload>> update(
-            PayloadUpdate<AuctionRequestPayload> func,
+            PayloadUpdate<AuctionRequestPayload> payloadUpdate,
             ModuleContext moduleContext) {
 
         return Future.succeededFuture(
                 InvocationResultImpl.<AuctionRequestPayload>builder()
                         .status(InvocationStatus.success)
                         .action(InvocationAction.update)
-                        .payloadUpdate(func::apply)
+                        .payloadUpdate(payloadUpdate)
                         .moduleContext(moduleContext)
                         .build());
-    }
-
-    private static Future<InvocationResult<AuctionRequestPayload>> failure(ModuleContext moduleContext) {
-        moduleContext.setEnrichRequestStatus(EnrichmentStatus.failure());
-        return success(moduleContext);
     }
 
     private static Future<InvocationResult<AuctionRequestPayload>> failure(
-            Function<AuctionRequestPayload, AuctionRequestPayload> func,
+            PayloadUpdate<AuctionRequestPayload> payloadUpdate,
             ModuleContext moduleContext) {
 
-        return Future.succeededFuture(
-                InvocationResultImpl.<AuctionRequestPayload>builder()
-                        .status(InvocationStatus.success)
-                        .action(InvocationAction.update)
-                        .payloadUpdate(func::apply)
-                        .moduleContext(moduleContext)
-                        .build());
-    }
-
-    private static Future<InvocationResult<AuctionRequestPayload>> success(ModuleContext moduleContext) {
-        return Future.succeededFuture(
-                InvocationResultImpl.<AuctionRequestPayload>builder()
-                        .status(InvocationStatus.success)
-                        .action(InvocationAction.no_action)
-                        .moduleContext(moduleContext)
-                        .build());
+        return update(payloadUpdate, moduleContext);
     }
 
     @Override

@@ -63,6 +63,7 @@ public class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptable
         when(timeout.remaining()).thenReturn(1000L);
         when(invocationContext.accountConfig()).thenReturn(givenAccountConfig(true));
         when(invocationContext.auctionContext()).thenReturn(givenAuctionContext(activityInfrastructure, timeout));
+        when(invocationContext.timeout()).thenReturn(timeout);
         configResolver = new ConfigResolver(mapper, jsonMerger, givenOptableTargetingProperties(false));
         payloadResolver = new PayloadResolver(mapper);
         optableAttributesResolver = new OptableAttributesResolver();
@@ -108,7 +109,7 @@ public class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptable
     @Test
     public void shouldReturnResultWithCleanedUpUserExtOptableTag() {
         // given
-        when(invocationContext.accountConfig()).thenReturn(givenAccountConfig(false));
+        when(invocationContext.timeout()).thenReturn(timeout);
         when(auctionRequestPayload.bidRequest()).thenReturn(givenBidRequest());
         when(optableTargeting.getTargeting(any(), any(), any(), anyLong()))
                 .thenReturn(Future.succeededFuture(givenTargetingResult()));
