@@ -24,6 +24,7 @@ class AccountAuctionConfig {
     AccountBidValidationConfig bidValidations
     AccountEventsConfig events
     AccountCacheConfig cache
+    AccountRankingConfig ranking
     AccountPriceFloorsConfig priceFloors
     Targeting targeting
     PaaFormat paaformat
