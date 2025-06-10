@@ -35,7 +35,7 @@ import org.prebid.server.auction.UidUpdater;
 import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.VideoStoredRequestProcessor;
 import org.prebid.server.auction.WinningBidComparatorFactory;
-import org.prebid.server.auction.adjustment.BidAdjustmentFactorResolver;
+import org.prebid.server.bidadjustments.BidAdjustmentFactorResolver;
 import org.prebid.server.auction.categorymapping.BasicCategoryMappingService;
 import org.prebid.server.auction.categorymapping.CategoryMappingService;
 import org.prebid.server.auction.categorymapping.NoOpCategoryMappingService;
@@ -67,7 +67,8 @@ import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversio
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConverterFactory;
 import org.prebid.server.bidadjustments.BidAdjustmentsProcessor;
 import org.prebid.server.bidadjustments.BidAdjustmentsResolver;
-import org.prebid.server.bidadjustments.BidAdjustmentsRetriever;
+import org.prebid.server.bidadjustments.BidAdjustmentsEnricher;
+import org.prebid.server.bidadjustments.BidAdjustmentsRulesResolver;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.BidderErrorNotifier;
@@ -472,7 +473,7 @@ public class ServiceConfiguration {
             DebugResolver debugResolver,
             JacksonMapper mapper,
             GeoLocationServiceWrapper geoLocationServiceWrapper,
-            BidAdjustmentsRetriever bidAdjustmentsRetriever) {
+            BidAdjustmentsEnricher bidAdjustmentsEnricher) {
 
         return new AuctionRequestFactory(
                 maxRequestSize,
@@ -489,7 +490,7 @@ public class ServiceConfiguration {
                 debugResolver,
                 mapper,
                 geoLocationServiceWrapper,
-                bidAdjustmentsRetriever);
+                bidAdjustmentsEnricher);
     }
 
     @Bean
@@ -948,7 +949,8 @@ public class ServiceConfiguration {
                 metrics,
                 clock,
                 mapper,
-                criteriaLogManager, enabledStrictAppSiteDoohValidation);
+                criteriaLogManager,
+                enabledStrictAppSiteDoohValidation);
     }
 
     @Bean
@@ -1231,13 +1233,20 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    BidAdjustmentsRetriever bidAdjustmentsRetriever(JacksonMapper mapper, JsonMerger jsonMerger) {
-        return new BidAdjustmentsRetriever(mapper, jsonMerger, logSamplingRate);
+    BidAdjustmentsEnricher bidAdjustmentsEnricher(JacksonMapper mapper, JsonMerger jsonMerger) {
+        return new BidAdjustmentsEnricher(mapper, jsonMerger, logSamplingRate);
     }
 
     @Bean
-    BidAdjustmentsResolver bidAdjustmentsResolver(CurrencyConversionService currencyService) {
-        return new BidAdjustmentsResolver(currencyService);
+    BidAdjustmentsResolver bidAdjustmentsResolver(BidAdjustmentsRulesResolver bidAdjustmentsRulesResolver,
+                                                  CurrencyConversionService currencyService) {
+
+        return new BidAdjustmentsResolver(currencyService, bidAdjustmentsRulesResolver);
+    }
+
+    @Bean
+    BidAdjustmentsRulesResolver bidAdjustmentsRulesResolver(JacksonMapper mapper) {
+        return new BidAdjustmentsRulesResolver(mapper);
     }
 
     @Bean

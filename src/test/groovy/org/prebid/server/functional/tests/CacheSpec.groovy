@@ -1,6 +1,7 @@
 package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.model.config.AccountAuctionConfig
+import org.prebid.server.functional.model.config.AccountCacheConfig
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountEventsConfig
 import org.prebid.server.functional.model.db.Account
@@ -15,6 +16,8 @@ import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
 
 import static org.prebid.server.functional.model.response.auction.ErrorType.CACHE
+import static org.prebid.server.functional.model.AccountStatus.ACTIVE
+import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.response.auction.MediaType.BANNER
 import static org.prebid.server.functional.model.response.auction.MediaType.VIDEO
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
@@ -50,6 +53,9 @@ class CacheSpec extends BaseSpec {
         def accountId = PBSUtils.randomNumber.toString()
         def creative = encodeXml(Vast.getDefaultVastModel(PBSUtils.randomString))
         def request = VtrackRequest.getDefaultVtrackRequest(creative)
+
+        and: "Flush metrics"
+        flushMetrics(defaultPbsService)
 
         when: "PBS processes vtrack request"
         defaultPbsService.sendVtrackRequest(request, accountId)
@@ -477,6 +483,9 @@ class CacheSpec extends BaseSpec {
                 "<${impression}> &lt;![CDATA[ ]]&gt; </${impression}><Creatives></Creatives></${wrapper}></Ad></VAST>"
         def request = VtrackRequest.getDefaultVtrackRequest(creative)
 
+        and: "Flush metrics"
+        flushMetrics(defaultPbsService)
+
         when: "PBS processes vtrack request"
         defaultPbsService.sendVtrackRequest(request, accountId)
 
@@ -641,5 +650,131 @@ class CacheSpec extends BaseSpec {
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(VALID_INTERNAL_CACHE_CONFIG)
+    }
+
+    def "PBS should cache bids and add targeting values when account cache config #accountAuctionConfig"() {
+        given: "Current value of metric prebid_cache.requests.ok"
+        def initialValue = getCurrentMetricValue(defaultPbsService, CACHE_REQUEST_OK_GLOBAL_METRIC)
+
+        and: "Default BidRequest with cache, targeting"
+        def bidRequest = BidRequest.getDefaultVideoRequest().tap {
+            it.enableCache()
+        }
+
+        and: "Account in the DB"
+        def accountConfig = new AccountConfig(status: ACTIVE, auction: accountAuctionConfig)
+        def account = new Account(uuid: bidRequest.accountId, config: accountConfig)
+        accountDao.save(account)
+
+        and: "Default bid response"
+        def presetBidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, presetBidResponse)
+
+        and: "Flush metrics"
+        flushMetrics(defaultPbsService)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS should call PBC"
+        assert prebidCache.getRequestCount(bidRequest.imp[0].id) == 1
+
+        and: "PBS response targeting contains bidder specific keys"
+        def targetingKeyMap = response.seatbid?.first()?.bid?.first()?.ext?.prebid?.targeting
+        assert targetingKeyMap.containsKey('hb_cache_id')
+        assert targetingKeyMap.containsKey("hb_cache_id_${GENERIC}".toString())
+        assert targetingKeyMap.containsKey('hb_uuid')
+        assert targetingKeyMap.containsKey("hb_uuid_${GENERIC}".toString())
+
+        and: "Metrics should be updated"
+        def metrics = defaultPbsService.sendCollectedMetricsRequest()
+        assert metrics[CACHE_REQUEST_OK_GLOBAL_METRIC] == initialValue + 1
+        assert metrics[CACHE_REQUEST_OK_ACCOUNT_METRIC.formatted(bidRequest.accountId)] == 1
+
+        where:
+        accountAuctionConfig << [
+                new AccountAuctionConfig(),
+                new AccountAuctionConfig(cache: new AccountCacheConfig()),
+                new AccountAuctionConfig(cache: new AccountCacheConfig(enabled: null)),
+                new AccountAuctionConfig(cache: new AccountCacheConfig(enabled: true))
+        ]
+    }
+
+    def "PBS shouldn't cache bids and add targeting values when account cache config disabled"() {
+        given: "Current value of metric prebid_cache.requests.ok"
+        def initialValue = getCurrentMetricValue(defaultPbsService, CACHE_REQUEST_OK_GLOBAL_METRIC)
+
+        and: "Default BidRequest with cache, targeting"
+        def bidRequest = BidRequest.getDefaultVideoRequest().tap {
+            it.enableCache()
+        }
+
+        and: "Account with cache config"
+        def accountAuctionConfig = new AccountAuctionConfig(cache: new AccountCacheConfig(enabled: false))
+        def accountConfig = new AccountConfig(status: ACTIVE, auction: accountAuctionConfig)
+        def account = new Account(uuid: bidRequest.accountId, config: accountConfig)
+        accountDao.save(account)
+
+        and: "Default bid response"
+        def presetBidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, presetBidResponse)
+
+        and: "Flush metrics"
+        flushMetrics(defaultPbsService)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS shouldn't call PBC"
+        assert !prebidCache.getRequestCount(bidRequest.imp[0].id)
+
+        and: "PBS response targeting shouldn't contains bidder specific keys"
+        def targetingKeyMap = response.seatbid?.first()?.bid?.first()?.ext?.prebid?.targeting
+        assert !targetingKeyMap.containsKey('hb_cache_id')
+        assert !targetingKeyMap.containsKey("hb_cache_id_${GENERIC}".toString())
+        assert !targetingKeyMap.containsKey('hb_uuid')
+        assert !targetingKeyMap.containsKey("hb_uuid_${GENERIC}".toString())
+
+        and: "Metrics shouldn't be updated"
+        def metrics = defaultPbsService.sendCollectedMetricsRequest()
+        assert metrics[CACHE_REQUEST_OK_GLOBAL_METRIC] == initialValue
+        assert !metrics[CACHE_REQUEST_OK_ACCOUNT_METRIC.formatted(bidRequest.accountId)]
+    }
+
+    def "PBS should update prebid_cache.creative_size.xml metric when account cache config #enabledCacheConcfig"() {
+        given: "Current value of metric prebid_cache.requests.ok"
+        def okInitialValue = getCurrentMetricValue(defaultPbsService, CACHE_REQUEST_OK_GLOBAL_METRIC)
+
+        and: "Default VtrackRequest"
+        def accountId = PBSUtils.randomNumber.toString()
+        def creative = encodeXml(Vast.getDefaultVastModel(PBSUtils.randomString))
+        def request = VtrackRequest.getDefaultVtrackRequest(creative)
+
+        and: "Create and save enabled events config in account"
+        def account = new Account().tap {
+            it.uuid = accountId
+            it.config = new AccountConfig().tap {
+                it.auction = new AccountAuctionConfig(cache: new AccountCacheConfig(enabled: enabledCacheConcfig))
+            }
+        }
+        accountDao.save(account)
+
+        and: "Flush metrics"
+        flushMetrics(defaultPbsService)
+
+        when: "PBS processes vtrack request"
+        defaultPbsService.sendVtrackRequest(request, accountId)
+
+        then: "prebid_cache.creative_size.xml metric should be updated"
+        def metrics = defaultPbsService.sendCollectedMetricsRequest()
+        def creativeSize = creative.bytes.length
+        assert metrics[CACHE_REQUEST_OK_GLOBAL_METRIC] == okInitialValue + 1
+
+        and: "account.<account-id>.prebid_cache.creative_size.xml should be updated"
+        assert metrics[CACHE_REQUEST_OK_ACCOUNT_METRIC.formatted(accountId)] == 1
+        assert metrics[XML_CREATIVE_SIZE_ACCOUNT_METRIC.formatted(accountId)] == creativeSize
+
+        where:
+        enabledCacheConcfig << [null, false, true]
     }
 }

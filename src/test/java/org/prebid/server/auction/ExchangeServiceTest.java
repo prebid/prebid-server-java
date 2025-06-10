@@ -151,6 +151,7 @@ import org.prebid.server.settings.model.AccountAlternateBidderCodes;
 import org.prebid.server.settings.model.AccountAlternateBidderCodesBidder;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountAuctionConfig;
+import org.prebid.server.settings.model.AccountCacheConfig;
 import org.prebid.server.settings.model.AccountEventsConfig;
 import org.prebid.server.spring.config.bidder.model.CompressionType;
 import org.prebid.server.spring.config.bidder.model.Ortb;
@@ -1240,6 +1241,7 @@ public class ExchangeServiceTest extends VertxTest {
                                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                                         .auctiontimestamp(1000L)
                                         .build()))))
+                        .originalPriceFloors(Collections.emptyMap())
                         .build()),
                 any(),
                 any(),
@@ -1262,6 +1264,7 @@ public class ExchangeServiceTest extends VertxTest {
                                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                                         .auctiontimestamp(1000L)
                                         .build()))))
+                        .originalPriceFloors(Collections.emptyMap())
                         .build()),
                 any(),
                 any(),
@@ -1633,6 +1636,47 @@ public class ExchangeServiceTest extends VertxTest {
                 .extracting(ExtRequestPrebid::getCache)
                 .extracting(ExtRequestPrebidCache::getWinningonly)
                 .containsOnly(true);
+    }
+
+    @Test
+    public void shouldCallBidResponseCreatorWithCachingDisabledWhenCachingIsNotEnabledOnAccountLevel() {
+        // given
+        givenBidder("bidder1", mock(Bidder.class), givenEmptySeatBid());
+
+        final Bid thirdBid = Bid.builder().id("bidId3").impid("impId3").price(BigDecimal.valueOf(7.89)).build();
+        givenBidder("bidder2", mock(Bidder.class), givenSeatBid(singletonList(givenBidderBid(thirdBid))));
+
+        final ExtRequestTargeting targeting = givenTargeting(false);
+
+        final BidRequest bidRequest = givenBidRequest(asList(
+                        // imp ids are not really used for matching, included them here for clarity
+                        givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1")),
+                        givenImp(Map.of("bidder1", 1, "bidder2", 2), builder -> builder.id("impId2"))),
+                builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .targeting(targeting)
+                        .cache(ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(53, true),
+                                ExtRequestPrebidCacheVastxml.of(34, true), true))
+                        .auctiontimestamp(1000L)
+                        .build())));
+
+        // when
+        target.holdAuction(givenRequestContext(
+                bidRequest,
+                Account.builder()
+                        .id("accountId")
+                        .auction(AccountAuctionConfig.builder()
+                                .events(AccountEventsConfig.of(true))
+                                .cache(AccountCacheConfig.of(false))
+                                .build())
+                        .build()));
+
+        // then
+        final ArgumentCaptor<AuctionContext> auctionContextArgumentCaptor =
+                ArgumentCaptor.forClass(AuctionContext.class);
+        verify(bidResponseCreator).create(
+                auctionContextArgumentCaptor.capture(),
+                eq(BidRequestCacheInfo.noCache()),
+                eq(emptyMap()));
     }
 
     @Test
