@@ -636,7 +636,7 @@ class PriceFloorsAdjustmentSpec extends PriceFloorsBaseSpec {
         def originalPrice = PBSUtils.getRandomDecimal()
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
             cur = currency
-            seatbid.first.bid = Bid.getDefaultMultyTypesBids(bidRequest.imp.first) {
+            seatbid.first.bid = Bid.getDefaultMultiTypesBids(bidRequest.imp.first) {
                 price = originalPrice
                 ext = new BidExt()
             }
