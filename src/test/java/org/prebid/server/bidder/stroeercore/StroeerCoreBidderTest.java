@@ -295,6 +295,7 @@ public class StroeerCoreBidderTest extends VertxTest {
                 .width(300)
                 .height(600)
                 .dsa(dsaResponse.deepCopy())
+                .adomain(null)
                 .build();
 
         final StroeerCoreBid videoBid = StroeerCoreBid.builder()
@@ -304,6 +305,7 @@ public class StroeerCoreBidderTest extends VertxTest {
                 .cpm(BigDecimal.valueOf(1.58))
                 .creativeId("vid")
                 .dsa(null)
+                .adomain(List.of("random-domain-dot-com", "test.com"))
                 .build();
 
         final StroeerCoreBidResponse response = StroeerCoreBidResponse.of(List.of(bannerBid, videoBid));
@@ -321,6 +323,7 @@ public class StroeerCoreBidderTest extends VertxTest {
                 .crid("foo")
                 .w(300)
                 .h(600)
+                .adomain(null)
                 .ext(mapper.createObjectNode().set("dsa", dsaResponse))
                 .build();
 
@@ -330,6 +333,7 @@ public class StroeerCoreBidderTest extends VertxTest {
                 .adm("<vast><span></span></vast>")
                 .price(BigDecimal.valueOf(1.58))
                 .crid("vid")
+                .adomain(List.of("random-domain-dot-com", "test.com"))
                 .ext(null)
                 .build();
 

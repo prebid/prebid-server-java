@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Value;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Value
 @Builder
@@ -29,4 +30,6 @@ public class StroeerCoreBid {
     String creativeId;
 
     ObjectNode dsa;
+
+    List<String> adomain;
 }

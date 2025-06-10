@@ -170,6 +170,7 @@ public class StroeerCoreBidder implements Bidder<BidRequest> {
                         .price(stroeercoreBid.getCpm())
                         .adm(stroeercoreBid.getAdMarkup())
                         .crid(stroeercoreBid.getCreativeId())
+                        .adomain(stroeercoreBid.getAdomain())
                         .ext(bidExt)
                         .build(),
                 getBidType(stroeercoreBid.getImpId(), bidRequest.getImp()),
