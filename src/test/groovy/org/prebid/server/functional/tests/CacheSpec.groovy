@@ -14,14 +14,17 @@ import org.prebid.server.functional.model.response.auction.Adm
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
 
+import static org.prebid.server.functional.model.response.auction.ErrorType.CACHE
 import static org.prebid.server.functional.model.response.auction.MediaType.BANNER
 import static org.prebid.server.functional.model.response.auction.MediaType.VIDEO
+import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 
 class CacheSpec extends BaseSpec {
 
     private static final String PBS_API_HEADER = 'x-pbc-api-key'
     private static final Integer MAX_DATACENTER_REGION_LENGTH = 4
     private static final Integer DEFAULT_UUID_LENGTH = 36
+    private static final Integer TARGETING_PARAM_NAME_MAX_LENGTH = 20
 
     private static final String XML_CREATIVE_SIZE_ACCOUNT_METRIC = "account.%s.prebid_cache.creative_size.xml"
     private static final String JSON_CREATIVE_SIZE_ACCOUNT_METRIC = "account.%s.prebid_cache.creative_size.json"
@@ -32,6 +35,12 @@ class CacheSpec extends BaseSpec {
     private static final String XML_CREATIVE_SIZE_GLOBAL_METRIC = "prebid_cache.creative_size.xml"
     private static final String JSON_CREATIVE_SIZE_GLOBAL_METRIC = "prebid_cache.creative_size.json"
     private static final String CACHE_REQUEST_OK_GLOBAL_METRIC = "prebid_cache.requests.ok"
+
+    private static final String CACHE_PATH = "/${PBSUtils.randomString}".toString()
+    private static final String CACHE_HOST = "${PBSUtils.randomString}:${PBSUtils.getRandomNumber(0, 65535)}".toString()
+    private static final String INTERNAL_CACHE_PATH = '/cache'
+    private static final String HTTP_SCHEME = 'http'
+    private static final String HTTPS_SCHEME = 'https'
 
     def "PBS should update prebid_cache.creative_size.xml metric when xml creative is received"() {
         given: "Current value of metric prebid_cache.requests.ok"
@@ -491,5 +500,146 @@ class CacheSpec extends BaseSpec {
         "    inLine    "                            | " ImpreSSion $PBSUtils.randomNumber"
         PBSUtils.getRandomCase(" inline ")          | " ${PBSUtils.getRandomCase(" impression ")} $PBSUtils.randomNumber "
         "  inline ${PBSUtils.getRandomString()}  "  | "   ImpreSSion    "
+    }
+
+    def "PBS shouldn't cache bids when targeting is specified and config cache is invalid"() {
+        given: "Pbs config with cache"
+        def INVALID_PREBID_CACHE_CONFIG = ["cache.path"  : CACHE_PATH,
+                                           "cache.scheme": HTTP_SCHEME,
+                                           "cache.host"  : CACHE_HOST]
+        def pbsService = pbsServiceFactory.getService(INVALID_PREBID_CACHE_CONFIG)
+
+        and: "Default BidRequest with cache, targeting"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            it.enableCache()
+        }
+
+        when: "PBS processes auction request"
+        def bidResponse = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain error"
+        assert bidResponse.ext?.errors[CACHE]*.code == [999]
+        assert bidResponse.ext?.errors[CACHE]*.message[0] == ("Failed to resolve '${CACHE_HOST.tokenize(":")[0]}' [A(1)]")
+
+        and: "Bid response targeting should contain value"
+        assert bidResponse.seatbid[0].bid[0].ext.prebid.targeting.findAll { it.key.startsWith("hb_cache") }.isEmpty()
+
+        and: "PBS shouldn't call PBC"
+        assert prebidCache.getRequestCount(bidRequest.imp[0].id) == 0
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(INVALID_PREBID_CACHE_CONFIG)
+    }
+
+    def "PBS should cache bids and emit error when targeting is specified and config cache is valid and internal is invalid"() {
+        given: "Pbs config with cache"
+        def INVALID_PREBID_CACHE_CONFIG = ["cache.internal.path"  : CACHE_PATH,
+                                           "cache.internal.scheme": HTTP_SCHEME,
+                                           "cache.internal.host"  : CACHE_HOST]
+        def pbsService = pbsServiceFactory.getService(INVALID_PREBID_CACHE_CONFIG)
+
+        and: "Default BidRequest with cache, targeting"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            it.enableCache()
+        }
+
+        when: "PBS processes auction request"
+        def bidResponse = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS should call PBC"
+        assert prebidCache.getRequestCount(bidRequest.imp[0].id) == 0
+
+        and: "Seat bid shouldn't be discarded"
+        assert !bidResponse.seatbid.isEmpty()
+
+        and: "Bid response targeting should contain value"
+        assert bidResponse.seatbid[0].bid[0].ext.prebid.targeting.findAll { it.key.startsWith("hb_cache") }.isEmpty()
+
+        and: "Debug should contain http call with empty response body"
+        def cacheCall = bidResponse.ext.debug.httpcalls['cache'][0]
+        assert cacheCall.responseBody == null
+        assert cacheCall.uri == "${HTTP_SCHEME}://${networkServiceContainer.hostAndPort + INTERNAL_CACHE_PATH}"
+
+        then: "Response should contain error"
+        assert bidResponse.ext?.errors[CACHE]*.code == [999]
+        assert bidResponse.ext?.errors[CACHE]*.message[0] == ("Failed to resolve '${CACHE_HOST.tokenize(":")[0]}' [A(1)]")
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(INVALID_PREBID_CACHE_CONFIG)
+    }
+
+    def "PBS should cache bids when targeting is specified and config cache is invalid and internal cache config valid"() {
+        given: "Pbs config with cache"
+        def INVALID_PREBID_CACHE_CONFIG = ["cache.path"  : CACHE_PATH,
+                                           "cache.scheme": HTTPS_SCHEME,
+                                           "cache.host"  : CACHE_HOST,]
+        def VALID_INTERNAL_CACHE_CONFIG = ["cache.internal.scheme": HTTP_SCHEME,
+                                           "cache.internal.host"  : "$networkServiceContainer.hostAndPort".toString(),
+                                           "cache.internal.path"  : INTERNAL_CACHE_PATH,]
+        def pbsService = pbsServiceFactory.getService(INVALID_PREBID_CACHE_CONFIG + VALID_INTERNAL_CACHE_CONFIG)
+
+        and: "Default BidRequest with cache, targeting"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            it.enableCache()
+        }
+
+        when: "PBS processes auction request"
+        def bidResponse = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS shouldn't call PBC"
+        assert prebidCache.getRequestCount(bidRequest.imp[0].id) == 1
+
+        and: "Bid response targeting should contain value"
+        verifyAll (bidResponse?.seatbid[0]?.bid[0]?.ext?.prebid?.targeting as Map) {
+            it.get("hb_cache_id")
+            it.get("hb_cache_id_generic")
+            it.get("hb_cache_path") == CACHE_PATH
+            it.get("hb_cache_host") == CACHE_HOST
+            it.get("hb_cache_path_generic".substring(0, TARGETING_PARAM_NAME_MAX_LENGTH)) == CACHE_PATH
+            it.get("hb_cache_host_generic".substring(0, TARGETING_PARAM_NAME_MAX_LENGTH)) == CACHE_HOST
+        }
+
+        and: "Debug should contain http call"
+        assert bidResponse.ext.debug.httpcalls['cache'][0].uri ==
+                "${HTTPS_SCHEME}://${CACHE_HOST + CACHE_PATH}"
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(INVALID_PREBID_CACHE_CONFIG + VALID_INTERNAL_CACHE_CONFIG)
+    }
+
+    def "PBS should cache bids when targeting is specified and config cache and internal cache config valid"() {
+        given: "Pbs config with cache"
+        def VALID_INTERNAL_CACHE_CONFIG = ["cache.internal.scheme": HTTP_SCHEME,
+                                           "cache.internal.host"  : "$networkServiceContainer.hostAndPort".toString(),
+                                           "cache.internal.path"  : INTERNAL_CACHE_PATH]
+        def pbsService = pbsServiceFactory.getService(VALID_INTERNAL_CACHE_CONFIG)
+
+        and: "Default BidRequest with cache, targeting"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            it.enableCache()
+        }
+
+        when: "PBS processes auction request"
+        def bidResponse = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS should call PBC"
+        assert prebidCache.getRequestCount(bidRequest.imp[0].id) == 1
+
+        and: "Bid response targeting should contain value"
+        verifyAll (bidResponse.seatbid[0].bid[0].ext.prebid.targeting) {
+            it.get("hb_cache_id")
+            it.get("hb_cache_id_generic")
+            it.get("hb_cache_path") == INTERNAL_CACHE_PATH
+            it.get("hb_cache_host") == networkServiceContainer.hostAndPort.toString()
+            it.get("hb_cache_path_generic".substring(0, TARGETING_PARAM_NAME_MAX_LENGTH)) == INTERNAL_CACHE_PATH
+            it.get("hb_cache_host_generic".substring(0, TARGETING_PARAM_NAME_MAX_LENGTH)) == networkServiceContainer.hostAndPort.toString()
+        }
+
+        and: "Debug should contain http call"
+        assert bidResponse.ext.debug.httpcalls['cache'][0].uri ==
+                "${HTTP_SCHEME}://${networkServiceContainer.hostAndPort + INTERNAL_CACHE_PATH}"
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(VALID_INTERNAL_CACHE_CONFIG)
     }
 }
