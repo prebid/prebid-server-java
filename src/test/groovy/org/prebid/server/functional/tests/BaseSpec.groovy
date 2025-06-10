@@ -2,6 +2,8 @@ package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.model.bidderspecific.BidderRequest
 import org.prebid.server.functional.model.response.amp.AmpResponse
+import org.prebid.server.functional.model.response.auction.Bid
+import org.prebid.server.functional.model.response.auction.BidMediaType
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.BidderCall
 import org.prebid.server.functional.repository.HibernateRepositoryService
@@ -101,6 +103,10 @@ abstract class BaseSpec extends Specification implements ObjectMapperWrapper {
         bidResponse.ext.debug.bidders.collectEntries { bidderName, bidderCalls ->
             collectRequestByBidderName(bidderName, bidderCalls)
         }
+    }
+
+    protected static List<Bid> getMediaTypedBids(BidResponse bidResponse, BidMediaType mediaType) {
+        bidResponse.seatbid*.bid.collectMany { it }.findAll { it.mediaType == mediaType }
     }
 
     protected static Map<String, List<BidderRequest>> getRequests(AmpResponse ampResponse) {

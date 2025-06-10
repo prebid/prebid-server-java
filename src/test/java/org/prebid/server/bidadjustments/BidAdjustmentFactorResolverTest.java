@@ -1,4 +1,4 @@
-package org.prebid.server.auction.adjustment;
+package org.prebid.server.bidadjustments;
 
 import org.junit.jupiter.api.Test;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidAdjustmentFactors;
@@ -122,7 +122,7 @@ public class BidAdjustmentFactorResolverTest {
         adjustmentFactors.addFactor("BIDder", BigDecimal.valueOf(5.456));
 
         // when
-        final BigDecimal result = target.resolve(ImpMediaType.video, adjustmentFactors, "bidDER", "Seat");
+        final BigDecimal result = target.resolve(ImpMediaType.video_instream, adjustmentFactors, "bidDER", "Seat");
 
         // then
         assertThat(result).isEqualTo(BigDecimal.valueOf(1.234));
