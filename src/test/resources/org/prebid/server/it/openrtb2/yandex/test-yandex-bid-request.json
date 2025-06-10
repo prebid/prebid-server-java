@@ -8,6 +8,8 @@
         "w": 300,
         "h": 600
       },
+      "displaymanager" : "prebid.java",
+      "displaymanagerver" : "1.1",
       "ext": {
         "tid": "${json-unit.any-string}",
         "bidder": {
