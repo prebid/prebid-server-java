@@ -85,7 +85,7 @@ public class OptableTargetingTest extends BaseOptableTest {
     @Test
     public void shouldCallAPIAndAddTargetingResultsToCache() {
         // given
-        when(cache.get(any())).thenReturn(Future.succeededFuture(null));
+        when(cache.get(any())).thenReturn(Future.failedFuture("error"));
         when(cache.put(any(), any(), anyInt())).thenReturn(Future.succeededFuture());
         final BidRequest bidRequest = givenBidRequest();
         when(idsMapper.toIds(any(), any())).thenReturn(List.of(Id.of(Id.ID5, "id")));

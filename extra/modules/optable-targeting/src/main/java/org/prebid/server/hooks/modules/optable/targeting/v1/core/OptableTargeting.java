@@ -73,12 +73,14 @@ public class OptableTargeting {
 
         final String cachingKey = createCachingKey(tenant, origin, ips, query, true);
         return cache.get(cachingKey)
-                .recover(err -> Future.succeededFuture(null))
-                .compose(entry -> entry != null
-                        ? Future.succeededFuture(entry)
-                        : fetchAndCacheResult(tenant, origin, cacheProperties.getTtlseconds(), apiKey,
-                        query, ips, timeout));
-
+                .recover(ignore -> fetchAndCacheResult(
+                        tenant,
+                        origin,
+                        cacheProperties.getTtlseconds(),
+                        apiKey,
+                        query,
+                        ips,
+                        timeout));
     }
 
     private Future<TargetingResult> fetchAndCacheResult(String tenant, String origin,

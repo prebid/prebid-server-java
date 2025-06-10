@@ -27,8 +27,7 @@ public class Cache {
     public Future<TargetingResult> get(String query) {
         return cacheService.retrieveEntry(query, APP_CODE, APPLICATION)
                 .map(ModuleCacheResponse::getValue)
-                .map(it -> it != null ? optableResponseMapper.parse(it) : null)
-                .otherwiseEmpty();
+                .map(optableResponseMapper::parse);
     }
 
     public Future<Void> put(String query, TargetingResult value, int ttlSeconds) {
