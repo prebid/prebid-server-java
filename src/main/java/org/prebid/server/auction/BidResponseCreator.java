@@ -732,7 +732,7 @@ public class BidResponseCreator {
         for (int bidderIndex = 0; bidderIndex < bidInfosPerBidder.size(); bidderIndex++) {
             final List<BidInfo> bidInfos = bidInfosPerBidder.get(bidderIndex);
 
-            for (final BidInfo bidInfo : bidInfos) {
+            for (BidInfo bidInfo : bidInfos) {
                 impIdToBidderBidInfo
                         .computeIfAbsent(bidInfo.getCorrespondingImp().getId(), ignore -> new ArrayList<>())
                         .add(Pair.of(bidderIndex, bidInfo));
