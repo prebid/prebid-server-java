@@ -108,6 +108,7 @@ public class CoreCacheServiceTest extends VertxTest {
         target = new CoreCacheService(
                 httpClient,
                 new URL("http://cache-service/cache"),
+                null,
                 "http://cache-service-host/cache?uuid=",
                 100L,
                 null,
@@ -233,6 +234,60 @@ public class CoreCacheServiceTest extends VertxTest {
 
         // then
         verify(metrics).updateCacheRequestFailedTime(eq("accountId"), anyLong());
+        verify(httpClient).post(eq("http://cache-service/cache"), any(), any(), anyLong());
+
+        final CacheServiceResult result = future.result();
+        assertThat(result.getCacheBids()).isEmpty();
+        assertThat(result.getError()).isInstanceOf(RuntimeException.class).hasMessage("Response exception");
+
+        final CacheHttpRequest request = givenCacheHttpRequest(bidinfo.getBid());
+        assertThat(result.getHttpCall())
+                .isEqualTo(DebugHttpCall.builder()
+                        .requestHeaders(givenDebugHeaders())
+                        .endpoint("http://cache-service/cache")
+                        .requestBody(request.getBody())
+                        .requestUri(request.getUri())
+                        .responseTimeMillis(0)
+                        .build());
+    }
+
+    @Test
+    public void cacheBidsOpenrtbShouldTryCallingInternalEndpointAndTolerateReadingHttpResponseFails()
+            throws JsonProcessingException, MalformedURLException {
+
+        // given
+        target = new CoreCacheService(
+                httpClient,
+                new URL("http://cache-service/cache"),
+                new URL("http://cache-service-internal/cache"),
+                "http://cache-service-host/cache?uuid=",
+                100L,
+                null,
+                false,
+                false,
+                null,
+                vastModifier,
+                eventsService,
+                metrics,
+                clock,
+                idGenerator,
+                jacksonMapper);
+
+        givenHttpClientProducesException(new RuntimeException("Response exception"));
+        final BidInfo bidinfo = givenBidInfo(builder -> builder.id("bidId1"));
+
+        // when
+        final Future<CacheServiceResult> future = target.cacheBidsOpenrtb(
+                singletonList(bidinfo),
+                givenAuctionContext(),
+                CacheContext.builder()
+                        .shouldCacheBids(true)
+                        .build(),
+                eventsContext);
+
+        // then
+        verify(metrics).updateCacheRequestFailedTime(eq("accountId"), anyLong());
+        verify(httpClient).post(eq("http://cache-service-internal/cache"), any(), any(), anyLong());
 
         final CacheServiceResult result = future.result();
         assertThat(result.getCacheBids()).isEmpty();
@@ -384,6 +439,7 @@ public class CoreCacheServiceTest extends VertxTest {
         target = new CoreCacheService(
                 httpClient,
                 new URL("http://cache-service/cache"),
+                null,
                 "http://cache-service-host/cache?uuid=",
                 100L,
                 "ApiKey",
@@ -783,6 +839,8 @@ public class CoreCacheServiceTest extends VertxTest {
                 timeout);
 
         // then
+        verify(httpClient).post(eq("http://cache-service/cache"), any(), any(), anyLong());
+
         verify(metrics).updateCacheCreativeSize(eq("account"), eq(12), eq(MetricName.json));
         verify(metrics).updateCacheCreativeSize(eq("account"), eq(4), eq(MetricName.xml));
         verify(metrics).updateCacheCreativeSize(eq("account"), eq(11), eq(MetricName.unknown));
@@ -817,11 +875,64 @@ public class CoreCacheServiceTest extends VertxTest {
     }
 
     @Test
+    public void cachePutObjectsShouldCallInternalCacheEndpointWhenProvided() throws IOException {
+        // given
+        target = new CoreCacheService(
+                httpClient,
+                new URL("http://cache-service/cache"),
+                new URL("http://cache-service-internal/cache"),
+                "http://cache-service-host/cache?uuid=",
+                100L,
+                null,
+                false,
+                false,
+                null,
+                vastModifier,
+                eventsService,
+                metrics,
+                clock,
+                idGenerator,
+                jacksonMapper);
+
+        final BidPutObject firstBidPutObject = BidPutObject.builder()
+                .type("json")
+                .bidid("bidId1")
+                .bidder("bidder1")
+                .timestamp(1L)
+                .value(new TextNode("vast"))
+                .ttlseconds(1)
+                .build();
+
+        given(vastModifier.modifyVastXml(any(), any(), any(), any(), anyString()))
+                .willReturn(new TextNode("modifiedVast"));
+
+        // when
+        target.cachePutObjects(asList(firstBidPutObject), true, singleton("bidder1"), "account", "pbjs", timeout);
+
+        // then
+        verify(httpClient).post(eq("http://cache-service-internal/cache"), any(), any(), anyLong());
+        verify(metrics).updateCacheCreativeSize(eq("account"), eq(12), eq(MetricName.json));
+        verify(metrics).updateCacheCreativeTtl(eq("account"), eq(1), eq(MetricName.json));
+
+        verify(vastModifier).modifyVastXml(true, singleton("bidder1"), firstBidPutObject, "account", "pbjs");
+
+        final BidPutObject modifiedFirstBidPutObject = firstBidPutObject.toBuilder()
+                .bidid(null)
+                .bidder(null)
+                .timestamp(null)
+                .value(new TextNode("modifiedVast"))
+                .build();
+
+        assertThat(captureBidCacheRequest().getPuts()).containsExactly(modifiedFirstBidPutObject);
+    }
+
+    @Test
     public void cachePutObjectsShouldUseApiKeyWhenProvided() throws MalformedURLException {
         // given
         target = new CoreCacheService(
                 httpClient,
                 new URL("http://cache-service/cache"),
+                null,
                 "http://cache-service-host/cache?uuid=",
                 100L,
                 "ApiKey",
@@ -863,6 +974,7 @@ public class CoreCacheServiceTest extends VertxTest {
         target = new CoreCacheService(
                 httpClient,
                 new URL("http://cache-service/cache"),
+                null,
                 "http://cache-service-host/cache?uuid=",
                 100L,
                 "ApiKey",
@@ -932,6 +1044,7 @@ public class CoreCacheServiceTest extends VertxTest {
         target = new CoreCacheService(
                 httpClient,
                 new URL("http://cache-service/cache"),
+                null,
                 "http://cache-service-host/cache?uuid=",
                 100L,
                 "ApiKey",
@@ -1001,6 +1114,7 @@ public class CoreCacheServiceTest extends VertxTest {
         target = new CoreCacheService(
                 httpClient,
                 new URL("http://cache-service/cache"),
+                null,
                 "http://cache-service-host/cache?uuid=",
                 100L,
                 "ApiKey",
@@ -1051,6 +1165,7 @@ public class CoreCacheServiceTest extends VertxTest {
         target = new CoreCacheService(
                 httpClient,
                 new URL("http://cache-service/cache"),
+                null,
                 "http://cache-service-host/cache?uuid=",
                 100L,
                 "ApiKey",
@@ -1098,6 +1213,7 @@ public class CoreCacheServiceTest extends VertxTest {
         target = new CoreCacheService(
                 httpClient,
                 new URL("http://cache-service/cache"),
+                null,
                 "http://cache-service-host/cache?uuid=",
                 100L,
                 "ApiKey",
@@ -1145,6 +1261,7 @@ public class CoreCacheServiceTest extends VertxTest {
         target = new CoreCacheService(
                 httpClient,
                 new URL("http://cache-service/cache"),
+                null,
                 "http://cache-service-host/cache?uuid=",
                 100L,
                 "ApiKey",
