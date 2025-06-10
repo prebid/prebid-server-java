@@ -49,7 +49,7 @@ public class GumgumBidder implements Bidder<BidRequest> {
 
     private static final String REQUEST_EXT_PRODUCT = "product";
 
-    private static final TypeReference<ExtPrebid<?, ExtImpGumgum>> GUMGUM_EXT_TYPE_REFERENCE =
+    private static final TypeReference<ExtPrebid<ExtImpPrebid, ExtImpGumgum>> GUMGUM_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
 
@@ -84,18 +84,20 @@ public class GumgumBidder implements Bidder<BidRequest> {
 
         for (Imp imp : bidRequest.getImp()) {
             try {
-                final ExtImpGumgum extImp = parseImpExt(imp);
+                final ExtPrebid<ExtImpPrebid, ExtImpGumgum> extImp = parseImpExt(imp);
+                final ExtImpGumgum extImpGumgum = extImp.getBidder();
+                final String adUnitCode = Optional.ofNullable(extImp.getPrebid())
+                        .map(ExtImpPrebid::getAdUnitCode)
+                        .orElse(null);
 
-                final String adUnitCode = extractAdUnitCode(imp);
+                modifiedImps.add(modifyImp(imp, extImpGumgum, adUnitCode));
 
-                modifiedImps.add(modifyImp(imp, extImp, adUnitCode));
-
-                final String extZone = extImp.getZone();
+                final String extZone = extImpGumgum.getZone();
                 if (StringUtils.isNotEmpty(extZone)) {
                     zone = extZone;
                 }
 
-                final BigInteger extPubId = extImp.getPubId();
+                final BigInteger extPubId = extImpGumgum.getPubId();
                 if (extPubId != null && !extPubId.equals(BigInteger.ZERO)) {
                     pubId = extPubId;
                 }
@@ -115,19 +117,9 @@ public class GumgumBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private String extractAdUnitCode(Imp imp) {
-        final ExtPrebid<?, ExtImpGumgum> extPrebid = mapper.mapper()
-                .convertValue(imp.getExt(), GUMGUM_EXT_TYPE_REFERENCE);
-
-        return Optional.ofNullable(extPrebid.getPrebid())
-                .map(prebid -> mapper.mapper().convertValue(prebid, ExtImpPrebid.class))
-                .map(ExtImpPrebid::getAdUnitCode)
-                .orElse(null);
-    }
-
-    private ExtImpGumgum parseImpExt(Imp imp) {
+    private ExtPrebid<ExtImpPrebid, ExtImpGumgum> parseImpExt(Imp imp) {
         try {
-            return mapper.mapper().convertValue(imp.getExt(), GUMGUM_EXT_TYPE_REFERENCE).getBidder();
+            return mapper.mapper().convertValue(imp.getExt(), GUMGUM_EXT_TYPE_REFERENCE);
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage());
         }
