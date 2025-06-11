@@ -16,6 +16,8 @@ public class BidderInfo {
 
     OrtbVersion ortbVersion;
 
+    boolean adpodSupported;
+
     boolean debugAllowed;
 
     boolean usesHttps;
@@ -44,6 +46,7 @@ public class BidderInfo {
 
     public static BidderInfo create(boolean enabled,
                                     OrtbVersion ortbVersion,
+                                    boolean adpodSupported,
                                     boolean debugAllowed,
                                     String endpoint,
                                     String aliasOf,
@@ -63,6 +66,7 @@ public class BidderInfo {
         return of(
                 enabled,
                 ortbVersion,
+                adpodSupported,
                 debugAllowed,
                 StringUtils.startsWith(endpoint, "https://"),
                 aliasOf,

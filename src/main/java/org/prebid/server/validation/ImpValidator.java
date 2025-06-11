@@ -26,6 +26,7 @@ import com.iab.openrtb.request.ntv.EventType;
 import com.iab.openrtb.request.ntv.PlacementType;
 import com.iab.openrtb.request.ntv.Protocol;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.prebid.server.auction.aliases.BidderAliases;
@@ -37,6 +38,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtStoredBidResponse;
 import org.prebid.server.util.StreamUtil;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -96,8 +98,8 @@ public class ImpValidator {
 
         final boolean isInterstitialImp = Objects.equals(imp.getInstl(), 1);
         validateBanner(imp.getBanner(), isInterstitialImp, msgPrefix);
-        validateVideoMimes(imp.getVideo(), msgPrefix);
-        validateAudioMimes(imp.getAudio(), msgPrefix);
+        validateVideo(imp.getVideo(), msgPrefix);
+        validateAudio(imp.getAudio(), msgPrefix);
         validatePmp(imp.getPmp(), msgPrefix);
     }
 
@@ -618,17 +620,57 @@ public class ImpValidator {
         }
     }
 
-    private void validateVideoMimes(Video video, String msgPrefix) throws ValidationException {
-        if (video != null) {
-            validateMimes(video.getMimes(),
-                    "%s.video.mimes must contain at least one supported MIME type", msgPrefix);
+    private void validateVideo(Video video, String msgPrefix) throws ValidationException {
+        if (video == null) {
+            return;
         }
+
+        validateAdPoddingFields(
+                video.getRqddurs(),
+                video.getPoddur(),
+                video.getMaxseq(),
+                video.getMincpmpersec(),
+                video.getMaxduration(),
+                video.getMinduration(),
+                msgPrefix + ".video");
+
+        validateMimes(video.getMimes(), "%s.video.mimes must contain at least one supported MIME type", msgPrefix);
     }
 
-    private void validateAudioMimes(Audio audio, String msgPrefix) throws ValidationException {
-        if (audio != null) {
-            validateMimes(audio.getMimes(),
-                    "%s.audio.mimes must contain at least one supported MIME type", msgPrefix);
+    private void validateAudio(Audio audio, String msgPrefix) throws ValidationException {
+        if (audio == null) {
+            return;
+        }
+
+        validateAdPoddingFields(
+                audio.getRqddurs(),
+                audio.getPoddur(),
+                audio.getMaxseq(),
+                audio.getMincpmpersec(),
+                audio.getMaxduration(),
+                audio.getMinduration(),
+                msgPrefix + ".audio");
+
+        validateMimes(audio.getMimes(),
+                "%s.audio.mimes must contain at least one supported MIME type", msgPrefix);
+    }
+
+    private static void validateAdPoddingFields(List<Integer> rqddurs,
+                                                Integer poddur,
+                                                Integer maxseq,
+                                                BigDecimal mincpmpersec,
+                                                Integer maxduration,
+                                                Integer minduration,
+                                                String msgPrefix) throws ValidationException {
+
+        if (CollectionUtils.isNotEmpty(rqddurs) && ObjectUtils.anyNotNull(maxduration, minduration)) {
+            throw new ValidationException("%s.minduration and maxduration must not be specified "
+                    + "while rqddurs contains at least one element", msgPrefix);
+        }
+
+        if (poddur == null && ObjectUtils.anyNotNull(maxseq, mincpmpersec)) {
+            throw new ValidationException("%s.maxseq and mincpmpersec must not be specified "
+                    + "when poddur is not specified", msgPrefix);
         }
     }
 

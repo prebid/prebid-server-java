@@ -75,6 +75,11 @@ public enum BidRejectionReason {
     RESPONSE_REJECTED_BELOW_FLOOR(301),
 
     /**
+     * The bidder returns a bid that has been rejected as a duplicate.
+     */
+    RESPONSE_REJECTED_DUPLICATE(302),
+
+    /**
      * The bidder returns a bid that doesn't meet the price deal floor.
      */
     RESPONSE_REJECTED_BELOW_DEAL_FLOOR(304),

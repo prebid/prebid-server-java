@@ -30,6 +30,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredAuctionResponse;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredBidResponse;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -125,6 +126,62 @@ public class ImpValidatorTest extends VertxTest {
     }
 
     @Test
+    public void validateImpsShouldReturnValidationMessageWhenVideoRqddursAreNotEmptyAndMaxDurationIsSpecified() {
+        // given
+        final List<Imp> givenImps = singletonList(validImpBuilder()
+                .video(Video.builder().rqddurs(List.of(1)).maxduration(1).build())
+                .build());
+
+        // when & then
+        assertThatThrownBy(() -> target.validateImps(givenImps, Collections.emptyMap(), null))
+                .isInstanceOf(ValidationException.class)
+                .hasMessage("request.imp[0].video.minduration and maxduration must not be specified "
+                        + "while rqddurs contains at least one element");
+    }
+
+    @Test
+    public void validateImpsShouldReturnValidationMessageWhenVideoRqddursAreNotEmptyAndMinDurationIsSpecified() {
+        // given
+        final List<Imp> givenImps = singletonList(validImpBuilder()
+                .video(Video.builder().rqddurs(List.of(1)).minduration(1).build())
+                .build());
+
+        // when & then
+        assertThatThrownBy(() -> target.validateImps(givenImps, Collections.emptyMap(), null))
+                .isInstanceOf(ValidationException.class)
+                .hasMessage("request.imp[0].video.minduration and maxduration must not be specified "
+                        + "while rqddurs contains at least one element");
+    }
+
+    @Test
+    public void validateImpsShouldReturnValidationMessageWhenVideoPodDurIsNullAndMinCpmPerSecIsSpecified() {
+        // given
+        final List<Imp> givenImps = singletonList(validImpBuilder()
+                .video(Video.builder().poddur(null).mincpmpersec(BigDecimal.ONE).build())
+                .build());
+
+        // when & then
+        assertThatThrownBy(() -> target.validateImps(givenImps, Collections.emptyMap(), null))
+                .isInstanceOf(ValidationException.class)
+                .hasMessage("request.imp[0].video.maxseq and mincpmpersec must not be specified "
+                        + "when poddur is not specified");
+    }
+
+    @Test
+    public void validateImpsShouldReturnValidationMessageWhenVideoPodDurIsNullAndMaxSeqIsSpecified() {
+        // given
+        final List<Imp> givenImps = singletonList(validImpBuilder()
+                .video(Video.builder().poddur(null).maxseq(1).build())
+                .build());
+
+        // when & then
+        assertThatThrownBy(() -> target.validateImps(givenImps, Collections.emptyMap(), null))
+                .isInstanceOf(ValidationException.class)
+                .hasMessage("request.imp[0].video.maxseq and mincpmpersec must not be specified "
+                        + "when poddur is not specified");
+    }
+
+    @Test
     public void validateImpsShouldReturnValidationMessageWhenAudioAttributePresentButAudioMimesMissed() {
         // given
         final List<Imp> givenImps = singletonList(validImpBuilder()
@@ -135,6 +192,62 @@ public class ImpValidatorTest extends VertxTest {
         assertThatThrownBy(() -> target.validateImps(givenImps, Collections.emptyMap(), null))
                 .isInstanceOf(ValidationException.class)
                 .hasMessage("request.imp[0].audio.mimes must contain at least one supported MIME type");
+    }
+
+    @Test
+    public void validateImpsShouldReturnValidationMessageWhenAudioRqddursAreNotEmptyAndMaxDurationIsSpecified() {
+        // given
+        final List<Imp> givenImps = singletonList(validImpBuilder()
+                .audio(Audio.builder().rqddurs(List.of(1)).maxduration(1).build())
+                .build());
+
+        // when & then
+        assertThatThrownBy(() -> target.validateImps(givenImps, Collections.emptyMap(), null))
+                .isInstanceOf(ValidationException.class)
+                .hasMessage("request.imp[0].audio.minduration and maxduration must not be specified "
+                        + "while rqddurs contains at least one element");
+    }
+
+    @Test
+    public void validateImpsShouldReturnValidationMessageWhenAudioRqddursAreNotEmptyAndMinDurationIsSpecified() {
+        // given
+        final List<Imp> givenImps = singletonList(validImpBuilder()
+                .audio(Audio.builder().rqddurs(List.of(1)).minduration(1).build())
+                .build());
+
+        // when & then
+        assertThatThrownBy(() -> target.validateImps(givenImps, Collections.emptyMap(), null))
+                .isInstanceOf(ValidationException.class)
+                .hasMessage("request.imp[0].audio.minduration and maxduration must not be specified "
+                        + "while rqddurs contains at least one element");
+    }
+
+    @Test
+    public void validateImpsShouldReturnValidationMessageWhenAudioPodDurIsNullAndMinCpmPerSecIsSpecified() {
+        // given
+        final List<Imp> givenImps = singletonList(validImpBuilder()
+                .audio(Audio.builder().poddur(null).mincpmpersec(BigDecimal.ONE).build())
+                .build());
+
+        // when & then
+        assertThatThrownBy(() -> target.validateImps(givenImps, Collections.emptyMap(), null))
+                .isInstanceOf(ValidationException.class)
+                .hasMessage("request.imp[0].audio.maxseq and mincpmpersec must not be specified "
+                        + "when poddur is not specified");
+    }
+
+    @Test
+    public void validateImpsShouldReturnValidationMessageWhenAudioPodDurIsNullAndMaxSeqIsSpecified() {
+        // given
+        final List<Imp> givenImps = singletonList(validImpBuilder()
+                .audio(Audio.builder().poddur(null).maxseq(1).build())
+                .build());
+
+        // when & then
+        assertThatThrownBy(() -> target.validateImps(givenImps, Collections.emptyMap(), null))
+                .isInstanceOf(ValidationException.class)
+                .hasMessage("request.imp[0].audio.maxseq and mincpmpersec must not be specified "
+                        + "when poddur is not specified");
     }
 
     @Test

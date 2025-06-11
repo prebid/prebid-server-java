@@ -162,6 +162,7 @@ public class HttpBidderRequestEnricherTest {
                 true,
                 null,
                 false,
+                false,
                 null,
                 null,
                 null,
@@ -200,6 +201,7 @@ public class HttpBidderRequestEnricherTest {
         when(bidderCatalog.bidderInfoByName(eq(BIDDER_NAME))).thenReturn(BidderInfo.create(
                 true,
                 null,
+                false,
                 false,
                 null,
                 null,

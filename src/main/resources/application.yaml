@@ -94,6 +94,7 @@ profile: profile
 adapter-defaults:
   enabled: false
   ortb-version: "2.5"
+  adpod-supported: false
   ortb:
     multiformat-supported: true
   pbs-enforces-ccpa: true

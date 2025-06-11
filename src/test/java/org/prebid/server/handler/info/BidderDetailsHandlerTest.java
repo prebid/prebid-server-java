@@ -186,6 +186,7 @@ public class BidderDetailsHandlerTest extends VertxTest {
         return BidderInfo.create(
                 enabled,
                 null,
+                false,
                 true,
                 endpoint,
                 aliasOf,

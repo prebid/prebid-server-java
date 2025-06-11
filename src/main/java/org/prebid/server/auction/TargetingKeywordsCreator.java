@@ -7,7 +7,6 @@ import org.prebid.server.settings.model.Account;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -71,6 +70,11 @@ public class TargetingKeywordsCreator {
      * Stores category duration for video bids
      */
     private static final String CATEGORY_DURATION_KEY = "_pb_cat_dur";
+
+    /**
+     * Stores bid's duration
+     */
+    private static final String BID_DURATION_KEY = "_dur";
 
     /**
      * Stores bid's format. For example "video" or "banner".
@@ -154,7 +158,8 @@ public class TargetingKeywordsCreator {
                                 String format,
                                 String vastCacheId,
                                 String categoryDuration,
-                                Account account) {
+                                Account account,
+                                Integer bidDuration) {
 
         final Map<String, String> keywords = makeFor(
                 bidder,
@@ -167,7 +172,8 @@ public class TargetingKeywordsCreator {
                 categoryDuration,
                 format,
                 bid.getDealid(),
-                account);
+                account,
+                bidDuration);
 
         if (resolver == null) {
             return truncateKeys(keywords);
@@ -192,7 +198,8 @@ public class TargetingKeywordsCreator {
                                         String categoryDuration,
                                         String format,
                                         String dealId,
-                                        Account account) {
+                                        Account account,
+                                        Integer bidDuration) {
 
         final boolean includeDealBid = alwaysIncludeDeals && StringUtils.isNotEmpty(dealId);
         final KeywordMap keywordMap = new KeywordMap(
@@ -200,7 +207,7 @@ public class TargetingKeywordsCreator {
                 winningBid,
                 includeWinners,
                 includeBidderKeys || includeDealBid,
-                Collections.emptySet());
+                Set.of(this.keyPrefix + BID_DURATION_KEY));
 
         final String roundedCpm = isPriceGranularityValid()
                 ? CpmRange.fromCpm(price, priceGranularity, account)
@@ -238,6 +245,9 @@ public class TargetingKeywordsCreator {
         }
         if (StringUtils.isNotBlank(categoryDuration)) {
             keywordMap.put(this.keyPrefix + CATEGORY_DURATION_KEY, categoryDuration);
+        }
+        if (bidDuration != null) {
+            keywordMap.put(this.keyPrefix + BID_DURATION_KEY, bidDuration.toString());
         }
 
         return keywordMap.asMap();
