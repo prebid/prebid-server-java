@@ -35,12 +35,12 @@ public class WURFLDeviceDetectionConfiguration {
     public WURFLDeviceDetectionModule wurflDeviceDetectionModule(WURFLDeviceDetectionConfigProperties
                                                                          configProperties, Vertx vertx) {
 
-        final WURFLService wurflService;
-        wurflService = new WURFLService(null, configProperties);
+        final WURFLService wurflService = new WURFLService(null, configProperties);
         final FileSyncer fileSyncer = createFileSyncer(configProperties, wurflService, vertx);
         fileSyncer.sync();
 
-        return new WURFLDeviceDetectionModule(List.of(new WURFLDeviceDetectionEntrypointHook(),
+        return new WURFLDeviceDetectionModule(List.of(
+                new WURFLDeviceDetectionEntrypointHook(),
                 new WURFLDeviceDetectionRawAuctionRequestHook(wurflService, configProperties)));
     }
 
