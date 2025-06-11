@@ -1660,7 +1660,7 @@ class TargetingSpec extends BaseSpec {
         assert response.seatbid.findAll { it.seat == OPENX }.bid.ext.prebid.rank.flatten() == [MAIN_RANK]
         assert response.seatbid.findAll { it.seat == GENERIC }.bid.ext.prebid.rank.flatten() == [SUBORDINATE_RANK]
 
-        cleanup: "Stop and remove pbs container"
+        cleanup: "Stop and remove pbs container and bidder response"
         pbsServiceFactory.removeContainer(pbsConfig)
         openxBidder.reset()
     }
