@@ -14,6 +14,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Configuration
 @ConditionalOnProperty(
@@ -30,7 +31,8 @@ public class LiveIntentOmniChannelIdentityConfiguration {
     @Bean
     Module liveIntentOmniChannelIdentityModule(ModuleConfig config, JacksonMapper mapper, HttpClient httpClient) {
         final Set<? extends Hook<?, ? extends InvocationContext>> hooks = Set.of(
-                new LiveIntentOmniChannelIdentityProcessedAuctionRequestHook(config, mapper, httpClient));
+                new LiveIntentOmniChannelIdentityProcessedAuctionRequestHook(
+                        config, mapper, httpClient, () -> ThreadLocalRandom.current().nextLong()));
         return new LiveIntentOmniChannelIdentityModule(hooks);
     }
 }

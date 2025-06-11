@@ -27,7 +27,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Random;
+import java.util.random.RandomGenerator;
 
 public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements ProcessedAuctionRequestHook {
 
@@ -38,21 +38,13 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
     private final ModuleConfig config;
     private final JacksonMapper mapper;
     private final HttpClient httpClient;
-    private final Random random;
-
-    public LiveIntentOmniChannelIdentityProcessedAuctionRequestHook(
-            ModuleConfig config,
-            JacksonMapper mapper,
-            HttpClient httpClient) {
-
-        this(config, mapper, httpClient, new Random());
-    }
+    private final RandomGenerator random;
 
     public LiveIntentOmniChannelIdentityProcessedAuctionRequestHook(
             ModuleConfig config,
             JacksonMapper mapper,
             HttpClient httpClient,
-            Random random) {
+            RandomGenerator random) {
 
         this.config = Objects.requireNonNull(config);
         this.mapper = Objects.requireNonNull(mapper);
