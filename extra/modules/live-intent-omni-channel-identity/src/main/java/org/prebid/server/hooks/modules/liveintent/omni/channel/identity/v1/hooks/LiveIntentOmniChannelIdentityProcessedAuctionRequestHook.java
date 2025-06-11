@@ -76,9 +76,23 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
         }
     }
 
-    @Override
-    public String code() {
-        return CODE;
+    private Future<IdResResponse> requestEnrichment(AuctionRequestPayload auctionRequestPayload) {
+        final String bidRequestJson = mapper.encodeToString(auctionRequestPayload.bidRequest());
+        return httpClient.post(
+                        config.getIdentityResolutionEndpoint(),
+                        headers(),
+                        bidRequestJson,
+                        config.getRequestTimeoutMs())
+                .map(this::processResponse);
+    }
+
+    private MultiMap headers() {
+        return MultiMap.caseInsensitiveMultiMap()
+                .add(HttpUtil.AUTHORIZATION_HEADER, "Bearer " + config.getAuthToken());
+    }
+
+    private IdResResponse processResponse(HttpClientResponse response) {
+        return mapper.decodeValue(response.getBody(), IdResResponse.class);
     }
 
     private AuctionRequestPayload updatedPayload(AuctionRequestPayload requestPayload, IdResResponse idResResponse) {
@@ -96,22 +110,8 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
         return AuctionRequestPayloadImpl.of(updatedBidRequest);
     }
 
-    private Future<IdResResponse> requestEnrichment(AuctionRequestPayload auctionRequestPayload) {
-        final String bidRequestJson = mapper.encodeToString(auctionRequestPayload.bidRequest());
-        return httpClient.post(
-                        config.getIdentityResolutionEndpoint(),
-                        headers(),
-                        bidRequestJson,
-                        config.getRequestTimeoutMs())
-                .map(this::processResponse);
-    }
-
-    private IdResResponse processResponse(HttpClientResponse response) {
-        return mapper.decodeValue(response.getBody(), IdResResponse.class);
-    }
-
-    private MultiMap headers() {
-        return MultiMap.caseInsensitiveMultiMap()
-                .add(HttpUtil.AUTHORIZATION_HEADER, "Bearer " + config.getAuthToken());
+    @Override
+    public String code() {
+        return CODE;
     }
 }
