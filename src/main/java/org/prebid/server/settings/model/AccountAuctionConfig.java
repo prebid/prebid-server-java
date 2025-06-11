@@ -58,4 +58,6 @@ public class AccountAuctionConfig {
     PaaFormat paaFormat;
 
     AccountCacheConfig cache;
+
+    AccountBidRankingConfig ranking;
 }
