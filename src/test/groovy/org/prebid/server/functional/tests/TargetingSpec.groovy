@@ -34,6 +34,7 @@ import org.prebid.server.functional.model.response.auction.Prebid
 import org.prebid.server.functional.model.response.auction.SeatBid
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.testcontainers.scaffolding.Bidder
 import org.prebid.server.functional.util.PBSUtils
 
 import java.math.RoundingMode
@@ -1613,9 +1614,11 @@ class TargetingSpec extends BaseSpec {
 
     def "PBS should assign bid ranks across all seatbids combined when the request contains imps with multiple bidders"() {
         given: "PBS config with openX bidder"
+        def endpoint = '/openx-auction'
         def pbsConfig = ["adapters.openx.enabled" : "true",
-                         "adapters.openx.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
+                         "adapters.openx.endpoint": "$networkServiceContainer.rootUri$endpoint".toString()]
         def prebidServerService = pbsServiceFactory.getService(pbsConfig)
+        def openxBidder = new Bidder(networkServiceContainer, endpoint)
 
         and: "Bid request with multiple bidders"
         def bidRequest = BidRequest.getDefaultBidRequest().tap {
@@ -1640,12 +1643,15 @@ class TargetingSpec extends BaseSpec {
             it.dealid = PBSUtils.randomNumber
             it.price = bidPrice
         }
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            it.seatbid = [new SeatBid(bid: [genericBid], seat: GENERIC),
-                          new SeatBid(bid: [openxBid], seat: OPENX)]
+        def bidResponseGeneric = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            it.seatbid = [new SeatBid(bid: [genericBid], seat: GENERIC)]
+        }
+        def bidResponseOpenx = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            it.seatbid = [new SeatBid(bid: [openxBid], seat: OPENX)]
         }
         and: "Set bidder response"
-        bidder.setResponse(bidRequest.id, bidResponse)
+        bidder.setResponse(bidRequest.id, bidResponseGeneric)
+        openxBidder.setResponse(bidRequest.id, bidResponseOpenx)
 
         when: "PBS processes auction request"
         def response = prebidServerService.sendAuctionRequest(bidRequest)
