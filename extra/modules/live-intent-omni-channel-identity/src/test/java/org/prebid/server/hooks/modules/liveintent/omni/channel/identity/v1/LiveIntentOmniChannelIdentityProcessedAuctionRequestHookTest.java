@@ -81,6 +81,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
                 null, null, false, null, null);
 
         final HttpClientResponse mockResponse = mock(HttpClientResponse.class);
+
         // when
         when(random.nextFloat()).thenReturn(0.89f);
 

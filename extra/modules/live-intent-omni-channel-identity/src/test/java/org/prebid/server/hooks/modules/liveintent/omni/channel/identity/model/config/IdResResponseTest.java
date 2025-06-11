@@ -25,6 +25,7 @@ public class IdResResponseTest {
                 "{\"eids\": [ { \"source\": \"liveintent.com\", "
                         + "\"uids\": [ { \"atype\": 3, \"id\" : \"some_id\" } ] } ] }",
                 IdResResponse.class);
+
         // when and then
         assertThat(result.getEids()).hasSize(1);
         assertThat(result.getEids().getFirst().getSource()).isEqualTo("liveintent.com");
