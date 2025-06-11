@@ -2,6 +2,7 @@ package org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection
 
 import lombok.Data;
 
+import java.util.Collections;
 import java.util.Set;
 
 @Data
@@ -21,7 +22,7 @@ public class WURFLDeviceDetectionConfigProperties {
 
     int updateFrequencyInHours;
 
-    Set<String> allowedPublisherIds = Set.of();
+    Set<String> allowedPublisherIds = Collections.emptySet();
 
     int updateConnTimeoutMs = DEFAULT_UPDATE_TIMEOUT;
 
