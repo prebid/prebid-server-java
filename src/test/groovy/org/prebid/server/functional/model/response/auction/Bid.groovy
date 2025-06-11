@@ -8,6 +8,8 @@ import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.prebid.server.functional.util.PBSUtils
 
+import static groovy.lang.Closure.DELEGATE_FIRST
+
 @ToString(includeNames = true, ignoreNulls = true)
 @EqualsAndHashCode
 class Bid implements ObjectMapperWrapper {
@@ -60,7 +62,7 @@ class Bid implements ObjectMapperWrapper {
         new Bid().tap {
             id = UUID.randomUUID()
             impid = imp.id
-            price = PBSUtils.getRandomPrice()
+            price = imp.bidFloor != null ? imp.bidFloor : PBSUtils.getRandomPrice()
             crid = 1
             height = imp.banner && imp.banner.format ? imp.banner.format.first().height : null
             weight = imp.banner && imp.banner.format ? imp.banner.format.first().weight : null
@@ -68,6 +70,23 @@ class Bid implements ObjectMapperWrapper {
                 adm = new Adm(assets: [Asset.defaultAsset])
             }
         }
+    }
+
+    static List<Bid> getDefaultMultiTypesBids(Imp imp, @DelegatesTo(Bid) Closure commonInit = null) {
+        List<Bid> bids = []
+        if (imp.banner) bids << createBid(imp, BidMediaType.BANNER) { adm = null }
+        if (imp.video) bids << createBid(imp, BidMediaType.VIDEO)
+        if (imp.nativeObj) bids << createBid(imp, BidMediaType.NATIVE)
+        if (imp.audio) bids << createBid(imp, BidMediaType.AUDIO) { adm = null }
+
+        if (commonInit) {
+            bids.each { bid ->
+                commonInit.delegate = bid
+                commonInit.resolveStrategy = DELEGATE_FIRST
+                commonInit()
+            }
+        }
+        bids
     }
 
     void setAdm(Object adm) {
@@ -78,5 +97,16 @@ class Bid implements ObjectMapperWrapper {
         } else {
             this.adm = null
         }
+    }
+
+    private static Bid createBid(Imp imp, BidMediaType type, @DelegatesTo(Bid) Closure init = null) {
+        def bid = getDefaultBid(imp)
+        bid.mediaType = type
+        if (init) {
+            init.delegate = bid
+            init.resolveStrategy = DELEGATE_FIRST
+            init()
+        }
+        bid
     }
 }

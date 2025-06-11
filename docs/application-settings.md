@@ -25,6 +25,11 @@ There are two ways to configure application settings: database and file. This do
 - `auction.bidadjustments.mediatype.*.*.*[].value` - value of the bid adjustment
 - `auction.bidadjustments.mediatype.*.*.*[].currency` - currency of the bid adjustment
 - `auction.events.enabled` - enables events for account if true
+- `auction.bid-rounding` - bid rounding options are:
+  - **down** - rounding down to the lower price bucket
+  - **up** - rounding up to the higher price bucket
+  - **timesplit** - 50% of the time rounding down to the lower PB and 50% of the time rounding up to the higher price bucket
+  - **true** - if the price >= 50% of the range, rounding up to the higher price bucket, otherwise rounding down
 - `auction.price-floors.enabled` - enables price floors for account if true. Defaults to true.
 - `auction.price-floors.fetch.enabled`- enables data fetch for price floors for account if true. Defaults to false.
 - `auction.price-floors.fetch.url` - url to fetch price floors data from.
@@ -50,6 +55,7 @@ Keep in mind following restrictions:
 - `auction.preferredmediatype.<bidder>.<media-type>` - <media-type> that will be left for <bidder> that doesn't support multi-format. Other media types will be removed. Acceptable values: `banner`, `video`, `audio`, `native`.
 - `auction.privacysandbox.cookiedeprecation.enabled` - boolean that turns on setting and reading of the Chrome Privacy Sandbox testing label header. Defaults to false.
 - `auction.privacysandbox.cookiedeprecation.ttlsec` - if the above setting is true, how long to set the receive-cookie-deprecation cookie's expiration
+- `auction.cache.enabled` - enables bids caching for account if true. Defaults to true.
 - `privacy.gdpr.enabled` - enables gdpr verifications if true. Has higher priority than configuration in
   application.yaml.
 - `privacy.gdpr.eea-countries` - overrides the host-level list of 2-letter country codes where TCF processing is applied
