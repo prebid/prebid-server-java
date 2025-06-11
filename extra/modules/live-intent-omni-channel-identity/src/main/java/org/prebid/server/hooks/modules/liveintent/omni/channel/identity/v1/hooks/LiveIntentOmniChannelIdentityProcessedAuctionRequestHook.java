@@ -64,8 +64,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
                                     .status(InvocationStatus.success)
                                     .action(InvocationAction.update)
                                     .payloadUpdate(requestPayload -> updatedPayload(requestPayload, resolutionResult))
-                                    .build()
-                    );
+                                    .build());
 
             return update.onFailure(throwable -> logger.error("Failed enrichment:", throwable));
         } else {
