@@ -9,7 +9,7 @@ public class ExtMerger {
     private ExtMerger() {
     }
 
-    protected static ObjectNode mergeExt(ObjectNode origin, ObjectNode newExt) {
+    public static ObjectNode mergeExt(ObjectNode origin, ObjectNode newExt) {
         if (newExt == null) {
             return origin;
         }

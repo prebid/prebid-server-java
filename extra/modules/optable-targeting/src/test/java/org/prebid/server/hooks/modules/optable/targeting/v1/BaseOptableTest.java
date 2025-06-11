@@ -43,6 +43,7 @@ import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.UnaryOperator;
 
 public abstract class BaseOptableTest {
 
@@ -74,6 +75,10 @@ public abstract class BaseOptableTest {
                 .device(givenDevice())
                 .cur(List.of("USD"))
                 .build();
+    }
+
+    protected static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer) {
+        return bidRequestCustomizer.apply(BidRequest.builder().id("requestId")).build();
     }
 
     protected BidResponse givenBidResponse() {

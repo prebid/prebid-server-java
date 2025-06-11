@@ -9,7 +9,6 @@ import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableAttributesResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargeting;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.PayloadResolver;
 import org.prebid.server.hooks.v1.Hook;
 import org.prebid.server.hooks.v1.InvocationContext;
 import org.prebid.server.hooks.v1.Module;
@@ -32,9 +31,6 @@ public class OptableTargetingModuleTest {
 
     @Mock
     OptableTargeting optableTargeting;
-
-    @Mock
-    PayloadResolver payloadResolver;
 
     @Mock
     OptableAttributesResolver optableAttributesResolver;
@@ -65,11 +61,9 @@ public class OptableTargetingModuleTest {
                 List.of(new OptableTargetingProcessedAuctionRequestHook(
                         configResolver,
                         optableTargeting,
-                        payloadResolver,
                         optableAttributesResolver,
                         userFpdActivityMask),
                         new OptableTargetingAuctionResponseHook(
-                                payloadResolver,
                                 configResolver,
                                 mapper));
 

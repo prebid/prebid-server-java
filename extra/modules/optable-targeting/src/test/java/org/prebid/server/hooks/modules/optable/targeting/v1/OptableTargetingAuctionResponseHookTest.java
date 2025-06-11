@@ -14,7 +14,6 @@ import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Audience;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.AudienceId;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.AuctionResponseValidator;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.PayloadResolver;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
@@ -37,7 +36,6 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
     AuctionResponsePayload auctionResponsePayload;
     @Mock(strictness = LENIENT)
     AuctionInvocationContext invocationContext;
-    private PayloadResolver payloadResolver;
     private AuctionResponseValidator auctionResponseValidator;
     private final ObjectMapper mapper = new ObjectMapper();
     private final JsonMerger jsonMerger = new JsonMerger(new JacksonMapper(mapper));
@@ -48,10 +46,8 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
     @BeforeEach
     public void setUp() {
         when(invocationContext.accountConfig()).thenReturn(givenAccountConfig(true));
-        payloadResolver = new PayloadResolver(mapper);
         configResolver = new ConfigResolver(mapper, jsonMerger, givenOptableTargetingProperties(false));
         target = new OptableTargetingAuctionResponseHook(
-                payloadResolver,
                 configResolver,
                 mapper);
     }
@@ -128,7 +124,6 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
         when(invocationContext.moduleContext()).thenReturn(givenModuleContext(List.of(new Audience("provider",
                 List.of(new AudienceId("audienceId")), "keyspace", 1))));
         target = new OptableTargetingAuctionResponseHook(
-                payloadResolver,
                 configResolver,
                 mapper);
 

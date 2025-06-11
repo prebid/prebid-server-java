@@ -18,7 +18,6 @@ import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableAttributesResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargeting;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.PayloadResolver;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
@@ -50,7 +49,6 @@ public class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptable
     @Mock
     ActivityInfrastructure activityInfrastructure;
     private ConfigResolver configResolver;
-    private PayloadResolver payloadResolver;
     private OptableAttributesResolver optableAttributesResolver;
     private JsonMerger jsonMerger = new JsonMerger(new JacksonMapper(new ObjectMapper()));
     private OptableTargetingProcessedAuctionRequestHook target;
@@ -65,10 +63,12 @@ public class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptable
         when(invocationContext.auctionContext()).thenReturn(givenAuctionContext(activityInfrastructure, timeout));
         when(invocationContext.timeout()).thenReturn(timeout);
         configResolver = new ConfigResolver(mapper, jsonMerger, givenOptableTargetingProperties(false));
-        payloadResolver = new PayloadResolver(mapper);
         optableAttributesResolver = new OptableAttributesResolver();
-        target = new OptableTargetingProcessedAuctionRequestHook(configResolver, optableTargeting,
-                payloadResolver, optableAttributesResolver, userFpdActivityMask);
+        target = new OptableTargetingProcessedAuctionRequestHook(
+                configResolver,
+                optableTargeting,
+                optableAttributesResolver,
+                userFpdActivityMask);
     }
 
     @Test

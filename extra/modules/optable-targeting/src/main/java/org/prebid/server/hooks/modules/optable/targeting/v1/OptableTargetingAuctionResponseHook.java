@@ -14,7 +14,6 @@ import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.execution.v1.analytics.ActivityImpl;
 import org.prebid.server.hooks.execution.v1.analytics.ResultImpl;
 import org.prebid.server.hooks.execution.v1.analytics.TagsImpl;
-import org.prebid.server.hooks.execution.v1.auction.AuctionResponsePayloadImpl;
 import org.prebid.server.hooks.modules.optable.targeting.model.EnrichmentStatus;
 import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
 import org.prebid.server.hooks.modules.optable.targeting.model.Reason;
@@ -22,8 +21,8 @@ import org.prebid.server.hooks.modules.optable.targeting.model.Status;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Audience;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.AuctionResponseValidator;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidResponseEnricher;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.PayloadResolver;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
@@ -49,17 +48,13 @@ public class OptableTargetingAuctionResponseHook implements AuctionResponseHook 
     private static final String ACTIVITY_ENRICH_RESPONSE = "optable-enrich-response";
     private static final String STATUS_EXECUTION_TIME = "execution-time";
     private static final String STATUS_REASON = "reason";
-
-    private final PayloadResolver payloadResolver;
     private final ConfigResolver configResolver;
     private final ObjectMapper objectMapper;
 
     public OptableTargetingAuctionResponseHook(
-            PayloadResolver payloadResolver,
             ConfigResolver configResolver,
             ObjectMapper objectMapper) {
 
-        this.payloadResolver = Objects.requireNonNull(payloadResolver);
         this.configResolver = Objects.requireNonNull(configResolver);
         this.objectMapper = Objects.requireNonNull(objectMapper);
     }
@@ -112,12 +107,8 @@ public class OptableTargetingAuctionResponseHook implements AuctionResponseHook 
         final List<Audience> targeting = moduleContext.getTargeting();
 
         return CollectionUtils.isNotEmpty(targeting)
-                ? update(payload -> enrichPayload(payload, targeting), moduleContext)
+                ? update(BidResponseEnricher.of(objectMapper, targeting), moduleContext)
                 : success(moduleContext);
-    }
-
-    private AuctionResponsePayload enrichPayload(AuctionResponsePayload payload, List<Audience> targeting) {
-        return AuctionResponsePayloadImpl.of(payloadResolver.enrichBidResponse(payload.bidResponse(), targeting));
     }
 
     private Future<InvocationResult<AuctionResponsePayload>> update(

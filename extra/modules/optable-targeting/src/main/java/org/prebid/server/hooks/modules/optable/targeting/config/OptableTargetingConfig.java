@@ -12,7 +12,6 @@ import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.IdsMapper;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableAttributesResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargeting;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.PayloadResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.QueryBuilder;
 import org.prebid.server.hooks.modules.optable.targeting.v1.net.APIClient;
 import org.prebid.server.hooks.modules.optable.targeting.v1.net.OptableHttpClientWrapper;
@@ -45,11 +44,6 @@ public class OptableTargetingConfig {
     @Bean
     IdsMapper queryParametersExtractor(@Value("${logging.sampling-rate:0.01}") double logSamplingRate) {
         return new IdsMapper(ObjectMapperProvider.mapper(), logSamplingRate);
-    }
-
-    @Bean
-    PayloadResolver payloadResolver() {
-        return new PayloadResolver(ObjectMapperProvider.mapper());
     }
 
     @Bean
@@ -120,7 +114,6 @@ public class OptableTargetingConfig {
     @Bean
     OptableTargetingModule optableTargetingModule(ConfigResolver configResolver,
                                                   OptableTargeting optableTargeting,
-                                                  PayloadResolver payloadResolver,
                                                   OptableAttributesResolver optableAttributesResolver,
                                                   UserFpdActivityMask userFpdActivityMask) {
 
@@ -128,11 +121,9 @@ public class OptableTargetingConfig {
                 new OptableTargetingProcessedAuctionRequestHook(
                         configResolver,
                         optableTargeting,
-                        payloadResolver,
                         optableAttributesResolver,
                         userFpdActivityMask),
                 new OptableTargetingAuctionResponseHook(
-                        payloadResolver,
                         configResolver,
                         ObjectMapperProvider.mapper())));
     }

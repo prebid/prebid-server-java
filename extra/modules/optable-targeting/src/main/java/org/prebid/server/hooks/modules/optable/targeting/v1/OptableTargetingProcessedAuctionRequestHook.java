@@ -13,16 +13,16 @@ import org.prebid.server.activity.infrastructure.payload.impl.BidRequestActivity
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
-import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.optable.targeting.model.EnrichmentStatus;
 import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
 import org.prebid.server.hooks.modules.optable.targeting.model.OptableAttributes;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidRequestCleaner;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidRequestEnricher;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableAttributesResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargeting;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.PayloadResolver;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
@@ -32,6 +32,7 @@ import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.ProcessedAuctionRequestHook;
 
 import java.util.Objects;
+import java.util.function.Function;
 
 public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuctionRequestHook {
 
@@ -39,19 +40,16 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
 
     private final ConfigResolver configResolver;
     private final OptableTargeting optableTargeting;
-    private final PayloadResolver payloadResolver;
     private final OptableAttributesResolver optableAttributesResolver;
     private final UserFpdActivityMask userFpdActivityMask;
 
     public OptableTargetingProcessedAuctionRequestHook(ConfigResolver configResolver,
                                                        OptableTargeting optableTargeting,
-                                                       PayloadResolver payloadResolver,
                                                        OptableAttributesResolver optableAttributesResolver,
                                                        UserFpdActivityMask userFpdActivityMask) {
 
         this.configResolver = Objects.requireNonNull(configResolver);
         this.optableTargeting = Objects.requireNonNull(optableTargeting);
-        this.payloadResolver = Objects.requireNonNull(payloadResolver);
         this.optableAttributesResolver = Objects.requireNonNull(optableAttributesResolver);
         this.userFpdActivityMask = Objects.requireNonNull(userFpdActivityMask);
     }
@@ -74,7 +72,7 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
                 .compose(targetingResult -> enrichedPayload(targetingResult, moduleContext))
                 .recover(throwable -> {
                     moduleContext.setEnrichRequestStatus(EnrichmentStatus.failure());
-                    return failure(this::sanitizePayload, moduleContext);
+                    return failure(BidRequestCleaner.instance(), moduleContext);
                 });
     }
 
@@ -122,27 +120,20 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
 
         moduleContext.setTargeting(targetingResult.getAudience());
         moduleContext.setEnrichRequestStatus(EnrichmentStatus.success());
-
-        return update(payload -> enrichPayload(sanitizePayload(payload), targetingResult), moduleContext);
-    }
-
-    private AuctionRequestPayload enrichPayload(AuctionRequestPayload payload, TargetingResult targetingResult) {
-        return AuctionRequestPayloadImpl.of(payloadResolver.enrichBidRequest(payload.bidRequest(), targetingResult));
-    }
-
-    private AuctionRequestPayload sanitizePayload(AuctionRequestPayload payload) {
-        return AuctionRequestPayloadImpl.of(payloadResolver.clearBidRequest(payload.bidRequest()));
+        return update(
+                BidRequestEnricher.of(targetingResult).compose(BidRequestCleaner.instance()),
+                moduleContext);
     }
 
     private static Future<InvocationResult<AuctionRequestPayload>> update(
-            PayloadUpdate<AuctionRequestPayload> payloadUpdate,
+            Function<AuctionRequestPayload, AuctionRequestPayload> payloadUpdate,
             ModuleContext moduleContext) {
 
         return Future.succeededFuture(
                 InvocationResultImpl.<AuctionRequestPayload>builder()
                         .status(InvocationStatus.success)
                         .action(InvocationAction.update)
-                        .payloadUpdate(payloadUpdate)
+                        .payloadUpdate(payloadUpdate::apply)
                         .moduleContext(moduleContext)
                         .build());
     }

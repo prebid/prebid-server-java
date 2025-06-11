@@ -1,4 +1,4 @@
-package org.prebid.server.hooks.modules.optable.targeting.v1.core.merger;
+package org.prebid.server.hooks.modules.optable.targeting.v1.core;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -7,27 +7,41 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import lombok.AllArgsConstructor;
+import lombok.Value;
+import lombok.experimental.Accessors;
 import org.apache.commons.collections4.CollectionUtils;
+import org.prebid.server.hooks.execution.v1.auction.AuctionResponsePayloadImpl;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Audience;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.AudienceId;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.merger.ExtMerger;
+import org.prebid.server.hooks.v1.PayloadUpdate;
+import org.prebid.server.hooks.v1.auction.AuctionResponsePayload;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-@AllArgsConstructor(staticName = "of")
-public class BidResponseResolver {
+@Accessors(fluent = true)
+@Value(staticConstructor = "of")
+public class BidResponseEnricher implements PayloadUpdate<AuctionResponsePayload> {
 
-    private BidResponse bidResponse;
-    private ObjectMapper mapper;
+    ObjectMapper mapper;
+    List<Audience> targeting;
 
-    public BidResponse applyTargeting(List<Audience> targeting) {
-        if (CollectionUtils.isEmpty(targeting)) {
+    @Override
+    public AuctionResponsePayload apply(AuctionResponsePayload payload) {
+        return AuctionResponsePayloadImpl.of(enrichBidResponse(mapper, payload.bidResponse(), targeting));
+    }
+
+    private static BidResponse enrichBidResponse(ObjectMapper mapper,
+                                                 BidResponse bidResponse,
+                                                 List<Audience> targeting) {
+
+        if (bidResponse == null || CollectionUtils.isEmpty(targeting)) {
             return bidResponse;
         }
 
-        final ObjectNode node = targetingToObjectNode(targeting);
+        final ObjectNode node = targetingToObjectNode(mapper, targeting);
         if (node == null) {
             return bidResponse;
         }
@@ -38,7 +52,7 @@ public class BidResponseResolver {
                     final List<Bid> bids = Optional.ofNullable(seatBid.getBid())
                             .orElse(Collections.emptyList())
                             .stream()
-                            .map(bid -> applyTargeting(bid, node))
+                            .map(bid -> applyTargeting(mapper, bid, node))
                             .toList();
 
                     return seatBid.toBuilder().bid(bids).build();
@@ -49,10 +63,10 @@ public class BidResponseResolver {
                 .build();
     }
 
-    private Bid applyTargeting(Bid bid, ObjectNode node) {
-        final ObjectNode extNode = getOrCreateNode(bid.getExt());
-        final ObjectNode prebidNode = getOrCreateNode((ObjectNode) extNode.get("prebid"));
-        final ObjectNode targetingNode = getOrCreateNode((ObjectNode) prebidNode.get("targeting"));
+    private static Bid applyTargeting(ObjectMapper mapper, Bid bid, ObjectNode node) {
+        final ObjectNode extNode = getOrCreateNode(mapper, bid.getExt());
+        final ObjectNode prebidNode = getOrCreateNode(mapper, (ObjectNode) extNode.get("prebid"));
+        final ObjectNode targetingNode = getOrCreateNode(mapper, (ObjectNode) prebidNode.get("targeting"));
         final JsonNode mergedTargetingNode = ExtMerger.mergeExt(targetingNode, node);
 
         prebidNode.set("targeting", mergedTargetingNode);
@@ -61,11 +75,11 @@ public class BidResponseResolver {
         return bid.toBuilder().ext(extNode).build();
     }
 
-    private ObjectNode getOrCreateNode(ObjectNode node) {
-        return Optional.ofNullable(node).orElseGet(() -> mapper.createObjectNode());
+    private static ObjectNode getOrCreateNode(ObjectMapper mapper, ObjectNode node) {
+        return Optional.ofNullable(node).orElseGet(mapper::createObjectNode);
     }
 
-    private ObjectNode targetingToObjectNode(List<Audience> targeting) {
+    private static ObjectNode targetingToObjectNode(ObjectMapper mapper, List<Audience> targeting) {
         final ObjectNode node = mapper.createObjectNode();
 
         for (Audience audience: targeting) {
