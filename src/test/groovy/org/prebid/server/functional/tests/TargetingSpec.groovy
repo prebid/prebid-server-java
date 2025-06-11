@@ -1662,6 +1662,7 @@ class TargetingSpec extends BaseSpec {
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsConfig)
+        openxBidder.reset()
     }
 
     def "PBS should assign bid ranks for each imp separately when request has multiple imps and multiBid is configured"() {
