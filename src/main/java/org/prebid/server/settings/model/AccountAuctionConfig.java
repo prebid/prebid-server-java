@@ -60,4 +60,6 @@ public class AccountAuctionConfig {
     AccountCacheConfig cache;
 
     AccountBidRankingConfig ranking;
+
+    AccountProfilesConfig profiles;
 }

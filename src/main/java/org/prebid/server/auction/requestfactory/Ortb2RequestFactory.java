@@ -455,6 +455,7 @@ public class Ortb2RequestFactory {
         return StringUtils.isNotBlank(accountId) || !isLookupStoredRequest
                 ? Future.succeededFuture(accountId)
                 : storedRequestProcessor.processAuctionRequest(accountId, bidRequest)
+                // TODO: add profiles?
                 .map(storedAuctionResult -> accountIdFrom(storedAuctionResult.bidRequest()));
     }
 

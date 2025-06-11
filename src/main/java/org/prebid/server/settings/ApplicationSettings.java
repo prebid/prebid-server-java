@@ -4,8 +4,10 @@ import io.vertx.core.Future;
 import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredDataResult;
+import org.prebid.server.settings.model.StoredProfileResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
@@ -43,6 +45,19 @@ public interface ApplicationSettings {
      */
     Future<StoredDataResult> getVideoStoredData(String accountId, Set<String> requestIds, Set<String> impIds,
                                                 Timeout timeout);
+
+    /**
+     * Fetches profiles for request and imps by IDs.
+     */
+    // TODO: remove default
+    default Future<StoredProfileResult> getProfiles(String accountId, Set<String> requestIds, Set<String> impIds,
+                                                    Timeout timeout) {
+
+        return Future.succeededFuture(StoredProfileResult.of(
+                Collections.emptyMap(),
+                Collections.emptyMap(),
+                Collections.emptyList()));
+    }
 
     /**
      * Fetches stored response by IDs.
