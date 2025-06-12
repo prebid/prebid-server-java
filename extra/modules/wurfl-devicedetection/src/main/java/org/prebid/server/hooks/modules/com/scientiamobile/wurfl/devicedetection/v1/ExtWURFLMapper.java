@@ -17,7 +17,7 @@ public class ExtWURFLMapper {
     private final Set<String> virtualCaps;
     private boolean addExtCaps;
     private final com.scientiamobile.wurfl.core.Device wurflDevice;
-    private static final String NULL_VALUE_TOKEN = "$null$";
+
     private static final String WURFL_ID_PROPERTY = "wurfl_id";
 
     public JsonNode mapExtProperties() {
@@ -32,7 +32,7 @@ public class ExtWURFLMapper {
             for (String capability : staticCaps) {
                 try {
                     final String value = wurflDevice.getCapability(capability);
-                    if (value != null && !NULL_VALUE_TOKEN.equals(value)) {
+                    if (value != null) {
                         wurflNode.put(capability, value);
                     }
                 } catch (Exception e) {
