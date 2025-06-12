@@ -23,6 +23,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -45,62 +46,60 @@ public class MobilefuseBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final String endpoint = request.getImp().stream()
-                .map(this::parseImpExt)
-                .filter(Objects::nonNull)
-                .findFirst()
-                .map(this::makeUrl)
-                .orElse(null);
+        final List<Imp> modifiedImps = new ArrayList<>();
+        final List<BidderError> errors = new ArrayList<>();
 
-        if (endpoint == null) {
-            return Result.withError(BidderError.badInput("Invalid ExtImpMobilefuse value"));
+        for (Imp imp : request.getImp()) {
+            try {
+                if (!isValidImp(imp)) {
+                    continue;
+                }
+
+                final ExtImpMobilefuse extImp = parseImpExt(imp);
+                modifiedImps.add(modifyImp(imp, extImp));
+            } catch (PreBidException e) {
+                errors.add(BidderError.badInput(e.getMessage()));
+            }
         }
 
-        final List<Imp> modifiedImps = request.getImp().stream()
-                .map(this::modifyImp)
-                .filter(Objects::nonNull)
-                .toList();
+        if (!errors.isEmpty()) {
+            return Result.withErrors(errors);
+        }
 
         if (modifiedImps.isEmpty()) {
             return Result.withError(BidderError.badInput("No valid imps"));
         }
 
         final BidRequest modifiedRequest = request.toBuilder().imp(modifiedImps).build();
-        return Result.withValue(BidderUtil.defaultRequest(modifiedRequest, endpoint, mapper));
+        return Result.withValue(BidderUtil.defaultRequest(modifiedRequest, endpointUrl, mapper));
     }
 
-    private Imp modifyImp(Imp imp) {
-        if (imp.getBanner() == null && imp.getVideo() == null && imp.getXNative() == null) {
-            return null;
-        }
-
-        final ExtImpMobilefuse impExt = parseImpExt(imp);
-        final ObjectNode skadn = parseSkadn(imp.getExt());
-        return imp.toBuilder()
-                .tagid(Objects.toString(impExt != null ? impExt.getPlacementId() : null, "0"))
-                .ext(skadn != null ? mapper.mapper().createObjectNode().set(SKADN_PROPERTY_NAME, skadn) : null)
-                .build();
+    private static boolean isValidImp(Imp imp) {
+        return imp.getBanner() != null || imp.getVideo() != null || imp.getXNative() != null;
     }
 
     private ExtImpMobilefuse parseImpExt(Imp imp) {
         try {
             return mapper.mapper().convertValue(imp.getExt(), MOBILEFUSE_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            return null;
+            throw new PreBidException("Error parsing ExtImpMobilefuse value: %s".formatted(e.getMessage()));
         }
+    }
+
+    private Imp modifyImp(Imp imp, ExtImpMobilefuse extImp) {
+        final ObjectNode skadn = parseSkadn(imp.getExt());
+        return imp.toBuilder()
+                .tagid(Objects.toString(extImp.getPlacementId(), "0"))
+                .ext(skadn != null ? mapper.mapper().createObjectNode().set(SKADN_PROPERTY_NAME, skadn) : null)
+                .build();
     }
 
     private ObjectNode parseSkadn(ObjectNode impExt) {
         try {
             return mapper.mapper().convertValue(impExt.get(SKADN_PROPERTY_NAME), ObjectNode.class);
         } catch (IllegalArgumentException e) {
-            return null;
+            throw new PreBidException(e.getMessage());
         }
-    }
-
-    private String makeUrl(ExtImpMobilefuse extImp) {
-        final String baseUrl = endpointUrl + Objects.toString(extImp.getPublisherId(), "0");
-        return "ext".equals(extImp.getTagidSrc()) ? baseUrl + "&tagid_src=ext" : baseUrl;
     }
 
     @Override
