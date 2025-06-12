@@ -13,7 +13,7 @@ class AuctionRequestHeadersContextTest {
         final AuctionRequestHeadersContext result = AuctionRequestHeadersContext.from(null);
 
         // then
-        assertThat(result.headers).isEmpty();
+        assertThat(result.getHeaders()).isEmpty();
     }
 
     @Test
@@ -28,7 +28,7 @@ class AuctionRequestHeadersContextTest {
         final AuctionRequestHeadersContext target = AuctionRequestHeadersContext.from(multiMap);
 
         // then
-        assertThat(target.headers)
+        assertThat(target.getHeaders())
                 .hasSize(2)
                 .containsEntry("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Test")
                 .containsEntry("Header2", "value2");
@@ -46,7 +46,7 @@ class AuctionRequestHeadersContextTest {
         final AuctionRequestHeadersContext target = AuctionRequestHeadersContext.from(multiMap);
 
         // then
-        assertThat(target.headers)
+        assertThat(target.getHeaders())
                 .hasSize(1)
                 .containsEntry("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Test");
     }
@@ -60,6 +60,6 @@ class AuctionRequestHeadersContextTest {
         final AuctionRequestHeadersContext target = AuctionRequestHeadersContext.from(emptyMultiMap);
 
         // then
-        assertThat(target.headers).isEmpty();
+        assertThat(target.getHeaders()).isEmpty();
     }
 }

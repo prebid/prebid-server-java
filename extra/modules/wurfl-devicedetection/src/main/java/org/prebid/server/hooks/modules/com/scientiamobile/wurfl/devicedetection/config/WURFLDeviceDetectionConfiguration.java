@@ -76,8 +76,8 @@ public class WURFLDeviceDetectionConfiguration {
 
     private String createTempPath(WURFLDeviceDetectionConfigProperties configProperties) {
         final String basePath = configProperties.getFileDirPath();
-        String fileName = WURFLEngineInitializer.extractWURFLFileName(configProperties.getFileSnapshotUrl());
-        fileName = "tmp_" + fileName;
+        final String fileName = "tmp_"
+                + WURFLEngineInitializer.extractWURFLFileName(configProperties.getFileSnapshotUrl());
         return Path.of(basePath, fileName).toString();
     }
 
