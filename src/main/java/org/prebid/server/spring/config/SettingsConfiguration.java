@@ -1,19 +1,19 @@
 package org.prebid.server.spring.config;
 
-import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.log.Logger;
-import org.prebid.server.log.LoggerFactory;
 import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.activity.ActivitiesConfigResolver;
 import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.floors.PriceFloorsConfigResolver;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.ApplicationSettings;
@@ -43,12 +43,12 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
-import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
-import software.amazon.awssdk.core.exception.SdkClientException;
 
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
@@ -124,8 +124,13 @@ public class SettingsConfiguration {
                 @Value("${settings.http.video-endpoint}") String videoEndpoint,
                 @Value("${settings.http.category-endpoint}") String categoryEndpoint) {
 
-            return new HttpApplicationSettings(httpClient, mapper, endpoint, ampEndpoint, videoEndpoint,
-                    categoryEndpoint);
+            return new HttpApplicationSettings(
+                    endpoint,
+                    ampEndpoint,
+                    videoEndpoint,
+                    categoryEndpoint,
+                    httpClient,
+                    mapper);
         }
     }
 
@@ -250,7 +255,7 @@ public class SettingsConfiguration {
              * If accessKeyId and secretAccessKey are provided in the
              * configuration file then they will be used. Otherwise, the
              * DefaultCredentialsProvider will look for credentials in this order:
-             *
+             * <p>
              * - Java System Properties
              * - Environment Variables
              * - Web Identity Token
@@ -309,7 +314,7 @@ public class SettingsConfiguration {
         private static AwsCredentialsProvider awsCredentialsProvider(S3ConfigurationProperties config) {
             final AwsCredentialsProvider credentialsProvider = config.useStaticCredentials()
                     ? StaticCredentialsProvider.create(
-                            AwsBasicCredentials.create(config.getAccessKeyId(), config.getSecretAccessKey()))
+                    AwsBasicCredentials.create(config.getAccessKeyId(), config.getSecretAccessKey()))
                     : DefaultCredentialsProvider.create();
 
             try {

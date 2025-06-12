@@ -64,8 +64,13 @@ public class HttpApplicationSettingsTest extends VertxTest {
 
     @BeforeEach
     public void setUp() {
-        httpApplicationSettings = new HttpApplicationSettings(httpClient, jacksonMapper, ENDPOINT, AMP_ENDPOINT,
-                VIDEO_ENDPOINT, CATEGORY_ENDPOINT);
+        httpApplicationSettings = new HttpApplicationSettings(
+                ENDPOINT,
+                AMP_ENDPOINT,
+                VIDEO_ENDPOINT,
+                CATEGORY_ENDPOINT,
+                httpClient,
+                jacksonMapper);
 
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
@@ -76,24 +81,39 @@ public class HttpApplicationSettingsTest extends VertxTest {
     @Test
     public void creationShouldFailsOnInvalidEndpoint() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new HttpApplicationSettings(httpClient, jacksonMapper, "invalid_url", AMP_ENDPOINT,
-                        VIDEO_ENDPOINT, CATEGORY_ENDPOINT))
+                .isThrownBy(() -> new HttpApplicationSettings(
+                        "invalid_url",
+                        AMP_ENDPOINT,
+                        VIDEO_ENDPOINT,
+                        CATEGORY_ENDPOINT,
+                        httpClient,
+                        jacksonMapper))
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 
     @Test
     public void creationShouldFailsOnInvalidAmpEndpoint() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new HttpApplicationSettings(httpClient, jacksonMapper, ENDPOINT, "invalid_url",
-                        VIDEO_ENDPOINT, CATEGORY_ENDPOINT))
+                .isThrownBy(() -> new HttpApplicationSettings(
+                        ENDPOINT,
+                        "invalid_url",
+                        VIDEO_ENDPOINT,
+                        CATEGORY_ENDPOINT,
+                        httpClient,
+                        jacksonMapper))
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 
     @Test
     public void creationShouldFailsOnInvalidVideoEndpoint() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new HttpApplicationSettings(httpClient, jacksonMapper, ENDPOINT, AMP_ENDPOINT,
-                        "invalid_url", CATEGORY_ENDPOINT))
+                .isThrownBy(() -> new HttpApplicationSettings(
+                        ENDPOINT,
+                        AMP_ENDPOINT,
+                        "invalid_url",
+                        CATEGORY_ENDPOINT,
+                        httpClient,
+                        jacksonMapper))
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 
@@ -242,8 +262,13 @@ public class HttpApplicationSettingsTest extends VertxTest {
     public void getStoredDataShouldSendHttpRequestWithExpectedAppendedParams() {
         // given
         givenHttpClientReturnsResponse(200, null);
-        httpApplicationSettings = new HttpApplicationSettings(httpClient, jacksonMapper,
-                "http://some-domain?param1=value1", AMP_ENDPOINT, VIDEO_ENDPOINT, CATEGORY_ENDPOINT);
+        httpApplicationSettings = new HttpApplicationSettings(
+                "http://some-domain?param1=value1",
+                AMP_ENDPOINT,
+                VIDEO_ENDPOINT,
+                CATEGORY_ENDPOINT,
+                httpClient,
+                jacksonMapper);
 
         // when
         httpApplicationSettings.getStoredData(null, singleton("id1"), singleton("id2"), timeout);
@@ -388,20 +413,6 @@ public class HttpApplicationSettingsTest extends VertxTest {
         assertThat(future.result().getStoredIdToImp().entrySet()).hasSize(1)
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(tuple("id2", "{\"field2\":\"field-value2\"}"));
-    }
-
-    @Test
-    public void getAmpStoredDataShouldIgnoreImpIdsArgument() {
-        // given
-        givenHttpClientReturnsResponse(200, null);
-
-        // when
-        httpApplicationSettings.getAmpStoredData(null, singleton("id1"), singleton("id2"), timeout);
-
-        // then
-        final ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
-        verify(httpClient).get(captor.capture(), any(), anyLong());
-        assertThat(captor.getValue()).doesNotContain("imp-ids");
     }
 
     @Test

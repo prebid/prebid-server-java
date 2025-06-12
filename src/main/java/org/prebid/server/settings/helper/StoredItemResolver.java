@@ -44,6 +44,7 @@ public class StoredItemResolver {
                 throw new PreBidException(
                         "Multiple stored %ss found for id: %s but no account was specified".formatted(type, id));
             }
+
             return storedItems.stream()
                     .filter(storedItem -> Objects.equals(storedItem.getAccountId(), accountId))
                     .findAny()
@@ -53,10 +54,13 @@ public class StoredItemResolver {
 
         // only one stored item found
         final StoredItem storedItem = storedItems.iterator().next();
-        if (StringUtils.isBlank(accountId) || storedItem.getAccountId() == null
+        if (StringUtils.isBlank(accountId)
+                || storedItem.getAccountId() == null
                 || Objects.equals(accountId, storedItem.getAccountId())) {
+
             return storedItem;
         }
+
         throw new PreBidException("No stored %s found for id: %s for account: %s".formatted(type, id, accountId));
     }
 }

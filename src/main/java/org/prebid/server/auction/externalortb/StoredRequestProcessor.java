@@ -1,4 +1,4 @@
-package org.prebid.server.auction;
+package org.prebid.server.auction.externalortb;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.BidRequest;
@@ -130,10 +130,10 @@ public class StoredRequestProcessor {
                 .map(this::generateBidRequestId);
     }
 
-    Future<VideoStoredDataResult> videoStoredDataResult(String accountId,
-                                                        List<Imp> imps,
-                                                        List<String> errors,
-                                                        Timeout timeout) {
+    public Future<VideoStoredDataResult> videoStoredDataResult(String accountId,
+                                                               List<Imp> imps,
+                                                               List<String> errors,
+                                                               Timeout timeout) {
 
         return videoStoredDataResultInternal(accountId, imps, errors, timeout)
                 .onFailure(cause -> updateInvalidStoredResultMetrics(accountId, cause))
