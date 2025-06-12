@@ -67,6 +67,7 @@ public class CcpaEnforcementTest {
                         true,
                         null,
                         false,
+                        false,
                         null,
                         null,
                         null,
@@ -210,6 +211,7 @@ public class CcpaEnforcementTest {
                 .willReturn(BidderInfo.create(
                         true,
                         null,
+                        false,
                         false,
                         null,
                         null,

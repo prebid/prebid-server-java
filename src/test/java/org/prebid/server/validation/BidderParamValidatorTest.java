@@ -403,6 +403,7 @@ public class BidderParamValidatorTest extends VertxTest {
         return BidderInfo.create(
                 true,
                 null,
+                false,
                 true,
                 "https://endpoint.com",
                 aliasOf,

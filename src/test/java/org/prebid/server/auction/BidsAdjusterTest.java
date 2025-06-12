@@ -9,6 +9,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
+import org.prebid.server.auction.adpodding.AdPoddingBidDeduplicationService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionParticipation;
 import org.prebid.server.auction.model.BidRejectionTracker;
@@ -57,6 +58,9 @@ public class BidsAdjusterTest extends VertxTest {
     @Mock(strictness = LENIENT)
     private BidAdjustmentsProcessor bidAdjustmentsProcessor;
 
+    @Mock(strictness = LENIENT)
+    private AdPoddingBidDeduplicationService adPoddingBidDeduplicationService;
+
     private BidsAdjuster target;
 
     @BeforeEach
@@ -67,8 +71,15 @@ public class BidsAdjusterTest extends VertxTest {
         given(dsaEnforcer.enforce(any(), any(), any())).willAnswer(inv -> inv.getArgument(1));
         given(bidAdjustmentsProcessor.enrichWithAdjustedBids(any(), any()))
                 .willAnswer(inv -> inv.getArgument(0));
+        given(adPoddingBidDeduplicationService.deduplicate(any(), any(), any(), any()))
+                .willAnswer(inv -> inv.getArgument(1));
 
-        target = new BidsAdjuster(responseBidValidator, priceFloorEnforcer, bidAdjustmentsProcessor, dsaEnforcer);
+        target = new BidsAdjuster(
+                responseBidValidator,
+                priceFloorEnforcer,
+                bidAdjustmentsProcessor,
+                dsaEnforcer,
+                adPoddingBidDeduplicationService);
     }
 
     @Test

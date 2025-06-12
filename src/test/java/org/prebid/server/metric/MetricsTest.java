@@ -683,6 +683,18 @@ public class MetricsTest {
     }
 
     @Test
+    public void updateAdPoddingValidationMetricsShouldIncrementMetrics() {
+        // when
+        metrics.updateAdPoddingValidationMetrics(RUBICON, ACCOUNT_ID, MetricName.err);
+        metrics.updateAdPoddingValidationMetrics(CONVERSANT, ACCOUNT_ID, MetricName.err);
+
+        // then
+        assertThat(metricRegistry.counter("adapter.rubicon.response.validation.pod.err").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("adapter.conversant.response.validation.pod.err").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("account.accountId.response.validation.pod.err").getCount()).isEqualTo(2);
+    }
+
+    @Test
     public void updateSeatValidationMetricsShouldIncrementMetrics() {
         // when
         metrics.updateSeatValidationMetrics(RUBICON);
