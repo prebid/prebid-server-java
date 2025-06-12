@@ -14,6 +14,9 @@ import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableAttribut
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargeting;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.QueryBuilder;
 import org.prebid.server.hooks.modules.optable.targeting.v1.net.APIClient;
+import org.prebid.server.hooks.modules.optable.targeting.v1.net.APIClientFactory;
+import org.prebid.server.hooks.modules.optable.targeting.v1.net.APIClientImpl;
+import org.prebid.server.hooks.modules.optable.targeting.v1.net.CachedAPIClient;
 import org.prebid.server.hooks.modules.optable.targeting.v1.net.OptableHttpClientWrapper;
 import org.prebid.server.hooks.modules.optable.targeting.v1.net.OptableResponseMapper;
 import org.prebid.server.json.JacksonMapper;
@@ -21,6 +24,7 @@ import org.prebid.server.json.JsonMerger;
 import org.prebid.server.json.ObjectMapperProvider;
 import org.prebid.server.spring.config.VertxContextScope;
 import org.prebid.server.spring.config.model.HttpClientProperties;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -64,18 +68,40 @@ public class OptableTargetingConfig {
         return new OptableHttpClientWrapper(vertx, httpClientProperties);
     }
 
-    @Bean
-    APIClient apiClient(OptableHttpClientWrapper httpClientWrapper,
+    @Bean(name = "apiClient")
+    APIClient apiClientImpl(OptableHttpClientWrapper httpClientWrapper,
                         @Value("${logging.sampling-rate:0.01}")
                         double logSamplingRate,
                         OptableTargetingProperties properties,
                         OptableResponseMapper responseParser) {
 
-        return new APIClient(
+        return new APIClientImpl(
                 properties.getApiEndpoint(),
                 httpClientWrapper.getHttpClient(),
                 logSamplingRate,
                 responseParser);
+    }
+
+    @Bean(name = "cachedAPIClient")
+    APIClient cachedApiClient(APIClientImpl apiClient, Cache cache) {
+        return new CachedAPIClient(apiClient, cache);
+    }
+
+    @Bean
+    APIClientFactory apiClientFactory(
+            @Qualifier("apiClient")
+            APIClient apiClient,
+            @Qualifier("cachedAPIClient")
+            APIClient cachedApiClient,
+            @Value("${storage.pbc.enabled:false}")
+            boolean storageEnabled,
+            @Value("${cache.module.enabled:false}")
+            boolean moduleCacheEnabled) {
+
+        return new APIClientFactory(
+                apiClient,
+                cachedApiClient,
+                storageEnabled && moduleCacheEnabled);
     }
 
     @Bean
@@ -91,19 +117,12 @@ public class OptableTargetingConfig {
     @Bean
     OptableTargeting optableTargeting(IdsMapper parametersExtractor,
                                       QueryBuilder queryBuilder,
-                                      APIClient apiClient,
-                                      Cache cache,
-                                      @Value("${storage.pbc.enabled:false}")
-                                      boolean storageEnabled,
-                                      @Value("${cache.module.enabled:false}")
-                                      boolean moduleCacheEnabled) {
+                                      APIClientFactory apiClientFactory) {
 
         return new OptableTargeting(
-                cache,
                 parametersExtractor,
                 queryBuilder,
-                apiClient,
-                storageEnabled && moduleCacheEnabled);
+                apiClientFactory);
     }
 
     @Bean

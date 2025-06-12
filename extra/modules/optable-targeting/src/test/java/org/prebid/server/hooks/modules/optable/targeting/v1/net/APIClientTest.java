@@ -48,10 +48,7 @@ public class APIClientTest extends BaseOptableTest {
 
     @BeforeEach
     public void setUp() {
-        target = new APIClient("http://endpoint.optable.com",
-                httpClient,
-                LOG_SAMPLING_RATE,
-                parser);
+        target = new APIClientImpl("http://endpoint.optable.com", httpClient, LOG_SAMPLING_RATE, parser);
     }
 
     @Test
@@ -61,7 +58,7 @@ public class APIClientTest extends BaseOptableTest {
                 .thenReturn(Future.succeededFuture(givenSuccessHttpResponse("targeting_response.json")));
 
         // when
-        final Future<TargetingResult> result = target.getTargeting("key", "accountId", "origin",
+        final Future<TargetingResult> result = target.getTargeting(givenOptableTargetingProperties(false),
                 givenQuery(), List.of("8.8.8.8"), 1000);
 
         // then
@@ -79,7 +76,7 @@ public class APIClientTest extends BaseOptableTest {
                 .thenReturn(Future.succeededFuture(givenFailHttpResponse("error_response.json")));
 
         // when
-        final Future<TargetingResult> result = target.getTargeting("key", "accountId", "origin",
+        final Future<TargetingResult> result = target.getTargeting(givenOptableTargetingProperties(false),
                 givenQuery(), List.of("8.8.8.8"), 1000);
 
         // then
@@ -93,7 +90,7 @@ public class APIClientTest extends BaseOptableTest {
                 .thenReturn(Future.succeededFuture(givenSuccessHttpResponse("plain_text_response.json")));
 
         // when
-        final Future<TargetingResult> result = target.getTargeting("key", "accountId", "origin",
+        final Future<TargetingResult> result = target.getTargeting(givenOptableTargetingProperties(false),
                 givenQuery(), List.of("8.8.8.8"), 1000);
 
         // then
@@ -107,7 +104,7 @@ public class APIClientTest extends BaseOptableTest {
                 .thenThrow(new NullPointerException());
 
         // when
-        final Future<TargetingResult> result = target.getTargeting("key", "accountId", "origin",
+        final Future<TargetingResult> result = target.getTargeting(givenOptableTargetingProperties(false),
                 givenQuery(), List.of("8.8.8.8"), 1000);
 
         // then
@@ -122,7 +119,7 @@ public class APIClientTest extends BaseOptableTest {
                         "plain_text_response.json")));
 
         // when
-        final Future<TargetingResult> result = target.getTargeting("key", "accountId", "origin",
+        final Future<TargetingResult> result = target.getTargeting(givenOptableTargetingProperties(false),
                 givenQuery(), List.of("8.8.8.8"), 1000);
 
         // then
@@ -132,7 +129,7 @@ public class APIClientTest extends BaseOptableTest {
     @Test
     public void shouldUseAuthorizationHeaderIfApiKeyIsPresent() {
         //  given
-        target = new APIClient("http://endpoint.optable.com",
+        target = new APIClientImpl("http://endpoint.optable.com",
                 httpClient,
                 LOG_SAMPLING_RATE,
                 parser);
@@ -142,7 +139,7 @@ public class APIClientTest extends BaseOptableTest {
                         "plain_text_response.json")));
 
         // when
-        final Future<TargetingResult> result = target.getTargeting("key", "accountId", "origin",
+        final Future<TargetingResult> result = target.getTargeting(givenOptableTargetingProperties(false),
                 givenQuery(), List.of("8.8.8.8"), 1000);
 
         // then
@@ -162,8 +159,11 @@ public class APIClientTest extends BaseOptableTest {
                         "plain_text_response.json")));
 
         // when
-        final Future<TargetingResult> result = target.getTargeting(null, "accountId", "origin",
-                givenQuery(), List.of("8.8.8.8"), 1000);
+        final Future<TargetingResult> result = target.getTargeting(
+                givenOptableTargetingProperties(null, false),
+                givenQuery(),
+                List.of("8.8.8.8"),
+                1000);
 
         // then
         final ArgumentCaptor<MultiMap> headersCaptor = ArgumentCaptor.forClass(MultiMap.class);
@@ -183,9 +183,7 @@ public class APIClientTest extends BaseOptableTest {
 
         // when
         final Future<TargetingResult> result = target.getTargeting(
-                "key",
-                "accountId",
-                "origin",
+                givenOptableTargetingProperties(false),
                 givenQuery(),
                 List.of("8.8.8.8", "2001:4860:4860::8888"),
                 1000);
@@ -206,7 +204,7 @@ public class APIClientTest extends BaseOptableTest {
                         "plain_text_response.json")));
 
         // when
-        final Future<TargetingResult> result = target.getTargeting("key", "accountId", "origin",
+        final Future<TargetingResult> result = target.getTargeting(givenOptableTargetingProperties(false),
                 givenQuery(), null, 1000);
 
         // then

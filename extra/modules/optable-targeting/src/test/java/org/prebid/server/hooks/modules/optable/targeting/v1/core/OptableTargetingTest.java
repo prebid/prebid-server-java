@@ -11,21 +11,18 @@ import org.prebid.server.hooks.modules.optable.targeting.model.Id;
 import org.prebid.server.hooks.modules.optable.targeting.model.OptableAttributes;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
-import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.User;
 import org.prebid.server.hooks.modules.optable.targeting.v1.BaseOptableTest;
-import org.prebid.server.hooks.modules.optable.targeting.v1.net.APIClient;
+import org.prebid.server.hooks.modules.optable.targeting.v1.net.APIClientFactory;
+import org.prebid.server.hooks.modules.optable.targeting.v1.net.APIClientImpl;
+import org.prebid.server.hooks.modules.optable.targeting.v1.net.CachedAPIClient;
 
 import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -38,7 +35,12 @@ public class OptableTargetingTest extends BaseOptableTest {
     private IdsMapper idsMapper;
 
     @Mock
-    private APIClient apiClient;
+    private APIClientImpl apiClient;
+
+    @Mock
+    private CachedAPIClient cachingAPIClient;
+
+    private APIClientFactory apiClientFactory;
 
     private QueryBuilder queryBuilder = new QueryBuilder();
 
@@ -46,24 +48,23 @@ public class OptableTargetingTest extends BaseOptableTest {
 
     private OptableAttributes optableAttributes;
 
-    private String idPrefixOrder = "c,c1,email";
-
     private OptableTargetingProperties properties;
 
     @BeforeEach
     public void setUp() {
+        apiClientFactory = new APIClientFactory(apiClient, cachingAPIClient, true);
         optableAttributes = givenOptableAttributes();
         properties = givenOptableTargetingProperties(true);
-        target = new OptableTargeting(cache, idsMapper, queryBuilder, apiClient, true);
+        target = new OptableTargeting(idsMapper, queryBuilder, apiClientFactory);
     }
 
     @Test
-    public void shouldReturnTargetingResultsAndNotUseCache() {
+    public void shouldUseNonCachedAPIClient() {
         // given
         final BidRequest bidRequest = givenBidRequest();
         properties = givenOptableTargetingProperties(false);
         when(idsMapper.toIds(any(), any())).thenReturn(List.of(Id.of(Id.ID5, "id")));
-        when(apiClient.getTargeting(any(), any(), any(), any(), any(), anyLong()))
+        when(apiClient.getTargeting(any(), any(), any(), anyLong()))
                 .thenReturn(Future.succeededFuture(givenTargetingResult()));
 
         // when
@@ -71,25 +72,17 @@ public class OptableTargetingTest extends BaseOptableTest {
                 properties, bidRequest, optableAttributes, 100);
 
         // then
-        final User user = targetingResult.result().getOrtb2().getUser();
-        assertThat(user).isNotNull()
-                .returns("source", it -> it.getEids().getFirst().getSource())
-                .returns("id", it -> it.getEids().getFirst().getUids().getFirst().getId())
-                .returns("id", it -> it.getData().getFirst().getId())
-                .returns("id", it -> it.getData().getFirst().getSegment().getFirst().getId());
-        verify(cache, times(0)).get(any());
-        verify(apiClient, times(1)).getTargeting(any(), any(), any(), any(), any(), anyLong());
-        verify(cache, times(0)).put(any(), eq(targetingResult.result()), anyInt());
+        assertThat(targetingResult.result()).isNotNull();
+        verify(apiClient).getTargeting(any(), any(), any(), anyLong());
     }
 
     @Test
-    public void shouldCallAPIAndAddTargetingResultsToCache() {
+    public void shouldUseCachedAPIClient() {
         // given
-        when(cache.get(any())).thenReturn(Future.failedFuture("error"));
-        when(cache.put(any(), any(), anyInt())).thenReturn(Future.succeededFuture());
         final BidRequest bidRequest = givenBidRequest();
+        properties = givenOptableTargetingProperties(true);
         when(idsMapper.toIds(any(), any())).thenReturn(List.of(Id.of(Id.ID5, "id")));
-        when(apiClient.getTargeting(any(), any(), any(), any(), any(), anyLong()))
+        when(cachingAPIClient.getTargeting(any(), any(), any(), anyLong()))
                 .thenReturn(Future.succeededFuture(givenTargetingResult()));
 
         // when
@@ -97,109 +90,8 @@ public class OptableTargetingTest extends BaseOptableTest {
                 properties, bidRequest, optableAttributes, 100);
 
         // then
-        final User user = targetingResult.result().getOrtb2().getUser();
-        assertThat(user).isNotNull()
-                .returns("source", it -> it.getEids().getFirst().getSource())
-                .returns("id", it -> it.getEids().getFirst().getUids().getFirst().getId())
-                .returns("id", it -> it.getData().getFirst().getId())
-                .returns("id", it -> it.getData().getFirst().getSegment().getFirst().getId());
-        verify(cache).put(any(), eq(targetingResult.result()), anyInt());
-    }
-
-    @Test
-    public void shouldCallAPIAndAddTargetingResultsToCacheWhenCacheReturnsFailure() {
-        // given
-        when(cache.get(any())).thenReturn(Future.failedFuture(new IllegalArgumentException("message")));
-        when(cache.put(any(), any(), anyInt())).thenReturn(Future.succeededFuture());
-        final BidRequest bidRequest = givenBidRequest();
-        when(idsMapper.toIds(any(), any())).thenReturn(List.of(Id.of(Id.ID5, "id")));
-        when(apiClient.getTargeting(any(), any(), any(), any(), any(), anyLong()))
-                .thenReturn(Future.succeededFuture(givenTargetingResult()));
-
-        // when
-        final Future<TargetingResult> targetingResult = target.getTargeting(
-                properties, bidRequest, optableAttributes, 100);
-
-        // then
-        final User user = targetingResult.result().getOrtb2().getUser();
-        assertThat(user).isNotNull()
-                .returns("source", it -> it.getEids().getFirst().getSource())
-                .returns("id", it -> it.getEids().getFirst().getUids().getFirst().getId())
-                .returns("id", it -> it.getData().getFirst().getId())
-                .returns("id", it -> it.getData().getFirst().getSegment().getFirst().getId());
-        verify(apiClient, times(1)).getTargeting(any(), any(), any(), any(), any(), anyLong());
-        verify(cache).put(any(), eq(targetingResult.result()), anyInt());
-    }
-
-    @Test
-    public void shouldUseCachedResult() {
-        // given
-        when(cache.get(any())).thenReturn(Future.succeededFuture(givenTargetingResult()));
-        final BidRequest bidRequest = givenBidRequest();
-        when(idsMapper.toIds(any(), any())).thenReturn(List.of(Id.of(Id.ID5, "id")));
-
-        // when
-        final Future<TargetingResult> targetingResult = target.getTargeting(
-                properties, bidRequest, optableAttributes, 100);
-
-        // then
-        final User user = targetingResult.result().getOrtb2().getUser();
-        assertThat(user).isNotNull()
-                .returns("source", it -> it.getEids().getFirst().getSource())
-                .returns("id", it -> it.getEids().getFirst().getUids().getFirst().getId())
-                .returns("id", it -> it.getData().getFirst().getId())
-                .returns("id", it -> it.getData().getFirst().getSegment().getFirst().getId());
-        verify(cache, times(1)).get(any());
-        verify(apiClient, times(0)).getTargeting(any(), any(), any(), any(), any(), anyLong());
-        verify(cache, times(0)).put(any(), eq(targetingResult.result()), anyInt());
-    }
-
-    @Test
-    public void shouldNotFailWhenNoIdsMapped() {
-        // given
-        final BidRequest bidRequest = givenBidRequest();
-        when(idsMapper.toIds(any(), any())).thenReturn(List.of());
-        verifyNoInteractions(apiClient);
-
-        // when
-        final Future<TargetingResult> targetingResult = target.getTargeting(
-                properties, bidRequest, optableAttributes, 100);
-
-        // then
-        assertThat(targetingResult.result()).isNull();
-    }
-
-    @Test
-    public void shouldNotFailWhenApiClientIsFailed() {
-        // given
-        properties = givenOptableTargetingProperties(false);
-        final BidRequest bidRequest = givenBidRequest();
-        when(idsMapper.toIds(any(), any())).thenReturn(List.of(Id.of(Id.ID5, "id")));
-        when(apiClient.getTargeting(any(), any(), any(), any(), any(), anyLong())).thenReturn(null);
-
-        // when
-        final Future<TargetingResult> targetingResult = target.getTargeting(properties, bidRequest,
-                optableAttributes, 100);
-
-        // then
-        assertThat(targetingResult.result()).isNull();
-    }
-
-    @Test
-    public void shouldNotFailWhenApiClientReturnsFailFuture() {
-        // given
-        final BidRequest bidRequest = givenBidRequest();
-        properties = givenOptableTargetingProperties(false);
-        when(idsMapper.toIds(any(), any())).thenReturn(List.of(Id.of(Id.ID5, "id")));
-        when(apiClient.getTargeting(any(), any(), any(), any(), any(), anyLong()))
-                .thenReturn(Future.failedFuture("File"));
-
-        // when
-        final Future<TargetingResult> targetingResult = target.getTargeting(properties, bidRequest,
-                optableAttributes, 100);
-
-        // then
-        assertThat(targetingResult.result()).isNull();
+        assertThat(targetingResult.result()).isNotNull();
+        verify(cachingAPIClient).getTargeting(any(), any(), any(), anyLong());
     }
 
     private OptableAttributes givenOptableAttributes() {
