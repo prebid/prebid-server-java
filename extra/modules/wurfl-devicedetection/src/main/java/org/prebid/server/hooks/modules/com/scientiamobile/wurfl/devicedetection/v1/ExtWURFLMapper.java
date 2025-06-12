@@ -7,8 +7,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 @Builder
@@ -27,39 +25,31 @@ public class ExtWURFLMapper {
         final ObjectMapper objectMapper = new ObjectMapper();
         final ObjectNode wurflNode = objectMapper.createObjectNode();
 
-        try {
-            wurflNode.put(WURFL_ID_PROPERTY, wurflDevice.getId());
+        wurflNode.put(WURFL_ID_PROPERTY, wurflDevice.getId());
 
-            if (addExtCaps) {
+        if (addExtCaps) {
 
-                staticCaps.stream()
-                        .map(sc -> {
-                            try {
-                                return Map.entry(sc, wurflDevice.getCapability(sc));
-                            } catch (Exception e) {
-                                log.error("Error getting capability for {}: {}", sc, e.getMessage());
-                                return Map.entry(sc, NULL_VALUE_TOKEN);
-                            }
-                        })
-                        .filter(entry -> entry.getValue() != null
-                                && !NULL_VALUE_TOKEN.equals(entry.getValue()))
-                        .forEach(entry -> wurflNode.put(entry.getKey(), entry.getValue()));
-
-                virtualCaps.stream()
-                        .map(vc -> {
-                            try {
-                                return Map.entry(vc, wurflDevice.getVirtualCapability(vc));
-                            } catch (Exception e) {
-
-                                log.warn("Could not fetch virtual capability {}", vc);
-                                return null;
-                            }
-                        })
-                        .filter(Objects::nonNull)
-                        .forEach(entry -> wurflNode.put(entry.getKey(), entry.getValue()));
+            for (String capability : staticCaps) {
+                try {
+                    final String value = wurflDevice.getCapability(capability);
+                    if (value != null && !NULL_VALUE_TOKEN.equals(value)) {
+                        wurflNode.put(capability, value);
+                    }
+                } catch (Exception e) {
+                    log.warn("Error getting capability for {}: {}", capability, e.getMessage());
+                }
             }
-        } catch (Exception e) {
-            log.error("Exception while updating EXT");
+
+            for (String virtualCapability : virtualCaps) {
+                try {
+                    final String value = wurflDevice.getVirtualCapability(virtualCapability);
+                    if (value != null) {
+                        wurflNode.put(virtualCapability, value);
+                    }
+                } catch (Exception e) {
+                    log.warn("Could not fetch virtual capability {}", virtualCapability);
+                }
+            }
         }
 
         JsonNode node = null;
