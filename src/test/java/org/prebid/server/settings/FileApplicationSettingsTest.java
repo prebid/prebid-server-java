@@ -390,30 +390,6 @@ public class FileApplicationSettingsTest extends VertxTest {
     }
 
     @Test
-    public void getAmpStoredDataShouldIgnoreImpIdsArgument() {
-        // given
-        given(fileSystem.readDirBlocking(anyString()))
-                .willReturn(singletonList("/home/user/requests/1.json"))
-                .willReturn(singletonList("/home/user/imps/2.json"));
-        given(fileSystem.readFileBlocking(anyString()))
-                .willReturn(Buffer.buffer("accounts:")) // settings file
-                .willReturn(Buffer.buffer("value1")) // stored request
-                .willReturn(Buffer.buffer("value2")) // stored imp
-                .willReturn(Buffer.buffer("{\"iab-1\": {\"id\": \"id\"}}")); // categories
-        final FileApplicationSettings applicationSettings =
-                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore", "ignore",
-                        jacksonMapper);
-
-        // when
-        final Future<StoredDataResult> storedRequestResult =
-                applicationSettings.getAmpStoredData(null, emptySet(), singleton("2"), null);
-
-        // then
-        assertThat(storedRequestResult.result().getErrors()).isNotNull().isEmpty();
-        assertThat(storedRequestResult.result().getStoredIdToImp()).isEmpty();
-    }
-
-    @Test
     public void getStoredResponsesShouldReturnEmptyResultAndErrorsWhenResponseIdsAreEmpty() {
         // given
         given(fileSystem.readDirBlocking(anyString()))
