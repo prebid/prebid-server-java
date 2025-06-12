@@ -144,7 +144,7 @@ public class YandexBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
         // then
         assertThat(result.getErrors()).containsExactly(
-                BidderError.badInput("Yandex only supports banner and native types. Ignoring imp id #blockA")
+                BidderError.badInput("Yandex only supports banner, video, and native types. Ignoring imp id #blockA")
         );
     }
 
@@ -213,6 +213,57 @@ public class YandexBidderTest extends VertxTest {
                 .extracting(Imp::getBanner)
                 .extracting(Banner::getW, Banner::getH)
                 .containsOnly(tuple(300, 600));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorWhenVideoWidthIsZero() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.id("blockA").banner(null).video(Video.builder().w(0).h(600).build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).containsExactly(BidderError.badInput("Invalid sizes provided for Video 0x600"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorWhenVideoHeightIsZero() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.id("blockA").banner(null).video(Video.builder().w(300).h(0).build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).containsExactly(BidderError.badInput("Invalid sizes provided for Video 300x0"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldModifyVideoParameters() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.id("blockA").banner(null)
+                        .video(Video.builder().w(300).h(600).build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getVideo)
+                .extracting(Video::getMinduration, Video::getMaxduration, Video::getMimes, Video::getProtocols)
+                .containsOnly(tuple(1, 120, singletonList("video/mp4"), singletonList(3)));
     }
 
     @Test
@@ -443,5 +494,40 @@ public class YandexBidderTest extends VertxTest {
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetDisplayManagerAndVersionForAllImpTypes() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .site(Site.builder().id("1").build())
+                .imp(asList(
+                        Imp.builder().id("bannerImp")
+                                .banner(Banner.builder().w(300).h(600).build())
+                                .ext(givenImpExt(1))
+                                .build(),
+                        Imp.builder().id("videoImp")
+                                .video(Video.builder().w(300).h(600).build())
+                                .ext(givenImpExt(2))
+                                .build(),
+                        Imp.builder().id("nativeImp")
+                                .xNative(Native.builder().build())
+                                .ext(givenImpExt(3))
+                                .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(3)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getDisplaymanager, Imp::getDisplaymanagerver)
+                .containsOnly(
+                        tuple("prebid.java", "1.1"),
+                        tuple("prebid.java", "1.1"),
+                        tuple("prebid.java", "1.1"));
     }
 }
