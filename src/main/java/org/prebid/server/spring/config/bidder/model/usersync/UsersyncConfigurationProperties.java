@@ -19,4 +19,6 @@ public class UsersyncConfigurationProperties {
     UsersyncMethodConfigurationProperties redirect;
 
     UsersyncMethodConfigurationProperties iframe;
+
+    UsersyncBidderRegulationScopeProperties skipwhen;
 }
