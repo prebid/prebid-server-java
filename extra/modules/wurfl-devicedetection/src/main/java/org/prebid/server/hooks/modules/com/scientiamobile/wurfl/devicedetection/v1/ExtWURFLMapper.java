@@ -1,7 +1,5 @@
 package org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.v1;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
@@ -20,7 +18,7 @@ public class ExtWURFLMapper {
 
     private static final String WURFL_ID_PROPERTY = "wurfl_id";
 
-    public JsonNode mapExtProperties() {
+    public ObjectNode mapExtProperties() {
 
         final ObjectMapper objectMapper = new ObjectMapper();
         final ObjectNode wurflNode = objectMapper.createObjectNode();
@@ -52,12 +50,6 @@ public class ExtWURFLMapper {
             }
         }
 
-        JsonNode node = null;
-        try {
-            node = objectMapper.readTree(wurflNode.toString());
-        } catch (JsonProcessingException e) {
-            log.error("Error creating WURFL ext device JSON:  {}", e.getMessage());
-        }
-        return node;
+        return wurflNode;
     }
 }

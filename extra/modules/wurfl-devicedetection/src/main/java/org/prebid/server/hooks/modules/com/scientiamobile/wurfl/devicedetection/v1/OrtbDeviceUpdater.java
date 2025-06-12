@@ -9,23 +9,17 @@ import org.prebid.server.model.UpdateResult;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 
 import java.math.BigDecimal;
-import java.util.Map;
 import java.util.Set;
 
 @Slf4j
 public class OrtbDeviceUpdater {
 
     private static final String WURFL_PROPERTY = "wurfl";
-    private static final Map<String, Boolean> NAME_TO_IS_VIRTUAL_CAPABILITY = Map.of(
-            "brand_name", false,
-            "model_name", false,
-            "resolution_width", false,
-            "resolution_height", false,
-            "advertised_device_os", true,
-            "advertised_device_os_version", true,
-            "pixel_density", true,
-            "density_class", false,
-            "ajax_support_javascript", false
+    private static final Set<String> VIRTUAL_CAPABILITY_NAMES = Set.of(
+
+            "advertised_device_os",
+            "advertised_device_os_version",
+            "pixel_density"
     );
 
     public Device update(Device ortbDevice, com.scientiamobile.wurfl.core.Device wurflDevice,
@@ -193,8 +187,8 @@ public class OrtbDeviceUpdater {
         return UpdateResult.unaltered(fromOrtbDevice);
     }
 
-    private boolean isVirtualCapability(String capName) {
-        return NAME_TO_IS_VIRTUAL_CAPABILITY.get(capName);
+    private boolean isVirtualCapability(String vcapName) {
+        return VIRTUAL_CAPABILITY_NAMES.contains(vcapName);
     }
 
     private UpdateResult<Integer> tryUpdateDeviceTypeField(Integer fromOrtbDevice, Integer fromWurfl) {
