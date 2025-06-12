@@ -27,10 +27,12 @@ import org.prebid.server.util.ObjectUtil;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -95,32 +97,37 @@ public class AdPoddingBidDeduplicationService {
                 .filter(impFilter)
                 .toList();
 
-        final Map<String, List<BidderBid>> impIdToBids = bids.stream()
+        final Map<String, Map<Set<String>, List<BidderBid>>> impIdToBids = bids.stream()
                 .filter(bidFilter)
-                .collect(Collectors.groupingBy(bid -> correspondingImp(bid.getBid().getImpid(), filteredImps).getId()));
+                .collect(Collectors.groupingBy(
+                        bid -> correspondingImp(bid.getBid().getImpid(), filteredImps).getId(),
+                        //todo: what if adomain is absent
+                        Collectors.groupingBy(bid -> new HashSet<>(bid.getBid().getAdomain()))));
 
-        for (List<BidderBid> filteredBids : impIdToBids.values()) {
-            BigDecimal highestCpmPerSecond = BigDecimal.ZERO;
-            BidderBid winnerBid = null;
-            for (BidderBid bidderBid : filteredBids) {
-                final Bid bid = bidderBid.getBid();
-                final Integer duration = ObjectUtils.firstNonNull(bid.getDur(), getBidMetaDuration(bid));
-                final BigDecimal cpmPerSecond = bid.getPrice()
-                        .divide(BigDecimal.valueOf(duration), 4, RoundingMode.HALF_EVEN);
+        for (Map<Set<String>, List<BidderBid>> adomainToBids : impIdToBids.values()) {
+            for (List<BidderBid> filteredBids : adomainToBids.values()) {
+                BigDecimal highestCpmPerSecond = BigDecimal.ZERO;
+                BidderBid winnerBid = null;
+                for (BidderBid bidderBid : filteredBids) {
+                    final Bid bid = bidderBid.getBid();
+                    final Integer duration = ObjectUtils.firstNonNull(bid.getDur(), getBidMetaDuration(bid));
+                    final BigDecimal cpmPerSecond = bid.getPrice()
+                            .divide(BigDecimal.valueOf(duration), 4, RoundingMode.HALF_EVEN);
 
-                if (cpmPerSecond.compareTo(highestCpmPerSecond) > 0) {
-                    highestCpmPerSecond = cpmPerSecond;
-                    if (winnerBid != null) {
-                        bidRejectionTracker.rejectBid(winnerBid, BidRejectionReason.RESPONSE_REJECTED_DUPLICATE);
+                    if (cpmPerSecond.compareTo(highestCpmPerSecond) > 0) {
+                        highestCpmPerSecond = cpmPerSecond;
+                        if (winnerBid != null) {
+                            bidRejectionTracker.rejectBid(winnerBid, BidRejectionReason.RESPONSE_REJECTED_DUPLICATE);
+                        }
+                        winnerBid = bidderBid;
+                    } else {
+                        bidRejectionTracker.rejectBid(bidderBid, BidRejectionReason.RESPONSE_REJECTED_DUPLICATE);
                     }
-                    winnerBid = bidderBid;
-                } else {
-                    bidRejectionTracker.rejectBid(bidderBid, BidRejectionReason.RESPONSE_REJECTED_DUPLICATE);
                 }
-            }
 
-            if (winnerBid != null) {
-                winningBids.add(winnerBid);
+                if (winnerBid != null) {
+                    winningBids.add(winnerBid);
+                }
             }
         }
     }
