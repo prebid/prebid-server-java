@@ -14,20 +14,20 @@
     <description>WURFL device detection and data enrichment module</description>
 
     <properties>
-        <wurfl.version>1.13.4.0</wurfl.version>
+        <wurfl.version>1.0.0.0</wurfl.version>
     </properties>
 
     <repositories>
         <repository>
             <id>com.scientiamobile.wurfl</id>
-            <url>https://maven.scientiamobile.com/repository/wurfl-onsite/</url>
+            <url>https://maven.scientiamobile.com/repository/wurfl-onsite-tools/</url>
         </repository>
     </repositories>
 
     <dependencies>
         <dependency>
             <groupId>com.scientiamobile.wurfl</groupId>
-            <artifactId>wurfl</artifactId>
+            <artifactId>wurfl-mock</artifactId>
             <version>${wurfl.version}</version>
         </dependency>
     </dependencies>
