@@ -1,6 +1,9 @@
 adapters:
   criteo:
+    ortb-version: "2.6"
     endpoint: https://ssp-bidder.criteo.com/openrtb/pbs/auction/request?profile=230
+    ortb:
+      multiformat-supported: true
     meta-info:
       maintainer-email: prebid@criteo.com
       app-media-types:
@@ -13,6 +16,7 @@ adapters:
         - native
       supported-vendors:
       vendor-id: 91
+
     usersync:
       cookie-family-name: criteo
       redirect:
