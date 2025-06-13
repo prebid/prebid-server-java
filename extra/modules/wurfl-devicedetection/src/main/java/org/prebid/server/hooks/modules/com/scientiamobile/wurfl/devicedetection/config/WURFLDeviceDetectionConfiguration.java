@@ -44,7 +44,7 @@ public class WURFLDeviceDetectionConfiguration {
                 new WURFLDeviceDetectionRawAuctionRequestHook(wurflService, configProperties)));
     }
 
-    protected FileSyncer createFileSyncer(WURFLDeviceDetectionConfigProperties configProperties,
+    private FileSyncer createFileSyncer(WURFLDeviceDetectionConfigProperties configProperties,
                                         WURFLService wurflService, Vertx vertx) {
         final FileSyncerProperties fileSyncerProperties = createFileSyncerProperties(configProperties);
         return FileUtil.fileSyncerFor(wurflService, fileSyncerProperties, vertx);
