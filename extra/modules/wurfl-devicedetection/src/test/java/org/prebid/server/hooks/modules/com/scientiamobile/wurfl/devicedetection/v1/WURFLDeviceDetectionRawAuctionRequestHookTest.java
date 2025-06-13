@@ -8,6 +8,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.settings.model.Account;
 import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.config.WURFLDeviceDetectionConfigProperties;
 import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.mock.WURFLDeviceMock;
 import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.model.AuctionRequestHeadersContext;
@@ -20,6 +22,7 @@ import org.prebid.server.model.CaseInsensitiveMultiMap;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -40,10 +43,16 @@ class WURFLDeviceDetectionRawAuctionRequestHookTest {
     @Mock
     private AuctionInvocationContext context;
 
+    private AuctionContext auctionContext;
+
+    @Mock(strictness = Mock.Strictness.LENIENT)
+    private Account account;
+
     private WURFLDeviceDetectionRawAuctionRequestHook target;
 
     @BeforeEach
     void setUp() {
+        auctionContext = AuctionContext.builder().account(account).build();
 
         final WURFLService wurflService = new WURFLService(wurflEngine, configProperties);
         target = new WURFLDeviceDetectionRawAuctionRequestHook(wurflService, configProperties);
@@ -113,6 +122,20 @@ class WURFLDeviceDetectionRawAuctionRequestHookTest {
     @Test
     void shouldEnrichDeviceWhenAllowedPublisherIdsIsEmpty() {
         // given
+        final String ua = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_7_2) Version/17.4.1 Mobile/15E148 Safari/604.1";
+        final Device device = Device.builder().ua(ua).build();
+        final BidRequest bidRequest = BidRequest.builder().device(device).build();
+        when(payload.bidRequest()).thenReturn(bidRequest);
+
+        final CaseInsensitiveMultiMap headers = CaseInsensitiveMultiMap.builder()
+                .add("User-Agent", ua)
+                .build();
+        final AuctionRequestHeadersContext headersContext = AuctionRequestHeadersContext.from(headers);
+
+        // when
+        when(context.moduleContext()).thenReturn(headersContext);
+        final var wurflDevice = WURFLDeviceMock.WURFLDeviceMockFactory.mockIPhone();
+        when(wurflEngine.getDeviceForRequest(any(Map.class))).thenReturn(wurflDevice);
         when(configProperties.getAllowedPublisherIds()).thenReturn(Collections.emptySet());
         final WURFLService wurflService = new WURFLService(wurflEngine, configProperties);
         target = new WURFLDeviceDetectionRawAuctionRequestHook(wurflService, configProperties);
@@ -122,5 +145,72 @@ class WURFLDeviceDetectionRawAuctionRequestHookTest {
 
         // then
         assertThat(result.status()).isEqualTo(InvocationStatus.success);
+        assertThat(result.action()).isEqualTo(InvocationAction.update);
+    }
+
+    @Test
+    void shouldEnrichDeviceWhenAccountIsAllowed() {
+        // given
+        final String ua = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_7_2) Version/17.4.1 Mobile/15E148 Safari/604.1";
+        final Device device = Device.builder().ua(ua).build();
+        final BidRequest bidRequest = BidRequest.builder().device(device).build();
+        when(payload.bidRequest()).thenReturn(bidRequest);
+
+        final CaseInsensitiveMultiMap headers = CaseInsensitiveMultiMap.builder()
+                .add("User-Agent", ua)
+                .build();
+        final AuctionRequestHeadersContext headersContext = AuctionRequestHeadersContext.from(headers);
+
+        // when
+        when(context.moduleContext()).thenReturn(headersContext);
+        final var wurflDevice = WURFLDeviceMock.WURFLDeviceMockFactory.mockIPhone();
+        when(wurflEngine.getDeviceForRequest(any(Map.class))).thenReturn(wurflDevice);
+        when(account.getId()).thenReturn("allowed-publisher");
+        when(configProperties.getAllowedPublisherIds()).thenReturn(Set.of("allowed-publisher",
+                "another-allowed-publisher"));
+        when(context.auctionContext()).thenReturn(auctionContext);
+        final WURFLService wurflService = new WURFLService(wurflEngine, configProperties);
+        target = new WURFLDeviceDetectionRawAuctionRequestHook(wurflService, configProperties);
+
+        // when
+        final InvocationResult<AuctionRequestPayload> result = target.call(payload, context).result();
+
+        // then
+        assertThat(result.status()).isEqualTo(InvocationStatus.success);
+        assertThat(result.action()).isEqualTo(InvocationAction.update);
+    }
+
+    @Test
+    void shouldNotEnrichDeviceWhenPublisherIdIsNotAllowed() {
+        // given
+        when(context.auctionContext()).thenReturn(auctionContext);
+        when(account.getId()).thenReturn("unknown-publisher");
+        when(configProperties.getAllowedPublisherIds()).thenReturn(Set.of("allowed-publisher"));
+        final WURFLService wurflService = new WURFLService(wurflEngine, configProperties);
+        target = new WURFLDeviceDetectionRawAuctionRequestHook(wurflService, configProperties);
+
+        // when
+        final InvocationResult<AuctionRequestPayload> result = target.call(payload, context).result();
+
+        // then
+        assertThat(result.status()).isEqualTo(InvocationStatus.success);
+        assertThat(result.action()).isEqualTo(InvocationAction.no_action);
+    }
+
+    @Test
+    void shouldNotEnrichDeviceWhenPublisherIdIsEmpty() {
+        // given
+        when(context.auctionContext()).thenReturn(auctionContext);
+        when(account.getId()).thenReturn("");
+        when(configProperties.getAllowedPublisherIds()).thenReturn(Set.of("allowed-publisher"));
+        final WURFLService wurflService = new WURFLService(wurflEngine, configProperties);
+        target = new WURFLDeviceDetectionRawAuctionRequestHook(wurflService, configProperties);
+
+        // when
+        final InvocationResult<AuctionRequestPayload> result = target.call(payload, context).result();
+
+        // then
+        assertThat(result.status()).isEqualTo(InvocationStatus.success);
+        assertThat(result.action()).isEqualTo(InvocationAction.no_action);
     }
 }

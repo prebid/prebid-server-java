@@ -16,9 +16,12 @@ import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.RawAuctionRequestHook;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.settings.model.Account;
 import io.vertx.core.Future;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -113,17 +116,24 @@ public class WURFLDeviceDetectionRawAuctionRequestHook implements RawAuctionRequ
         if (MapUtils.isEmpty(allowedPublisherIDs)) {
             return true;
         }
-
         final AuctionContext auctionContext = invocationContext.auctionContext();
-        return AccountValidator.builder().allowedPublisherIds(allowedPublisherIDs)
-                .auctionContext(auctionContext)
-                .build()
-                .isAccountValid();
+        return isAccountValid(auctionContext);
     }
 
     @Override
     public String code() {
         return CODE;
+    }
+
+    private boolean isAccountValid(AuctionContext auctionContext) {
+
+        return Optional.ofNullable(auctionContext)
+                .map(AuctionContext::getAccount)
+                .map(Account::getId)
+                .filter(StringUtils::isNotBlank)
+                .map(allowedPublisherIDs::get)
+                .filter(Objects::nonNull)
+                .isPresent();
     }
 
 }
