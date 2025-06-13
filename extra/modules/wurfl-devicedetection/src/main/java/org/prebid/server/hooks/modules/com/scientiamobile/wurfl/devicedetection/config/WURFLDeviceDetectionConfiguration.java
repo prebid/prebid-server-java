@@ -35,16 +35,16 @@ public class WURFLDeviceDetectionConfiguration {
     public WURFLDeviceDetectionModule wurflDeviceDetectionModule(WURFLDeviceDetectionConfigProperties
                                                                          configProperties, Vertx vertx) {
 
-        final WURFLService wurflService;
-        wurflService = new WURFLService(null, configProperties);
+        final WURFLService wurflService = new WURFLService(null, configProperties);
         final FileSyncer fileSyncer = createFileSyncer(configProperties, wurflService, vertx);
         fileSyncer.sync();
 
-        return new WURFLDeviceDetectionModule(List.of(new WURFLDeviceDetectionEntrypointHook(),
+        return new WURFLDeviceDetectionModule(List.of(
+                new WURFLDeviceDetectionEntrypointHook(),
                 new WURFLDeviceDetectionRawAuctionRequestHook(wurflService, configProperties)));
     }
 
-    FileSyncer createFileSyncer(WURFLDeviceDetectionConfigProperties configProperties,
+    private FileSyncer createFileSyncer(WURFLDeviceDetectionConfigProperties configProperties,
                                         WURFLService wurflService, Vertx vertx) {
         final FileSyncerProperties fileSyncerProperties = createFileSyncerProperties(configProperties);
         return FileUtil.fileSyncerFor(wurflService, fileSyncerProperties, vertx);
@@ -76,8 +76,8 @@ public class WURFLDeviceDetectionConfiguration {
 
     private String createTempPath(WURFLDeviceDetectionConfigProperties configProperties) {
         final String basePath = configProperties.getFileDirPath();
-        String fileName = WURFLEngineInitializer.extractWURFLFileName(configProperties.getFileSnapshotUrl());
-        fileName = "tmp_" + fileName;
+        final String fileName = "tmp_"
+                + WURFLEngineInitializer.extractWURFLFileName(configProperties.getFileSnapshotUrl());
         return Path.of(basePath, fileName).toString();
     }
 

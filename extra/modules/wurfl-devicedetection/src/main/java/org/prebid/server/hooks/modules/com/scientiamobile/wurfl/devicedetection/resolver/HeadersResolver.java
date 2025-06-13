@@ -76,10 +76,10 @@ public class HeadersResolver {
         headers.put(SEC_CH_UA_FULL_VERSION_LIST, brandList);
 
         // Platform
-        final PlatformNameVersion platformNameVersion = PlatformNameVersion.from(sua.getPlatform());
-        if (platformNameVersion != null) {
-            headers.put(SEC_CH_UA_PLATFORM, escape(platformNameVersion.getPlatformName()));
-            headers.put(SEC_CH_UA_PLATFORM_VERSION, escape(platformNameVersion.getPlatformVersion()));
+        final BrandVersion brandNameVersion = sua.getPlatform();
+        if (brandNameVersion != null) {
+            headers.put(SEC_CH_UA_PLATFORM, escape(brandNameVersion.getBrand()));
+            headers.put(SEC_CH_UA_PLATFORM_VERSION, escape(versionFromTokens(brandNameVersion.getVersion())));
         }
 
         // Model

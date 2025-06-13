@@ -1,30 +1,26 @@
 package org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.model;
 
-import lombok.Getter;
+import lombok.Value;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-@Getter
+@Value
 public class AuctionRequestHeadersContext {
 
     Map<String, String> headers;
 
-    private AuctionRequestHeadersContext(Map<String, String> headers) {
-        this.headers = headers;
-    }
-
     public static AuctionRequestHeadersContext from(CaseInsensitiveMultiMap headers) {
-        final Map<String, String> headersMap = new HashMap<>();
         if (headers == null) {
-            return new AuctionRequestHeadersContext(headersMap);
+            return new AuctionRequestHeadersContext(Collections.emptyMap());
         }
 
+        final Map<String, String> headersMap = new HashMap<>();
         for (String headerName : headers.names()) {
             headersMap.put(headerName, headers.getAll(headerName).getFirst());
         }
-        return new AuctionRequestHeadersContext(headersMap);
+        return new AuctionRequestHeadersContext(Collections.unmodifiableMap(headersMap));
     }
-
 }
