@@ -16,6 +16,9 @@ import java.util.Optional;
 
 public class OptableAttributesResolver {
 
+    private OptableAttributesResolver() {
+    }
+
     public static OptableAttributes resolveAttributes(AuctionContext auctionContext, Long timeout) {
         final TcfContext tcfContext = auctionContext.getPrivacyContext().getTcfContext();
         final GppContext.Scope gppScope = auctionContext.getGppContext().scope();

@@ -10,7 +10,6 @@ import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingProc
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.Cache;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.IdsMapper;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableAttributesResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargeting;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.QueryBuilder;
 import org.prebid.server.hooks.modules.optable.targeting.v1.net.APIClient;
@@ -102,11 +101,6 @@ public class OptableTargetingConfig {
                 apiClient,
                 cachedApiClient,
                 storageEnabled && moduleCacheEnabled);
-    }
-
-    @Bean
-    OptableAttributesResolver optableAttributesResolver() {
-        return new OptableAttributesResolver();
     }
 
     @Bean

@@ -1,7 +1,6 @@
 package org.prebid.server.hooks.modules.optable.targeting.v1.net;
 
 import io.vertx.core.Future;
-import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.hooks.modules.optable.targeting.model.Query;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;

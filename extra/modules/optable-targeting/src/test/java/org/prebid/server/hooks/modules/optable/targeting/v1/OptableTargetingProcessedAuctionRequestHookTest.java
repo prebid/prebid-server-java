@@ -16,7 +16,6 @@ import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
 import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableAttributesResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargeting;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
@@ -75,6 +74,30 @@ public class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptable
     }
 
     @Test
+    public void shouldReturnResultWithPBSAnalyticsTags() {
+        // given
+        when(auctionRequestPayload.bidRequest()).thenReturn(givenBidRequest());
+        when(optableTargeting.getTargeting(any(), any(), any(), anyLong()))
+                .thenReturn(Future.succeededFuture(givenTargetingResult()));
+
+        // when
+        final Future<InvocationResult<AuctionRequestPayload>> future = target.call(auctionRequestPayload,
+                invocationContext);
+
+        // then
+        assertThat(future).isNotNull();
+        assertThat(future.succeeded()).isTrue();
+
+        final InvocationResult<AuctionRequestPayload> result = future.result();
+        assertThat(result).isNotNull();
+        assertThat(result.status()).isEqualTo(InvocationStatus.success);
+        assertThat(result.action()).isEqualTo(InvocationAction.update);
+        assertThat(result.errors()).isNull();
+        assertThat(result.analyticsTags().activities().getFirst()
+                .results().getFirst().values().get("execution-time")).isNotNull();
+    }
+
+    @Test
     public void shouldReturnResultWithUpdateActionWhenOptableTargetingReturnTargeting() {
         // given
         when(auctionRequestPayload.bidRequest()).thenReturn(givenBidRequest());
@@ -100,7 +123,6 @@ public class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptable
                 .bidRequest();
         assertThat(bidRequest.getUser().getEids().getFirst().getUids().getFirst().getId()).isEqualTo("id");
         assertThat(bidRequest.getUser().getData().getFirst().getSegment().getFirst().getId()).isEqualTo("id");
-
     }
 
     @Test

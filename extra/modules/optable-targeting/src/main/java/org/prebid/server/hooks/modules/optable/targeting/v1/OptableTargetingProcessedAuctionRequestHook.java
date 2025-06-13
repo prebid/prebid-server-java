@@ -12,17 +12,13 @@ import org.prebid.server.activity.infrastructure.payload.impl.ActivityInvocation
 import org.prebid.server.activity.infrastructure.payload.impl.BidRequestActivityInvocationPayload;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
-import org.prebid.server.hooks.execution.model.GroupExecutionOutcome;
-import org.prebid.server.hooks.execution.model.HookExecutionContext;
-import org.prebid.server.hooks.execution.model.HookExecutionOutcome;
-import org.prebid.server.hooks.execution.model.Stage;
-import org.prebid.server.hooks.execution.model.StageExecutionOutcome;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.modules.optable.targeting.model.EnrichmentStatus;
 import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
 import org.prebid.server.hooks.modules.optable.targeting.model.OptableAttributes;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.AnalyticTagsResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidRequestCleaner;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidRequestEnricher;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
@@ -36,9 +32,7 @@ import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.ProcessedAuctionRequestHook;
 
-import java.util.Collection;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.function.Function;
 
 public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuctionRequestHook {
@@ -72,11 +66,16 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
                 invocationContext.auctionContext(),
                 properties.getTimeout());
 
+        final long callTargetingAPITimestamp = System.currentTimeMillis();
         return optableTargeting.getTargeting(properties, bidRequest, attributes, timeout)
                 .compose(targetingResult -> {
+                    moduleContext.setOptableTargetingExecutionTime(
+                            System.currentTimeMillis() - callTargetingAPITimestamp);
                     return enrichedPayload(targetingResult, moduleContext);
                 })
                 .recover(throwable -> {
+                    moduleContext.setOptableTargetingExecutionTime(
+                            System.currentTimeMillis() - callTargetingAPITimestamp);
                     moduleContext.setEnrichRequestStatus(EnrichmentStatus.failure());
                     return failure(BidRequestCleaner.instance(), moduleContext);
                 });
@@ -139,6 +138,7 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
                 InvocationResultImpl.<AuctionRequestPayload>builder()
                         .status(InvocationStatus.success)
                         .action(InvocationAction.update)
+                        .analyticsTags(AnalyticTagsResolver.toEnrichRequestAnalyticTags(moduleContext))
                         .payloadUpdate(payloadUpdate::apply)
                         .moduleContext(moduleContext)
                         .build());

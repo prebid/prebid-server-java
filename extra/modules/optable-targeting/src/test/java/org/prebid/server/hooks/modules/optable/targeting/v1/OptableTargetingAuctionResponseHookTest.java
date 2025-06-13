@@ -60,7 +60,7 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
     }
 
     @Test
-    public void shouldReturnResultWithNoActionAndPBSAnalyticsTags() {
+    public void shouldReturnResultWithNoActionAndWithPBSAnalyticsTags() {
         // given
         when(invocationContext.moduleContext()).thenReturn(givenModuleContext());
 
@@ -77,7 +77,7 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
         assertThat(result.status()).isEqualTo(InvocationStatus.success);
         assertThat(result.action()).isEqualTo(InvocationAction.no_action);
         assertThat(result.analyticsTags().activities().getFirst()
-                .results().getFirst().values().get("execution-time")).isNotNull();
+                .results().getFirst().values().get("reason")).isNotNull();
         assertThat(result.errors()).isNull();
     }
 

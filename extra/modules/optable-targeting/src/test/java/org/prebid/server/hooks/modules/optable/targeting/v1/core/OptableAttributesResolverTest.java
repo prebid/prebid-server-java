@@ -56,7 +56,8 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
         final AuctionContext auctionContext = givenAuctionContext(tcfContext, gppContext);
 
         // when
-        final OptableAttributes result = OptableAttributesResolver.resolveAttributes(auctionContext, properties.getTimeout());
+        final OptableAttributes result = OptableAttributesResolver.resolveAttributes(auctionContext,
+                properties.getTimeout());
 
         // then
         assertThat(result).isNotNull()
@@ -75,7 +76,8 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
         final AuctionContext auctionContext = givenAuctionContext(tcfContext, gppContext);
 
         // when
-        final OptableAttributes result = OptableAttributesResolver.resolveAttributes(auctionContext, properties.getTimeout());
+        final OptableAttributes result = OptableAttributesResolver.resolveAttributes(auctionContext,
+                properties.getTimeout());
 
         // then
         assertThat(result).isNotNull()
@@ -95,7 +97,8 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
         final AuctionContext auctionContext = givenAuctionContext(tcfContext, gppContext);
 
         // when
-        final OptableAttributes result = OptableAttributesResolver.resolveAttributes(auctionContext, properties.getTimeout());
+        final OptableAttributes result = OptableAttributesResolver.resolveAttributes(auctionContext,
+                properties.getTimeout());
 
         // then
         assertThat(result).isNotNull()

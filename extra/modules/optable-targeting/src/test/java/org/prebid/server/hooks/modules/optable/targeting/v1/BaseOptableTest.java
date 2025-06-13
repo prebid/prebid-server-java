@@ -51,9 +51,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.UnaryOperator;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 public abstract class BaseOptableTest {
 
     protected final ObjectMapper mapper = ObjectMapperProvider.mapper();
