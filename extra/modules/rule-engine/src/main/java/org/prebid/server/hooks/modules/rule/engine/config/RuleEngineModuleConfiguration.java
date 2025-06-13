@@ -3,6 +3,7 @@ package org.prebid.server.hooks.modules.rule.engine.config;
 import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Vertx;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.hooks.execution.model.Stage;
 import org.prebid.server.hooks.modules.rule.engine.core.cache.RuleRegistry;
 import org.prebid.server.hooks.modules.rule.engine.core.config.AccountConfigParser;
@@ -30,12 +31,13 @@ public class RuleEngineModuleConfiguration {
 
     @Bean
     StageConfigParser<RequestContext, BidRequest, AuctionContext> processedAuctionRequestStageParser(
+            BidderCatalog bidderCatalog,
             @Value("${datacenter-region:#{null}}") String datacenterRegion) {
 
         return new StageConfigParser<>(
                 () -> ThreadLocalRandom.current().nextLong(),
                 Stage.processed_auction_request,
-                new RequestSpecification(ObjectMapperProvider.mapper()),
+                new RequestSpecification(ObjectMapperProvider.mapper(), bidderCatalog),
                 (schema, ruleTree, modelVersion, analyticsKey) ->
                         new RequestMatchingRule(schema, ruleTree, modelVersion, analyticsKey, datacenterRegion));
     }

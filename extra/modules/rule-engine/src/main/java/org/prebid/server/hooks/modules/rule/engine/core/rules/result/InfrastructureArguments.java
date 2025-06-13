@@ -1,10 +1,11 @@
 package org.prebid.server.hooks.modules.rule.engine.core.rules.result;
 
+import lombok.Builder;
 import lombok.Value;
-import org.prebid.server.auction.model.AuctionContext;
 
 import java.util.Map;
 
+@Builder
 @Value(staticConstructor = "of")
 public class InfrastructureArguments<C> {
 
@@ -12,9 +13,11 @@ public class InfrastructureArguments<C> {
 
     Map<String, String> schemaFunctionResults;
 
-    String analyticsKey;
+    Map<String, String> schemaFunctionMatches;
 
     String ruleFired;
+
+    String analyticsKey;
 
     String modelVersion;
 }

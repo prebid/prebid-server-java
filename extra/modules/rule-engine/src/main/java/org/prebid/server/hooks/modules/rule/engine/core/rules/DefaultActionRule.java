@@ -42,6 +42,13 @@ public class DefaultActionRule<T, C> implements Rule<T, C> {
     }
 
     private InfrastructureArguments<C> infrastructureArguments(C context) {
-        return InfrastructureArguments.of(context, Collections.emptyMap(), analyticsKey, RULE_NAME, modelVersion);
+        return InfrastructureArguments.<C>builder()
+                .context(context)
+                .schemaFunctionResults(Collections.emptyMap())
+                .schemaFunctionMatches(Collections.emptyMap())
+                .ruleFired(RULE_NAME)
+                .analyticsKey(analyticsKey)
+                .modelVersion(modelVersion)
+                .build();
     }
 }

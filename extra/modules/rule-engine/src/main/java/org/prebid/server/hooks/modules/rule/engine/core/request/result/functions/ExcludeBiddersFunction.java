@@ -1,46 +1,41 @@
 package org.prebid.server.hooks.modules.rule.engine.core.request.result.functions;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.iab.openrtb.request.BidRequest;
-import lombok.Value;
-import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleResult;
-import org.prebid.server.hooks.modules.rule.engine.core.rules.result.ResultFunction;
-import org.prebid.server.hooks.modules.rule.engine.core.rules.result.ResultFunctionArguments;
-import org.prebid.server.hooks.modules.rule.engine.core.util.ConfigurationValidationException;
-import org.springframework.util.CollectionUtils;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.Imp;
+import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.cookie.UidsCookie;
+import org.prebid.server.model.UpdateResult;
 
-@Value(staticConstructor = "of")
-public class ExcludeBiddersFunction implements ResultFunction<BidRequest, AuctionContext> {
+import java.util.List;
+
+public class ExcludeBiddersFunction extends FilterBiddersFunction {
 
     public static final String NAME = "excludeBidders";
 
-    ObjectMapper mapper;
-
-    @Override
-    public RuleResult<BidRequest> apply(ResultFunctionArguments<BidRequest, AuctionContext> arguments) {
-        return RuleResult.unaltered(arguments.getOperand());
+    public ExcludeBiddersFunction(ObjectMapper objectMapper, BidderCatalog bidderCatalog) {
+        super(objectMapper, bidderCatalog);
     }
 
     @Override
-    public void validateConfig(JsonNode config) {
-        final ExcludeBiddersFunctionConfig parsedConfig = parseConfig(config);
-        if (parsedConfig == null) {
-            throw new ConfigurationValidationException("Configuration is required, but not provided");
+    protected UpdateResult<Imp> filterBidders(Imp imp,
+                                              List<String> bidders,
+                                              Boolean ifSyncedId,
+                                              UidsCookie uidsCookie) {
+
+        boolean updated = false;
+        final ObjectNode updatedExt = imp.getExt().deepCopy();
+        for (String bidder : bidders) {
+            if (ifSyncedId != null && ifSyncedId != isBidderIdSynced(bidder, uidsCookie)) {
+                continue;
+            }
+
+            updatedExt.remove(bidder);
+            updated = true;
         }
 
-        if (CollectionUtils.isEmpty(parsedConfig.getBidders())) {
-            throw new ConfigurationValidationException("'bidders' field is required");
-        }
-    }
-
-    private ExcludeBiddersFunctionConfig parseConfig(JsonNode config) {
-        try {
-            return mapper.treeToValue(config, ExcludeBiddersFunctionConfig.class);
-        } catch (JsonProcessingException e) {
-            throw new ConfigurationValidationException(e.getMessage());
-        }
+        return updated
+                ? UpdateResult.updated(imp.toBuilder().ext(updatedExt).build())
+                : UpdateResult.unaltered(imp);
     }
 }

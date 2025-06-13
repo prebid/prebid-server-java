@@ -3,6 +3,7 @@ package org.prebid.server.hooks.modules.rule.engine.core.request;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iab.openrtb.request.BidRequest;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.hooks.modules.rule.engine.core.request.result.functions.ExcludeBiddersFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.request.result.functions.IncludeBiddersFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.AdUnitCodeFunction;
@@ -33,7 +34,6 @@ import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunct
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 public class RequestSpecification implements StageSpecification<RequestContext, BidRequest, AuctionContext> {
@@ -41,13 +41,11 @@ public class RequestSpecification implements StageSpecification<RequestContext, 
     public static final Set<String> PER_IMP_SCHEMA_FUNCTIONS =
             Set.of(AdUnitCodeFunction.NAME, MediaTypeInFunction.NAME);
 
-    private final ObjectMapper mapper;
-
     private final Map<String, SchemaFunction<RequestContext>> schemaFunctions;
     private final Map<String, ResultFunction<BidRequest, AuctionContext>> resultFunctions;
 
-    public RequestSpecification(ObjectMapper mapper) {
-        this.mapper = Objects.requireNonNull(mapper);
+    public RequestSpecification(ObjectMapper mapper,
+                                BidderCatalog bidderCatalog) {
 
         schemaFunctions = new HashMap<>();
         schemaFunctions.put(AdUnitCodeFunction.NAME, new AdUnitCodeFunction());
@@ -73,8 +71,8 @@ public class RequestSpecification implements StageSpecification<RequestContext, 
         schemaFunctions.put(UserFpdAvailableFunction.NAME, new UserFpdAvailableFunction());
 
         resultFunctions = Map.of(
-                ExcludeBiddersFunction.NAME, ExcludeBiddersFunction.of(mapper),
-                IncludeBiddersFunction.NAME, IncludeBiddersFunction.of(mapper));
+                ExcludeBiddersFunction.NAME, new ExcludeBiddersFunction(mapper, bidderCatalog),
+                IncludeBiddersFunction.NAME, new IncludeBiddersFunction(mapper, bidderCatalog));
     }
 
 

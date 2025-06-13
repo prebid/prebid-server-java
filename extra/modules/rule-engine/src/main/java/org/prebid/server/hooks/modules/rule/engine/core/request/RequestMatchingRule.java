@@ -9,10 +9,10 @@ import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleConfig;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleResult;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.result.InfrastructureArguments;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.result.ResultFunctionArguments;
-import org.prebid.server.hooks.modules.rule.engine.core.rules.result.RuleAction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.Schema;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunctionArguments;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunctionHolder;
+import org.prebid.server.hooks.modules.rule.engine.core.rules.tree.LookupResult;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.tree.RuleTree;
 
 import java.util.List;
@@ -22,9 +22,9 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-public class RequestMatchingRule implements Rule<BidRequest, AuctionContext> {
+import static org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunction.UNDEFINED_RESULT;
 
-    private static final String NULL_MATCHER = "null";
+public class RequestMatchingRule implements Rule<BidRequest, AuctionContext> {
 
     private final Schema<RequestContext> schema;
     private final Set<String> schemaFunctionNames;
@@ -73,40 +73,34 @@ public class RequestMatchingRule implements Rule<BidRequest, AuctionContext> {
         final List<String> matchers = schemaFunctions.stream()
                 .map(holder -> holder.getSchemaFunction().extract(
                         SchemaFunctionArguments.of(requestContext, holder.getConfig())))
-                .map(matcher -> StringUtils.defaultIfEmpty(matcher, NULL_MATCHER))
+                .map(matcher -> StringUtils.defaultIfEmpty(matcher, UNDEFINED_RESULT))
                 .toList();
 
-        final Map<String, String> schemaFunctionResults = IntStream.range(0, matchers.size())
-                .boxed()
-                .collect(Collectors.toMap(
-                        idx -> schemaFunctions.get(idx).getName(), matchers::get, (left, right) -> left));
+        final LookupResult<RuleConfig<BidRequest, AuctionContext>> lookupResult = ruleTree.lookup(matchers);
+        final RuleConfig<BidRequest, AuctionContext> ruleConfig = lookupResult.getValue();
 
-        final RuleConfig<BidRequest, AuctionContext> ruleConfig = ruleTree.getValue(matchers);
+        final InfrastructureArguments<AuctionContext> infrastructureArguments =
+                InfrastructureArguments.<AuctionContext>builder()
+                        .context(auctionContext)
+                        .schemaFunctionResults(mergeWithSchema(schema, matchers))
+                        .schemaFunctionMatches(mergeWithSchema(schema, lookupResult.getMatches()))
+                        .ruleFired(ruleConfig.getCondition())
+                        .analyticsKey(analyticsKey)
+                        .modelVersion(modelVersion)
+                        .build();
 
         return ruleConfig.getActions().stream().reduce(
                 RuleResult.unaltered(bidRequest),
                 (result, action) -> result.mergeWith(
-                        applyAction(
-                                action,
-                                result.getUpdateResult().getValue(),
-                                auctionContext,
-                                schemaFunctionResults,
-                                ruleConfig.getCondition())),
+                        action.getFunction().apply(
+                                ResultFunctionArguments.of(bidRequest, action.getConfig(), infrastructureArguments))),
                 RuleResult::mergeWith);
     }
 
-    private RuleResult<BidRequest> applyAction(RuleAction<BidRequest, AuctionContext> action,
-                                               BidRequest bidRequest,
-                                               AuctionContext context,
-                                               Map<String, String> schemaFunctionResults,
-                                               String condition) {
-
-        final InfrastructureArguments<AuctionContext> infrastructureArguments = InfrastructureArguments.of(
-                context, schemaFunctionResults, analyticsKey, condition, modelVersion);
-
-        final ResultFunctionArguments<BidRequest, AuctionContext> arguments = ResultFunctionArguments.of(
-                bidRequest, action.getConfig(), infrastructureArguments);
-
-        return action.getFunction().apply(arguments);
+    private static Map<String, String> mergeWithSchema(Schema<RequestContext> schema, List<String> values) {
+        return IntStream.range(0, values.size())
+                .boxed()
+                .collect(Collectors.toMap(
+                        idx -> schema.getFunctions().get(idx).getName(), values::get, (left, right) -> left));
     }
 }

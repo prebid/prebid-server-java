@@ -7,7 +7,7 @@ import java.util.List;
 
 @Builder
 @Value(staticConstructor = "of")
-public class ExcludeBiddersFunctionConfig {
+public class FilterBiddersFunctionConfig {
 
     List<String> bidders;
 
