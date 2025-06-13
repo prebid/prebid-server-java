@@ -6,6 +6,7 @@ import org.prebid.server.hooks.modules.optable.targeting.model.Query;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.Cache;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableAttributesResolver;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -63,7 +64,7 @@ public class CachedAPIClient implements APIClient {
         return "%s:%s:%s:%s".formatted(
                 tenant,
                 origin,
-                CollectionUtils.isNotEmpty(ips) ? ips.getFirst() : "none",
+                OptableAttributesResolver.resolveIp(ips),
                 encodeQuery
                         ? URLEncoder.encode(query.getIds(), StandardCharsets.UTF_8)
                         : query.getIds());

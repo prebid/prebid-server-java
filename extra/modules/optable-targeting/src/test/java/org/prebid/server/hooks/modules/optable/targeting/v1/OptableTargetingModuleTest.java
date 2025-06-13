@@ -32,9 +32,6 @@ public class OptableTargetingModuleTest {
     @Mock
     OptableTargeting optableTargeting;
 
-    @Mock
-    OptableAttributesResolver optableAttributesResolver;
-
     @Mock(strictness = LENIENT)
     UserFpdActivityMask userFpdActivityMask;
 
@@ -61,7 +58,6 @@ public class OptableTargetingModuleTest {
                 List.of(new OptableTargetingProcessedAuctionRequestHook(
                         configResolver,
                         optableTargeting,
-                        optableAttributesResolver,
                         userFpdActivityMask),
                         new OptableTargetingAuctionResponseHook(
                                 configResolver,

@@ -27,8 +27,6 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 public class OptableAttributesResolverTest extends BaseOptableTest {
 
-    private OptableAttributesResolver target;
-
     @Mock(strictness = LENIENT)
     private TcfContext tcfContext;
 
@@ -44,19 +42,21 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
     @BeforeEach
     public void setUp() {
         when(properties.getTimeout()).thenReturn(100L);
-        target = new OptableAttributesResolver();
     }
 
     @Test
     public void shouldResolveTcfAttributesWhenConsentIsValid() {
         // given
+        final GppModel gppModel = mock();
         when(tcfContext.isConsentValid()).thenReturn(true);
         when(tcfContext.isInGdprScope()).thenReturn(true);
         when(tcfContext.getConsentString()).thenReturn("consent");
-        final AuctionContext auctionContext = givenAuctionContext(tcfContext);
+        when(gppModel.encode()).thenReturn("consent");
+        when(gppContext.scope()).thenReturn(GppContext.Scope.of(gppModel, Set.of(1)));
+        final AuctionContext auctionContext = givenAuctionContext(tcfContext, gppContext);
 
         // when
-        final OptableAttributes result = target.resolveAttributes(auctionContext, properties.getTimeout());
+        final OptableAttributes result = OptableAttributesResolver.resolveAttributes(auctionContext, properties.getTimeout());
 
         // then
         assertThat(result).isNotNull()
@@ -67,12 +67,15 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
     @Test
     public void shouldNotResolveTcfAttributesWhenConsentIsNotValid() {
         // given
+        final GppModel gppModel = mock();
         when(tcfContext.isConsentValid()).thenReturn(false);
         when(tcfContext.getConsentString()).thenReturn("consent");
-        final AuctionContext auctionContext = givenAuctionContext(tcfContext);
+        when(gppModel.encode()).thenReturn("consent");
+        when(gppContext.scope()).thenReturn(GppContext.Scope.of(gppModel, Set.of(1)));
+        final AuctionContext auctionContext = givenAuctionContext(tcfContext, gppContext);
 
         // when
-        final OptableAttributes result = target.resolveAttributes(auctionContext, properties.getTimeout());
+        final OptableAttributes result = OptableAttributesResolver.resolveAttributes(auctionContext, properties.getTimeout());
 
         // then
         assertThat(result).isNotNull()
@@ -85,13 +88,14 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
     public void shouldResolveGppAttributes() {
         // given
         final GppModel gppModel = mock();
+        when(tcfContext.isConsentValid()).thenReturn(false);
+        when(tcfContext.getConsentString()).thenReturn("consent");
         when(gppModel.encode()).thenReturn("consent");
         when(gppContext.scope()).thenReturn(GppContext.Scope.of(gppModel, Set.of(1)));
-        final AuctionContext auctionContext = givenAuctionContext(gppContext);
+        final AuctionContext auctionContext = givenAuctionContext(tcfContext, gppContext);
 
         // when
-
-        final OptableAttributes result = target.resolveAttributes(auctionContext, properties.getTimeout());
+        final OptableAttributes result = OptableAttributesResolver.resolveAttributes(auctionContext, properties.getTimeout());
 
         // then
         assertThat(result).isNotNull()
@@ -108,6 +112,12 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
 
     public AuctionContext givenAuctionContext(GppContext gppContext) {
         return AuctionContext.builder().gppContext(gppContext).build();
+    }
+
+    public AuctionContext givenAuctionContext(TcfContext tcfContext, GppContext gppContext) {
+        return AuctionContext.builder()
+                .privacyContext(PrivacyContext.of(Privacy.builder().build(), tcfContext, "8.8.8.8"))
+                .gppContext(gppContext).build();
     }
 
     public AuctionContext givenAuctionContext(GeoInfo geoInfo) {

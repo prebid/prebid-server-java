@@ -133,14 +133,12 @@ public class OptableTargetingConfig {
     @Bean
     OptableTargetingModule optableTargetingModule(ConfigResolver configResolver,
                                                   OptableTargeting optableTargeting,
-                                                  OptableAttributesResolver optableAttributesResolver,
                                                   UserFpdActivityMask userFpdActivityMask) {
 
         return new OptableTargetingModule(List.of(
                 new OptableTargetingProcessedAuctionRequestHook(
                         configResolver,
                         optableTargeting,
-                        optableAttributesResolver,
                         userFpdActivityMask),
                 new OptableTargetingAuctionResponseHook(
                         configResolver,

@@ -12,6 +12,11 @@ import org.prebid.server.activity.infrastructure.payload.impl.ActivityInvocation
 import org.prebid.server.activity.infrastructure.payload.impl.BidRequestActivityInvocationPayload;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
+import org.prebid.server.hooks.execution.model.GroupExecutionOutcome;
+import org.prebid.server.hooks.execution.model.HookExecutionContext;
+import org.prebid.server.hooks.execution.model.HookExecutionOutcome;
+import org.prebid.server.hooks.execution.model.Stage;
+import org.prebid.server.hooks.execution.model.StageExecutionOutcome;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.modules.optable.targeting.model.EnrichmentStatus;
 import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
@@ -31,7 +36,9 @@ import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.ProcessedAuctionRequestHook;
 
+import java.util.Collection;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Function;
 
 public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuctionRequestHook {
@@ -40,17 +47,14 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
 
     private final ConfigResolver configResolver;
     private final OptableTargeting optableTargeting;
-    private final OptableAttributesResolver optableAttributesResolver;
     private final UserFpdActivityMask userFpdActivityMask;
 
     public OptableTargetingProcessedAuctionRequestHook(ConfigResolver configResolver,
                                                        OptableTargeting optableTargeting,
-                                                       OptableAttributesResolver optableAttributesResolver,
                                                        UserFpdActivityMask userFpdActivityMask) {
 
         this.configResolver = Objects.requireNonNull(configResolver);
         this.optableTargeting = Objects.requireNonNull(optableTargeting);
-        this.optableAttributesResolver = Objects.requireNonNull(optableAttributesResolver);
         this.userFpdActivityMask = Objects.requireNonNull(userFpdActivityMask);
     }
 
@@ -64,12 +68,14 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
         final BidRequest bidRequest = applyActivityRestrictions(auctionRequestPayload.bidRequest(), invocationContext);
 
         final long timeout = getHookRemainingTime(invocationContext);
-        final OptableAttributes attributes = optableAttributesResolver.resolveAttributes(
+        final OptableAttributes attributes = OptableAttributesResolver.resolveAttributes(
                 invocationContext.auctionContext(),
                 properties.getTimeout());
 
         return optableTargeting.getTargeting(properties, bidRequest, attributes, timeout)
-                .compose(targetingResult -> enrichedPayload(targetingResult, moduleContext))
+                .compose(targetingResult -> {
+                    return enrichedPayload(targetingResult, moduleContext);
+                })
                 .recover(throwable -> {
                     moduleContext.setEnrichRequestStatus(EnrichmentStatus.failure());
                     return failure(BidRequestCleaner.instance(), moduleContext);

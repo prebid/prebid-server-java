@@ -3,6 +3,7 @@ package org.prebid.server.hooks.modules.optable.targeting.v1;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import com.iab.gpp.encoder.GppModel;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Eid;
@@ -17,6 +18,7 @@ import io.vertx.core.http.impl.headers.HeadersMultiMap;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpStatus;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
+import org.prebid.server.auction.gpp.model.GppContext;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.TimeoutContext;
 import org.prebid.server.execution.timeout.Timeout;
@@ -32,6 +34,9 @@ import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Ortb2;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Segment;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
 import org.prebid.server.json.ObjectMapperProvider;
+import org.prebid.server.privacy.gdpr.model.TcfContext;
+import org.prebid.server.privacy.model.Privacy;
+import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
@@ -43,7 +48,11 @@ import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.UnaryOperator;
+
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public abstract class BaseOptableTest {
 
@@ -62,9 +71,17 @@ public abstract class BaseOptableTest {
     }
 
     protected AuctionContext givenAuctionContext(ActivityInfrastructure activityInfrastructure, Timeout timeout) {
+        final GppModel gppModel = new GppModel();
+        final TcfContext tcfContext = TcfContext.builder().build();
+        final GppContext gppContext = new GppContext(
+                GppContext.Scope.of(gppModel, Set.of(1)),
+                GppContext.Regions.builder().build());
+
         return AuctionContext.builder()
                 .bidRequest(givenBidRequest())
                 .activityInfrastructure(activityInfrastructure)
+                .privacyContext(PrivacyContext.of(Privacy.builder().build(), tcfContext, "8.8.8.8"))
+                .gppContext(gppContext)
                 .timeoutContext(TimeoutContext.of(0, timeout, 1))
                 .build();
     }
