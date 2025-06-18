@@ -1,15 +1,16 @@
-package org.prebid.server.hooks.modules.rule.engine.core.request.result.functions;
+package org.prebid.server.hooks.modules.rule.engine.core.request.result.functions.filter;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.hooks.execution.v1.analytics.TagsImpl;
-import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.AdUnitCodeFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleResult;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.result.InfrastructureArguments;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.result.ResultFunction;
@@ -17,16 +18,21 @@ import org.prebid.server.hooks.modules.rule.engine.core.rules.result.ResultFunct
 import org.prebid.server.hooks.modules.rule.engine.core.util.ConfigurationValidationException;
 import org.prebid.server.hooks.v1.analytics.Activity;
 import org.prebid.server.model.UpdateResult;
+import org.prebid.server.proto.openrtb.ext.response.seatnonbid.NonBid;
+import org.prebid.server.proto.openrtb.ext.response.seatnonbid.SeatNonBid;
 import org.springframework.util.CollectionUtils;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 public abstract class FilterBiddersFunction implements ResultFunction<BidRequest, AuctionContext> {
 
     private final ObjectMapper mapper;
-    private final BidderCatalog bidderCatalog;
+    protected final BidderCatalog bidderCatalog;
 
     public FilterBiddersFunction(ObjectMapper mapper, BidderCatalog bidderCatalog) {
         this.mapper = Objects.requireNonNull(mapper);
@@ -41,40 +47,44 @@ public abstract class FilterBiddersFunction implements ResultFunction<BidRequest
         final InfrastructureArguments<AuctionContext> infrastructureArguments = arguments.getInfrastructureArguments();
         final UidsCookie uidsCookie = infrastructureArguments.getContext().getUidsCookie();
         final Boolean ifSyncedId = config.getIfSyncedId();
+        final BidRejectionReason rejectionReason = config.getSeatNonBid();
+        final String impId = infrastructureArguments.getImpId();
 
-        boolean updated = false;
         final List<Activity> activities = new ArrayList<>();
         final List<Imp> updatedImps = new ArrayList<>();
+        final Set<String> removedBidders = new HashSet<>();
+        final List<SeatNonBid> seatNonBid = new ArrayList<>();
 
         for (Imp imp : bidRequest.getImp()) {
-            if (shouldSkipAdUnit(imp, infrastructureArguments)) {
+            if (!impId.equals("*") && !StringUtils.equals(impId, imp.getId())) {
                 updatedImps.add(imp);
                 continue;
             }
 
-            final UpdateResult<Imp> impUpdateResult = filterBidders(imp, config.getBidders(), ifSyncedId, uidsCookie);
-            updatedImps.add(impUpdateResult.getValue());
-            updated = updated || impUpdateResult.isUpdated();
+            final FilterBiddersResult result = filterBidders(imp, config.getBidders(), ifSyncedId, uidsCookie);
+            updatedImps.add(result.getImp());
+            removedBidders.addAll(result.getBidders());
+            seatNonBid.addAll(toSeatNonBid(result, rejectionReason));
         }
 
-        final UpdateResult<BidRequest> updateResult = updated
+        final UpdateResult<BidRequest> updateResult = removedBidders.isEmpty()
                 ? UpdateResult.updated(bidRequest.toBuilder().imp(updatedImps).build())
                 : UpdateResult.unaltered(bidRequest);
 
-        return RuleResult.of(updateResult, TagsImpl.of(activities));
+        return RuleResult.of(updateResult, TagsImpl.of(activities), seatNonBid);
     }
 
-    private static boolean shouldSkipAdUnit(Imp imp, InfrastructureArguments<AuctionContext> arguments) {
-        return imp.getExt() == null
-                || (arguments.getSchemaFunctionResults().containsKey(AdUnitCodeFunction.NAME)
-                && !arguments.getSchemaFunctionMatches().get(AdUnitCodeFunction.NAME).equals("*")
-                && arguments.getSchemaFunctionMatches().get(AdUnitCodeFunction.NAME).equals(imp.getId()));
+    private static List<SeatNonBid> toSeatNonBid(FilterBiddersResult filterBiddersResult, BidRejectionReason reason) {
+        final String impId = filterBiddersResult.getImp().getId();
+        return filterBiddersResult.getBidders().stream()
+                .map(bidder -> SeatNonBid.of(bidder, Collections.singletonList(NonBid.of(impId, reason))))
+                .toList();
     }
 
-    protected abstract UpdateResult<Imp> filterBidders(Imp imp,
-                                                       List<String> bidders,
-                                                       Boolean ifSyncedId,
-                                                       UidsCookie uidsCookie);
+    protected abstract FilterBiddersResult filterBidders(Imp imp,
+                                                         Set<String> bidders,
+                                                         Boolean ifSyncedId,
+                                                         UidsCookie uidsCookie);
 
     protected boolean isBidderIdSynced(String bidder, UidsCookie uidsCookie) {
         return bidderCatalog.cookieFamilyName(bidder)

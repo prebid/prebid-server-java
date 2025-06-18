@@ -7,6 +7,7 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.Rule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleConfig;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleResult;
+import org.prebid.server.hooks.modules.rule.engine.core.rules.exception.NoMatchingRuleException;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.result.InfrastructureArguments;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.result.ResultFunctionArguments;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.Schema;
@@ -25,6 +26,8 @@ import java.util.stream.IntStream;
 import static org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunction.UNDEFINED_RESULT;
 
 public class RequestMatchingRule implements Rule<BidRequest, AuctionContext> {
+
+    private static final String GLOBAL_IMP_ID = "*";
 
     private final Schema<RequestContext> schema;
     private final Set<String> schemaFunctionNames;
@@ -54,7 +57,7 @@ public class RequestMatchingRule implements Rule<BidRequest, AuctionContext> {
     @Override
     public RuleResult<BidRequest> process(BidRequest bidRequest, AuctionContext context) {
         return SetUtils.intersection(schemaFunctionNames, RequestSpecification.PER_IMP_SCHEMA_FUNCTIONS).isEmpty()
-                ? processRule(bidRequest, null, context)
+                ? processRule(bidRequest, GLOBAL_IMP_ID, context)
                 : processPerImpRule(bidRequest, context);
     }
 
@@ -76,12 +79,19 @@ public class RequestMatchingRule implements Rule<BidRequest, AuctionContext> {
                 .map(matcher -> StringUtils.defaultIfEmpty(matcher, UNDEFINED_RESULT))
                 .toList();
 
-        final LookupResult<RuleConfig<BidRequest, AuctionContext>> lookupResult = ruleTree.lookup(matchers);
+        final LookupResult<RuleConfig<BidRequest, AuctionContext>> lookupResult;
+        try {
+            lookupResult = ruleTree.lookup(matchers);
+        } catch (NoMatchingRuleException e) {
+            return RuleResult.unaltered(bidRequest);
+        }
+
         final RuleConfig<BidRequest, AuctionContext> ruleConfig = lookupResult.getValue();
 
         final InfrastructureArguments<AuctionContext> infrastructureArguments =
                 InfrastructureArguments.<AuctionContext>builder()
                         .context(auctionContext)
+                        .impId(impId)
                         .schemaFunctionResults(mergeWithSchema(schema, matchers))
                         .schemaFunctionMatches(mergeWithSchema(schema, lookupResult.getMatches()))
                         .ruleFired(ruleConfig.getCondition())

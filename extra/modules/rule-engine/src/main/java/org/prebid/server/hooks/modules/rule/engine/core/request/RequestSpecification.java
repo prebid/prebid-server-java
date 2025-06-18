@@ -4,8 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iab.openrtb.request.BidRequest;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.hooks.modules.rule.engine.core.request.result.functions.ExcludeBiddersFunction;
-import org.prebid.server.hooks.modules.rule.engine.core.request.result.functions.IncludeBiddersFunction;
+import org.prebid.server.hooks.modules.rule.engine.core.request.result.functions.filter.ExcludeBiddersFunction;
+import org.prebid.server.hooks.modules.rule.engine.core.request.result.functions.filter.IncludeBiddersFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.AdUnitCodeFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.AdUnitCodeInFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.BundleFunction;
@@ -74,7 +74,6 @@ public class RequestSpecification implements StageSpecification<RequestContext, 
                 ExcludeBiddersFunction.NAME, new ExcludeBiddersFunction(mapper, bidderCatalog),
                 IncludeBiddersFunction.NAME, new IncludeBiddersFunction(mapper, bidderCatalog));
     }
-
 
     public SchemaFunction<RequestContext> schemaFunctionByName(String name) {
         final SchemaFunction<RequestContext> function = schemaFunctions.get(name);
